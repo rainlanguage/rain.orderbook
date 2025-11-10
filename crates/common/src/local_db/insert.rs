@@ -1,6 +1,8 @@
 use super::decode::{DecodedEvent, DecodedEventData, InterpreterStoreSetEvent};
 use super::query::{SqlStatement, SqlStatementBatch, SqlValue};
+use super::OrderbookIdentifier;
 use crate::{erc20::TokenInfo, rpc_client::LogEntryResponse};
+use alloy::primitives::Bytes;
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
@@ -74,32 +76,36 @@ fn vault_id_by_index<'a>(
         })
 }
 
-struct EventContext<'a> {
+struct EventContext {
+    ob_id: OrderbookIdentifier,
     block_number: u64,
     block_timestamp: u64,
-    transaction_hash: &'a str,
+    transaction_hash: Bytes,
     log_index: u64,
 }
 
-fn event_context<'a>(
-    event: &'a DecodedEventData<DecodedEvent>,
-) -> Result<EventContext<'a>, InsertError> {
+fn event_context(
+    ob_id: &OrderbookIdentifier,
+    event: &DecodedEventData<DecodedEvent>,
+) -> Result<EventContext, InsertError> {
     Ok(EventContext {
+        ob_id: ob_id.clone(),
         block_number: hex_to_decimal(&event.block_number)?,
         block_timestamp: hex_to_decimal(&event.block_timestamp)?,
-        transaction_hash: &event.transaction_hash,
+        transaction_hash: event.transaction_hash.clone(),
         log_index: hex_to_decimal(&event.log_index)?,
     })
 }
 
 pub fn decoded_events_to_statements(
+    ob_id: &OrderbookIdentifier,
     events: &[DecodedEventData<DecodedEvent>],
     decimals_by_token: &HashMap<Address, u8>,
 ) -> Result<SqlStatementBatch, InsertError> {
     let mut batch = SqlStatementBatch::new();
 
     for event in events {
-        let context = event_context(event)?;
+        let context = event_context(ob_id, event)?;
         match &event.decoded_data {
             DecodedEvent::DepositV2(decoded) => {
                 batch.add(generate_deposit_statement(
@@ -154,6 +160,7 @@ pub fn decoded_events_to_statements(
 }
 
 pub fn raw_events_to_statements(
+    ob_id: &OrderbookIdentifier,
     raw_events: &[LogEntryResponse],
 ) -> Result<SqlStatementBatch, InsertError> {
     struct RawEventRow<'a> {
@@ -201,6 +208,8 @@ pub fn raw_events_to_statements(
 
         batch.add(SqlStatement::new_with_params(
             r#"INSERT INTO raw_events (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -217,10 +226,14 @@ pub fn raw_events_to_statements(
     ?5,
     ?6,
     ?7,
-    ?8
+    ?8,
+    ?9,
+    ?10
 );
 "#,
             vec![
+                SqlValue::from(ob_id.chain_id as u64),
+                SqlValue::from(ob_id.orderbook_address.to_string()),
                 SqlValue::from(row.block_number),
                 block_timestamp,
                 SqlValue::from(row.event.transaction_hash.clone()),
@@ -238,16 +251,18 @@ pub fn raw_events_to_statements(
 
 /// Build upsert SQL for erc20_tokens. Only include successfully fetched tokens.
 pub fn generate_erc20_token_statements(
-    chain_id: u32,
+    ob_id: &OrderbookIdentifier,
     tokens: &[(Address, TokenInfo)],
 ) -> SqlStatementBatch {
     let mut batch = SqlStatementBatch::new();
 
     for (addr, info) in tokens.iter() {
+        let token_hex = hex::encode_prefixed(*addr);
         batch.add(SqlStatement::new_with_params(
             r#"INSERT INTO erc20_tokens (
             chain_id,
-            address,
+            orderbook_address,
+            token_address,
             name,
             symbol,
             decimals
@@ -256,13 +271,15 @@ pub fn generate_erc20_token_statements(
             ?2,
             ?3,
             ?4,
-            ?5
+            ?5,
+            ?6
         )
-        ON CONFLICT(chain_id, address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;
+        ON CONFLICT(chain_id, orderbook_address, token_address) DO UPDATE SET decimals = excluded.decimals, name = excluded.name, symbol = excluded.symbol;
         "#,
             [
-                SqlValue::from(chain_id as u64),
-                SqlValue::from(format!("0x{:x}", addr)),
+                SqlValue::from(ob_id.chain_id as u64),
+                SqlValue::from(ob_id.orderbook_address.to_string()),
+                SqlValue::from(token_hex),
                 SqlValue::from(info.name.clone()),
                 SqlValue::from(info.symbol.clone()),
                 SqlValue::from(info.decimals as i64),
@@ -288,7 +305,7 @@ fn sql_string_literal(value: &str) -> String {
 }
 
 fn generate_deposit_statement(
-    context: &EventContext<'_>,
+    context: &EventContext,
     decoded: &DepositV2,
     decimals_by_token: &HashMap<Address, u8>,
 ) -> Result<SqlStatement, InsertError> {
@@ -304,7 +321,7 @@ fn generate_deposit_statement(
 
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let token = hex::encode_prefixed(decoded.token);
@@ -314,6 +331,8 @@ fn generate_deposit_statement(
 
     Ok(SqlStatement::new_with_params(
         r#"INSERT INTO deposits (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -332,13 +351,17 @@ fn generate_deposit_statement(
     ?6,
     ?7,
     ?8,
-    ?9
+    ?9,
+    ?10,
+    ?11
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(token),
@@ -349,10 +372,10 @@ fn generate_deposit_statement(
     ))
 }
 
-fn generate_withdraw_statement(context: &EventContext<'_>, decoded: &WithdrawV2) -> SqlStatement {
+fn generate_withdraw_statement(context: &EventContext, decoded: &WithdrawV2) -> SqlStatement {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let token = hex::encode_prefixed(decoded.token);
@@ -363,6 +386,8 @@ fn generate_withdraw_statement(context: &EventContext<'_>, decoded: &WithdrawV2)
 
     SqlStatement::new_with_params(
         r#"INSERT INTO withdrawals (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -383,13 +408,17 @@ fn generate_withdraw_statement(context: &EventContext<'_>, decoded: &WithdrawV2)
     ?7,
     ?8,
     ?9,
-    ?10
+    ?10,
+    ?11,
+    ?12
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(token),
@@ -401,11 +430,11 @@ fn generate_withdraw_statement(context: &EventContext<'_>, decoded: &WithdrawV2)
     )
 }
 
-fn generate_add_order_statement(context: &EventContext<'_>, decoded: &AddOrderV3) -> SqlStatement {
+fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) -> SqlStatement {
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_hash = hex::encode_prefixed(decoded.orderHash);
@@ -414,6 +443,8 @@ fn generate_add_order_statement(context: &EventContext<'_>, decoded: &AddOrderV3
 
     SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -429,18 +460,22 @@ fn generate_add_order_statement(context: &EventContext<'_>, decoded: &AddOrderV3
     ?2,
     ?3,
     ?4,
-    'AddOrderV3',
     ?5,
     ?6,
+    'AddOrderV3',
     ?7,
     ?8,
-    ?9
+    ?9,
+    ?10,
+    ?11
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(order_hash),
@@ -452,13 +487,13 @@ fn generate_add_order_statement(context: &EventContext<'_>, decoded: &AddOrderV3
 }
 
 fn generate_remove_order_statement(
-    context: &EventContext<'_>,
+    context: &EventContext,
     decoded: &RemoveOrderV3,
 ) -> SqlStatement {
     let order_bytes = hex::encode_prefixed(decoded.order.abi_encode());
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_hash = hex::encode_prefixed(decoded.orderHash);
@@ -467,6 +502,8 @@ fn generate_remove_order_statement(
 
     SqlStatement::new_with_params(
         r#"INSERT INTO order_events (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -482,18 +519,22 @@ fn generate_remove_order_statement(
     ?2,
     ?3,
     ?4,
-    'RemoveOrderV3',
     ?5,
+    'RemoveOrderV3',
     ?6,
     ?7,
     ?8,
-    ?9
+    ?9,
+    ?10,
+    ?11
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(order_hash),
@@ -505,7 +546,7 @@ fn generate_remove_order_statement(
 }
 
 fn generate_take_order_statement(
-    context: &EventContext<'_>,
+    context: &EventContext,
     decoded: &TakeOrderV3,
 ) -> Result<SqlStatement, InsertError> {
     let input_io_index_u64 = u256_to_u64(&decoded.config.inputIOIndex, "inputIOIndex")?;
@@ -513,7 +554,7 @@ fn generate_take_order_statement(
 
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let order_owner = hex::encode_prefixed(decoded.config.order.owner);
@@ -523,6 +564,8 @@ fn generate_take_order_statement(
 
     Ok(SqlStatement::new_with_params(
         r#"INSERT INTO take_orders (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -545,13 +588,17 @@ fn generate_take_order_statement(
     ?8,
     ?9,
     ?10,
-    ?11
+    ?11,
+    ?12,
+    ?13
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(order_owner),
@@ -565,10 +612,12 @@ fn generate_take_order_statement(
 }
 
 fn generate_take_order_context_statements(
-    context: &EventContext<'_>,
+    context: &EventContext,
     decoded: &TakeOrderV3,
 ) -> SqlStatementBatch {
     const INSERT_CONTEXT_SQL: &str = r#"INSERT INTO take_order_contexts (
+    chain_id,
+    orderbook_address,
     transaction_hash,
     log_index,
     context_index,
@@ -577,12 +626,14 @@ fn generate_take_order_context_statements(
     ?1,
     ?2,
     ?3,
-    ?4
+    ?4,
+    ?5,
+    ?6
 );
 "#;
 
     let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash.to_owned();
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
 
     for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
@@ -595,7 +646,9 @@ fn generate_take_order_context_statements(
         batch.add(SqlStatement::new_with_params(
             INSERT_CONTEXT_SQL,
             vec![
-                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(context.ob_id.chain_id as i64),
+                SqlValue::from(context.ob_id.orderbook_address.to_string()),
+                SqlValue::from(transaction_hash.to_string()),
                 SqlValue::from(log_index),
                 SqlValue::from(context_index as u64),
                 SqlValue::from(context_value),
@@ -607,10 +660,12 @@ fn generate_take_order_context_statements(
 }
 
 fn generate_take_order_context_value_statements(
-    context: &EventContext<'_>,
+    context: &EventContext,
     decoded: &TakeOrderV3,
 ) -> SqlStatementBatch {
     const INSERT_VALUE_SQL: &str = r#"INSERT INTO context_values (
+    chain_id,
+    orderbook_address,
     transaction_hash,
     log_index,
     context_index,
@@ -621,12 +676,14 @@ fn generate_take_order_context_value_statements(
     ?2,
     ?3,
     ?4,
-    ?5
+    ?5,
+    ?6,
+    ?7
 );
 "#;
 
     let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash.to_owned();
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
 
     for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
@@ -634,7 +691,9 @@ fn generate_take_order_context_value_statements(
             batch.add(SqlStatement::new_with_params(
                 INSERT_VALUE_SQL,
                 vec![
-                    SqlValue::from(transaction_hash.clone()),
+                    SqlValue::from(context.ob_id.chain_id as i64),
+                    SqlValue::from(context.ob_id.orderbook_address.to_string()),
+                    SqlValue::from(transaction_hash.to_string()),
                     SqlValue::from(log_index),
                     SqlValue::from(context_index as u64),
                     SqlValue::from(value_index as u64),
@@ -648,7 +707,7 @@ fn generate_take_order_context_value_statements(
 }
 
 fn generate_clear_v3_statement(
-    context: &EventContext<'_>,
+    context: &EventContext,
     decoded: &ClearV3,
 ) -> Result<SqlStatement, InsertError> {
     let alice_input_io_index_u64 =
@@ -688,7 +747,7 @@ fn generate_clear_v3_statement(
     let bob_order_hash = compute_order_hash(&decoded.bob);
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let alice_order_owner = hex::encode_prefixed(decoded.alice.owner);
@@ -706,6 +765,8 @@ fn generate_clear_v3_statement(
 
     Ok(SqlStatement::new_with_params(
         r#"INSERT INTO clear_v3_events (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -744,13 +805,16 @@ fn generate_clear_v3_statement(
     ?16,
     ?17,
     ?18,
-    ?19
+    ?19,
+    ?20
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(alice_order_hash),
@@ -771,13 +835,10 @@ fn generate_clear_v3_statement(
     ))
 }
 
-fn generate_after_clear_statement(
-    context: &EventContext<'_>,
-    decoded: &AfterClearV2,
-) -> SqlStatement {
+fn generate_after_clear_statement(context: &EventContext, decoded: &AfterClearV2) -> SqlStatement {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let alice_input = hex::encode_prefixed(decoded.clearStateChange.aliceInput);
@@ -787,6 +848,8 @@ fn generate_after_clear_statement(
 
     SqlStatement::new_with_params(
         r#"INSERT INTO after_clear_v2_events (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -805,13 +868,17 @@ fn generate_after_clear_statement(
     ?6,
     ?7,
     ?8,
-    ?9
+    ?9,
+    ?10,
+    ?11
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(alice_input),
@@ -822,10 +889,10 @@ fn generate_after_clear_statement(
     )
 }
 
-fn generate_meta_statement(context: &EventContext<'_>, decoded: &MetaV1_2) -> SqlStatement {
+fn generate_meta_statement(context: &EventContext, decoded: &MetaV1_2) -> SqlStatement {
     let block_number = context.block_number;
     let block_timestamp = context.block_timestamp;
-    let transaction_hash = context.transaction_hash;
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
     let sender = hex::encode_prefixed(decoded.sender);
     let subject = hex::encode_prefixed(decoded.subject);
@@ -833,6 +900,8 @@ fn generate_meta_statement(context: &EventContext<'_>, decoded: &MetaV1_2) -> Sq
 
     SqlStatement::new_with_params(
         r#"INSERT INTO meta_events (
+    chain_id,
+    orderbook_address,
     block_number,
     block_timestamp,
     transaction_hash,
@@ -847,13 +916,17 @@ fn generate_meta_statement(context: &EventContext<'_>, decoded: &MetaV1_2) -> Sq
     ?4,
     ?5,
     ?6,
-    ?7
+    ?7,
+    ?8,
+    ?9
 );
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(block_number),
             SqlValue::from(block_timestamp),
-            SqlValue::from(transaction_hash.to_owned()),
+            SqlValue::from(transaction_hash.to_string()),
             SqlValue::from(log_index),
             SqlValue::from(sender),
             SqlValue::from(subject),
@@ -863,11 +936,13 @@ fn generate_meta_statement(context: &EventContext<'_>, decoded: &MetaV1_2) -> Sq
 }
 
 fn generate_store_set_statement(
-    context: &EventContext<'_>,
+    context: &EventContext,
     decoded: &InterpreterStoreSetEvent,
 ) -> SqlStatement {
     SqlStatement::new_with_params(
         r#"INSERT INTO interpreter_store_sets (
+    chain_id,
+    orderbook_address,
     store_address,
     block_number,
     block_timestamp,
@@ -884,8 +959,10 @@ fn generate_store_set_statement(
     ?5,
     ?6,
     ?7,
-    ?8
-) ON CONFLICT(transaction_hash, log_index) DO UPDATE SET
+    ?8,
+    ?9,
+    ?10
+) ON CONFLICT(chain_id, orderbook_address, transaction_hash, log_index) DO UPDATE SET
     store_address = excluded.store_address,
     block_number = excluded.block_number,
     block_timestamp = excluded.block_timestamp,
@@ -894,10 +971,12 @@ fn generate_store_set_statement(
     value = excluded.value;
 "#,
         vec![
+            SqlValue::from(context.ob_id.chain_id as i64),
+            SqlValue::from(context.ob_id.orderbook_address.to_string()),
             SqlValue::from(hex::encode_prefixed(decoded.store_address)),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.to_owned()),
+            SqlValue::from(context.transaction_hash.to_string()),
             SqlValue::from(context.log_index),
             SqlValue::from(hex::encode_prefixed(FixedBytes::<32>::from(
                 decoded.payload.namespace.to_be_bytes::<32>(),
@@ -908,8 +987,10 @@ fn generate_store_set_statement(
     )
 }
 
-fn generate_order_ios_statements(context: &EventContext<'_>, order: &OrderV4) -> SqlStatementBatch {
+fn generate_order_ios_statements(context: &EventContext, order: &OrderV4) -> SqlStatementBatch {
     const INSERT_IO_SQL: &str = r#"INSERT INTO order_ios (
+    chain_id,
+    orderbook_address,
     transaction_hash,
     log_index,
     io_index,
@@ -922,19 +1003,23 @@ fn generate_order_ios_statements(context: &EventContext<'_>, order: &OrderV4) ->
     ?3,
     ?4,
     ?5,
-    ?6
+    ?6,
+    ?7,
+    ?8
 );
 "#;
 
     let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash.to_owned();
+    let transaction_hash = context.transaction_hash.clone();
     let log_index = context.log_index;
 
     for (index, input) in order.validInputs.iter().enumerate() {
         batch.add(SqlStatement::new_with_params(
             INSERT_IO_SQL,
             vec![
-                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(context.ob_id.chain_id as i64),
+                SqlValue::from(context.ob_id.orderbook_address.to_string()),
+                SqlValue::from(transaction_hash.to_string()),
                 SqlValue::from(log_index),
                 SqlValue::from(index as u64),
                 SqlValue::from("input"),
@@ -948,7 +1033,9 @@ fn generate_order_ios_statements(context: &EventContext<'_>, order: &OrderV4) ->
         batch.add(SqlStatement::new_with_params(
             INSERT_IO_SQL,
             vec![
-                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(context.ob_id.chain_id as i64),
+                SqlValue::from(context.ob_id.orderbook_address.to_string()),
+                SqlValue::from(transaction_hash.to_string()),
                 SqlValue::from(log_index),
                 SqlValue::from(index as u64),
                 SqlValue::from("output"),
@@ -981,6 +1068,7 @@ mod tests {
         ClearConfigV2, ClearStateChangeV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
     };
     use std::collections::HashMap;
+    use std::str::FromStr;
 
     fn build_event(
         event_type: EventType,
@@ -994,7 +1082,7 @@ mod tests {
             event_type,
             block_number: block_number.to_string(),
             block_timestamp: block_timestamp.to_string(),
-            transaction_hash: transaction_hash.to_string(),
+            transaction_hash: Bytes::from_str(transaction_hash).unwrap(),
             log_index: log_index.to_string(),
             decoded_data: decoded,
         }
@@ -1037,7 +1125,7 @@ mod tests {
             EventType::AddOrderV3,
             "0x100",
             "0x200",
-            "0xaaa",
+            "0xaaa0",
             "0x1",
             DecodedEvent::AddOrderV3(Box::new(add)),
         )
@@ -1078,7 +1166,7 @@ mod tests {
             EventType::ClearV3,
             "0x100",
             "0x200",
-            "0xabc",
+            "0xabc0",
             "0x1",
             DecodedEvent::ClearV3(Box::new(clear)),
         )
@@ -1105,7 +1193,7 @@ mod tests {
             EventType::TakeOrderV3,
             "0x101",
             "0x201",
-            "0xdef",
+            "0xdef0",
             "0x2",
             DecodedEvent::TakeOrderV3(Box::new(take)),
         )
@@ -1181,7 +1269,7 @@ mod tests {
             EventType::DepositV2,
             "0x102",
             "0x202",
-            "0x123",
+            "0x1230",
             "0x3",
             DecodedEvent::DepositV2(Box::new(deposit)),
         )
@@ -1190,7 +1278,7 @@ mod tests {
     #[test]
     fn store_set_sql_generation() {
         let event = sample_store_set_event();
-        let context = event_context(&event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::InterpreterStoreSet(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1198,35 +1286,48 @@ mod tests {
         assert!(statement
             .sql()
             .contains("INSERT INTO interpreter_store_sets"));
-        assert!(statement.sql().contains("?8"));
+        assert!(statement.sql().contains("?10"));
         let params = statement.params();
-        assert_eq!(params.len(), 8);
-        assert!(
-            matches!(params[0], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.store_address))
-        );
-        assert!(matches!(params[1], SqlValue::U64(v) if v == context.block_number));
-        assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_timestamp));
-        assert!(matches!(params[3], SqlValue::Text(ref v) if v == context.transaction_hash));
-        assert!(matches!(params[4], SqlValue::U64(v) if v == context.log_index));
+        assert_eq!(params.len(), 10);
         assert!(matches!(
-            params[5],
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
+        ));
+        assert!(
+            matches!(params[2], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.store_address))
+        );
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(
+            params[4],
+            SqlValue::U64(v) if v == context.block_timestamp
+        ));
+        assert!(
+            matches!(params[5], SqlValue::Text(ref v) if v == &context.transaction_hash.to_string())
+        );
+        assert!(matches!(params[6], SqlValue::U64(v) if v == context.log_index));
+        assert!(matches!(
+            params[7],
             SqlValue::Text(ref v)
                 if v == &hex::encode_prefixed(FixedBytes::<32>::from(
                     decoded.payload.namespace.to_be_bytes::<32>(),
                 ))
         ));
         assert!(
-            matches!(params[6], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.key))
+            matches!(params[8], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.key))
         );
         assert!(
-            matches!(params[7], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.value))
+            matches!(params[9], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.payload.value))
         );
     }
 
     #[test]
     fn deposit_statement_generation() {
         let event = sample_deposit_event();
-        let context = event_context(&event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::DepositV2(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1235,30 +1336,54 @@ mod tests {
         decimals.insert(deposit.token, 6);
         let statement = generate_deposit_statement(&context, deposit, &decimals).unwrap();
         assert!(statement.sql().contains("INSERT INTO deposits"));
-        assert!(statement.sql().contains("?9"));
+        assert!(statement.sql().contains("?11"));
         let params = statement.params();
-        assert_eq!(params.len(), 9);
-        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
-        assert!(matches!(params[1], SqlValue::U64(v) if v == context.block_timestamp));
-        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        assert_eq!(params.len(), 11);
+        assert!(matches!(
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
+        ));
+        assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
+        assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
+        assert!(matches!(
+            params[6],
+            SqlValue::Text(ref v) if v == &hex::encode_prefixed(deposit.sender)
+        ));
+        assert!(matches!(
+            params[7],
+            SqlValue::Text(ref v) if v == &hex::encode_prefixed(deposit.token)
+        ));
         let expected_uint256 = encode_u256_prefixed(&deposit.depositAmountUint256);
-        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_uint256));
+        assert!(matches!(params[10], SqlValue::Text(ref v) if v == &expected_uint256));
     }
 
     #[test]
     fn add_order_sql_includes_order_bytes() {
         let event = sample_add_event();
-        let context = event_context(&event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::AddOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
         let statement = generate_add_order_statement(&context, decoded);
         assert!(statement.sql().contains("order_bytes"));
-        assert!(statement.sql().contains("?9"));
+        assert!(statement.sql().contains("?11"));
         let params = statement.params();
-        assert_eq!(params.len(), 9);
+        assert_eq!(params.len(), 11);
+        assert!(matches!(
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
+        ));
         let expected_bytes = hex::encode_prefixed(decoded.order.abi_encode());
-        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_bytes));
+        assert!(matches!(params[10], SqlValue::Text(ref v) if v == &expected_bytes));
         let ios_batch = generate_order_ios_statements(&context, &decoded.order);
         let expected_ios_len = decoded.order.validInputs.len() + decoded.order.validOutputs.len();
         assert_eq!(ios_batch.len(), expected_ios_len);
@@ -1271,19 +1396,28 @@ mod tests {
     #[test]
     fn take_order_sql_generation() {
         let event = sample_take_event();
-        let context = event_context(&event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::TakeOrderV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
         let statement = generate_take_order_statement(&context, decoded).unwrap();
         assert!(statement.sql().contains("INSERT INTO take_orders"));
-        assert!(statement.sql().contains("?11"));
+        assert!(statement.sql().contains("?13"));
         let params = statement.params();
-        assert_eq!(params.len(), 11);
-        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
-        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        assert_eq!(params.len(), 13);
+        assert!(matches!(
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
+        ));
+        assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
+        assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
         assert!(
-            matches!(params[4], SqlValue::Text(ref v) if v == "0x0909090909090909090909090909090909090909")
+            matches!(params[6], SqlValue::Text(ref v) if v == "0x0909090909090909090909090909090909090909")
         );
 
         let contexts = generate_take_order_context_statements(&context, decoded);
@@ -1310,7 +1444,7 @@ mod tests {
     #[test]
     fn after_clear_sql_generation() {
         let event = sample_after_clear_event();
-        let context = event_context(&event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::AfterClearV2(decoded) = &event.decoded_data else {
             unreachable!()
         };
@@ -1318,57 +1452,87 @@ mod tests {
         assert!(statement
             .sql()
             .contains("INSERT INTO after_clear_v2_events"));
-        assert!(statement.sql().contains("?9"));
+        assert!(statement.sql().contains("?11"));
         let params = statement.params();
-        assert_eq!(params.len(), 9);
-        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
-        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        assert_eq!(params.len(), 11);
+        assert!(matches!(
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
+        ));
+        assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
+        assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
+        assert!(
+            matches!(params[6], SqlValue::Text(ref v) if v == &hex::encode_prefixed(decoded.sender))
+        );
         let expected_alice_input = hex::encode_prefixed(decoded.clearStateChange.aliceInput);
-        assert!(matches!(params[5], SqlValue::Text(ref v) if v == &expected_alice_input));
+        assert!(matches!(params[7], SqlValue::Text(ref v) if v == &expected_alice_input));
         let expected_bob_output = hex::encode_prefixed(decoded.clearStateChange.bobOutput);
-        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_bob_output));
+        assert!(matches!(params[10], SqlValue::Text(ref v) if v == &expected_bob_output));
     }
 
     #[test]
     fn meta_sql_generation() {
         let event = sample_meta_event();
-        let context = event_context(&event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::MetaV1_2(decoded) = &event.decoded_data else {
             unreachable!()
         };
         let statement = generate_meta_statement(&context, decoded);
         assert!(statement.sql().contains("INSERT INTO meta_events"));
-        assert!(statement.sql().contains("?7"));
+        assert!(statement.sql().contains("?9"));
         let params = statement.params();
-        assert_eq!(params.len(), 7);
-        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
-        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        assert_eq!(params.len(), 9);
+        assert!(matches!(
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
+        ));
+        assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
+        assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
         let expected_sender = hex::encode_prefixed(decoded.sender);
-        assert!(matches!(params[4], SqlValue::Text(ref v) if v == &expected_sender));
+        assert!(matches!(params[6], SqlValue::Text(ref v) if v == &expected_sender));
         let expected_subject = hex::encode_prefixed(decoded.subject);
-        assert!(matches!(params[5], SqlValue::Text(ref v) if v == &expected_subject));
+        assert!(matches!(params[7], SqlValue::Text(ref v) if v == &expected_subject));
         let expected_meta = hex::encode_prefixed(&decoded.meta);
-        assert!(matches!(params[6], SqlValue::Text(ref v) if v == &expected_meta));
+        assert!(matches!(params[8], SqlValue::Text(ref v) if v == &expected_meta));
     }
 
     #[test]
     fn clear_v3_sql_generation() {
         let event = sample_clear_event();
-        let context = event_context(&event).unwrap();
+        let context = event_context(&OrderbookIdentifier::new(1, Address::ZERO), &event).unwrap();
         let DecodedEvent::ClearV3(decoded) = &event.decoded_data else {
             unreachable!()
         };
         let statement = generate_clear_v3_statement(&context, decoded).unwrap();
         assert!(statement.sql().contains("INSERT INTO clear_v3_events"));
-        assert!(statement.sql().contains("?19"));
+        assert!(statement.sql().contains("?20"));
         let params = statement.params();
-        assert_eq!(params.len(), 19);
-        assert!(matches!(params[0], SqlValue::U64(v) if v == context.block_number));
-        assert!(matches!(params[3], SqlValue::U64(v) if v == context.log_index));
+        assert_eq!(params.len(), 21);
+        assert!(matches!(
+            params[0],
+            SqlValue::I64(v) if v == context.ob_id.chain_id as i64
+        ));
+        assert!(matches!(
+            params[1],
+            SqlValue::Text(ref v) if v == &context.ob_id.orderbook_address.to_string()
+        ));
+        assert!(matches!(params[2], SqlValue::U64(v) if v == context.block_number));
+        assert!(matches!(params[3], SqlValue::U64(v) if v == context.block_timestamp));
+        assert!(matches!(params[5], SqlValue::U64(v) if v == context.log_index));
         let expected_alice_input_vault = hex::encode_prefixed(decoded.alice.validInputs[0].vaultId);
-        assert!(matches!(params[10], SqlValue::Text(ref v) if v == &expected_alice_input_vault));
+        assert!(matches!(params[12], SqlValue::Text(ref v) if v == &expected_alice_input_vault));
         let expected_bob_input_vault = hex::encode_prefixed(decoded.bob.validInputs[0].vaultId);
-        assert!(matches!(params[17], SqlValue::Text(ref v) if v == &expected_bob_input_vault));
+        assert!(matches!(params[19], SqlValue::Text(ref v) if v == &expected_bob_input_vault));
     }
 
     #[test]
@@ -1388,9 +1552,13 @@ mod tests {
         if let DecodedEvent::DepositV2(deposit) = &deposit_event.decoded_data {
             decimals.insert(deposit.token, 6);
         }
-        let batch = decoded_events_to_statements(&[deposit_event, clear_event], &decimals)
-            .unwrap()
-            .ensure_transaction();
+        let batch = decoded_events_to_statements(
+            &OrderbookIdentifier::new(1, Address::from([0x11; 20])),
+            &[deposit_event, clear_event],
+            &decimals,
+        )
+        .unwrap()
+        .ensure_transaction();
         let sql = batch.statements().iter().map(|stmt| stmt.sql()).join("\n");
         assert!(sql.contains("INSERT INTO deposits"));
         assert!(sql.contains("INSERT INTO clear_v3_events"));
@@ -1409,9 +1577,13 @@ mod tests {
                 note: "n/a".into(),
             }),
         );
-        let batch = decoded_events_to_statements(&[unknown_event], &HashMap::new())
-            .unwrap()
-            .ensure_transaction();
+        let batch = decoded_events_to_statements(
+            &OrderbookIdentifier::new(1, Address::from([0x11; 20])),
+            &[unknown_event],
+            &HashMap::new(),
+        )
+        .unwrap()
+        .ensure_transaction();
         let sql = batch.statements().iter().map(|stmt| stmt.sql()).join("\n");
         assert!(sql.contains("BEGIN TRANSACTION"));
     }
@@ -1439,7 +1611,9 @@ mod tests {
             ),
         ];
 
-        let batch = generate_erc20_token_statements(1, &tokens);
+        let orderbook = Address::from([0x11; 20]);
+        let batch =
+            generate_erc20_token_statements(&OrderbookIdentifier::new(1, orderbook), &tokens);
         assert_eq!(batch.len(), tokens.len());
 
         for (statement, (expected_addr, expected_info)) in
@@ -1447,25 +1621,31 @@ mod tests {
         {
             let sql = statement.sql();
             assert!(sql.contains("INSERT INTO erc20_tokens"));
-            assert!(sql.contains("ON CONFLICT(chain_id, address) DO UPDATE"));
+            assert!(
+                sql.contains("ON CONFLICT(chain_id, orderbook_address, token_address) DO UPDATE")
+            );
 
             let params = statement.params();
-            assert_eq!(params.len(), 5);
+            assert_eq!(params.len(), 6);
             assert!(matches!(params[0], SqlValue::U64(1u64)));
             assert!(matches!(
                 &params[1],
-                SqlValue::Text(addr) if addr == &format!("0x{:x}", expected_addr)
+                SqlValue::Text(addr) if addr == &format!("0x{:x}", orderbook)
             ));
             assert!(matches!(
                 &params[2],
-                SqlValue::Text(name) if name == &expected_info.name
+                SqlValue::Text(addr) if addr == &format!("0x{:x}", expected_addr)
             ));
             assert!(matches!(
                 &params[3],
+                SqlValue::Text(name) if name == &expected_info.name
+            ));
+            assert!(matches!(
+                &params[4],
                 SqlValue::Text(symbol) if symbol == &expected_info.symbol
             ));
             assert!(matches!(
-                params[4],
+                params[5],
                 SqlValue::I64(value) if value == expected_info.decimals as i64
             ));
         }
@@ -1513,28 +1693,34 @@ mod tests {
             },
         )];
 
-        let batch = generate_erc20_token_statements(5, &tokens);
+        let orderbook = Address::from([0x22; 20]);
+        let batch =
+            generate_erc20_token_statements(&OrderbookIdentifier::new(5, orderbook), &tokens);
         assert_eq!(batch.len(), 1);
         let statement = &batch.statements()[0];
         let sql = statement.sql();
         assert!(sql.contains("INSERT INTO erc20_tokens"));
 
         let params = statement.params();
-        assert_eq!(params.len(), 5);
+        assert_eq!(params.len(), 6);
         assert!(matches!(params[0], SqlValue::U64(5u64)));
         assert!(matches!(
             &params[1],
-            SqlValue::Text(address) if address == &format!("0x{:x}", addr)
+            SqlValue::Text(orderbook_param) if orderbook_param == &format!("0x{:x}", orderbook)
         ));
         assert!(matches!(
             &params[2],
-            SqlValue::Text(name_param) if name_param == &name
+            SqlValue::Text(token_param) if token_param == &format!("0x{:x}", addr)
         ));
         assert!(matches!(
             &params[3],
+            SqlValue::Text(name_param) if name_param == &name
+        ));
+        assert!(matches!(
+            &params[4],
             SqlValue::Text(symbol_param) if symbol_param == &symbol
         ));
-        assert!(matches!(params[4], SqlValue::I64(8i64)));
+        assert!(matches!(params[5], SqlValue::I64(8i64)));
 
         // Ensure no in-place escaping mangles the stored strings.
         assert_literal_round_trip(&super::sql_string_literal(&name), &name);
@@ -1582,13 +1768,16 @@ mod tests {
             },
         ];
 
-        let batch = raw_events_to_statements(&events).unwrap();
+        let orderbook_address = Address::from([0x10; 20]);
+        let batch =
+            raw_events_to_statements(&OrderbookIdentifier::new(1, orderbook_address), &events)
+                .unwrap();
         assert_eq!(batch.len(), 3);
 
         let hashes: Vec<_> = batch
             .statements()
             .iter()
-            .map(|stmt| match stmt.params().get(2) {
+            .map(|stmt| match stmt.params().get(4) {
                 Some(SqlValue::Text(h)) => h.as_str(),
                 other => panic!("unexpected hash param: {:?}", other),
             })
@@ -1598,7 +1787,7 @@ mod tests {
         let timestamps: Vec<_> = batch
             .statements()
             .iter()
-            .map(|stmt| stmt.params().get(1).cloned().unwrap())
+            .map(|stmt| stmt.params().get(3).cloned().unwrap())
             .collect();
         assert!(matches!(timestamps[0], SqlValue::U64(0x64b8c124)));
         assert!(matches!(timestamps[1], SqlValue::U64(0x64b8c125)));
@@ -1607,7 +1796,7 @@ mod tests {
         let topics_values: Vec<_> = batch
             .statements()
             .iter()
-            .map(|stmt| match stmt.params().get(5) {
+            .map(|stmt| match stmt.params().get(7) {
                 Some(SqlValue::Text(t)) => t.clone(),
                 other => panic!("unexpected topics param: {:?}", other),
             })
@@ -1631,7 +1820,10 @@ mod tests {
             removed: false,
         }];
 
-        let result = raw_events_to_statements(&events);
+        let result = raw_events_to_statements(
+            &OrderbookIdentifier::new(1, Address::from([0x10; 20])),
+            &events,
+        );
         assert!(matches!(result, Err(InsertError::HexParseError { .. })));
     }
 }

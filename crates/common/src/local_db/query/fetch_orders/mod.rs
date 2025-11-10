@@ -1,4 +1,5 @@
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use crate::local_db::OrderbookIdentifier;
 use crate::utils::serde::bool_from_int_or_bool;
 use serde::{Deserialize, Serialize};
 
@@ -56,12 +57,20 @@ const ORDER_HASH_CLAUSE_BODY: &str =
 
 const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
 const TOKENS_CLAUSE_BODY: &str =
-    "AND EXISTS ( \n      SELECT 1 FROM order_ios io2 \n      WHERE io2.transaction_hash = la.transaction_hash \n        AND io2.log_index = la.log_index \n        AND lower(io2.token) IN ({list}) )";
+    "AND EXISTS ( \n      SELECT 1 FROM order_ios io2 \n      WHERE io2.chain_id = ?1 \n        AND lower(io2.orderbook_address) = lower(?2) \n        AND io2.transaction_hash = la.transaction_hash \n        AND io2.log_index = la.log_index \n        AND lower(io2.token) IN ({list}) )";
 
-pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, SqlBuildError> {
+pub fn build_fetch_orders_stmt(
+    ob_id: &OrderbookIdentifier,
+    args: &FetchOrdersArgs,
+) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
 
-    // ?1 active filter
+    // ?1 chain id
+    stmt.push(SqlValue::I64(ob_id.chain_id as i64));
+    // ?2 orderbook address
+    stmt.push(SqlValue::Text(ob_id.orderbook_address.to_string()));
+
+    // ?3 active filter
     let active_str = match args.filter {
         FetchOrdersActiveFilter::All => "all",
         FetchOrdersActiveFilter::Active => "active",
@@ -127,6 +136,8 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     fn mk_args() -> FetchOrdersArgs {
@@ -137,8 +148,9 @@ mod tests {
     fn filter_active_all_and_no_extras() {
         let mut args = mk_args();
         args.filter = FetchOrdersActiveFilter::All;
-        let stmt = build_fetch_orders_stmt(&args).unwrap();
-        assert!(stmt.sql.contains("?1 = 'all'"));
+        let stmt =
+            build_fetch_orders_stmt(&OrderbookIdentifier::new(1, Address::ZERO), &args).unwrap();
+        assert!(stmt.sql.contains("?3 = 'all'"));
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(ORDER_HASH_CLAUSE));
@@ -152,26 +164,30 @@ mod tests {
         args.tokens = vec!["TOKA".into(), "   ".into()];
         args.order_hash = Some(" 0xHash ".into());
 
-        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        let stmt =
+            build_fetch_orders_stmt(&OrderbookIdentifier::new(137, Address::ZERO), &args).unwrap();
 
         // Active filter parameterized
-        assert!(stmt.sql.contains("?1 = 'active'"));
+        assert!(stmt.sql.contains("?3 = 'active'"));
 
         // Owners clause present, tokens clause present, order hash clause present
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(ORDER_HASH_CLAUSE));
 
-        // Params include at least one for the active filter
-        assert!(!stmt.params.is_empty());
+        // Params include chain id, orderbook, active filter and additional filters
+        assert!(stmt.params.len() >= 3);
+        assert_eq!(stmt.params[0], SqlValue::I64(137));
+        assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
     }
 
     #[test]
     fn filter_inactive_string() {
         let mut args = mk_args();
         args.filter = FetchOrdersActiveFilter::Inactive;
-        let stmt = build_fetch_orders_stmt(&args).unwrap();
-        assert!(stmt.sql.contains("?1 = 'inactive'"));
+        let stmt =
+            build_fetch_orders_stmt(&OrderbookIdentifier::new(1, Address::ZERO), &args).unwrap();
+        assert!(stmt.sql.contains("?3 = 'inactive'"));
     }
 
     #[test]
@@ -179,8 +195,10 @@ mod tests {
         // Simulate the ORDER_HASH_CLAUSE marker being removed from the template.
         let bad_template = QUERY_TEMPLATE.replace(ORDER_HASH_CLAUSE, "");
         let mut stmt = SqlStatement::new(bad_template);
-        // Push the active filter param that the template expects as ?1
-        stmt.push(SqlValue::Text("all".to_string()));
+        // Push the fixed params expected by the template (?1 chain id, ?2 orderbook, ?3 active filter)
+        stmt.push(SqlValue::I64(1));
+        stmt.push(SqlValue::Text("ob".into()));
+        stmt.push(SqlValue::Text("all".into()));
         let err = stmt
             .bind_param_clause(
                 ORDER_HASH_CLAUSE,
@@ -194,8 +212,10 @@ mod tests {
     #[test]
     fn missing_param_token_in_body_yields_error() {
         let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
-        // Push the active filter param (?1)
-        stmt.push(SqlValue::Text("all".to_string()));
+        // Push the fixed params (?1 chain id, ?2 orderbook, ?3 active filter)
+        stmt.push(SqlValue::I64(1));
+        stmt.push(SqlValue::Text("ob".into()));
+        stmt.push(SqlValue::Text("all".into()));
         // Remove {param} token from the body to simulate drift between code and template
         let bad_body = ORDER_HASH_CLAUSE_BODY.replace("{param}", "");
         let err = stmt

@@ -43,14 +43,14 @@ mod tests {
     use super::*;
     use alloy::primitives::Address;
     use async_trait::async_trait;
-    use rain_orderbook_common::local_db::pipeline::{BootstrapConfig, TargetKey};
+    use rain_orderbook_common::local_db::pipeline::BootstrapConfig;
     use rain_orderbook_common::local_db::query::clear_tables::clear_tables_stmt;
     use rain_orderbook_common::local_db::query::create_tables::create_tables_stmt;
     use rain_orderbook_common::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
     use rain_orderbook_common::local_db::query::{
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use rain_orderbook_common::local_db::DATABASE_SCHEMA_VERSION;
+    use rain_orderbook_common::local_db::{OrderbookIdentifier, DATABASE_SCHEMA_VERSION};
 
     const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
@@ -98,11 +98,8 @@ mod tests {
         }
     }
 
-    fn target_key() -> TargetKey {
-        TargetKey {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-        }
+    fn sample_ob_id() -> OrderbookIdentifier {
+        OrderbookIdentifier::new(1, Address::ZERO)
     }
 
     #[tokio::test]
@@ -114,7 +111,7 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -154,7 +151,7 @@ mod tests {
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -196,7 +193,7 @@ mod tests {
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
-            target_key: target_key(),
+            ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,

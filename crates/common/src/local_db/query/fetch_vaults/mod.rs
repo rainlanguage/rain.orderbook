@@ -1,4 +1,7 @@
-use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use crate::local_db::{
+    query::{SqlBuildError, SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 use std::collections::HashSet;
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -17,16 +20,29 @@ const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
 const TOKENS_CLAUSE_BODY: &str = "\nAND lower(o.token) IN ({list})\n";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
-const HIDE_ZERO_BALANCE_BODY: &str =
-    "\nAND NOT FLOAT_IS_ZERO(\n    COALESCE((\n      SELECT FLOAT_SUM(vd.delta)\n      FROM vault_deltas vd\n      WHERE vd.owner    = o.owner\n        AND vd.token    = o.token\n        AND vd.vault_id = o.vault_id\n    ), FLOAT_ZERO_HEX())\n  )\n\n";
+const HIDE_ZERO_BALANCE_BODY: &str = r##"
+AND NOT FLOAT_IS_ZERO(
+    COALESCE((
+      SELECT FLOAT_SUM(vd.delta)
+      FROM vault_deltas vd
+      WHERE vd.chain_id = ?1
+        AND lower(vd.orderbook_address) = lower(?2)
+        AND lower(vd.owner)    = lower(o.owner)
+        AND lower(vd.token)    = lower(o.token)
+        AND lower(vd.vault_id) = lower(o.vault_id)
+    ), FLOAT_ZERO_HEX())
+  )
+"##;
 
 pub fn build_fetch_vaults_stmt(
-    chain_id: u32,
+    ob_id: &OrderbookIdentifier,
     args: &FetchVaultsArgs,
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
     // ?1: chain id
-    stmt.push(SqlValue::I64(chain_id as i64));
+    stmt.push(SqlValue::U64(ob_id.chain_id as u64));
+    // ?2: orderbook address
+    stmt.push(SqlValue::Text(ob_id.orderbook_address.to_string()));
 
     // Owners list (trim, non-empty, lowercase) with order-preserving dedup
     let mut owners: Vec<String> = Vec::new();
@@ -78,6 +94,8 @@ pub fn build_fetch_vaults_stmt(
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     fn mk_args() -> FetchVaultsArgs {
@@ -87,12 +105,13 @@ mod tests {
     #[test]
     fn chain_id_and_no_filters() {
         let args = mk_args();
-        let stmt = build_fetch_vaults_stmt(1, &args).unwrap();
+        let stmt =
+            build_fetch_vaults_stmt(&OrderbookIdentifier::new(1, Address::ZERO), &args).unwrap();
         assert!(stmt.sql.contains("et.chain_id = ?1"));
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
-        assert_eq!(stmt.params.len(), 1);
+        assert_eq!(stmt.params.len(), 2);
     }
 
     #[test]
@@ -101,14 +120,15 @@ mod tests {
         args.owners = vec![" 0xA ".into(), "O'Owner".into()];
         args.tokens = vec!["TOK'A".into()];
         args.hide_zero_balance = true;
-        let stmt = build_fetch_vaults_stmt(137, &args).unwrap();
+        let stmt =
+            build_fetch_vaults_stmt(&OrderbookIdentifier::new(137, Address::ZERO), &args).unwrap();
 
         // Clauses inserted
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
         assert!(stmt.sql.contains("AND NOT FLOAT_IS_ZERO("));
-        // Params: chain id + owners + tokens
+        // Params: chain id + orderbook + owners + tokens
         assert!(!stmt.params.is_empty());
     }
 

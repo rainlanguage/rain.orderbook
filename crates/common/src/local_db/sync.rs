@@ -13,7 +13,7 @@ use super::{
         LocalDbQueryError, SqlStatement, SqlStatementBatch,
     },
     token_fetch::fetch_erc20_metadata_concurrent,
-    FetchConfig, LocalDbError,
+    FetchConfig, LocalDbError, OrderbookIdentifier,
 };
 use alloy::primitives::Address;
 use flate2::read::GzDecoder;
@@ -54,12 +54,13 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
             .map_err(LocalDbError::from)?;
     }
 
-    let last_synced_block = get_last_synced_block(db)
+    let chain_id = orderbook_cfg.network.chain_id;
+    let ob_id = OrderbookIdentifier::new(chain_id, orderbook_cfg.address);
+
+    let last_synced_block = get_last_synced_block(db, &ob_id)
         .await
         .map_err(LocalDbError::SyncStatusReadFailed)?;
     status.send(format!("Last synced block: {}", last_synced_block))?;
-
-    let chain_id = orderbook_cfg.network.chain_id;
     let rpc_client = RpcClient::new_with_urls(orderbook_cfg.network.rpcs.clone())?;
 
     let latest_block = rpc_client
@@ -88,7 +89,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     let mut decoded_events = decode_events(&events)?;
 
     let existing_stores: Vec<StoreAddressRow> = db
-        .query_json(&fetch_store_addresses_stmt())
+        .query_json(&fetch_store_addresses_stmt(&ob_id))
         .await
         .map_err(LocalDbError::from)?;
     let store_addresses_vec = collect_all_store_addresses(&decoded_events, &existing_stores);
@@ -115,7 +116,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     let prep = prepare_erc20_tokens_prefix(
         db,
         &rpc_client,
-        chain_id,
+        &ob_id,
         &decoded_events,
         &FetchConfig::default(),
     )
@@ -126,10 +127,12 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
     let mut batch = SqlStatementBatch::new();
     batch.extend(prep.tokens_prefix_sql);
 
-    let events_batch = decoded_events_to_statements(&decoded_events, &prep.decimals_by_addr)?;
+    let events_batch =
+        decoded_events_to_statements(&ob_id, &decoded_events, &prep.decimals_by_addr)
+            .map_err(|e| LocalDbError::SqlGenerationFailed(Box::new(LocalDbError::from(e))))?;
 
     batch.extend(events_batch);
-    batch.add(build_update_last_synced_block_stmt(latest_block));
+    batch.add(build_update_last_synced_block_stmt(&ob_id, latest_block));
 
     let sql_batch = batch.ensure_transaction();
 
@@ -174,8 +177,12 @@ async fn download_and_decompress_dump() -> Result<String, LocalDbError> {
     Ok(decompressed)
 }
 
-async fn get_last_synced_block(db: &impl LocalDbQueryExecutor) -> Result<u64, LocalDbQueryError> {
-    let results: Vec<SyncStatusResponse> = db.query_json(&fetch_last_synced_block_stmt()).await?;
+async fn get_last_synced_block(
+    db: &impl LocalDbQueryExecutor,
+    ob_id: &OrderbookIdentifier,
+) -> Result<u64, LocalDbQueryError> {
+    let results: Vec<SyncStatusResponse> =
+        db.query_json(&fetch_last_synced_block_stmt(ob_id)).await?;
     Ok(results.first().map(|r| r.last_synced_block).unwrap_or(0))
 }
 
@@ -218,7 +225,7 @@ struct TokenPrepResult {
 async fn prepare_erc20_tokens_prefix(
     db: &impl LocalDbQueryExecutor,
     rpc_client: &RpcClient,
-    chain_id: u32,
+    ob_id: &OrderbookIdentifier,
     decoded_events: &[DecodedEventData<DecodedEvent>],
     config: &FetchConfig,
 ) -> Result<TokenPrepResult, LocalDbError> {
@@ -230,13 +237,8 @@ async fn prepare_erc20_tokens_prefix(
     let mut decimals_by_addr: HashMap<Address, u8> = HashMap::new();
 
     if !all_token_addrs.is_empty() {
-        let addr_strings: Vec<String> = all_token_addrs
-            .iter()
-            .map(|a| format!("0x{:x}", a))
-            .collect();
-
         let existing_rows: Vec<Erc20TokenRow> = if let Some(stmt) =
-            build_token_stmt(chain_id, &addr_strings)
+            build_token_stmt(ob_id, &all_token_addrs)
                 .map_err(|e| LocalDbError::CustomError(e.to_string()))?
         {
             db.query_json(&stmt).await.map_err(LocalDbError::from)?
@@ -246,10 +248,8 @@ async fn prepare_erc20_tokens_prefix(
 
         let mut existing_set: HashSet<Address> = HashSet::new();
         for row in existing_rows.iter() {
-            if let Ok(addr) = Address::from_str(&row.address) {
-                decimals_by_addr.insert(addr, row.decimals);
-                existing_set.insert(addr);
-            }
+            decimals_by_addr.insert(row.token_address, row.decimals);
+            existing_set.insert(row.token_address);
         }
 
         let missing_addrs: Vec<Address> = all_token_addrs
@@ -261,7 +261,7 @@ async fn prepare_erc20_tokens_prefix(
             let successes =
                 fetch_erc20_metadata_concurrent(rpc_client, missing_addrs, config).await?;
 
-            tokens_prefix_sql = insert::generate_erc20_token_statements(chain_id, &successes);
+            tokens_prefix_sql = insert::generate_erc20_token_statements(ob_id, &successes);
 
             for (addr, info) in successes.iter() {
                 decimals_by_addr.insert(*addr, info.decimals);
@@ -330,7 +330,7 @@ mod tests {
         fetch_tables::{fetch_tables_stmt, TableResponse},
         LocalDbQueryError, SqlStatementBatch,
     };
-    use alloy::primitives::{Address, FixedBytes, U256};
+    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
 
@@ -470,30 +470,40 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_last_synced_block_exists() {
+        let chain_id = 42161u32;
+        let orderbook_address = Address::from([0x77u8; 20]);
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
         let sync_data = vec![SyncStatusResponse {
-            id: 1,
+            chain_id,
+            orderbook_address: format!("0x{:x}", orderbook_address),
             last_synced_block: 12345,
             updated_at: Some("2024-01-01T00:00:00Z".to_string()),
         }];
         let db = MockDb::new().with_json(
-            &fetch_last_synced_block_stmt().sql,
+            &fetch_last_synced_block_stmt(&ob_id).sql,
             &serde_json::to_string(&sync_data).unwrap(),
         );
-        let val = get_last_synced_block(&db).await.unwrap();
+        let val = get_last_synced_block(&db, &ob_id).await.unwrap();
         assert_eq!(val, 12345);
     }
 
     #[tokio::test]
     async fn test_get_last_synced_block_empty() {
-        let db = MockDb::new().with_json(&fetch_last_synced_block_stmt().sql, "[]");
-        let val = get_last_synced_block(&db).await.unwrap();
+        let chain_id = 1u32;
+        let orderbook_address = Address::from([0x88u8; 20]);
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
+        let db = MockDb::new().with_json(&fetch_last_synced_block_stmt(&ob_id).sql, "[]");
+        let val = get_last_synced_block(&db, &ob_id).await.unwrap();
         assert_eq!(val, 0);
     }
 
     #[tokio::test]
     async fn test_get_last_synced_block_query_fails() {
-        let db = MockDb::new().with_error(&fetch_last_synced_block_stmt().sql);
-        let err = get_last_synced_block(&db).await.err().unwrap();
+        let chain_id = 1u32;
+        let orderbook_address = Address::from([0x99u8; 20]);
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
+        let db = MockDb::new().with_error(&fetch_last_synced_block_stmt(&ob_id).sql);
+        let err = get_last_synced_block(&db, &ob_id).await.err().unwrap();
         match err {
             LocalDbQueryError::Database { .. } => {}
             other => panic!("unexpected error variant: {other:?}"),
@@ -516,7 +526,7 @@ mod tests {
                 event_type: EventType::Unknown,
                 block_number: "0x2".to_string(),
                 block_timestamp: "0x0".to_string(),
-                transaction_hash: "0x1".to_string(),
+                transaction_hash: Bytes::from_str("0x10").unwrap(),
                 log_index: "0x1".to_string(),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".to_string(),
@@ -527,7 +537,7 @@ mod tests {
                 event_type: EventType::Unknown,
                 block_number: "0x1".to_string(),
                 block_timestamp: "0x0".to_string(),
-                transaction_hash: "0x2".to_string(),
+                transaction_hash: Bytes::from_str("0x20").unwrap(),
                 log_index: "0x2".to_string(),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".to_string(),
@@ -538,7 +548,7 @@ mod tests {
                 event_type: EventType::Unknown,
                 block_number: "0x1".to_string(),
                 block_timestamp: "0x0".to_string(),
-                transaction_hash: "0x3".to_string(),
+                transaction_hash: Bytes::from_str("0x30").unwrap(),
                 log_index: "0x1".to_string(),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".to_string(),
@@ -547,9 +557,9 @@ mod tests {
             },
         ];
         sort_events_by_block_and_log(&mut events).unwrap();
-        assert_eq!(events[0].transaction_hash, "0x3");
-        assert_eq!(events[1].transaction_hash, "0x2");
-        assert_eq!(events[2].transaction_hash, "0x1");
+        assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
+        assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
+        assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
     }
 
     #[test]
@@ -559,7 +569,7 @@ mod tests {
                 event_type: EventType::Unknown,
                 block_number: "0x2".into(),
                 block_timestamp: "0x0".into(),
-                transaction_hash: "0xA".into(),
+                transaction_hash: Bytes::from_str("0xA0").unwrap(),
                 log_index: "0x1".into(),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".into(),
@@ -570,7 +580,7 @@ mod tests {
                 event_type: EventType::Unknown,
                 block_number: "0x1".into(),
                 block_timestamp: "0x0".into(),
-                transaction_hash: "0xB".into(),
+                transaction_hash: Bytes::from_str("0xB0").unwrap(),
                 log_index: "0x2".into(),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".into(),
@@ -582,7 +592,7 @@ mod tests {
             event_type: EventType::Unknown,
             block_number: "0x1".into(),
             block_timestamp: "0x0".into(),
-            transaction_hash: "0xC".into(),
+            transaction_hash: Bytes::from_str("0xC0").unwrap(),
             log_index: "0x1".into(),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x".into(),
@@ -592,9 +602,18 @@ mod tests {
 
         merge_store_events(&mut decoded, &mut store).unwrap();
         assert_eq!(decoded.len(), 3);
-        assert_eq!(decoded[0].transaction_hash, "0xC");
-        assert_eq!(decoded[1].transaction_hash, "0xB");
-        assert_eq!(decoded[2].transaction_hash, "0xA");
+        assert_eq!(
+            decoded[0].transaction_hash,
+            Bytes::from_str("0xC0").unwrap()
+        );
+        assert_eq!(
+            decoded[1].transaction_hash,
+            Bytes::from_str("0xB0").unwrap()
+        );
+        assert_eq!(
+            decoded[2].transaction_hash,
+            Bytes::from_str("0xA0").unwrap()
+        );
     }
 
     #[test]
@@ -603,7 +622,7 @@ mod tests {
             event_type: EventType::Unknown,
             block_number: "0xZZ".to_string(),
             block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x1".to_string(),
+            transaction_hash: "0x10".into(),
             log_index: "0x0".to_string(),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x".to_string(),
@@ -623,7 +642,7 @@ mod tests {
             event_type: EventType::Unknown,
             block_number: "0x1".to_string(),
             block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x1".to_string(),
+            transaction_hash: "0x10".into(),
             log_index: "not-a-number".to_string(),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x".to_string(),
@@ -643,7 +662,7 @@ mod tests {
             event_type: EventType::Unknown,
             block_number: "123x".to_string(),
             block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x1".to_string(),
+            transaction_hash: "0x50".into(),
             log_index: "0x0".to_string(),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x".to_string(),
@@ -760,18 +779,21 @@ mod tests {
         #[tokio::test]
         async fn test_prepare_tokens_existing_only() {
             let chain_id = 9999u32;
-            let token = Address::from([0xAAu8; 20]);
-            let events = vec![build_deposit_event(token)];
+            let token_address = Address::from([0xAAu8; 20]);
+            let orderbook_address = Address::from([0x55u8; 20]);
+            let events = vec![build_deposit_event(token_address)];
+            let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
 
             // DB returns existing row for the token query
             let row = Erc20TokenRow {
                 chain_id,
-                address: format!("0x{:x}", token),
+                orderbook_address,
+                token_address,
                 name: "Foo".into(),
                 symbol: "FOO".into(),
                 decimals: 6,
             };
-            let stmt = build_fetch_stmt(chain_id, &[format!("0x{:x}", token)])
+            let stmt = build_fetch_stmt(&ob_id, &[token_address])
                 .expect("stmt")
                 .expect("some");
             let db = MockDb::new().with_json(
@@ -785,14 +807,14 @@ mod tests {
             let out = prepare_erc20_tokens_prefix(
                 &db,
                 &rpc_client,
-                chain_id,
+                &ob_id,
                 &events,
                 &FetchConfig::default(),
             )
             .await
             .unwrap();
             assert!(out.tokens_prefix_sql.is_empty());
-            assert_eq!(out.decimals_by_addr.get(&token), Some(&6));
+            assert_eq!(out.decimals_by_addr.get(&token_address), Some(&6));
         }
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -805,29 +827,43 @@ mod tests {
 
             // Use the fixture token address from the local EVM for the event
             let token = *local_evm.tokens[0].address();
+            let orderbook_address = Address::from([0x66u8; 20]);
             let events = vec![build_deposit_event(token)];
 
             // DB query returns empty so the token is considered missing
-            let stmt = build_fetch_stmt(1, &[format!("0x{:x}", token)])
+            let stmt = build_fetch_stmt(&OrderbookIdentifier::new(1, orderbook_address), &[token])
                 .expect("stmt")
                 .expect("some");
             let db = MockDb::new().with_json(&stmt.sql, "[]");
 
-            let out =
-                prepare_erc20_tokens_prefix(&db, &rpc_client, 1, &events, &FetchConfig::default())
-                    .await
-                    .unwrap();
+            let out = prepare_erc20_tokens_prefix(
+                &db,
+                &rpc_client,
+                &OrderbookIdentifier::new(1, orderbook_address),
+                &events,
+                &FetchConfig::default(),
+            )
+            .await
+            .unwrap();
             assert!(!out.tokens_prefix_sql.is_empty());
             let statements = out.tokens_prefix_sql.statements();
             assert_eq!(statements.len(), 1);
             let stmt = &statements[0];
             assert!(stmt.sql().contains("INSERT INTO erc20_tokens"));
             let params = stmt.params();
-            assert_eq!(params.len(), 5);
+            assert_eq!(params.len(), 6);
             assert!(matches!(params[0], SqlValue::U64(1u64)));
             assert!(matches!(
                 &params[1],
+                SqlValue::Text(address) if address == &format!("0x{:x}", orderbook_address)
+            ));
+            assert!(matches!(
+                &params[2],
                 SqlValue::Text(address) if address == &format!("0x{:x}", token)
+            ));
+            assert!(matches!(
+                params[5],
+                SqlValue::I64(decimals) if decimals == 18
             ));
             assert_eq!(out.decimals_by_addr.get(&token), Some(&18));
         }

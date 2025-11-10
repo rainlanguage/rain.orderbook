@@ -3,6 +3,7 @@ use rain_orderbook_common::local_db::decode::{DecodedEvent, DecodedEventData};
 use rain_orderbook_common::local_db::query::{
     update_last_synced_block::build_update_last_synced_block_stmt, SqlStatementBatch,
 };
+use rain_orderbook_common::local_db::OrderbookIdentifier;
 use rain_orderbook_common::rpc_client::{LogEntryResponse, RpcClient};
 use url::Url;
 
@@ -53,7 +54,7 @@ where
 pub(super) struct PrepareSqlParams {
     pub(super) db_path: String,
     pub(super) metadata_rpc_urls: Vec<Url>,
-    pub(super) chain_id: u32,
+    pub(super) ob_id: OrderbookIdentifier,
     pub(super) decoded_events: Vec<DecodedEventData<DecodedEvent>>,
     pub(super) raw_events: Vec<LogEntryResponse>,
     pub(super) target_block: u64,
@@ -71,7 +72,7 @@ where
     let PrepareSqlParams {
         db_path,
         metadata_rpc_urls,
-        chain_id,
+        ob_id,
         decoded_events,
         raw_events,
         target_block,
@@ -84,12 +85,12 @@ where
     };
     let rpc_client = RpcClient::new_with_urls(metadata_rpcs)?;
 
-    let mut batch = data_source.raw_events_to_statements(&raw_events)?;
+    let mut batch = data_source.raw_events_to_statements(&ob_id, &raw_events)?;
 
     let token_prep = prepare_token_metadata(
         &db_path,
         &rpc_client,
-        chain_id,
+        &ob_id,
         &decoded_events,
         token_fetcher,
     )
@@ -99,9 +100,13 @@ where
         decimals_by_addr,
     } = token_prep;
 
-    tokens_prefix_sql.extend(data_source.events_to_sql(&decoded_events, &decimals_by_addr)?);
+    tokens_prefix_sql.extend(data_source.events_to_sql(
+        &ob_id,
+        &decoded_events,
+        &decimals_by_addr,
+    )?);
     batch.extend(tokens_prefix_sql);
-    batch.add(build_update_last_synced_block_stmt(target_block));
+    batch.add(build_update_last_synced_block_stmt(&ob_id, target_block));
 
     Ok(batch.ensure_transaction())
 }
@@ -127,6 +132,8 @@ mod tests {
     };
 
     const RAW_SQL_STUB: &str = r#"INSERT INTO raw_events (
+        chain_id,
+        orderbook_address,
         block_number,
         block_timestamp,
         transaction_hash,
@@ -136,6 +143,8 @@ mod tests {
         data,
         raw_json
     ) VALUES (
+        0,
+        '0x0',
         0,
         NULL,
         '0x0',
@@ -189,6 +198,7 @@ mod tests {
 
         fn events_to_sql(
             &self,
+            _ob_id: &OrderbookIdentifier,
             decoded_events: &[DecodedEventData<DecodedEvent>],
             decimals_by_token: &HashMap<Address, u8>,
         ) -> Result<SqlStatementBatch> {
@@ -210,6 +220,7 @@ mod tests {
 
         fn raw_events_to_statements(
             &self,
+            _ob_id: &OrderbookIdentifier,
             raw_events: &[LogEntryResponse],
         ) -> Result<SqlStatementBatch> {
             self.captured_raw.lock().unwrap().push(raw_events.to_vec());
@@ -293,7 +304,7 @@ mod tests {
             PrepareSqlParams {
                 db_path: db_path_str.to_string(),
                 metadata_rpc_urls: vec![],
-                chain_id: 1,
+                ob_id: OrderbookIdentifier::new(1, Address::from([0x11; 20])),
                 decoded_events: vec![],
                 raw_events: vec![],
                 target_block: 100,
@@ -305,9 +316,9 @@ mod tests {
         let statements = result.statements();
         let sync_stmt = statements
             .iter()
-            .find(|stmt| stmt.sql().contains("INSERT INTO sync"))
+            .find(|stmt| stmt.sql().contains("INSERT INTO sync_status"))
             .expect("sync insert statement");
-        assert!(sync_stmt.params().is_empty());
+        assert_eq!(sync_stmt.params().len(), 3);
         let raw = data_source.captured_raw.lock().unwrap();
         assert_eq!(raw.len(), 1);
         assert!(raw[0].is_empty());
@@ -376,7 +387,7 @@ mod tests {
             PrepareSqlParams {
                 db_path: db_path_str.to_string(),
                 metadata_rpc_urls: data_source.rpc_urls().to_vec(),
-                chain_id: 1,
+                ob_id: OrderbookIdentifier::new(1, Address::from([0x44; 20])),
                 decoded_events: decoded,
                 raw_events,
                 target_block: 42,
@@ -388,30 +399,35 @@ mod tests {
         let update_stmt = batch
             .statements()
             .iter()
-            .find(|stmt| {
-                stmt.sql()
-                    .contains("UPDATE sync_status SET last_synced_block")
-            })
+            .find(|stmt| stmt.sql().contains("INSERT INTO sync_status"))
             .expect("update statement");
-        assert!(matches!(
-            update_stmt.params().first(),
-            Some(SqlValue::I64(value)) if *value == 42
-        ));
+        let update_params = update_stmt.params();
+        assert_eq!(update_params.len(), 3);
+        assert_eq!(update_params[0], SqlValue::I64(1));
+        assert_eq!(
+            update_params[1],
+            SqlValue::Text(format!("0x{:x}", Address::from([0x44; 20])))
+        );
+        assert_eq!(update_params[2], SqlValue::I64(42));
         let token_stmt = batch
             .statements()
             .iter()
             .find(|stmt| stmt.sql().contains("INSERT INTO erc20_tokens"))
             .expect("token insert statement");
         let token_params = token_stmt.params();
-        assert_eq!(token_params.len(), 5);
+        assert_eq!(token_params.len(), 6);
         assert_eq!(token_params[0], SqlValue::U64(1));
         assert_eq!(
             token_params[1],
+            SqlValue::Text(format!("0x{:x}", Address::from([0x44; 20])))
+        );
+        assert_eq!(
+            token_params[2],
             SqlValue::Text(format!("0x{:x}", token_addr))
         );
-        assert_eq!(token_params[2], SqlValue::Text("Token".to_string()));
-        assert_eq!(token_params[3], SqlValue::Text("TKN".to_string()));
-        assert_eq!(token_params[4], SqlValue::I64(18));
+        assert_eq!(token_params[3], SqlValue::Text("Token".to_string()));
+        assert_eq!(token_params[4], SqlValue::Text("TKN".to_string()));
+        assert_eq!(token_params[5], SqlValue::I64(18));
 
         let captured_events = data_source.captured_events.lock().unwrap();
         assert_eq!(captured_events.len(), 1);
@@ -459,7 +475,7 @@ mod tests {
             PrepareSqlParams {
                 db_path: db_path_str.to_string(),
                 metadata_rpc_urls: data_source.rpc_urls().to_vec(),
-                chain_id: 1,
+                ob_id: OrderbookIdentifier::new(1, Address::from([0x55; 20])),
                 decoded_events: vec![],
                 raw_events: vec![],
                 target_block: 75,
@@ -471,15 +487,17 @@ mod tests {
         let update_stmt = batch
             .statements()
             .iter()
-            .find(|stmt| {
-                stmt.sql()
-                    .contains("UPDATE sync_status SET last_synced_block")
-            })
+            .find(|stmt| stmt.sql().contains("INSERT INTO sync_status"))
             .expect("update statement");
-        assert!(matches!(
-            update_stmt.params().first(),
-            Some(SqlValue::I64(value)) if *value == 75
-        ));
+        let update_params = update_stmt.params();
+        assert_eq!(
+            update_params,
+            vec![
+                SqlValue::I64(1),
+                SqlValue::Text(format!("0x{:x}", Address::from([0x55; 20]))),
+                SqlValue::I64(75)
+            ]
+        );
         let has_token_stmt = batch
             .statements()
             .iter()

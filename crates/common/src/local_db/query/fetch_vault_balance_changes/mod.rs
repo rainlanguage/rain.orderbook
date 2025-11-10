@@ -1,4 +1,7 @@
-use crate::local_db::query::{SqlStatement, SqlValue};
+use crate::local_db::{
+    query::{SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -24,23 +27,37 @@ pub struct LocalDbVaultBalanceChange {
     pub running_balance: String,
 }
 
-pub fn build_fetch_balance_changes_stmt(vault_id: &str, token: &str) -> SqlStatement {
-    let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
-    // Parameter order: ?1 vault_id, ?2 token
-    stmt.push(SqlValue::Text(vault_id.to_string()));
-    stmt.push(SqlValue::Text(token.to_string()));
-    stmt
+pub fn build_fetch_balance_changes_stmt(
+    ob_id: &OrderbookIdentifier,
+    vault_id: &str,
+    token: &str,
+) -> SqlStatement {
+    SqlStatement::new_with_params(
+        QUERY_TEMPLATE,
+        [
+            SqlValue::I64(ob_id.chain_id as i64),
+            SqlValue::Text(ob_id.orderbook_address.to_string()),
+            SqlValue::Text(vault_id.trim().to_string()),
+            SqlValue::Text(token.trim().to_string()),
+        ],
+    )
 }
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     #[test]
     fn builds_with_params() {
-        let stmt = build_fetch_balance_changes_stmt("v01", "0xtoken");
-        assert!(stmt.sql.contains("?1 AS vault_id"));
-        assert!(stmt.sql.contains("?2                         AS token"));
-        assert_eq!(stmt.params.len(), 2);
+        let stmt = build_fetch_balance_changes_stmt(
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            "v01",
+            "0xtoken",
+        );
+        assert!(stmt.sql.contains("?3 AS vault_id"));
+        assert!(stmt.sql.contains("?4 AS token"));
+        assert_eq!(stmt.params.len(), 4);
     }
 }

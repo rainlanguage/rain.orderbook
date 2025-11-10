@@ -1,11 +1,10 @@
-use async_trait::async_trait;
-
-use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowPipeline};
-use crate::local_db::query::fetch_last_synced_block::{
-    fetch_last_synced_block_stmt, SyncStatusResponse,
+use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowPipeline};
+use crate::local_db::query::fetch_target_watermark::{
+    fetch_target_watermark_stmt, TargetWatermarkRow,
 };
 use crate::local_db::query::LocalDbQueryExecutor;
-use crate::local_db::LocalDbError;
+use crate::local_db::{LocalDbError, OrderbookIdentifier};
+use async_trait::async_trait;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DefaultWindowPipeline;
@@ -37,7 +36,7 @@ impl WindowPipeline for DefaultWindowPipeline {
     async fn compute<DB>(
         &self,
         db: &DB,
-        _target: &TargetKey,
+        ob_id: &OrderbookIdentifier,
         cfg: &SyncConfig,
         latest_block: u64,
     ) -> Result<(u64, u64), LocalDbError>
@@ -46,11 +45,11 @@ impl WindowPipeline for DefaultWindowPipeline {
     {
         // 1) Read watermark
         let last_synced_block = {
-            let rows: Vec<SyncStatusResponse> = db
-                .query_json(&fetch_last_synced_block_stmt())
+            let rows: Vec<TargetWatermarkRow> = db
+                .query_json(&fetch_target_watermark_stmt(ob_id))
                 .await
                 .map_err(LocalDbError::from)?;
-            rows.first().map(|r| r.last_synced_block).unwrap_or(0)
+            rows.first().map(|r| r.last_block).unwrap_or(0)
         };
 
         // 2) Compute safe head with finality clamp
@@ -83,10 +82,11 @@ impl WindowPipeline for DefaultWindowPipeline {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, TargetKey, WindowOverrides};
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlStatementBatch};
     use alloy::primitives::Address;
     use async_trait::async_trait;
+    use std::str::FromStr;
 
     #[derive(Default)]
     struct MockDb {
@@ -107,16 +107,27 @@ mod tests {
             if self.fail {
                 return Err(LocalDbQueryError::database("boom"));
             }
-            let expected_stmt =
-                crate::local_db::query::fetch_last_synced_block::fetch_last_synced_block_stmt();
-            let expected_sql = expected_stmt.sql();
+            let expected_sql =
+                crate::local_db::query::fetch_target_watermark::FETCH_TARGET_WATERMARK_SQL;
             if stmt.sql() == expected_sql {
+                let params = stmt.params();
+                let chain_id = match params.first() {
+                    Some(crate::local_db::query::SqlValue::I64(v)) => *v as u32,
+                    Some(crate::local_db::query::SqlValue::U64(v)) => *v as u32,
+                    _ => 0,
+                };
+                let orderbook_address = match params.get(1) {
+                    Some(crate::local_db::query::SqlValue::Text(v)) => v.clone(),
+                    _ => format!("0x{:040x}", 0u128),
+                };
                 let body = if self.last_synced == 0 {
                     "[]".to_string()
                 } else {
-                    serde_json::to_string(&vec![SyncStatusResponse {
-                        id: 1,
-                        last_synced_block: self.last_synced,
+                    serde_json::to_string(&vec![TargetWatermarkRow {
+                        chain_id,
+                        orderbook_address: Address::from_str(&orderbook_address).unwrap(),
+                        last_block: self.last_synced,
+                        last_hash: None,
                         updated_at: None,
                     }])
                     .unwrap()
@@ -132,8 +143,8 @@ mod tests {
         }
     }
 
-    fn sample_target() -> TargetKey {
-        TargetKey {
+    fn sample_ob_id() -> OrderbookIdentifier {
+        OrderbookIdentifier {
             chain_id: 1,
             orderbook_address: Address::from([0u8; 20]),
         }
@@ -159,7 +170,7 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let (start, target) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, None, None), 200)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, None, None), 200)
             .await
             .unwrap();
         assert_eq!(start, 100);
@@ -174,7 +185,7 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let (start, _) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, None, None), 200)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, None, None), 200)
             .await
             .unwrap();
         assert_eq!(start, 151);
@@ -188,7 +199,7 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let (start, _) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, Some(100), None), 200)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, Some(100), None), 200)
             .await
             .unwrap();
         assert_eq!(start, 151);
@@ -202,7 +213,7 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let (start, _) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, Some(50), None), 200)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, Some(50), None), 200)
             .await
             .unwrap();
         assert_eq!(start, 100);
@@ -217,7 +228,7 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // latest=1000, depth=20 => safe_head= max(100, 980)=980
         let (_, target) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 20, None, None), 1000)
+            .compute(&db, &sample_ob_id(), &cfg(100, 20, None, None), 1000)
             .await
             .unwrap();
         assert_eq!(target, 980);
@@ -232,7 +243,7 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // safe_head = 980
         let (_, target) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 20, None, Some(2000)), 1000)
+            .compute(&db, &sample_ob_id(), &cfg(100, 20, None, Some(2000)), 1000)
             .await
             .unwrap();
         assert_eq!(target, 980);
@@ -246,7 +257,7 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let err = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, None, None), 200)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, None, None), 200)
             .await
             .unwrap_err();
         match err {
@@ -263,7 +274,7 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let (start, _) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, Some(150), None), 200)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, Some(150), None), 200)
             .await
             .unwrap();
         assert_eq!(start, 151);
@@ -278,7 +289,7 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // safe_head = 980; end_override = 500 -> target = 500
         let (_, target) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 20, None, Some(500)), 1000)
+            .compute(&db, &sample_ob_id(), &cfg(100, 20, None, Some(500)), 1000)
             .await
             .unwrap();
         assert_eq!(target, 500);
@@ -293,7 +304,7 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // latest=100, depth=200 => latest-depth saturates to 0; max(deploy=90, 0) = 90
         let (_, target) = pipe
-            .compute(&db, &sample_target(), &cfg(90, 200, None, None), 100)
+            .compute(&db, &sample_ob_id(), &cfg(90, 200, None, None), 100)
             .await
             .unwrap();
         assert_eq!(target, 90);
@@ -307,7 +318,7 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let err = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, None, None), 200)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, None, None), 200)
             .await
             .unwrap_err();
         match err {
@@ -327,7 +338,7 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // base start = 201; end_override = 150; depth=0 so safe_head is high and does not clamp
         let (start, target) = pipe
-            .compute(&db, &sample_target(), &cfg(100, 0, None, Some(150)), 1000)
+            .compute(&db, &sample_ob_id(), &cfg(100, 0, None, Some(150)), 1000)
             .await
             .unwrap();
         assert_eq!(start, 201);
