@@ -15,7 +15,7 @@ use crate::{
     withdraw::WithdrawArgs,
 };
 use alloy::hex::encode_prefixed;
-use alloy::primitives::{Address, Bytes, B256, U256};
+use alloy::primitives::{keccak256, Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
@@ -1446,34 +1446,36 @@ impl RaindexVault {
         let balance = Float::from_hex(&vault.balance)?;
         let formatted_balance = balance.format()?;
 
-        let id: Vec<u8> = vault
-            .orderbook_address
-            .as_bytes()
-            .iter()
-            .chain(vault.owner.as_bytes())
-            .chain(vault.token.as_bytes())
-            .chain(vault.vault_id.as_bytes())
-            .copied()
-            .collect();
+        let orderbook = Address::from_str(&vault.orderbook_address)?;
+        let owner = Address::from_str(&vault.owner)?;
+        let token_address = Address::from_str(&vault.token)?;
+        let vault_id = U256::from_str(&vault.vault_id)?;
+
+        let mut id = Vec::new();
+        id.extend_from_slice(orderbook.as_slice());
+        id.extend_from_slice(owner.as_slice());
+        id.extend_from_slice(token_address.as_slice());
+        id.extend_from_slice(B256::from(vault_id).as_slice());
+        let id = keccak256(&id);
 
         Ok(Self {
             raindex_client,
             chain_id,
             vault_type,
-            id: Bytes::from(id),
-            owner: Address::from_str(&vault.owner)?,
-            vault_id: U256::from_str(&vault.vault_id)?,
+            id: Bytes::from(id.as_slice().to_vec()),
+            owner,
+            vault_id,
             balance,
             formatted_balance,
             token: RaindexVaultToken {
                 chain_id,
                 id: vault.token.clone(),
-                address: Address::from_str(&vault.token)?,
+                address: token_address,
                 name: Some(vault.token_name),
                 symbol: Some(vault.token_symbol),
                 decimals: vault.token_decimals,
             },
-            orderbook: Address::from_str(&vault.orderbook_address)?,
+            orderbook,
             orders_as_inputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
                 "inputOrders",
                 &vault.input_orders,
