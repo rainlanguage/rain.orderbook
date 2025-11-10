@@ -124,7 +124,14 @@ JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
  AND lower(a.orderbook_address) = lower(c.orderbook_address)
  AND a.transaction_hash = c.transaction_hash
- AND a.log_index = c.log_index
+ AND a.log_index = (
+     SELECT MIN(ac.log_index)
+     FROM after_clear_v2_events ac
+     WHERE ac.chain_id = c.chain_id
+       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.transaction_hash = c.transaction_hash
+       AND ac.log_index > c.log_index
+ )
 JOIN order_events oeA
   ON oeA.chain_id = c.chain_id
  AND lower(oeA.orderbook_address) = lower(c.orderbook_address)
@@ -154,7 +161,14 @@ JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
  AND lower(a.orderbook_address) = lower(c.orderbook_address)
  AND a.transaction_hash = c.transaction_hash
- AND a.log_index = c.log_index
+ AND a.log_index = (
+     SELECT MIN(ac.log_index)
+     FROM after_clear_v2_events ac
+     WHERE ac.chain_id = c.chain_id
+       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.transaction_hash = c.transaction_hash
+       AND ac.log_index > c.log_index
+ )
 JOIN order_events oeA
   ON oeA.chain_id = c.chain_id
  AND lower(oeA.orderbook_address) = lower(c.orderbook_address)
@@ -184,7 +198,14 @@ JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
  AND lower(a.orderbook_address) = lower(c.orderbook_address)
  AND a.transaction_hash = c.transaction_hash
- AND a.log_index = c.log_index
+ AND a.log_index = (
+     SELECT MIN(ac.log_index)
+     FROM after_clear_v2_events ac
+     WHERE ac.chain_id = c.chain_id
+       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.transaction_hash = c.transaction_hash
+       AND ac.log_index > c.log_index
+ )
 JOIN order_events oeB
   ON oeB.chain_id = c.chain_id
  AND lower(oeB.orderbook_address) = lower(c.orderbook_address)
@@ -214,7 +235,14 @@ JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
  AND lower(a.orderbook_address) = lower(c.orderbook_address)
  AND a.transaction_hash = c.transaction_hash
- AND a.log_index = c.log_index
+ AND a.log_index = (
+     SELECT MIN(ac.log_index)
+     FROM after_clear_v2_events ac
+     WHERE ac.chain_id = c.chain_id
+       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.transaction_hash = c.transaction_hash
+       AND ac.log_index > c.log_index
+ )
 JOIN order_events oeB
   ON oeB.chain_id = c.chain_id
  AND lower(oeB.orderbook_address) = lower(c.orderbook_address)
