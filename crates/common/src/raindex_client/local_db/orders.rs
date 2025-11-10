@@ -2,11 +2,10 @@ use super::{
     super::orders::{GetOrdersFilters, RaindexOrder},
     RaindexClient, RaindexError,
 };
-use crate::local_db::query::fetch_orders::FetchOrdersArgs;
 use crate::local_db::query::fetch_vault::LocalDbVault;
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
-use alloy::primitives::Address;
 use serde::Deserialize;
 use serde_json::from_str;
 use std::rc::Rc;
@@ -77,13 +76,12 @@ impl RaindexClient {
     pub(crate) async fn get_order_by_hash_local_db<E: LocalDbQueryExecutor + ?Sized>(
         &self,
         executor: &E,
-        chain_id: u32,
-        orderbook_address: Address,
+        ob_id: &OrderbookIdentifier,
         order_hash: &str,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let fetch_args = FetchOrdersArgs {
-            chain_ids: vec![chain_id],
-            orderbook_addresses: vec![orderbook_address],
+            chain_ids: vec![ob_id.chain_id],
+            orderbook_addresses: vec![ob_id.orderbook_address],
             order_hash: Some(order_hash.to_string()),
             ..FetchOrdersArgs::default()
         };
@@ -123,7 +121,7 @@ mod tests {
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
         use crate::raindex_client::ChainIds;
-        use alloy::primitives::Bytes;
+        use alloy::primitives::{Address, Bytes};
         use serde_json::{self, json};
         use wasm_bindgen_test::wasm_bindgen_test;
         use wasm_bindgen_utils::prelude::*;
@@ -402,8 +400,10 @@ mod tests {
 
             let order = client
                 .get_order_by_hash(
-                    42161,
-                    Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap(),
+                    &OrderbookIdentifier::new(
+                        42161,
+                        Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap(),
+                    ),
                     Bytes::from_str(order_hash).unwrap(),
                 )
                 .await
