@@ -1,23 +1,20 @@
 use super::utils::RunnerTarget;
 use crate::local_db::LocalDbError;
 use flate2::read::GzDecoder;
+use itertools::Itertools;
 use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use rain_orderbook_app_settings::remote::manifest::{fetch_multiple_manifests, ManifestMap};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::Read;
 use url::Url;
 
 pub(crate) fn collect_manifest_urls(orderbooks: &HashMap<String, OrderbookCfg>) -> Vec<Url> {
-    let mut urls = Vec::new();
-    let mut seen = HashSet::new();
-    for orderbook in orderbooks.values() {
-        let url = orderbook.local_db_remote.url.clone();
-        if seen.insert(url.clone()) {
-            urls.push(url);
-        }
-    }
-    urls
+    orderbooks
+        .values()
+        .map(|orderbook| orderbook.local_db_remote.url.clone())
+        .unique()
+        .collect()
 }
 
 /// Fetches manifests for all distinct remotes referenced by the orderbooks.
