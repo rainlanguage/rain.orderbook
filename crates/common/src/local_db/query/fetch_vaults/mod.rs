@@ -53,13 +53,17 @@ const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
 const HIDE_ZERO_BALANCE_BODY: &str = r##"
 AND NOT FLOAT_IS_ZERO(
     COALESCE((
-      SELECT FLOAT_SUM(vd.delta)
-      FROM vault_deltas vd
-      WHERE vd.chain_id = o.chain_id
-        AND lower(vd.orderbook_address) = lower(o.orderbook_address)
-        AND lower(vd.owner)    = lower(o.owner)
-        AND lower(vd.token)    = lower(o.token)
-        AND lower(vd.vault_id) = lower(o.vault_id)
+      SELECT FLOAT_SUM(ordered.delta)
+      FROM (
+        SELECT vd.delta
+        FROM vault_deltas vd
+        WHERE vd.chain_id = o.chain_id
+          AND lower(vd.orderbook_address) = lower(o.orderbook_address)
+          AND lower(vd.owner)    = lower(o.owner)
+          AND lower(vd.token)    = lower(o.token)
+          AND lower(vd.vault_id) = lower(o.vault_id)
+        ORDER BY vd.block_number, vd.log_index
+      ) AS ordered
     ), FLOAT_ZERO_HEX())
   )
 "##;
@@ -144,6 +148,8 @@ pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, S
     } else {
         stmt.replace(HIDE_ZERO_BALANCE_CLAUSE, "")?;
     }
+
+    web_sys::console::log_1(&format!("AAA: {}", stmt.sql).into());
 
     Ok(stmt)
 }
