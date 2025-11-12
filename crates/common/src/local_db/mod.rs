@@ -16,6 +16,7 @@ use decode::DecodeError;
 pub use fetch::{FetchConfig, FetchConfigError};
 use insert::InsertError;
 use query::{LocalDbQueryError, SqlBuildError};
+use std::num::ParseIntError;
 
 pub const DATABASE_SCHEMA_VERSION: u32 = 1;
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
@@ -42,6 +43,12 @@ pub enum LocalDbError {
         value: String,
         #[source]
         source: ParseError,
+    },
+    #[error("Invalid block number '{value}'")]
+    InvalidBlockNumberString {
+        value: String,
+        #[source]
+        source: ParseIntError,
     },
 
     #[error("Events is not in expected array format")]
@@ -102,8 +109,8 @@ pub enum LocalDbError {
     #[error("Database schema version mismatch: expected {expected}, found {found}")]
     SchemaVersionMismatch { expected: u32, found: u32 },
 
-    #[error("Missing bootstrap implementation")]
-    MissingBootstrapImplementation,
+    #[error("Invalid bootstrap implementation")]
+    InvalidBootstrapImplementation,
 
     #[error("Block sync threshold exceeded: latest block {latest_block}, last indexed block {last_indexed_block}, threshold {threshold}")]
     BlockSyncThresholdExceeded {
@@ -111,6 +118,14 @@ pub enum LocalDbError {
         last_indexed_block: u64,
         threshold: u64,
     },
+
+    #[error("Invalid log index '{value}'")]
+    InvalidLogIndex {
+        value: String,
+        #[source]
+        source: ParseIntError,
+    },
+
     #[error("Missing topics filter")]
     MissingTopicsFilter,
 
@@ -145,6 +160,9 @@ impl LocalDbError {
             LocalDbError::JsonParse(err) => format!("Failed to parse JSON response: {}", err),
             LocalDbError::MissingField { field } => format!("Missing expected field: {}", field),
             LocalDbError::InvalidBlockNumber { value, .. } => {
+                format!("Invalid block number provided: {}", value)
+            }
+            LocalDbError::InvalidBlockNumberString { value, .. } => {
                 format!("Invalid block number provided: {}", value)
             }
             LocalDbError::InvalidEventsFormat => {
@@ -198,8 +216,8 @@ impl LocalDbError {
                 "Database schema version mismatch: expected {}, found {}",
                 expected, found
             ),
-            LocalDbError::MissingBootstrapImplementation => {
-                "Bootstrap pipeline must be implemented".to_string()
+            LocalDbError::InvalidBootstrapImplementation => {
+                "This bootstrap implementation is invalid.".to_string()
             }
             LocalDbError::BlockSyncThresholdExceeded {
                 latest_block,
@@ -209,6 +227,9 @@ impl LocalDbError {
                 "Block sync threshold exceeded: latest block {}, last indexed block {}, threshold {}",
                 latest_block, last_indexed_block, threshold
             ),
+            LocalDbError::InvalidLogIndex { value, .. } => {
+                format!("Invalid log index provided: {}", value)
+            }
             LocalDbError::MissingTopicsFilter => "Topics are missing from the filter".to_string(),
             LocalDbError::MissingBlockFilter(value) => {
                 format!("Missing block filter: {}", value)

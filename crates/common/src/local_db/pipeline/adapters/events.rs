@@ -81,7 +81,7 @@ impl EventsPipeline for DefaultEventsPipeline {
 mod tests {
     use super::*;
     use crate::rpc_client::RpcClientError;
-    use alloy::{hex, sol_types::SolEvent};
+    use alloy::{hex, primitives::U256, sol_types::SolEvent};
     use rain_orderbook_bindings::OrderBook::MetaV1_2;
 
     fn test_url() -> Url {
@@ -109,14 +109,14 @@ mod tests {
             address: format!("0x{:040x}", 0),
             topics: vec![format!("0x{}", hex::encode(MetaV1_2::SIGNATURE_HASH))],
             data: "0x".to_string(),
-            block_number: "0x1".to_string(),
-            block_timestamp: Some("0x2".to_string()),
+            block_number: U256::from(1),
+            block_timestamp: Some(U256::from(2)),
             transaction_hash: "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
                 .to_string(),
             transaction_index: "0x0".to_string(),
             block_hash: "0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"
                 .to_string(),
-            log_index: "0x0".to_string(),
+            log_index: U256::ZERO,
             removed: false,
         };
 

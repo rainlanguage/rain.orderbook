@@ -1,7 +1,7 @@
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
-    primitives::{Address, Bytes, B256},
+    primitives::{Address, Bytes, B256, U256},
     sol_types::{abi::token::WordToken, SolEvent},
 };
 use core::convert::TryFrom;
@@ -79,10 +79,10 @@ impl EventType {
 #[serde(bound(serialize = "T: Serialize", deserialize = "T: Deserialize<'de>"))]
 pub struct DecodedEventData<T> {
     pub event_type: EventType,
-    pub block_number: String,
-    pub block_timestamp: String,
+    pub block_number: U256,
+    pub block_timestamp: U256,
     pub transaction_hash: Bytes,
-    pub log_index: String,
+    pub log_index: U256,
     pub decoded_data: T,
 }
 
@@ -179,21 +179,10 @@ pub fn decode_events(
 
             Ok(DecodedEventData {
                 event_type,
-                block_number: if event.block_number.is_empty() {
-                    "0x0".to_string()
-                } else {
-                    event.block_number.clone()
-                },
-                block_timestamp: match event.block_timestamp.clone() {
-                    Some(ts) if !ts.is_empty() => ts,
-                    _ => "0x0".to_string(),
-                },
+                block_number: event.block_number,
+                block_timestamp: event.block_timestamp.unwrap_or_default(),
                 transaction_hash: Bytes::from_str(&event.transaction_hash)?,
-                log_index: if event.log_index.is_empty() {
-                    "0x0".to_string()
-                } else {
-                    event.log_index.clone()
-                },
+                log_index: event.log_index,
                 decoded_data,
             })
         })
@@ -215,6 +204,14 @@ fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError>
     E::decode_raw_log(topics, &data).map_err(|err| DecodeError::AbiDecode(err.to_string()))
 }
 
+pub fn sort_decoded_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
+    events.sort_by(|a, b| {
+        a.block_number
+            .cmp(&b.block_number)
+            .then_with(|| a.log_index.cmp(&b.log_index))
+    });
+}
+
 #[cfg(test)]
 mod test_helpers {
     use super::*;
@@ -230,6 +227,7 @@ mod test_helpers {
         OrderBook::MetaV1_2,
     };
     use serde_json::Value;
+    use std::str::FromStr;
 
     fn create_sample_order_v4() -> OrderV4 {
         OrderV4 {
@@ -261,6 +259,18 @@ mod test_helpers {
         FixedBytes::<32>::from(U256::from(value).to_be_bytes::<32>())
     }
 
+    fn parse_u256(value: &str) -> U256 {
+        let trimmed = value.trim();
+        if let Some(hex) = trimmed
+            .strip_prefix("0x")
+            .or_else(|| trimmed.strip_prefix("0X"))
+        {
+            U256::from_str_radix(hex, 16).expect("valid hex literal")
+        } else {
+            U256::from_str_radix(trimmed, 10).expect("valid decimal literal")
+        }
+    }
+
     fn new_log_entry(
         topic: String,
         data: String,
@@ -273,12 +283,12 @@ mod test_helpers {
             address: "0x0000000000000000000000000000000000000000".to_string(),
             topics: vec![topic],
             data,
-            block_number: block_number.to_string(),
-            block_timestamp: block_timestamp.map(|ts| ts.to_string()),
+            block_number: parse_u256(block_number),
+            block_timestamp: block_timestamp.map(parse_u256),
             transaction_hash: transaction_hash.to_string(),
             transaction_index: "0x0".to_string(),
             block_hash: "0x0".to_string(),
-            log_index: log_index.to_string(),
+            log_index: parse_u256(log_index),
             removed: false,
         }
     }
@@ -909,20 +919,20 @@ mod test_helpers {
     #[test]
     fn test_event_with_valid_data_missing_metadata() {
         let mut minimal_event = create_add_order_v3_event_data();
-        minimal_event.block_number.clear();
+        minimal_event.block_number = U256::ZERO;
         minimal_event.block_timestamp = None;
         minimal_event.transaction_hash.clear();
-        minimal_event.log_index.clear();
+        minimal_event.log_index = U256::ZERO;
 
         let decoded_events = decode_events_vec(vec![minimal_event]);
         assert_eq!(decoded_events.len(), 1);
 
         let decoded_event = &decoded_events[0];
         assert_eq!(decoded_event.event_type, EventType::AddOrderV3);
-        assert_eq!(decoded_event.block_number, "0x0");
-        assert_eq!(decoded_event.block_timestamp, "0x0");
+        assert_eq!(decoded_event.block_number, U256::ZERO);
+        assert_eq!(decoded_event.block_timestamp, U256::ZERO);
         assert_eq!(decoded_event.transaction_hash, Bytes::from_str("").unwrap());
-        assert_eq!(decoded_event.log_index, "0x0");
+        assert_eq!(decoded_event.log_index, U256::ZERO);
     }
 
     #[test]
@@ -1022,5 +1032,62 @@ mod test_helpers {
         let result = decode_events(&[clear_event]).unwrap();
         assert_eq!(result.len(), 1);
         assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
+    }
+
+    fn mk_event(block: u64, log_index: u64, tx: &str) -> DecodedEventData<DecodedEvent> {
+        DecodedEventData {
+            event_type: EventType::Unknown,
+            block_number: U256::from(block),
+            block_timestamp: U256::ZERO,
+            transaction_hash: Bytes::from_str(tx).unwrap(),
+            log_index: U256::from(log_index),
+            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
+                raw_data: "0x".to_string(),
+                note: "".to_string(),
+            }),
+        }
+    }
+
+    #[test]
+    fn sort_events_by_block_and_log_orders_stably() {
+        let mut events = vec![
+            mk_event(2, 1, "0x10"),
+            mk_event(1, 2, "0x20"),
+            mk_event(1, 1, "0x30"),
+        ];
+        sort_decoded_events_by_block_and_log(&mut events);
+        assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
+        assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
+        assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
+    }
+
+    #[test]
+    fn sort_events_preserves_relative_order_for_identical_keys() {
+        let mut events = vec![
+            mk_event(1, 1, "0x01"),
+            mk_event(1, 1, "0x02"),
+            mk_event(1, 1, "0x03"),
+        ];
+        let expected_order: Vec<_> = events
+            .iter()
+            .map(|event| event.transaction_hash.clone())
+            .collect();
+        sort_decoded_events_by_block_and_log(&mut events);
+        let actual_order: Vec<_> = events
+            .iter()
+            .map(|event| event.transaction_hash.clone())
+            .collect();
+        assert_eq!(actual_order, expected_order);
+    }
+
+    #[test]
+    fn sort_events_orders_large_values() {
+        let mut events = vec![
+            mk_event(u64::MAX, 0, "0x01"),
+            mk_event(u64::MAX - 1, 1, "0x02"),
+        ];
+        sort_decoded_events_by_block_and_log(&mut events);
+        assert_eq!(events[0].transaction_hash, Bytes::from_str("0x02").unwrap());
+        assert_eq!(events[1].transaction_hash, Bytes::from_str("0x01").unwrap());
     }
 }

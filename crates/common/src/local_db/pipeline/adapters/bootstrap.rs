@@ -1,3 +1,4 @@
+use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -113,16 +114,30 @@ pub trait BootstrapPipeline {
         Ok(())
     }
 
-    async fn run<DB>(
+    async fn clear_orderbook_data<DB>(
         &self,
-        _db: &DB,
-        _db_schema_version: Option<u32>,
-        _config: &BootstrapConfig,
+        db: &DB,
+        ob_id: &OrderbookIdentifier,
     ) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        Err(LocalDbError::MissingBootstrapImplementation)
+        db.query_text(&clear_orderbook_data_stmt(ob_id)).await?;
+        Ok(())
+    }
+
+    async fn engine_run<DB>(&self, _: &DB, _: &BootstrapConfig) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Err(LocalDbError::InvalidBootstrapImplementation)
+    }
+
+    async fn runner_run<DB>(&self, _: &DB, _: Option<u32>) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Err(LocalDbError::InvalidBootstrapImplementation)
     }
 }
 
@@ -159,6 +174,66 @@ mod tests {
         }
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
+        }
+    }
+
+    struct RecordingTextExecutor {
+        result: Mutex<Option<Result<(), LocalDbError>>>,
+        captured_sql: Mutex<Vec<String>>,
+    }
+
+    impl RecordingTextExecutor {
+        fn new(result: Result<(), LocalDbError>) -> Self {
+            Self {
+                result: Mutex::new(Some(result)),
+                captured_sql: Mutex::new(Vec::new()),
+            }
+        }
+
+        fn succeed() -> Self {
+            Self::new(Ok(()))
+        }
+
+        fn fail(err: LocalDbError) -> Self {
+            Self::new(Err(err))
+        }
+
+        fn captured_sql(&self) -> Vec<String> {
+            self.captured_sql.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LocalDbQueryExecutor for RecordingTextExecutor {
+        async fn execute_batch(&self, _: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            panic!("execute_batch should not be called in these tests");
+        }
+
+        async fn query_json<T>(&self, _: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            panic!("query_json should not be called in these tests");
+        }
+
+        async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            self.captured_sql
+                .lock()
+                .unwrap()
+                .push(stmt.sql().to_string());
+
+            let outcome = self
+                .result
+                .lock()
+                .unwrap()
+                .take()
+                .expect("query_text called more than expected");
+
+            match outcome {
+                Ok(()) => Ok(String::from("ok")),
+                Err(LocalDbError::LocalDbQueryError(inner)) => Err(inner),
+                Err(err) => Err(LocalDbQueryError::database(err.to_string())),
+            }
         }
     }
 
@@ -551,23 +626,72 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_returns_missing_impl() {
+    async fn engine_run_returns_invalid_bootstrap_implementation() {
         let adapter = TestBootstrapPipeline::new();
         let db = MockDb::default();
         let cfg = BootstrapConfig {
-            ob_id: OrderbookIdentifier {
-                chain_id: 1,
-                orderbook_address: Address::ZERO,
-            },
+            ob_id: OrderbookIdentifier::new(1, Address::ZERO),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 10_000,
         };
 
-        let err = adapter.run(&db, None, &cfg).await.unwrap_err();
+        let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
         match err {
-            LocalDbError::MissingBootstrapImplementation => {}
+            LocalDbError::InvalidBootstrapImplementation => {}
             other => panic!("unexpected error: {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn runner_run_returns_invalid_bootstrap_implementation() {
+        let adapter = TestBootstrapPipeline::new();
+        let db = MockDb::default();
+
+        let err = adapter.runner_run(&db, None).await.unwrap_err();
+        match err {
+            LocalDbError::InvalidBootstrapImplementation => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn clear_orderbook_data_executes_expected_statement() {
+        let adapter = TestBootstrapPipeline::new();
+        let target = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
+        let db = RecordingTextExecutor::succeed();
+
+        adapter
+            .clear_orderbook_data(&db, &target)
+            .await
+            .expect("clear_orderbook_data should succeed");
+
+        let captured = db.captured_sql();
+        assert_eq!(captured.len(), 1);
+        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
+    }
+
+    #[tokio::test]
+    async fn clear_orderbook_data_propagates_error() {
+        let adapter = TestBootstrapPipeline::new();
+        let target = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
+        let inner_error = LocalDbQueryError::database("boom");
+        let db = RecordingTextExecutor::fail(LocalDbError::from(inner_error.clone()));
+
+        let err = adapter
+            .clear_orderbook_data(&db, &target)
+            .await
+            .expect_err("clear_orderbook_data should propagate error");
+
+        match err {
+            LocalDbError::LocalDbQueryError(actual) => {
+                assert_eq!(actual.to_string(), inner_error.to_string());
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+
+        let captured = db.captured_sql();
+        assert_eq!(captured.len(), 1);
+        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
     }
 }

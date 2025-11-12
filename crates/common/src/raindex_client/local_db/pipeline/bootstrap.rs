@@ -6,6 +6,7 @@ use crate::local_db::{
     },
     LocalDbError, OrderbookIdentifier,
 };
+use alloy::primitives::Address;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ClientBootstrapAdapter;
@@ -48,32 +49,13 @@ impl ClientBootstrapAdapter {
 
 #[async_trait::async_trait(?Send)]
 impl BootstrapPipeline for ClientBootstrapAdapter {
-    async fn run<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-        config: &BootstrapConfig,
-    ) -> Result<(), LocalDbError>
+    async fn engine_run<DB>(&self, db: &DB, config: &BootstrapConfig) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
         let BootstrapState {
-            has_required_tables,
-            last_synced_block,
+            last_synced_block, ..
         } = self.inspect_state(db, &config.ob_id).await?;
-
-        if !has_required_tables {
-            self.reset_db(db, db_schema_version).await?;
-        }
-
-        match self.ensure_schema(db, db_schema_version).await {
-            Ok(_) => {}
-            Err(LocalDbError::MissingDbMetadataRow)
-            | Err(LocalDbError::SchemaVersionMismatch { .. }) => {
-                self.reset_db(db, db_schema_version).await?;
-            }
-            Err(err) => return Err(err),
-        }
 
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
             if self.is_fresh_db(db, &config.ob_id).await? {
@@ -88,10 +70,41 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
             ) {
                 Ok(_) => {}
                 Err(_) => {
-                    self.reset_db(db, db_schema_version).await?;
+                    self.clear_orderbook_data(db, &config.ob_id).await?;
                     db.query_text(dump_stmt).await?;
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    async fn runner_run<DB>(
+        &self,
+        db: &DB,
+        db_schema_version: Option<u32>,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        let BootstrapState {
+            has_required_tables,
+            ..
+        } = self
+            .inspect_state(db, &OrderbookIdentifier::new(0, Address::ZERO))
+            .await?;
+
+        if !has_required_tables {
+            self.reset_db(db, db_schema_version).await?;
+        }
+
+        match self.ensure_schema(db, db_schema_version).await {
+            Ok(_) => {}
+            Err(LocalDbError::MissingDbMetadataRow)
+            | Err(LocalDbError::SchemaVersionMismatch { .. }) => {
+                self.reset_db(db, db_schema_version).await?;
+            }
+            Err(err) => return Err(err),
         }
 
         Ok(())
@@ -105,6 +118,7 @@ mod tests {
 
     use super::*;
     use crate::local_db::pipeline::BootstrapConfig;
+    use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -186,6 +200,10 @@ mod tests {
         }
     }
 
+    fn runner_ob_id() -> OrderbookIdentifier {
+        OrderbookIdentifier::new(0, Address::ZERO)
+    }
+
     fn cfg_with_dump(latest_block: u64) -> BootstrapConfig {
         BootstrapConfig {
             ob_id: sample_ob_id(),
@@ -195,10 +213,32 @@ mod tests {
         }
     }
 
+    fn required_tables_json() -> serde_json::Value {
+        serde_json::to_value(
+            REQUIRED_TABLES
+                .iter()
+                .map(|&t| TableResponse {
+                    name: t.to_string(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap()
+    }
+
+    fn watermark_row(last_block: u64) -> TargetWatermarkRow {
+        TargetWatermarkRow {
+            chain_id: sample_ob_id().chain_id,
+            orderbook_address: sample_ob_id().orderbook_address,
+            last_block,
+            last_hash: None,
+            updated_at: None,
+        }
+    }
+
     #[tokio::test]
-    async fn run_resets_when_missing_tables_and_no_dump() {
+    async fn runner_run_resets_when_tables_missing() {
         let adapter = ClientBootstrapAdapter::new();
-        let tables_json = json!([]); // no required tables
+        let tables_json = json!([]);
         let db_meta_row = DbMetadataRow {
             id: 1,
             db_schema_version: DATABASE_SCHEMA_VERSION,
@@ -209,25 +249,16 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
-            // reset_db calls
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: None,
-            latest_block: 0,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
-
         adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
+            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
-        // Expect reset sequence only
+        assert_eq!(calls.len(), 3);
         assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
@@ -239,9 +270,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_resets_on_missing_db_metadata_row() {
+    async fn runner_run_resets_on_missing_db_metadata() {
         let adapter = ClientBootstrapAdapter::new();
-        // All required tables present
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
                 .iter()
@@ -256,23 +286,12 @@ mod tests {
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([])) // triggers reset
             // inspect_state will look for watermark since table exists
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([]),
-            )
+            .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: None,
-            latest_block: 0,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
-
         adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
+            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
             .await
             .unwrap();
 
@@ -287,9 +306,46 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_resets_on_schema_mismatch() {
+    async fn runner_run_resets_on_schema_mismatch() {
         let adapter = ClientBootstrapAdapter::new();
-        // All required tables present
+        let tables_json = serde_json::to_value(
+            REQUIRED_TABLES
+                .iter()
+                .map(|&t| TableResponse {
+                    name: t.to_string(),
+                })
+                .collect::<Vec<_>>(),
+        )
+        .unwrap();
+
+        let mismatched_row = DbMetadataRow {
+            id: 1,
+            db_schema_version: DATABASE_SCHEMA_VERSION + 1,
+            created_at: None,
+            updated_at: None,
+        };
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
+            .with_json(&fetch_db_metadata_stmt(), json!([mismatched_row]))
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_text(&create_tables_stmt(), "ok")
+            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+
+        adapter
+            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .await
+            .unwrap();
+
+        let calls = db.calls();
+        assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
+        assert!(calls.contains(&create_tables_stmt().sql().to_string()));
+    }
+
+    #[tokio::test]
+    async fn runner_run_is_idempotent_when_schema_ok() {
+        let adapter = ClientBootstrapAdapter::new();
         let tables_json = serde_json::to_value(
             REQUIRED_TABLES
                 .iter()
@@ -302,348 +358,33 @@ mod tests {
 
         let db_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION + 1,
-            created_at: None,
-            updated_at: None,
-        };
-
-        let db = MockDb::default()
-            .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(&fetch_db_metadata_stmt(), json!([db_row])) // mismatch triggers reset
-            // inspect_state will look for watermark since table exists
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([]),
-            )
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: None,
-            latest_block: 0,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
-
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
-
-        let calls = db.calls();
-        assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
-        assert!(calls.contains(&create_tables_stmt().sql().to_string()));
-    }
-
-    #[tokio::test]
-    async fn run_applies_dump_on_fresh_db() {
-        let adapter = ClientBootstrapAdapter::new();
-        // Start without tables to force reset, then fresh watermark after reset
-        let tables_json = json!([]);
-        let db_meta_row = DbMetadataRow {
-            id: 1,
             db_schema_version: DATABASE_SCHEMA_VERSION,
             created_at: None,
             updated_at: None,
         };
 
-        let dump_stmt = SqlStatement::new("--dump-sql");
-
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
-            // fresh DB check: no rows
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([]),
-            )
-            // reset + dump
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok")
-            .with_text(&dump_stmt, "ok");
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
-            latest_block: 100,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
+            .with_json(&fetch_db_metadata_stmt(), json!([db_row]))
+            .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]));
 
         adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
+            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
             .await
             .unwrap();
 
-        let calls = db.calls();
-        assert!(calls.contains(&dump_stmt.sql().to_string()));
+        assert!(db.calls().is_empty());
     }
 
     #[tokio::test]
-    async fn run_skips_dump_when_within_threshold() {
+    async fn runner_run_propagates_unexpected_ensure_schema_error() {
         let adapter = ClientBootstrapAdapter::new();
-        // Tables present, watermark exists => not fresh
-        let tables_json = serde_json::to_value(
-            REQUIRED_TABLES
-                .iter()
-                .map(|&t| TableResponse {
-                    name: t.to_string(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .unwrap();
-        let last_synced = 90_000u64;
-        let latest = last_synced + 9_000; // below 10_000 threshold
-        let watermark_row = TargetWatermarkRow {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-            last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
-        };
+        let tables_json = required_tables_json();
 
-        let db = MockDb::default()
-            .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([watermark_row.clone()]),
-            )
-            // ensure_schema ok
-            .with_json(
-                &fetch_db_metadata_stmt(),
-                json!([DbMetadataRow {
-                    id: 1,
-                    db_schema_version: DATABASE_SCHEMA_VERSION,
-                    created_at: None,
-                    updated_at: None
-                }]),
-            );
-
-        let cfg = cfg_with_dump(latest);
-
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
-
-        let calls = db.calls();
-        // No reset and no dump calls expected
-        assert!(calls.is_empty());
-    }
-
-    #[tokio::test]
-    async fn run_resets_and_applies_dump_when_threshold_exceeded() {
-        let adapter = ClientBootstrapAdapter::new();
-        // Tables present, watermark exists => not fresh
-        let tables_json = serde_json::to_value(
-            REQUIRED_TABLES
-                .iter()
-                .map(|&t| TableResponse {
-                    name: t.to_string(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .unwrap();
-        let last_synced = 50_000u64;
-        let latest = last_synced + 20_001; // above threshold
-        let watermark_row = TargetWatermarkRow {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-            last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
-        };
-        let dump_stmt = SqlStatement::new("--dump-sql");
-
-        let db = MockDb::default()
-            .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([watermark_row]),
-            )
-            // ensure_schema ok
-            .with_json(
-                &fetch_db_metadata_stmt(),
-                json!([DbMetadataRow {
-                    id: 1,
-                    db_schema_version: DATABASE_SCHEMA_VERSION,
-                    created_at: None,
-                    updated_at: None
-                }]),
-            )
-            // reset + dump
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok")
-            .with_text(&dump_stmt, "ok");
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
-            latest_block: latest,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
-
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
-
-        let calls = db.calls();
-        assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
-        assert!(calls.contains(&dump_stmt.sql().to_string()));
-    }
-
-    #[tokio::test]
-    async fn run_skips_dump_on_threshold_boundary() {
-        let adapter = ClientBootstrapAdapter::new();
-        // Tables present, watermark exists => not fresh
-        let tables_json = serde_json::to_value(
-            REQUIRED_TABLES
-                .iter()
-                .map(|&t| TableResponse {
-                    name: t.to_string(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .unwrap();
-
-        let last_synced = 100_000u64;
-        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD); // exactly at threshold
-        let watermark_row = TargetWatermarkRow {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-            last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
-        };
-
-        let db = MockDb::default()
-            .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([watermark_row]),
-            )
-            // ensure_schema ok
-            .with_json(
-                &fetch_db_metadata_stmt(),
-                json!([DbMetadataRow {
-                    id: 1,
-                    db_schema_version: DATABASE_SCHEMA_VERSION,
-                    created_at: None,
-                    updated_at: None
-                }]),
-            );
-
-        let cfg = cfg_with_dump(latest);
-
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
-
-        let calls = db.calls();
-        // No reset and no dump calls expected
-        assert!(calls.is_empty());
-    }
-
-    #[tokio::test]
-    async fn run_does_nothing_when_dump_absent_even_if_threshold_exceeded() {
-        let adapter = ClientBootstrapAdapter::new();
-        // Tables present, watermark exists => not fresh
-        let tables_json = serde_json::to_value(
-            REQUIRED_TABLES
-                .iter()
-                .map(|&t| TableResponse {
-                    name: t.to_string(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .unwrap();
-
-        let last_synced = 200_000u64;
-        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 1; // exceed threshold
-        let watermark_row = TargetWatermarkRow {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-            last_block: last_synced,
-            last_hash: None,
-            updated_at: None,
-        };
-
-        let db = MockDb::default()
-            .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([watermark_row]),
-            )
-            // ensure_schema ok
-            .with_json(
-                &fetch_db_metadata_stmt(),
-                json!([DbMetadataRow {
-                    id: 1,
-                    db_schema_version: DATABASE_SCHEMA_VERSION,
-                    created_at: None,
-                    updated_at: None
-                }]),
-            );
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: None,
-            latest_block: latest,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
-
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
-
-        let calls = db.calls();
-        // With no dump configured, exceeding threshold should not trigger reset/dump
-        assert!(calls.is_empty());
-    }
-
-    #[tokio::test]
-    async fn run_propagates_unexpected_ensure_schema_error() {
-        let adapter = ClientBootstrapAdapter::new();
-        // Make inspect_state succeed, but ensure_schema fails with a query error
-        let tables_json = serde_json::to_value(
-            REQUIRED_TABLES
-                .iter()
-                .map(|&t| TableResponse {
-                    name: t.to_string(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .unwrap();
-
-        let watermark_row = TargetWatermarkRow {
-            chain_id: 1,
-            orderbook_address: Address::ZERO,
-            last_block: 1,
-            last_hash: None,
-            updated_at: None,
-        };
-
-        let db = MockDb::default()
-            .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([watermark_row]),
-            ); // intentionally omit fetch_db_metadata to force ensure_schema error
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: Some(SqlStatement::new("--dump-sql")),
-            latest_block: 2,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
+        let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
 
         let err = adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
+            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
             .await
             .unwrap_err();
 
@@ -651,56 +392,151 @@ mod tests {
             LocalDbError::LocalDbQueryError(..) => {}
             other => panic!("unexpected error: {other:?}"),
         }
+    }
 
-        // Should not have attempted any reset/dump text queries
+    #[tokio::test]
+    async fn engine_run_applies_dump_on_fresh_db() {
+        let adapter = ClientBootstrapAdapter::new();
+        let tables_json = required_tables_json();
+        let dump_stmt = SqlStatement::new("--dump-sql");
+        let cfg = BootstrapConfig {
+            ob_id: sample_ob_id(),
+            dump_stmt: Some(dump_stmt.clone()),
+            latest_block: 100,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+        };
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(&fetch_target_watermark_stmt(&cfg.ob_id), json!([]))
+            .with_text(&dump_stmt, "ok");
+
+        adapter.engine_run(&db, &cfg).await.unwrap();
+
+        assert_eq!(db.calls(), vec![dump_stmt.sql().to_string()]);
+    }
+
+    #[tokio::test]
+    async fn engine_run_clears_and_applies_dump_when_threshold_exceeded() {
+        let adapter = ClientBootstrapAdapter::new();
+        let tables_json = required_tables_json();
+        let last_synced = 50_000u64;
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 1;
+        let dump_stmt = SqlStatement::new("--dump-sql");
+        let cfg = BootstrapConfig {
+            ob_id: sample_ob_id(),
+            dump_stmt: Some(dump_stmt.clone()),
+            latest_block: latest,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+        };
+        let clear_stmt = clear_orderbook_data_stmt(&cfg.ob_id);
+        let clear_sql = clear_stmt.sql().to_string();
+        let dump_sql = dump_stmt.sql().to_string();
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(
+                &fetch_target_watermark_stmt(&cfg.ob_id),
+                json!([watermark_row(last_synced)]),
+            )
+            .with_text(&clear_stmt, "cleared")
+            .with_text(&dump_stmt, "dumped");
+
+        adapter.engine_run(&db, &cfg).await.unwrap();
+
+        assert_eq!(db.calls(), vec![clear_sql, dump_sql]);
+    }
+
+    #[tokio::test]
+    async fn engine_run_skips_actions_within_threshold() {
+        let adapter = ClientBootstrapAdapter::new();
+        let tables_json = required_tables_json();
+        let last_synced = 100_000u64;
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) - 1;
+        let cfg = cfg_with_dump(latest);
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(
+                &fetch_target_watermark_stmt(&cfg.ob_id),
+                json!([watermark_row(last_synced)]),
+            );
+
+        adapter.engine_run(&db, &cfg).await.unwrap();
+
         assert!(db.calls().is_empty());
     }
 
     #[tokio::test]
-    async fn run_resets_and_applies_dump_when_ensure_schema_missing_metadata() {
+    async fn engine_run_skips_actions_at_threshold_boundary() {
         let adapter = ClientBootstrapAdapter::new();
-        // All required tables present so inspect_state succeeds; ensure_schema sees no metadata row
-        let tables_json = serde_json::to_value(
-            REQUIRED_TABLES
-                .iter()
-                .map(|&t| TableResponse {
-                    name: t.to_string(),
-                })
-                .collect::<Vec<_>>(),
-        )
-        .unwrap();
-
-        let dump_stmt = SqlStatement::new("--dump-sql");
+        let tables_json = required_tables_json();
+        let last_synced = 120_000u64;
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD);
+        let cfg = cfg_with_dump(latest);
 
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
-            // inspect_state watermark read (empty -> fresh after reset)
             .with_json(
-                &fetch_target_watermark_stmt(&OrderbookIdentifier::new(1, Address::ZERO)),
-                json!([]),
-            )
-            // ensure_schema -> missing metadata row
-            .with_json(&fetch_db_metadata_stmt(), json!([]))
-            // reset + dump
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok")
-            .with_text(&dump_stmt, "ok");
+                &fetch_target_watermark_stmt(&cfg.ob_id),
+                json!([watermark_row(last_synced)]),
+            );
 
+        adapter.engine_run(&db, &cfg).await.unwrap();
+
+        assert!(db.calls().is_empty());
+    }
+
+    #[tokio::test]
+    async fn engine_run_does_nothing_without_dump_even_when_threshold_exceeded() {
+        let adapter = ClientBootstrapAdapter::new();
+        let tables_json = required_tables_json();
+        let last_synced = 200_000u64;
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 5;
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
-            latest_block: 1,
+            dump_stmt: None,
+            latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(
+                &fetch_target_watermark_stmt(&cfg.ob_id),
+                json!([watermark_row(last_synced)]),
+            );
 
-        let calls = db.calls();
-        assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
-        assert!(calls.contains(&dump_stmt.sql().to_string()));
+        adapter.engine_run(&db, &cfg).await.unwrap();
+
+        assert!(db.calls().is_empty());
+    }
+
+    #[tokio::test]
+    async fn engine_run_propagates_clear_errors() {
+        let adapter = ClientBootstrapAdapter::new();
+        let tables_json = required_tables_json();
+        let last_synced = 80_000u64;
+        let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 42;
+        let dump_stmt = SqlStatement::new("--dump-sql");
+        let cfg = BootstrapConfig {
+            ob_id: sample_ob_id(),
+            dump_stmt: Some(dump_stmt.clone()),
+            latest_block: latest,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+        };
+
+        let db = MockDb::default()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(
+                &fetch_target_watermark_stmt(&cfg.ob_id),
+                json!([watermark_row(last_synced)]),
+            );
+
+        let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
+        match err {
+            LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }

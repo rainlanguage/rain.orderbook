@@ -1,5 +1,5 @@
 use alloy::primitives::Address;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use rain_orderbook_common::{
     erc20::TokenInfo,
@@ -28,7 +28,7 @@ pub(crate) trait SyncDataSource {
     ) -> Result<Vec<LogEntryResponse>>;
     async fn fetch_store_set_events(
         &self,
-        store_addresses: &[String],
+        store_addresses: &[Address],
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>>;
@@ -105,19 +105,11 @@ impl SyncDataSource for RpcClient {
 
     async fn fetch_store_set_events(
         &self,
-        store_addresses: &[String],
+        store_addresses: &[Address],
         start_block: u64,
         end_block: u64,
     ) -> Result<Vec<LogEntryResponse>> {
-        let addresses: Vec<Address> = store_addresses
-            .iter()
-            .enumerate()
-            .map(|(idx, s)| {
-                Address::from_str(s).with_context(|| {
-                    format!("failed to parse store address at index {}: {}", idx, s)
-                })
-            })
-            .collect::<Result<_, _>>()?;
+        let addresses: Vec<Address> = store_addresses.to_vec();
         fetch_store_events(
             self,
             &addresses,
