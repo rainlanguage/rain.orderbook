@@ -120,7 +120,7 @@ All core configs implement `YamlParsableHash` unless noted, and each instance ca
 
 ### Orderbooks (`orderbook.rs`)
 
-- `OrderbookCfg { key, address, network: Arc<NetworkCfg>, subgraph: Arc<SubgraphCfg>, local_db_remote: Arc<LocalDbRemoteCfg>, label?, deployment_block }`.
+- `OrderbookCfg { key, address, network: Arc<NetworkCfg>, subgraph: Arc<SubgraphCfg>, local_db_remote?: Arc<LocalDbRemoteCfg>, label?, deployment_block }`.
 - Validators: `validate_address(&str) -> Address`, `validate_deployment_block(&str) -> u64`.
 - Lookup helpers: `parse_network_key(docs, orderbook_key)` returns the referenced network key or defaults to the orderbook key.
 - Parses with references to previously parsed networks and subgraphs; duplicates are rejected.
@@ -128,7 +128,7 @@ All core configs implement `YamlParsableHash` unless noted, and each instance ca
 
 ### Local DB Remotes (`local_db_remotes.rs`)
 
-- `local-db-remotes:` is a required top-level map. Each entry is parsed as `LocalDbRemoteCfg { key, url }`.
+- `local-db-remotes:` is a optional top-level map. Each entry is parsed as `LocalDbRemoteCfg { key, url }`.
 - The `orderbooks[*].local-db-remote` field is optional. If omitted, it defaults to the orderbook's key. When provided explicitly, it must reference a defined remote key under `local-db-remotes`.
   - See `src/orderbook.rs` for the implementation and tests, e.g. `test_orderbook_local_db_remote_absent_defaults_to_orderbook_key`, `test_orderbook_local_db_remote_resolves`, and `test_orderbook_local_db_remote_not_found`.
 
