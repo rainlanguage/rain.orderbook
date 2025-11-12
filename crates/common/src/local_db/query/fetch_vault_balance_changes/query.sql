@@ -74,18 +74,22 @@ vault_changes AS (
     vd.log_index,
     vd.block_number,
     vd.block_timestamp,
-    vd.owner,
+    COALESCE(r.owner, vd.owner) AS owner,
     vd.kind,
     vd.token,
     vd.vault_id,
     vd.delta
   FROM vault_deltas vd
-  JOIN resolved_owner r
-    ON vd.chain_id = r.chain_id
-   AND lower(vd.orderbook_address) = r.orderbook_address
-   AND lower(vd.vault_id)          = r.vault_id
-   AND lower(vd.token)             = r.token
-   AND lower(vd.owner)             = lower(r.owner)
+  JOIN params p
+    ON vd.chain_id = p.chain_id
+   AND lower(vd.orderbook_address) = p.orderbook_address
+   AND lower(vd.vault_id)          = p.vault_id
+   AND lower(vd.token)             = p.token
+  LEFT JOIN resolved_owner r
+    ON r.chain_id = vd.chain_id
+   AND r.orderbook_address = p.orderbook_address
+   AND r.vault_id = p.vault_id
+   AND r.token = p.token
 ),
 running_balances AS (
   SELECT
