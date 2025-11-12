@@ -27,22 +27,22 @@ pub fn collect_token_addresses(
 
 pub fn collect_store_addresses(
     decoded_events: &[DecodedEventData<DecodedEvent>],
-) -> BTreeSet<String> {
+) -> BTreeSet<Address> {
     let mut out = BTreeSet::new();
 
     for event in decoded_events {
         match &event.decoded_data {
             DecodedEvent::AddOrderV3(add) => {
-                out.insert(format!("0x{:x}", add.order.evaluable.store));
+                out.insert(add.order.evaluable.store);
             }
             DecodedEvent::RemoveOrderV3(remove) => {
-                out.insert(format!("0x{:x}", remove.order.evaluable.store));
+                out.insert(remove.order.evaluable.store);
             }
             DecodedEvent::TakeOrderV3(take) => {
-                out.insert(format!("0x{:x}", take.config.order.evaluable.store));
+                out.insert(take.config.order.evaluable.store);
             }
             DecodedEvent::InterpreterStoreSet(set) => {
-                out.insert(format!("0x{:x}", set.store_address));
+                out.insert(set.store_address);
             }
             _ => {}
         }
@@ -62,6 +62,8 @@ fn order_tokens_vec(order: &OrderV4) -> Vec<Address> {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::super::decode::InterpreterStoreSetEvent;
     use super::*;
     use alloy::primitives::{Address, Bytes, FixedBytes, U256};
@@ -74,10 +76,10 @@ mod tests {
     fn build_event(event: DecodedEvent) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: super::super::decode::EventType::Unknown,
-            block_number: "0x0".into(),
-            block_timestamp: "0x0".into(),
+            block_number: U256::ZERO,
+            block_timestamp: U256::ZERO,
             transaction_hash: "0x0".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             decoded_data: event,
         }
     }
@@ -245,9 +247,13 @@ mod tests {
 
         let stores = collect_store_addresses(&events);
         assert_eq!(stores.len(), 4);
-        assert!(stores.contains("0x1111111111111111111111111111111111111111"));
-        assert!(stores.contains("0x2222222222222222222222222222222222222222"));
-        assert!(stores.contains("0x3333333333333333333333333333333333333333"));
-        assert!(stores.contains("0x4444444444444444444444444444444444444444"));
+        assert!(stores
+            .contains(&Address::from_str("0x1111111111111111111111111111111111111111").unwrap()));
+        assert!(stores
+            .contains(&Address::from_str("0x2222222222222222222222222222222222222222").unwrap()));
+        assert!(stores
+            .contains(&Address::from_str("0x3333333333333333333333333333333333333333").unwrap()));
+        assert!(stores
+            .contains(&Address::from_str("0x4444444444444444444444444444444444444444").unwrap()));
     }
 }

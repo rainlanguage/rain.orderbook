@@ -156,13 +156,13 @@ async fn fetch_block_timestamps(
     rpc_client: &RpcClient,
     block_numbers: Vec<u64>,
     config: &FetchConfig,
-) -> Result<HashMap<u64, String>, LocalDbError> {
+) -> Result<HashMap<u64, U256>, LocalDbError> {
     if block_numbers.is_empty() {
         return Ok(HashMap::new());
     }
 
     let concurrency = config.max_concurrent_blocks();
-    let results: Vec<Result<(u64, String), LocalDbError>> = futures::stream::iter(block_numbers)
+    let results: Vec<Result<(u64, U256), LocalDbError>> = futures::stream::iter(block_numbers)
         .map(|block_number| {
             let client = rpc_client.clone();
             let max_attempts = config.max_retry_attempts();
@@ -207,9 +207,7 @@ async fn backfill_missing_timestamps(
         let has_timestamp = event.block_timestamp.as_ref().is_some();
 
         if !has_timestamp {
-            if let Ok(block_number) = extract_block_number_from_entry(event) {
-                missing_blocks.insert(block_number);
-            }
+            missing_blocks.insert(event.block_number.to::<u64>());
         }
     }
 
@@ -227,10 +225,9 @@ async fn backfill_missing_timestamps(
             continue;
         }
 
-        if let Ok(block_number) = extract_block_number_from_entry(event) {
-            if let Some(timestamp) = timestamps.get(&block_number) {
-                event.block_timestamp = Some(timestamp.clone());
-            }
+        let block_number = event.block_number.to::<u64>();
+        if let Some(timestamp) = timestamps.get(&block_number).cloned() {
+            event.block_timestamp = Some(timestamp);
         }
     }
 
@@ -322,10 +319,10 @@ async fn fetch_logs_for_filters(
 
 fn sort_events_by_block_and_log(events: &mut [LogEntryResponse]) {
     events.sort_by(|a, b| {
-        let block_a = extract_block_number_from_entry(a).unwrap_or(0);
-        let block_b = extract_block_number_from_entry(b).unwrap_or(0);
-        let log_a = parse_block_number_str(&a.log_index).unwrap_or(0);
-        let log_b = parse_block_number_str(&b.log_index).unwrap_or(0);
+        let block_a = a.block_number.to::<u64>();
+        let block_b = b.block_number.to::<u64>();
+        let log_a = a.log_index.to::<u64>();
+        let log_b = b.log_index.to::<u64>();
         block_a.cmp(&block_b).then_with(|| log_a.cmp(&log_b))
     });
 }
@@ -339,37 +336,6 @@ fn map_rpc_error(error: RpcClientError) -> LocalDbError {
 
 fn should_retry_local_db_error(error: &LocalDbError) -> bool {
     matches!(error, LocalDbError::Rpc(_))
-}
-
-fn extract_block_number_from_entry(event: &LogEntryResponse) -> Result<u64, LocalDbError> {
-    parse_block_number_str(&event.block_number)
-}
-
-fn parse_block_number_str(block_number_str: &str) -> Result<u64, LocalDbError> {
-    let block_u256 = if let Some(hex_digits) = block_number_str
-        .strip_prefix("0x")
-        .or_else(|| block_number_str.strip_prefix("0X"))
-    {
-        if hex_digits.is_empty() {
-            return Err(LocalDbError::InvalidBlockNumber {
-                value: block_number_str.to_string(),
-                source: alloy::primitives::ruint::ParseError::InvalidDigit('\0'),
-            });
-        }
-        U256::from_str_radix(hex_digits, 16).map_err(|e| LocalDbError::InvalidBlockNumber {
-            value: block_number_str.to_string(),
-            source: e,
-        })?
-    } else {
-        U256::from_str_radix(block_number_str, 10).map_err(|e| {
-            LocalDbError::InvalidBlockNumber {
-                value: block_number_str.to_string(),
-                source: e,
-            }
-        })?
-    };
-
-    Ok(block_u256.to::<u64>())
 }
 
 #[cfg(test)]
@@ -421,7 +387,7 @@ mod tests {
     mod tokio_tests {
         use super::*;
         use alloy::hex;
-        use alloy::primitives::Address;
+        use alloy::primitives::{Address, U256};
         use alloy::rpc::types::FilterBlockError;
         use alloy::sol_types::SolEvent;
         use httpmock::prelude::*;
@@ -431,17 +397,31 @@ mod tests {
         use std::sync::atomic::{AtomicUsize, Ordering};
         use url::Url;
 
+        fn parse_u256(value: &str) -> U256 {
+            let trimmed = value.trim();
+            let digits = trimmed
+                .strip_prefix("0x")
+                .or_else(|| trimmed.strip_prefix("0X"))
+                .unwrap_or(trimmed);
+            let (radix, literal) = if digits.len() != trimmed.len() {
+                (16, digits)
+            } else {
+                (10, trimmed)
+            };
+            U256::from_str_radix(literal, radix).expect("valid u256 literal")
+        }
+
         fn make_log_entry_basic(block_number: &str, timestamp: Option<&str>) -> LogEntryResponse {
             LogEntryResponse {
                 address: "0x123".to_string(),
                 topics: vec!["0xabc".to_string()],
                 data: "0xdeadbeef".to_string(),
-                block_number: block_number.to_string(),
-                block_timestamp: timestamp.map(|ts| ts.to_string()),
+                block_number: parse_u256(block_number),
+                block_timestamp: timestamp.map(parse_u256),
                 transaction_hash: "0xtransaction".to_string(),
                 transaction_index: "0x0".to_string(),
                 block_hash: "0xblock".to_string(),
-                log_index: "0x0".to_string(),
+                log_index: U256::ZERO,
                 removed: false,
             }
         }
@@ -564,10 +544,10 @@ mod tests {
             .unwrap();
 
             assert_eq!(events.len(), 2);
-            assert_eq!(events[0].block_number, "0x1");
-            assert_eq!(events[1].block_number, "0x2");
-            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x64"));
-            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x65"));
+            assert_eq!(events[0].block_number, U256::from(1));
+            assert_eq!(events[1].block_number, U256::from(2));
+            assert_eq!(events[0].block_timestamp, Some(U256::from(0x64)));
+            assert_eq!(events[1].block_timestamp, Some(U256::from(0x65)));
         }
 
         #[tokio::test]
@@ -649,12 +629,12 @@ mod tests {
             .unwrap();
 
             assert_eq!(events.len(), 2);
-            assert_eq!(events[0].block_number, "0x1");
-            assert_eq!(events[0].log_index, "0x0");
-            assert_eq!(events[1].block_number, "0x2");
-            assert_eq!(events[1].log_index, "0x1");
-            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x64"));
-            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x65"));
+            assert_eq!(events[0].block_number, U256::from(1));
+            assert_eq!(events[0].log_index, U256::from(0));
+            assert_eq!(events[1].block_number, U256::from(2));
+            assert_eq!(events[1].log_index, U256::from(1));
+            assert_eq!(events[0].block_timestamp, Some(U256::from(0x64)));
+            assert_eq!(events[1].block_timestamp, Some(U256::from(0x65)));
             assert_eq!(log_mock.hits(), 1);
         }
 
@@ -706,8 +686,8 @@ mod tests {
             .await
             .unwrap();
 
-            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x10"));
-            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x20"));
+            assert_eq!(events[0].block_timestamp, Some(U256::from(0x10)));
+            assert_eq!(events[1].block_timestamp, Some(U256::from(0x20)));
         }
 
         #[tokio::test]
@@ -817,10 +797,10 @@ mod tests {
 
             assert_eq!(events.len(), 3);
             // Expect numeric sort of logIndex within the same block: 0x2, 0xA, 0x10
-            assert_eq!(events[0].log_index, "0x2");
-            assert_eq!(events[1].log_index, "0xA");
-            assert_eq!(events[2].log_index, "0x10");
-            assert!(events.iter().all(|e| e.block_number == "0x1"));
+            assert_eq!(events[0].log_index, U256::from(0x2));
+            assert_eq!(events[1].log_index, U256::from(0xA));
+            assert_eq!(events[2].log_index, U256::from(0x10));
+            assert!(events.iter().all(|e| e.block_number == U256::from(1)));
         }
 
         #[tokio::test]
@@ -845,29 +825,6 @@ mod tests {
                 other => panic!("expected LocalDbError::Rpc, got {other:?}"),
             }
             assert_eq!(attempts.load(Ordering::SeqCst), 2, "should attempt twice");
-        }
-
-        #[test]
-        fn parse_block_number_str_variants() {
-            // hex lower/upper and decimal
-            assert_eq!(parse_block_number_str("0xA").unwrap(), 10);
-            assert_eq!(parse_block_number_str("0X10").unwrap(), 16);
-            assert_eq!(parse_block_number_str("42").unwrap(), 42);
-        }
-
-        #[test]
-        fn parse_block_number_str_invalid_inputs() {
-            // invalid hex prefix only
-            match parse_block_number_str("0x").unwrap_err() {
-                LocalDbError::InvalidBlockNumber { .. } => {}
-                other => panic!("expected InvalidBlockNumber, got {other:?}"),
-            }
-
-            // invalid decimal
-            match parse_block_number_str("notanumber").unwrap_err() {
-                LocalDbError::InvalidBlockNumber { .. } => {}
-                other => panic!("expected InvalidBlockNumber, got {other:?}"),
-            }
         }
 
         #[test]
@@ -1083,12 +1040,12 @@ mod tests {
             .unwrap();
 
             assert_eq!(events.len(), 2);
-            assert_eq!(events[0].block_number, "0x1");
-            assert_eq!(events[0].log_index, "0x1");
-            assert_eq!(events[1].block_number, "0x2");
-            assert_eq!(events[1].log_index, "0x0");
-            assert_eq!(events[0].block_timestamp.as_deref(), Some("0x64"));
-            assert_eq!(events[1].block_timestamp.as_deref(), Some("0x65"));
+            assert_eq!(events[0].block_number, U256::from(1));
+            assert_eq!(events[0].log_index, U256::from(1));
+            assert_eq!(events[1].block_number, U256::from(2));
+            assert_eq!(events[1].log_index, U256::ZERO);
+            assert_eq!(events[0].block_timestamp, Some(U256::from(0x64)));
+            assert_eq!(events[1].block_timestamp, Some(U256::from(0x65)));
         }
     }
 }

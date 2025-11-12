@@ -16,22 +16,24 @@ impl ProducerBootstrapAdapter {
 
 #[async_trait::async_trait(?Send)]
 impl BootstrapPipeline for ProducerBootstrapAdapter {
-    async fn run<DB>(
-        &self,
-        db: &DB,
-        db_schema_version: Option<u32>,
-        config: &BootstrapConfig,
-    ) -> Result<(), LocalDbError>
+    async fn engine_run<DB>(&self, db: &DB, config: &BootstrapConfig) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        self.reset_db(db, db_schema_version).await?;
+        self.reset_db(db, None).await?;
 
         if let Some(dump_stmt) = &config.dump_stmt {
             db.query_text(dump_stmt).await?;
         }
 
         Ok(())
+    }
+
+    async fn runner_run<DB>(&self, _: &DB, _: Option<u32>) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Err(LocalDbError::InvalidBootstrapImplementation)
     }
 }
 
@@ -103,7 +105,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_resets_and_does_not_import_when_no_dump() {
+    async fn engine_run_resets_and_does_not_import_when_no_dump() {
         let adapter = ProducerBootstrapAdapter::new();
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
@@ -117,10 +119,7 @@ mod tests {
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
+        adapter.engine_run(&db, &cfg).await.unwrap();
 
         let calls = db.calls();
         // Presence assertions
@@ -141,7 +140,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_resets_and_imports_dump_when_present() {
+    async fn engine_run_resets_and_imports_dump_when_present() {
         let adapter = ProducerBootstrapAdapter::new();
         let dump_stmt = SqlStatement::new("--dump-sql");
         let db = MockDb::default()
@@ -157,10 +156,7 @@ mod tests {
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
-        adapter
-            .run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg)
-            .await
-            .unwrap();
+        adapter.engine_run(&db, &cfg).await.unwrap();
 
         let calls = db.calls();
         // Presence assertions
@@ -184,7 +180,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_resets_and_fails_when_dump_missing() {
+    async fn engine_run_resets_and_fails_when_dump_missing() {
         let adapter = ProducerBootstrapAdapter::new();
         let dump_stmt = SqlStatement::new("--dump-sql-missing");
         let db = MockDb::default()
@@ -200,7 +196,7 @@ mod tests {
         };
 
         // Expect error due to missing dump mapping, after successful reset
-        let result = adapter.run(&db, Some(DATABASE_SCHEMA_VERSION), &cfg).await;
+        let result = adapter.engine_run(&db, &cfg).await;
         assert!(result.is_err());
 
         let calls = db.calls();
@@ -221,5 +217,43 @@ mod tests {
         assert!(idx(&clear) < idx(&create));
         assert!(idx(&create) < idx(&insert));
         assert!(idx(&insert) < idx(&dump));
+    }
+
+    #[tokio::test]
+    async fn engine_run_propagates_reset_error() {
+        let adapter = ProducerBootstrapAdapter::new();
+        let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
+
+        let cfg = BootstrapConfig {
+            ob_id: sample_ob_id(),
+            dump_stmt: None,
+            latest_block: 0,
+            block_number_threshold: 1,
+        };
+
+        let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
+        match err {
+            LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+
+        let calls = db.calls();
+        assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
+        assert!(calls.contains(&create_tables_stmt().sql().to_string()));
+    }
+
+    #[tokio::test]
+    async fn runner_run_is_unimplemented() {
+        let adapter = ProducerBootstrapAdapter::new();
+        let db = MockDb::default();
+
+        let err = adapter
+            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .await
+            .unwrap_err();
+        match err {
+            LocalDbError::InvalidBootstrapImplementation => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }

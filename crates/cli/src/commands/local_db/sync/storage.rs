@@ -73,7 +73,7 @@ pub(crate) async fn fetch_last_synced(db_path: &str, ob_id: &OrderbookIdentifier
 pub(crate) async fn fetch_existing_store_addresses(
     db_path: &str,
     ob_id: &OrderbookIdentifier,
-) -> Result<Vec<String>> {
+) -> Result<Vec<Address>> {
     let exec = RusqliteExecutor::new(db_path);
     let rows: Vec<StoreAddressRow> = exec
         .query_json(&SqlStatement::new_with_params(
@@ -85,17 +85,7 @@ pub(crate) async fn fetch_existing_store_addresses(
         ))
         .await
         .map_err(|e| anyhow!(e.to_string()))?;
-    Ok(rows
-        .into_iter()
-        .filter_map(|row| {
-            let trimmed = row.store_address.trim();
-            if trimmed.is_empty() {
-                None
-            } else {
-                Some(trimmed.to_ascii_lowercase())
-            }
-        })
-        .collect())
+    Ok(rows.into_iter().map(|r| r.store_address).collect())
 }
 
 pub(crate) fn build_local_db_from_network(
@@ -154,7 +144,7 @@ pub(crate) struct Erc20TokenRow {
 
 #[derive(Debug, Deserialize)]
 struct StoreAddressRow {
-    store_address: String,
+    store_address: Address,
 }
 
 #[cfg(test)]
@@ -257,6 +247,9 @@ mod tests {
             fetch_existing_store_addresses(&db_path_str, &OrderbookIdentifier::new(1, orderbook))
                 .await
                 .unwrap();
-        assert_eq!(stores, vec!["0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"]);
+        assert_eq!(
+            stores,
+            vec![Address::from_str("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").unwrap()]
+        );
     }
 }
