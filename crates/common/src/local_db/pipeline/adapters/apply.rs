@@ -72,7 +72,7 @@ impl ApplyPipeline for DefaultApplyPipeline {
         batch.add(upsert_target_watermark_stmt(
             &target_info.ob_id,
             target_info.block,
-            target_info.hash.clone(),
+            target_info.hash.into(),
         ));
 
         // Ensure atomicity
@@ -90,21 +90,19 @@ impl ApplyPipeline for DefaultApplyPipeline {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use alloy::primitives::Bytes;
-
     use super::*;
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlValue};
     use crate::local_db::OrderbookIdentifier;
+    use alloy::primitives::{b256, B256, U256};
 
-    const SAMPLE_HASH: &str = "0xdeadbeef";
+    const SAMPLE_HASH_B256: B256 =
+        b256!("0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000");
 
     fn build_target_info(ob_id: &OrderbookIdentifier, block: u64) -> ApplyPipelineTargetInfo {
         ApplyPipelineTargetInfo {
             ob_id: ob_id.clone(),
             block,
-            hash: Bytes::from_str(SAMPLE_HASH).unwrap(),
+            hash: SAMPLE_HASH_B256,
         }
     }
 
@@ -161,14 +159,13 @@ mod tests {
 
     fn deposit_event(addr: Address) -> DecodedEventData<DecodedEvent> {
         use crate::local_db::decode::EventType;
-        use alloy::primitives::U256;
         use rain_orderbook_bindings::IOrderBookV5::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
-            block_number: "0x1".into(),
-            block_timestamp: "0x2".into(),
+            block_number: U256::from(1),
+            block_timestamp: U256::from(2),
             transaction_hash: "0xabc".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([1u8; 20]),
                 token: addr,
@@ -180,14 +177,13 @@ mod tests {
 
     fn withdraw_event(addr: Address) -> DecodedEventData<DecodedEvent> {
         use crate::local_db::decode::EventType;
-        use alloy::primitives::U256;
         use rain_orderbook_bindings::IOrderBookV5::WithdrawV2;
         DecodedEventData {
             event_type: EventType::WithdrawV2,
-            block_number: "0x10".into(),
-            block_timestamp: "0x20".into(),
+            block_number: U256::from(0x10),
+            block_timestamp: U256::from(0x20),
             transaction_hash: "0xdef".into(),
-            log_index: "0x1".into(),
+            log_index: U256::from(1),
             decoded_data: DecodedEvent::WithdrawV2(Box::new(WithdrawV2 {
                 sender: Address::from([2u8; 20]),
                 token: addr,
@@ -523,7 +519,7 @@ mod tests {
 
         match stmt.params().get(3) {
             Some(SqlValue::Text(v)) => {
-                assert_eq!(v, SAMPLE_HASH);
+                assert_eq!(v, &SAMPLE_HASH_B256.to_string());
             }
             other => panic!("unexpected watermark hash param: {other:?}"),
         }
@@ -722,12 +718,12 @@ mod tests {
             address: "0x1111111111111111111111111111111111111111".into(),
             topics: vec![],
             data: "0x".into(),
-            block_number: format!("0x{:x}", block),
-            block_timestamp: Some("0x1".into()),
+            block_number: U256::from(block),
+            block_timestamp: Some(U256::from(1)),
             transaction_hash: format!("0x{:x}", block),
             transaction_index: "0x0".into(),
             block_hash: format!("0x{:x}", block),
-            log_index: format!("0x{:x}", log_index),
+            log_index: U256::from(log_index),
             removed: false,
         };
         let a = mk(10, 5);
@@ -768,12 +764,12 @@ mod tests {
             address: "0x1111111111111111111111111111111111111111".into(),
             topics: vec![],
             data: "0x01".into(),
-            block_number: format!("0x{:x}", block),
-            block_timestamp: Some("0x1".into()),
+            block_number: U256::from(block),
+            block_timestamp: Some(U256::from(1)),
             transaction_hash: format!("0x{:x}", block),
             transaction_index: "0x0".into(),
             block_hash: format!("0x{:x}", block),
-            log_index: format!("0x{:x}", log_index),
+            log_index: U256::from(log_index),
             removed: false,
         };
         let raw = [mk(1, 0), mk(1, 1)];
@@ -820,12 +816,12 @@ mod tests {
             address: "0x1111111111111111111111111111111111111111".into(),
             topics: vec![],
             data: "0x02".into(),
-            block_number: format!("0x{:x}", block),
-            block_timestamp: Some("0x1".into()),
+            block_number: U256::from(block),
+            block_timestamp: Some(U256::from(1)),
             transaction_hash: format!("0x{:x}", block),
             transaction_index: "0x0".into(),
             block_hash: format!("0x{:x}", block),
-            log_index: format!("0x{:x}", log_index),
+            log_index: U256::from(log_index),
             removed: false,
         };
         let token = Address::from([8u8; 20]);
