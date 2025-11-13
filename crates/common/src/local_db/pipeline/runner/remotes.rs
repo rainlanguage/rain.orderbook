@@ -1,30 +1,38 @@
 use super::utils::RunnerTarget;
 use crate::local_db::LocalDbError;
 use flate2::read::GzDecoder;
+use itertools::Itertools;
 use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use rain_orderbook_app_settings::remote::manifest::{fetch_multiple_manifests, ManifestMap};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::io::Read;
 use url::Url;
 
-pub(crate) fn collect_manifest_urls(orderbooks: &HashMap<String, OrderbookCfg>) -> Vec<Url> {
-    let mut urls = Vec::new();
-    let mut seen = HashSet::new();
-    for orderbook in orderbooks.values() {
-        let url = orderbook.local_db_remote.url.clone();
-        if seen.insert(url.clone()) {
-            urls.push(url);
-        }
-    }
-    urls
+pub(crate) fn collect_manifest_urls(
+    orderbooks: &HashMap<String, OrderbookCfg>,
+) -> Result<Vec<Url>, LocalDbError> {
+    let urls = orderbooks
+        .iter()
+        .map(|(key, orderbook)| {
+            orderbook
+                .local_db_remote
+                .as_ref()
+                .map(|remote| remote.url.clone())
+                .ok_or_else(|| LocalDbError::MissingLocalDbRemote {
+                    orderbook_key: key.clone(),
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(urls.into_iter().unique().collect())
 }
 
 /// Fetches manifests for all distinct remotes referenced by the orderbooks.
 pub async fn get_manifests(
     orderbooks: &HashMap<String, OrderbookCfg>,
 ) -> Result<ManifestMap, LocalDbError> {
-    let urls = collect_manifest_urls(orderbooks);
+    let urls = collect_manifest_urls(orderbooks)?;
     if urls.is_empty() {
         return Ok(HashMap::new());
     }
@@ -156,17 +164,23 @@ orderbooks:
     }
 
     fn collect_urls_from_orderbooks(orderbooks: &HashMap<String, OrderbookCfg>) -> Vec<Url> {
-        collect_manifest_urls(orderbooks)
+        collect_manifest_urls(orderbooks).expect("urls")
     }
 
     fn update_remote_url(orderbooks: &mut HashMap<String, OrderbookCfg>, key: &str, url: &Url) {
         if let Some(orderbook) = orderbooks.get_mut(key) {
+            let remote_key = orderbook
+                .local_db_remote
+                .as_ref()
+                .expect("orderbook has remote")
+                .key
+                .clone();
             let remote = LocalDbRemoteCfg {
                 document: default_document(),
-                key: orderbook.local_db_remote.key.clone(),
+                key: remote_key,
                 url: url.clone(),
             };
-            orderbook.local_db_remote = Arc::new(remote);
+            orderbook.local_db_remote = Some(Arc::new(remote));
         }
     }
 
@@ -219,7 +233,7 @@ orderbooks:
 
     #[test]
     fn collect_manifest_urls_handles_empty_orderbooks() {
-        let urls = collect_urls_from_orderbooks(&HashMap::new());
+        let urls = collect_manifest_urls(&HashMap::new()).expect("empty vector");
         assert!(urls.is_empty());
     }
 

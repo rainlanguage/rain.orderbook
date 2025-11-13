@@ -1,5 +1,5 @@
 use crate::yaml::{
-    context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
+    context::Context, default_document, optional_hash, require_string, FieldErrorKind, YamlError,
     YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
@@ -41,11 +41,7 @@ impl YamlParsableHash for LocalDbRemoteCfg {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(remotes_hash) = require_hash(
-                &document_read,
-                Some("local-db-remotes"),
-                Some("root".to_string()),
-            ) {
+            if let Some(remotes_hash) = optional_hash(&document_read, "local-db-remotes") {
                 for (key_yaml, remote_yaml) in remotes_hash {
                     let remote_key = key_yaml
                         .as_str()
@@ -84,13 +80,6 @@ impl YamlParsableHash for LocalDbRemoteCfg {
                     remotes.insert(remote.key.clone(), remote);
                 }
             }
-        }
-
-        if remotes.is_empty() {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
-                location: "root".to_string(),
-            });
         }
 
         Ok(remotes)
@@ -168,20 +157,14 @@ local-db-remotes:
     }
 
     #[test]
-    fn test_parse_local_db_remotes_optional_absent() {
+    fn test_parse_local_db_remotes_optional_absent_is_ok() {
         // No local-db-remotes key
         let yaml = r#"
 test: test
 "#;
-        let err =
-            LocalDbRemoteCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(
-            err,
-            YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-remotes".to_string()),
-                location: "root".to_string(),
-            }
-        );
+        let remotes =
+            LocalDbRemoteCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        assert!(remotes.is_empty());
     }
 
     #[test]
