@@ -2,6 +2,7 @@ use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
+use crate::local_db::query::create_views::create_views_batch;
 use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
 use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
@@ -107,6 +108,7 @@ pub trait BootstrapPipeline {
     {
         db.query_text(&clear_tables_stmt()).await?;
         db.query_text(&create_tables_stmt()).await?;
+        db.execute_batch(&create_views_batch()).await?;
         db.query_text(&insert_db_metadata_stmt(
             db_schema_version.unwrap_or(DB_SCHEMA_VERSION),
         ))
@@ -149,6 +151,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
+    use crate::local_db::query::create_views::create_views_batch;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
@@ -177,6 +180,14 @@ mod tests {
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
         }
+    }
+
+    fn with_view_creation_sql(db: MockDb) -> MockDb {
+        let batch = create_views_batch();
+        batch
+            .statements()
+            .iter()
+            .fold(db, |db_acc, stmt| db_acc.with_text(stmt, "ok"))
     }
 
     struct RecordingTextExecutor {
@@ -567,10 +578,13 @@ mod tests {
     #[tokio::test]
     async fn reset_db_runs_clear_create_and_insert() {
         let adapter = TestBootstrapPipeline::new();
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
         let db = MockDb::default()
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
 
         adapter
             .reset_db(&db, Some(DB_SCHEMA_VERSION))
@@ -578,44 +592,56 @@ mod tests {
             .unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
-        assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
-        assert_eq!(calls[1], create_tables_stmt().sql().to_string());
-        assert_eq!(
-            calls[2],
-            insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
+        let mut expected_calls = vec![clear_stmt.sql().to_string(), create_stmt.sql().to_string()];
+        expected_calls.extend(
+            create_views_batch()
+                .statements()
+                .iter()
+                .map(|stmt| stmt.sql().to_string()),
         );
+        expected_calls.push(metadata_stmt.sql().to_string());
+        assert_eq!(calls, expected_calls);
     }
 
     #[tokio::test]
     async fn reset_db_uses_default_version_when_none() {
         let adapter = TestBootstrapPipeline::new();
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
+        let metadata_sql = metadata_stmt.sql().to_string();
         let db = MockDb::default()
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
 
         adapter.reset_db(&db, None).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
-        assert_eq!(calls[2], insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql());
+        let expected_len = 3 + create_views_batch().len();
+        assert_eq!(calls.len(), expected_len);
+        assert_eq!(calls.last().unwrap(), &metadata_sql);
     }
 
     #[tokio::test]
     async fn reset_db_uses_custom_version_when_some() {
         let adapter = TestBootstrapPipeline::new();
         let custom_version = DB_SCHEMA_VERSION + 9;
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(custom_version);
+        let metadata_sql = metadata_stmt.sql().to_string();
         let db = MockDb::default()
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(custom_version), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
 
         adapter.reset_db(&db, Some(custom_version)).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
-        assert_eq!(calls[2], insert_db_metadata_stmt(custom_version).sql());
+        let expected_len = 3 + create_views_batch().len();
+        assert_eq!(calls.len(), expected_len);
+        assert_eq!(calls.last().unwrap(), &metadata_sql);
     }
 
     #[tokio::test]
