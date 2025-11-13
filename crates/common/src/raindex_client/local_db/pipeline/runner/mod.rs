@@ -613,7 +613,7 @@ mod tests {
         }
 
         async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
-            Ok(Bytes::new())
+            Ok(Bytes::from(vec![0u8; 32]))
         }
 
         async fn fetch_orderbook(

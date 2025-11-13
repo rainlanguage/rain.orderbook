@@ -84,15 +84,19 @@ SELECT
     ) AS q_out
   ) AS output_orders,
   COALESCE((
-    SELECT FLOAT_SUM(vd.delta)
-    FROM vault_deltas vd
-    WHERE vd.chain_id = o.chain_id
-      AND lower(vd.orderbook_address) = lower(o.orderbook_address)
-      AND lower(vd.owner)    = lower(o.owner)
-      AND lower(vd.token)    = lower(o.token)
-      AND lower(vd.vault_id) = lower(o.vault_id)
-      /*CHAIN_IDS_CLAUSE*/
-      /*ORDERBOOKS_CLAUSE*/
+    SELECT FLOAT_SUM(ordered.delta)
+    FROM (
+      SELECT vd.delta
+      FROM vault_deltas vd
+      WHERE vd.chain_id = o.chain_id
+        AND lower(vd.orderbook_address) = lower(o.orderbook_address)
+        AND lower(vd.owner)    = lower(o.owner)
+        AND lower(vd.token)    = lower(o.token)
+        AND lower(vd.vault_id) = lower(o.vault_id)
+        /*CHAIN_IDS_CLAUSE*/
+        /*ORDERBOOKS_CLAUSE*/
+      ORDER BY vd.block_number, vd.log_index
+    ) AS ordered
   ), FLOAT_ZERO_HEX()) AS balance
 FROM (
   /* all distinct (chain_id, orderbook, owner, token, vault_id) that ever had a delta */

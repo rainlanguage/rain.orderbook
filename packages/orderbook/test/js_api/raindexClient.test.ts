@@ -45,9 +45,6 @@ accounts:
     alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
     bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
 
-local-db-remotes:
-  remote: http://example.com
-
 orderbooks:
     some-orderbook:
         address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}

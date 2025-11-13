@@ -56,8 +56,8 @@ mod tests {
             "v01",
             "0xtoken",
         );
-        assert!(stmt.sql.contains("?3 AS vault_id"));
-        assert!(stmt.sql.contains("?4 AS token"));
+        assert!(stmt.sql.contains("lower(?3)  AS vault_id"));
+        assert!(stmt.sql.contains("lower(?4)  AS token"));
         assert_eq!(stmt.params.len(), 4);
     }
 }
