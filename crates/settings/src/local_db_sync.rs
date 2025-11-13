@@ -1,6 +1,6 @@
 use crate::utils::{parse_positive_u32, parse_positive_u64};
 use crate::yaml::{
-    context::Context, default_document, require_hash, require_string, FieldErrorKind, YamlError,
+    context::Context, default_document, optional_hash, require_string, FieldErrorKind, YamlError,
     YamlParsableHash,
 };
 use serde::{Deserialize, Serialize};
@@ -98,11 +98,7 @@ impl YamlParsableHash for LocalDbSyncCfg {
         for document in documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            if let Ok(sync_hash) = require_hash(
-                &document_read,
-                Some("local-db-sync"),
-                Some("root".to_string()),
-            ) {
+            if let Some(sync_hash) = optional_hash(&document_read, "local-db-sync") {
                 for (key_yaml, settings_yaml) in sync_hash {
                     let key = match key_yaml.as_str() {
                         Some(s) if !s.is_empty() => s.to_string(),
@@ -135,13 +131,6 @@ impl YamlParsableHash for LocalDbSyncCfg {
                     syncs.insert(key, cfg);
                 }
             }
-        }
-
-        if syncs.is_empty() {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
-                location: "root".to_string(),
-            });
         }
 
         Ok(syncs)
@@ -218,20 +207,13 @@ local-db-sync:
     }
 
     #[test]
-    fn test_parse_sync_missing_section_is_error() {
+    fn test_parse_sync_missing_section_is_ok() {
         let yaml = r#"
 not-sync:
   some: value
 "#;
-        let error =
-            LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
-        assert_eq!(
-            error,
-            YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
-                location: "root".to_string(),
-            }
-        );
+        let syncs = LocalDbSyncCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        assert!(syncs.is_empty());
     }
 
     #[test]
