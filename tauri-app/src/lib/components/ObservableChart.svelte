@@ -9,14 +9,20 @@
 
   let div: HTMLDivElement;
   let error: string;
+  let plotData: Record<string, number>[] = [];
 
-  $: if (div && data) {
+  $: plotData =
+    data?.map((row) =>
+      Object.fromEntries(Object.entries(row).map(([key, value]) => [key, value.value])),
+    ) ?? [];
+
+  $: if (div && plotData) {
     try {
       div?.firstChild?.remove(); // remove old chart, if any
       div.append(
         Plot.plot({
           ...getPlotOptions(plot),
-          marks: plot.marks.map((mark) => buildMark(data, mark)),
+          marks: plot.marks.map((mark) => buildMark(plotData, mark)),
         }),
       );
     } catch (e) {
@@ -36,7 +42,7 @@
   };
 
   // Map the mark object to the plot library function
-  const buildMark = (data: TransformedPlotData[], markConfig: MarkCfg) => {
+  const buildMark = (data: Record<string, number>[], markConfig: MarkCfg) => {
     const options = fixKeys(markConfig.options);
     switch (markConfig.type) {
       case 'line':
