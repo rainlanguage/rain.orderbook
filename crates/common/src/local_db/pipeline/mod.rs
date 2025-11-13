@@ -19,7 +19,7 @@ use crate::local_db::query::{
 };
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::{Address, Bytes};
+use alloy::primitives::{Address, Bytes, B256};
 use async_trait::async_trait;
 
 /// Optional manual window overrides usually supplied by CLI/producer.
@@ -188,7 +188,7 @@ pub trait TokensPipeline {
 pub struct ApplyPipelineTargetInfo {
     pub ob_id: OrderbookIdentifier,
     pub block: u64,
-    pub hash: Bytes,
+    pub hash: B256,
 }
 
 /// Translates fetched/decoded data into SQL and persists it atomically.

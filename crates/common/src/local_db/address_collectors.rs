@@ -76,10 +76,10 @@ mod tests {
     fn build_event(event: DecodedEvent) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: super::super::decode::EventType::Unknown,
-            block_number: "0x0".into(),
-            block_timestamp: "0x0".into(),
+            block_number: U256::ZERO,
+            block_timestamp: U256::ZERO,
             transaction_hash: "0x0".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             decoded_data: event,
         }
     }
