@@ -14,9 +14,9 @@ use std::pin::Pin;
 use std::sync::Arc;
 use url::Url;
 
-pub type ManifestFuture =
-    Pin<Box<dyn Future<Output = Result<ManifestMap, LocalDbError>> + 'static>>;
-pub type DumpFuture = Pin<Box<dyn Future<Output = Result<String, LocalDbError>> + 'static>>;
+pub type PinnedDbFuture<RES> = Pin<Box<dyn Future<Output = Result<RES, LocalDbError>> + 'static>>;
+pub type ManifestFuture = PinnedDbFuture<ManifestMap>;
+pub type DumpFuture = PinnedDbFuture<String>;
 
 pub type ManifestFetcher =
     Arc<dyn Fn(&HashMap<String, OrderbookCfg>) -> ManifestFuture + Send + Sync>;
@@ -701,10 +701,15 @@ orderbooks:
         if let Some(orderbook) = orderbooks.get_mut(key) {
             let remote = LocalDbRemoteCfg {
                 document: default_document(),
-                key: orderbook.local_db_remote.key.clone(),
+                key: orderbook
+                    .local_db_remote
+                    .as_ref()
+                    .expect("orderbook remote present")
+                    .key
+                    .clone(),
                 url: url.clone(),
             };
-            orderbook.local_db_remote = Arc::new(remote);
+            orderbook.local_db_remote = Some(Arc::new(remote));
         }
     }
 

@@ -37,9 +37,7 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1G
 
-      - run: ./prep-all.sh
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+      - run: ./prep-base.sh
 
       - name: Build CLI tarball
         run: nix develop -c rainix-ob-cli-artifact
@@ -47,8 +45,9 @@ jobs:
       - name: Prepare release metadata
         run: |
           SHORT_SHA=$(echo "${COMMIT_SHA}" | cut -c1-8)
-          echo "TAG_NAME=cli-$SHORT_SHA" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=CLI Binary $SHORT_SHA" >> "$GITHUB_ENV"
+          BUILD_TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
+          echo "TAG_NAME=cli-${SHORT_SHA}-${BUILD_TIMESTAMP}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=CLI Binary ${SHORT_SHA} (${BUILD_TIMESTAMP})" >> "$GITHUB_ENV"
           echo "ASSET_PATH=crates/cli/bin/rain-orderbook-cli.tar.gz" >> "$GITHUB_ENV"
 
       - name: Publish GitHub release

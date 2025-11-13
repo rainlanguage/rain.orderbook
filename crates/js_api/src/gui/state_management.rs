@@ -413,7 +413,7 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QUWvCMBBu3NgY7EkGexrsByw0aadrhT3soUOYbGyTgU9Dm2jFNAlpiop_wp8s1UvF4j3c912-L3fHtbxD3ABO5pLN5QxTz8UFICWkaQoQPBCvZo5cAVq14DI81-2887S6hapQOceS26UyC_fvATCzVvd8X6h0LDJV2F5Eoo5vdIpLIzaVA1UZudHJsH8HtP38t9o2Emqja5CH1Q6PIbp09cdn2PKOcbIrrQfQOEZNNajVII6fgL4nI7IuGBvo6aqf0e64oOmg_HrriFLnL5Eh5e-oa_6_2U_yeu8uwQVPLd43xYxrodY5l3YHPp2HT8gBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QUUvDMBBupiiCT0PwSfAHGJo0qywDXxyiIBOUIeJLcW1YS7OkpOd0-if8ydLt0rGye7jvu3xf7o7rBZs4QZwVJivMnPLAxwEiZ6xrigg-sKBlnhwhgi2VEfu67XfuVqdY1XahqFHwZV3p_10g5gDVKAy1TT90bmsYDdkwDl2V0k-nfxsHaTLxo--mD2dI-4PX779OIn1yjPK02eFSkENfPz6JXrCNnV15O4BLSbpq1KqRlFdIk6SauDJfPr-Ns2xVxwMnE3Y_E_HL8keNi_fbeZwAv56AsDfn_hJKqxTouinNVKXtaqEM_AOC1mMyyAEAAA==";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {

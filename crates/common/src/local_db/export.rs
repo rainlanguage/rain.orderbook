@@ -380,7 +380,29 @@ mod tests {
 
         let raw_tx = format!("raw_tx_{label}");
         conn.execute(
-            "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);",
+            r#"INSERT INTO raw_events (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                address,
+                topics,
+                data,
+                raw_json
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -398,7 +420,31 @@ mod tests {
 
         let deposit_tx = format!("dep_tx_{label}");
         conn.execute(
-            "INSERT INTO deposits (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, sender, token, vault_id, deposit_amount, deposit_amount_uint256) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);",
+            r#"INSERT INTO deposits (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                sender,
+                token,
+                vault_id,
+                deposit_amount,
+                deposit_amount_uint256
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10,
+                ?11
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -417,7 +463,33 @@ mod tests {
 
         let withdraw_tx = format!("with_tx_{label}");
         conn.execute(
-            "INSERT INTO withdrawals (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, sender, token, vault_id, target_amount, withdraw_amount, withdraw_amount_uint256) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);",
+            r#"INSERT INTO withdrawals (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                sender,
+                token,
+                vault_id,
+                target_amount,
+                withdraw_amount,
+                withdraw_amount_uint256
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10,
+                ?11,
+                ?12
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -437,7 +509,37 @@ mod tests {
 
         let order_tx = format!("order_tx_{label}");
         conn.execute(
-            "INSERT INTO order_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, sender, interpreter_address, store_address, order_hash, event_type, order_owner, order_nonce, order_bytes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14);",
+            r#"INSERT INTO order_events (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                sender,
+                interpreter_address,
+                store_address,
+                order_hash,
+                event_type,
+                order_owner,
+                order_nonce,
+                order_bytes
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10,
+                ?11,
+                ?12,
+                ?13,
+                ?14
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -458,7 +560,25 @@ mod tests {
         .expect("insert order_events");
 
         conn.execute(
-            "INSERT INTO order_ios (chain_id, orderbook_address, transaction_hash, log_index, io_index, io_type, token, vault_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);",
+            r#"INSERT INTO order_ios (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                io_index,
+                io_type,
+                token,
+                vault_id
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -474,7 +594,35 @@ mod tests {
 
         let take_tx = format!("take_tx_{label}");
         conn.execute(
-            "INSERT INTO take_orders (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, sender, order_owner, order_nonce, input_io_index, output_io_index, taker_input, taker_output) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13);",
+            r#"INSERT INTO take_orders (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                sender,
+                order_owner,
+                order_nonce,
+                input_io_index,
+                output_io_index,
+                taker_input,
+                taker_output
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10,
+                ?11,
+                ?12,
+                ?13
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -494,7 +642,21 @@ mod tests {
         .expect("insert take_orders");
 
         conn.execute(
-            "INSERT INTO take_order_contexts (chain_id, orderbook_address, transaction_hash, log_index, context_index, context_value) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+            r#"INSERT INTO take_order_contexts (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                context_index,
+                context_value
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -507,7 +669,23 @@ mod tests {
         .expect("insert take_order_contexts");
 
         conn.execute(
-            "INSERT INTO context_values (chain_id, orderbook_address, transaction_hash, log_index, context_index, value_index, value) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
+            r#"INSERT INTO context_values (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                context_index,
+                value_index,
+                value
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -522,7 +700,51 @@ mod tests {
 
         let clear_tx = format!("clear_tx_{label}");
         conn.execute(
-            "INSERT INTO clear_v3_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, sender, alice_order_hash, alice_order_owner, alice_input_io_index, alice_output_io_index, alice_bounty_vault_id, alice_input_vault_id, alice_output_vault_id, bob_order_hash, bob_order_owner, bob_input_io_index, bob_output_io_index, bob_bounty_vault_id, bob_input_vault_id, bob_output_vault_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21);",
+            r#"INSERT INTO clear_v3_events (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                sender,
+                alice_order_hash,
+                alice_order_owner,
+                alice_input_io_index,
+                alice_output_io_index,
+                alice_bounty_vault_id,
+                alice_input_vault_id,
+                alice_output_vault_id,
+                bob_order_hash,
+                bob_order_owner,
+                bob_input_io_index,
+                bob_output_io_index,
+                bob_bounty_vault_id,
+                bob_input_vault_id,
+                bob_output_vault_id
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10,
+                ?11,
+                ?12,
+                ?13,
+                ?14,
+                ?15,
+                ?16,
+                ?17,
+                ?18,
+                ?19,
+                ?20,
+                ?21
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -550,7 +772,31 @@ mod tests {
         .expect("insert clear_v3_events");
 
         conn.execute(
-            "INSERT INTO after_clear_v2_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, sender, alice_output, bob_output, alice_input, bob_input) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);",
+            r#"INSERT INTO after_clear_v2_events (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                sender,
+                alice_output,
+                bob_output,
+                alice_input,
+                bob_input
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10,
+                ?11
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -569,7 +815,27 @@ mod tests {
 
         let meta_tx = format!("meta_tx_{label}");
         conn.execute(
-            "INSERT INTO meta_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, sender, subject, meta) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
+            r#"INSERT INTO meta_events (
+                chain_id,
+                orderbook_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                sender,
+                subject,
+                meta
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -585,7 +851,21 @@ mod tests {
         .expect("insert meta_events");
 
         conn.execute(
-            "INSERT INTO erc20_tokens (chain_id, orderbook_address, token_address, name, symbol, decimals) VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
+            r#"INSERT INTO erc20_tokens (
+                chain_id,
+                orderbook_address,
+                token_address,
+                name,
+                symbol,
+                decimals
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -599,7 +879,29 @@ mod tests {
 
         let store_tx = format!("store_tx_{label}");
         conn.execute(
-            "INSERT INTO interpreter_store_sets (chain_id, orderbook_address, store_address, transaction_hash, log_index, block_number, block_timestamp, namespace, key, value) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);",
+            r#"INSERT INTO interpreter_store_sets (
+                chain_id,
+                orderbook_address,
+                store_address,
+                transaction_hash,
+                log_index,
+                block_number,
+                block_timestamp,
+                namespace,
+                key,
+                value
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5,
+                ?6,
+                ?7,
+                ?8,
+                ?9,
+                ?10
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -616,7 +918,19 @@ mod tests {
         .expect("insert interpreter_store_sets");
 
         conn.execute(
-            "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash, updated_at) VALUES (?1, ?2, ?3, ?4, ?5);",
+            r#"INSERT INTO target_watermarks (
+                chain_id,
+                orderbook_address,
+                last_block,
+                last_hash,
+                updated_at
+            ) VALUES (
+                ?1,
+                ?2,
+                ?3,
+                ?4,
+                ?5
+            );"#,
             params![
                 chain,
                 orderbook.as_str(),
@@ -664,9 +978,21 @@ mod tests {
         let expected_alt = expected_dump(42161, alt_target.orderbook_address, "alt", 20);
         let expected_other = expected_dump(10, other_target.orderbook_address, "other", 30);
 
-        assert_eq!(sql_main, expected_main, "main dump mismatch");
-        assert_eq!(sql_alt, expected_alt, "alt dump mismatch");
-        assert_eq!(sql_other, expected_other, "other dump mismatch");
+        assert_eq!(
+            normalize_sql(&sql_main),
+            normalize_sql(&expected_main),
+            "main dump mismatch"
+        );
+        assert_eq!(
+            normalize_sql(&sql_alt),
+            normalize_sql(&expected_alt),
+            "alt dump mismatch"
+        );
+        assert_eq!(
+            normalize_sql(&sql_other),
+            normalize_sql(&expected_other),
+            "other dump mismatch"
+        );
     }
 
     #[tokio::test]
@@ -715,7 +1041,8 @@ mod tests {
         let expected = expected_dump(42161, ob_id.orderbook_address, "main", 10);
 
         assert_eq!(
-            sql, expected,
+            normalize_sql(&sql),
+            normalize_sql(&expected),
             "unexpected rows exported with skipped tables present"
         );
         assert!(
@@ -1051,6 +1378,98 @@ mod tests {
         ));
 
         out.push_str("COMMIT;\n");
+        out
+    }
+
+    fn normalize_sql(input: &str) -> String {
+        #[derive(Clone, Copy, PartialEq, Eq)]
+        enum PrevKind {
+            Word,
+            Quoted,
+            RightParen,
+            Other,
+        }
+
+        fn flush_current(current: &mut String, out: &mut String, prev_kind: &mut Option<PrevKind>) {
+            if current.is_empty() {
+                return;
+            }
+            if matches!(
+                prev_kind,
+                Some(PrevKind::Word | PrevKind::Quoted | PrevKind::RightParen)
+            ) {
+                out.push(' ');
+            }
+            out.push_str(current);
+            current.clear();
+            *prev_kind = Some(PrevKind::Word);
+        }
+
+        let mut out = String::new();
+        let mut current = String::new();
+        let mut prev_kind: Option<PrevKind> = None;
+        let mut chars = input.chars().peekable();
+
+        while let Some(ch) = chars.next() {
+            match ch {
+                '\'' | '"' => {
+                    flush_current(&mut current, &mut out, &mut prev_kind);
+                    let mut quoted = String::from(ch);
+                    while let Some(next) = chars.next() {
+                        quoted.push(next);
+                        if next == ch {
+                            if let Some(&lookahead) = chars.peek() {
+                                if lookahead == ch {
+                                    quoted.push(chars.next().unwrap());
+                                    continue;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    if matches!(
+                        prev_kind,
+                        Some(PrevKind::Word | PrevKind::Quoted | PrevKind::RightParen)
+                    ) {
+                        out.push(' ');
+                    }
+                    out.push_str(&quoted);
+                    prev_kind = Some(PrevKind::Quoted);
+                }
+                '(' => {
+                    flush_current(&mut current, &mut out, &mut prev_kind);
+                    if out.ends_with(' ') {
+                        out.pop();
+                    }
+                    out.push('(');
+                    prev_kind = Some(PrevKind::Other);
+                }
+                ')' => {
+                    flush_current(&mut current, &mut out, &mut prev_kind);
+                    out.push(')');
+                    prev_kind = Some(PrevKind::RightParen);
+                }
+                ',' => {
+                    flush_current(&mut current, &mut out, &mut prev_kind);
+                    out.push(',');
+                    prev_kind = Some(PrevKind::Other);
+                }
+                ';' => {
+                    flush_current(&mut current, &mut out, &mut prev_kind);
+                    out.push_str(";\n");
+                    prev_kind = None;
+                }
+                c if c.is_whitespace() => {
+                    flush_current(&mut current, &mut out, &mut prev_kind);
+                }
+                other => current.push(other),
+            }
+        }
+
+        flush_current(&mut current, &mut out, &mut prev_kind);
+        if !out.ends_with('\n') {
+            out.push('\n');
+        }
         out
     }
 }

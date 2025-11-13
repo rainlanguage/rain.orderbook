@@ -523,8 +523,6 @@ mod tests {
             chain-id: 1
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    local-db-remotes:
-        orderbook1: https://example.com/localdb/mainnet
     metaboards:
         board1: https://meta.example.com/board1
     orderbooks:
@@ -892,8 +890,6 @@ test: test
             currency: ETH
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    local-db-remotes:
-        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
@@ -1003,8 +999,6 @@ test: test
             chain-id: 42161
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    local-db-remotes:
-        mainnet: https://example.com/localdb/mainnet
     orderbooks:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
@@ -1099,8 +1093,6 @@ networks:
         chain-id: 1
 subgraphs:
     mainnet: https://api.thegraph.com/subgraphs/name/xyz
-local-db-remotes:
-    mainnet: https://example.com/localdb/mainnet
 "#,
             version = SpecVersion::current()
         );
@@ -1190,18 +1182,12 @@ local-db-sync:
     }
 
     #[test]
-    fn test_get_local_db_syncs_missing_section_errors() {
+    fn test_get_local_db_syncs_missing_section_is_ok() {
         let yaml = r#"test: test"#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
 
-        let err = ob_yaml.get_local_db_syncs().unwrap_err();
-        assert_eq!(
-            err,
-            YamlError::Field {
-                kind: FieldErrorKind::Missing("local-db-sync".to_string()),
-                location: "root".to_string(),
-            }
-        );
+        let syncs = ob_yaml.get_local_db_syncs().unwrap();
+        assert!(syncs.is_empty());
     }
 }
