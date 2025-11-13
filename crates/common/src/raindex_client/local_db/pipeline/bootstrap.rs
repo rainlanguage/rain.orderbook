@@ -121,6 +121,7 @@ mod tests {
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
+    use crate::local_db::query::create_views::create_views_batch;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::fetch_target_watermark::{
@@ -160,6 +161,13 @@ mod tests {
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
         }
+    }
+
+    fn with_view_creation_sql(db: MockDb) -> MockDb {
+        create_views_batch()
+            .statements()
+            .iter()
+            .fold(db, |db_acc, stmt| db_acc.with_text(stmt, "ok"))
     }
 
     #[async_trait(?Send)]
@@ -246,25 +254,31 @@ mod tests {
             updated_at: None,
         };
 
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
+
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
-        assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
-        assert_eq!(calls[1], create_tables_stmt().sql().to_string());
-        assert_eq!(
-            calls[2],
-            insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
+        let mut expected = vec![clear_stmt.sql().to_string(), create_stmt.sql().to_string()];
+        expected.extend(
+            create_views_batch()
+                .statements()
+                .iter()
+                .map(|stmt| stmt.sql().to_string()),
         );
+        expected.push(metadata_stmt.sql().to_string());
+        assert_eq!(calls, expected);
     }
 
     #[tokio::test]
@@ -280,23 +294,30 @@ mod tests {
         )
         .unwrap();
 
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
+
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([])) // triggers reset
             // inspect_state will look for watermark since table exists
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
-        assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
-        assert!(calls.contains(&create_tables_stmt().sql().to_string()));
-        assert!(calls.contains(&insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()));
+        assert!(calls.contains(&clear_stmt.sql().to_string()));
+        assert!(calls.contains(&create_stmt.sql().to_string()));
+        assert!(calls.contains(&metadata_stmt.sql().to_string()));
+        for view_stmt in create_views_batch().statements() {
+            assert!(calls.contains(&view_stmt.sql().to_string()));
+        }
     }
 
     #[tokio::test]
@@ -319,13 +340,17 @@ mod tests {
             updated_at: None,
         };
 
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
+
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
             .with_json(&fetch_db_metadata_stmt(), json!([mismatched_row]))
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
 
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
@@ -333,8 +358,12 @@ mod tests {
             .unwrap();
 
         let calls = db.calls();
-        assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
-        assert!(calls.contains(&create_tables_stmt().sql().to_string()));
+        assert!(calls.contains(&clear_stmt.sql().to_string()));
+        assert!(calls.contains(&create_stmt.sql().to_string()));
+        assert!(calls.contains(&metadata_stmt.sql().to_string()));
+        for view_stmt in create_views_batch().statements() {
+            assert!(calls.contains(&view_stmt.sql().to_string()));
+        }
     }
 
     #[tokio::test]

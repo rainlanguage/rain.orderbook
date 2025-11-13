@@ -47,6 +47,7 @@ mod tests {
     use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
     use rain_orderbook_common::local_db::query::clear_tables::clear_tables_stmt;
     use rain_orderbook_common::local_db::query::create_tables::create_tables_stmt;
+    use rain_orderbook_common::local_db::query::create_views::create_views_batch;
     use rain_orderbook_common::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
     use rain_orderbook_common::local_db::query::{
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
@@ -71,6 +72,13 @@ mod tests {
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
         }
+    }
+
+    fn with_view_creation_sql(db: MockDb) -> MockDb {
+        create_views_batch()
+            .statements()
+            .iter()
+            .fold(db, |db_acc, stmt| db_acc.with_text(stmt, "ok"))
     }
 
     #[async_trait(?Send)]
@@ -106,10 +114,13 @@ mod tests {
     #[tokio::test]
     async fn engine_run_resets_and_does_not_import_when_no_dump() {
         let adapter = ProducerBootstrapAdapter::new();
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
         let db = MockDb::default()
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
@@ -122,28 +133,44 @@ mod tests {
 
         let calls = db.calls();
         // Presence assertions
-        let clear = clear_tables_stmt().sql().to_string();
-        let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
+        let clear = clear_stmt.sql().to_string();
+        let create = create_stmt.sql().to_string();
+        let insert = metadata_stmt.sql().to_string();
+        let view_stmts: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
         assert!(calls.contains(&insert));
+        for view in &view_stmts {
+            assert!(calls.contains(view));
+        }
 
-        // Ordering: clear -> create -> insert
+        // Ordering: clear -> create -> views -> insert
         let idx = |s: &String| calls.iter().position(|c| c == s).unwrap();
         assert!(idx(&clear) < idx(&create));
-        assert!(idx(&create) < idx(&insert));
+        for view in &view_stmts {
+            assert!(idx(&create) < idx(view));
+        }
+        let last_view_idx = view_stmts.iter().map(&idx).max().expect("views present");
+        assert!(last_view_idx < idx(&insert));
     }
 
     #[tokio::test]
     async fn engine_run_resets_and_imports_dump_when_present() {
         let adapter = ProducerBootstrapAdapter::new();
         let dump_stmt = SqlStatement::new("--dump-sql");
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
         let db = MockDb::default()
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db)
+            .with_text(&metadata_stmt, "ok")
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
@@ -157,20 +184,32 @@ mod tests {
 
         let calls = db.calls();
         // Presence assertions
-        let clear = clear_tables_stmt().sql().to_string();
-        let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
+        let clear = clear_stmt.sql().to_string();
+        let create = create_stmt.sql().to_string();
+        let insert = metadata_stmt.sql().to_string();
         let dump = dump_stmt.sql().to_string();
+        let view_stmts: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
         assert!(calls.contains(&insert));
         assert!(calls.contains(&dump));
+        for view in &view_stmts {
+            assert!(calls.contains(view));
+        }
 
-        // Ordering: clear -> create -> insert -> dump
+        // Ordering: clear -> create -> views -> insert -> dump
         let idx = |s: &String| calls.iter().position(|c| c == s).unwrap();
         assert!(idx(&clear) < idx(&create));
-        assert!(idx(&create) < idx(&insert));
+        for view in &view_stmts {
+            assert!(idx(&create) < idx(view));
+        }
+        let last_view_idx = view_stmts.iter().map(&idx).max().expect("views present");
+        assert!(last_view_idx < idx(&insert));
         assert!(idx(&insert) < idx(&dump));
     }
 
@@ -178,10 +217,13 @@ mod tests {
     async fn engine_run_resets_and_fails_when_dump_missing() {
         let adapter = ProducerBootstrapAdapter::new();
         let dump_stmt = SqlStatement::new("--dump-sql-missing");
+        let clear_stmt = clear_tables_stmt();
+        let create_stmt = create_tables_stmt();
+        let metadata_stmt = insert_db_metadata_stmt(DB_SCHEMA_VERSION);
         let db = MockDb::default()
-            .with_text(&clear_tables_stmt(), "ok")
-            .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&clear_stmt, "ok")
+            .with_text(&create_stmt, "ok");
+        let db = with_view_creation_sql(db).with_text(&metadata_stmt, "ok");
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
@@ -195,20 +237,32 @@ mod tests {
         assert!(result.is_err());
 
         let calls = db.calls();
-        let clear = clear_tables_stmt().sql().to_string();
-        let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
+        let clear = clear_stmt.sql().to_string();
+        let create = create_stmt.sql().to_string();
+        let insert = metadata_stmt.sql().to_string();
         let dump = dump_stmt.sql().to_string();
+        let view_stmts: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
         assert!(calls.contains(&insert));
         assert!(calls.contains(&dump));
+        for view in &view_stmts {
+            assert!(calls.contains(view));
+        }
 
-        // Ordering: clear -> create -> insert -> dump (dump last attempted and fails)
+        // Ordering: clear -> create -> views -> insert -> dump (dump last attempted and fails)
         let idx = |s: &String| calls.iter().position(|c| c == s).unwrap();
         assert!(idx(&clear) < idx(&create));
-        assert!(idx(&create) < idx(&insert));
+        for view in &view_stmts {
+            assert!(idx(&create) < idx(view));
+        }
+        let last_view_idx = view_stmts.iter().map(&idx).max().expect("views present");
+        assert!(last_view_idx < idx(&insert));
         assert!(idx(&insert) < idx(&dump));
     }
 
