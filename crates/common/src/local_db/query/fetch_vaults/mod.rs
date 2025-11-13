@@ -149,8 +149,6 @@ pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, S
         stmt.replace(HIDE_ZERO_BALANCE_CLAUSE, "")?;
     }
 
-    web_sys::console::log_1(&format!("AAA: {}", stmt.sql).into());
-
     Ok(stmt)
 }
 
