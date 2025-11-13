@@ -338,10 +338,10 @@ mod tests {
         let token_addr = Address::from([0xaa; 20]);
         let decoded = vec![DecodedEventData {
             event_type: EventType::DepositV2,
-            block_number: "0x0".into(),
-            block_timestamp: "0x0".into(),
+            block_number: U256::ZERO,
+            block_timestamp: U256::ZERO,
             transaction_hash: "0x0".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([0x11; 20]),
                 token: token_addr,
@@ -372,12 +372,12 @@ mod tests {
             address: "0x1".into(),
             topics: vec!["0x0".into()],
             data: "0x".into(),
-            block_number: "0x0".into(),
-            block_timestamp: Some("0x0".into()),
+            block_number: U256::ZERO,
+            block_timestamp: Some(U256::ZERO),
             transaction_hash: "0x0".into(),
             transaction_index: "0x0".into(),
             block_hash: "0x0".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             removed: false,
         }];
 

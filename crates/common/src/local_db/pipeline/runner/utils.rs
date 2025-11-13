@@ -2,6 +2,7 @@ use crate::local_db::fetch::FetchConfig;
 use crate::local_db::pipeline::engine::SyncInputs;
 use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
+use itertools::Itertools;
 use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use rain_orderbook_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
@@ -100,14 +101,10 @@ pub fn build_sync_inputs_from_yaml(settings_yaml: &str) -> Result<Vec<SyncInputs
 
 /// Groups runner targets by network key for per-network scheduling.
 pub fn group_targets_by_network(targets: &[RunnerTarget]) -> HashMap<String, Vec<RunnerTarget>> {
-    let mut grouped: HashMap<String, Vec<RunnerTarget>> = HashMap::new();
-    for target in targets.iter().cloned() {
-        grouped
-            .entry(target.network_key.clone())
-            .or_default()
-            .push(target);
-    }
-    grouped
+    targets
+        .iter()
+        .cloned()
+        .into_group_map_by(|target| target.network_key.clone())
 }
 
 #[cfg(test)]
