@@ -168,8 +168,6 @@ mod tests {
     metaboards:
         board1: https://meta.example.com/board1
         board2: https://meta.example.com/board2
-    local-db-remotes:
-        remote: http://example.com
     orderbooks:
         orderbook1:
             address: 0x0000000000000000000000000000000000000002

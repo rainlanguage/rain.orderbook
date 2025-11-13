@@ -41,7 +41,7 @@ pub fn mock_orderbook() -> Arc<OrderbookCfg> {
             url: "https://subgraph.com".parse().unwrap(),
         }),
         network: mock_network(),
-        local_db_remote: Arc::new(LocalDbRemoteCfg::default()),
+        local_db_remote: Some(Arc::new(LocalDbRemoteCfg::default())),
         deployment_block: 12345,
     })
 }

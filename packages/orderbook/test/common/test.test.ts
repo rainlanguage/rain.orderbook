@@ -21,9 +21,6 @@ deployers:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-local-db-remotes:
-  some-orderbook: http://example.com
-
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
