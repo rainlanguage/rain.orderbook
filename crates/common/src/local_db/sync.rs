@@ -106,7 +106,7 @@ pub async fn sync_database_with_services<D: LocalDbQueryExecutor, S: StatusSink>
 
     let mut decoded_store_events = decode_events(&store_logs)?;
 
-    merge_store_events(&mut decoded_events, &mut decoded_store_events)?;
+    merge_store_events(&mut decoded_events, &mut decoded_store_events);
 
     status.send("Populating token information...".to_string())?;
     let prep = prepare_erc20_tokens_prefix(
@@ -200,14 +200,13 @@ fn collect_all_store_addresses(
 fn merge_store_events(
     decoded_events: &mut Vec<DecodedEventData<DecodedEvent>>,
     store_events: &mut Vec<DecodedEventData<DecodedEvent>>,
-) -> Result<(), LocalDbError> {
+) {
     if store_events.is_empty() {
-        return Ok(());
+        return;
     }
 
     decoded_events.append(store_events);
-    sort_decoded_events_by_block_and_log(decoded_events)?;
-    Ok(())
+    sort_decoded_events_by_block_and_log(decoded_events);
 }
 
 struct TokenPrepResult {
@@ -469,10 +468,10 @@ mod tests {
         let mut events = vec![
             DecodedEventData {
                 event_type: EventType::Unknown,
-                block_number: "0x2".to_string(),
-                block_timestamp: "0x0".to_string(),
+                block_number: U256::from(2),
+                block_timestamp: U256::ZERO,
                 transaction_hash: Bytes::from_str("0x10").unwrap(),
-                log_index: "0x1".to_string(),
+                log_index: U256::from(1),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".to_string(),
                     note: "".to_string(),
@@ -480,10 +479,10 @@ mod tests {
             },
             DecodedEventData {
                 event_type: EventType::Unknown,
-                block_number: "0x1".to_string(),
-                block_timestamp: "0x0".to_string(),
+                block_number: U256::from(1),
+                block_timestamp: U256::ZERO,
                 transaction_hash: Bytes::from_str("0x20").unwrap(),
-                log_index: "0x2".to_string(),
+                log_index: U256::from(2),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".to_string(),
                     note: "".to_string(),
@@ -491,17 +490,17 @@ mod tests {
             },
             DecodedEventData {
                 event_type: EventType::Unknown,
-                block_number: "0x1".to_string(),
-                block_timestamp: "0x0".to_string(),
+                block_number: U256::from(1),
+                block_timestamp: U256::ZERO,
                 transaction_hash: Bytes::from_str("0x30").unwrap(),
-                log_index: "0x1".to_string(),
+                log_index: U256::from(1),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".to_string(),
                     note: "".to_string(),
                 }),
             },
         ];
-        sort_decoded_events_by_block_and_log(&mut events).unwrap();
+        sort_decoded_events_by_block_and_log(&mut events);
         assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
         assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
         assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
@@ -512,10 +511,10 @@ mod tests {
         let mut decoded = vec![
             DecodedEventData {
                 event_type: EventType::Unknown,
-                block_number: "0x2".into(),
-                block_timestamp: "0x0".into(),
+                block_number: U256::from(2),
+                block_timestamp: U256::ZERO,
                 transaction_hash: Bytes::from_str("0xA0").unwrap(),
-                log_index: "0x1".into(),
+                log_index: U256::from(1),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".into(),
                     note: "".into(),
@@ -523,10 +522,10 @@ mod tests {
             },
             DecodedEventData {
                 event_type: EventType::Unknown,
-                block_number: "0x1".into(),
-                block_timestamp: "0x0".into(),
+                block_number: U256::from(1),
+                block_timestamp: U256::ZERO,
                 transaction_hash: Bytes::from_str("0xB0").unwrap(),
-                log_index: "0x2".into(),
+                log_index: U256::from(2),
                 decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                     raw_data: "0x".into(),
                     note: "".into(),
@@ -535,17 +534,17 @@ mod tests {
         ];
         let mut store = vec![DecodedEventData {
             event_type: EventType::Unknown,
-            block_number: "0x1".into(),
-            block_timestamp: "0x0".into(),
+            block_number: U256::from(1),
+            block_timestamp: U256::ZERO,
             transaction_hash: Bytes::from_str("0xC0").unwrap(),
-            log_index: "0x1".into(),
+            log_index: U256::from(1),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x".into(),
                 note: "".into(),
             }),
         }];
 
-        merge_store_events(&mut decoded, &mut store).unwrap();
+        merge_store_events(&mut decoded, &mut store);
         assert_eq!(decoded.len(), 3);
         assert_eq!(
             decoded[0].transaction_hash,
@@ -560,105 +559,6 @@ mod tests {
             Bytes::from_str("0xA0").unwrap()
         );
     }
-
-    #[test]
-    fn test_sort_events_by_block_and_log_returns_error_on_bad_block() {
-        let mut events = vec![DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: "0xZZ".to_string(),
-            block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x10".into(),
-            log_index: "0x0".to_string(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".to_string(),
-                note: "".to_string(),
-            }),
-        }];
-        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
-        match &err {
-            LocalDbError::InvalidBlockNumberString { value, .. } => {
-                assert_eq!(value, "0xZZ")
-            }
-            other => panic!("unexpected error: {other:?}"),
-        }
-    }
-
-    #[test]
-    fn test_sort_events_by_block_and_log_returns_error_on_bad_log_index() {
-        let mut events = vec![DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: "0x1".to_string(),
-            block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x10".into(),
-            log_index: "not-a-number".to_string(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".to_string(),
-                note: "".to_string(),
-            }),
-        }];
-        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
-        match &err {
-            LocalDbError::InvalidLogIndex { value, .. } => assert_eq!(value, "not-a-number"),
-            other => panic!("unexpected error: {other:?}"),
-        }
-    }
-
-    #[test]
-    fn test_sort_events_by_block_and_log_returns_error_on_bad_decimal_block() {
-        let mut events = vec![DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: "123x".to_string(),
-            block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x50".into(),
-            log_index: "0x0".to_string(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".to_string(),
-                note: "".to_string(),
-            }),
-        }];
-        let err = sort_decoded_events_by_block_and_log(&mut events).unwrap_err();
-        match &err {
-            LocalDbError::InvalidBlockNumberString { value, .. } => {
-                assert_eq!(value, "123x")
-            }
-            other => panic!("unexpected error: {other:?}"),
-        }
-    }
-
-    #[test]
-    fn test_merge_store_events_propagates_parse_error() {
-        let mut decoded = vec![DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: "0x1".into(),
-            block_timestamp: "0x0".into(),
-            transaction_hash: "0xA".into(),
-            log_index: "0x0".into(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".into(),
-                note: "".into(),
-            }),
-        }];
-        let mut store = vec![DecodedEventData {
-            event_type: EventType::Unknown,
-            block_number: "garbage".into(),
-            block_timestamp: "0x0".into(),
-            transaction_hash: "0xB".into(),
-            log_index: "0x1".into(),
-            decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
-                raw_data: "0x".into(),
-                note: "".into(),
-            }),
-        }];
-
-        let err = merge_store_events(&mut decoded, &mut store).unwrap_err();
-        match &err {
-            LocalDbError::InvalidBlockNumberString { value, .. } => {
-                assert_eq!(value, "garbage")
-            }
-            other => panic!("unexpected error: {other:?}"),
-        }
-    }
-
     #[test]
     fn test_collect_all_store_addresses_dedupe_merge() {
         use crate::local_db::query::fetch_store_addresses::StoreAddressRow;
@@ -666,10 +566,10 @@ mod tests {
         let store_addr_event = Address::from([0x11u8; 20]);
         let decoded_events = vec![DecodedEventData {
             event_type: EventType::InterpreterStoreSet,
-            block_number: "0x1".into(),
-            block_timestamp: "0x0".into(),
+            block_number: U256::from(1),
+            block_timestamp: U256::ZERO,
             transaction_hash: "0x0".into(),
-            log_index: "0x0".into(),
+            log_index: U256::ZERO,
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(
                 crate::local_db::decode::InterpreterStoreSetEvent {
                     store_address: store_addr_event,
@@ -711,13 +611,12 @@ mod tests {
         use url::Url;
 
         fn build_deposit_event(token: Address) -> DecodedEventData<DecodedEvent> {
-            use alloy::primitives::U256;
             DecodedEventData {
                 event_type: EventType::DepositV2,
-                block_number: "0x1".into(),
-                block_timestamp: "0x0".into(),
+                block_number: U256::from(1),
+                block_timestamp: U256::ZERO,
                 transaction_hash: "0x0".into(),
-                log_index: "0x0".into(),
+                log_index: U256::ZERO,
                 decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                     sender: Address::from([0u8; 20]),
                     token,
