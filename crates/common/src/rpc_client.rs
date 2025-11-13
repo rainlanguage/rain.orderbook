@@ -21,8 +21,8 @@ pub struct RpcClient {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockResponse {
-    pub timestamp: String,
-    pub hash: U256,
+    pub timestamp: U256,
+    pub hash: String,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
 }
@@ -416,7 +416,7 @@ mod tests {
             .expect("block response should deserialize");
 
         assert_eq!(block.hash, expected_hash);
-        assert_eq!(block.timestamp, "0x5f5e100");
+        assert_eq!(block.timestamp, U256::from(0x5f5e100u64));
 
         let mix_hash = block
             .extra

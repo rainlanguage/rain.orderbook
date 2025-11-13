@@ -93,7 +93,7 @@ mod tests {
     use super::*;
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlValue};
     use crate::local_db::OrderbookIdentifier;
-    use alloy::primitives::{b256, B256};
+    use alloy::primitives::{b256, B256, U256};
 
     const SAMPLE_HASH_B256: B256 =
         b256!("0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000");

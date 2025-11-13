@@ -91,7 +91,7 @@ impl EventsPipeline for DefaultEventsPipeline {
 mod tests {
     use super::*;
     use crate::rpc_client::RpcClientError;
-    use alloy::{hex, sol_types::SolEvent};
+    use alloy::{hex, primitives::U256, sol_types::SolEvent};
     use httpmock::MockServer;
     use rain_orderbook_bindings::OrderBook::MetaV1_2;
     use serde_json::json;

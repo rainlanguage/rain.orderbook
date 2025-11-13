@@ -52,6 +52,9 @@ pub enum LocalDbError {
     #[error("Missing local-db sync config for network '{network}'")]
     MissingLocalDbSyncForNetwork { network: String },
 
+    #[error("Missing local-db remote for orderbook '{orderbook_key}'")]
+    MissingLocalDbRemote { orderbook_key: String },
+
     #[error("Invalid block number '{value}'")]
     InvalidBlockNumber {
         value: String,
@@ -211,6 +214,10 @@ impl LocalDbError {
             LocalDbError::Rpc(err) => format!("RPC error: {}", err),
             LocalDbError::JsonParse(err) => format!("Failed to parse JSON response: {}", err),
             LocalDbError::MissingField { field } => format!("Missing expected field: {}", field),
+            LocalDbError::MissingLocalDbRemote { orderbook_key } => format!(
+                "Missing local-db remote configuration for orderbook '{}'",
+                orderbook_key
+            ),
             LocalDbError::InvalidBlockNumber { value, .. } => {
                 format!("Invalid block number provided: {}", value)
             }

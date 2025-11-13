@@ -81,9 +81,15 @@ pub fn build_runner_targets(
             block_number_threshold: sync_cfg.bootstrap_block_threshold,
         };
 
+        let remote = orderbook.local_db_remote.as_ref().ok_or_else(|| {
+            LocalDbError::MissingLocalDbRemote {
+                orderbook_key: key.clone(),
+            }
+        })?;
+
         targets.push(RunnerTarget {
             orderbook_key: key.clone(),
-            manifest_url: orderbook.local_db_remote.url.clone(),
+            manifest_url: remote.url.clone(),
             network_key,
             inputs,
         });
@@ -223,11 +229,12 @@ orderbooks:
 
     #[test]
     fn parse_runner_settings_missing_sync_section() {
-        let err = parse_runner_settings(&missing_sync_yaml()).unwrap_err();
-        match err {
-            LocalDbError::SettingsYaml(_) => {}
-            other => panic!("expected SettingsYaml error, got {other:?}"),
-        }
+        let parsed =
+            parse_runner_settings(&missing_sync_yaml()).expect("missing syncs is now allowed");
+        assert!(
+            parsed.syncs.is_empty(),
+            "no sync configs should be parsed when the section is absent"
+        );
     }
 
     #[test]
