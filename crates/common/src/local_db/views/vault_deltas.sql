@@ -128,7 +128,7 @@ JOIN order_ios io
 
 UNION ALL
 -- clears (maker-oriented already)
-SELECT c.chain_id,
+SELECT DISTINCT c.chain_id,
        c.orderbook_address,
        c.transaction_hash,
        c.log_index,
@@ -165,7 +165,7 @@ JOIN order_ios io_ai
  AND UPPER(io_ai.io_type)='INPUT'
 
 UNION ALL
-SELECT c.chain_id,
+SELECT DISTINCT c.chain_id,
        c.orderbook_address,
        c.transaction_hash,
        c.log_index,
@@ -202,7 +202,7 @@ JOIN order_ios io_ao
  AND UPPER(io_ao.io_type)='OUTPUT'
 
 UNION ALL
-SELECT c.chain_id,
+SELECT DISTINCT c.chain_id,
        c.orderbook_address,
        c.transaction_hash,
        c.log_index,
@@ -239,7 +239,7 @@ JOIN order_ios io_bi
  AND UPPER(io_bi.io_type)='INPUT'
 
 UNION ALL
-SELECT c.chain_id,
+SELECT DISTINCT c.chain_id,
        c.orderbook_address,
        c.transaction_hash,
        c.log_index,

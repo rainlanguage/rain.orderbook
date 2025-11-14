@@ -43,7 +43,9 @@ impl RaindexClient {
         fetch_args.chain_ids = chain_ids;
         fetch_args.orderbook_addresses = orderbook_addresses;
 
+        web_sys::console::log_1(&"Fetching vaults".into());
         let local_vaults = fetch_vaults(&executor, fetch_args).await?;
+        web_sys::console::log_1(&format!("Fetched {} vaults", local_vaults.len()).into());
         self.convert_local_db_vaults(local_vaults)
     }
 

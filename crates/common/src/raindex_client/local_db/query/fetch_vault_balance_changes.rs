@@ -9,8 +9,9 @@ pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
     ob_id: &OrderbookIdentifier,
     vault_id: &str,
     token: &str,
+    owner: &str,
 ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
-    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token);
+    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner);
     exec.query_json(&stmt).await
 }
 
@@ -34,6 +35,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            "0xowner",
         );
 
         let store = Rc::new(RefCell::new((
@@ -48,6 +50,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            "0xowner",
         )
         .await;
         assert!(res.is_ok());
@@ -63,6 +66,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            "0xowner",
         );
 
         let row_json = r#"[{
@@ -90,6 +94,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            "0xowner",
         )
         .await;
         assert!(res.is_ok());

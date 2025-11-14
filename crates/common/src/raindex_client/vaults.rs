@@ -309,11 +309,13 @@ impl RaindexVault {
                 let exec = JsCallbackExecutor::from_ref(&db_cb);
                 let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
                 let token_address = self.token.address.to_string();
+                let owner_address = self.owner.to_string();
                 let local_changes = fetch_vault_balance_changes(
                     &exec,
                     &OrderbookIdentifier::new(self.chain_id, self.orderbook),
                     &vault_id_hex,
                     &token_address,
+                    &owner_address,
                 )
                 .await?;
 
