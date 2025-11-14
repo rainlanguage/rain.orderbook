@@ -253,8 +253,12 @@ CREATE INDEX idx_order_events_hash ON order_events(chain_id, orderbook_address, 
 CREATE INDEX idx_order_events_owner ON order_events(chain_id, orderbook_address, order_owner);
 CREATE INDEX idx_order_events_block ON order_events(chain_id, orderbook_address, block_number);
 CREATE INDEX idx_order_events_store ON order_events(chain_id, orderbook_address, store_address);
+CREATE INDEX idx_order_events_owner_nonce_block
+    ON order_events(chain_id, orderbook_address, order_owner, order_nonce, block_number DESC, log_index DESC);
 
 CREATE INDEX idx_order_ios_token ON order_ios(chain_id, orderbook_address, token);
+CREATE INDEX idx_order_ios_token_vault_io_type
+    ON order_ios(chain_id, orderbook_address, token, vault_id, io_type);
 
 CREATE INDEX idx_take_orders_owner ON take_orders(chain_id, orderbook_address, order_owner);
 CREATE INDEX idx_take_orders_block ON take_orders(chain_id, orderbook_address, block_number);

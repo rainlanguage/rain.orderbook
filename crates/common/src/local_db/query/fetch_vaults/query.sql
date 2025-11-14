@@ -21,6 +21,85 @@ vault_balances AS (
     /*CHAIN_IDS_CLAUSE*/
     /*ORDERBOOKS_CLAUSE*/
   GROUP BY vd.chain_id, vd.orderbook_address, vd.owner, vd.token, vd.vault_id
+),
+relevant_vaults AS (
+  SELECT DISTINCT chain_id, orderbook_address, token, vault_id
+  FROM vault_balances
+),
+latest_owner_events AS (
+  SELECT e1.chain_id,
+         e1.orderbook_address,
+         e1.order_owner,
+         e1.order_nonce,
+         e1.event_type,
+         e1.transaction_hash,
+         e1.log_index
+  FROM order_events e1
+  WHERE EXISTS (
+    SELECT 1
+    FROM relevant_vaults rv
+    WHERE rv.chain_id = e1.chain_id
+      AND rv.orderbook_address = e1.orderbook_address
+  )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM order_events e2
+      WHERE e2.chain_id = e1.chain_id
+        AND e2.orderbook_address = e1.orderbook_address
+        AND e2.order_owner = e1.order_owner
+        AND e2.order_nonce = e1.order_nonce
+        AND (
+          e2.block_number > e1.block_number
+          OR (e2.block_number = e1.block_number AND e2.log_index > e1.log_index)
+        )
+    )
+),
+order_io_items AS (
+  SELECT
+    io.chain_id,
+    io.orderbook_address,
+    io.token,
+    io.vault_id,
+    io.io_type,
+    '0x01' || ':' || oe.order_hash || ':' ||
+      CASE WHEN loe.event_type = 'AddOrderV3' THEN '1' ELSE '0' END AS item
+  FROM order_ios io
+  JOIN order_events oe
+    ON oe.chain_id = io.chain_id
+   AND oe.orderbook_address = io.orderbook_address
+   AND oe.transaction_hash = io.transaction_hash
+   AND oe.log_index = io.log_index
+  JOIN relevant_vaults rv
+    ON rv.chain_id = io.chain_id
+   AND rv.orderbook_address = io.orderbook_address
+   AND rv.token = io.token
+   AND rv.vault_id = io.vault_id
+  LEFT JOIN latest_owner_events loe
+    ON loe.chain_id = oe.chain_id
+   AND loe.orderbook_address = oe.orderbook_address
+   AND loe.order_owner = oe.order_owner
+   AND loe.order_nonce = oe.order_nonce
+),
+vault_order_lists AS (
+  SELECT
+    chain_id,
+    orderbook_address,
+    token,
+    vault_id,
+    MAX(CASE WHEN io_type = 'INPUT' THEN orders END) AS input_orders,
+    MAX(CASE WHEN io_type = 'OUTPUT' THEN orders END) AS output_orders
+  FROM (
+    SELECT
+      chain_id,
+      orderbook_address,
+      token,
+      vault_id,
+      io_type,
+      GROUP_CONCAT(DISTINCT item) AS orders
+    FROM order_io_items
+    GROUP BY chain_id, orderbook_address, token, vault_id, io_type
+  ) AS per_type
+  GROUP BY chain_id, orderbook_address, token, vault_id
 )
 SELECT
   o.chain_id,
@@ -31,88 +110,19 @@ SELECT
   et.name   AS token_name,
   et.symbol AS token_symbol,
   et.decimals AS token_decimals,
-  (
-    SELECT GROUP_CONCAT(item)
-    FROM (
-      SELECT DISTINCT (
-        '0x01' || ':' || oe.order_hash || ':' ||
-        CASE WHEN l.event_type = 'AddOrderV3' THEN '1' ELSE '0' END
-      ) AS item
-      FROM order_ios io
-      JOIN order_events oe
-        ON oe.chain_id = o.chain_id
-       AND lower(oe.orderbook_address) = lower(o.orderbook_address)
-       AND oe.transaction_hash = io.transaction_hash
-       AND oe.log_index       = io.log_index
-      JOIN (
-        SELECT e1.order_owner, e1.order_nonce, e1.event_type
-        FROM order_events e1
-        WHERE e1.chain_id = o.chain_id
-          AND lower(e1.orderbook_address) = lower(o.orderbook_address)
-          AND NOT EXISTS (
-            SELECT 1 FROM order_events e2
-            WHERE e2.chain_id = o.chain_id
-              AND lower(e2.orderbook_address) = lower(o.orderbook_address)
-              AND e2.order_owner = e1.order_owner
-              AND e2.order_nonce = e1.order_nonce
-              AND (
-                e2.block_number > e1.block_number
-                OR (e2.block_number = e1.block_number AND e2.log_index > e1.log_index)
-              )
-          )
-      ) l ON l.order_owner = oe.order_owner AND l.order_nonce = oe.order_nonce
-      WHERE io.chain_id = o.chain_id
-        AND lower(io.orderbook_address) = lower(o.orderbook_address)
-        AND lower(io.token)    = lower(o.token)
-        AND lower(io.vault_id) = lower(o.vault_id)
-        AND UPPER(io.io_type) = 'INPUT'
-      ORDER BY oe.block_number DESC, oe.log_index DESC, oe.order_hash
-    ) AS q_in
-  ) AS input_orders,
-  (
-    SELECT GROUP_CONCAT(item)
-    FROM (
-      SELECT DISTINCT (
-        '0x01' || ':' || oe.order_hash || ':' ||
-        CASE WHEN l.event_type = 'AddOrderV3' THEN '1' ELSE '0' END
-      ) AS item
-      FROM order_ios io
-      JOIN order_events oe
-        ON oe.chain_id = o.chain_id
-       AND lower(oe.orderbook_address) = lower(o.orderbook_address)
-       AND oe.transaction_hash = io.transaction_hash
-       AND oe.log_index       = io.log_index
-      JOIN (
-        SELECT e1.order_owner, e1.order_nonce, e1.event_type
-        FROM order_events e1
-        WHERE e1.chain_id = o.chain_id
-          AND lower(e1.orderbook_address) = lower(o.orderbook_address)
-          AND NOT EXISTS (
-            SELECT 1 FROM order_events e2
-            WHERE e2.chain_id = o.chain_id
-              AND lower(e2.orderbook_address) = lower(o.orderbook_address)
-              AND e2.order_owner = e1.order_owner
-              AND e2.order_nonce = e1.order_nonce
-              AND (
-                e2.block_number > e1.block_number
-                OR (e2.block_number = e1.block_number AND e2.log_index > e1.log_index)
-              )
-          )
-      ) l ON l.order_owner = oe.order_owner AND l.order_nonce = oe.order_nonce
-      WHERE io.chain_id = o.chain_id
-        AND lower(io.orderbook_address) = lower(o.orderbook_address)
-        AND lower(io.token)    = lower(o.token)
-        AND lower(io.vault_id) = lower(o.vault_id)
-        AND UPPER(io.io_type) = 'OUTPUT'
-      ORDER BY oe.block_number DESC, oe.log_index DESC, oe.order_hash
-    ) AS q_out
-  ) AS output_orders,
+  vol.input_orders,
+  vol.output_orders,
   o.balance
 FROM vault_balances o
+LEFT JOIN vault_order_lists vol
+  ON vol.chain_id = o.chain_id
+ AND vol.orderbook_address = o.orderbook_address
+ AND vol.token = o.token
+ AND vol.vault_id = o.vault_id
 JOIN erc20_tokens et
   ON et.chain_id = o.chain_id
- AND lower(et.orderbook_address) = lower(o.orderbook_address)
- AND lower(et.token_address) = lower(o.token)
+ AND et.orderbook_address = o.orderbook_address
+ AND et.token_address = o.token
 WHERE 1=1
 /*OWNERS_CLAUSE*/
 /*TOKENS_CLAUSE*/

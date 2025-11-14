@@ -38,16 +38,16 @@ pub struct FetchVaultsArgs {
 }
 
 const OWNERS_CLAUSE: &str = "/*OWNERS_CLAUSE*/";
-const OWNERS_CLAUSE_BODY: &str = "\nAND lower(o.owner) IN ({list})\n";
+const OWNERS_CLAUSE_BODY: &str = "\nAND o.owner IN ({list})\n";
 
 const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
-const TOKENS_CLAUSE_BODY: &str = "\nAND lower(o.token) IN ({list})\n";
+const TOKENS_CLAUSE_BODY: &str = "\nAND o.token IN ({list})\n";
 
 const CHAIN_IDS_CLAUSE: &str = "/*CHAIN_IDS_CLAUSE*/";
 const CHAIN_IDS_BODY: &str = "AND vd.chain_id IN ({list})";
 
 const ORDERBOOKS_CLAUSE: &str = "/*ORDERBOOKS_CLAUSE*/";
-const ORDERBOOKS_BODY: &str = "AND lower(vd.orderbook_address) IN ({list})";
+const ORDERBOOKS_BODY: &str = "AND vd.orderbook_address IN ({list})";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
 const HIDE_ZERO_BALANCE_BODY: &str = "\nAND NOT FLOAT_IS_ZERO(o.balance)\n";
@@ -55,7 +55,7 @@ const HIDE_ZERO_BALANCE_BODY: &str = "\nAND NOT FLOAT_IS_ZERO(o.balance)\n";
 const INNER_CHAIN_IDS_CLAUSE: &str = "/*INNER_CHAIN_IDS_CLAUSE*/";
 const INNER_CHAIN_IDS_BODY: &str = "AND chain_id IN ({list})";
 const INNER_ORDERBOOKS_CLAUSE: &str = "/*INNER_ORDERBOOKS_CLAUSE*/";
-const INNER_ORDERBOOKS_BODY: &str = "AND lower(orderbook_address) IN ({list})";
+const INNER_ORDERBOOKS_BODY: &str = "AND orderbook_address IN ({list})";
 
 pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
