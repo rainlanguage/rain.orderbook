@@ -7,7 +7,6 @@ use crate::local_db::insert::{
 };
 use crate::local_db::pipeline::{ApplyPipeline, ApplyPipelineTargetInfo};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
-use crate::local_db::query::upsert_materialized_vault_balances::upsert_materialized_vault_balances_stmt;
 use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
@@ -69,14 +68,6 @@ impl ApplyPipeline for DefaultApplyPipeline {
             build_decoded_event_sql(&target_info.ob_id, decoded_events, &decimals_by_token)?;
         batch.extend(decoded_batch);
 
-        if target_info.start_block <= target_info.target_block {
-            batch.add(upsert_materialized_vault_balances_stmt(
-                &target_info.ob_id,
-                target_info.start_block,
-                target_info.target_block,
-            ));
-        }
-
         // Watermark update to target block
         batch.add(upsert_target_watermark_stmt(
             &target_info.ob_id,
@@ -84,8 +75,7 @@ impl ApplyPipeline for DefaultApplyPipeline {
             target_info.hash.into(),
         ));
 
-        // Ensure atomicity
-        Ok(batch.ensure_transaction())
+        Ok(batch)
     }
 
     async fn persist<DB>(&self, db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
@@ -210,7 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn build_batch_wraps_transaction_and_contains_watermark() {
+    fn build_batch_contains_watermark() {
         let pipeline = DefaultApplyPipeline::new();
         let ob_id = sample_ob_id();
         let token = Address::from([3u8; 20]);
@@ -238,8 +228,8 @@ mod tests {
             .expect("batch ok");
 
         assert!(
-            batch.is_transaction(),
-            "batch must be wrapped in a transaction"
+            batch.clone().ensure_transaction().is_transaction(),
+            "ensure_transaction should wrap the statements"
         );
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
@@ -303,17 +293,12 @@ mod tests {
             .build_batch(&build_target_info(&ob_id, 0, 42), &[], &[], &[], &[])
             .expect("batch ok");
 
-        // Expect exactly BEGIN, UPDATE, COMMIT
+        // Expect only a single watermark statement when there is no work.
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql().trim()).collect();
-        assert_eq!(texts.first().copied(), Some("BEGIN TRANSACTION"));
+        assert_eq!(texts.len(), 1);
         assert!(texts
             .iter()
-            .any(|s| s.contains("INSERT INTO target_watermarks")));
-        assert_eq!(
-            texts.last().copied().map(|s| s.to_ascii_uppercase()),
-            Some("COMMIT".into())
-        );
-        assert!(batch.is_transaction());
+            .all(|s| s.contains("INSERT INTO target_watermarks")));
     }
 
     #[test]
@@ -549,64 +534,6 @@ mod tests {
             }
             other => panic!("unexpected watermark hash param: {other:?}"),
         }
-    }
-
-    #[test]
-    fn batch_includes_materialized_upsert_before_watermark() {
-        let pipeline = DefaultApplyPipeline::new();
-        let ob_id = sample_ob_id();
-        let start_block = 5;
-        let target_block = 10;
-        let batch = pipeline
-            .build_batch(
-                &build_target_info(&ob_id, start_block, target_block),
-                &[],
-                &[],
-                &[],
-                &[],
-            )
-            .expect("batch ok");
-
-        let statements = batch.statements();
-        let upsert_idx = statements
-            .iter()
-            .position(|stmt| stmt.sql().contains("materialized_vault_balances"))
-            .expect("materialized upsert present");
-        let watermark_idx = statements
-            .iter()
-            .position(|stmt| stmt.sql().starts_with("INSERT INTO target_watermarks"))
-            .expect("watermark present");
-        assert!(
-            upsert_idx < watermark_idx,
-            "materialized upsert should precede watermark update"
-        );
-
-        let upsert_stmt = &statements[upsert_idx];
-        assert_eq!(
-            upsert_stmt.params(),
-            &[
-                SqlValue::U64(ob_id.chain_id as u64),
-                SqlValue::Text(ob_id.orderbook_address.to_string()),
-                SqlValue::U64(start_block),
-                SqlValue::U64(target_block)
-            ]
-        );
-    }
-
-    #[test]
-    fn materialized_upsert_skipped_when_start_exceeds_target() {
-        let pipeline = DefaultApplyPipeline::new();
-        let ob_id = sample_ob_id();
-        let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 100, 50), &[], &[], &[], &[])
-            .expect("batch ok");
-        assert!(
-            batch
-                .statements()
-                .iter()
-                .all(|stmt| !stmt.sql().contains("materialized_vault_balances")),
-            "upsert should be skipped when start_block > target_block"
-        );
     }
 
     #[test]
