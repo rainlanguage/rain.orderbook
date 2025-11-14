@@ -105,8 +105,9 @@ mod tests {
     #[test]
     fn build_post_batch_includes_materialized_upsert() {
         let adapter = ClientApplyAdapter::new();
+        let target_info = target(5, 10);
         let batch = adapter
-            .build_post_batch(&target(5, 10))
+            .build_post_batch(&target_info)
             .expect("post batch ok");
         assert!(!batch.is_empty());
         let statements = batch.statements();
@@ -119,10 +120,10 @@ mod tests {
         assert_eq!(
             stmt.params(),
             &[
-                SqlValue::U64(137),
-                SqlValue::Text("0x00000000000000000000000000000000000000aa".into()),
-                SqlValue::U64(5),
-                SqlValue::U64(10)
+                SqlValue::U64(target_info.ob_id.chain_id as u64),
+                SqlValue::Text(target_info.ob_id.orderbook_address.to_string()),
+                SqlValue::U64(target_info.start_block),
+                SqlValue::U64(target_info.target_block)
             ]
         );
     }

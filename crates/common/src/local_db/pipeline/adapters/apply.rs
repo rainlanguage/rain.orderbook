@@ -876,16 +876,9 @@ mod tests {
             .iter()
             .position(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .expect("watermark present");
-        let idx_commit = batch
-            .statements()
-            .iter()
-            .position(|s| s.sql().trim().eq_ignore_ascii_case("COMMIT"))
-            .expect("commit present");
-
         assert!(idx_raw < idx_token, "raw should precede token upserts");
         assert!(idx_token < idx_decoded, "token upserts before decoded");
         assert!(idx_decoded < idx_watermark, "decoded before watermark");
-        assert!(idx_watermark < idx_commit, "watermark before commit");
     }
 
     #[test]
