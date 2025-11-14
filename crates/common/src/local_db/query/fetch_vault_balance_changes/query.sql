@@ -1,11 +1,11 @@
 WITH
 params AS (
   SELECT
-    ?1        AS chain_id,
-    lower(?2) AS orderbook_address,
-    lower(?3) AS vault_id,
-    lower(?4) AS token,
-    lower(?5) AS owner
+    ?1 AS chain_id,
+    ?2 AS orderbook_address,
+    ?3 AS vault_id,
+    ?4 AS token,
+    ?5 AS owner
 ),
 vault_changes AS (
   SELECT
@@ -21,10 +21,10 @@ vault_changes AS (
   FROM vault_deltas vd
   JOIN params p
     ON vd.chain_id = p.chain_id
-   AND lower(vd.orderbook_address) = p.orderbook_address
-   AND lower(vd.vault_id)          = p.vault_id
-   AND lower(vd.token)             = p.token
-   AND lower(vd.owner)             = p.owner
+   AND vd.orderbook_address = p.orderbook_address
+   AND vd.vault_id = p.vault_id
+   AND vd.token = p.token
+   AND vd.owner = p.owner
 ),
 running_balances AS (
   SELECT

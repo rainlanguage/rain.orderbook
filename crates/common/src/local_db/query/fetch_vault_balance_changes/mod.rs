@@ -59,8 +59,8 @@ mod tests {
             "0xtoken",
             "0xowner",
         );
-        assert!(stmt.sql.contains("lower(?3) AS vault_id"));
-        assert!(stmt.sql.contains("lower(?5) AS owner"));
+        assert!(stmt.sql.contains("vault_id = ?3 AS vault_id"));
+        assert!(stmt.sql.contains("owner = ?5 AS owner"));
         assert_eq!(stmt.params.len(), 5);
     }
 }
