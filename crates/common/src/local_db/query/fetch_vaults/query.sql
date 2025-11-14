@@ -1,3 +1,27 @@
+WITH filtered_vault_deltas AS (
+  SELECT vd.*
+  FROM vault_deltas vd
+  WHERE 1 = 1
+    /*INNER_CHAIN_IDS_CLAUSE*/
+    /*INNER_ORDERBOOKS_CLAUSE*/
+),
+vault_balances AS (
+  SELECT
+    vd.chain_id,
+    vd.orderbook_address,
+    vd.owner,
+    vd.token,
+    vd.vault_id,
+    COALESCE(
+      FLOAT_SUM(vd.delta ORDER BY vd.block_number, vd.log_index),
+      FLOAT_ZERO_HEX()
+    ) AS balance
+  FROM filtered_vault_deltas vd
+  WHERE 1 = 1
+    /*CHAIN_IDS_CLAUSE*/
+    /*ORDERBOOKS_CLAUSE*/
+  GROUP BY vd.chain_id, vd.orderbook_address, vd.owner, vd.token, vd.vault_id
+)
 SELECT
   o.chain_id,
   o.orderbook_address,
@@ -83,29 +107,8 @@ SELECT
       ORDER BY oe.block_number DESC, oe.log_index DESC, oe.order_hash
     ) AS q_out
   ) AS output_orders,
-  COALESCE((
-    SELECT FLOAT_SUM(ordered.delta)
-    FROM (
-      SELECT vd.delta
-      FROM vault_deltas vd
-      WHERE vd.chain_id = o.chain_id
-        AND lower(vd.orderbook_address) = lower(o.orderbook_address)
-        AND lower(vd.owner)    = lower(o.owner)
-        AND lower(vd.token)    = lower(o.token)
-        AND lower(vd.vault_id) = lower(o.vault_id)
-        /*CHAIN_IDS_CLAUSE*/
-        /*ORDERBOOKS_CLAUSE*/
-      ORDER BY vd.block_number, vd.log_index
-    ) AS ordered
-  ), FLOAT_ZERO_HEX()) AS balance
-FROM (
-  /* all distinct (chain_id, orderbook, owner, token, vault_id) that ever had a delta */
-  SELECT DISTINCT chain_id, orderbook_address, owner, token, vault_id
-  FROM vault_deltas
-  WHERE 1 = 1
-    /*INNER_CHAIN_IDS_CLAUSE*/
-    /*INNER_ORDERBOOKS_CLAUSE*/
-) AS o
+  o.balance
+FROM vault_balances o
 JOIN erc20_tokens et
   ON et.chain_id = o.chain_id
  AND lower(et.orderbook_address) = lower(o.orderbook_address)
