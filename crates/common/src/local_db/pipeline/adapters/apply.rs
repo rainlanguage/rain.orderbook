@@ -7,6 +7,7 @@ use crate::local_db::insert::{
 };
 use crate::local_db::pipeline::{ApplyPipeline, ApplyPipelineTargetInfo};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
+use crate::local_db::query::upsert_materialized_vault_balances::upsert_materialized_vault_balances_stmt;
 use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
@@ -68,10 +69,18 @@ impl ApplyPipeline for DefaultApplyPipeline {
             build_decoded_event_sql(&target_info.ob_id, decoded_events, &decimals_by_token)?;
         batch.extend(decoded_batch);
 
+        if target_info.start_block <= target_info.target_block {
+            batch.add(upsert_materialized_vault_balances_stmt(
+                &target_info.ob_id,
+                target_info.start_block,
+                target_info.target_block,
+            ));
+        }
+
         // Watermark update to target block
         batch.add(upsert_target_watermark_stmt(
             &target_info.ob_id,
-            target_info.block,
+            target_info.target_block,
             target_info.hash.into(),
         ));
 
@@ -98,10 +107,15 @@ mod tests {
     const SAMPLE_HASH_B256: B256 =
         b256!("0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000");
 
-    fn build_target_info(ob_id: &OrderbookIdentifier, block: u64) -> ApplyPipelineTargetInfo {
+    fn build_target_info(
+        ob_id: &OrderbookIdentifier,
+        start_block: u64,
+        target_block: u64,
+    ) -> ApplyPipelineTargetInfo {
         ApplyPipelineTargetInfo {
             ob_id: ob_id.clone(),
-            block,
+            start_block,
+            target_block,
             hash: SAMPLE_HASH_B256,
         }
     }
@@ -215,7 +229,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 123),
+                &build_target_info(&ob_id, 0, 123),
                 &[],
                 &decoded,
                 &existing,
@@ -286,7 +300,7 @@ mod tests {
         let ob_id = sample_ob_id();
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 42), &[], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 0, 42), &[], &[], &[], &[])
             .expect("batch ok");
 
         // Expect exactly BEGIN, UPDATE, COMMIT
@@ -333,7 +347,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 0, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -396,7 +410,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 0, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -429,7 +443,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let err = pipeline
-            .build_batch(&build_target_info(&ob_id, 1), &[], &decoded, &[], &[])
+            .build_batch(&build_target_info(&ob_id, 0, 1), &[], &decoded, &[], &[])
             .unwrap_err();
 
         use crate::local_db::insert::InsertError;
@@ -467,7 +481,13 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 1), &[], &[], &existing, &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 0, 1),
+                &[],
+                &[],
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         let upsert_stmts: Vec<_> = batch
@@ -498,7 +518,13 @@ mod tests {
 
         let target_block = 12345u64;
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, target_block), &[], &[], &[], &[])
+            .build_batch(
+                &build_target_info(&ob_id, 0, target_block),
+                &[],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -526,6 +552,64 @@ mod tests {
     }
 
     #[test]
+    fn batch_includes_materialized_upsert_before_watermark() {
+        let pipeline = DefaultApplyPipeline::new();
+        let ob_id = sample_ob_id();
+        let start_block = 5;
+        let target_block = 10;
+        let batch = pipeline
+            .build_batch(
+                &build_target_info(&ob_id, start_block, target_block),
+                &[],
+                &[],
+                &[],
+                &[],
+            )
+            .expect("batch ok");
+
+        let statements = batch.statements();
+        let upsert_idx = statements
+            .iter()
+            .position(|stmt| stmt.sql().contains("materialized_vault_balances"))
+            .expect("materialized upsert present");
+        let watermark_idx = statements
+            .iter()
+            .position(|stmt| stmt.sql().starts_with("INSERT INTO target_watermarks"))
+            .expect("watermark present");
+        assert!(
+            upsert_idx < watermark_idx,
+            "materialized upsert should precede watermark update"
+        );
+
+        let upsert_stmt = &statements[upsert_idx];
+        assert_eq!(
+            upsert_stmt.params(),
+            &[
+                SqlValue::U64(ob_id.chain_id as u64),
+                SqlValue::Text(ob_id.orderbook_address.to_string()),
+                SqlValue::U64(start_block),
+                SqlValue::U64(target_block)
+            ]
+        );
+    }
+
+    #[test]
+    fn materialized_upsert_skipped_when_start_exceeds_target() {
+        let pipeline = DefaultApplyPipeline::new();
+        let ob_id = sample_ob_id();
+        let batch = pipeline
+            .build_batch(&build_target_info(&ob_id, 100, 50), &[], &[], &[], &[])
+            .expect("batch ok");
+        assert!(
+            batch
+                .statements()
+                .iter()
+                .all(|stmt| !stmt.sql().contains("materialized_vault_balances")),
+            "upsert should be skipped when start_block > target_block"
+        );
+    }
+
+    #[test]
     fn decimals_from_existing_when_no_upserts() {
         use alloy::primitives::U256;
         use rain_math_float::Float;
@@ -547,7 +631,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 0, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -639,7 +723,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 0, 100),
                 &[],
                 &decoded,
                 &[],
@@ -689,7 +773,7 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 1), &[], &[], &[], &upserts)
+            .build_batch(&build_target_info(&ob_id, 0, 1), &[], &[], &[], &upserts)
             .expect("batch ok");
 
         let stmt = batch
@@ -730,7 +814,7 @@ mod tests {
         let b = mk(10, 3);
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 10), &[a, b], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 0, 10), &[a, b], &[], &[], &[])
             .expect("batch ok");
 
         let raws: Vec<_> = batch
@@ -775,7 +859,7 @@ mod tests {
         let raw = [mk(1, 0), mk(1, 1)];
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 2), &raw, &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 0, 2), &raw, &[], &[], &[])
             .expect("batch ok");
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
@@ -796,7 +880,7 @@ mod tests {
         let pipeline = DefaultApplyPipeline::new();
         let ob_id = sample_ob_id();
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 77), &[], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 0, 77), &[], &[], &[], &[])
             .expect("batch ok");
         let count = batch
             .statements()
@@ -837,7 +921,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 9),
+                &build_target_info(&ob_id, 0, 9),
                 &[mk_raw(9, 0)],
                 &decoded,
                 &[],
@@ -894,10 +978,22 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let b1 = pipeline
-            .build_batch(&build_target_info(&ob_id, 5), &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 0, 5),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b1 ok");
         let b2 = pipeline
-            .build_batch(&build_target_info(&ob_id, 5), &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 0, 5),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b2 ok");
 
         assert_eq!(b1.statements().len(), b2.statements().len());
@@ -915,7 +1011,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 5),
+                &build_target_info(&ob_id, 0, 5),
                 &[],
                 &[withdraw_event(token)],
                 &[],
@@ -961,7 +1057,7 @@ mod tests {
         let decoded = vec![deposit_event(token_a), deposit_event(token_b)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 0, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -1020,7 +1116,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 5),
+                &build_target_info(&ob_id, 0, 5),
                 &[],
                 &[withdraw_event(token)],
                 &[],

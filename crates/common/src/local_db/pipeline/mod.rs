@@ -187,7 +187,8 @@ pub trait TokensPipeline {
 #[derive(Debug, Clone)]
 pub struct ApplyPipelineTargetInfo {
     pub ob_id: OrderbookIdentifier,
-    pub block: u64,
+    pub start_block: u64,
+    pub target_block: u64,
     pub hash: B256,
 }
 

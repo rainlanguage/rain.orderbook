@@ -111,7 +111,8 @@ where
             ApplyContext {
                 target_info: &ApplyPipelineTargetInfo {
                     ob_id: input.ob_id.clone(),
-                    block: target_block,
+                    start_block,
+                    target_block,
                     hash: target_hash,
                 },
                 raw_logs: &all_raw_logs,
@@ -316,7 +317,7 @@ where
 
         self.status.send("Running post-sync export").await?;
         self.apply
-            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.block)
+            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.target_block)
             .await
     }
 }
