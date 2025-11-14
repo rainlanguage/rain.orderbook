@@ -37,28 +37,25 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
           gc-max-store-size-linux: 1G
 
-      - run: ./prep-all.sh
-        env:
-          PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID }}
+      - run: ./prep-base.sh
 
       - name: Build CLI tarball
         run: nix develop -c rainix-ob-cli-artifact
 
-      - name: Configure Git
+      - name: Prepare release metadata
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          SHORT_SHA=$(echo "${COMMIT_SHA}" | cut -c1-8)
+          BUILD_TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
+          echo "TAG_NAME=cli-${SHORT_SHA}-${BUILD_TIMESTAMP}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=CLI Binary ${SHORT_SHA} (${BUILD_TIMESTAMP})" >> "$GITHUB_ENV"
+          echo "ASSET_PATH=crates/cli/bin/rain-orderbook-cli.tar.gz" >> "$GITHUB_ENV"
 
-      - name: Commit and push updated tarball
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: ${{ env.RELEASE_NAME }}
+          target_commitish: ${{ github.sha }}
+          files: ${{ env.ASSET_PATH }}
         env:
-          COMMIT_MESSAGE: "refresh orderbook cli"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git add crates/cli/bin/rain-orderbook-cli.tar.gz
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
-
-          git commit -m "$COMMIT_MESSAGE"
-          git push origin HEAD:${{ github.ref_name }}

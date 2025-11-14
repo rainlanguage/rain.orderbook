@@ -23,7 +23,7 @@ use thiserror::Error;
 pub enum InsertError {
     #[error("Failed to parse hex string: {hex_str}")]
     HexParseError { hex_str: String },
-    #[error("IO index {field} exceeds u64 range")]
+    #[error("{field} exceeds u64 range")]
     IoIndexOverflow { field: &'static str },
     #[error("{side} {io_type} IO index {index} out of bounds (len {len})")]
     IoIndexOutOfBounds {
@@ -90,10 +90,10 @@ fn event_context(
 ) -> Result<EventContext, InsertError> {
     Ok(EventContext {
         ob_id: ob_id.clone(),
-        block_number: hex_to_decimal(&event.block_number)?,
-        block_timestamp: hex_to_decimal(&event.block_timestamp)?,
+        block_number: u256_to_u64(&event.block_number, "block_number")?,
+        block_timestamp: u256_to_u64(&event.block_timestamp, "block_timestamp")?,
         transaction_hash: event.transaction_hash.clone(),
-        log_index: hex_to_decimal(&event.log_index)?,
+        log_index: u256_to_u64(&event.log_index, "log_index")?,
     })
 }
 
@@ -175,12 +175,12 @@ pub fn raw_events_to_statements(
     let rows = raw_events
         .iter()
         .map(|event| {
-            let block_number = hex_to_decimal(&event.block_number)?;
-            let log_index = hex_to_decimal(&event.log_index)?;
+            let block_number = u256_to_u64(&event.block_number, "block_number")?;
+            let log_index = u256_to_u64(&event.log_index, "log_index")?;
             let block_timestamp = event
                 .block_timestamp
-                .as_deref()
-                .map(hex_to_decimal)
+                .as_ref()
+                .map(|ts| u256_to_u64(ts, "block_timestamp"))
                 .transpose()?;
             let topics_json = serde_json::to_string(&event.topics)
                 .map_err(|err| InsertError::RawEventSerialization(err.to_string()))?;
@@ -1048,13 +1048,6 @@ fn generate_order_ios_statements(context: &EventContext, order: &OrderV4) -> Sql
     batch
 }
 
-fn hex_to_decimal(hex_str: &str) -> Result<u64, InsertError> {
-    let hex_str_clean = hex_str.strip_prefix("0x").unwrap_or(hex_str);
-    u64::from_str_radix(hex_str_clean, 16).map_err(|_| InsertError::HexParseError {
-        hex_str: hex_str.to_string(),
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1070,6 +1063,18 @@ mod tests {
     use std::collections::HashMap;
     use std::str::FromStr;
 
+    fn parse_u256(value: &str) -> U256 {
+        let trimmed = value.trim();
+        if let Some(hex) = trimmed
+            .strip_prefix("0x")
+            .or_else(|| trimmed.strip_prefix("0X"))
+        {
+            U256::from_str_radix(hex, 16).expect("valid hex literal")
+        } else {
+            U256::from_str_radix(trimmed, 10).expect("valid decimal literal")
+        }
+    }
+
     fn build_event(
         event_type: EventType,
         block_number: &str,
@@ -1080,10 +1085,10 @@ mod tests {
     ) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type,
-            block_number: block_number.to_string(),
-            block_timestamp: block_timestamp.to_string(),
+            block_number: parse_u256(block_number),
+            block_timestamp: parse_u256(block_timestamp),
             transaction_hash: Bytes::from_str(transaction_hash).unwrap(),
-            log_index: log_index.to_string(),
+            log_index: parse_u256(log_index),
             decoded_data: decoded,
         }
     }
@@ -1536,15 +1541,6 @@ mod tests {
     }
 
     #[test]
-    fn hex_to_decimal_roundtrip() {
-        assert_eq!(hex_to_decimal("0x10").unwrap(), 16);
-        assert!(matches!(
-            hex_to_decimal("0xgg"),
-            Err(InsertError::HexParseError { .. })
-        ));
-    }
-
-    #[test]
     fn decoded_events_to_statements_multiple_events() {
         let clear_event = sample_clear_event();
         let deposit_event = sample_deposit_event();
@@ -1734,36 +1730,36 @@ mod tests {
                 address: "0x2222222222222222222222222222222222222222".to_string(),
                 topics: vec!["0x01".to_string(), "0x02".to_string()],
                 data: "0xdeadbeef".to_string(),
-                block_number: "0x2".to_string(),
-                block_timestamp: Some("0x64b8c125".to_string()),
+                block_number: U256::from(2),
+                block_timestamp: Some(U256::from(0x64b8c125u64)),
                 transaction_hash: "0xbbb".to_string(),
                 transaction_index: "0x0".to_string(),
                 block_hash: "0x0".to_string(),
-                log_index: "0x1".to_string(),
+                log_index: U256::from(1),
                 removed: false,
             },
             LogEntryResponse {
                 address: "0x1111111111111111111111111111111111111111".to_string(),
                 topics: vec!["0x01".to_string()],
                 data: "0xbead".to_string(),
-                block_number: "0x1".to_string(),
-                block_timestamp: Some("0x64b8c124".to_string()),
+                block_number: U256::from(1),
+                block_timestamp: Some(U256::from(0x64b8c124u64)),
                 transaction_hash: "0xaaa".to_string(),
                 transaction_index: "0x0".to_string(),
                 block_hash: "0x0".to_string(),
-                log_index: "0x0".to_string(),
+                log_index: U256::ZERO,
                 removed: false,
             },
             LogEntryResponse {
                 address: "0x3333333333333333333333333333333333333333".to_string(),
                 topics: vec!["0x01".to_string()],
                 data: "0xfeed".to_string(),
-                block_number: "0x3".to_string(),
+                block_number: U256::from(3),
                 block_timestamp: None,
                 transaction_hash: "0xccc".to_string(),
                 transaction_index: "0x0".to_string(),
                 block_hash: "0x0".to_string(),
-                log_index: "0x0".to_string(),
+                log_index: U256::ZERO,
                 removed: false,
             },
         ];
@@ -1806,17 +1802,17 @@ mod tests {
     }
 
     #[test]
-    fn test_raw_events_sql_invalid_hex() {
+    fn test_raw_events_sql_block_number_overflow() {
         let events = vec![LogEntryResponse {
             address: "0x1111111111111111111111111111111111111111".to_string(),
             topics: vec!["0x01".to_string()],
             data: "0xbead".to_string(),
-            block_number: "not-hex".to_string(),
-            block_timestamp: Some("0x0".to_string()),
+            block_number: U256::from(1u128 << 65),
+            block_timestamp: Some(U256::ZERO),
             transaction_hash: "0xaaa".to_string(),
             transaction_index: "0x0".to_string(),
             block_hash: "0x0".to_string(),
-            log_index: "0x0".to_string(),
+            log_index: U256::ZERO,
             removed: false,
         }];
 
@@ -1824,6 +1820,9 @@ mod tests {
             &OrderbookIdentifier::new(1, Address::from([0x10; 20])),
             &events,
         );
-        assert!(matches!(result, Err(InsertError::HexParseError { .. })));
+        assert!(matches!(
+            result,
+            Err(InsertError::IoIndexOverflow { field }) if field == "block_number"
+        ));
     }
 }

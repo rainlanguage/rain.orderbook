@@ -1,7 +1,7 @@
-//! Split‑traits API for the local DB sync engine.
+//! Split-traits API for the local DB sync engine.
 //!
 //! This module defines minimal, focused traits that partition sync
-//! responsibilities into composable units. Environment‑specific behavior
+//! responsibilities into composable units. Environment-specific behavior
 //! (browser vs producer) is provided by implementing these traits; the core
 //! orchestrator depends only on the traits and does not
 //! branch on environment.
@@ -23,7 +23,7 @@ use async_trait::async_trait;
 
 /// Optional manual window overrides usually supplied by CLI/producer.
 ///
-/// Orchestrators apply these after computing a finality‑clamped safe head.
+/// Orchestrators apply these after computing a finality-clamped safe head.
 #[derive(Debug, Clone, Default)]
 pub struct WindowOverrides {
     /// Override the start block (inclusive). When omitted the watermark or
@@ -79,7 +79,7 @@ pub struct SyncOutcome<'a> {
 /// top without changing the pipeline contracts.
 #[async_trait(?Send)]
 pub trait StatusBus {
-    /// Publishes a human‑readable status message.
+    /// Publishes a human-readable status message.
     async fn send(&self, message: &str) -> Result<(), LocalDbError>;
 }
 
@@ -91,12 +91,12 @@ pub trait StatusBus {
 /// - Compute `safe_head = max(deployment_block, latest - finality.depth)` and
 ///   apply overrides from `cfg.window_overrides` (subject to clamp).
 ///
-/// Policy (environment‑specific):
+/// Policy (environment-specific):
 /// - Continuity check: producer verifies parent hash continuity vs stored
 ///   watermark hash; browser may skip or apply a light check.
 ///
 /// Invariants:
-/// - If `start_block > target_block`, the sync cycle is a no‑op.
+/// - If `start_block > target_block`, the sync cycle is a no-op.
 #[async_trait(?Send)]
 pub trait WindowPipeline {
     /// Returns `(start_block, target_block)` for the cycle.
@@ -117,7 +117,7 @@ pub trait WindowPipeline {
 /// - Decode via shared ABI into stable `DecodedEventData<DecodedEvent>`.
 /// - Provide a uniform surface for fetching orderbook/store logs.
 ///
-/// Policy (environment‑specific):
+/// Policy (environment-specific):
 /// - Backend selection: browser uses regular/public RPCs; producer uses
 ///   HyperRPC for logs and regular RPCs for tokens.
 #[async_trait(?Send)]
@@ -151,7 +151,7 @@ pub trait EventsPipeline {
     ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>;
 }
 
-/// ERC‑20 token metadata lookup pipeline.
+/// ERC-20 token metadata lookup pipeline.
 ///
 /// Responsibilities (concrete):
 /// - Read existing token rows for a chain and compute the missing set.
@@ -159,7 +159,7 @@ pub trait EventsPipeline {
 ///   is handled by the Apply pipeline.
 ///
 /// Invariants:
-/// - Upserts must be idempotent and keyed by `(chain_id, lower(address))`.
+/// - Upserts must be idempotent and keyed by `(chain_id, orderbook_address, lower(token_address))`.
 #[async_trait(?Send)]
 pub trait TokensPipeline {
     /// Loads existing token rows for the provided lowercase addresses.
@@ -186,18 +186,18 @@ pub trait TokensPipeline {
 /// - Build a transactional batch containing:
 ///   - Raw events INSERTs.
 ///   - Token upserts for provided `(Address, TokenInfo)` pairs.
-///   - Decoded event INSERTs for all orderbook‑scoped tables, binding the
+///   - Decoded event INSERTs for all orderbook-scoped tables, binding the
 ///     target key.
 ///   - Watermark update to the `target_block` (and later last hash).
-/// - Persist the batch with a single‑writer gate; must assert that the batch
-///   is transaction‑wrapped and fail if not.
+/// - Persist the batch with a single-writer gate; must assert that the batch
+///   is transaction-wrapped and fail if not.
 ///
-/// Policy (environment‑specific):
-/// - Dump export after a successful persist (producer only); browser is no‑op.
+/// Policy (environment-specific):
+/// - Dump export after a successful persist (producer only); browser is no-op.
 #[async_trait(?Send)]
 pub trait ApplyPipeline {
     /// Builds the SQL batch for a cycle. The batch must be suitable for
-    /// atomic execution (the caller will ensure single‑writer semantics).
+    /// atomic execution (the caller will ensure single-writer semantics).
     fn build_batch(
         &self,
         ob_id: &OrderbookIdentifier,
@@ -215,7 +215,7 @@ pub trait ApplyPipeline {
         DB: LocalDbQueryExecutor + ?Sized;
 
     /// Optional policy hook to export dumps after a successful persist.
-    /// Default implementation is a no‑op.
+    /// Default implementation is a no-op.
     async fn export_dump<DB>(
         &self,
         _db: &DB,
