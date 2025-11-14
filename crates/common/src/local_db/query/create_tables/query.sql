@@ -302,4 +302,19 @@ CREATE INDEX idx_store_sets_store ON interpreter_store_sets(chain_id, orderbook_
 CREATE INDEX idx_store_sets_block ON interpreter_store_sets(chain_id, orderbook_address, block_number);
 CREATE INDEX idx_store_sets_namespace ON interpreter_store_sets(chain_id, orderbook_address, namespace);
 
+CREATE TABLE IF NOT EXISTS materialized_vault_balances (
+    chain_id INTEGER NOT NULL,
+    orderbook_address TEXT NOT NULL,
+    owner TEXT NOT NULL,
+    token TEXT NOT NULL,
+    vault_id TEXT NOT NULL,
+    balance TEXT NOT NULL,
+    last_block INTEGER NOT NULL,
+    last_log_index INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000),
+    PRIMARY KEY (chain_id, orderbook_address, owner, token, vault_id)
+);
+CREATE INDEX idx_mvb_owner ON materialized_vault_balances(chain_id, orderbook_address, owner);
+CREATE INDEX idx_mvb_token ON materialized_vault_balances(chain_id, orderbook_address, token, vault_id);
+
 COMMIT;
