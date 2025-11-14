@@ -27,7 +27,7 @@ existing_matching AS (
     mvb.balance AS balance_value,
     mvb.last_block,
     mvb.last_log_index
-  FROM materialized_vault_balances mvb
+  FROM running_vault_balances mvb
   JOIN delta_batches db
     ON db.chain_id = mvb.chain_id
    AND db.orderbook_address = mvb.orderbook_address
@@ -70,7 +70,7 @@ aggregated AS (
   FROM combined
   GROUP BY chain_id, orderbook_address, owner, token, vault_id
 )
-INSERT OR REPLACE INTO materialized_vault_balances (
+INSERT OR REPLACE INTO running_vault_balances (
   chain_id,
   orderbook_address,
   owner,

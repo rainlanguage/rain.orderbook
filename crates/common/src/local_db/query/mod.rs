@@ -17,8 +17,8 @@ pub mod insert_db_metadata;
 pub mod sql_statement;
 pub mod sql_statement_batch;
 pub mod update_last_synced_block;
-pub mod upsert_materialized_vault_balances;
 pub mod upsert_target_watermark;
+pub mod upsert_vault_balances;
 
 pub use executor::LocalDbQueryExecutor;
 pub use sql_statement::{SqlBuildError, SqlStatement, SqlValue};
