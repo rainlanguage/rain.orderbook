@@ -7,6 +7,24 @@ params AS (
     ?4 AS token,
     ?5 AS owner
 ),
+snapshot AS (
+  SELECT
+    p.chain_id,
+    p.orderbook_address,
+    p.vault_id,
+    p.token,
+    p.owner,
+    COALESCE(mvb.balance, FLOAT_ZERO_HEX()) AS base_balance,
+    mvb.last_block AS base_block_number,
+    mvb.last_log_index AS base_log_index
+  FROM params p
+  LEFT JOIN materialized_vault_balances mvb
+    ON mvb.chain_id = p.chain_id
+   AND mvb.orderbook_address = p.orderbook_address
+   AND mvb.vault_id = p.vault_id
+   AND mvb.token = p.token
+   AND mvb.owner = p.owner
+),
 vault_changes AS (
   SELECT
     vd.transaction_hash,
@@ -17,7 +35,10 @@ vault_changes AS (
     vd.kind,
     vd.token,
     vd.vault_id,
-    vd.delta
+    vd.delta,
+    s.base_balance,
+    s.base_block_number,
+    s.base_log_index
   FROM vault_deltas vd
   JOIN params p
     ON vd.chain_id = p.chain_id
@@ -25,13 +46,31 @@ vault_changes AS (
    AND vd.vault_id = p.vault_id
    AND vd.token = p.token
    AND vd.owner = p.owner
+  JOIN snapshot s
+    ON s.chain_id = p.chain_id
+   AND s.orderbook_address = p.orderbook_address
+   AND s.vault_id = p.vault_id
+   AND s.token = p.token
+   AND s.owner = p.owner
+  WHERE s.base_block_number IS NULL
+     OR vd.block_number > s.base_block_number
+     OR (
+          vd.block_number = s.base_block_number
+      AND vd.log_index > s.base_log_index
+     )
 ),
 running_balances AS (
   SELECT
     vc.*,
     (
-      SELECT COALESCE(FLOAT_SUM(prev.delta), FLOAT_ZERO_HEX())
+      SELECT COALESCE(FLOAT_SUM(prev.delta ORDER BY prev.block_number, prev.log_index), FLOAT_ZERO_HEX())
       FROM (
+        SELECT
+          vc.base_balance AS delta,
+          vc.base_block_number AS block_number,
+          vc.base_log_index AS log_index
+        WHERE vc.base_block_number IS NOT NULL
+        UNION ALL
         SELECT delta, block_number, log_index
         FROM vault_changes
         WHERE block_number <  vc.block_number
