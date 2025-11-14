@@ -11,7 +11,7 @@ latest_order_events AS (
     SELECT 1
     FROM add_order_events newer
     WHERE newer.chain_id = oe.chain_id
-      AND lower(newer.orderbook_address) = lower(oe.orderbook_address)
+      AND newer.orderbook_address = oe.orderbook_address
       AND newer.order_hash = oe.order_hash
       AND (
            newer.block_number > oe.block_number
@@ -62,7 +62,7 @@ SELECT t.chain_id,
 FROM take_orders t
 JOIN add_order_events oe
   ON oe.chain_id = t.chain_id
- AND lower(oe.orderbook_address) = lower(t.orderbook_address)
+ AND oe.orderbook_address = t.orderbook_address
  AND oe.order_owner = t.order_owner
  AND oe.order_nonce = t.order_nonce
  AND (oe.block_number < t.block_number
@@ -70,7 +70,7 @@ JOIN add_order_events oe
  AND NOT EXISTS (
    SELECT 1 FROM add_order_events x
    WHERE x.chain_id = t.chain_id
-     AND lower(x.orderbook_address) = lower(t.orderbook_address)
+     AND x.orderbook_address = t.orderbook_address
      AND x.order_owner = t.order_owner
      AND x.order_nonce = t.order_nonce
      AND (x.block_number < t.block_number
@@ -80,11 +80,11 @@ JOIN add_order_events oe
  )
 JOIN order_ios io
   ON io.chain_id = oe.chain_id
- AND lower(io.orderbook_address) = lower(oe.orderbook_address)
+ AND io.orderbook_address = oe.orderbook_address
  AND io.transaction_hash = oe.transaction_hash
  AND io.log_index = oe.log_index
  AND io.io_index = t.input_io_index
- AND UPPER(io.io_type) = 'INPUT'
+ AND io.io_type = 'input'
 
 UNION ALL
 -- maker sell: -taker_input
@@ -102,7 +102,7 @@ SELECT t.chain_id,
 FROM take_orders t
 JOIN add_order_events oe
   ON oe.chain_id = t.chain_id
- AND lower(oe.orderbook_address) = lower(t.orderbook_address)
+ AND oe.orderbook_address = t.orderbook_address
  AND oe.order_owner = t.order_owner
  AND oe.order_nonce = t.order_nonce
  AND (oe.block_number < t.block_number
@@ -110,7 +110,7 @@ JOIN add_order_events oe
  AND NOT EXISTS (
    SELECT 1 FROM add_order_events x
    WHERE x.chain_id = t.chain_id
-     AND lower(x.orderbook_address) = lower(t.orderbook_address)
+     AND x.orderbook_address = t.orderbook_address
      AND x.order_owner = t.order_owner
      AND x.order_nonce = t.order_nonce
      AND (x.block_number < t.block_number
@@ -120,11 +120,11 @@ JOIN add_order_events oe
  )
 JOIN order_ios io
   ON io.chain_id = oe.chain_id
- AND lower(io.orderbook_address) = lower(oe.orderbook_address)
+ AND io.orderbook_address = oe.orderbook_address
  AND io.transaction_hash = oe.transaction_hash
  AND io.log_index = oe.log_index
  AND io.io_index = t.output_io_index
- AND UPPER(io.io_type)='OUTPUT'
+ AND io.io_type='output'
 
 UNION ALL
 -- clears (maker-oriented already)
@@ -142,27 +142,27 @@ SELECT DISTINCT c.chain_id,
 FROM clear_v3_events c
 JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
- AND lower(a.orderbook_address) = lower(c.orderbook_address)
+ AND a.orderbook_address = c.orderbook_address
  AND a.transaction_hash = c.transaction_hash
  AND a.log_index = (
      SELECT MIN(ac.log_index)
      FROM after_clear_v2_events ac
      WHERE ac.chain_id = c.chain_id
-       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.orderbook_address = c.orderbook_address
        AND ac.transaction_hash = c.transaction_hash
        AND ac.log_index > c.log_index
  )
 JOIN latest_order_events oeA
   ON oeA.chain_id = c.chain_id
- AND lower(oeA.orderbook_address) = lower(c.orderbook_address)
+ AND oeA.orderbook_address = c.orderbook_address
  AND oeA.order_hash = c.alice_order_hash
 JOIN order_ios io_ai
   ON io_ai.chain_id = oeA.chain_id
- AND lower(io_ai.orderbook_address) = lower(oeA.orderbook_address)
+ AND io_ai.orderbook_address = oeA.orderbook_address
  AND io_ai.transaction_hash = oeA.transaction_hash
  AND io_ai.log_index = oeA.log_index
  AND io_ai.io_index = c.alice_input_io_index
- AND UPPER(io_ai.io_type)='INPUT'
+ AND io_ai.io_type='input'
 
 UNION ALL
 SELECT DISTINCT c.chain_id,
@@ -179,27 +179,27 @@ SELECT DISTINCT c.chain_id,
 FROM clear_v3_events c
 JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
- AND lower(a.orderbook_address) = lower(c.orderbook_address)
+ AND a.orderbook_address = c.orderbook_address
  AND a.transaction_hash = c.transaction_hash
  AND a.log_index = (
      SELECT MIN(ac.log_index)
      FROM after_clear_v2_events ac
      WHERE ac.chain_id = c.chain_id
-       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.orderbook_address = c.orderbook_address
        AND ac.transaction_hash = c.transaction_hash
        AND ac.log_index > c.log_index
  )
 JOIN latest_order_events oeA
   ON oeA.chain_id = c.chain_id
- AND lower(oeA.orderbook_address) = lower(c.orderbook_address)
+ AND oeA.orderbook_address = c.orderbook_address
  AND oeA.order_hash = c.alice_order_hash
 JOIN order_ios io_ao
   ON io_ao.chain_id = oeA.chain_id
- AND lower(io_ao.orderbook_address) = lower(oeA.orderbook_address)
+ AND io_ao.orderbook_address = oeA.orderbook_address
  AND io_ao.transaction_hash = oeA.transaction_hash
  AND io_ao.log_index = oeA.log_index
  AND io_ao.io_index = c.alice_output_io_index
- AND UPPER(io_ao.io_type)='OUTPUT'
+ AND io_ao.io_type='output'
 
 UNION ALL
 SELECT DISTINCT c.chain_id,
@@ -216,27 +216,27 @@ SELECT DISTINCT c.chain_id,
 FROM clear_v3_events c
 JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
- AND lower(a.orderbook_address) = lower(c.orderbook_address)
+ AND a.orderbook_address = c.orderbook_address
  AND a.transaction_hash = c.transaction_hash
  AND a.log_index = (
      SELECT MIN(ac.log_index)
      FROM after_clear_v2_events ac
      WHERE ac.chain_id = c.chain_id
-       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.orderbook_address = c.orderbook_address
        AND ac.transaction_hash = c.transaction_hash
        AND ac.log_index > c.log_index
  )
 JOIN latest_order_events oeB
   ON oeB.chain_id = c.chain_id
- AND lower(oeB.orderbook_address) = lower(c.orderbook_address)
+ AND oeB.orderbook_address = c.orderbook_address
  AND oeB.order_hash = c.bob_order_hash
 JOIN order_ios io_bi
   ON io_bi.chain_id = oeB.chain_id
- AND lower(io_bi.orderbook_address) = lower(oeB.orderbook_address)
+ AND io_bi.orderbook_address = oeB.orderbook_address
  AND io_bi.transaction_hash = oeB.transaction_hash
  AND io_bi.log_index = oeB.log_index
  AND io_bi.io_index = c.bob_input_io_index
- AND UPPER(io_bi.io_type)='INPUT'
+ AND io_bi.io_type='input'
 
 UNION ALL
 SELECT DISTINCT c.chain_id,
@@ -253,27 +253,27 @@ SELECT DISTINCT c.chain_id,
 FROM clear_v3_events c
 JOIN after_clear_v2_events a
   ON a.chain_id = c.chain_id
- AND lower(a.orderbook_address) = lower(c.orderbook_address)
+ AND a.orderbook_address = c.orderbook_address
  AND a.transaction_hash = c.transaction_hash
  AND a.log_index = (
      SELECT MIN(ac.log_index)
      FROM after_clear_v2_events ac
      WHERE ac.chain_id = c.chain_id
-       AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+       AND ac.orderbook_address = c.orderbook_address
        AND ac.transaction_hash = c.transaction_hash
        AND ac.log_index > c.log_index
  )
 JOIN latest_order_events oeB
   ON oeB.chain_id = c.chain_id
- AND lower(oeB.orderbook_address) = lower(c.orderbook_address)
+ AND oeB.orderbook_address = c.orderbook_address
  AND oeB.order_hash = c.bob_order_hash
 JOIN order_ios io_bo
   ON io_bo.chain_id = oeB.chain_id
- AND lower(io_bo.orderbook_address) = lower(oeB.orderbook_address)
+ AND io_bo.orderbook_address = oeB.orderbook_address
  AND io_bo.transaction_hash = oeB.transaction_hash
  AND io_bo.log_index = oeB.log_index
  AND io_bo.io_index = c.bob_output_io_index
- AND UPPER(io_bo.io_type)='OUTPUT'
+ AND io_bo.io_type='output'
 
 UNION ALL
 SELECT *
@@ -300,27 +300,27 @@ FROM (
   FROM clear_v3_events c
   JOIN after_clear_v2_events a
     ON a.chain_id = c.chain_id
-   AND lower(a.orderbook_address) = lower(c.orderbook_address)
+   AND a.orderbook_address = c.orderbook_address
    AND a.transaction_hash = c.transaction_hash
    AND a.log_index = (
        SELECT MIN(ac.log_index)
        FROM after_clear_v2_events ac
        WHERE ac.chain_id = c.chain_id
-         AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+         AND ac.orderbook_address = c.orderbook_address
          AND ac.transaction_hash = c.transaction_hash
          AND ac.log_index > c.log_index
   )
   JOIN latest_order_events oeA
     ON oeA.chain_id = c.chain_id
-   AND lower(oeA.orderbook_address) = lower(c.orderbook_address)
+   AND oeA.orderbook_address = c.orderbook_address
    AND oeA.order_hash = c.alice_order_hash
   JOIN order_ios io_ao
     ON io_ao.chain_id = oeA.chain_id
-   AND lower(io_ao.orderbook_address) = lower(oeA.orderbook_address)
+   AND io_ao.orderbook_address = oeA.orderbook_address
    AND io_ao.transaction_hash = oeA.transaction_hash
    AND io_ao.log_index = oeA.log_index
    AND io_ao.io_index = c.alice_output_io_index
-   AND UPPER(io_ao.io_type)='OUTPUT'
+   AND io_ao.io_type='output'
 ) AS alice_bounty
 WHERE NOT FLOAT_IS_ZERO(alice_bounty.delta)
 
@@ -349,26 +349,26 @@ FROM (
   FROM clear_v3_events c
   JOIN after_clear_v2_events a
     ON a.chain_id = c.chain_id
-   AND lower(a.orderbook_address) = lower(c.orderbook_address)
+   AND a.orderbook_address = c.orderbook_address
    AND a.transaction_hash = c.transaction_hash
    AND a.log_index = (
        SELECT MIN(ac.log_index)
        FROM after_clear_v2_events ac
        WHERE ac.chain_id = c.chain_id
-         AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+         AND ac.orderbook_address = c.orderbook_address
          AND ac.transaction_hash = c.transaction_hash
          AND ac.log_index > c.log_index
   )
   JOIN latest_order_events oeB
     ON oeB.chain_id = c.chain_id
-   AND lower(oeB.orderbook_address) = lower(c.orderbook_address)
+   AND oeB.orderbook_address = c.orderbook_address
    AND oeB.order_hash = c.bob_order_hash
   JOIN order_ios io_bo
     ON io_bo.chain_id = oeB.chain_id
-   AND lower(io_bo.orderbook_address) = lower(oeB.orderbook_address)
+   AND io_bo.orderbook_address = oeB.orderbook_address
    AND io_bo.transaction_hash = oeB.transaction_hash
    AND io_bo.log_index = oeB.log_index
    AND io_bo.io_index = c.bob_output_io_index
-   AND UPPER(io_bo.io_type)='OUTPUT'
+   AND io_bo.io_type='output'
 ) AS bob_bounty
 WHERE NOT FLOAT_IS_ZERO(bob_bounty.delta);
