@@ -2,28 +2,25 @@ WITH
 params AS (
   SELECT
     ?1 AS chain_id,
-    lower(?2) AS orderbook_address,
-    lower(?3) AS order_hash
+    ?2 AS orderbook_address,
+    ?3 AS order_hash
 ),
 order_add_events AS (
   SELECT
     oe.chain_id,
     oe.orderbook_address,
-    lower(oe.orderbook_address) AS orderbook_address_lower,
     oe.transaction_hash,
     oe.log_index,
     oe.block_number,
     oe.block_timestamp,
     oe.order_owner,
-    lower(oe.order_owner) AS order_owner_lower,
     oe.order_nonce,
-    oe.order_hash,
-    lower(oe.order_hash) AS order_hash_lower
+    oe.order_hash
   FROM order_events oe
   JOIN params p
     ON oe.chain_id = p.chain_id
-   AND lower(oe.orderbook_address) = p.orderbook_address
-   AND lower(oe.order_hash) = p.order_hash
+   AND oe.orderbook_address = p.orderbook_address
+   AND oe.order_hash = p.order_hash
   WHERE oe.event_type = 'AddOrderV3'
 ),
 take_trades AS (
@@ -48,11 +45,11 @@ take_trades AS (
   FROM take_orders t
   JOIN params p
     ON t.chain_id = p.chain_id
-   AND lower(t.orderbook_address) = p.orderbook_address
+   AND t.orderbook_address = p.orderbook_address
   JOIN order_add_events oe
     ON oe.chain_id = t.chain_id
-   AND lower(oe.orderbook_address) = lower(t.orderbook_address)
-   AND lower(oe.order_owner) = lower(t.order_owner)
+   AND oe.orderbook_address = t.orderbook_address
+   AND oe.order_owner = t.order_owner
    AND oe.order_nonce = t.order_nonce
    AND (
         oe.block_number < t.block_number
@@ -62,8 +59,8 @@ take_trades AS (
      SELECT 1
      FROM order_add_events newer
      WHERE newer.chain_id = oe.chain_id
-       AND lower(newer.orderbook_address) = lower(oe.orderbook_address)
-       AND lower(newer.order_owner) = lower(oe.order_owner)
+      AND newer.orderbook_address = oe.orderbook_address
+      AND newer.order_owner = oe.order_owner
        AND newer.order_nonce = oe.order_nonce
        AND (
             newer.block_number < t.block_number
@@ -76,18 +73,18 @@ take_trades AS (
    )
   JOIN order_ios io_in
     ON io_in.chain_id = oe.chain_id
-   AND lower(io_in.orderbook_address) = lower(oe.orderbook_address)
+   AND io_in.orderbook_address = oe.orderbook_address
    AND io_in.transaction_hash = oe.transaction_hash
    AND io_in.log_index = oe.log_index
    AND io_in.io_index = t.input_io_index
-   AND lower(io_in.io_type) = 'input'
+   AND io_in.io_type = 'input'
   JOIN order_ios io_out
     ON io_out.chain_id = oe.chain_id
-   AND lower(io_out.orderbook_address) = lower(oe.orderbook_address)
+   AND io_out.orderbook_address = oe.orderbook_address
    AND io_out.transaction_hash = oe.transaction_hash
    AND io_out.log_index = oe.log_index
    AND io_out.io_index = t.output_io_index
-   AND lower(io_out.io_type) = 'output'
+   AND io_out.io_type = 'output'
 ),
 clear_alice AS (
   SELECT DISTINCT
@@ -111,11 +108,11 @@ clear_alice AS (
   FROM clear_v3_events c
   JOIN params p
     ON c.chain_id = p.chain_id
-   AND lower(c.orderbook_address) = p.orderbook_address
+   AND c.orderbook_address = p.orderbook_address
   JOIN order_add_events oe
     ON oe.chain_id = c.chain_id
-   AND lower(oe.orderbook_address) = lower(c.orderbook_address)
-   AND lower(oe.order_hash) = lower(c.alice_order_hash)
+   AND oe.orderbook_address = c.orderbook_address
+   AND oe.order_hash = c.alice_order_hash
    AND (
         oe.block_number < c.block_number
      OR (oe.block_number = c.block_number AND oe.log_index <= c.log_index)
@@ -124,8 +121,8 @@ clear_alice AS (
      SELECT 1
      FROM order_add_events newer
      WHERE newer.chain_id = oe.chain_id
-       AND lower(newer.orderbook_address) = lower(oe.orderbook_address)
-       AND lower(newer.order_hash) = lower(oe.order_hash)
+      AND newer.orderbook_address = oe.orderbook_address
+      AND newer.order_hash = oe.order_hash
        AND (
             newer.block_number < c.block_number
          OR (newer.block_number = c.block_number AND newer.log_index <= c.log_index)
@@ -137,31 +134,31 @@ clear_alice AS (
    )
   JOIN after_clear_v2_events a
     ON a.chain_id = c.chain_id
-   AND lower(a.orderbook_address) = lower(c.orderbook_address)
+   AND a.orderbook_address = c.orderbook_address
    AND a.transaction_hash = c.transaction_hash
    AND a.log_index = (
        SELECT MIN(ac.log_index)
        FROM after_clear_v2_events ac
        WHERE ac.chain_id = c.chain_id
-         AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+         AND ac.orderbook_address = c.orderbook_address
          AND ac.transaction_hash = c.transaction_hash
          AND ac.log_index > c.log_index
    )
   JOIN order_ios io_in
     ON io_in.chain_id = oe.chain_id
-   AND lower(io_in.orderbook_address) = lower(oe.orderbook_address)
+   AND io_in.orderbook_address = oe.orderbook_address
    AND io_in.transaction_hash = oe.transaction_hash
    AND io_in.log_index = oe.log_index
    AND io_in.io_index = c.alice_input_io_index
-   AND lower(io_in.io_type) = 'input'
+   AND io_in.io_type = 'input'
   JOIN order_ios io_out
     ON io_out.chain_id = oe.chain_id
-   AND lower(io_out.orderbook_address) = lower(oe.orderbook_address)
+   AND io_out.orderbook_address = oe.orderbook_address
    AND io_out.transaction_hash = oe.transaction_hash
    AND io_out.log_index = oe.log_index
    AND io_out.io_index = c.alice_output_io_index
-   AND lower(io_out.io_type) = 'output'
-  WHERE lower(c.alice_order_hash) = p.order_hash
+   AND io_out.io_type = 'output'
+  WHERE c.alice_order_hash = p.order_hash
 ),
 clear_bob AS (
   SELECT DISTINCT
@@ -185,11 +182,11 @@ clear_bob AS (
   FROM clear_v3_events c
   JOIN params p
     ON c.chain_id = p.chain_id
-   AND lower(c.orderbook_address) = p.orderbook_address
+   AND c.orderbook_address = p.orderbook_address
   JOIN order_add_events oe
     ON oe.chain_id = c.chain_id
-   AND lower(oe.orderbook_address) = lower(c.orderbook_address)
-   AND lower(oe.order_hash) = lower(c.bob_order_hash)
+   AND oe.orderbook_address = c.orderbook_address
+   AND oe.order_hash = c.bob_order_hash
    AND (
         oe.block_number < c.block_number
      OR (oe.block_number = c.block_number AND oe.log_index <= c.log_index)
@@ -198,8 +195,8 @@ clear_bob AS (
      SELECT 1
      FROM order_add_events newer
      WHERE newer.chain_id = oe.chain_id
-       AND lower(newer.orderbook_address) = lower(oe.orderbook_address)
-       AND lower(newer.order_hash) = lower(oe.order_hash)
+      AND newer.orderbook_address = oe.orderbook_address
+      AND newer.order_hash = oe.order_hash
        AND (
             newer.block_number < c.block_number
          OR (newer.block_number = c.block_number AND newer.log_index <= c.log_index)
@@ -211,31 +208,31 @@ clear_bob AS (
    )
   JOIN after_clear_v2_events a
     ON a.chain_id = c.chain_id
-   AND lower(a.orderbook_address) = lower(c.orderbook_address)
+   AND a.orderbook_address = c.orderbook_address
    AND a.transaction_hash = c.transaction_hash
    AND a.log_index = (
        SELECT MIN(ac.log_index)
        FROM after_clear_v2_events ac
        WHERE ac.chain_id = c.chain_id
-         AND lower(ac.orderbook_address) = lower(c.orderbook_address)
+         AND ac.orderbook_address = c.orderbook_address
          AND ac.transaction_hash = c.transaction_hash
          AND ac.log_index > c.log_index
    )
   JOIN order_ios io_in
     ON io_in.chain_id = oe.chain_id
-   AND lower(io_in.orderbook_address) = lower(oe.orderbook_address)
+   AND io_in.orderbook_address = oe.orderbook_address
    AND io_in.transaction_hash = oe.transaction_hash
    AND io_in.log_index = oe.log_index
    AND io_in.io_index = c.bob_input_io_index
-   AND lower(io_in.io_type) = 'input'
+   AND io_in.io_type = 'input'
   JOIN order_ios io_out
     ON io_out.chain_id = oe.chain_id
-   AND lower(io_out.orderbook_address) = lower(oe.orderbook_address)
+   AND io_out.orderbook_address = oe.orderbook_address
    AND io_out.transaction_hash = oe.transaction_hash
    AND io_out.log_index = oe.log_index
    AND io_out.io_index = c.bob_output_io_index
-   AND lower(io_out.io_type) = 'output'
-  WHERE lower(c.bob_order_hash) = p.order_hash
+   AND io_out.io_type = 'output'
+  WHERE c.bob_order_hash = p.order_hash
 ),
 clear_trades AS (
   SELECT * FROM clear_alice
@@ -265,13 +262,7 @@ trade_rows AS (
     ut.input_delta,
     ut.output_vault_id,
     ut.output_token,
-    ut.output_delta,
-    lower(ut.orderbook_address) AS orderbook_address_lower,
-    lower(ut.order_owner) AS order_owner_lower,
-    lower(ut.input_token) AS input_token_lower,
-    lower(ut.output_token) AS output_token_lower,
-    lower(ut.input_vault_id) AS input_vault_lower,
-    lower(ut.output_vault_id) AS output_vault_lower
+    ut.output_delta
   FROM unioned_trades ut
 ),
 trade_with_snapshots AS (
@@ -286,16 +277,16 @@ trade_with_snapshots AS (
   FROM trade_rows tr
   LEFT JOIN materialized_vault_balances mvb_in
     ON mvb_in.chain_id = tr.chain_id
-   AND lower(mvb_in.orderbook_address) = tr.orderbook_address_lower
-   AND lower(mvb_in.owner) = tr.order_owner_lower
-   AND lower(mvb_in.token) = tr.input_token_lower
-   AND lower(mvb_in.vault_id) = tr.input_vault_lower
+   AND mvb_in.orderbook_address = tr.orderbook_address
+   AND mvb_in.owner = tr.order_owner
+   AND mvb_in.token = tr.input_token
+   AND mvb_in.vault_id = tr.input_vault_id
   LEFT JOIN materialized_vault_balances mvb_out
     ON mvb_out.chain_id = tr.chain_id
-   AND lower(mvb_out.orderbook_address) = tr.orderbook_address_lower
-   AND lower(mvb_out.owner) = tr.order_owner_lower
-   AND lower(mvb_out.token) = tr.output_token_lower
-   AND lower(mvb_out.vault_id) = tr.output_vault_lower
+   AND mvb_out.orderbook_address = tr.orderbook_address
+   AND mvb_out.owner = tr.order_owner
+   AND mvb_out.token = tr.output_token
+   AND mvb_out.vault_id = tr.output_vault_id
 )
 SELECT
   tws.trade_kind,
@@ -324,25 +315,24 @@ SELECT
       WHERE tws.input_base_block IS NOT NULL
       UNION ALL
       SELECT
-        vd.delta,
-        vd.block_number,
-        vd.log_index
-      FROM vault_deltas vd
-      WHERE vd.chain_id = tws.chain_id
-        AND lower(vd.orderbook_address) = tws.orderbook_address_lower
-        AND lower(vd.owner) = tws.order_owner_lower
-        AND lower(vd.token) = tws.input_token_lower
-        AND lower(vd.vault_id) = tws.input_vault_lower
+        vbc.delta,
+        vbc.block_number,
+        vbc.log_index
+      FROM vault_balance_changes vbc
+      WHERE vbc.chain_id = tws.chain_id
+        AND vbc.orderbook_address = tws.orderbook_address
+        AND vbc.owner = tws.order_owner
+        AND vbc.token = tws.input_token
+        AND vbc.vault_id = tws.input_vault_id
         AND (
              tws.input_base_block IS NULL
-          OR vd.block_number > tws.input_base_block
-          OR (vd.block_number = tws.input_base_block AND vd.log_index > tws.input_base_log_index)
+          OR vbc.block_number > tws.input_base_block
+          OR (vbc.block_number = tws.input_base_block AND vbc.log_index > tws.input_base_log_index)
         )
         AND (
-             vd.block_number < tws.block_number
-          OR (vd.block_number = tws.block_number AND vd.log_index <= tws.log_index)
+             vbc.block_number < tws.block_number
+          OR (vbc.block_number = tws.block_number AND vbc.log_index <= tws.log_index)
         )
-      ORDER BY block_number, log_index
     ) AS prev
   ) AS input_running_balance,
   tws.output_vault_id,
@@ -361,31 +351,30 @@ SELECT
       WHERE tws.output_base_block IS NOT NULL
       UNION ALL
       SELECT
-        vd.delta,
-        vd.block_number,
-        vd.log_index
-      FROM vault_deltas vd
-      WHERE vd.chain_id = tws.chain_id
-        AND lower(vd.orderbook_address) = tws.orderbook_address_lower
-        AND lower(vd.owner) = tws.order_owner_lower
-        AND lower(vd.token) = tws.output_token_lower
-        AND lower(vd.vault_id) = tws.output_vault_lower
+        vbc.delta,
+        vbc.block_number,
+        vbc.log_index
+      FROM vault_balance_changes vbc
+      WHERE vbc.chain_id = tws.chain_id
+        AND vbc.orderbook_address = tws.orderbook_address
+        AND vbc.owner = tws.order_owner
+        AND vbc.token = tws.output_token
+        AND vbc.vault_id = tws.output_vault_id
         AND (
              tws.output_base_block IS NULL
-          OR vd.block_number > tws.output_base_block
-          OR (vd.block_number = tws.output_base_block AND vd.log_index > tws.output_base_log_index)
+          OR vbc.block_number > tws.output_base_block
+          OR (vbc.block_number = tws.output_base_block AND vbc.log_index > tws.output_base_log_index)
         )
         AND (
-             vd.block_number < tws.block_number
-          OR (vd.block_number = tws.block_number AND vd.log_index <= tws.log_index)
+             vbc.block_number < tws.block_number
+          OR (vbc.block_number = tws.block_number AND vbc.log_index <= tws.log_index)
         )
-      ORDER BY block_number, log_index
     ) AS prev
   ) AS output_running_balance,
-  lower(
+  (
     '0x' ||
     CASE
-      WHEN lower(substr(tws.transaction_hash, 1, 2)) = '0x' THEN substr(tws.transaction_hash, 3)
+      WHEN substr(tws.transaction_hash, 1, 2) = '0x' THEN substr(tws.transaction_hash, 3)
       ELSE tws.transaction_hash
     END ||
     printf('%016x', tws.log_index)
@@ -393,12 +382,12 @@ SELECT
 FROM trade_with_snapshots tws
 LEFT JOIN erc20_tokens tok_in
   ON tok_in.chain_id = tws.chain_id
- AND lower(tok_in.orderbook_address) = tws.orderbook_address_lower
- AND lower(tok_in.token_address) = tws.input_token_lower
+ AND tok_in.orderbook_address = tws.orderbook_address
+ AND tok_in.token_address = tws.input_token
 LEFT JOIN erc20_tokens tok_out
   ON tok_out.chain_id = tws.chain_id
- AND lower(tok_out.orderbook_address) = tws.orderbook_address_lower
- AND lower(tok_out.token_address) = tws.output_token_lower
+ AND tok_out.orderbook_address = tws.orderbook_address
+ AND tok_out.token_address = tws.output_token
 WHERE 1 = 1
 /*START_TS_CLAUSE*/
 /*END_TS_CLAUSE*/
