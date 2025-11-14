@@ -44,10 +44,10 @@ const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
 const TOKENS_CLAUSE_BODY: &str = "\nAND o.token IN ({list})\n";
 
 const CHAIN_IDS_CLAUSE: &str = "/*CHAIN_IDS_CLAUSE*/";
-const CHAIN_IDS_BODY: &str = "AND vd.chain_id IN ({list})";
+const CHAIN_IDS_BODY: &str = "AND mvb.chain_id IN ({list})";
 
 const ORDERBOOKS_CLAUSE: &str = "/*ORDERBOOKS_CLAUSE*/";
-const ORDERBOOKS_BODY: &str = "AND vd.orderbook_address IN ({list})";
+const ORDERBOOKS_BODY: &str = "AND mvb.orderbook_address IN ({list})";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
 const HIDE_ZERO_BALANCE_BODY: &str = "\nAND NOT FLOAT_IS_ZERO(o.balance)\n";

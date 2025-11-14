@@ -1,26 +1,22 @@
-WITH filtered_vault_deltas AS (
-  SELECT vd.*
-  FROM vault_deltas vd
+WITH filtered_vault_balances AS (
+  SELECT mvb.*
+  FROM materialized_vault_balances mvb
   WHERE 1 = 1
     /*INNER_CHAIN_IDS_CLAUSE*/
     /*INNER_ORDERBOOKS_CLAUSE*/
 ),
 vault_balances AS (
   SELECT
-    vd.chain_id,
-    vd.orderbook_address,
-    vd.owner,
-    vd.token,
-    vd.vault_id,
-    COALESCE(
-      FLOAT_SUM(vd.delta ORDER BY vd.block_number, vd.log_index),
-      FLOAT_ZERO_HEX()
-    ) AS balance
-  FROM filtered_vault_deltas vd
+    mvb.chain_id,
+    mvb.orderbook_address,
+    mvb.owner,
+    mvb.token,
+    mvb.vault_id,
+    mvb.balance
+  FROM filtered_vault_balances mvb
   WHERE 1 = 1
     /*CHAIN_IDS_CLAUSE*/
     /*ORDERBOOKS_CLAUSE*/
-  GROUP BY vd.chain_id, vd.orderbook_address, vd.owner, vd.token, vd.vault_id
 ),
 relevant_vaults AS (
   SELECT DISTINCT chain_id, orderbook_address, token, vault_id
