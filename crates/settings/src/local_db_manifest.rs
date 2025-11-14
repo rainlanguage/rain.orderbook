@@ -9,7 +9,7 @@ use strict_yaml_rust::{strict_yaml::Hash, StrictYaml, StrictYamlEmitter};
 use url::Url;
 
 pub const MANIFEST_VERSION: u32 = 1;
-pub const DB_SCHEMA_VERSION: u32 = 1;
+pub const DB_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocalDbManifest {
