@@ -82,8 +82,8 @@ vault_order_lists AS (
     orderbook_address,
     token,
     vault_id,
-    MAX(CASE WHEN io_type = 'INPUT' THEN orders END) AS input_orders,
-    MAX(CASE WHEN io_type = 'OUTPUT' THEN orders END) AS output_orders
+    MAX(CASE WHEN io_type = 'input' THEN orders END) AS input_orders,
+    MAX(CASE WHEN io_type = 'output' THEN orders END) AS output_orders
   FROM (
     SELECT
       chain_id,
