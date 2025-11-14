@@ -49,10 +49,7 @@ mod tests {
             10,
         );
         let sql_lower = stmt.sql().to_lowercase();
-        assert!(sql_lower.contains("insert into materialized_vault_balances"));
-        assert!(
-            sql_lower.contains("on conflict (chain_id, orderbook_address, owner, token, vault_id)")
-        );
+        assert!(sql_lower.contains("insert or replace into materialized_vault_balances"));
     }
 
     #[test]
@@ -84,7 +81,7 @@ mod tests {
     }
 
     #[test]
-    fn stmt_updates_conflict_columns() {
+    fn stmt_uses_float_sum_for_updates() {
         let stmt = upsert_materialized_vault_balances_stmt(
             &OrderbookIdentifier::new(5, Address::ZERO),
             0,
@@ -92,13 +89,12 @@ mod tests {
         );
         let sql = stmt.sql().to_lowercase();
         assert!(
-            sql.contains("balance = float_add"),
-            "missing FLOAT_ADD in conflict update"
+            sql.contains("insert or replace into materialized_vault_balances"),
+            "missing INSERT OR REPLACE clause"
         );
-        assert!(sql.contains("last_block = case"), "missing last_block case");
         assert!(
-            sql.contains("last_log_index = case"),
-            "missing last_log_index case"
+            sql.contains("coalesce(float_sum"),
+            "missing FLOAT_SUM aggregation in query"
         );
     }
 }
