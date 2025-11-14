@@ -156,6 +156,7 @@ where
                 &BootstrapConfig {
                     ob_id: input.ob_id.clone(),
                     dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
+                    deployment_block: input.cfg.deployment_block,
                     block_number_threshold: input.block_number_threshold,
                     latest_block: input.manifest_end_block,
                 },
