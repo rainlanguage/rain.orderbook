@@ -43,9 +43,7 @@ impl RaindexClient {
         fetch_args.chain_ids = chain_ids;
         fetch_args.orderbook_addresses = orderbook_addresses;
 
-        web_sys::console::log_1(&"Fetching vaults".into());
         let local_vaults = fetch_vaults(&executor, fetch_args).await?;
-        web_sys::console::log_1(&format!("Fetched {} vaults", local_vaults.len()).into());
         self.convert_local_db_vaults(local_vaults)
     }
 
@@ -257,8 +255,8 @@ mod tests {
             assert_eq!(vault.formatted_balance(), "2".to_string());
 
             let sql = captured_sql.borrow();
-            assert!(sql.0.contains("lower(o.owner) IN ("));
-            assert!(sql.0.contains("lower(o.token) IN ("));
+            assert!(sql.0.contains("o.owner IN ("));
+            assert!(sql.0.contains("o.token IN ("));
             assert!(sql.0.contains("AND NOT FLOAT_IS_ZERO("));
 
             let params_js = sql.1.clone();

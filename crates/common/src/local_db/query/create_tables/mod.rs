@@ -19,6 +19,7 @@ pub const REQUIRED_TABLES: &[&str] = &[
     "meta_events",
     "erc20_tokens",
     "interpreter_store_sets",
+    "materialized_vault_balances",
 ];
 
 pub fn create_tables_sql() -> &'static str {
