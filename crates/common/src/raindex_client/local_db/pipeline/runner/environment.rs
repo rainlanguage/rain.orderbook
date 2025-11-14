@@ -1,11 +1,11 @@
 use crate::local_db::pipeline::adapters::{
-    apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
-    window::DefaultWindowPipeline,
+    events::DefaultEventsPipeline, tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
 };
 use crate::local_db::pipeline::runner::environment::{
     default_dump_downloader, default_manifest_fetcher, EnginePipelines, RunnerEnvironment,
 };
 use crate::local_db::pipeline::runner::utils::RunnerTarget;
+use crate::raindex_client::local_db::pipeline::apply::ClientApplyAdapter;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
 use std::sync::Arc;
@@ -15,7 +15,7 @@ pub fn default_environment() -> RunnerEnvironment<
     DefaultWindowPipeline,
     DefaultEventsPipeline,
     DefaultTokensPipeline,
-    DefaultApplyPipeline,
+    ClientApplyAdapter,
     ClientStatusBus,
 > {
     RunnerEnvironment::new(
@@ -31,7 +31,7 @@ pub fn default_environment() -> RunnerEnvironment<
                 DefaultWindowPipeline::new(),
                 events,
                 tokens,
-                DefaultApplyPipeline::new(),
+                ClientApplyAdapter::new(),
                 ClientStatusBus::new(),
             ))
         }),

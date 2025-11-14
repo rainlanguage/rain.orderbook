@@ -5,9 +5,8 @@ pub mod scheduler;
 use crate::local_db::{
     pipeline::{
         adapters::{
-            apply::DefaultApplyPipeline, bootstrap::BootstrapPipeline,
-            events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
-            window::DefaultWindowPipeline,
+            bootstrap::BootstrapPipeline, events::DefaultEventsPipeline,
+            tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
         },
         runner::{
             environment::RunnerEnvironment,
@@ -21,6 +20,7 @@ use crate::local_db::{
     query::LocalDbQueryExecutor,
     LocalDbError,
 };
+use crate::raindex_client::local_db::pipeline::apply::ClientApplyAdapter;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
 use environment::default_environment;
@@ -156,7 +156,7 @@ impl
         DefaultWindowPipeline,
         DefaultEventsPipeline,
         DefaultTokensPipeline,
-        DefaultApplyPipeline,
+        ClientApplyAdapter,
         ClientStatusBus,
         DefaultLeadership,
     >
@@ -708,6 +708,13 @@ mod tests {
             )));
             batch.add(SqlStatement::new("COMMIT"));
             Ok(batch)
+        }
+
+        fn build_post_batch(
+            &self,
+            _target_info: &ApplyPipelineTargetInfo,
+        ) -> Result<SqlStatementBatch, LocalDbError> {
+            Ok(SqlStatementBatch::new())
         }
 
         async fn persist<DB>(&self, db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
