@@ -255,7 +255,7 @@ orderbooks:
 
         let manifest_one = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -269,7 +269,7 @@ networks:
 
         let manifest_two = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   goerli:
     chain-id: 5

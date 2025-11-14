@@ -720,7 +720,7 @@ orderbooks:
         let manifest_yaml = format!(
             r#"
 manifest-version: {version}
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1

@@ -530,18 +530,18 @@ mod tests {
         // OK header
         let yaml_ok = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks: {}
 "#;
         let doc = load(yaml_ok);
         let (mv, sv) = parse_manifest_header(&doc, "manifest").expect("header parses");
         assert_eq!(mv, 1);
-        assert_eq!(sv, 1);
+        assert_eq!(sv, 2);
 
         // Incompatible manifest version
         let yaml_bad = r#"
 manifest-version: 999
-db-schema-version: 1
+db-schema-version: 2
 networks: {}
 "#;
         let err = parse_manifest_header(&load(yaml_bad), "manifest").unwrap_err();
@@ -579,7 +579,7 @@ networks: {}
     fn test_networks_helper_empty_key_rejected() {
         let yaml = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   "":
     chain-id: 1
@@ -639,7 +639,7 @@ end-block-time-ms: 1
     #[test]
     fn test_missing_manifest_version() {
         let yaml = r#"
-db-schema-version: 1
+db-schema-version: 2
 networks: {}
 "#;
         let err = parse_manifest_doc(&load(yaml)).unwrap_err();
@@ -660,7 +660,7 @@ networks: {}
     fn test_missing_networks_defaults_to_empty() {
         let yaml = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 "#;
         let manifest = parse_manifest_doc(&load(yaml)).unwrap();
         assert!(manifest.networks.is_empty());
@@ -690,7 +690,7 @@ networks: {}
     fn test_zero_or_invalid_manifest_and_schema_versions() {
         let yaml_zero_manifest = r#"
 manifest-version: 0
-db-schema-version: 1
+db-schema-version: 2
 networks: {}
 "#;
         let err = parse_manifest_doc(&load(yaml_zero_manifest)).unwrap_err();
@@ -709,7 +709,7 @@ networks: {}
     fn test_network_missing_chain_id_and_invalid() {
         let yaml_missing = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet: {}
 "#;
@@ -718,7 +718,7 @@ networks:
 
         let yaml_zero = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 0
@@ -732,7 +732,7 @@ networks:
     fn test_orderbooks_required_and_type() {
         let yaml_missing = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -742,7 +742,7 @@ networks:
 
         let yaml_non_list = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -757,7 +757,7 @@ networks:
         // Full, valid baseline
         let good = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -773,7 +773,7 @@ networks:
         // Now omit each required field individually
         let missing_address = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -790,7 +790,7 @@ networks:
 
         let missing_dump = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -807,7 +807,7 @@ networks:
 
         let missing_end_block = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -824,7 +824,7 @@ networks:
 
         let missing_end_hash = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -841,7 +841,7 @@ networks:
 
         let missing_end_time = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -861,7 +861,7 @@ networks:
     fn test_find_across_networks_and_negatives() {
         let yaml = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
@@ -919,7 +919,7 @@ networks:
     fn test_incompatible_manifest_version_rejected() {
         let yaml = r#"
 manifest-version: 999
-db-schema-version: 1
+db-schema-version: 2
 networks: {}
 "#;
         let err = parse_manifest_doc(&load(yaml)).unwrap_err();
@@ -939,7 +939,7 @@ networks: {}
     fn test_empty_network_key_is_rejected() {
         let yaml = r#"
 manifest-version: 1
-db-schema-version: 1
+db-schema-version: 2
 networks:
   "":
     chain-id: 1
