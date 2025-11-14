@@ -14,11 +14,11 @@ pub struct RusqliteExecutor {
 
 fn sqlvalue_to_rusqlite(v: SqlValue) -> rusqlite::types::Value {
     match v {
-        SqlValue::Text(t) => rusqlite::types::Value::Text(t),
+        SqlValue::Text(t) => rusqlite::types::Value::Text(t.to_ascii_lowercase()),
         SqlValue::I64(i) => rusqlite::types::Value::Integer(i),
         SqlValue::U64(u) => match i64::try_from(u) {
             Ok(i) => rusqlite::types::Value::Integer(i),
-            Err(_) => rusqlite::types::Value::Text(u.to_string()),
+            Err(_) => rusqlite::types::Value::Text(u.to_string().to_ascii_lowercase()),
         },
         SqlValue::Null => rusqlite::types::Value::Null,
     }
