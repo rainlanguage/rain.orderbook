@@ -67,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn stmt_skips_zero_balance_batches() {
+    fn stmt_includes_zero_balance_batches() {
         let stmt = upsert_materialized_vault_balances_stmt(
             &OrderbookIdentifier::new(4, Address::ZERO),
             0,
@@ -75,8 +75,8 @@ mod tests {
         );
         let sql = stmt.sql().to_lowercase();
         assert!(
-            sql.contains("having not float_is_zero"),
-            "missing HAVING NOT FLOAT_IS_ZERO"
+            !sql.contains("having not float_is_zero"),
+            "should not filter out zero balance batches"
         );
     }
 

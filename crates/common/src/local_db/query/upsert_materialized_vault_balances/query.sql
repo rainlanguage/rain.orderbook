@@ -16,7 +16,6 @@ WITH delta_batches AS (
     AND vd.orderbook_address = ?2
     AND vd.block_number BETWEEN ?3 AND ?4
   GROUP BY vd.chain_id, vd.orderbook_address, vd.owner, vd.token, vd.vault_id
-  HAVING NOT FLOAT_IS_ZERO(balance_delta)
 ),
 existing_matching AS (
   SELECT
