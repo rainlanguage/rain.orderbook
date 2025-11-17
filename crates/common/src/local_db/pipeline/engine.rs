@@ -1,8 +1,6 @@
+use super::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
 use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
-use super::{
-    ApplyPipeline, ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, SyncOutcome,
-    TokensPipeline, WindowPipeline,
-};
+use super::{EventsPipeline, StatusBus, SyncConfig, SyncOutcome, TokensPipeline, WindowPipeline};
 use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
 use crate::local_db::decode::{
@@ -352,8 +350,9 @@ mod tests {
     use crate::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
+    use crate::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use crate::local_db::pipeline::adapters::bootstrap::BootstrapState;
-    use crate::local_db::pipeline::{ApplyPipelineTargetInfo, FinalityConfig, WindowOverrides};
+    use crate::local_db::pipeline::{FinalityConfig, WindowOverrides};
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,

@@ -1,7 +1,8 @@
 use crate::erc20::TokenInfo;
 use crate::local_db::decode::{DecodedEvent, DecodedEventData};
-use crate::local_db::pipeline::adapters::apply::DefaultApplyPipeline;
-use crate::local_db::pipeline::{ApplyPipeline, ApplyPipelineTargetInfo};
+use crate::local_db::pipeline::adapters::apply::{
+    ApplyPipeline, ApplyPipelineTargetInfo, DefaultApplyPipeline,
+};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::upsert_vault_balances::upsert_vault_balances_batch;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};

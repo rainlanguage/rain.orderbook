@@ -4,6 +4,7 @@ pub mod scheduler;
 
 use crate::local_db::{
     pipeline::{
+        adapters::apply::ApplyPipeline,
         adapters::{
             apply::DefaultApplyPipeline, bootstrap::BootstrapPipeline,
             events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
@@ -16,7 +17,7 @@ use crate::local_db::{
                 build_runner_targets, parse_runner_settings, ParsedRunnerSettings, RunnerTarget,
             },
         },
-        ApplyPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
+        EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
     },
     query::LocalDbQueryExecutor,
     LocalDbError,
@@ -173,13 +174,13 @@ mod tests {
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData};
     use crate::local_db::fetch::FetchConfig;
+    use crate::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use crate::local_db::pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapState};
     use crate::local_db::pipeline::runner::environment::{
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use crate::local_db::pipeline::{
-        ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, TokensPipeline,
-        WindowPipeline,
+        EventsPipeline, StatusBus, SyncConfig, TokensPipeline, WindowPipeline,
     };
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
