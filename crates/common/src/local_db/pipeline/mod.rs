@@ -187,7 +187,8 @@ pub trait TokensPipeline {
 #[derive(Debug, Clone)]
 pub struct ApplyPipelineTargetInfo {
     pub ob_id: OrderbookIdentifier,
-    pub block: u64,
+    pub start_block: u64,
+    pub target_block: u64,
     pub hash: B256,
 }
 
@@ -217,6 +218,16 @@ pub trait ApplyPipeline {
         existing_tokens: &[Erc20TokenRow],
         tokens_to_upsert: &[(Address, TokenInfo)],
     ) -> Result<SqlStatementBatch, LocalDbError>;
+
+    /// Builds environment-specific statements that should be appended to the
+    /// primary batch before persisting. The default implementation returns an
+    /// empty batch and therefore has no effect.
+    fn build_post_batch(
+        &self,
+        _target_info: &ApplyPipelineTargetInfo,
+    ) -> Result<SqlStatementBatch, LocalDbError> {
+        Ok(SqlStatementBatch::new())
+    }
 
     /// Persists the previously built batch. Implementations must assert that
     /// the input is wrapped in a transaction and return an error otherwise.

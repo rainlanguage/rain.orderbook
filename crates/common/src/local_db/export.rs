@@ -140,7 +140,7 @@ fn build_select_statement(
 
     let order_clause = order_columns.join(", ");
     let mut stmt = SqlStatement::new(format!(
-        "SELECT {columns_sql} FROM \"{table}\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY {order_clause};"
+        "SELECT {columns_sql} FROM \"{table}\" WHERE chain_id = ?1 AND orderbook_address = ?2 ORDER BY {order_clause};"
     ));
     stmt.push(SqlValue::from(ob_id.chain_id as u64));
     stmt.push(SqlValue::from(ob_id.orderbook_address.to_string()));
@@ -1090,7 +1090,7 @@ mod tests {
         let stmt = build_select_statement("deposits", &columns, &ob_id);
         assert_eq!(
             stmt.sql(),
-            "SELECT \"orderbook_address\", \"chain_id\", \"alpha\", \"beta\" FROM \"deposits\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY \"chain_id\", \"orderbook_address\", \"alpha\", \"beta\";"
+            "SELECT \"orderbook_address\", \"chain_id\", \"alpha\", \"beta\" FROM \"deposits\" WHERE chain_id = ?1 AND orderbook_address = ?2 ORDER BY \"chain_id\", \"orderbook_address\", \"alpha\", \"beta\";"
         );
         let params = stmt.params();
         assert_eq!(params.len(), 2);

@@ -19,6 +19,7 @@ pub struct BootstrapConfig {
     pub ob_id: OrderbookIdentifier,
     pub dump_stmt: Option<SqlStatement>,
     pub latest_block: u64,
+    pub deployment_block: u64,
     pub block_number_threshold: u32,
 }
 
@@ -644,6 +645,7 @@ mod tests {
             ob_id: OrderbookIdentifier::new(1, Address::ZERO),
             dump_stmt: None,
             latest_block: 0,
+            deployment_block: 0,
             block_number_threshold: 10_000,
         };
 

@@ -42,7 +42,7 @@ impl JsCallbackExecutor {
             let array = Array::new();
             for param in stmt.params() {
                 let js_param = match param {
-                    SqlValue::Text(text) => JsValue::from_str(text),
+                    SqlValue::Text(text) => JsValue::from_str(&text.to_ascii_lowercase()),
                     SqlValue::I64(value) => JsValue::from(BigInt::from(*value)),
                     SqlValue::U64(value) => JsValue::from(BigInt::from(*value)),
                     SqlValue::Null => JsValue::NULL,

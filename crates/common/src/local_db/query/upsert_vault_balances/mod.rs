@@ -1,0 +1,126 @@
+use crate::local_db::{
+    query::{SqlStatement, SqlStatementBatch, SqlValue},
+    OrderbookIdentifier,
+};
+
+const UPSERT_RUNNING_SQL: &str = include_str!("insert_running_vault_balances.sql");
+const INSERT_BALANCE_CHANGES_SQL: &str = include_str!("insert_balance_changes.sql");
+
+pub fn upsert_vault_balances_batch(
+    ob_id: &OrderbookIdentifier,
+    start_block: u64,
+    end_block: u64,
+) -> SqlStatementBatch {
+    let chain_id = ob_id.chain_id as u64;
+    let orderbook_address = ob_id.orderbook_address.to_string();
+
+    let change_stmt = build_stmt(
+        INSERT_BALANCE_CHANGES_SQL,
+        chain_id,
+        orderbook_address.clone(),
+        start_block,
+        end_block,
+    );
+    let running_stmt = build_stmt(
+        UPSERT_RUNNING_SQL,
+        chain_id,
+        orderbook_address,
+        start_block,
+        end_block,
+    );
+
+    SqlStatementBatch::from(vec![change_stmt, running_stmt])
+}
+
+fn build_stmt(
+    template: &str,
+    chain_id: u64,
+    orderbook_address: String,
+    start_block: u64,
+    end_block: u64,
+) -> SqlStatement {
+    SqlStatement::new_with_params(
+        template,
+        [
+            SqlValue::from(chain_id),
+            SqlValue::from(orderbook_address),
+            SqlValue::from(start_block),
+            SqlValue::from(end_block),
+        ],
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use alloy::primitives::Address;
+
+    #[test]
+    fn batch_binds_all_params() {
+        let ob_id = OrderbookIdentifier::new(111, Address::from([0x11u8; 20]));
+        let batch = upsert_vault_balances_batch(&ob_id, 100, 200);
+        assert_eq!(batch.len(), 2);
+        for stmt in batch.statements() {
+            assert_eq!(stmt.params().len(), 4);
+            assert_eq!(stmt.params()[0], SqlValue::U64(111));
+            assert_eq!(
+                stmt.params()[1],
+                SqlValue::Text(ob_id.orderbook_address.to_string())
+            );
+            assert_eq!(stmt.params()[2], SqlValue::U64(100));
+            assert_eq!(stmt.params()[3], SqlValue::U64(200));
+        }
+    }
+
+    #[test]
+    fn batch_targets_change_log_and_running_tables() {
+        let batch = upsert_vault_balances_batch(&OrderbookIdentifier::new(1, Address::ZERO), 0, 10);
+        let sql: Vec<_> = batch
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_lowercase())
+            .collect();
+        assert!(sql[0].contains("insert or ignore into vault_balance_changes"));
+        assert!(sql[1].contains("insert or replace into running_vault_balances"));
+    }
+
+    #[test]
+    fn batch_filters_block_range() {
+        let batch = upsert_vault_balances_batch(
+            &OrderbookIdentifier::new(3, Address::from([0x55; 20])),
+            123,
+            456,
+        );
+        for stmt in batch.statements() {
+            let sql = stmt.sql();
+            assert!(
+                sql.contains("vd.block_number BETWEEN ?3 AND ?4"),
+                "missing block filter"
+            );
+        }
+    }
+
+    #[test]
+    fn running_stmt_includes_zero_balance_batches() {
+        let batch = upsert_vault_balances_batch(&OrderbookIdentifier::new(4, Address::ZERO), 0, 0);
+        let sql = batch.statements()[1].sql().to_lowercase();
+        assert!(
+            !sql.contains("having not float_is_zero"),
+            "should not filter out zero balance batches"
+        );
+    }
+
+    #[test]
+    fn running_stmt_uses_float_sum_for_updates() {
+        let batch = upsert_vault_balances_batch(&OrderbookIdentifier::new(5, Address::ZERO), 0, 1);
+        let sql = batch.statements()[1].sql().to_lowercase();
+        assert!(
+            sql.contains("insert or replace into running_vault_balances"),
+            "missing INSERT OR REPLACE clause"
+        );
+        assert!(
+            sql.contains("coalesce(float_sum"),
+            "missing FLOAT_SUM aggregation in query"
+        );
+    }
+}

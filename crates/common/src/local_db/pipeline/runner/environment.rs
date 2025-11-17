@@ -401,6 +401,13 @@ mod tests {
             Ok(SqlStatementBatch::new())
         }
 
+        fn build_post_batch(
+            &self,
+            _target_info: &ApplyPipelineTargetInfo,
+        ) -> Result<SqlStatementBatch, LocalDbError> {
+            Ok(SqlStatementBatch::new())
+        }
+
         async fn persist<DB>(
             &self,
             _db: &DB,
@@ -720,7 +727,7 @@ orderbooks:
         let manifest_yaml = format!(
             r#"
 manifest-version: {version}
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
