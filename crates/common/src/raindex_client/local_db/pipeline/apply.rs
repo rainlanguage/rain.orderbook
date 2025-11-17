@@ -1,89 +1,29 @@
-use crate::erc20::TokenInfo;
-use crate::local_db::decode::{DecodedEvent, DecodedEventData};
-use crate::local_db::pipeline::adapters::apply::{
-    ApplyPipeline, ApplyPipelineTargetInfo, DefaultApplyPipeline,
-};
-use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
+use crate::local_db::pipeline::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
 use crate::local_db::query::upsert_vault_balances::upsert_vault_balances_batch;
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
-use crate::local_db::{LocalDbError, OrderbookIdentifier};
-use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::Address;
+use crate::local_db::query::SqlStatementBatch;
+use crate::local_db::LocalDbError;
 use async_trait::async_trait;
 
 /// Client-specific Apply adapter that augments the default pipeline with
 /// post-batch statements (running vault balances refresh).
 #[derive(Debug, Clone, Default)]
-pub struct ClientApplyAdapter {
-    inner: DefaultApplyPipeline,
-}
-
-impl ClientApplyAdapter {
-    pub const fn new() -> Self {
-        Self {
-            inner: DefaultApplyPipeline::new(),
-        }
-    }
-
-    fn build_vault_balances_batch(
-        &self,
-        target_info: &ApplyPipelineTargetInfo,
-    ) -> SqlStatementBatch {
-        if target_info.start_block > target_info.target_block {
-            return SqlStatementBatch::new();
-        }
-
-        upsert_vault_balances_batch(
-            &target_info.ob_id,
-            target_info.start_block,
-            target_info.target_block,
-        )
-    }
-}
+pub struct ClientApplyAdapter;
 
 #[async_trait(?Send)]
 impl ApplyPipeline for ClientApplyAdapter {
-    fn build_batch(
-        &self,
-        target_info: &ApplyPipelineTargetInfo,
-        raw_logs: &[LogEntryResponse],
-        decoded_events: &[DecodedEventData<DecodedEvent>],
-        existing_tokens: &[Erc20TokenRow],
-        tokens_to_upsert: &[(Address, TokenInfo)],
-    ) -> Result<SqlStatementBatch, LocalDbError> {
-        self.inner.build_batch(
-            target_info,
-            raw_logs,
-            decoded_events,
-            existing_tokens,
-            tokens_to_upsert,
-        )
-    }
-
     fn build_post_batch(
         &self,
         target_info: &ApplyPipelineTargetInfo,
     ) -> Result<SqlStatementBatch, LocalDbError> {
-        Ok(self.build_vault_balances_batch(target_info))
-    }
+        if target_info.start_block > target_info.target_block {
+            return Ok(SqlStatementBatch::new());
+        }
 
-    async fn persist<DB>(&self, db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        self.inner.persist(db, batch).await
-    }
-
-    async fn export_dump<DB>(
-        &self,
-        db: &DB,
-        ob_id: &OrderbookIdentifier,
-        end_block: u64,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        self.inner.export_dump(db, ob_id, end_block).await
+        Ok(upsert_vault_balances_batch(
+            &target_info.ob_id,
+            target_info.start_block,
+            target_info.target_block,
+        ))
     }
 }
 
@@ -108,7 +48,7 @@ mod tests {
 
     #[test]
     fn build_post_batch_includes_running_balance_upsert() {
-        let adapter = ClientApplyAdapter::new();
+        let adapter = ClientApplyAdapter;
         let target_info = target(5, 10);
         let batch = adapter
             .build_post_batch(&target_info)
@@ -145,7 +85,7 @@ mod tests {
 
     #[test]
     fn build_post_batch_empty_for_invalid_window() {
-        let adapter = ClientApplyAdapter::new();
+        let adapter = ClientApplyAdapter;
         let batch = adapter
             .build_post_batch(&target(100, 50))
             .expect("post batch ok");
