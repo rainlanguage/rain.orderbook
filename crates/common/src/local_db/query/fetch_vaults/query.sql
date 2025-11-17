@@ -1,19 +1,19 @@
 WITH filtered_vault_balances AS (
-  SELECT mvb.*
-  FROM materialized_vault_balances mvb
+  SELECT rvb.*
+  FROM running_vault_balances rvb
   WHERE 1 = 1
     /*INNER_CHAIN_IDS_CLAUSE*/
     /*INNER_ORDERBOOKS_CLAUSE*/
 ),
 vault_balances AS (
   SELECT
-    mvb.chain_id,
-    mvb.orderbook_address,
-    mvb.owner,
-    mvb.token,
-    mvb.vault_id,
-    mvb.balance
-  FROM filtered_vault_balances mvb
+    rvb.chain_id,
+    rvb.orderbook_address,
+    rvb.owner,
+    rvb.token,
+    rvb.vault_id,
+    rvb.balance
+  FROM filtered_vault_balances rvb
   WHERE 1 = 1
     /*CHAIN_IDS_CLAUSE*/
     /*ORDERBOOKS_CLAUSE*/

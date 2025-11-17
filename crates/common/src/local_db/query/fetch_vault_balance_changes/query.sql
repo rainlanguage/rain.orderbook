@@ -14,16 +14,16 @@ snapshot AS (
     p.vault_id,
     p.token,
     p.owner,
-    COALESCE(mvb.balance, FLOAT_ZERO_HEX()) AS base_balance,
-    mvb.last_block AS base_block_number,
-    mvb.last_log_index AS base_log_index
+    COALESCE(rvb.balance, FLOAT_ZERO_HEX()) AS base_balance,
+    rvb.last_block AS base_block_number,
+    rvb.last_log_index AS base_log_index
   FROM params p
-  LEFT JOIN materialized_vault_balances mvb
-    ON mvb.chain_id = p.chain_id
-   AND mvb.orderbook_address = p.orderbook_address
-   AND mvb.vault_id = p.vault_id
-   AND mvb.token = p.token
-   AND mvb.owner = p.owner
+  LEFT JOIN running_vault_balances rvb
+    ON rvb.chain_id = p.chain_id
+   AND rvb.orderbook_address = p.orderbook_address
+   AND rvb.vault_id = p.vault_id
+   AND rvb.token = p.token
+   AND rvb.owner = p.owner
 ),
 vault_changes AS (
   SELECT

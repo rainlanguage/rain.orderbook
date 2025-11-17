@@ -2,7 +2,7 @@ use crate::local_db::{
     pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState},
     query::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
-        upsert_materialized_vault_balances::upsert_materialized_vault_balances_stmt,
+        upsert_vault_balances::upsert_vault_balances_batch,
         LocalDbQueryExecutor, SqlStatementBatch,
     },
     LocalDbError, OrderbookIdentifier,
@@ -17,7 +17,7 @@ impl ClientBootstrapAdapter {
         Self {}
     }
 
-    async fn refresh_materialized_vault_balances<DB>(
+    async fn refresh_running_vault_balances<DB>(
         &self,
         db: &DB,
         ob_id: &OrderbookIdentifier,
@@ -31,12 +31,7 @@ impl ClientBootstrapAdapter {
             return Ok(());
         }
 
-        let batch = SqlStatementBatch::from(vec![upsert_materialized_vault_balances_stmt(
-            ob_id,
-            start_block,
-            end_block,
-        )])
-        .ensure_transaction();
+        let batch = upsert_vault_balances_batch(ob_id, start_block, end_block).ensure_transaction();
 
         db.execute_batch(&batch).await?;
         Ok(())
@@ -86,7 +81,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
             if self.is_fresh_db(db, &config.ob_id).await? {
                 db.query_text(dump_stmt).await?;
-                self.refresh_materialized_vault_balances(
+                self.refresh_running_vault_balances(
                     db,
                     &config.ob_id,
                     config.deployment_block,
@@ -105,7 +100,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
                 Err(_) => {
                     self.clear_orderbook_data(db, &config.ob_id).await?;
                     db.query_text(dump_stmt).await?;
-                    self.refresh_materialized_vault_balances(
+                    self.refresh_running_vault_balances(
                         db,
                         &config.ob_id,
                         config.deployment_block,
@@ -443,12 +438,9 @@ mod tests {
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
-        let refresh_batch = SqlStatementBatch::from(vec![upsert_materialized_vault_balances_stmt(
-            &cfg.ob_id,
-            cfg.deployment_block,
-            cfg.latest_block,
-        )])
-        .ensure_transaction();
+        let refresh_batch =
+            upsert_vault_balances_batch(&cfg.ob_id, cfg.deployment_block, cfg.latest_block)
+                .ensure_transaction();
 
         let mut db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
@@ -486,12 +478,8 @@ mod tests {
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
 
-        let refresh_batch = SqlStatementBatch::from(vec![upsert_materialized_vault_balances_stmt(
-            &cfg.ob_id,
-            cfg.deployment_block,
-            latest,
-        )])
-        .ensure_transaction();
+        let refresh_batch = upsert_vault_balances_batch(&cfg.ob_id, cfg.deployment_block, latest)
+            .ensure_transaction();
 
         let clear_batch = clear_orderbook_data_batch(&sample_ob_id());
         let mut db = MockDb::default()

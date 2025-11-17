@@ -275,13 +275,13 @@ trade_with_snapshots AS (
     mvb_out.last_block AS output_base_block,
     mvb_out.last_log_index AS output_base_log_index
   FROM trade_rows tr
-  LEFT JOIN materialized_vault_balances mvb_in
+  LEFT JOIN running_vault_balances mvb_in
     ON mvb_in.chain_id = tr.chain_id
    AND mvb_in.orderbook_address = tr.orderbook_address
    AND mvb_in.owner = tr.order_owner
    AND mvb_in.token = tr.input_token
    AND mvb_in.vault_id = tr.input_vault_id
-  LEFT JOIN materialized_vault_balances mvb_out
+  LEFT JOIN running_vault_balances mvb_out
     ON mvb_out.chain_id = tr.chain_id
    AND mvb_out.orderbook_address = tr.orderbook_address
    AND mvb_out.owner = tr.order_owner
