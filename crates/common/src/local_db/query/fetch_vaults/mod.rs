@@ -1,64 +1,89 @@
-use alloy::primitives::Address;
-
-use crate::local_db::{
-    query::{SqlBuildError, SqlStatement, SqlValue},
-    OrderbookIdentifier,
-};
+use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use alloy::primitives::{Address, U256};
+use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalDbVault {
+    pub chain_id: u32,
+    pub vault_id: U256,
+    pub token: Address,
+    pub owner: Address,
+    pub orderbook_address: Address,
+    pub token_name: String,
+    pub token_symbol: String,
+    pub token_decimals: u8,
+    pub balance: String,
+    pub input_orders: Option<String>,
+    pub output_orders: Option<String>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct FetchVaultsArgs {
+    pub chain_ids: Vec<u32>,
+    pub orderbook_addresses: Vec<Address>,
     pub owners: Vec<Address>,
     pub tokens: Vec<Address>,
     pub hide_zero_balance: bool,
 }
 
 const OWNERS_CLAUSE: &str = "/*OWNERS_CLAUSE*/";
-const OWNERS_CLAUSE_BODY: &str = "\nAND lower(o.owner) IN ({list})\n";
+const OWNERS_CLAUSE_BODY: &str = "\nAND o.owner IN ({list})\n";
 
 const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
-const TOKENS_CLAUSE_BODY: &str = "\nAND lower(o.token) IN ({list})\n";
+const TOKENS_CLAUSE_BODY: &str = "\nAND o.token IN ({list})\n";
+
+const CHAIN_IDS_CLAUSE: &str = "/*CHAIN_IDS_CLAUSE*/";
+const CHAIN_IDS_BODY: &str = "AND mvb.chain_id IN ({list})";
+
+const ORDERBOOKS_CLAUSE: &str = "/*ORDERBOOKS_CLAUSE*/";
+const ORDERBOOKS_BODY: &str = "AND mvb.orderbook_address IN ({list})";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
-const HIDE_ZERO_BALANCE_BODY: &str = r##"
-AND NOT FLOAT_IS_ZERO(
-    COALESCE((
-      SELECT FLOAT_SUM(vd.delta)
-      FROM vault_deltas vd
-      WHERE vd.chain_id = ?1
-        AND lower(vd.orderbook_address) = lower(?2)
-        AND lower(vd.owner)    = lower(o.owner)
-        AND lower(vd.token)    = lower(o.token)
-        AND lower(vd.vault_id) = lower(o.vault_id)
-    ), FLOAT_ZERO_HEX())
-  )
-"##;
+const HIDE_ZERO_BALANCE_BODY: &str = "\nAND NOT FLOAT_IS_ZERO(o.balance)\n";
 
-pub fn build_fetch_vaults_stmt(
-    ob_id: &OrderbookIdentifier,
-    args: &FetchVaultsArgs,
-) -> Result<SqlStatement, SqlBuildError> {
+const INNER_CHAIN_IDS_CLAUSE: &str = "/*INNER_CHAIN_IDS_CLAUSE*/";
+const INNER_CHAIN_IDS_BODY: &str = "AND chain_id IN ({list})";
+const INNER_ORDERBOOKS_CLAUSE: &str = "/*INNER_ORDERBOOKS_CLAUSE*/";
+const INNER_ORDERBOOKS_BODY: &str = "AND orderbook_address IN ({list})";
+
+pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
-    stmt.push(SqlValue::from(ob_id.chain_id));
-    stmt.push(SqlValue::from(ob_id.orderbook_address));
 
-    let mut owners = args.owners.clone();
-    owners.dedup();
-    owners.sort();
+    let mut chain_ids = args.chain_ids.clone();
+    chain_ids.sort();
+    chain_ids.dedup();
+    let chain_ids_iter = || chain_ids.iter().copied().map(SqlValue::from);
+    stmt.bind_list_clause(CHAIN_IDS_CLAUSE, CHAIN_IDS_BODY, chain_ids_iter())?;
+    stmt.bind_list_clause(
+        INNER_CHAIN_IDS_CLAUSE,
+        INNER_CHAIN_IDS_BODY,
+        chain_ids_iter(),
+    )?;
+
+    let mut orderbooks = args.orderbook_addresses.clone();
+    orderbooks.sort();
+    orderbooks.dedup();
+    let orderbooks_iter = || orderbooks.iter().copied().map(SqlValue::from);
+    stmt.bind_list_clause(ORDERBOOKS_CLAUSE, ORDERBOOKS_BODY, orderbooks_iter())?;
+    stmt.bind_list_clause(
+        INNER_ORDERBOOKS_CLAUSE,
+        INNER_ORDERBOOKS_BODY,
+        orderbooks_iter(),
+    )?;
+
     stmt.bind_list_clause(
         OWNERS_CLAUSE,
         OWNERS_CLAUSE_BODY,
-        owners.into_iter().map(SqlValue::from),
+        args.owners.iter().cloned().map(SqlValue::from),
     )?;
 
-    let mut tokens = args.tokens.clone();
-    tokens.dedup();
-    tokens.sort();
     stmt.bind_list_clause(
         TOKENS_CLAUSE,
         TOKENS_CLAUSE_BODY,
-        tokens.into_iter().map(SqlValue::from),
+        args.tokens.iter().cloned().map(SqlValue::from),
     )?;
 
     // Hide zero balance clause
@@ -73,9 +98,8 @@ pub fn build_fetch_vaults_stmt(
 
 #[cfg(test)]
 mod tests {
-    use alloy::primitives::{address, Address};
-
     use super::*;
+    use alloy::primitives::address;
 
     fn mk_args() -> FetchVaultsArgs {
         FetchVaultsArgs::default()
@@ -84,13 +108,12 @@ mod tests {
     #[test]
     fn chain_id_and_no_filters() {
         let args = mk_args();
-        let stmt =
-            build_fetch_vaults_stmt(&OrderbookIdentifier::new(1, Address::ZERO), &args).unwrap();
-        assert!(stmt.sql.contains("et.chain_id = ?1"));
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("ORDER BY o.chain_id"));
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
-        assert_eq!(stmt.params.len(), 2);
+        assert!(stmt.params.is_empty());
     }
 
     #[test]
@@ -102,15 +125,19 @@ mod tests {
         ];
         args.tokens = vec![address!("0x1AC6F2786A51b20d47050f3f9E4B0e831427B498")];
         args.hide_zero_balance = true;
-        let stmt =
-            build_fetch_vaults_stmt(&OrderbookIdentifier::new(137, Address::ZERO), &args).unwrap();
+        args.chain_ids = vec![137, 1, 137];
+        args.orderbook_addresses = vec![
+            address!("0xabc0000000000000000000000000000000000000"),
+            address!("0xdef0000000000000000000000000000000000000"),
+        ];
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
 
         // Clauses inserted
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
         assert!(stmt.sql.contains("AND NOT FLOAT_IS_ZERO("));
-        // Params: chain id + orderbook + owners + tokens
+        // Params include chain ids, orderbooks, owners, and tokens
         assert!(!stmt.params.is_empty());
     }
 
@@ -124,5 +151,15 @@ mod tests {
             .replace(HIDE_ZERO_BALANCE_CLAUSE, HIDE_ZERO_BALANCE_BODY)
             .unwrap_err();
         assert!(matches!(err, SqlBuildError::MissingMarker { .. }));
+    }
+
+    #[test]
+    fn hide_zero_clause_without_filters_has_no_placeholders() {
+        let mut args = mk_args();
+        args.hide_zero_balance = true;
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
+        assert!(stmt.params.is_empty());
+        assert!(!stmt.sql.contains("?1"));
+        assert!(!stmt.sql.contains("?2"));
     }
 }
