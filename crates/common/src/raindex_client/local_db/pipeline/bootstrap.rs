@@ -210,6 +210,7 @@ mod tests {
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         }
     }
 
@@ -398,6 +399,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 100,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()
@@ -422,6 +424,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let clear_batch = clear_orderbook_data_batch(&sample_ob_id());
@@ -442,6 +445,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -507,6 +511,7 @@ mod tests {
             dump_stmt: None,
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()
@@ -533,6 +538,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()
