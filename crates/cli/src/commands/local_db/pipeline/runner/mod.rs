@@ -661,6 +661,13 @@ mod tests {
             Ok(SqlStatementBatch::new())
         }
 
+        fn build_post_batch(
+            &self,
+            _target_info: &ApplyPipelineTargetInfo,
+        ) -> Result<SqlStatementBatch, LocalDbError> {
+            Ok(SqlStatementBatch::new())
+        }
+
         async fn persist<DB>(
             &self,
             _db: &DB,
