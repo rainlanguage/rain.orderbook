@@ -5,32 +5,42 @@ use crate::local_db::insert::{
     generate_erc20_token_statements as build_token_upserts,
     raw_events_to_statements as build_raw_event_sql,
 };
-use crate::local_db::pipeline::{ApplyPipeline, ApplyPipelineTargetInfo};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
+use crate::local_db::OrderbookIdentifier;
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, B256};
 use async_trait::async_trait;
 use std::collections::HashMap;
 
-/// Default implementation of the ApplyPipeline.
-///
-/// - Translates fetched/decoded inputs into SQL using existing builders.
-/// - Wraps statements in a transaction and persists via the shared executor.
-/// - Export hook is a no-op; producers can override in their adapter.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct DefaultApplyPipeline;
-
-impl DefaultApplyPipeline {
-    pub const fn new() -> Self {
-        Self
-    }
+#[derive(Debug, Clone)]
+pub struct ApplyPipelineTargetInfo {
+    pub ob_id: OrderbookIdentifier,
+    pub start_block: u64,
+    pub target_block: u64,
+    pub hash: B256,
 }
 
+/// Translates fetched/decoded data into SQL and persists it atomically.
+///
+/// Responsibilities (concrete):
+/// - Build a transactional batch containing:
+///   - Raw events INSERTs.
+///   - Token upserts for provided `(Address, TokenInfo)` pairs.
+///   - Decoded event INSERTs for all orderbook-scoped tables, binding the
+///     target orderbook.
+///   - Watermark update to the `target_block` (and later last hash).
+/// - Persist the batch with a single-writer gate; must assert that the batch
+///   is transaction-wrapped and fail if not.
+///
+/// Policy (environment-specific):
+/// - Dump export after a successful persist (producer only); browser is no-op.
 #[async_trait(?Send)]
-impl ApplyPipeline for DefaultApplyPipeline {
+pub trait ApplyPipeline {
+    /// Builds the SQL batch for a cycle. The batch must be suitable for
+    /// atomic execution (the caller will ensure single-writer semantics).
     fn build_batch(
         &self,
         target_info: &ApplyPipelineTargetInfo,
@@ -78,6 +88,18 @@ impl ApplyPipeline for DefaultApplyPipeline {
         Ok(batch)
     }
 
+    /// Builds environment-specific statements that should be appended to the
+    /// primary batch before persisting. The default implementation returns an
+    /// empty batch and therefore has no effect.
+    fn build_post_batch(
+        &self,
+        _target_info: &ApplyPipelineTargetInfo,
+    ) -> Result<SqlStatementBatch, LocalDbError> {
+        Ok(SqlStatementBatch::new())
+    }
+
+    /// Persists the previously built batch. Implementations must assert that
+    /// the input is wrapped in a transaction and return an error otherwise.
     async fn persist<DB>(&self, db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -85,7 +107,34 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let stmts = batch.clone().ensure_transaction();
         db.execute_batch(&stmts).await.map_err(LocalDbError::from)
     }
+
+    /// Optional policy hook to export dumps after a successful persist.
+    /// Default implementation is a no-op.
+    async fn export_dump<DB>(
+        &self,
+        _db: &DB,
+        _ob_id: &OrderbookIdentifier,
+        _end_block: u64,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Ok(())
+    }
 }
+
+/// Default apply adapter using the trait's provided behavior.
+#[derive(Debug, Clone, Default)]
+pub struct DefaultApplyPipeline;
+
+impl DefaultApplyPipeline {
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+#[async_trait(?Send)]
+impl ApplyPipeline for DefaultApplyPipeline {}
 
 #[cfg(test)]
 mod tests {
