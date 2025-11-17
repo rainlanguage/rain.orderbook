@@ -157,6 +157,7 @@ where
                     dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
                     block_number_threshold: input.block_number_threshold,
                     latest_block: input.manifest_end_block,
+                    deployment_block: input.cfg.deployment_block,
                 },
             )
             .await?;
