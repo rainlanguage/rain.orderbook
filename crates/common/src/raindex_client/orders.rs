@@ -82,21 +82,18 @@ impl RaindexOrder {
         let rainlang = order
             .meta
             .as_ref()
-            .and_then(|meta| meta.try_decode_rainlangsource().ok());
+            .and_then(|meta| meta.to_string().try_decode_rainlangsource().ok());
 
-        let id = [
-            order.orderbook_address.as_bytes(),
-            order.order_hash.as_bytes(),
-        ]
-        .concat();
+        let mut id = Vec::from(order.orderbook_address.as_slice());
+        id.extend_from_slice(order.order_hash.as_ref());
 
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
             chain_id,
             id: Bytes::from(keccak256(&id).as_slice().to_vec()),
-            order_bytes: Bytes::from_str(&order.order_bytes)?,
-            order_hash: Bytes::from_str(&order.order_hash)?,
-            owner: Address::from_str(&order.owner)?,
+            order_bytes: order.order_bytes,
+            order_hash: order.order_hash,
+            owner: order.owner,
             inputs: inputs
                 .into_iter()
                 .map(|v| {
@@ -119,13 +116,10 @@ impl RaindexOrder {
                     )
                 })
                 .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
-            orderbook: Address::from_str(&order.orderbook_address)?,
+            orderbook: order.orderbook_address,
             active: order.active,
             timestamp_added: U256::from(order.block_timestamp),
-            meta: order
-                .meta
-                .map(|meta| Bytes::from_str(meta.as_str()))
-                .transpose()?,
+            meta: order.meta,
             rainlang,
             transaction: None,
             trades_count: order.trade_count as u16,
@@ -721,13 +715,11 @@ impl RaindexClient {
             ));
         }
 
-        let order_hash_hex = order_hash.to_string();
-
         if is_chain_supported_local_db(ob_id.chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
                 let exec = JsCallbackExecutor::from_ref(&db_cb);
                 if let Some(order) = self
-                    .get_order_by_hash_local_db(&exec, ob_id, &order_hash_hex)
+                    .get_order_by_hash_local_db(&exec, ob_id, &order_hash)
                     .await?
                 {
                     return Ok(order);
@@ -737,7 +729,9 @@ impl RaindexClient {
 
         let raindex_client = Rc::new(self.clone());
         let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
-        let order = client.order_detail_by_hash(SgBytes(order_hash_hex)).await?;
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
         let order =
             RaindexOrder::try_from_sg_order(raindex_client.clone(), ob_id.chain_id, order, None)?;
         Ok(order)

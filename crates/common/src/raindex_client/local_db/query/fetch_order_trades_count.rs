@@ -1,3 +1,5 @@
+use alloy::primitives::Bytes;
+
 use crate::local_db::query::fetch_order_trades_count::{
     build_fetch_trade_count_stmt, extract_trade_count, LocalDbTradeCountRow,
 };
@@ -7,7 +9,7 @@ use crate::local_db::OrderbookIdentifier;
 pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     ob_id: &OrderbookIdentifier,
-    order_hash: &str,
+    order_hash: Bytes,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<u64, LocalDbQueryError> {
@@ -24,19 +26,20 @@ mod wasm_tests {
     use alloy::primitives::Address;
     use std::cell::RefCell;
     use std::rc::Rc;
+    use std::str::FromStr;
     use wasm_bindgen_test::*;
     use wasm_bindgen_utils::prelude::wasm_bindgen;
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_and_extracts_count() {
-        let order_hash = " 0xAbC ' ";
+        let order_hash = Bytes::from_str("0xabcd").unwrap();
         let start = Some(10);
         let end = Some(20);
 
         let orderbook = Address::from([0x88; 20]);
         let expected_stmt = build_fetch_trade_count_stmt(
             &OrderbookIdentifier::new(1, orderbook),
-            order_hash,
+            order_hash.clone(),
             start,
             end,
         )
@@ -77,7 +80,7 @@ mod wasm_tests {
         let res = super::fetch_order_trades_count(
             &exec,
             &OrderbookIdentifier::new(1, Address::ZERO),
-            "hash",
+            Bytes::from_str("0xdeadbeef").unwrap(),
             None,
             None,
         )

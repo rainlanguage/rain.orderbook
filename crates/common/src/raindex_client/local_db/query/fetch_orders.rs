@@ -12,26 +12,11 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             None => FetchOrdersActiveFilter::All,
         };
 
-        let owners = filters
-            .owners
-            .into_iter()
-            .map(|owner| owner.to_string().to_lowercase())
-            .collect();
-
-        let order_hash = filters.order_hash.map(|hash| hash.to_string());
-
-        let tokens = filters
-            .tokens
-            .unwrap_or_default()
-            .into_iter()
-            .map(|token| token.to_string().to_lowercase())
-            .collect();
-
         FetchOrdersArgs {
             filter,
-            owners,
-            order_hash,
-            tokens,
+            owners: filters.owners,
+            order_hash: filters.order_hash,
+            tokens: filters.tokens.unwrap_or_default(),
             ..FetchOrdersArgs::default()
         }
     }
@@ -48,7 +33,7 @@ pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{Address, Bytes};
+    use alloy::primitives::{address, Address, Bytes};
     use std::str::FromStr;
 
     #[test]
@@ -67,15 +52,18 @@ mod tests {
         // Owners lowered
         assert_eq!(
             args.owners,
-            vec!["0x0123456789abcdef0123456789abcdef01234567".to_string()]
+            vec![address!("0x0123456789abcdef0123456789abcdef01234567")]
         );
         // Tokens lowered
         assert_eq!(
             args.tokens,
-            vec!["0x89abcdef0123456789abcdef0123456789abcdef".to_string()]
+            vec![address!("0x89abcdef0123456789abcdef0123456789abcdef")]
         );
         // Order hash string preserved
-        assert_eq!(args.order_hash.as_deref(), Some("0xdeadbeef"));
+        assert_eq!(
+            args.order_hash,
+            Some(Bytes::from_str("0xdeadbeef").unwrap())
+        );
     }
 
     #[cfg(target_family = "wasm")]
@@ -83,7 +71,7 @@ mod tests {
         use super::*;
         use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
         use crate::raindex_client::local_db::executor::JsCallbackExecutor;
-        use alloy::primitives::Address;
+        use alloy::primitives::{address, Address, Bytes};
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen::prelude::Closure;
@@ -100,9 +88,13 @@ mod tests {
             // Arrange args with mixed case and whitespace to exercise builder sanitization
             let mut args = FetchOrdersArgs::default();
             args.filter = FetchOrdersActiveFilter::Active;
-            args.owners = vec![" 0xAbC ".into(), "O'Owner".into()];
-            args.tokens = vec![" Tok'A ".into()];
-            args.order_hash = Some(" 0xHash ' ".into());
+            args.owners = vec![
+                address!("0x0000000000000000000000000000000000000abc"),
+                address!("0x00000000000000000000000000000000000000ef"),
+            ];
+            args.tokens = vec![address!("0x00000000000000000000000000000000000000aa")];
+            args.order_hash =
+                Some(Bytes::from_str("0x0000000000000000000000000000000000000001").unwrap());
             args.chain_ids = vec![137];
             args.orderbook_addresses = vec![orderbook()];
 

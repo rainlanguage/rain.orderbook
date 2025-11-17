@@ -2,28 +2,23 @@ use crate::local_db::{
     query::{SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
+use alloy::primitives::{Address, U256};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalDbVault {
-    #[serde(alias = "vaultId")]
-    pub vault_id: String,
-    pub token: String,
-    pub owner: String,
-    #[serde(alias = "orderbookAddress")]
-    pub orderbook_address: String,
-    #[serde(alias = "tokenName")]
+    pub vault_id: U256,
+    pub token: Address,
+    pub owner: Address,
+    pub orderbook_address: Address,
     pub token_name: String,
-    #[serde(alias = "tokenSymbol")]
     pub token_symbol: String,
-    #[serde(alias = "tokenDecimals")]
     pub token_decimals: u8,
     pub balance: String,
-    #[serde(alias = "inputOrders")]
     pub input_orders: Option<String>,
-    #[serde(alias = "outputOrders")]
     pub output_orders: Option<String>,
 }
 
@@ -35,10 +30,10 @@ pub fn build_fetch_vault_stmt(
     SqlStatement::new_with_params(
         QUERY_TEMPLATE,
         [
-            SqlValue::from(ob_id.chain_id as u64),
-            SqlValue::from(ob_id.orderbook_address.to_string()),
-            SqlValue::from(vault_id.trim().to_string()),
-            SqlValue::from(token.trim().to_string()),
+            SqlValue::from(ob_id.chain_id),
+            SqlValue::from(ob_id.orderbook_address),
+            SqlValue::from(vault_id),
+            SqlValue::from(token),
         ],
     )
 }

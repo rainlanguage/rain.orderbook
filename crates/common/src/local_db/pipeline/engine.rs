@@ -2049,7 +2049,7 @@ mod tests {
         assert_eq!(stmt.params()[0], SqlValue::U64(ob_id.chain_id as u64));
         assert_eq!(
             stmt.params()[1],
-            SqlValue::Text(ob_id.orderbook_address.to_string())
+            SqlValue::Text("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
         );
     }
 
