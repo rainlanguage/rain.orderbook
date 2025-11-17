@@ -396,7 +396,7 @@ mod test_helpers {
         use super::*;
         use crate::local_db::query::{
             fetch_order_trades::LocalDbOrderTrade, fetch_orders::LocalDbOrder,
-            fetch_vault::LocalDbVault,
+            fetch_vaults::LocalDbVault,
         };
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
@@ -463,6 +463,7 @@ mod test_helpers {
             let transaction_sender = address!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
 
             let input_vault = LocalDbVault {
+                chain_id: 42161,
                 vault_id: input_vault_id,
                 token: input_token,
                 owner,
@@ -476,6 +477,7 @@ mod test_helpers {
             };
 
             let output_vault = LocalDbVault {
+                chain_id: 42161,
                 vault_id: output_vault_id,
                 token: output_token,
                 owner,

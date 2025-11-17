@@ -1,7 +1,7 @@
 use super::local_db::executor::JsCallbackExecutor;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
-use crate::local_db::query::fetch_vault::LocalDbVault;
+use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
@@ -99,7 +99,6 @@ impl RaindexOrder {
                 .map(|v| {
                     RaindexVault::try_from_local_db(
                         Rc::clone(&raindex_client),
-                        chain_id,
                         v,
                         Some(RaindexVaultType::Input),
                     )
@@ -110,7 +109,6 @@ impl RaindexOrder {
                 .map(|v| {
                     RaindexVault::try_from_local_db(
                         Rc::clone(&raindex_client),
-                        chain_id,
                         v,
                         Some(RaindexVaultType::Output),
                     )
