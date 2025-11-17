@@ -10,6 +10,7 @@ pub mod executor;
 pub mod orders;
 pub mod pipeline;
 pub mod query;
+pub mod vaults;
 
 impl From<LocalDbError> for WasmEncodedError {
     fn from(value: LocalDbError) -> Self {
