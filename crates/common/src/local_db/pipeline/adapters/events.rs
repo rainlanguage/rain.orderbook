@@ -1,6 +1,5 @@
 use alloy::primitives::{Address, Bytes};
 use async_trait::async_trait;
-use std::str::FromStr;
 use url::Url;
 
 use crate::local_db::decode::{decode_events, DecodedEvent, DecodedEventData};
@@ -49,7 +48,7 @@ impl EventsPipeline for DefaultEventsPipeline {
             .get_block_by_number(block_number)
             .await?
             .ok_or_else(|| LocalDbError::BlockHashNotFound { block_number })?;
-        Ok(Bytes::from_str(&block.hash)?)
+        Ok(block.hash)
     }
 
     async fn fetch_orderbook(
@@ -91,10 +90,14 @@ impl EventsPipeline for DefaultEventsPipeline {
 mod tests {
     use super::*;
     use crate::rpc_client::RpcClientError;
-    use alloy::{hex, primitives::U256, sol_types::SolEvent};
+    use alloy::{
+        primitives::{B256, U256},
+        sol_types::SolEvent,
+    };
     use httpmock::MockServer;
     use rain_orderbook_bindings::OrderBook::MetaV1_2;
     use serde_json::json;
+    use std::str::FromStr;
 
     fn test_url() -> Url {
         Url::parse("http://localhost:8545").expect("valid test url")
@@ -118,16 +121,20 @@ mod tests {
 
         // Valid topic but empty data triggers a decode error path.
         let bad_log = LogEntryResponse {
-            address: format!("0x{:040x}", 0),
-            topics: vec![format!("0x{}", hex::encode(MetaV1_2::SIGNATURE_HASH))],
-            data: "0x".to_string(),
+            address: Address::ZERO,
+            topics: vec![Bytes::from(MetaV1_2::SIGNATURE_HASH.as_slice().to_vec())],
+            data: Bytes::new(),
             block_number: U256::from(1),
             block_timestamp: Some(U256::from(2)),
-            transaction_hash: "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
-                .to_string(),
+            transaction_hash: B256::from_str(
+                "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+            )
+            .unwrap(),
             transaction_index: "0x0".to_string(),
-            block_hash: "0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"
-                .to_string(),
+            block_hash: B256::from_str(
+                "0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa",
+            )
+            .unwrap(),
             log_index: U256::ZERO,
             removed: false,
         };

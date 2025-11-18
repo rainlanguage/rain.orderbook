@@ -44,8 +44,8 @@ pub fn build_fetch_vaults_stmt(
     stmt.push(SqlValue::from(ob_id.orderbook_address));
 
     let mut owners = args.owners.clone();
-    owners.dedup();
     owners.sort();
+    owners.dedup();
     stmt.bind_list_clause(
         OWNERS_CLAUSE,
         OWNERS_CLAUSE_BODY,
@@ -53,8 +53,8 @@ pub fn build_fetch_vaults_stmt(
     )?;
 
     let mut tokens = args.tokens.clone();
-    tokens.dedup();
     tokens.sort();
+    tokens.dedup();
     stmt.bind_list_clause(
         TOKENS_CLAUSE,
         TOKENS_CLAUSE_BODY,
