@@ -62,7 +62,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let localDb: SQLiteWasmDatabase | null = null;
 	try {
 		await init();
-		const localDbRes = SQLiteWasmDatabase.new('worker.db');
+		const localDbRes = await SQLiteWasmDatabase.new('worker.db');
 		if (localDbRes.error) {
 			return {
 				errorMessage: 'Error initializing local database: ' + localDbRes.error.readableMsg,

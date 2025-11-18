@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { page } from '$app/stores';
-	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
+	import { PageHeader, useLocalDb, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
-	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
+	import { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
 	import { clearTables } from '@rainlanguage/orderbook';
 
+	const localDb = useLocalDb();
 	const raindexClient = useRaindexClient();
 
 	let db: WasmEncodedResult<SQLiteWasmDatabase> | null = null;
@@ -17,24 +18,12 @@
 	// Show/hide advanced SQL query editor
 	let showCustomQuery = false;
 
-	onMount(async () => {
-		await init();
-		db = SQLiteWasmDatabase.new('worker.db');
-
-		if (db && !db.error && db.value) {
-			const queryFn = db.value.query.bind(db.value);
-			raindexClient.setDbCallback(queryFn);
-		}
-	});
-
 	async function executeQuery() {
-		if (!db?.value || !sqlQuery.trim()) return;
-
 		isLoading = true;
 		error = '';
 		queryResults = null;
 
-		const result = await db.value.query(sqlQuery);
+		const result = await localDb.query(sqlQuery);
 		if (result.error) {
 			error = result.error.msg;
 			isLoading = false;
@@ -151,146 +140,114 @@
 
 <PageHeader title="Database Playground" pathname={$page.url.pathname} />
 
-{#if db}
-	{#if db.error}
-		<div class="mx-auto max-w-6xl p-4">
-			<div
-				class="rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-600 dark:bg-red-900/20"
-			>
-				<h3 class="text-lg font-medium text-red-800 dark:text-red-200">
-					Error initializing SQLite Worker:
-				</h3>
-				<pre class="mt-2 text-sm text-red-700 dark:text-red-300">{db.error.msg}</pre>
+<div class="mx-auto max-w-6xl space-y-6 p-4">
+	<div
+		class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+	>
+		<h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">Database Operations</h3>
+
+		<div class="mb-6">
+			<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Database Management</h4>
+			<div class="flex flex-wrap gap-2">
+				<Button
+					on:click={() => executeRaindexQuery(() => clearTables(queryFn))}
+					disabled={isLoading}
+					color="red"
+					size="sm"
+				>
+					Clear All Tables
+				</Button>
 			</div>
 		</div>
-	{:else if db.value}
-		{@const queryFn = db.value.query.bind(db.value)}
-		<div class="mx-auto max-w-6xl space-y-6 p-4">
-			<div
-				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+
+		<!-- Order Management Section -->
+		<div class="mb-6">
+			<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Order Management</h4>
+			<div class="flex flex-wrap gap-2">
+				<Button on:click={fetchAllOrders} disabled={isLoading} color="blue" size="sm">
+					Fetch All Orders
+				</Button>
+			</div>
+		</div>
+
+		<!-- Custom SQL Query Section -->
+		<div class="mb-4">
+			<Button
+				on:click={() => (showCustomQuery = !showCustomQuery)}
+				color="light"
+				size="sm"
+				class="mb-3"
 			>
-				<h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
-					Database Operations
-				</h3>
+				{showCustomQuery ? 'Hide' : 'Show'} Custom SQL Query
+				<svg
+					class="ml-2 h-4 w-4 transform transition-transform {showCustomQuery ? 'rotate-180' : ''}"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M19 9l-7 7-7-7"
+					/>
+				</svg>
+			</Button>
 
-				<div class="mb-6">
-					<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-						Database Management
-					</h4>
-					<div class="flex flex-wrap gap-2">
-						<Button
-							on:click={() => executeRaindexQuery(() => clearTables(queryFn))}
-							disabled={isLoading}
-							color="red"
-							size="sm"
+			{#if showCustomQuery}
+				<div
+					class="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-800"
+				>
+					<div>
+						<label
+							for="sql-query"
+							class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
 						>
-							Clear All Tables
-						</Button>
+							SQL Query
+						</label>
+						<Textarea
+							id="sql-query"
+							bind:value={sqlQuery}
+							placeholder="Enter your SQL query here..."
+							rows="6"
+							class="font-mono"
+						/>
 					</div>
-				</div>
 
-				<!-- Order Management Section -->
-				<div class="mb-6">
-					<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-						Order Management
-					</h4>
-					<div class="flex flex-wrap gap-2">
-						<Button on:click={fetchAllOrders} disabled={isLoading} color="blue" size="sm">
-							Fetch All Orders
-						</Button>
-					</div>
-				</div>
-
-				<!-- Custom SQL Query Section -->
-				<div class="mb-4">
 					<Button
-						on:click={() => (showCustomQuery = !showCustomQuery)}
-						color="light"
-						size="sm"
-						class="mb-3"
+						on:click={executeQuery}
+						disabled={isLoading || !sqlQuery.trim()}
+						color="blue"
+						size="lg"
 					>
-						{showCustomQuery ? 'Hide' : 'Show'} Custom SQL Query
-						<svg
-							class="ml-2 h-4 w-4 transform transition-transform {showCustomQuery
-								? 'rotate-180'
-								: ''}"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M19 9l-7 7-7-7"
-							/>
-						</svg>
+						{isLoading ? 'Executing...' : 'Execute Query'}
 					</Button>
-
-					{#if showCustomQuery}
-						<div
-							class="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-800"
-						>
-							<div>
-								<label
-									for="sql-query"
-									class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-								>
-									SQL Query
-								</label>
-								<Textarea
-									id="sql-query"
-									bind:value={sqlQuery}
-									placeholder="Enter your SQL query here..."
-									rows="6"
-									class="font-mono"
-								/>
-							</div>
-
-							<Button
-								on:click={executeQuery}
-								disabled={isLoading || !sqlQuery.trim()}
-								color="blue"
-								size="lg"
-							>
-								{isLoading ? 'Executing...' : 'Execute Query'}
-							</Button>
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			{#if error}
-				<div
-					class="rounded-lg border border-red-300 bg-white p-6 shadow-sm dark:border-red-600 dark:bg-gray-800"
-				>
-					<h3 class="mb-3 text-lg font-medium text-red-800 dark:text-red-200">Error</h3>
-					<pre
-						class="overflow-x-auto rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">{error}</pre>
 				</div>
 			{/if}
-
-			{#if queryResults}
-				<div
-					class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-				>
-					<h3 class="mb-3 text-lg font-medium text-gray-900 dark:text-gray-100">Query Results</h3>
-					<pre
-						class="max-h-96 overflow-x-auto overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-4 font-mono text-sm leading-relaxed dark:border-gray-600 dark:bg-gray-900">{JSON.stringify(
-							queryResults,
-							null,
-							2
-						)}</pre>
-				</div>
-			{/if}
-		</div>
-	{/if}
-{:else}
-	<div class="mx-auto max-w-6xl p-4">
-		<div
-			class="rounded-lg border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800"
-		>
-			<p class="text-gray-600 dark:text-gray-300">Loading SQLite Worker...</p>
 		</div>
 	</div>
-{/if}
+
+	{#if error}
+		<div
+			class="rounded-lg border border-red-300 bg-white p-6 shadow-sm dark:border-red-600 dark:bg-gray-800"
+		>
+			<h3 class="mb-3 text-lg font-medium text-red-800 dark:text-red-200">Error</h3>
+			<pre
+				class="overflow-x-auto rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">{error}</pre>
+		</div>
+	{/if}
+
+	{#if queryResults}
+		<div
+			class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+		>
+			<h3 class="mb-3 text-lg font-medium text-gray-900 dark:text-gray-100">Query Results</h3>
+			<pre
+				class="max-h-96 overflow-x-auto overflow-y-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-4 font-mono text-sm leading-relaxed dark:border-gray-600 dark:bg-gray-900">{JSON.stringify(
+					queryResults,
+					null,
+					2
+				)}</pre>
+		</div>
+	{/if}
+</div>
