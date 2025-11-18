@@ -93,7 +93,8 @@ mod tests {
     use super::*;
     use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlValue};
     use crate::local_db::OrderbookIdentifier;
-    use alloy::primitives::{b256, B256, U256};
+    use alloy::primitives::{b256, Bytes, B256, U256};
+    use std::str::FromStr;
 
     const SAMPLE_HASH_B256: B256 =
         b256!("0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000");
@@ -164,7 +165,7 @@ mod tests {
             event_type: EventType::DepositV2,
             block_number: U256::from(1),
             block_timestamp: U256::from(2),
-            transaction_hash: "0xabc".into(),
+            transaction_hash: Bytes::from(vec![0x0a, 0xbc]),
             log_index: U256::ZERO,
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([1u8; 20]),
@@ -182,7 +183,7 @@ mod tests {
             event_type: EventType::WithdrawV2,
             block_number: U256::from(0x10),
             block_timestamp: U256::from(0x20),
-            transaction_hash: "0xdef".into(),
+            transaction_hash: Bytes::from(vec![0x0d, 0xef]),
             log_index: U256::from(1),
             decoded_data: DecodedEvent::WithdrawV2(Box::new(WithdrawV2 {
                 sender: Address::from([2u8; 20]),
@@ -715,14 +716,14 @@ mod tests {
 
         // Two raw logs out of order
         let mk = |block: u64, log_index: u64| LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".into(),
+            address: Address::from([0x11; 20]),
             topics: vec![],
-            data: "0x".into(),
+            data: Bytes::new(),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(1)),
-            transaction_hash: format!("0x{:x}", block),
+            transaction_hash: B256::from_str(&format!("0x{block:064x}")).unwrap(),
             transaction_index: "0x0".into(),
-            block_hash: format!("0x{:x}", block),
+            block_hash: B256::from_str(&format!("0x{block:064x}")).unwrap(),
             log_index: U256::from(log_index),
             removed: false,
         };
@@ -761,14 +762,22 @@ mod tests {
         let ob_id = sample_ob_id();
 
         let mk = |block: u64, log_index: u64| LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".into(),
+            address: Address::from([0x11; 20]),
             topics: vec![],
-            data: "0x01".into(),
+            data: Bytes::from([0x01]),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(1)),
-            transaction_hash: format!("0x{:x}", block),
+            transaction_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             transaction_index: "0x0".into(),
-            block_hash: format!("0x{:x}", block),
+            block_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             log_index: U256::from(log_index),
             removed: false,
         };
@@ -813,14 +822,22 @@ mod tests {
 
         // Build one raw, one token upsert, one decoded deposit
         let mk_raw = |block: u64, log_index: u64| LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".into(),
+            address: Address::from([0x11; 20]),
             topics: vec![],
-            data: "0x02".into(),
+            data: Bytes::from([0x02]),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(1)),
-            transaction_hash: format!("0x{:x}", block),
+            transaction_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             transaction_index: "0x0".into(),
-            block_hash: format!("0x{:x}", block),
+            block_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             log_index: U256::from(log_index),
             removed: false,
         };

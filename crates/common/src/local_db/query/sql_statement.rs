@@ -2,6 +2,7 @@ use alloy::{
     hex,
     primitives::{Address, Bytes, B256, U256},
 };
+use rain_math_float::Float;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -30,12 +31,23 @@ impl From<Address> for SqlValue {
         SqlValue::Text(hex::encode_prefixed(v))
     }
 }
+
+impl From<B256> for SqlValue {
+    fn from(v: B256) -> Self {
+        SqlValue::Text(hex::encode_prefixed(v))
+    }
+}
 impl From<Bytes> for SqlValue {
     fn from(v: Bytes) -> Self {
         SqlValue::Text(hex::encode_prefixed(v))
     }
 }
 
+impl From<Float> for SqlValue {
+    fn from(v: Float) -> Self {
+        SqlValue::Text(v.as_hex().to_ascii_lowercase())
+    }
+}
 impl From<U256> for SqlValue {
     fn from(v: U256) -> Self {
         SqlValue::Text(hex::encode_prefixed(B256::from(v)))
@@ -231,6 +243,19 @@ mod tests {
             SqlValue::from(address!("0xAbCdEf0000000000000000000000000000000000")),
             SqlValue::Text("0xabcdef0000000000000000000000000000000000".to_owned())
         );
+
+        assert_eq!(
+            SqlValue::from(
+                B256::from_str(
+                    "0x1A69EEB7970D3C8D5776493327FB262E31FC880C9CC4A951607418A7963D9FA1"
+                )
+                .unwrap()
+            ),
+            SqlValue::Text(
+                "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1".to_owned()
+            )
+        );
+
         assert_eq!(
             SqlValue::from(
                 Bytes::from_str(
@@ -243,6 +268,12 @@ mod tests {
             )
         );
 
+        assert_eq!(
+            SqlValue::from(Float::parse("123.456".to_string()).unwrap()),
+            SqlValue::Text(
+                "0xfffffffd0000000000000000000000000000000000000000000000000001e240".to_owned()
+            )
+        );
         assert_eq!(
             SqlValue::from(U256::from(101398168737131i64)),
             SqlValue::Text(
