@@ -317,8 +317,6 @@ CREATE TABLE IF NOT EXISTS vault_balance_changes (
         log_index
     )
 );
-CREATE INDEX idx_vault_balance_changes_owner_token
-    ON vault_balance_changes(chain_id, orderbook_address, owner, token, vault_id, block_number, log_index);
 
 CREATE TABLE IF NOT EXISTS running_vault_balances (
     chain_id INTEGER NOT NULL,
