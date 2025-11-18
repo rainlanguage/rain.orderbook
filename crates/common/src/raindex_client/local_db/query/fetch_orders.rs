@@ -49,12 +49,10 @@ mod tests {
         let args: FetchOrdersArgs = filters.into();
         // Active mapping
         assert!(matches!(args.filter, FetchOrdersActiveFilter::Active));
-        // Owners lowered
         assert_eq!(
             args.owners,
             vec![address!("0x0123456789abcdef0123456789abcdef01234567")]
         );
-        // Tokens lowered
         assert_eq!(
             args.tokens,
             vec![address!("0x89abcdef0123456789abcdef0123456789abcdef")]

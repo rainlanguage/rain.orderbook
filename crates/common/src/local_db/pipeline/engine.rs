@@ -358,13 +358,12 @@ mod tests {
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
     };
     use crate::local_db::FetchConfig;
-    use alloy::primitives::{hex, Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{Address, Bytes, FixedBytes, B256, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use serde_json;
     use std::cell::RefCell;
     use std::collections::VecDeque;
-    use std::str::FromStr;
     use std::sync::{Arc, Mutex};
     use tokio::sync::Barrier;
     use url::Url;
@@ -378,19 +377,23 @@ mod tests {
     }
 
     fn tx_bytes(tag: u8) -> Bytes {
-        Bytes::from_str(&format!("0x{tag:02x}")).unwrap()
+        Bytes::from(vec![tag])
     }
 
     fn log_entry(address: Address, block: u64, log_index: u64, tx: u8) -> LogEntryResponse {
         LogEntryResponse {
-            address: hex::encode_prefixed(address),
-            topics: vec!["0x1".into()],
-            data: "0x01".into(),
+            address,
+            topics: vec![Bytes::from(vec![0x1; 32])],
+            data: Bytes::from(vec![0x01]),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(block + 100)),
-            transaction_hash: format!("0x{tx:064x}"),
+            transaction_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = tx;
+                bytes
+            }),
             transaction_index: hex_u64(0),
-            block_hash: "0xdeadbeef".into(),
+            block_hash: B256::from([0xde; 32]),
             log_index: U256::from(log_index),
             removed: false,
         }
