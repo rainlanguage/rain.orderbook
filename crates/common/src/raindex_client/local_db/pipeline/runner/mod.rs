@@ -4,7 +4,7 @@ pub mod scheduler;
 
 use crate::local_db::{
     pipeline::{
-        adapters::apply::ApplyPipeline,
+        adapters::apply::{ApplyPipeline, DefaultApplyPipeline},
         adapters::{
             bootstrap::BootstrapPipeline, events::DefaultEventsPipeline,
             tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
@@ -21,7 +21,6 @@ use crate::local_db::{
     query::LocalDbQueryExecutor,
     LocalDbError,
 };
-use crate::raindex_client::local_db::pipeline::apply::ClientApplyAdapter;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
 use environment::default_environment;
@@ -157,7 +156,7 @@ impl
         DefaultWindowPipeline,
         DefaultEventsPipeline,
         DefaultTokensPipeline,
-        ClientApplyAdapter,
+        DefaultApplyPipeline,
         ClientStatusBus,
         DefaultLeadership,
     >

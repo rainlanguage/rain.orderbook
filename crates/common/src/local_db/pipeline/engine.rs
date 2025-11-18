@@ -303,15 +303,13 @@ where
         DB: LocalDbQueryExecutor + ?Sized,
     {
         self.status.send("Building SQL batch").await?;
-        let mut batch = self.apply.build_batch(
+        let batch = self.apply.build_batch(
             ctx.target_info,
             ctx.raw_logs,
             ctx.decoded_events,
             ctx.existing_tokens,
             ctx.tokens_to_upsert,
         )?;
-        let post_batch = self.apply.build_post_batch(ctx.target_info)?;
-        batch.extend(post_batch);
 
         self.status.send("Persisting to database").await?;
         self.apply.persist(db, &batch).await?;
@@ -1007,13 +1005,6 @@ mod tests {
                 .unwrap()
                 .pop_front()
                 .unwrap_or_else(|| Ok(SqlStatementBatch::new()))
-        }
-
-        fn build_post_batch(
-            &self,
-            _target_info: &ApplyPipelineTargetInfo,
-        ) -> Result<SqlStatementBatch, LocalDbError> {
-            Ok(SqlStatementBatch::new())
         }
 
         async fn persist<DB>(&self, _db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
