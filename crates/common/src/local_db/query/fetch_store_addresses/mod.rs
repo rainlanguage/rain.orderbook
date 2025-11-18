@@ -34,6 +34,6 @@ mod tests {
         assert!(stmt
             .sql
             .to_lowercase()
-            .contains("select distinct lower(store_address)"));
+            .contains("select distinct store_address"));
     }
 }
