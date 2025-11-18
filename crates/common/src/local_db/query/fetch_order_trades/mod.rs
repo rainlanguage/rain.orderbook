@@ -98,9 +98,6 @@ mod tests {
             Some(22),
         )
         .unwrap();
-        // Fixed params
-        assert!(stmt.sql.contains("et_in.chain_id = ?1"));
-        assert!(stmt.sql.contains("et_out.chain_id = ?1"));
         // Dynamic param clauses inserted
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));

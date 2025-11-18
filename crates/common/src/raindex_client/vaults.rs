@@ -314,6 +314,7 @@ impl RaindexVault {
                     &OrderbookIdentifier::new(self.chain_id, self.orderbook),
                     self.vault_id,
                     self.token.address,
+                    self.owner,
                 )
                 .await?;
 

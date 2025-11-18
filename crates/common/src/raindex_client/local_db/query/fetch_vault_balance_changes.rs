@@ -10,8 +10,9 @@ pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
     ob_id: &OrderbookIdentifier,
     vault_id: U256,
     token: Address,
+    owner: Address,
 ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
-    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token);
+    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner);
     exec.query_json(&stmt).await
 }
 
@@ -31,10 +32,12 @@ mod wasm_tests {
         let vault_id = U256::from(1);
         let token = address!("0x00000000000000000000000000000000000000aa");
         let orderbook = Address::from([0x51; 20]);
+        let owner = address!("0x00000000000000000000000000000000000000f1");
         let expected_stmt = build_fetch_balance_changes_stmt(
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         );
 
         let store = Rc::new(RefCell::new((
@@ -49,6 +52,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         )
         .await;
         assert!(res.is_ok());
@@ -60,10 +64,12 @@ mod wasm_tests {
         let vault_id = U256::from(1);
         let token = address!("0x00000000000000000000000000000000000000bb");
         let orderbook = Address::from([0x61; 20]);
+        let owner = address!("0x0000000000000000000000000000000000000011");
         let expected_stmt = build_fetch_balance_changes_stmt(
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         );
 
         let row_json = r#"[{
@@ -91,6 +97,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         )
         .await;
         assert!(res.is_ok());
