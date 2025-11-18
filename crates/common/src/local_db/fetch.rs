@@ -387,7 +387,7 @@ mod tests {
     mod tokio_tests {
         use super::*;
         use alloy::hex;
-        use alloy::primitives::{Address, U256};
+        use alloy::primitives::{Address, Bytes, B256, U256};
         use alloy::rpc::types::FilterBlockError;
         use alloy::sol_types::SolEvent;
         use httpmock::prelude::*;
@@ -411,16 +411,25 @@ mod tests {
             U256::from_str_radix(literal, radix).expect("valid u256 literal")
         }
 
+        fn parse_b256(value: &str) -> B256 {
+            let trimmed = value.trim_start_matches("0x").trim_start_matches("0X");
+            if trimmed.is_empty() {
+                return B256::ZERO;
+            }
+            let parsed = U256::from_str_radix(trimmed, 16).expect("valid b256 literal");
+            B256::from(parsed)
+        }
+
         fn make_log_entry_basic(block_number: &str, timestamp: Option<&str>) -> LogEntryResponse {
             LogEntryResponse {
-                address: "0x123".to_string(),
-                topics: vec!["0xabc".to_string()],
-                data: "0xdeadbeef".to_string(),
+                address: Address::from([0x12; 20]),
+                topics: vec![Bytes::from(vec![0xab; 32])],
+                data: Bytes::from(vec![0xde, 0xad, 0xbe, 0xef]),
                 block_number: parse_u256(block_number),
                 block_timestamp: timestamp.map(parse_u256),
-                transaction_hash: "0xtransaction".to_string(),
+                transaction_hash: parse_b256("0x01"),
                 transaction_index: "0x0".to_string(),
-                block_hash: "0xblock".to_string(),
+                block_hash: parse_b256("0x02"),
                 log_index: U256::ZERO,
                 removed: false,
             }
@@ -428,24 +437,24 @@ mod tests {
 
         fn sample_block_response(number: &str, timestamp: Option<&str>) -> String {
             let mut block = json!({
-                "mixHash": "0xmix",
-                "difficulty": "0x1",
-                "extraData": "0xextra",
+                "mixHash": "0x01020304",
+                "difficulty": "0x01",
+                "extraData": "0x02",
                 "gasLimit": "0xffff",
                 "gasUsed": "0xff",
-                "hash": "0xhash",
-                "logsBloom": "0x0",
-                "miner": "0xminer",
-                "nonce": "0xnonce",
+                "hash": "0x010101",
+                "logsBloom": "0x00",
+                "miner": "0x0a",
+                "nonce": "0x01",
                 "number": number,
-                "parentHash": "0xparent",
-                "receiptsRoot": "0xreceipts",
-                "sha3Uncles": "0xsha3",
+                "parentHash": "0x020202",
+                "receiptsRoot": "0x030303",
+                "sha3Uncles": "0x040404",
                 "size": "0x1",
-                "stateRoot": "0xstate",
-                "timestamp": timestamp.unwrap_or("0x0"),
-                "totalDifficulty": "0x2",
-                "transactionsRoot": "0xtransactions",
+                "stateRoot": "0x050505",
+                "timestamp": timestamp.unwrap_or("0x00"),
+                "totalDifficulty": "0x02",
+                "transactionsRoot": "0x060606",
                 "uncles": [],
                 "transactions": [],
             });
@@ -469,29 +478,29 @@ mod tests {
                 "id": 1,
                 "result": [
                     {
-                        "address": "0xabc",
+                        "address": "0x0000000000000000000000000000000000000abc",
                         "topics": [
                             format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
                         ],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x2",
-                        "transactionHash": "0x2",
+                        "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
-                        "logIndex": "0x1",
+                        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+                        "logIndex": "0x01",
                         "removed": false
                     },
                     {
-                        "address": "0xabc",
+                        "address": "0x0000000000000000000000000000000000000abc",
                         "topics": [
                             format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
                         ],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x1",
-                        "transactionHash": "0x1",
+                        "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
-                        "logIndex": "0x0",
+                        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                        "logIndex": "0x00",
                         "removed": false
                     }
                 ]
@@ -574,27 +583,27 @@ mod tests {
                 "id": 1,
                 "result": [
                     {
-                        "address": "0xstore",
+                        "address": "0x0000000000000000000000000000000000000abc",
                         "topics": [Set::SIGNATURE_HASH.to_string()],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x2",
                         "blockTimestamp": "0x65",
-                        "transactionHash": "0x2",
+                        "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
-                        "logIndex": "0x1",
+                        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+                        "logIndex": "0x01",
                         "removed": false
                     },
                     {
-                        "address": "0xstore",
+                        "address": "0x0000000000000000000000000000000000000abc",
                         "topics": [Set::SIGNATURE_HASH.to_string()],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x1",
                         "blockTimestamp": "0x64",
-                        "transactionHash": "0x1",
+                        "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
-                        "logIndex": "0x0",
+                        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                        "logIndex": "0x00",
                         "removed": false
                     }
                 ]
@@ -718,42 +727,42 @@ mod tests {
                 "id": 1,
                 "result": [
                     {
-                        "address": "0xabc",
+                        "address": "0x0000000000000000000000000000000000000abc",
                         "topics": [
                             format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
                         ],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x1",
-                        "transactionHash": "0xtx1",
+                        "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
+                        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
                         "logIndex": "0x10",
                         "removed": false
                     },
                     {
-                        "address": "0xabc",
+                        "address": "0x0000000000000000000000000000000000000abc",
                         "topics": [
                             format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
                         ],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x1",
-                        "transactionHash": "0xtx2",
+                        "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
-                        "logIndex": "0x2",
+                        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000002",
+                        "logIndex": "0x02",
                         "removed": false
                     },
                     {
-                        "address": "0xabc",
+                        "address": "0x0000000000000000000000000000000000000abc",
                         "topics": [
                             format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH))
                         ],
                         "data": "0xdeadbeef",
                         "blockNumber": "0x1",
-                        "transactionHash": "0xtx3",
+                        "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000003",
                         "transactionIndex": "0x0",
-                        "blockHash": "0x0",
-                        "logIndex": "0xA",
+                        "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000003",
+                        "logIndex": "0x0a",
                         "removed": false
                     }
                 ]
@@ -976,15 +985,15 @@ mod tests {
                             "jsonrpc":"2.0",
                             "id":1,
                             "result":[{
-                                "address":"0xstore",
+                                "address":"0x0000000000000000000000000000000000000abc",
                                 "topics":[Set::SIGNATURE_HASH.to_string()],
                                 "data":"0xdeadbeef",
                                 "blockNumber":"0x1",
                                 "blockTimestamp":"0x64",
-                                "transactionHash":"0xtx1",
+                                "transactionHash":"0x0000000000000000000000000000000000000000000000000000000000000001",
                                 "transactionIndex":"0x0",
-                                "blockHash":"0x0",
-                                "logIndex":"0x1",
+                                "blockHash":"0x0000000000000000000000000000000000000000000000000000000000000001",
+                                "logIndex":"0x01",
                                 "removed":false
                             }]
                         })
@@ -1006,15 +1015,15 @@ mod tests {
                             "jsonrpc":"2.0",
                             "id":1,
                             "result":[{
-                                "address":"0xstore",
+                                "address":"0x0000000000000000000000000000000000000abc",
                                 "topics":[Set::SIGNATURE_HASH.to_string()],
                                 "data":"0xdeadbeef",
                                 "blockNumber":"0x2",
                                 "blockTimestamp":"0x65",
-                                "transactionHash":"0xtx2",
+                                "transactionHash":"0x0000000000000000000000000000000000000000000000000000000000000002",
                                 "transactionIndex":"0x0",
-                                "blockHash":"0x0",
-                                "logIndex":"0x0",
+                                "blockHash":"0x0000000000000000000000000000000000000000000000000000000000000002",
+                                "logIndex":"0x00",
                                 "removed":false
                             }]
                         })
