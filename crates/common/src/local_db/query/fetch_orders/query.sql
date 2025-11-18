@@ -1,11 +1,11 @@
 SELECT
-  l.chain_id AS chain_id,
-  COALESCE(la.order_hash, l.order_hash) AS order_hash,
+  l.chain_id AS chainId,
+  COALESCE(la.order_hash, l.order_hash) AS orderHash,
   l.order_owner AS owner,
-  fa.block_timestamp AS block_timestamp,
-  fa.block_number AS block_number,
-  l.orderbook_address AS orderbook_address,
-  la.order_bytes AS order_bytes,
+  fa.block_timestamp AS blockTimestamp,
+  fa.block_number AS blockNumber,
+  l.orderbook_address AS orderbookAddress,
+  la.order_bytes AS orderBytes,
   json_group_array(
     CASE
       WHEN lower(ios.io_type) = 'input'
@@ -48,9 +48,9 @@ SELECT
       )
     END
   ) AS outputs,
-  COALESCE(tc.trade_count, 0) + COALESCE(cc.trade_count, 0) AS trade_count,
+  COALESCE(tc.trade_count, 0) + COALESCE(cc.trade_count, 0) AS tradeCount,
   (l.event_type = 'AddOrderV3') AS active,
-  la.transaction_hash AS transaction_hash,
+  la.transaction_hash AS transactionHash,
   (
     SELECT m.meta
     FROM meta_events m
