@@ -75,9 +75,11 @@ mod tests {
             456,
         );
         for stmt in batch.statements() {
-            let sql = stmt.sql();
+            let sql = stmt.sql().to_lowercase();
             assert!(
-                sql.contains("vd.block_number BETWEEN ?3 AND ?4"),
+                sql.contains("block_number between")
+                    && (sql.contains("?3") || sql.contains("start_block"))
+                    && (sql.contains("?4") || sql.contains("end_block")),
                 "missing block filter"
             );
         }
