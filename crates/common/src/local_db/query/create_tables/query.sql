@@ -301,11 +301,14 @@ CREATE INDEX idx_store_sets_namespace ON interpreter_store_sets(chain_id, orderb
 CREATE TABLE IF NOT EXISTS vault_balance_changes (
     chain_id INTEGER NOT NULL,
     orderbook_address TEXT NOT NULL,
+    transaction_hash TEXT NOT NULL,
     owner TEXT NOT NULL,
     token TEXT NOT NULL,
     vault_id TEXT NOT NULL,
     block_number INTEGER NOT NULL,
+    block_timestamp INTEGER NOT NULL,
     log_index INTEGER NOT NULL,
+    change_type TEXT NOT NULL,
     delta TEXT NOT NULL,
     PRIMARY KEY (
         chain_id,
