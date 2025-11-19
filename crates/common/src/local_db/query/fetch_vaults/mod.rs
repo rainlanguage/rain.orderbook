@@ -36,10 +36,10 @@ const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
 const TOKENS_CLAUSE_BODY: &str = "\nAND o.token IN ({list})\n";
 
 const CHAIN_IDS_CLAUSE: &str = "/*CHAIN_IDS_CLAUSE*/";
-const CHAIN_IDS_BODY: &str = "AND mvb.chain_id IN ({list})";
+const CHAIN_IDS_BODY: &str = "AND rvb.chain_id IN ({list})";
 
 const ORDERBOOKS_CLAUSE: &str = "/*ORDERBOOKS_CLAUSE*/";
-const ORDERBOOKS_BODY: &str = "AND mvb.orderbook_address IN ({list})";
+const ORDERBOOKS_BODY: &str = "AND rvb.orderbook_address IN ({list})";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
 const HIDE_ZERO_BALANCE_BODY: &str = "\nAND NOT FLOAT_IS_ZERO(o.balance)\n";
@@ -137,6 +137,8 @@ mod tests {
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
         assert!(stmt.sql.contains("AND NOT FLOAT_IS_ZERO("));
+        assert!(stmt.sql.contains("rvb.chain_id IN ("));
+        assert!(stmt.sql.contains("rvb.orderbook_address IN ("));
         // Params include chain ids, orderbooks, owners, and tokens
         assert!(!stmt.params.is_empty());
     }
