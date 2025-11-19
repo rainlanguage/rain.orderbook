@@ -305,72 +305,14 @@ SELECT
   tok_in.symbol AS input_token_symbol,
   tok_in.decimals AS input_token_decimals,
   tws.input_delta,
-  (
-    SELECT COALESCE(FLOAT_SUM(prev.delta ORDER BY prev.block_number, prev.log_index), FLOAT_ZERO_HEX())
-    FROM (
-      SELECT
-        tws.input_base_balance AS delta,
-        tws.input_base_block AS block_number,
-        tws.input_base_log_index AS log_index
-      WHERE tws.input_base_block IS NOT NULL
-      UNION ALL
-      SELECT
-        vbc.delta,
-        vbc.block_number,
-        vbc.log_index
-      FROM vault_balance_changes vbc
-      WHERE vbc.chain_id = tws.chain_id
-        AND vbc.orderbook_address = tws.orderbook_address
-        AND vbc.owner = tws.order_owner
-        AND vbc.token = tws.input_token
-        AND vbc.vault_id = tws.input_vault_id
-        AND (
-             tws.input_base_block IS NULL
-          OR vbc.block_number > tws.input_base_block
-          OR (vbc.block_number = tws.input_base_block AND vbc.log_index > tws.input_base_log_index)
-        )
-        AND (
-             vbc.block_number < tws.block_number
-          OR (vbc.block_number = tws.block_number AND vbc.log_index <= tws.log_index)
-        )
-    ) AS prev
-  ) AS input_running_balance,
+  vbc_input.running_balance AS input_running_balance,
   tws.output_vault_id,
   tws.output_token,
   tok_out.name AS output_token_name,
   tok_out.symbol AS output_token_symbol,
   tok_out.decimals AS output_token_decimals,
   tws.output_delta,
-  (
-    SELECT COALESCE(FLOAT_SUM(prev.delta ORDER BY prev.block_number, prev.log_index), FLOAT_ZERO_HEX())
-    FROM (
-      SELECT
-        tws.output_base_balance AS delta,
-        tws.output_base_block AS block_number,
-        tws.output_base_log_index AS log_index
-      WHERE tws.output_base_block IS NOT NULL
-      UNION ALL
-      SELECT
-        vbc.delta,
-        vbc.block_number,
-        vbc.log_index
-      FROM vault_balance_changes vbc
-      WHERE vbc.chain_id = tws.chain_id
-        AND vbc.orderbook_address = tws.orderbook_address
-        AND vbc.owner = tws.order_owner
-        AND vbc.token = tws.output_token
-        AND vbc.vault_id = tws.output_vault_id
-        AND (
-             tws.output_base_block IS NULL
-          OR vbc.block_number > tws.output_base_block
-          OR (vbc.block_number = tws.output_base_block AND vbc.log_index > tws.output_base_log_index)
-        )
-        AND (
-             vbc.block_number < tws.block_number
-          OR (vbc.block_number = tws.block_number AND vbc.log_index <= tws.log_index)
-        )
-    ) AS prev
-  ) AS output_running_balance,
+  vbc_output.running_balance AS output_running_balance,
   (
     '0x' ||
     CASE
@@ -380,6 +322,22 @@ SELECT
     printf('%016x', tws.log_index)
   ) AS trade_id
 FROM trade_with_snapshots tws
+LEFT JOIN vault_balance_changes vbc_input
+  ON vbc_input.chain_id = tws.chain_id
+ AND vbc_input.orderbook_address = tws.orderbook_address
+ AND vbc_input.owner = tws.order_owner
+ AND vbc_input.token = tws.input_token
+ AND vbc_input.vault_id = tws.input_vault_id
+ AND vbc_input.block_number = tws.block_number
+ AND vbc_input.log_index = tws.log_index
+LEFT JOIN vault_balance_changes vbc_output
+  ON vbc_output.chain_id = tws.chain_id
+ AND vbc_output.orderbook_address = tws.orderbook_address
+ AND vbc_output.owner = tws.order_owner
+ AND vbc_output.token = tws.output_token
+ AND vbc_output.vault_id = tws.output_vault_id
+ AND vbc_output.block_number = tws.block_number
+ AND vbc_output.log_index = tws.log_index
 LEFT JOIN erc20_tokens tok_in
   ON tok_in.chain_id = tws.chain_id
  AND tok_in.orderbook_address = tws.orderbook_address

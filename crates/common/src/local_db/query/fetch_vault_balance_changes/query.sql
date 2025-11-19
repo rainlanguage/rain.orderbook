@@ -16,22 +16,7 @@ SELECT
   vbc.token,
   vbc.vault_id AS vaultId,
   vbc.delta,
-  (
-    SELECT COALESCE(
-      FLOAT_SUM(prev.delta ORDER BY prev.block_number, prev.log_index),
-      FLOAT_ZERO_HEX()
-    )
-    FROM vault_balance_changes prev
-    WHERE prev.chain_id = vbc.chain_id
-      AND prev.orderbook_address = vbc.orderbook_address
-      AND prev.owner = vbc.owner
-      AND prev.token = vbc.token
-      AND prev.vault_id = vbc.vault_id
-      AND (
-           prev.block_number < vbc.block_number
-        OR (prev.block_number = vbc.block_number AND prev.log_index <= vbc.log_index)
-      )
-  ) AS runningBalance
+  vbc.running_balance AS runningBalance
 FROM vault_balance_changes vbc
 JOIN params p
   ON p.chain_id = vbc.chain_id
