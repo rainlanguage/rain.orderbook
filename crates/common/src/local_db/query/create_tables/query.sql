@@ -310,6 +310,7 @@ CREATE TABLE IF NOT EXISTS vault_balance_changes (
     log_index INTEGER NOT NULL,
     change_type TEXT NOT NULL,
     delta TEXT NOT NULL,
+    running_balance TEXT NOT NULL,
     PRIMARY KEY (
         chain_id,
         orderbook_address,
@@ -319,6 +320,16 @@ CREATE TABLE IF NOT EXISTS vault_balance_changes (
         block_number,
         log_index
     )
+);
+CREATE INDEX idx_vbc_timestamp ON vault_balance_changes(
+    chain_id,
+    orderbook_address,
+    owner,
+    token,
+    vault_id,
+    block_timestamp DESC,
+    block_number DESC,
+    log_index DESC
 );
 
 CREATE TABLE IF NOT EXISTS running_vault_balances (
