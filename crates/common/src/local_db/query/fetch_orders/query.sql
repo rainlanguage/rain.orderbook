@@ -193,18 +193,19 @@ LEFT JOIN (
  AND vo.vault_id = ios.vault_id
 LEFT JOIN (
   SELECT
-    vd.chain_id,
-    vd.orderbook_address AS orderbook_address,
-    vd.token AS token,
-    vd.vault_id AS vault_id,
-    FLOAT_SUM(vd.delta) AS balance_hex
-  FROM vault_deltas vd
-  GROUP BY vd.chain_id, vd.orderbook_address, vd.token, vd.vault_id
+    rvb.chain_id,
+    rvb.orderbook_address,
+    rvb.owner,
+    rvb.token,
+    rvb.vault_id,
+    rvb.balance AS balance_hex
+  FROM running_vault_balances rvb
 ) vb
   ON vb.chain_id = ios.chain_id
  AND vb.orderbook_address = ios.orderbook_address
  AND vb.token = ios.token
  AND vb.vault_id = ios.vault_id
+ AND vb.owner = COALESCE(vo.owner, l.order_owner)
 LEFT JOIN (
   SELECT
     t.chain_id,
