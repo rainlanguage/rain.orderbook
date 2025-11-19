@@ -150,6 +150,7 @@ local-db-sync:
     retry-delay-ms: 100
     rate-limit-delay-ms: 1
     finality-depth: 12
+    bootstrap-block-threshold: 1000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
