@@ -138,6 +138,8 @@ mod tests {
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
         assert!(stmt.sql.contains("AND NOT FLOAT_IS_ZERO("));
+        assert!(stmt.sql.contains("rvb.chain_id IN ("));
+        assert!(stmt.sql.contains("rvb.orderbook_address IN ("));
         // Params include chain ids, orderbooks, owners, and tokens
         assert!(!stmt.params.is_empty());
     }
