@@ -196,11 +196,11 @@
 		{emptyMessage}
 	</div>
 {:else if hasData}
-	<div class="cursor-pointer" bind:this={tableContainerElement}>
-		<Table
-			divClass="min-w-full rounded-lg border overflow-hidden dark:border-none"
-			hoverable={rowHoverable}
-		>
+	<div
+		class="cursor-pointer overflow-x-auto rounded-lg border dark:border-none"
+		bind:this={tableContainerElement}
+	>
+		<Table divClass="min-w-full" hoverable={rowHoverable}>
 			<TableHead data-testid="head">
 				<slot name="head" />
 			</TableHead>
