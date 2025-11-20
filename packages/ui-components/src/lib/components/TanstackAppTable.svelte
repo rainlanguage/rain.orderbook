@@ -44,10 +44,9 @@
 	}
 
 	// Helper derived values kept out of the main script block for readability
-	$: firstPageLength = transformedPages?.[0]?.length ?? 0;
-	$: hasData = transformedPages.length > 0;
 	$: flattenedRows = transformedPages.flat();
 	$: totalRows = flattenedRows.length;
+	$: hasData = totalRows > 0;
 
 	// Virtualization state tied to the window scroll so the table keeps its natural height.
 	const hasWindow = typeof window !== 'undefined';
@@ -191,7 +190,7 @@
 		}}
 	/>
 </div>
-{#if firstPageLength === 0}
+{#if totalRows === 0}
 	<div data-testid="emptyMessage" class="text-center text-gray-900 dark:text-white">
 		{emptyMessage}
 	</div>

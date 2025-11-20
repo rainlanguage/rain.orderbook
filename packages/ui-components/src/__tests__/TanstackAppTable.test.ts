@@ -85,6 +85,18 @@ test('shows empty message', async () => {
 	await waitFor(() => expect(screen.getByTestId('emptyMessage')).toHaveTextContent('No rows'));
 });
 
+test('renders rows when first page is empty but later pages have data', async () => {
+	const pages = writable({
+		pages: [[], ['page1']],
+		pageParams: [0, 1]
+	});
+	const mockQuery = createMockQuery(pages);
+	renderTable(mockQuery);
+
+	await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('page1'));
+	expect(screen.queryByTestId('emptyMessage')).not.toBeInTheDocument();
+});
+
 test('loads more rows', async () => {
 	const pages = createPages();
 	const mockQuery = createMockQuery(pages, {
