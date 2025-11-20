@@ -198,6 +198,7 @@
 {:else if hasData}
 	<div
 		class="cursor-pointer overflow-x-auto rounded-lg border dark:border-none"
+		data-testid="tanstackTableContainer"
 		bind:this={tableContainerElement}
 	>
 		<Table divClass="min-w-full" hoverable={rowHoverable}>
