@@ -408,6 +408,9 @@ mod tests {
     use super::*;
     use crate::dotrain_order::DotrainOrder;
     use alloy::primitives::Bytes;
+    use rain_metadata::{
+        types::dotrain::source_v1::DotrainSourceV1, Error as RainMetaError, KnownMagic,
+    };
     use rain_orderbook_app_settings::{
         deployer::DeployerCfg,
         network::NetworkCfg,
@@ -419,6 +422,7 @@ mod tests {
     };
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::{
+        collections::BTreeMap,
         str::FromStr,
         sync::{Arc, RwLock},
     };
@@ -461,6 +465,118 @@ price: 2e18;
                 47, 111, 99, 116, 101, 116, 45, 115, 116, 114, 101, 97, 109
             ]
         );
+    }
+
+    #[test]
+    fn test_try_generate_meta_with_additional_meta_filters_reserved() {
+        let dotrain_body = "/* test */".to_string();
+        let dotrain_hash = DotrainSourceV1(dotrain_body.clone()).hash();
+        let gui_state = DotrainGuiStateV1 {
+            dotrain_hash,
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            select_tokens: BTreeMap::new(),
+            vault_ids: BTreeMap::new(),
+            selected_deployment: "dep".to_string(),
+        };
+        let additional_meta = vec![
+            // Should be filtered out
+            RainMetaDocumentV1Item {
+                payload: ByteBuf::from("ignored-rainlang".as_bytes()),
+                magic: KnownMagic::RainlangSourceV1,
+                content_type: ContentType::OctetStream,
+                content_encoding: ContentEncoding::None,
+                content_language: ContentLanguage::None,
+            },
+            // Should be filtered out
+            RainMetaDocumentV1Item::from(DotrainSourceV1("ignored-dotrain".to_string())),
+            // Should be retained
+            RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+        ];
+
+        let args = AddOrderArgs {
+            dotrain: dotrain_body.clone(),
+            inputs: vec![],
+            outputs: vec![],
+            bindings: HashMap::new(),
+            deployer: Address::default(),
+            additional_meta: Some(additional_meta),
+        };
+
+        let meta_bytes = args.try_generate_meta("rainlang-body".to_string()).unwrap();
+        let decoded = RainMetaDocumentV1Item::cbor_decode(&meta_bytes).unwrap();
+
+        // Rainlang meta is always present and should match the composed rainlang payload
+        assert_eq!(decoded[0].magic, KnownMagic::RainlangSourceV1);
+        assert_eq!(decoded[0].payload.as_ref(), "rainlang-body".as_bytes());
+        // Only the GUI state from additional meta should remain (reserved magics filtered)
+        assert_eq!(decoded.len(), 2);
+        let gui_meta = decoded
+            .iter()
+            .find(|item| item.magic == KnownMagic::DotrainGuiStateV1)
+            .expect("gui state meta not found");
+        assert_eq!(
+            DotrainGuiStateV1::try_from(gui_meta.clone()).unwrap(),
+            gui_state
+        );
+    }
+
+    #[test]
+    fn test_try_into_emit_meta_call_with_gui_state() {
+        let dotrain_body = "/* dotrain template */".to_string();
+        let dotrain_source = DotrainSourceV1(dotrain_body.clone());
+        let gui_state = DotrainGuiStateV1 {
+            dotrain_hash: dotrain_source.hash(),
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            select_tokens: BTreeMap::new(),
+            vault_ids: BTreeMap::new(),
+            selected_deployment: "dep".to_string(),
+        };
+        let args = AddOrderArgs {
+            dotrain: dotrain_body.clone(),
+            inputs: vec![],
+            outputs: vec![],
+            bindings: HashMap::new(),
+            deployer: Address::default(),
+            additional_meta: Some(vec![RainMetaDocumentV1Item::try_from(gui_state).unwrap()]),
+        };
+
+        let emit_call = args
+            .try_into_emit_meta_call()
+            .unwrap()
+            .expect("emitMetaCall missing");
+        let decoded_meta = RainMetaDocumentV1Item::cbor_decode(emit_call.meta.as_ref()).unwrap();
+
+        assert_eq!(emit_call.subject, dotrain_source.hash());
+        assert_eq!(decoded_meta.len(), 1);
+        let dotrain_meta = DotrainSourceV1::try_from(decoded_meta[0].clone()).unwrap();
+        assert_eq!(dotrain_meta.0, dotrain_body);
+    }
+
+    #[test]
+    fn test_try_into_emit_meta_call_invalid_gui_state_payload() {
+        let invalid_gui_state = RainMetaDocumentV1Item {
+            payload: ByteBuf::from(vec![1, 2, 3]),
+            magic: KnownMagic::DotrainGuiStateV1,
+            content_type: ContentType::OctetStream,
+            content_encoding: ContentEncoding::None,
+            content_language: ContentLanguage::None,
+        };
+        let args = AddOrderArgs {
+            dotrain: "body".to_string(),
+            inputs: vec![],
+            outputs: vec![],
+            bindings: HashMap::new(),
+            deployer: Address::default(),
+            additional_meta: Some(vec![invalid_gui_state]),
+        };
+
+        let err = args.try_into_emit_meta_call().unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::RainMetaError(RainMetaError::SerdeCborError(_))
+        ));
     }
 
     #[test]
