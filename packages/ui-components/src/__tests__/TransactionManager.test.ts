@@ -522,6 +522,66 @@ describe('TransactionManager', () => {
 		});
 	});
 
+	describe('createMetaTransaction', () => {
+		const mockArgs: InternalTransactionArgs = {
+			txHash: '0xmetahash' as `0x${string}`,
+			chainId: 10,
+			queryKey: '0xmetakey'
+		};
+
+		beforeEach(() => {
+			vi.mocked(getExplorerLink).mockResolvedValue('https://explorer.example.com/tx/0xmetahash');
+		});
+
+		it('should create a transaction with correct parameters', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createMetaTransaction(mockArgs);
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				{
+					...mockArgs,
+					name: 'Publishing metadata',
+					errorMessage: 'Metadata publication failed.',
+					successMessage: 'Metadata published.',
+					queryKey: mockArgs.queryKey,
+					toastLinks: [
+						{
+							link: 'https://explorer.example.com/tx/0xmetahash',
+							label: 'View on explorer'
+						}
+					],
+					config: mockWagmiConfig
+				},
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+
+		it('should execute the transaction and store it', async () => {
+			const mockExecute = vi.fn();
+			const mockTransaction = { execute: mockExecute };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createMetaTransaction(mockArgs);
+
+			expect(mockExecute).toHaveBeenCalled();
+
+			const transactions = manager.getTransactions();
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			let storeValue: any[] = [];
+			transactions.subscribe((value) => {
+				storeValue = value;
+			});
+			expect(storeValue).toContain(mockTransaction);
+		});
+	});
+
 	describe('createDepositTransaction', () => {
 		const mockEntity = {
 			token: {
