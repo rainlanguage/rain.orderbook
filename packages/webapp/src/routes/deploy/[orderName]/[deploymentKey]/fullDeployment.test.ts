@@ -120,6 +120,10 @@ describe('Full Deployment Tests', () => {
 			transactions: readable()
 		});
 		mockConnectedStore.mockSetSubscribeValue(true);
+		vi.mocked(handleTransactionConfirmationModal).mockResolvedValue({
+			success: true,
+			hash: '0xtesthash'
+		});
 	});
 
 	afterEach(async () => {
@@ -190,11 +194,11 @@ describe('Full Deployment Tests', () => {
 
 			// Set vault id for token2
 			await userEvent.clear(vaultIdInputs[0]);
-			await userEvent.type(vaultIdInputs[0], '0x123');
+			await userEvent.type(vaultIdInputs[0], '234');
 
 			// Set vault id for token1
 			await userEvent.clear(vaultIdInputs[1]);
-			await userEvent.type(vaultIdInputs[1], '0x234');
+			await userEvent.type(vaultIdInputs[1], '123');
 
 			// Click the "Deploy Order" button
 			const deployButton = screen.getByText('Deploy Order');
@@ -211,10 +215,10 @@ describe('Full Deployment Tests', () => {
 			const getDeploymentArgs = async () => {
 				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitOrder, 'flare'))
 					.value as DotrainOrderGui;
-				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
-				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
-				gui.setVaultId('output', 'token1', '0x123');
-				gui.setVaultId('input', 'token2', '0x234');
+				await gui.setSelectToken('token1', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
+				await gui.setSelectToken('token2', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
+				gui.setVaultId('output', 'token2', '234');
+				gui.setVaultId('input', 'token1', '123');
 				gui.setFieldValue('fixed-io', '10');
 				const args = await gui.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
@@ -229,8 +233,15 @@ describe('Full Deployment Tests', () => {
 			});
 
 			// @ts-expect-error mock is not typed
-			const callArgs = handleTransactionConfirmationModal.mock
-				.calls[0][0] as TransactionConfirmationProps;
+			const callArgs = handleTransactionConfirmationModal.mock.calls.at(-1)?.[0] as
+				| TransactionConfirmationProps
+				| undefined;
+
+			expect(callArgs).toBeDefined();
+			if (!callArgs) {
+				return;
+			}
+			expect(callArgs.modalTitle).toEqual('Deploying your order');
 
 			const { prefixEnd, suffixEnd } = findLockRegion(
 				callArgs.args.calldata,
