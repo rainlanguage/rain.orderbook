@@ -527,12 +527,24 @@ mod tests {
         field_values::FieldValue,
         tests::{get_yaml, initialize_gui_with_select_tokens},
     };
-    use alloy::primitives::U256;
+    use alloy::primitives::{Address, U256};
     use js_sys::{eval, Reflect};
-    use rain_orderbook_app_settings::order::VaultType;
+    use rain_orderbook_app_settings::{
+        network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
+    };
+    use rain_orderbook_common::dotrain::RainDocument;
+    use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTUvDQBDNVlEET0XwJPgDXJLdWEgKnlT8AqUaPXgpTbptQ7a723T6_Sf6k0va2ZSGzmHem31vZ4apObu4QIxT1U1VnzLHxgki87yqiRN88JySWXKGCDoTyj_W7bjzsLrEaqyHgioBM51n9t8N4gDANF1X6qQjB3oMzcALGm5uEjrJ5apwkCITO_o5er1CWr__m68ridTJOcpRscOtT05t_fHp15x9HOzKygEsDElV5aXKw_AOqfpesJccDJe9uJW-j-KgH8Tt3-XsP4IebTxl_PHny3Siaevt4dpeQkiRAN02pV1hpF4MhYINl3jZNMgBAAA=";
+
+    fn encode_state(state: &SerializedGuiState) -> String {
+        let bytes = bincode::serialize(state).unwrap();
+        let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(&bytes).unwrap();
+        let compressed = encoder.finish().unwrap();
+        URL_SAFE.encode(compressed)
+    }
 
     async fn configured_gui() -> DotrainOrderGui {
         let mut gui = initialize_gui_with_select_tokens().await;
@@ -566,6 +578,56 @@ mod tests {
         .unwrap();
 
         gui
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_dotrain_hash_changes_on_content_change() {
+        let dotrain = get_yaml();
+        let original_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone()).unwrap();
+        let modified_hash = DotrainOrderGui::get_dotrain_hash(
+            dotrain.replace("Select token deployment", "Select token deployment v2"),
+        )
+        .unwrap();
+        assert_ne!(original_hash, modified_hash);
+
+        let repeated_hash = DotrainOrderGui::get_dotrain_hash(get_yaml()).unwrap();
+        assert_eq!(original_hash, repeated_hash);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_generate_dotrain_gui_state_instance_v1_contents() {
+        let gui = configured_gui().await;
+        let state = gui.generate_dotrain_gui_state_instance_v1().unwrap();
+
+        let trimmed = gui
+            .dotrain_order
+            .generate_dotrain_for_deployment(&gui.selected_deployment)
+            .unwrap();
+        let expected_hash = DotrainSourceV1(trimmed).hash();
+        assert_eq!(state.dotrain_hash, expected_hash);
+        assert_eq!(state.selected_deployment, "select-token-deployment");
+
+        let binding_1 = state.field_values.get("binding-1").unwrap();
+        assert_eq!(binding_1.id, "binding-1");
+        assert_eq!(binding_1.value, "100");
+
+        let binding_2 = state.field_values.get("binding-2").unwrap();
+        assert_eq!(binding_2.id, "0");
+        assert_eq!(binding_2.value, "0");
+
+        let deposit = state.deposits.get("token3").unwrap();
+        assert_eq!(deposit.id, "token3");
+        assert_eq!(deposit.value, "100");
+
+        assert!(state.select_tokens.is_empty());
+        assert_eq!(
+            state.vault_ids.get("input_0"),
+            Some(&Some("0xc7".to_string()))
+        );
+        assert_eq!(
+            state.vault_ids.get("output_0"),
+            Some(&Some("0x12b".to_string()))
+        );
     }
 
     #[wasm_bindgen_test]
@@ -633,6 +695,113 @@ mod tests {
             err.to_readable_msg(),
             "There was a mismatch in the dotrain configuration. Please check your YAML configuration for consistency."
         );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_new_from_state_rejects_unknown_select_token_key() {
+        let dotrain = get_yaml();
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain).unwrap();
+        let token = TokenCfg::parse_from_yaml(documents.clone(), "token1", None).unwrap();
+
+        let serialized_state = encode_state(&SerializedGuiState {
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            select_tokens: BTreeMap::from([("token1".to_string(), token)]),
+            vault_ids: BTreeMap::new(),
+            dotrain_hash: DotrainOrderGui::get_dotrain_hash(dotrain.clone()).unwrap(),
+            selected_deployment: "select-token-deployment".to_string(),
+        });
+
+        let err = DotrainOrderGui::new_from_state(dotrain, serialized_state, None)
+            .await
+            .unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            GuiError::TokenNotInSelectTokens("token1".to_string()).to_string()
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_new_from_state_replaces_existing_select_token_record() {
+        let dotrain = get_yaml();
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain).unwrap();
+        TokenCfg::add_record_to_yaml(
+            documents.clone(),
+            "token3",
+            "some-network",
+            "0x0000000000000000000000000000000000000001",
+            Some("18"),
+            Some("Existing Token 3"),
+            Some("OLD3"),
+        )
+        .unwrap();
+
+        let yaml_frontmatter = DotrainYaml::get_yaml_string(documents[0].clone()).unwrap();
+        let rain_document = RainDocument::create(dotrain.clone(), None, None, None);
+        let dotrain_with_existing_token = format!(
+            "{}\n{}\n{}",
+            yaml_frontmatter,
+            FRONTMATTER_SEPARATOR,
+            rain_document.body()
+        );
+
+        let network = NetworkCfg::parse_from_yaml(documents.clone(), "some-network", None).unwrap();
+        let replacement_token = TokenCfg {
+            document: documents[0].clone(),
+            key: "token3".to_string(),
+            network: Arc::new(network),
+            address: Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+            decimals: Some(6),
+            label: Some("Replaced Token 3".to_string()),
+            symbol: Some("NEW3".to_string()),
+        };
+
+        let serialized_state = encode_state(&SerializedGuiState {
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            select_tokens: BTreeMap::from([("token3".to_string(), replacement_token.clone())]),
+            vault_ids: BTreeMap::new(),
+            dotrain_hash: DotrainOrderGui::get_dotrain_hash(dotrain_with_existing_token.clone())
+                .unwrap(),
+            selected_deployment: "select-token-deployment".to_string(),
+        });
+
+        let gui =
+            DotrainOrderGui::new_from_state(dotrain_with_existing_token, serialized_state, None)
+                .await
+                .unwrap();
+
+        let restored_token = gui
+            .dotrain_order
+            .orderbook_yaml()
+            .get_token("token3")
+            .unwrap();
+        assert_eq!(restored_token.address, replacement_token.address);
+        assert_eq!(restored_token.symbol, replacement_token.symbol);
+        assert_eq!(restored_token.label, replacement_token.label);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_serialize_state_errors_on_missing_preset() {
+        let gui = initialize_gui_with_select_tokens().await;
+        let mut gui = gui;
+
+        gui.field_values.insert(
+            "binding-2".to_string(),
+            field_values::PairValue {
+                is_preset: true,
+                value: "non-existent".to_string(),
+            },
+        );
+
+        let err = gui.serialize_state().unwrap_err();
+        assert_eq!(err.to_string(), GuiError::InvalidPreset.to_string());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_execute_state_update_callback_noop_without_callback() {
+        let gui = initialize_gui_with_select_tokens().await;
+        assert!(gui.execute_state_update_callback().is_ok());
     }
 
     #[wasm_bindgen_test]

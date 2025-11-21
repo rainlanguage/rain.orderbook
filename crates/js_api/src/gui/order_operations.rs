@@ -881,6 +881,11 @@ impl DotrainOrderGui {
 mod tests {
     use super::*;
     use crate::gui::tests::{initialize_gui, initialize_gui_with_select_tokens};
+    #[cfg(all(test, not(target_family = "wasm")))]
+    use httpmock::{Method::POST, MockServer};
+    use rain_metadata::{types::dotrain::source_v1::DotrainSourceV1, RainMetaDocumentV1Item};
+    #[cfg(all(test, not(target_family = "wasm")))]
+    use serde_json::json;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
@@ -1002,6 +1007,118 @@ mod tests {
             err.to_readable_msg(),
             "The value for field 'Field 2 name' is required but has not been set."
         );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_prepare_add_order_args_injects_gui_meta() {
+        let mut gui = initialize_gui(None).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        let deployment = gui.get_current_deployment().unwrap();
+        let trimmed_dotrain = gui
+            .dotrain_order
+            .generate_dotrain_for_deployment(&deployment.deployment.key)
+            .unwrap();
+
+        let add_order_args = gui
+            .prepare_add_order_args(&deployment)
+            .await
+            .expect("add order args");
+
+        // additional_meta should carry the GUI state document
+        let additional_meta = add_order_args
+            .additional_meta
+            .as_ref()
+            .expect("meta missing");
+        assert_eq!(additional_meta.len(), 1);
+        assert_eq!(
+            additional_meta[0].magic,
+            rain_metadata::KnownMagic::DotrainGuiStateV1
+        );
+
+        // try_into_emit_meta_call should emit a DotrainSourceV1 for the trimmed deployment dotrain
+        let emit_meta_call = add_order_args
+            .try_into_emit_meta_call()
+            .expect("emit meta call err")
+            .expect("emit meta call missing");
+        let decoded = RainMetaDocumentV1Item::cbor_decode(emit_meta_call.meta.as_ref()).unwrap();
+        assert_eq!(decoded.len(), 1);
+        let dotrain_source = DotrainSourceV1::try_from(decoded[0].clone()).unwrap();
+        assert_eq!(dotrain_source.0, trimmed_dotrain);
+
+        // Subject must match the dotrain hash
+        assert_eq!(
+            emit_meta_call.subject,
+            DotrainSourceV1(trimmed_dotrain).hash()
+        );
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    async fn initialize_gui_with_metaboard_url(url: &str) -> DotrainOrderGui {
+        let yaml = get_yaml().replace("https://metaboard.com", url);
+        DotrainOrderGui::new_with_deployment(yaml, "some-deployment".to_string(), None)
+            .await
+            .unwrap()
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    #[tokio::test]
+    async fn test_should_emit_meta_call_false_when_meta_exists() {
+        let server = MockServer::start_async().await;
+        server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body_obj(&json!({
+                "data": {
+                    "metaV1S": [
+                        {
+                            "meta": "0x01",
+                            "metaHash": "0x00",
+                            "sender": "0x00",
+                            "id": "0x00",
+                            "metaBoard": {
+                                "id": "0x00",
+                                "metas": [],
+                                "address": "0x00"
+                            },
+                            "subject": "0x00"
+                        }
+                    ]
+                }
+            }));
+        });
+
+        let mut gui = initialize_gui_with_metaboard_url(&server.url("/")).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        assert!(!gui.should_emit_meta_call().await.unwrap());
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    #[tokio::test]
+    async fn test_should_emit_meta_call_true_when_no_meta() {
+        let server = MockServer::start_async().await;
+        server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body_obj(&json!({
+                "data": {
+                    "metaV1S": []
+                }
+            }));
+        });
+
+        let mut gui = initialize_gui_with_metaboard_url(&server.url("/")).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        assert!(gui.should_emit_meta_call().await.unwrap());
     }
 
     #[wasm_bindgen_test]
