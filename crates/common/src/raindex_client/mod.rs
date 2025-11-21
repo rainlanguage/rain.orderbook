@@ -13,6 +13,7 @@ use alloy::{
 };
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
+    network::NetworkCfg,
     orderbook::OrderbookCfg,
     yaml::{
         orderbook::{OrderbookYaml, OrderbookYamlValidation},
@@ -144,50 +145,46 @@ impl RaindexClient {
         Ok(())
     }
 
+    fn resolve_networks(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<Vec<NetworkCfg>, RaindexError> {
+        match chain_ids {
+            Some(ids) if !ids.is_empty() => {
+                let mut networks = Vec::with_capacity(ids.len());
+                for id in ids {
+                    networks.push(self.orderbook_yaml.get_network_by_chain_id(id)?);
+                }
+                Ok(networks)
+            }
+            Some(_) | None => {
+                let all_nets = self.orderbook_yaml.get_networks()?;
+                let networks = all_nets.values().cloned().collect();
+                Ok(networks)
+            }
+        }
+    }
+
     fn get_multi_subgraph_args(
         &self,
         chain_ids: Option<Vec<u32>>,
     ) -> Result<BTreeMap<u32, Vec<MultiSubgraphArgs>>, RaindexError> {
-        let result = match chain_ids {
-            Some(ids) if !ids.is_empty() => {
-                let mut multi_subgraph_args = BTreeMap::new();
-                for id in ids {
-                    let network = self.orderbook_yaml.get_network_by_chain_id(id)?;
-                    let orderbooks = self
-                        .orderbook_yaml
-                        .get_orderbooks_by_network_key(&network.key)?;
-                    for orderbook in orderbooks {
-                        multi_subgraph_args.entry(id).or_insert(Vec::new()).push(
-                            MultiSubgraphArgs {
-                                url: orderbook.subgraph.url.clone(),
-                                name: network.label.clone().unwrap_or(network.key.clone()),
-                            },
-                        );
-                    }
-                }
-                multi_subgraph_args
+        let networks = self.resolve_networks(chain_ids)?;
+        let mut result: BTreeMap<u32, Vec<MultiSubgraphArgs>> = BTreeMap::new();
+        for network in networks {
+            let orderbooks = self
+                .orderbook_yaml
+                .get_orderbooks_by_network_key(&network.key)?;
+            for orderbook in orderbooks {
+                result
+                    .entry(network.chain_id)
+                    .or_default()
+                    .push(MultiSubgraphArgs {
+                        url: orderbook.subgraph.url.clone(),
+                        name: network.label.clone().unwrap_or(network.key.clone()),
+                    });
             }
-            Some(_) | None => {
-                let mut multi_subgraph_args = BTreeMap::new();
-                let networks = self.orderbook_yaml.get_networks()?;
-
-                for network in networks.values() {
-                    let orderbooks = self
-                        .orderbook_yaml
-                        .get_orderbooks_by_network_key(&network.key)?;
-                    for orderbook in orderbooks {
-                        multi_subgraph_args
-                            .entry(network.chain_id)
-                            .or_insert(Vec::new())
-                            .push(MultiSubgraphArgs {
-                                url: orderbook.subgraph.url.clone(),
-                                name: network.label.clone().unwrap_or(network.key.clone()),
-                            });
-                    }
-                }
-                multi_subgraph_args
-            }
-        };
+        }
 
         if result.is_empty() {
             return Err(RaindexError::NoNetworksConfigured);
@@ -317,6 +314,16 @@ pub enum RaindexError {
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
     LocalDbUnsupportedNetwork(u32),
+    #[error("Cannot parse metadata: {0}")]
+    ParseMetaError(#[from] rain_metadata::Error),
+    #[error("No metaboards configured for any chain")]
+    NoMetaboardsConfigured,
+    #[error("Metaboard not configured for chain ID: {0}")]
+    MetaboardNotConfigured(u32),
+    #[error("Metaboard subgraph error: {0}")]
+    MetaboardSubgraphError(String),
+    #[error("Invalid dotrain source metadata found")]
+    InvalidDotrainSourceMetadata,
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -447,6 +454,20 @@ impl RaindexError {
             }
             RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
                 format!("The chain ID: {chain_id} is not supported for local database operations.")
+            }
+            RaindexError::ParseMetaError(err) => format!("Cannot parse metadata: {err}"),
+            RaindexError::NoMetaboardsConfigured => {
+                "No metaboards configured for any chain. Please check your configuration."
+                    .to_string()
+            }
+            RaindexError::MetaboardNotConfigured(chain_id) => {
+                format!("Metaboard is not configured for chain ID: {chain_id}")
+            }
+            RaindexError::MetaboardSubgraphError(err) => {
+                format!("Failed to query metaboard subgraph: {err}")
+            }
+            RaindexError::InvalidDotrainSourceMetadata => {
+                "Found metadata but it could not be parsed as valid dotrain source".to_string()
             }
         }
     }
@@ -706,6 +727,28 @@ accounts:
             let names: Vec<&str> = args.iter().map(|(_, arg)| arg[0].name.as_str()).collect();
             assert!(names.contains(&"Ethereum Mainnet"));
             assert!(names.contains(&"Polygon Mainnet"));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_multi_subgraph_args_empty_chain_ids_defaults_to_all() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    // not used
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let args = client.get_multi_subgraph_args(Some(vec![])).unwrap();
+            assert_eq!(args.len(), 2);
+
+            let urls: Vec<&str> = args.iter().map(|(_, arg)| arg[0].url.as_str()).collect();
+            assert!(urls.contains(&"http://localhost:3000/sg1"));
+            assert!(urls.contains(&"http://localhost:3000/sg2"));
         }
 
         #[wasm_bindgen_test]
