@@ -4,7 +4,9 @@ use alloy::{
     sol_types::SolCall,
 };
 use rain_math_float::Float;
-use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
+use rain_metaboard_subgraph::metaboard_client::{
+    MetaboardSubgraphClient, MetaboardSubgraphClientError,
+};
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::RainMetaDocumentV1Item;
 use rain_orderbook_app_settings::{
@@ -866,13 +868,13 @@ impl DotrainOrderGui {
         let subject = dotrain_gui_state.dotrain_hash();
 
         let client = self.get_metaboard_client()?;
-        let res = client
+        match client
             .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", alloy::hex::encode(subject))))
-            .await;
-
-        match res {
-            Ok(_) => Ok(false),
-            Err(_) => Ok(true),
+            .await
+        {
+            Ok(metas) => Ok(metas.is_empty()),
+            Err(MetaboardSubgraphClientError::Empty(_)) => Ok(true),
+            Err(err) => Err(GuiError::MetaboardSubgraphClientError(err)),
         }
     }
 }
@@ -1119,6 +1121,25 @@ mod tests {
             .unwrap();
 
         assert!(gui.should_emit_meta_call().await.unwrap());
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    #[tokio::test]
+    async fn test_should_emit_meta_call_propagates_errors() {
+        let server = MockServer::start_async().await;
+        server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let mut gui = initialize_gui_with_metaboard_url(&server.url("/")).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        let err = gui.should_emit_meta_call().await.unwrap_err();
+        assert!(matches!(err, GuiError::MetaboardSubgraphClientError(_)));
     }
 
     #[wasm_bindgen_test]
