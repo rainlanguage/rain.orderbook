@@ -635,35 +635,29 @@ impl RaindexClient {
             .flat_map(|(chain_id, args)| args.iter().map(move |arg| (arg.name.clone(), *chain_id)))
             .collect();
 
-        let subgraph_to_chain = Rc::new(subgraph_to_chain);
-        let raindex_orders = stream::iter(orders.into_iter().map(
-            |SgOrderWithSubgraphName {
-                 order: sg_order,
-                 subgraph_name,
-             }| {
-                let raindex_client = Rc::clone(&raindex_client);
-                let subgraph_to_chain = Rc::clone(&subgraph_to_chain);
-                async move {
-                    let chain_id = subgraph_to_chain.get(&subgraph_name).copied().ok_or(
+        let raindex_orders = orders
+            .into_iter()
+            .map(
+                |SgOrderWithSubgraphName {
+                     order: sg_order,
+                     subgraph_name,
+                 }| {
+                    let chain_id = *subgraph_to_chain.get(&subgraph_name).ok_or(
                         RaindexError::SubgraphNotFound(
                             subgraph_name.clone(),
                             sg_order.order_hash.0.clone(),
                         ),
                     )?;
-                    let mut order = RaindexOrder::try_from_sg_order(
+                    RaindexOrder::try_from_sg_order(
                         Rc::clone(&raindex_client),
                         chain_id,
                         sg_order,
                         None,
-                    )?;
-                    order.fetch_dotrain_source().await?;
-                    Ok::<_, RaindexError>(order)
-                }
-            },
-        ))
-        .buffer_unordered(MAX_CONCURRENT_DOTRAIN_SOURCE_FETCHES)
-        .try_collect::<Vec<_>>()
-        .await?;
+                    )
+                },
+            )
+            .collect::<Result<Vec<_>, RaindexError>>()?;
+        let raindex_orders = fetch_orders_dotrain_sources(raindex_orders).await?;
 
         Ok(raindex_orders)
     }
@@ -1093,6 +1087,19 @@ impl RaindexOrder {
             trades_count: order.trade_count as u16,
         })
     }
+}
+
+/// Fetch dotrain sources for a batch of orders with bounded concurrency.
+pub(crate) async fn fetch_orders_dotrain_sources(
+    orders: Vec<RaindexOrder>,
+) -> Result<Vec<RaindexOrder>, RaindexError> {
+    stream::iter(orders.into_iter().map(|mut order| async move {
+        order.fetch_dotrain_source().await?;
+        Ok::<_, RaindexError>(order)
+    }))
+    .buffered(MAX_CONCURRENT_DOTRAIN_SOURCE_FETCHES)
+    .try_collect::<Vec<_>>()
+    .await
 }
 
 #[cfg(test)]

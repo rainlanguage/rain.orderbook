@@ -1,5 +1,5 @@
 use super::*;
-use crate::raindex_client::orders::RaindexOrder;
+use crate::raindex_client::orders::{fetch_orders_dotrain_sources, RaindexOrder};
 use alloy::primitives::Bytes;
 use rain_orderbook_subgraph_client::types::Id;
 use std::rc::Rc;
@@ -75,6 +75,7 @@ impl RaindexClient {
                 )
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+        let orders = fetch_orders_dotrain_sources(orders).await?;
         Ok(orders)
     }
 }

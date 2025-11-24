@@ -1,5 +1,5 @@
 use super::*;
-use crate::raindex_client::orders::RaindexOrder;
+use crate::raindex_client::orders::{fetch_orders_dotrain_sources, RaindexOrder};
 use alloy::primitives::{hex::decode, Bytes};
 use alloy::sol_types::{SolCall, SolValue};
 use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
@@ -77,6 +77,7 @@ impl RaindexClient {
                 )
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+        let orders = fetch_orders_dotrain_sources(orders).await?;
         Ok(orders)
     }
 }
