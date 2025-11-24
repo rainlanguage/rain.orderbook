@@ -79,7 +79,19 @@ pub trait YamlParsableHash: Sized + Clone {
             .cloned()
     }
 
-    fn to_yaml_hash(_: &HashMap<String, Self>) -> Result<StrictYaml, YamlError>;
+    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
+        Err(YamlError::InvalidTraitFunction)
+    }
+
+    fn to_yaml_hash(map: &HashMap<String, Self>) -> Result<StrictYaml, YamlError> {
+        let mut yaml_hash = Hash::new();
+
+        for (key, value) in map {
+            yaml_hash.insert(StrictYaml::String(key.clone()), value.to_yaml_value()?);
+        }
+
+        Ok(StrictYaml::Hash(yaml_hash))
+    }
 }
 
 pub trait YamlParsableVector: Sized {

@@ -257,55 +257,46 @@ impl YamlParsableHash for NetworkCfg {
         Ok(networks)
     }
 
-    fn to_yaml_hash(networks: &HashMap<String, Self>) -> Result<StrictYaml, YamlError> {
-        let mut networks_yaml = Hash::new();
+    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
+        let mut network_yaml = Hash::new();
 
-        for (key, cfg) in networks {
-            let mut network_yaml = Hash::new();
+        let rpcs = self
+            .rpcs
+            .iter()
+            .map(|rpc| StrictYaml::String(rpc.to_string()))
+            .collect();
+        network_yaml.insert(
+            StrictYaml::String("rpcs".to_string()),
+            StrictYaml::Array(rpcs),
+        );
 
-            let rpcs = cfg
-                .rpcs
-                .iter()
-                .map(|rpc| StrictYaml::String(rpc.to_string()))
-                .collect();
+        network_yaml.insert(
+            StrictYaml::String("chain-id".to_string()),
+            StrictYaml::String(self.chain_id.to_string()),
+        );
+
+        if let Some(label) = &self.label {
             network_yaml.insert(
-                StrictYaml::String("rpcs".to_string()),
-                StrictYaml::Array(rpcs),
-            );
-
-            network_yaml.insert(
-                StrictYaml::String("chain-id".to_string()),
-                StrictYaml::String(cfg.chain_id.to_string()),
-            );
-
-            if let Some(label) = &cfg.label {
-                network_yaml.insert(
-                    StrictYaml::String("label".to_string()),
-                    StrictYaml::String(label.clone()),
-                );
-            }
-
-            if let Some(network_id) = cfg.network_id {
-                network_yaml.insert(
-                    StrictYaml::String("network-id".to_string()),
-                    StrictYaml::String(network_id.to_string()),
-                );
-            }
-
-            if let Some(currency) = &cfg.currency {
-                network_yaml.insert(
-                    StrictYaml::String("currency".to_string()),
-                    StrictYaml::String(currency.clone()),
-                );
-            }
-
-            networks_yaml.insert(
-                StrictYaml::String(key.clone()),
-                StrictYaml::Hash(network_yaml),
+                StrictYaml::String("label".to_string()),
+                StrictYaml::String(label.clone()),
             );
         }
 
-        Ok(StrictYaml::Hash(networks_yaml))
+        if let Some(network_id) = self.network_id {
+            network_yaml.insert(
+                StrictYaml::String("network-id".to_string()),
+                StrictYaml::String(network_id.to_string()),
+            );
+        }
+
+        if let Some(currency) = &self.currency {
+            network_yaml.insert(
+                StrictYaml::String("currency".to_string()),
+                StrictYaml::String(currency.clone()),
+            );
+        }
+
+        Ok(StrictYaml::Hash(network_yaml))
     }
 }
 
