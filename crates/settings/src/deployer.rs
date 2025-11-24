@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -175,12 +175,31 @@ impl YamlParsableHash for DeployerCfg {
 
         Ok(deployers)
     }
+
+    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
+        let mut deployer_yaml = Hash::new();
+
+        deployer_yaml.insert(
+            StrictYaml::String("address".to_string()),
+            StrictYaml::String(self.address.to_string()),
+        );
+
+        if self.network.key != self.key {
+            deployer_yaml.insert(
+                StrictYaml::String("network".to_string()),
+                StrictYaml::String(self.network.key.clone()),
+            );
+        }
+
+        Ok(StrictYaml::Hash(deployer_yaml))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
+    use url::Url;
 
     #[test]
     fn test_parse_deployers_from_yaml_multiple_files() {
@@ -374,5 +393,86 @@ deployers:
 "#;
         let res = DeployerCfg::parse_network_key(vec![get_document(yaml)], "mainnet").unwrap();
         assert_eq!(res, "mainnet");
+    }
+
+    #[test]
+    fn test_to_yaml_hash_serializes_deployers() {
+        let network_one = NetworkCfg {
+            document: default_document(),
+            key: "network-one".to_string(),
+            rpcs: vec![Url::parse("https://one.example").unwrap()],
+            chain_id: 1,
+            label: Some("One".to_string()),
+            network_id: Some(10),
+            currency: None,
+        };
+
+        let network_two = NetworkCfg {
+            document: default_document(),
+            key: "deployer-two".to_string(),
+            rpcs: vec![Url::parse("https://two.example").unwrap()],
+            chain_id: 2,
+            label: None,
+            network_id: None,
+            currency: None,
+        };
+
+        let deployer_one = DeployerCfg {
+            document: default_document(),
+            key: "deployer-one".to_string(),
+            address: Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
+            network: Arc::new(network_one),
+        };
+        let deployer_two = DeployerCfg {
+            document: default_document(),
+            key: "deployer-two".to_string(),
+            address: Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+            network: Arc::new(network_two),
+        };
+
+        let mut deployers = HashMap::new();
+        deployers.insert(deployer_one.key.clone(), deployer_one);
+        deployers.insert(deployer_two.key.clone(), deployer_two);
+
+        let yaml = DeployerCfg::to_yaml_hash(&deployers).unwrap();
+        let deployers_hash = match yaml {
+            StrictYaml::Hash(hash) => hash,
+            _ => panic!("expected deployers hash"),
+        };
+
+        let deployer_one_yaml = deployers_hash
+            .get(&StrictYaml::String("deployer-one".to_string()))
+            .expect("missing deployer-one");
+        let deployer_one_hash = deployer_one_yaml
+            .as_hash()
+            .expect("deployer-one should be a map");
+        assert_eq!(
+            deployer_one_hash
+                .get(&StrictYaml::String("address".to_string()))
+                .expect("missing address"),
+            &StrictYaml::String("0x0000000000000000000000000000000000000001".to_string())
+        );
+        assert_eq!(
+            deployer_one_hash
+                .get(&StrictYaml::String("network".to_string()))
+                .expect("missing network"),
+            &StrictYaml::String("network-one".to_string())
+        );
+
+        let deployer_two_yaml = deployers_hash
+            .get(&StrictYaml::String("deployer-two".to_string()))
+            .expect("missing deployer-two");
+        let deployer_two_hash = deployer_two_yaml
+            .as_hash()
+            .expect("deployer-two should be a map");
+        assert_eq!(
+            deployer_two_hash
+                .get(&StrictYaml::String("address".to_string()))
+                .expect("missing address"),
+            &StrictYaml::String("0x0000000000000000000000000000000000000002".to_string())
+        );
+        assert!(deployer_two_hash
+            .get(&StrictYaml::String("network".to_string()))
+            .is_none());
     }
 }
