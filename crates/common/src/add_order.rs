@@ -175,12 +175,10 @@ impl AddOrderArgs {
         meta_docs.push(rainlang_meta_doc);
 
         if let Some(existing_meta) = &self.additional_meta {
-            if !existing_meta.is_empty() {
-                meta_docs.extend(existing_meta.iter().filter_map(|i| match i.magic {
-                    KnownMagic::RainlangSourceV1 | KnownMagic::DotrainSourceV1 => None,
-                    _ => Some(i.clone()),
-                }));
-            }
+            meta_docs.extend(existing_meta.iter().filter_map(|i| match i.magic {
+                KnownMagic::RainlangSourceV1 | KnownMagic::DotrainSourceV1 => None,
+                _ => Some(i.clone()),
+            }));
         }
 
         let meta_doc_bytes =

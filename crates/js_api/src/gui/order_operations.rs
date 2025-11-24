@@ -398,7 +398,7 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderArgs, GuiError> {
         let dotrain_gui_state_instance_v1 = self.generate_dotrain_gui_state_instance_v1()?;
         let dotrain_gui_state_meta =
-            RainMetaDocumentV1Item::try_from(dotrain_gui_state_instance_v1.clone())?;
+            RainMetaDocumentV1Item::try_from(dotrain_gui_state_instance_v1)?;
 
         let dotrain_for_deployment = self
             .dotrain_order

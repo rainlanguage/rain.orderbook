@@ -180,7 +180,7 @@ describe('handleAddOrder', () => {
 			})
 		);
 
-		// Second call should be for deployment
+		// Second call should be for metadata
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			2,
 			expect.objectContaining({
@@ -358,6 +358,50 @@ describe('handleAddOrder', () => {
 				raindexClient: mockRaindexClient
 			})
 		);
+	});
+
+	it('should call errToast and stop if metadata publication is cancelled or fails', async () => {
+		const currentTestSpecificArgs: DeploymentTransactionArgs = {
+			...mockDeploymentArgs,
+			emitMetaCall: mockMetaCall
+		};
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
+			value: currentTestSpecificArgs,
+			error: null
+		});
+
+		// First modal: metadata returns unsuccessfully
+		mockHandleTransactionConfirmationModal.mockResolvedValueOnce({ success: false });
+
+		await handleAddOrder(mockDeps);
+
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+		expect(mockErrToast).toHaveBeenCalledWith('Metadata publication was cancelled or failed');
+		expect(mockCreateMetaTransaction).not.toHaveBeenCalled();
+		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
+	});
+
+	it('should call errToast and stop if metadata publication throws', async () => {
+		const currentTestSpecificArgs: DeploymentTransactionArgs = {
+			...mockDeploymentArgs,
+			emitMetaCall: mockMetaCall
+		};
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
+			value: currentTestSpecificArgs,
+			error: null
+		});
+
+		const thrownError = new Error('metadata failed');
+		mockHandleTransactionConfirmationModal.mockRejectedValueOnce(thrownError);
+
+		await handleAddOrder(mockDeps);
+
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+		expect(mockErrToast).toHaveBeenCalledWith(
+			`Metadata publication failed: ${thrownError.message}`
+		);
+		expect(mockCreateMetaTransaction).not.toHaveBeenCalled();
+		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
 	});
 
 	it('should use different txHashes from modal onConfirms when they differ', async () => {

@@ -1101,10 +1101,7 @@ mod tests {
     use rain_metadata::types::dotrain::{
         gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1,
     };
-    use rain_metadata::{
-        ContentEncoding, ContentLanguage, ContentType, KnownMagic, RainMetaDocumentV1Item,
-    };
-    use serde_bytes::ByteBuf;
+    use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
     use std::collections::BTreeMap;
 
     fn sample_dotrain_source() -> DotrainSourceV1 {
@@ -1122,6 +1119,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(target_family = "wasm"))]
     fn encode_meta_items_hex(items: Vec<RainMetaDocumentV1Item>) -> String {
         let encoded =
             RainMetaDocumentV1Item::cbor_encode_seq(&items, KnownMagic::RainMetaDocumentV1)
@@ -1455,6 +1453,7 @@ mod tests {
         use httpmock::Method::POST;
         use httpmock::MockServer;
         use rain_math_float::Float;
+        use rain_metadata::{ContentEncoding, ContentLanguage, ContentType};
         use rain_orderbook_subgraph_client::utils::float::*;
         use rain_orderbook_subgraph_client::{
             // performance::{
@@ -1465,6 +1464,7 @@ mod tests {
                 SgVault,
             },
         };
+        use serde_bytes::ByteBuf;
         use serde_json::{json, Value};
         use std::str::FromStr;
 
