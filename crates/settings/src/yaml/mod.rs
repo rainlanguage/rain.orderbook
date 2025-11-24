@@ -78,6 +78,8 @@ pub trait YamlParsableHash: Sized + Clone {
             .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
     }
+
+    fn to_yaml_hash(_: &HashMap<String, Self>) -> Result<StrictYaml, YamlError>;
 }
 
 pub trait YamlParsableVector: Sized {

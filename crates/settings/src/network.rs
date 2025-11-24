@@ -9,7 +9,7 @@ use std::{
     num::ParseIntError,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
 use url::{ParseError, Url};
 #[cfg(target_family = "wasm")]
@@ -256,6 +256,57 @@ impl YamlParsableHash for NetworkCfg {
 
         Ok(networks)
     }
+
+    fn to_yaml_hash(networks: &HashMap<String, Self>) -> Result<StrictYaml, YamlError> {
+        let mut networks_yaml = Hash::new();
+
+        for (key, cfg) in networks {
+            let mut network_yaml = Hash::new();
+
+            let rpcs = cfg
+                .rpcs
+                .iter()
+                .map(|rpc| StrictYaml::String(rpc.to_string()))
+                .collect();
+            network_yaml.insert(
+                StrictYaml::String("rpcs".to_string()),
+                StrictYaml::Array(rpcs),
+            );
+
+            network_yaml.insert(
+                StrictYaml::String("chain-id".to_string()),
+                StrictYaml::String(cfg.chain_id.to_string()),
+            );
+
+            if let Some(label) = &cfg.label {
+                network_yaml.insert(
+                    StrictYaml::String("label".to_string()),
+                    StrictYaml::String(label.clone()),
+                );
+            }
+
+            if let Some(network_id) = cfg.network_id {
+                network_yaml.insert(
+                    StrictYaml::String("network-id".to_string()),
+                    StrictYaml::String(network_id.to_string()),
+                );
+            }
+
+            if let Some(currency) = &cfg.currency {
+                network_yaml.insert(
+                    StrictYaml::String("currency".to_string()),
+                    StrictYaml::String(currency.clone()),
+                );
+            }
+
+            networks_yaml.insert(
+                StrictYaml::String(key.clone()),
+                StrictYaml::Hash(network_yaml),
+            );
+        }
+
+        Ok(StrictYaml::Hash(networks_yaml))
+    }
 }
 
 impl Default for NetworkCfg {
@@ -313,6 +364,7 @@ impl ParseNetworkConfigSourceError {
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
+    use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
     use url::Url;
 
     #[test]
@@ -375,7 +427,7 @@ networks:
 networks:
     mainnet:
         rpcs:
-            - 
+            -
 "#;
         let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
@@ -567,5 +619,86 @@ networks:
 "#;
         let res = NetworkCfg::parse_rpcs(vec![get_document(yaml)], "mainnet").unwrap();
         assert_eq!(res, vec![Url::parse("https://rpc.com").unwrap()]);
+    }
+
+    #[test]
+    fn test_to_yaml_hash_serializes_all_fields() {
+        let mut networks = HashMap::new();
+        networks.insert(
+            "sepolia".to_string(),
+            NetworkCfg {
+                document: Arc::new(RwLock::new(StrictYaml::Hash(Hash::new()))),
+                key: "sepolia".to_string(),
+                rpcs: vec![Url::parse("https://rpc.sepolia.example").unwrap()],
+                chain_id: 11155111,
+                label: Some("Ethereum Sepolia".to_string()),
+                network_id: Some(11111),
+                currency: Some("SEP".to_string()),
+            },
+        );
+        networks.insert(
+            "goerli".to_string(),
+            NetworkCfg {
+                document: Arc::new(RwLock::new(StrictYaml::Hash(Hash::new()))),
+                key: "goerli".to_string(),
+                rpcs: vec![Url::parse("https://rpc.goerli.example").unwrap()],
+                chain_id: 5,
+                label: None,
+                network_id: None,
+                currency: None,
+            },
+        );
+
+        let yaml = NetworkCfg::to_yaml_hash(&networks).unwrap();
+
+        let StrictYaml::Hash(networks_hash) = yaml else {
+            panic!("networks were not serialized to a YAML hash");
+        };
+        let Some(StrictYaml::Hash(sepolia_hash)) =
+            networks_hash.get(&StrictYaml::String("sepolia".to_string()))
+        else {
+            panic!("sepolia network missing from serialized YAML");
+        };
+        let Some(StrictYaml::Hash(goerli_hash)) =
+            networks_hash.get(&StrictYaml::String("goerli".to_string()))
+        else {
+            panic!("goerli network missing from serialized YAML");
+        };
+
+        assert_eq!(
+            sepolia_hash.get(&StrictYaml::String("chain-id".to_string())),
+            Some(&StrictYaml::String("11155111".to_string()))
+        );
+        assert_eq!(
+            sepolia_hash.get(&StrictYaml::String("label".to_string())),
+            Some(&StrictYaml::String("Ethereum Sepolia".to_string()))
+        );
+        assert_eq!(
+            sepolia_hash.get(&StrictYaml::String("network-id".to_string())),
+            Some(&StrictYaml::String("11111".to_string()))
+        );
+        assert_eq!(
+            sepolia_hash.get(&StrictYaml::String("currency".to_string())),
+            Some(&StrictYaml::String("SEP".to_string()))
+        );
+        assert_eq!(
+            sepolia_hash.get(&StrictYaml::String("rpcs".to_string())),
+            Some(&StrictYaml::Array(vec![StrictYaml::String(
+                "https://rpc.sepolia.example/".to_string()
+            )]))
+        );
+        assert_eq!(
+            goerli_hash.get(&StrictYaml::String("chain-id".to_string())),
+            Some(&StrictYaml::String("5".to_string()))
+        );
+        assert_eq!(
+            goerli_hash.get(&StrictYaml::String("rpcs".to_string())),
+            Some(&StrictYaml::Array(vec![StrictYaml::String(
+                "https://rpc.goerli.example/".to_string()
+            )]))
+        );
+        assert!(!goerli_hash.contains_key(&StrictYaml::String("label".to_string())));
+        assert!(!goerli_hash.contains_key(&StrictYaml::String("network-id".to_string())));
+        assert!(!goerli_hash.contains_key(&StrictYaml::String("currency".to_string())));
     }
 }
