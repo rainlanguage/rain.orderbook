@@ -231,7 +231,7 @@ impl DotrainYaml {
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
         let mut yaml_hash = Hash::new();
 
-        let orders = Self::to_yaml_string_missing_check(self.get_orders())?;
+        let orders = to_yaml_string_missing_check(self.get_orders())?;
         if let Some(orders) = orders {
             if !orders.is_empty() {
                 let orders_yaml = OrderCfg::to_yaml_hash(&orders)?;
@@ -239,7 +239,7 @@ impl DotrainYaml {
             }
         }
 
-        let scenarios = Self::to_yaml_string_missing_check(self.get_scenarios())?;
+        let scenarios = to_yaml_string_missing_check(self.get_scenarios())?;
         if let Some(scenarios) = scenarios {
             if !scenarios.is_empty() {
                 let scenarios_yaml = ScenarioCfg::to_yaml_hash(&scenarios)?;
@@ -247,7 +247,7 @@ impl DotrainYaml {
             }
         }
 
-        let deployments = Self::to_yaml_string_missing_check(self.get_deployments())?;
+        let deployments = to_yaml_string_missing_check(self.get_deployments())?;
         if let Some(deployments) = deployments {
             if !deployments.is_empty() {
                 let deployments_yaml = DeploymentCfg::to_yaml_hash(&deployments)?;
@@ -263,7 +263,7 @@ impl DotrainYaml {
             yaml_hash.insert(StrictYaml::String("gui".to_string()), gui_yaml);
         }
 
-        let charts = Self::to_yaml_string_missing_check(self.get_charts())?;
+        let charts = to_yaml_string_missing_check(self.get_charts())?;
         if let Some(charts) = charts {
             if !charts.is_empty() {
                 let charts_yaml = ChartCfg::to_yaml_hash(&charts)?;
@@ -273,19 +273,6 @@ impl DotrainYaml {
 
         let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
         Self::get_yaml_string(document)
-    }
-
-    fn to_yaml_string_missing_check<T>(
-        result: Result<T, YamlError>,
-    ) -> Result<Option<T>, YamlError> {
-        match result {
-            Ok(value) => Ok(Some(value)),
-            Err(YamlError::Field {
-                kind: FieldErrorKind::Missing(_),
-                ..
-            }) => Ok(None),
-            Err(err) => Err(err),
-        }
     }
 }
 

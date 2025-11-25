@@ -407,7 +407,7 @@ impl OrderbookYaml {
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
         let mut yaml_hash = Hash::new();
 
-        let networks = Self::to_yaml_string_missing_check(self.get_networks())?;
+        let networks = to_yaml_string_missing_check(self.get_networks())?;
         if let Some(networks) = networks {
             if !networks.is_empty() {
                 let networks_yaml = NetworkCfg::to_yaml_hash(&networks)?;
@@ -415,7 +415,7 @@ impl OrderbookYaml {
             }
         }
 
-        let remote_networks = Self::to_yaml_string_missing_check(self.get_remote_networks())?;
+        let remote_networks = to_yaml_string_missing_check(self.get_remote_networks())?;
         if let Some(remote_networks) = remote_networks {
             if !remote_networks.is_empty() {
                 let remote_networks_yaml = RemoteNetworksCfg::to_yaml_hash(&remote_networks)?;
@@ -426,7 +426,7 @@ impl OrderbookYaml {
             }
         }
 
-        let tokens = Self::to_yaml_string_missing_check(self.get_tokens())?;
+        let tokens = to_yaml_string_missing_check(self.get_tokens())?;
         if let Some(tokens) = tokens {
             if !tokens.is_empty() {
                 let tokens_yaml = TokenCfg::to_yaml_hash(&tokens)?;
@@ -444,7 +444,7 @@ impl OrderbookYaml {
             }
         }
 
-        let subgraphs = Self::to_yaml_string_missing_check(self.get_subgraphs())?;
+        let subgraphs = to_yaml_string_missing_check(self.get_subgraphs())?;
         if let Some(subgraphs) = subgraphs {
             if !subgraphs.is_empty() {
                 let subgraphs_yaml = SubgraphCfg::to_yaml_hash(&subgraphs)?;
@@ -467,7 +467,7 @@ impl OrderbookYaml {
             yaml_hash.insert(StrictYaml::String("local-db-sync".to_string()), syncs_yaml);
         }
 
-        let orderbooks = Self::to_yaml_string_missing_check(self.get_orderbooks())?;
+        let orderbooks = to_yaml_string_missing_check(self.get_orderbooks())?;
         if let Some(orderbooks) = orderbooks {
             if !orderbooks.is_empty() {
                 let orderbooks_yaml = OrderbookCfg::to_yaml_hash(&orderbooks)?;
@@ -478,7 +478,7 @@ impl OrderbookYaml {
             }
         }
 
-        let metaboards = Self::to_yaml_string_missing_check(self.get_metaboards())?;
+        let metaboards = to_yaml_string_missing_check(self.get_metaboards())?;
         if let Some(metaboards) = metaboards {
             if !metaboards.is_empty() {
                 let metaboards_yaml = MetaboardCfg::to_yaml_hash(&metaboards)?;
@@ -489,7 +489,7 @@ impl OrderbookYaml {
             }
         }
 
-        let deployers = Self::to_yaml_string_missing_check(self.get_deployers())?;
+        let deployers = to_yaml_string_missing_check(self.get_deployers())?;
         if let Some(deployers) = deployers {
             if !deployers.is_empty() {
                 let deployers_yaml = DeployerCfg::to_yaml_hash(&deployers)?;
@@ -511,7 +511,7 @@ impl OrderbookYaml {
             );
         }
 
-        if let Some(spec_version) = Self::to_yaml_string_missing_check(self.get_spec_version())? {
+        if let Some(spec_version) = to_yaml_string_missing_check(self.get_spec_version())? {
             yaml_hash.insert(
                 StrictYaml::String("version".to_string()),
                 StrictYaml::String(spec_version),
@@ -520,19 +520,6 @@ impl OrderbookYaml {
 
         let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
         Self::get_yaml_string(document)
-    }
-
-    fn to_yaml_string_missing_check<T>(
-        result: Result<T, YamlError>,
-    ) -> Result<Option<T>, YamlError> {
-        match result {
-            Ok(value) => Ok(Some(value)),
-            Err(YamlError::Field {
-                kind: FieldErrorKind::Missing(_),
-                ..
-            }) => Ok(None),
-            Err(err) => Err(err),
-        }
     }
 }
 

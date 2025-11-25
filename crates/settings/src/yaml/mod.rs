@@ -508,6 +508,19 @@ pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array>
     value[field].as_vec()
 }
 
+pub fn to_yaml_string_missing_check<T>(
+    result: Result<T, YamlError>,
+) -> Result<Option<T>, YamlError> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(_),
+            ..
+        }) => Ok(None),
+        Err(err) => Err(err),
+    }
+}
+
 pub fn default_document() -> Arc<RwLock<StrictYaml>> {
     Arc::new(RwLock::new(StrictYaml::String("".to_string())))
 }
@@ -519,5 +532,46 @@ pub mod tests {
     pub fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
         let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
         Arc::new(RwLock::new(document))
+    }
+
+    #[test]
+    fn test_to_yaml_string_missing_check_ok() {
+        let res: Result<u32, YamlError> = Ok(5);
+        let handled = to_yaml_string_missing_check(res).unwrap();
+        assert_eq!(handled, Some(5));
+    }
+
+    #[test]
+    fn test_to_yaml_string_missing_check_missing() {
+        let err = YamlError::Field {
+            kind: FieldErrorKind::Missing("field".to_string()),
+            location: "loc".to_string(),
+        };
+        let handled: Option<u32> = to_yaml_string_missing_check(Err(err)).unwrap();
+        assert!(handled.is_none());
+    }
+
+    #[test]
+    fn test_to_yaml_string_missing_check_other_error() {
+        let err = YamlError::Field {
+            kind: FieldErrorKind::InvalidType {
+                field: "field".to_string(),
+                expected: "a string".to_string(),
+            },
+            location: "loc".to_string(),
+        };
+        match to_yaml_string_missing_check::<u32>(Err(err)) {
+            Err(returned) => assert_eq!(
+                returned,
+                YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "field".to_string(),
+                        expected: "a string".to_string(),
+                    },
+                    location: "loc".to_string(),
+                }
+            ),
+            Ok(_) => panic!("expected error"),
+        }
     }
 }
