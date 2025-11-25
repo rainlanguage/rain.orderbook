@@ -238,7 +238,7 @@ CREATE TABLE meta_events (
     block_timestamp INTEGER NOT NULL,
     sender TEXT NOT NULL,
     subject TEXT NOT NULL,
-    meta BLOB NOT NULL,
+    meta TEXT NOT NULL,
     PRIMARY KEY (chain_id, orderbook_address, transaction_hash, log_index)
 );
 CREATE INDEX idx_deposits_vault ON deposits(chain_id, orderbook_address, sender, token, vault_id);
