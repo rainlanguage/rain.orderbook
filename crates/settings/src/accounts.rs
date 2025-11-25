@@ -74,6 +74,10 @@ impl YamlParsableHash for AccountCfg {
 
         Ok(accounts)
     }
+
+    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
+        Ok(StrictYaml::String(self.address.to_string()))
+    }
 }
 
 impl Default for AccountCfg {
@@ -185,6 +189,47 @@ accounts:
         assert_eq!(
             error,
             YamlError::KeyShadowing("account".to_string(), "accounts".to_string())
+        );
+    }
+
+    #[test]
+    fn test_to_yaml_hash_serializes_multiple_accounts() {
+        let addr_one = Address::from_str("0x00000000000000000000000000000000000000aa").unwrap();
+        let addr_two = Address::from_str("0x00000000000000000000000000000000000000bb").unwrap();
+
+        let mut accounts = HashMap::new();
+        accounts.insert(
+            "admin".to_string(),
+            AccountCfg {
+                document: default_document(),
+                key: "admin".to_string(),
+                address: addr_one,
+            },
+        );
+        accounts.insert(
+            "operator".to_string(),
+            AccountCfg {
+                document: default_document(),
+                key: "operator".to_string(),
+                address: addr_two,
+            },
+        );
+
+        let yaml = AccountCfg::to_yaml_hash(&accounts).unwrap();
+        let StrictYaml::Hash(hash) = yaml else {
+            panic!("expected hash for accounts yaml");
+        };
+        assert_eq!(
+            hash.get(&StrictYaml::String("admin".to_string())),
+            Some(&StrictYaml::String(
+                "0x00000000000000000000000000000000000000aa".to_string()
+            ))
+        );
+        assert_eq!(
+            hash.get(&StrictYaml::String("operator".to_string())),
+            Some(&StrictYaml::String(
+                "0x00000000000000000000000000000000000000bb".to_string()
+            ))
         );
     }
 }
