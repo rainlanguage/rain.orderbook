@@ -8,7 +8,7 @@
 //!
 
 pub mod adapters;
-pub use adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState};
+pub mod engine;
 
 use super::OrderbookIdentifier;
 use crate::erc20::TokenInfo;
@@ -60,9 +60,9 @@ pub struct SyncConfig {
 
 /// Coarse execution summary for a single sync cycle.
 #[derive(Debug, Clone)]
-pub struct SyncOutcome<'a> {
+pub struct SyncOutcome {
     /// Target that was synced.
-    pub ob_id: &'a OrderbookIdentifier,
+    pub ob_id: OrderbookIdentifier,
     /// Start block (inclusive) that was used.
     pub start_block: u64,
     /// Target block (inclusive) that was used.

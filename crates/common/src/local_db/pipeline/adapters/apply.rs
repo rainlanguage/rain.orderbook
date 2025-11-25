@@ -7,7 +7,7 @@ use crate::local_db::insert::{
 };
 use crate::local_db::pipeline::ApplyPipeline;
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
-use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_stmt;
+use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::OrderbookIdentifier;
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
@@ -70,7 +70,7 @@ impl ApplyPipeline for DefaultApplyPipeline {
         batch.extend(decoded_batch);
 
         // Watermark update to target block
-        batch.add(build_update_last_synced_block_stmt(ob_id, target_block));
+        batch.add(upsert_target_watermark_stmt(ob_id, target_block, None));
 
         // Ensure atomicity
         Ok(batch.ensure_transaction())
@@ -209,7 +209,9 @@ mod tests {
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
         assert!(
-            texts.iter().any(|s| s.contains("INSERT INTO sync_status")),
+            texts
+                .iter()
+                .any(|s| s.contains("INSERT INTO target_watermarks")),
             "watermark update present"
         );
     }
@@ -269,7 +271,9 @@ mod tests {
         // Expect exactly BEGIN, UPDATE, COMMIT
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql().trim()).collect();
         assert_eq!(texts.first().copied(), Some("BEGIN TRANSACTION"));
-        assert!(texts.iter().any(|s| s.contains("INSERT INTO sync_status")));
+        assert!(texts
+            .iter()
+            .any(|s| s.contains("INSERT INTO target_watermarks")));
         assert_eq!(
             texts.last().copied().map(|s| s.to_ascii_uppercase()),
             Some("COMMIT".into())
@@ -467,15 +471,15 @@ mod tests {
         let stmt = batch
             .statements()
             .iter()
-            .find(|s| s.sql().starts_with("INSERT INTO sync_status"))
+            .find(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .expect("watermark update present");
 
         match stmt.params().get(2) {
-            Some(crate::local_db::query::SqlValue::I64(v)) => {
-                assert_eq!(*v as u64, target_block);
-            }
             Some(crate::local_db::query::SqlValue::U64(v)) => {
                 assert_eq!(*v, target_block);
+            }
+            Some(crate::local_db::query::SqlValue::I64(v)) => {
+                assert_eq!(*v as u64, target_block);
             }
             other => panic!("unexpected watermark param: {other:?}"),
         }
@@ -730,7 +734,9 @@ mod tests {
             .iter()
             .any(|s| s.starts_with("INSERT INTO erc20_tokens")));
         assert!(!texts.iter().any(|s| s.starts_with("INSERT INTO deposits")));
-        assert!(texts.iter().any(|s| s.contains("INSERT INTO sync_status")));
+        assert!(texts
+            .iter()
+            .any(|s| s.contains("INSERT INTO target_watermarks")));
     }
 
     #[test]
@@ -743,7 +749,7 @@ mod tests {
         let count = batch
             .statements()
             .iter()
-            .filter(|s| s.sql().starts_with("INSERT INTO sync_status"))
+            .filter(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .count();
         assert_eq!(count, 1);
     }
@@ -799,7 +805,7 @@ mod tests {
         let idx_watermark = batch
             .statements()
             .iter()
-            .position(|s| s.sql().starts_with("INSERT INTO sync_status"))
+            .position(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .expect("watermark present");
         let idx_commit = batch
             .statements()
