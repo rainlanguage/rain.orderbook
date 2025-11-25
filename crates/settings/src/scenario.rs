@@ -407,12 +407,7 @@ impl YamlParsableHash for ScenarioCfg {
         let bindings_yaml = self
             .bindings
             .iter()
-            .map(|(k, v)| {
-                (
-                    StrictYaml::String(k.clone()),
-                    StrictYaml::String(v.clone()),
-                )
-            })
+            .map(|(k, v)| (StrictYaml::String(k.clone()), StrictYaml::String(v.clone())))
             .collect();
         scenario_yaml.insert(
             StrictYaml::String("bindings".to_string()),
