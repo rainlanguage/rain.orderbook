@@ -15,6 +15,7 @@ use std::{
     fmt,
     sync::{Arc, RwLock},
 };
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml, StrictYamlLoader};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -402,6 +403,119 @@ impl OrderbookYaml {
     pub fn get_account(&self, key: &str) -> Result<AccountCfg, YamlError> {
         AccountCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
+
+    pub fn to_yaml_string(&self) -> Result<String, YamlError> {
+        let mut yaml_hash = Hash::new();
+
+        if let Ok(networks) = self.get_networks() {
+            if !networks.is_empty() {
+                let networks_yaml = NetworkCfg::to_yaml_hash(&networks)?;
+                yaml_hash.insert(StrictYaml::String("networks".to_string()), networks_yaml);
+            }
+        }
+
+        if let Ok(remote_networks) = self.get_remote_networks() {
+            if !remote_networks.is_empty() {
+                let remote_networks_yaml = RemoteNetworksCfg::to_yaml_hash(&remote_networks)?;
+                yaml_hash.insert(
+                    StrictYaml::String("using-networks-from".to_string()),
+                    remote_networks_yaml,
+                );
+            }
+        }
+
+        if let Ok(tokens) = self.get_tokens() {
+            if !tokens.is_empty() {
+                let tokens_yaml = TokenCfg::to_yaml_hash(&tokens)?;
+                yaml_hash.insert(StrictYaml::String("tokens".to_string()), tokens_yaml);
+            }
+        }
+
+        if let Ok(Some(remote_tokens)) = self.get_remote_tokens() {
+            if !remote_tokens.urls.is_empty() {
+                let remote_tokens_yaml = remote_tokens.to_yaml_array()?;
+                yaml_hash.insert(
+                    StrictYaml::String("using-tokens-from".to_string()),
+                    remote_tokens_yaml,
+                );
+            }
+        }
+
+        if let Ok(subgraphs) = self.get_subgraphs() {
+            if !subgraphs.is_empty() {
+                let subgraphs_yaml = SubgraphCfg::to_yaml_hash(&subgraphs)?;
+                yaml_hash.insert(StrictYaml::String("subgraphs".to_string()), subgraphs_yaml);
+            }
+        }
+
+        if let Ok(local_db_remotes) = self.get_local_db_remotes() {
+            if !local_db_remotes.is_empty() {
+                let remotes_yaml = LocalDbRemoteCfg::to_yaml_hash(&local_db_remotes)?;
+                yaml_hash.insert(
+                    StrictYaml::String("local-db-remotes".to_string()),
+                    remotes_yaml,
+                );
+            }
+        }
+
+        if let Ok(local_db_syncs) = self.get_local_db_syncs() {
+            if !local_db_syncs.is_empty() {
+                let syncs_yaml = LocalDbSyncCfg::to_yaml_hash(&local_db_syncs)?;
+                yaml_hash.insert(StrictYaml::String("local-db-sync".to_string()), syncs_yaml);
+            }
+        }
+
+        if let Ok(orderbooks) = self.get_orderbooks() {
+            if !orderbooks.is_empty() {
+                let orderbooks_yaml = OrderbookCfg::to_yaml_hash(&orderbooks)?;
+                yaml_hash.insert(
+                    StrictYaml::String("orderbooks".to_string()),
+                    orderbooks_yaml,
+                );
+            }
+        }
+
+        if let Ok(metaboards) = self.get_metaboards() {
+            if !metaboards.is_empty() {
+                let metaboards_yaml = MetaboardCfg::to_yaml_hash(&metaboards)?;
+                yaml_hash.insert(
+                    StrictYaml::String("metaboards".to_string()),
+                    metaboards_yaml,
+                );
+            }
+        }
+
+        if let Ok(deployers) = self.get_deployers() {
+            if !deployers.is_empty() {
+                let deployers_yaml = DeployerCfg::to_yaml_hash(&deployers)?;
+                yaml_hash.insert(StrictYaml::String("deployers".to_string()), deployers_yaml);
+            }
+        }
+
+        if let Ok(accounts) = self.get_accounts() {
+            if !accounts.is_empty() {
+                let accounts_yaml = AccountCfg::to_yaml_hash(&accounts)?;
+                yaml_hash.insert(StrictYaml::String("accounts".to_string()), accounts_yaml);
+            }
+        }
+
+        if let Ok(Some(sentry)) = self.get_sentry() {
+            yaml_hash.insert(
+                StrictYaml::String("sentry".to_string()),
+                StrictYaml::String(sentry.to_string()),
+            );
+        }
+
+        if let Ok(spec_version) = self.get_spec_version() {
+            yaml_hash.insert(
+                StrictYaml::String("version".to_string()),
+                StrictYaml::String(spec_version),
+            );
+        }
+
+        let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
+        Self::get_yaml_string(document)
+    }
 }
 
 impl Serialize for OrderbookYaml {
@@ -463,6 +577,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
 mod tests {
     use super::*;
     use alloy::primitives::Address;
+    use httpmock::MockServer;
     use std::str::FromStr;
     use url::Url;
 
@@ -1189,5 +1304,215 @@ local-db-sync:
 
         let syncs = ob_yaml.get_local_db_syncs().unwrap();
         assert!(syncs.is_empty());
+    }
+
+    #[test]
+    fn test_to_yaml_string_serializes_networks() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpcs:
+                    - https://mainnet.infura.io
+                chain-id: 1
+        "#;
+
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+
+        let yaml_string = ob_yaml.to_yaml_string().unwrap();
+        let new_ob_yaml =
+            OrderbookYaml::new(vec![yaml_string], OrderbookYamlValidation::default()).unwrap();
+
+        let original_network = ob_yaml.get_network("mainnet").unwrap();
+        let new_network = new_ob_yaml.get_network("mainnet").unwrap();
+
+        assert_eq!(original_network.key, new_network.key);
+        assert_eq!(original_network.chain_id, new_network.chain_id);
+        assert_eq!(original_network.rpcs, new_network.rpcs);
+        assert_eq!(original_network.label, new_network.label);
+        assert_eq!(original_network.network_id, new_network.network_id);
+        assert_eq!(original_network.currency, new_network.currency);
+    }
+
+    #[tokio::test]
+    async fn test_to_yaml_string_round_trip_all_sections() {
+        let server = MockServer::start_async().await;
+        let chainid_body = r#"
+[
+    {
+        "name": "Remote",
+        "chain": "remote-network",
+        "chainId": 123,
+        "rpc": ["http://localhost:8085/rpc-url"],
+        "networkId": 123,
+        "nativeCurrency": {
+            "name": "Remote",
+            "symbol": "RN",
+            "decimals": 18
+        },
+        "infoURL": "http://localhost:8085/info-url",
+        "shortName": "remote-network"
+    }
+]
+        "#;
+        server
+            .mock_async(|when, then| {
+                when.method("GET").path("/chainid");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(chainid_body);
+            })
+            .await;
+
+        let tokens_body = r#"
+{
+    "name": "RemoteTokens",
+    "timestamp": "2021-01-01T00:00:00.000Z",
+    "keywords": [],
+    "version": { "major": 1, "minor": 0, "patch": 0 },
+    "tokens": [
+        {
+            "chainId": 123,
+            "address": "0x00000000000000000000000000000000000000aa",
+            "name": "RemoteToken",
+            "symbol": "RT",
+            "decimals": 18
+        }
+    ],
+    "logoURI": "http://localhost.com"
+}
+        "#;
+        server
+            .mock_async(|when, then| {
+                when.method("GET").path("/tokens");
+                then.status(200)
+                    .header("content-type", "application/json")
+                    .body(tokens_body);
+            })
+            .await;
+
+        let yaml = r#"
+        version: "4"
+        networks:
+            mainnet:
+                rpcs:
+                    - https://mainnet.infura.io
+                chain-id: 1
+        using-networks-from:
+            chainid:
+                url: REPLACEME_CHAINID
+                format: chainid
+        using-tokens-from:
+            - REPLACEME_TOKENS
+        subgraphs:
+            mainnet: https://api.thegraph.com/subgraphs/name/xyz
+        local-db-remotes:
+            mainnet: https://example.com/localdb/mainnet
+        local-db-sync:
+            mainnet:
+                batch-size: 1
+                max-concurrent-batches: 2
+                retry-attempts: 3
+                retry-delay-ms: 4
+                rate-limit-delay-ms: 5
+                finality-depth: 6
+                bootstrap-block-threshold: 7
+        orderbooks:
+            ob1:
+                address: 0x0000000000000000000000000000000000000001
+                network: mainnet
+                subgraph: mainnet
+                local-db-remote: mainnet
+                deployment-block: 12345
+        tokens:
+            token1:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000002
+                decimals: 18
+        deployers:
+            deployer1:
+                address: 0x0000000000000000000000000000000000000003
+                network: mainnet
+        metaboards:
+            board1: https://meta.example.com/board1
+        accounts:
+            admin: 0x0000000000000000000000000000000000000004
+        sentry: false
+        "#;
+        let yaml = yaml
+            .replace("REPLACEME_CHAINID", &(server.base_url() + "/chainid"))
+            .replace("REPLACEME_TOKENS", &(server.base_url() + "/tokens"));
+
+        let ob_yaml =
+            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+        let remote_network_cfgs = ob_yaml.get_remote_networks().unwrap();
+        let remote_networks = RemoteNetworksCfg::fetch_networks(remote_network_cfgs)
+            .await
+            .unwrap();
+        let remote_tokens_cfg = ob_yaml.get_remote_tokens().unwrap().unwrap();
+        let remote_tokens = RemoteTokensCfg::fetch_tokens(&remote_networks, remote_tokens_cfg)
+            .await
+            .unwrap();
+        let mut ob_yaml = ob_yaml;
+        ob_yaml
+            .cache
+            .update_remote_networks(remote_networks.clone());
+        ob_yaml.cache.update_remote_tokens(remote_tokens.clone());
+
+        let yaml_string = ob_yaml.to_yaml_string().unwrap();
+        let new_ob_yaml =
+            OrderbookYaml::new(vec![yaml_string], OrderbookYamlValidation::default()).unwrap();
+
+        let original_network = ob_yaml.get_network("mainnet").unwrap();
+        let new_network = new_ob_yaml.get_network("mainnet").unwrap();
+        assert_eq!(original_network, new_network);
+
+        let original_subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
+        let new_subgraph = new_ob_yaml.get_subgraph("mainnet").unwrap();
+        assert_eq!(original_subgraph, new_subgraph);
+
+        let original_networks = ob_yaml.get_networks().unwrap();
+        let new_networks = new_ob_yaml.get_networks().unwrap();
+        assert_eq!(original_networks, new_networks);
+
+        let original_orderbook = ob_yaml.get_orderbook("ob1").unwrap();
+        let new_orderbook = new_ob_yaml.get_orderbook("ob1").unwrap();
+        assert_eq!(original_orderbook, new_orderbook);
+
+        let original_token = ob_yaml.get_token("token1").unwrap();
+        let new_token = new_ob_yaml.get_token("token1").unwrap();
+        assert_eq!(original_token, new_token);
+        let remote_token_key = remote_tokens.keys().next().unwrap();
+        let original_remote_token = ob_yaml.get_token(remote_token_key).unwrap();
+        let new_remote_token = new_ob_yaml.get_token(remote_token_key).unwrap();
+        assert_eq!(original_remote_token, new_remote_token);
+
+        let original_deployer = ob_yaml.get_deployer("deployer1").unwrap();
+        let new_deployer = new_ob_yaml.get_deployer("deployer1").unwrap();
+        assert_eq!(original_deployer, new_deployer);
+
+        let original_metaboard = ob_yaml.get_metaboard("board1").unwrap();
+        let new_metaboard = new_ob_yaml.get_metaboard("board1").unwrap();
+        assert_eq!(original_metaboard, new_metaboard);
+
+        let original_remote = ob_yaml.get_local_db_remote("mainnet").unwrap();
+        let new_remote = new_ob_yaml.get_local_db_remote("mainnet").unwrap();
+        assert_eq!(original_remote, new_remote);
+
+        let original_sync = ob_yaml.get_local_db_sync("mainnet").unwrap();
+        let new_sync = new_ob_yaml.get_local_db_sync("mainnet").unwrap();
+        assert_eq!(original_sync, new_sync);
+
+        let original_account = ob_yaml.get_account("admin").unwrap();
+        let new_account = new_ob_yaml.get_account("admin").unwrap();
+        assert_eq!(original_account, new_account);
+
+        let original_sentry = ob_yaml.get_sentry().unwrap();
+        let new_sentry = new_ob_yaml.get_sentry().unwrap();
+        assert_eq!(original_sentry, new_sentry);
+
+        let original_version = ob_yaml.get_spec_version().unwrap();
+        let new_version = new_ob_yaml.get_spec_version().unwrap();
+        assert_eq!(original_version, new_version);
     }
 }
