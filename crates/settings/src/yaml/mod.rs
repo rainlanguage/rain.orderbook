@@ -80,7 +80,7 @@ pub trait YamlParsableHash: Sized + Clone {
     }
 
     fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        Err(YamlError::InvalidTraitFunction)
+        Err(YamlError::TraitFnNotImplemented)
     }
 
     fn to_yaml_hash(map: &HashMap<String, Self>) -> Result<StrictYaml, YamlError> {
@@ -116,6 +116,10 @@ pub trait YamlParseableValue: Sized {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;
+
+    fn to_yaml_array(&self) -> Result<StrictYaml, YamlError> {
+        Err(YamlError::TraitFnNotImplemented)
+    }
 }
 
 pub trait ContextProvider {
@@ -201,6 +205,9 @@ pub enum YamlError {
 
     #[error("Error while converting to YAML string")]
     ConvertError,
+
+    #[error("Trait function not implemented")]
+    TraitFnNotImplemented,
     #[error("Invalid trait function")]
     InvalidTraitFunction,
 
@@ -337,6 +344,7 @@ impl YamlError {
             YamlError::ConvertError => {
                 "Failed to convert your configuration to YAML format".to_string()
             }
+            YamlError::TraitFnNotImplemented => "The trait function is not implemented".to_string(),
             YamlError::InvalidTraitFunction => {
                 "There is an internal error in the YAML processing".to_string()
             }
