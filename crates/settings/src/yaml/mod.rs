@@ -79,9 +79,7 @@ pub trait YamlParsableHash: Sized + Clone {
             .cloned()
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        Err(YamlError::TraitFnNotImplemented)
-    }
+    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError>;
 
     fn to_yaml_hash(map: &HashMap<String, Self>) -> Result<StrictYaml, YamlError> {
         let mut yaml_hash = Hash::new();
