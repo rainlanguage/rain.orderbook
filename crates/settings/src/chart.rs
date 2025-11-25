@@ -1746,11 +1746,12 @@ charts:
             StrictYaml::Array(vec![StrictYaml::Hash(metric_hash)]),
         );
 
-        expected.insert(sy("chart-with-options"), StrictYaml::Hash(chart_one));
-
         let mut chart_two = Hash::new();
         chart_two.insert(sy("scenario"), sy("scenario-b"));
+
+        // Insert in deterministic (sorted) order to match serialization
         expected.insert(sy("chart-minimal"), StrictYaml::Hash(chart_two));
+        expected.insert(sy("chart-with-options"), StrictYaml::Hash(chart_one));
 
         assert_eq!(yaml, StrictYaml::Hash(expected));
     }

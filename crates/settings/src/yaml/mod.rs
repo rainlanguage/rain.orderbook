@@ -84,7 +84,10 @@ pub trait YamlParsableHash: Sized + Clone {
     fn to_yaml_hash(map: &HashMap<String, Self>) -> Result<StrictYaml, YamlError> {
         let mut yaml_hash = Hash::new();
 
-        for (key, value) in map {
+        let mut entries: Vec<_> = map.iter().collect();
+        entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        for (key, value) in entries {
             yaml_hash.insert(StrictYaml::String(key.clone()), value.to_yaml_value()?);
         }
 
@@ -116,6 +119,10 @@ pub trait YamlParseableValue: Sized {
     ) -> Result<Option<Self>, YamlError>;
 
     fn to_yaml_array(&self) -> Result<StrictYaml, YamlError> {
+        Err(YamlError::TraitFnNotImplemented)
+    }
+
+    fn to_yaml_hash(&self) -> Result<StrictYaml, YamlError> {
         Err(YamlError::TraitFnNotImplemented)
     }
 }
