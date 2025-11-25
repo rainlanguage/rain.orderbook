@@ -45,13 +45,14 @@ mod tests {
     use super::*;
     use alloy::primitives::Address;
     use async_trait::async_trait;
+    use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
     use rain_orderbook_common::local_db::query::clear_tables::clear_tables_stmt;
     use rain_orderbook_common::local_db::query::create_tables::create_tables_stmt;
     use rain_orderbook_common::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
     use rain_orderbook_common::local_db::query::{
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use rain_orderbook_common::local_db::{OrderbookIdentifier, DATABASE_SCHEMA_VERSION};
+    use rain_orderbook_common::local_db::OrderbookIdentifier;
 
     const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
@@ -109,7 +110,7 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
@@ -124,9 +125,7 @@ mod tests {
         // Presence assertions
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-            .sql()
-            .to_string();
+        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
@@ -145,7 +144,7 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok")
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
             .with_text(&dump_stmt, "ok");
 
         let cfg = BootstrapConfig {
@@ -161,9 +160,7 @@ mod tests {
         // Presence assertions
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-            .sql()
-            .to_string();
+        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
         let dump = dump_stmt.sql().to_string();
 
         assert!(calls.contains(&clear));
@@ -185,7 +182,7 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
@@ -201,9 +198,7 @@ mod tests {
         let calls = db.calls();
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-            .sql()
-            .to_string();
+        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
         let dump = dump_stmt.sql().to_string();
 
         assert!(calls.contains(&clear));
@@ -247,7 +242,7 @@ mod tests {
         let db = MockDb::default();
 
         let err = adapter
-            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap_err();
         match err {

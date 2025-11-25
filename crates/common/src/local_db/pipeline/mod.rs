@@ -9,6 +9,7 @@
 
 pub mod adapters;
 pub mod engine;
+pub mod runner;
 
 use super::OrderbookIdentifier;
 use crate::erc20::TokenInfo;
