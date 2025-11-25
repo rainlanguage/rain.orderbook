@@ -50,7 +50,8 @@ jobs:
           nix_conf: |
             keep-env-derivations = true
             keep-outputs = true
-      - run: ./prep-all.sh
+
+      - run: ./prep-webapp.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
