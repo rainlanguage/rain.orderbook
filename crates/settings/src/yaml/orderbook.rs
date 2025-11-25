@@ -407,14 +407,16 @@ impl OrderbookYaml {
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
         let mut yaml_hash = Hash::new();
 
-        if let Ok(networks) = self.get_networks() {
+        let networks = Self::to_yaml_string_missing_check(self.get_networks())?;
+        if let Some(networks) = networks {
             if !networks.is_empty() {
                 let networks_yaml = NetworkCfg::to_yaml_hash(&networks)?;
                 yaml_hash.insert(StrictYaml::String("networks".to_string()), networks_yaml);
             }
         }
 
-        if let Ok(remote_networks) = self.get_remote_networks() {
+        let remote_networks = Self::to_yaml_string_missing_check(self.get_remote_networks())?;
+        if let Some(remote_networks) = remote_networks {
             if !remote_networks.is_empty() {
                 let remote_networks_yaml = RemoteNetworksCfg::to_yaml_hash(&remote_networks)?;
                 yaml_hash.insert(
@@ -424,14 +426,15 @@ impl OrderbookYaml {
             }
         }
 
-        if let Ok(tokens) = self.get_tokens() {
+        let tokens = Self::to_yaml_string_missing_check(self.get_tokens())?;
+        if let Some(tokens) = tokens {
             if !tokens.is_empty() {
                 let tokens_yaml = TokenCfg::to_yaml_hash(&tokens)?;
                 yaml_hash.insert(StrictYaml::String("tokens".to_string()), tokens_yaml);
             }
         }
 
-        if let Ok(Some(remote_tokens)) = self.get_remote_tokens() {
+        if let Some(remote_tokens) = self.get_remote_tokens()? {
             if !remote_tokens.urls.is_empty() {
                 let remote_tokens_yaml = remote_tokens.to_yaml_array()?;
                 yaml_hash.insert(
@@ -441,31 +444,31 @@ impl OrderbookYaml {
             }
         }
 
-        if let Ok(subgraphs) = self.get_subgraphs() {
+        let subgraphs = Self::to_yaml_string_missing_check(self.get_subgraphs())?;
+        if let Some(subgraphs) = subgraphs {
             if !subgraphs.is_empty() {
                 let subgraphs_yaml = SubgraphCfg::to_yaml_hash(&subgraphs)?;
                 yaml_hash.insert(StrictYaml::String("subgraphs".to_string()), subgraphs_yaml);
             }
         }
 
-        if let Ok(local_db_remotes) = self.get_local_db_remotes() {
-            if !local_db_remotes.is_empty() {
-                let remotes_yaml = LocalDbRemoteCfg::to_yaml_hash(&local_db_remotes)?;
-                yaml_hash.insert(
-                    StrictYaml::String("local-db-remotes".to_string()),
-                    remotes_yaml,
-                );
-            }
+        let local_db_remotes = self.get_local_db_remotes()?;
+        if !local_db_remotes.is_empty() {
+            let remotes_yaml = LocalDbRemoteCfg::to_yaml_hash(&local_db_remotes)?;
+            yaml_hash.insert(
+                StrictYaml::String("local-db-remotes".to_string()),
+                remotes_yaml,
+            );
         }
 
-        if let Ok(local_db_syncs) = self.get_local_db_syncs() {
-            if !local_db_syncs.is_empty() {
-                let syncs_yaml = LocalDbSyncCfg::to_yaml_hash(&local_db_syncs)?;
-                yaml_hash.insert(StrictYaml::String("local-db-sync".to_string()), syncs_yaml);
-            }
+        let local_db_syncs = self.get_local_db_syncs()?;
+        if !local_db_syncs.is_empty() {
+            let syncs_yaml = LocalDbSyncCfg::to_yaml_hash(&local_db_syncs)?;
+            yaml_hash.insert(StrictYaml::String("local-db-sync".to_string()), syncs_yaml);
         }
 
-        if let Ok(orderbooks) = self.get_orderbooks() {
+        let orderbooks = Self::to_yaml_string_missing_check(self.get_orderbooks())?;
+        if let Some(orderbooks) = orderbooks {
             if !orderbooks.is_empty() {
                 let orderbooks_yaml = OrderbookCfg::to_yaml_hash(&orderbooks)?;
                 yaml_hash.insert(
@@ -475,7 +478,8 @@ impl OrderbookYaml {
             }
         }
 
-        if let Ok(metaboards) = self.get_metaboards() {
+        let metaboards = Self::to_yaml_string_missing_check(self.get_metaboards())?;
+        if let Some(metaboards) = metaboards {
             if !metaboards.is_empty() {
                 let metaboards_yaml = MetaboardCfg::to_yaml_hash(&metaboards)?;
                 yaml_hash.insert(
@@ -485,28 +489,29 @@ impl OrderbookYaml {
             }
         }
 
-        if let Ok(deployers) = self.get_deployers() {
+        let deployers = Self::to_yaml_string_missing_check(self.get_deployers())?;
+        if let Some(deployers) = deployers {
             if !deployers.is_empty() {
                 let deployers_yaml = DeployerCfg::to_yaml_hash(&deployers)?;
                 yaml_hash.insert(StrictYaml::String("deployers".to_string()), deployers_yaml);
             }
         }
 
-        if let Ok(accounts) = self.get_accounts() {
-            if !accounts.is_empty() {
-                let accounts_yaml = AccountCfg::to_yaml_hash(&accounts)?;
-                yaml_hash.insert(StrictYaml::String("accounts".to_string()), accounts_yaml);
-            }
+        let accounts = self.get_accounts()?;
+        if !accounts.is_empty() {
+            let accounts_yaml = AccountCfg::to_yaml_hash(&accounts)?;
+            yaml_hash.insert(StrictYaml::String("accounts".to_string()), accounts_yaml);
         }
 
-        if let Ok(Some(sentry)) = self.get_sentry() {
+        let sentry = self.get_sentry()?;
+        if let Some(sentry) = sentry {
             yaml_hash.insert(
                 StrictYaml::String("sentry".to_string()),
                 StrictYaml::String(sentry.to_string()),
             );
         }
 
-        if let Ok(spec_version) = self.get_spec_version() {
+        if let Some(spec_version) = Self::to_yaml_string_missing_check(self.get_spec_version())? {
             yaml_hash.insert(
                 StrictYaml::String("version".to_string()),
                 StrictYaml::String(spec_version),
@@ -515,6 +520,19 @@ impl OrderbookYaml {
 
         let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
         Self::get_yaml_string(document)
+    }
+
+    fn to_yaml_string_missing_check<T>(
+        result: Result<T, YamlError>,
+    ) -> Result<Option<T>, YamlError> {
+        match result {
+            Ok(value) => Ok(Some(value)),
+            Err(YamlError::Field {
+                kind: FieldErrorKind::Missing(_),
+                ..
+            }) => Ok(None),
+            Err(err) => Err(err),
+        }
     }
 }
 
@@ -1307,31 +1325,47 @@ local-db-sync:
     }
 
     #[test]
-    fn test_to_yaml_string_serializes_networks() {
-        let yaml = r#"
-        networks:
-            mainnet:
-                rpcs:
-                    - https://mainnet.infura.io
-                chain-id: 1
-        "#;
+    fn test_to_yaml_string_skips_missing_sections() {
+        let yaml = format!(
+            r#"
+version: {}
+"#,
+            SpecVersion::current()
+        );
 
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+
+        let yaml_string = ob_yaml.to_yaml_string().unwrap();
+        assert!(yaml_string.contains("version"));
+        assert!(!yaml_string.contains("networks"));
+        assert!(!yaml_string.contains("tokens"));
+    }
+
+    #[test]
+    fn test_to_yaml_string_propagates_non_missing_errors() {
+        let yaml = r#"
+version: 4
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+tokens:
+    token1:
+        network: mainnet
+        address: not-an-address
+"#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
 
-        let yaml_string = ob_yaml.to_yaml_string().unwrap();
-        let new_ob_yaml =
-            OrderbookYaml::new(vec![yaml_string], OrderbookYamlValidation::default()).unwrap();
-
-        let original_network = ob_yaml.get_network("mainnet").unwrap();
-        let new_network = new_ob_yaml.get_network("mainnet").unwrap();
-
-        assert_eq!(original_network.key, new_network.key);
-        assert_eq!(original_network.chain_id, new_network.chain_id);
-        assert_eq!(original_network.rpcs, new_network.rpcs);
-        assert_eq!(original_network.label, new_network.label);
-        assert_eq!(original_network.network_id, new_network.network_id);
-        assert_eq!(original_network.currency, new_network.currency);
+        let err = ob_yaml.to_yaml_string().unwrap_err();
+        assert!(matches!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { .. },
+                location
+            } if location == "token 'token1'"
+        ));
     }
 
     #[tokio::test]
