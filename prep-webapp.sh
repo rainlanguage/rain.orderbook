@@ -3,7 +3,7 @@
 # Set strict error handling
 set -euxo pipefail
 
-echo "Starting webapp setup..."
+echo "Starting project setup..."
 
 # Environment variables that need to be set (commented out as reference)
 # export CI_DEPLOY_SEPOLIA_RPC_URL=""
@@ -45,7 +45,7 @@ NC='\033[0m' # No Color
 # Print the completion message
 printf "\033[0;32m" # Set text to green
 printf "╔════════════════════════════════════════════════════════════════════════╗\n"
-printf "║                            Webapp Setup Complete!                             ║\n"
+printf "║                            Setup Complete!                             ║\n"
 printf "╠════════════════════════════════════════════════════════════════════════╣\n"
 printf "║                          How to run the apps:                          ║\n"
 printf "║                                                                        ║\n"
