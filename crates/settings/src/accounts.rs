@@ -76,7 +76,9 @@ impl YamlParsableHash for AccountCfg {
     }
 
     fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        Ok(StrictYaml::String(self.address.to_string()))
+        Ok(StrictYaml::String(alloy::hex::encode_prefixed(
+            self.address,
+        )))
     }
 }
 

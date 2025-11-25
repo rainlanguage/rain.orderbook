@@ -204,7 +204,7 @@ impl YamlParsableHash for OrderbookCfg {
 
         orderbook_yaml.insert(
             StrictYaml::String("address".to_string()),
-            StrictYaml::String(self.address.to_string()),
+            StrictYaml::String(alloy::hex::encode_prefixed(self.address)),
         );
         orderbook_yaml.insert(
             StrictYaml::String("network".to_string()),

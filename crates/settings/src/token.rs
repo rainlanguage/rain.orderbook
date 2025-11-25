@@ -332,7 +332,7 @@ impl YamlParsableHash for TokenCfg {
         );
         token_yaml.insert(
             StrictYaml::String("address".to_string()),
-            StrictYaml::String(self.address.to_string()),
+            StrictYaml::String(alloy::hex::encode_prefixed(self.address)),
         );
 
         if let Some(decimals) = self.decimals {
@@ -763,7 +763,7 @@ tokens:
         assert_eq!(
             dai_hash.get(&StrictYaml::String("address".to_string())),
             Some(&StrictYaml::String(
-                "0x6B175474E89094C44Da98b954EedeAC495271d0F".to_string()
+                "0x6b175474e89094c44da98b954eedeac495271d0f".to_string()
             ))
         );
         assert_eq!(
@@ -785,7 +785,7 @@ tokens:
         assert_eq!(
             weth_hash.get(&StrictYaml::String("address".to_string())),
             Some(&StrictYaml::String(
-                "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".to_string()
+                "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string()
             ))
         );
         assert!(!weth_hash.contains_key(&StrictYaml::String("decimals".to_string())));
