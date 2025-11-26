@@ -290,7 +290,7 @@ trade_with_snapshots AS (
 )
 SELECT
   tws.trade_kind,
-  tws.orderbook_address,
+  tws.orderbook_address AS orderbook,
   tws.order_hash,
   tws.order_owner,
   tws.order_nonce,
@@ -315,10 +315,7 @@ SELECT
   vbc_output.running_balance AS output_running_balance,
   (
     '0x' ||
-    CASE
-      WHEN substr(tws.transaction_hash, 1, 2) = '0x' THEN substr(tws.transaction_hash, 3)
-      ELSE tws.transaction_hash
-    END ||
+    lower(replace(tws.transaction_hash, '0x', '')) ||
     printf('%016x', tws.log_index)
   ) AS trade_id
 FROM trade_with_snapshots tws

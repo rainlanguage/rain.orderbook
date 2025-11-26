@@ -33,7 +33,7 @@ pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{address, Address, Bytes};
+    use alloy::primitives::{address, b256, Address};
     use std::str::FromStr;
 
     #[test]
@@ -43,7 +43,9 @@ mod tests {
         let filters = GetOrdersFilters {
             owners: vec![owner],
             active: Some(true),
-            order_hash: Some(Bytes::from_str("0xdeadbeef").unwrap()),
+            order_hash: Some(b256!(
+                "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+            )),
             tokens: Some(vec![token]),
         };
         let args: FetchOrdersArgs = filters.into();
@@ -60,7 +62,9 @@ mod tests {
         // Order hash string preserved
         assert_eq!(
             args.order_hash,
-            Some(Bytes::from_str("0xdeadbeef").unwrap())
+            Some(b256!(
+                "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+            ))
         );
     }
 
@@ -69,7 +73,7 @@ mod tests {
         use super::*;
         use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
         use crate::raindex_client::local_db::executor::JsCallbackExecutor;
-        use alloy::primitives::{address, Address, Bytes};
+        use alloy::primitives::{address, b256, Address};
         use std::cell::RefCell;
         use std::rc::Rc;
         use wasm_bindgen::prelude::Closure;
@@ -91,8 +95,9 @@ mod tests {
                 address!("0x00000000000000000000000000000000000000ef"),
             ];
             args.tokens = vec![address!("0x00000000000000000000000000000000000000aa")];
-            args.order_hash =
-                Some(Bytes::from_str("0x0000000000000000000000000000000000000001").unwrap());
+            args.order_hash = Some(b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000001"
+            ));
             args.chain_ids = vec![137];
             args.orderbook_addresses = vec![orderbook()];
 

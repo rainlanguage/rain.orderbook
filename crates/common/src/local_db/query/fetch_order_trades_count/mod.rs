@@ -2,7 +2,7 @@ use crate::local_db::{
     query::{SqlBuildError, SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
-use alloy::primitives::Bytes;
+use alloy::primitives::B256;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 
@@ -21,7 +21,7 @@ const END_TS_BODY: &str = "\nAND block_timestamp <= {param}\n";
 
 pub fn build_fetch_trade_count_stmt(
     ob_id: &OrderbookIdentifier,
-    order_hash: Bytes,
+    order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<SqlStatement, SqlBuildError> {
@@ -68,9 +68,7 @@ pub fn extract_trade_count(rows: &[LocalDbTradeCountRow]) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use alloy::primitives::Address;
+    use alloy::primitives::{b256, Address};
 
     use super::*;
 
@@ -78,7 +76,7 @@ mod tests {
     fn builds_with_time_filters() {
         let stmt = build_fetch_trade_count_stmt(
             &OrderbookIdentifier::new(137, Address::ZERO),
-            Bytes::from_str("0xABCDEF").unwrap(),
+            b256!("0x0000000000000000000000000000000000000000000000000000000000ABCDEF"),
             Some(1000),
             Some(2000),
         )
@@ -92,14 +90,19 @@ mod tests {
         assert_eq!(stmt.params.len(), 5);
         assert_eq!(stmt.params[0], SqlValue::U64(137));
         assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
-        assert_eq!(stmt.params[2], SqlValue::Text("0xabcdef".into()));
+        assert_eq!(
+            stmt.params[2],
+            SqlValue::Text(
+                "0x0000000000000000000000000000000000000000000000000000000000abcdef".into()
+            )
+        );
     }
 
     #[test]
     fn builds_without_time_filters_when_none() {
         let stmt = build_fetch_trade_count_stmt(
             &OrderbookIdentifier::new(1, Address::ZERO),
-            Bytes::from_str("0xdeadbeef").unwrap(),
+            b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef"),
             None,
             None,
         )
@@ -111,7 +114,12 @@ mod tests {
         assert_eq!(stmt.params.len(), 3);
         assert_eq!(stmt.params[0], SqlValue::U64(1));
         assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
-        assert_eq!(stmt.params[2], SqlValue::Text("0xdeadbeef".into()));
+        assert_eq!(
+            stmt.params[2],
+            SqlValue::Text(
+                "0x00000000000000000000000000000000000000000000000000000000deadbeef".into()
+            )
+        );
     }
 
     #[test]

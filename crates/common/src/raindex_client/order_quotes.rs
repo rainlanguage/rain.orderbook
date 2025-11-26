@@ -148,7 +148,7 @@ mod tests {
         use crate::local_db::OrderbookIdentifier;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::hex::encode_prefixed;
-        use alloy::primitives::{Address, Bytes, U256};
+        use alloy::primitives::{b256, Address, U256};
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
@@ -287,7 +287,7 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();
@@ -349,7 +349,7 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();

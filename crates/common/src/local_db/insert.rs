@@ -6,7 +6,7 @@ use alloy::primitives::Bytes;
 use alloy::sol_types::SolValue;
 use alloy::{
     hex,
-    primitives::{keccak256, Address, FixedBytes, U256},
+    primitives::{keccak256, Address, FixedBytes, B256, U256},
 };
 use itertools::Itertools;
 use rain_math_float::Float;
@@ -70,7 +70,7 @@ struct EventContext {
     ob_id: OrderbookIdentifier,
     block_number: u64,
     block_timestamp: u64,
-    transaction_hash: Bytes,
+    transaction_hash: B256,
     log_index: u64,
 }
 
@@ -82,7 +82,7 @@ fn event_context(
         ob_id: ob_id.clone(),
         block_number: u256_to_u64(&event.block_number, "block_number")?,
         block_timestamp: u256_to_u64(&event.block_timestamp, "block_timestamp")?,
-        transaction_hash: event.transaction_hash.clone(),
+        transaction_hash: event.transaction_hash,
         log_index: u256_to_u64(&event.log_index, "log_index")?,
     })
 }
@@ -340,7 +340,7 @@ fn generate_deposit_statement(
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(decoded.token),
@@ -386,7 +386,7 @@ fn generate_withdraw_statement(context: &EventContext, decoded: &WithdrawV2) -> 
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(decoded.token),
@@ -437,7 +437,7 @@ fn generate_add_order_statement(context: &EventContext, decoded: &AddOrderV3) ->
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(decoded.order.evaluable.interpreter),
@@ -492,7 +492,7 @@ fn generate_remove_order_statement(
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(decoded.order.evaluable.interpreter),
@@ -548,7 +548,7 @@ fn generate_take_order_statement(
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(decoded.config.order.owner),
@@ -583,7 +583,7 @@ fn generate_take_order_context_statements(
 "#;
 
     let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash.clone();
+    let transaction_hash = context.transaction_hash;
     let log_index = context.log_index;
 
     for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
@@ -598,7 +598,7 @@ fn generate_take_order_context_statements(
             vec![
                 SqlValue::from(context.ob_id.chain_id),
                 SqlValue::from(context.ob_id.orderbook_address),
-                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(transaction_hash),
                 SqlValue::from(log_index),
                 SqlValue::from(context_index as u64),
                 SqlValue::from(context_value),
@@ -633,7 +633,7 @@ fn generate_take_order_context_value_statements(
 "#;
 
     let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash.clone();
+    let transaction_hash = context.transaction_hash;
     let log_index = context.log_index;
 
     for (context_index, signed_context) in decoded.config.signedContext.iter().enumerate() {
@@ -643,7 +643,7 @@ fn generate_take_order_context_value_statements(
                 vec![
                     SqlValue::from(context.ob_id.chain_id),
                     SqlValue::from(context.ob_id.orderbook_address),
-                    SqlValue::from(transaction_hash.clone()),
+                    SqlValue::from(transaction_hash),
                     SqlValue::from(log_index),
                     SqlValue::from(context_index as u64),
                     SqlValue::from(value_index as u64),
@@ -745,7 +745,7 @@ fn generate_clear_v3_statement(
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(keccak256(decoded.alice.abi_encode())),
@@ -799,7 +799,7 @@ fn generate_after_clear_statement(context: &EventContext, decoded: &AfterClearV2
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(decoded.clearStateChange.aliceInput),
@@ -839,7 +839,7 @@ fn generate_meta_statement(context: &EventContext, decoded: &MetaV1_2) -> SqlSta
             SqlValue::from(context.ob_id.orderbook_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.sender),
             SqlValue::from(decoded.subject),
@@ -889,7 +889,7 @@ fn generate_store_set_statement(
             SqlValue::from(decoded.store_address),
             SqlValue::from(context.block_number),
             SqlValue::from(context.block_timestamp),
-            SqlValue::from(context.transaction_hash.clone()),
+            SqlValue::from(context.transaction_hash),
             SqlValue::from(context.log_index),
             SqlValue::from(decoded.payload.namespace),
             SqlValue::from(decoded.payload.key),
@@ -921,7 +921,7 @@ fn generate_order_ios_statements(context: &EventContext, order: &OrderV4) -> Sql
 "#;
 
     let mut batch = SqlStatementBatch::new();
-    let transaction_hash = context.transaction_hash.clone();
+    let transaction_hash = context.transaction_hash;
     let log_index = context.log_index;
 
     for (index, input) in order.validInputs.iter().enumerate() {
@@ -930,7 +930,7 @@ fn generate_order_ios_statements(context: &EventContext, order: &OrderV4) -> Sql
             vec![
                 SqlValue::from(context.ob_id.chain_id),
                 SqlValue::from(context.ob_id.orderbook_address),
-                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(transaction_hash),
                 SqlValue::from(log_index),
                 SqlValue::from(index as u64),
                 SqlValue::from("input"),
@@ -946,7 +946,7 @@ fn generate_order_ios_statements(context: &EventContext, order: &OrderV4) -> Sql
             vec![
                 SqlValue::from(context.ob_id.chain_id),
                 SqlValue::from(context.ob_id.orderbook_address),
-                SqlValue::from(transaction_hash.clone()),
+                SqlValue::from(transaction_hash),
                 SqlValue::from(log_index),
                 SqlValue::from(index as u64),
                 SqlValue::from("output"),
@@ -994,7 +994,7 @@ mod tests {
         event_type: EventType,
         block_number: &str,
         block_timestamp: &str,
-        transaction_hash: &str,
+        transaction_hash: B256,
         log_index: &str,
         decoded: DecodedEvent,
     ) -> DecodedEventData<DecodedEvent> {
@@ -1002,7 +1002,7 @@ mod tests {
             event_type,
             block_number: parse_u256(block_number),
             block_timestamp: parse_u256(block_timestamp),
-            transaction_hash: Bytes::from_str(transaction_hash).unwrap(),
+            transaction_hash,
             log_index: parse_u256(log_index),
             decoded_data: decoded,
         }
@@ -1045,7 +1045,7 @@ mod tests {
             EventType::AddOrderV3,
             "0x100",
             "0x200",
-            "0xaaa0",
+            b256!("0x000000000000000000000000000000000000000000000000000000000000aaa0"),
             "0x1",
             DecodedEvent::AddOrderV3(Box::new(add)),
         )
@@ -1062,7 +1062,7 @@ mod tests {
             EventType::RemoveOrderV3,
             "0x101",
             "0x201",
-            "0xbb00",
+            b256!("0x000000000000000000000000000000000000000000000000000000000000bb00"),
             "0x2",
             DecodedEvent::RemoveOrderV3(Box::new(remove)),
         )
@@ -1103,7 +1103,7 @@ mod tests {
             EventType::ClearV3,
             "0x100",
             "0x200",
-            "0xabc0",
+            b256!("0x000000000000000000000000000000000000000000000000000000000000abc0"),
             "0x1",
             DecodedEvent::ClearV3(Box::new(clear)),
         )
@@ -1130,7 +1130,7 @@ mod tests {
             EventType::TakeOrderV3,
             "0x101",
             "0x201",
-            "0xdef0",
+            b256!("0x000000000000000000000000000000000000000000000000000000000000def0"),
             "0x2",
             DecodedEvent::TakeOrderV3(Box::new(take)),
         )
@@ -1151,7 +1151,7 @@ mod tests {
             EventType::AfterClearV2,
             "0x103",
             "0x203",
-            "0x2468",
+            b256!("0x0000000000000000000000000000000000000000000000000000000000002468"),
             "0x5",
             DecodedEvent::AfterClearV2(Box::new(after_clear)),
         )
@@ -1168,7 +1168,7 @@ mod tests {
             EventType::MetaV1_2,
             "0x104",
             "0x204",
-            "0x1122",
+            b256!("0x0000000000000000000000000000000000000000000000000000000000001122"),
             "0x6",
             DecodedEvent::MetaV1_2(Box::new(meta)),
         )
@@ -1188,7 +1188,7 @@ mod tests {
             EventType::InterpreterStoreSet,
             "0x200",
             "0x300",
-            "0xfeed",
+            b256!("0x000000000000000000000000000000000000000000000000000000000000feed"),
             "0x4",
             DecodedEvent::InterpreterStoreSet(Box::new(store)),
         )
@@ -1206,7 +1206,7 @@ mod tests {
             EventType::DepositV2,
             "0x102",
             "0x202",
-            "0x1230",
+            b256!("0x0000000000000000000000000000000000000000000000000000000000001230"),
             "0x3",
             DecodedEvent::DepositV2(Box::new(deposit)),
         )
@@ -1244,7 +1244,7 @@ mod tests {
             SqlValue::U64(v) if v == context.block_timestamp
         ));
         assert!(
-            matches!(params[5], SqlValue::Text(ref v) if v == &hex::encode_prefixed(context.transaction_hash.clone()))
+            matches!(params[5], SqlValue::Text(ref v) if v == &hex::encode_prefixed(context.transaction_hash))
         );
         assert!(matches!(params[6], SqlValue::U64(v) if v == context.log_index));
         assert!(matches!(
@@ -1545,7 +1545,7 @@ mod tests {
             EventType::Unknown,
             "0x0",
             "0x0",
-            "0xbeef",
+            b256!("0x000000000000000000000000000000000000000000000000000000000000beef"),
             "0x0",
             DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0xdead".into(),
@@ -1804,10 +1804,9 @@ mod tests {
             data: Bytes::from_str("0xbead").unwrap(),
             block_number: U256::from(1u128 << 65),
             block_timestamp: Some(U256::ZERO),
-            transaction_hash: B256::from_str(
-                "0x0000000000000000000000000000000000000000000000000000000000000aaa",
-            )
-            .unwrap(),
+            transaction_hash: b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000aaa"
+            ),
             transaction_index: "0x0".to_string(),
             block_hash: B256::ZERO,
             log_index: U256::ZERO,
