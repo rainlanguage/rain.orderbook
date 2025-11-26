@@ -476,15 +476,17 @@ impl OrderCfg {
                         vault_ids.insert(token, vault_id);
                     }
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "orders".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
+        }
+
+        if vault_ids.is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(vault_ids)
