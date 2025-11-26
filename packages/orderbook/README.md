@@ -421,12 +421,20 @@ With that single source string (read from disk or built dynamically) you can dri
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 const dotrainWithGui = FIXED_LIMIT_SOURCE;
+const additionalSettings = undefined; // optional extra YAML strings
 
-const deploymentsResult = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
+const deploymentsResult = await DotrainOrderGui.getDeploymentKeys(
+  dotrainWithGui,
+  additionalSettings
+);
 if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
 const [firstDeployment] = deploymentsResult.value;
 
-const guiResult = await DotrainOrderGui.newWithDeployment(dotrainWithGui, firstDeployment);
+const guiResult = await DotrainOrderGui.newWithDeployment(
+  dotrainWithGui,
+  additionalSettings,
+  firstDeployment
+);
 if (guiResult.error) throw new Error(guiResult.error.readableMsg);
 const gui = guiResult.value;
 
@@ -476,7 +484,7 @@ if (!serializedStateResult.error) {
 }
 ```
 
-Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(dotrainText, serializedState, callback)` if you want to skip re-entering form choices.
+Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(dotrainText, additionalSettings, serializedState, callback)` if you want to skip re-entering form choices.
 
 #### Deploy with wallet + fetch your order
 

@@ -37,8 +37,8 @@
   - Core type: `DotrainOrderGui`
     - Fields: `dotrain_order` (parsed configuration), `selected_deployment`, `field_values` and `deposits` (with preset tracking), and an optional `state_update_callback` JS function.
     - Construction:
-      - `DotrainOrderGui.getDeploymentKeys(dotrain: string) -> string[]` parses `gui.deployments`.
-      - `DotrainOrderGui.newWithDeployment(dotrain, selectedDeployment, stateUpdateCallback?) -> DotrainOrderGui` validates the deployment and bootstraps a GUI instance.
+      - `DotrainOrderGui.getDeploymentKeys(dotrain, settings?) -> string[]` parses `gui.deployments`.
+      - `DotrainOrderGui.newWithDeployment(dotrain, settings?, selectedDeployment, stateUpdateCallback?) -> DotrainOrderGui` validates the deployment and bootstraps a GUI instance.
     - Config accessors:
       - `getGuiConfig() -> GuiCfg`, `getCurrentDeployment() -> GuiDeploymentCfg` (filtered for the active deployment).
       - `getOrderDetails(dotrain) -> NameAndDescriptionCfg` (static), `getDeploymentDetails(dotrain) -> Map<string, NameAndDescriptionCfg>`, `getDeploymentDetail(dotrain, key) -> NameAndDescriptionCfg`.
