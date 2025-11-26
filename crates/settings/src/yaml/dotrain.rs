@@ -6,6 +6,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{
+    collections::BTreeMap,
     fmt,
     sync::{Arc, RwLock},
 };
@@ -229,7 +230,7 @@ impl DotrainYaml {
     }
 
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
-        let mut yaml_hash = Hash::new();
+        let mut sections: BTreeMap<String, StrictYaml> = BTreeMap::new();
 
         let mut context = Context::new();
         self.expand_context_with_remote_networks(&mut context);
@@ -255,7 +256,7 @@ impl DotrainYaml {
         if let Some(orders) = orders {
             if !orders.is_empty() {
                 let orders_yaml = OrderCfg::to_yaml_hash(&orders)?;
-                yaml_hash.insert(StrictYaml::String("orders".to_string()), orders_yaml);
+                sections.insert("orders".to_string(), orders_yaml);
             }
         }
 
@@ -266,7 +267,7 @@ impl DotrainYaml {
         if let Some(scenarios) = scenarios {
             if !scenarios.is_empty() {
                 let scenarios_yaml = ScenarioCfg::to_yaml_hash(&scenarios)?;
-                yaml_hash.insert(StrictYaml::String("scenarios".to_string()), scenarios_yaml);
+                sections.insert("scenarios".to_string(), scenarios_yaml);
             }
         }
 
@@ -277,25 +278,27 @@ impl DotrainYaml {
         if let Some(deployments) = deployments {
             if !deployments.is_empty() {
                 let deployments_yaml = DeploymentCfg::to_yaml_hash(&deployments)?;
-                yaml_hash.insert(
-                    StrictYaml::String("deployments".to_string()),
-                    deployments_yaml,
-                );
+                sections.insert("deployments".to_string(), deployments_yaml);
             }
         }
 
         if let Some(gui) = GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
         {
             let gui_yaml = gui.to_yaml_hash()?;
-            yaml_hash.insert(StrictYaml::String("gui".to_string()), gui_yaml);
+            sections.insert("gui".to_string(), gui_yaml);
         }
 
         let charts = to_yaml_string_missing_check(self.get_charts())?;
         if let Some(charts) = charts {
             if !charts.is_empty() {
                 let charts_yaml = ChartCfg::to_yaml_hash(&charts)?;
-                yaml_hash.insert(StrictYaml::String("charts".to_string()), charts_yaml);
+                sections.insert("charts".to_string(), charts_yaml);
             }
+        }
+
+        let mut yaml_hash = Hash::new();
+        for (key, value) in sections {
+            yaml_hash.insert(StrictYaml::String(key), value);
         }
 
         let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
