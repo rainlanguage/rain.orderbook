@@ -1,6 +1,6 @@
 SELECT
   trade_kind,
-  ?2 AS orderbook_address,
+  ?2 AS orderbook,
   order_hash,
   order_owner,
   order_nonce,

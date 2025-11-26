@@ -2,7 +2,7 @@ use crate::local_db::{
     query::{SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, B256, U256};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -10,7 +10,7 @@ const QUERY_TEMPLATE: &str = include_str!("query.sql");
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalDbVaultBalanceChange {
-    pub transaction_hash: Bytes,
+    pub transaction_hash: B256,
     pub log_index: u64,
     pub block_number: u64,
     pub block_timestamp: u64,
