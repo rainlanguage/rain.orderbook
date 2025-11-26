@@ -231,7 +231,27 @@ impl DotrainYaml {
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
         let mut yaml_hash = Hash::new();
 
-        let orders = to_yaml_string_missing_check(self.get_orders())?;
+        let mut context = Context::new();
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
+        if GuiCfg::check_gui_key_exists(self.documents.clone())? {
+            let mut select_tokens = Vec::new();
+            for deployment_key in GuiCfg::parse_deployment_keys(self.documents.clone())? {
+                if let Some(tokens) =
+                    GuiCfg::parse_select_tokens(self.documents.clone(), &deployment_key)?
+                {
+                    select_tokens.extend(tokens.into_iter().map(|t| t.key));
+                }
+            }
+            if !select_tokens.is_empty() {
+                context.add_select_tokens(select_tokens);
+            }
+        }
+
+        let orders = to_yaml_string_missing_check(OrderCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
         if let Some(orders) = orders {
             if !orders.is_empty() {
                 let orders_yaml = OrderCfg::to_yaml_hash(&orders)?;
@@ -239,7 +259,10 @@ impl DotrainYaml {
             }
         }
 
-        let scenarios = to_yaml_string_missing_check(self.get_scenarios())?;
+        let scenarios = to_yaml_string_missing_check(ScenarioCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
         if let Some(scenarios) = scenarios {
             if !scenarios.is_empty() {
                 let scenarios_yaml = ScenarioCfg::to_yaml_hash(&scenarios)?;
@@ -247,7 +270,10 @@ impl DotrainYaml {
             }
         }
 
-        let deployments = to_yaml_string_missing_check(self.get_deployments())?;
+        let deployments = to_yaml_string_missing_check(DeploymentCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
         if let Some(deployments) = deployments {
             if !deployments.is_empty() {
                 let deployments_yaml = DeploymentCfg::to_yaml_hash(&deployments)?;
@@ -258,7 +284,8 @@ impl DotrainYaml {
             }
         }
 
-        if let Some(gui) = self.get_gui(None)? {
+        if let Some(gui) = GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
+        {
             let gui_yaml = gui.to_yaml_hash()?;
             yaml_hash.insert(StrictYaml::String("gui".to_string()), gui_yaml);
         }
