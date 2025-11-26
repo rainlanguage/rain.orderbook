@@ -289,7 +289,7 @@ fn ensure_clean_db(path: &Path) -> Result<(), LocalDbError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{address, Address, Bytes, B256, hex::encode_prefixed};
+    use alloy::primitives::{address, hex::encode_prefixed, Address, Bytes, B256};
     use async_trait::async_trait;
     use flate2::read::GzDecoder;
     use rain_orderbook_app_settings::local_db_manifest::{
