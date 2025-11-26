@@ -2,7 +2,7 @@ use crate::local_db::{
     query::{SqlBuildError, SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, B256, U256};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -10,11 +10,11 @@ const QUERY_TEMPLATE: &str = include_str!("query.sql");
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct LocalDbOrderTrade {
     pub trade_kind: String,
-    pub orderbook_address: Address,
-    pub order_hash: Bytes,
+    pub orderbook: Address,
+    pub order_hash: B256,
     pub order_owner: Address,
     pub order_nonce: String,
-    pub transaction_hash: Bytes,
+    pub transaction_hash: B256,
     pub log_index: u64,
     pub block_number: u64,
     pub block_timestamp: u64,
@@ -45,7 +45,7 @@ const END_TS_BODY: &str = "\nAND tws.block_timestamp <= {param}\n";
 
 pub fn build_fetch_order_trades_stmt(
     ob_id: &OrderbookIdentifier,
-    order_hash: Bytes,
+    order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<SqlStatement, SqlBuildError> {
@@ -83,17 +83,19 @@ pub fn build_fetch_order_trades_stmt(
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
-    use alloy::primitives::Address;
-
     use super::*;
+    use alloy::{
+        hex,
+        primitives::{b256, Address},
+    };
 
     #[test]
     fn builds_with_chain_id_and_filters() {
+        let order_hash =
+            b256!("0x00000000000000000000000000000000000000000000000000000000deadface");
         let stmt = build_fetch_order_trades_stmt(
             &OrderbookIdentifier::new(137, Address::ZERO),
-            Bytes::from_str("0xdeadface").unwrap(),
+            order_hash,
             Some(11),
             Some(22),
         )
@@ -107,14 +109,19 @@ mod tests {
         assert_eq!(stmt.params.len(), 5); // includes start and end
         assert_eq!(stmt.params[0], SqlValue::U64(137));
         assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
-        assert_eq!(stmt.params[2], SqlValue::Text("0xdeadface".to_string()));
+        assert_eq!(
+            stmt.params[2],
+            SqlValue::Text(hex::encode_prefixed(order_hash))
+        );
     }
 
     #[test]
     fn builds_without_time_filters_when_none() {
+        let order_hash =
+            b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef");
         let stmt = build_fetch_order_trades_stmt(
             &OrderbookIdentifier::new(1, Address::ZERO),
-            Bytes::from_str("0xdeadbeef").unwrap(),
+            order_hash,
             None,
             None,
         )
@@ -127,6 +134,9 @@ mod tests {
         // Order of fixed params: chain id (?1), orderbook (?2), order hash (?3)
         assert_eq!(stmt.params[0], SqlValue::U64(1));
         assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
-        assert_eq!(stmt.params[2], SqlValue::Text("0xdeadbeef".to_string()));
+        assert_eq!(
+            stmt.params[2],
+            SqlValue::Text(hex::encode_prefixed(order_hash))
+        );
     }
 }

@@ -52,6 +52,22 @@ where
     S: StatusBus + 'static,
     L: Leadership + 'static,
 {
+    fn noop_outcomes(&self) -> Vec<SyncOutcome> {
+        self.base_targets
+            .iter()
+            .map(|target| {
+                let deployment_block = target.inputs.cfg.deployment_block;
+                SyncOutcome {
+                    ob_id: target.inputs.ob_id.clone(),
+                    start_block: deployment_block,
+                    target_block: deployment_block,
+                    fetched_logs: 0,
+                    decoded_events: 0,
+                }
+            })
+            .collect()
+    }
+
     pub fn with_environment(
         settings_yaml: String,
         environment: RunnerEnvironment<B, W, E, T, A, S>,
@@ -79,7 +95,7 @@ where
         if self.leadership_guard.is_none() {
             match self.leadership.acquire().await? {
                 Some(guard) => self.leadership_guard = Some(guard),
-                None => return Ok(vec![]),
+                None => return Ok(self.noop_outcomes()),
             }
         }
 
@@ -179,6 +195,7 @@ mod tests {
     use crate::local_db::pipeline::runner::environment::{
         DumpFuture, EnginePipelines, ManifestFuture,
     };
+    use crate::local_db::pipeline::runner::utils::RunnerTarget;
     use crate::local_db::pipeline::{
         EventsPipeline, StatusBus, SyncConfig, TokensPipeline, WindowPipeline,
     };
@@ -190,7 +207,7 @@ mod tests {
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
     use crate::local_db::{LocalDbError, OrderbookIdentifier};
     use crate::rpc_client::LogEntryResponse;
-    use alloy::primitives::{address, Address, Bytes};
+    use alloy::primitives::{address, b256, Address, Bytes, B256};
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
@@ -613,8 +630,10 @@ mod tests {
             Ok(self.latest_block)
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
-            Ok(Bytes::from(vec![0u8; 32]))
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
+            Ok(b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ))
         }
 
         async fn fetch_orderbook(
@@ -785,6 +804,9 @@ mod tests {
         Url::parse("https://manifests.example/b.yaml").unwrap()
     }
 
+    const END_HASH_A: &str = "0x000000000000000000000000000000000000000000000000000000000000dead";
+    const END_HASH_B: &str = "0x000000000000000000000000000000000000000000000000000000000000beef";
+
     fn dump_url_a() -> Url {
         Url::parse("https://dumps.example/ob-a.sql").unwrap()
     }
@@ -794,11 +816,11 @@ mod tests {
     }
 
     fn manifest_for_a() -> ManifestMap {
-        make_manifest(remote_url_a(), ORDERBOOK_A, dump_url_a(), 111, "0xdead")
+        make_manifest(remote_url_a(), ORDERBOOK_A, dump_url_a(), 111, END_HASH_A)
     }
 
     fn manifest_for_b() -> ManifestMap {
-        make_manifest(remote_url_b(), ORDERBOOK_B, dump_url_b(), 222, "0xbeef")
+        make_manifest(remote_url_b(), ORDERBOOK_B, dump_url_b(), 222, END_HASH_B)
     }
 
     fn manifest_for_both() -> ManifestMap {
@@ -814,6 +836,7 @@ mod tests {
         end_block: u64,
         end_hash: &str,
     ) -> ManifestMap {
+        let end_block_hash = B256::from_str(end_hash).unwrap();
         let manifest = LocalDbManifest {
             manifest_version: MANIFEST_VERSION,
             db_schema_version: DB_SCHEMA_VERSION,
@@ -825,7 +848,7 @@ mod tests {
                         address: orderbook_address,
                         dump_url,
                         end_block,
-                        end_block_hash: Bytes::from_str(end_hash).unwrap(),
+                        end_block_hash: Bytes::copy_from_slice(end_block_hash.as_slice()),
                         end_block_time_ms: 1_000,
                     }],
                 },
@@ -1016,6 +1039,21 @@ orderbooks:
         assert_eq!(addrs, expected_sorted);
     }
 
+    fn expect_noop_outcomes(outcomes: &[SyncOutcome], targets: &[RunnerTarget]) {
+        assert_eq!(outcomes.len(), targets.len());
+        for target in targets {
+            let outcome = outcomes
+                .iter()
+                .find(|outcome| outcome.ob_id == target.inputs.ob_id)
+                .unwrap_or_else(|| panic!("missing outcome for target {}", target.orderbook_key));
+            let deployment_block = target.inputs.cfg.deployment_block;
+            assert_eq!(outcome.start_block, deployment_block);
+            assert_eq!(outcome.target_block, deployment_block);
+            assert_eq!(outcome.fetched_logs, 0);
+            assert_eq!(outcome.decoded_events, 0);
+        }
+    }
+
     #[test]
     fn with_environment_propagates_settings_parse_error() {
         let telemetry = Telemetry::default();
@@ -1137,7 +1175,7 @@ orderbooks:
     }
 
     #[tokio::test]
-    async fn run_returns_empty_when_leadership_not_acquired() {
+    async fn run_returns_noop_outcomes_when_leadership_not_acquired() {
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
@@ -1149,7 +1187,7 @@ orderbooks:
         prepare_db_baseline(&db);
 
         let outcomes = runner.run(&db).await.expect("run succeeds");
-        assert!(outcomes.is_empty());
+        expect_noop_outcomes(&outcomes, &runner.base_targets);
         assert!(!runner.manifests_loaded);
         assert!(!runner.has_bootstrapped);
         assert_eq!(telemetry.manifest_fetch_count(), 0);
@@ -1170,7 +1208,7 @@ orderbooks:
         let db_skip = RecordingDb::default();
         prepare_db_baseline(&db_skip);
         let outcomes_skip = runner.run(&db_skip).await.expect("skip run succeeds");
-        assert!(outcomes_skip.is_empty());
+        expect_noop_outcomes(&outcomes_skip, &runner.base_targets);
         assert!(!runner.manifests_loaded);
         assert!(!runner.has_bootstrapped);
 
