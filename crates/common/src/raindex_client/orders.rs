@@ -11,7 +11,7 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::primitives::{keccak256, Address, Bytes, U256};
+use alloy::primitives::{b256, keccak256, Address, Bytes, B256, U256};
 use csv::{ReaderBuilder, Terminator};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
@@ -48,9 +48,9 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 pub struct RaindexOrder {
     raindex_client: Rc<RaindexClient>,
     chain_id: u32,
-    id: Bytes,
+    id: B256,
     order_bytes: Bytes,
-    order_hash: Bytes,
+    order_hash: B256,
     owner: Address,
     inputs: Vec<RaindexVault>,
     outputs: Vec<RaindexVault>,
@@ -90,7 +90,7 @@ impl RaindexOrder {
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
             chain_id,
-            id: Bytes::from(keccak256(&id).as_slice().to_vec()),
+            id: keccak256(&id),
             order_bytes: order.order_bytes,
             order_hash: order.order_hash,
             owner: order.owner,
@@ -205,14 +205,14 @@ impl RaindexOrder {
     pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
-    pub fn id(&self) -> Bytes {
-        self.id.clone()
+    pub fn id(&self) -> B256 {
+        self.id
     }
     pub fn order_bytes(&self) -> Bytes {
         self.order_bytes.clone()
     }
-    pub fn order_hash(&self) -> Bytes {
-        self.order_hash.clone()
+    pub fn order_hash(&self) -> B256 {
+        self.order_hash
     }
     pub fn owner(&self) -> Address {
         self.owner
@@ -419,9 +419,9 @@ impl RaindexOrder {
 #[serde(rename_all = "camelCase")]
 pub struct RaindexOrderAsIO {
     #[tsify(type = "Hex")]
-    pub id: Bytes,
+    pub id: B256,
     #[tsify(type = "Hex")]
-    pub order_hash: Bytes,
+    pub order_hash: B256,
     pub active: bool,
 }
 impl_wasm_traits!(RaindexOrderAsIO);
@@ -429,8 +429,8 @@ impl TryFrom<SgOrderAsIO> for RaindexOrderAsIO {
     type Error = RaindexError;
     fn try_from(order: SgOrderAsIO) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: Bytes::from_str(&order.id.0)?,
-            order_hash: Bytes::from_str(&order.order_hash.0)?,
+            id: B256::from_str(&order.id.0)?,
+            order_hash: B256::from_str(&order.order_hash.0)?,
             active: order.active,
         })
     }
@@ -491,7 +491,7 @@ impl RaindexOrderAsIO {
                     field_name
                 )));
             }
-            let order_hash = Bytes::from_str(hash_str)?;
+            let order_hash = B256::from_str(hash_str)?;
             let active = match active_str {
                 "1" => true,
                 "0" => false,
@@ -503,7 +503,7 @@ impl RaindexOrderAsIO {
                 }
             };
             result.push(RaindexOrderAsIO {
-                id: Bytes::from_str("0x01")?,
+                id: b256!("0x0000000000000000000000000000000000000000000000000000000000000001"),
                 order_hash,
                 active,
             });
@@ -693,7 +693,7 @@ impl RaindexClient {
         order_hash: String,
     ) -> Result<RaindexOrder, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
-        let order_hash = Bytes::from_str(&order_hash)?;
+        let order_hash = B256::from_str(&order_hash)?;
         self.get_order_by_hash(
             &OrderbookIdentifier::new(chain_id, orderbook_address),
             order_hash,
@@ -705,7 +705,7 @@ impl RaindexClient {
     pub async fn get_order_by_hash(
         &self,
         ob_id: &OrderbookIdentifier,
-        order_hash: Bytes,
+        order_hash: B256,
     ) -> Result<RaindexOrder, RaindexError> {
         let orderbook_cfg = self.get_orderbook_by_address(ob_id.orderbook_address)?;
         if orderbook_cfg.network.chain_id != ob_id.chain_id {
@@ -746,7 +746,7 @@ pub struct GetOrdersFilters {
     #[tsify(optional)]
     pub active: Option<bool>,
     #[tsify(optional, type = "Hex")]
-    pub order_hash: Option<Bytes>,
+    pub order_hash: Option<B256>,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
 }
@@ -793,9 +793,9 @@ impl RaindexOrder {
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
             chain_id,
-            id: Bytes::from_str(&order.id.0)?,
+            id: B256::from_str(&order.id.0)?,
             order_bytes: Bytes::from_str(&order.order_bytes.0)?,
-            order_hash: Bytes::from_str(&order.order_hash.0)?,
+            order_hash: B256::from_str(&order.order_hash.0)?,
             owner: Address::from_str(&order.owner.0)?,
             inputs: {
                 order
@@ -883,7 +883,7 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::primitives::U256;
+        use alloy::primitives::{b256, U256};
         use httpmock::MockServer;
         use rain_math_float::Float;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -911,7 +911,7 @@ mod tests {
             assert_eq!(parsed.len(), 2);
             assert_eq!(
                 parsed[0].order_hash,
-                Bytes::from_str(
+                B256::from_str(
                     "0xabc0000000000000000000000000000000000000000000000000000000000001"
                 )
                 .unwrap()
@@ -1184,9 +1184,9 @@ mod tests {
                     "data": {
                       "orders": [
                         {
-                          "id": "0x0234",
+                          "id": "0x0000000000000000000000000000000000000000000000000000000000000234",
                           "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-                          "orderHash": "0x2345",
+                          "orderHash": "0x0000000000000000000000000000000000000000000000000000000000002345",
                           "owner": "0x0000000000000000000000000000000000000000",
                           "outputs": [
                             {
@@ -1344,9 +1344,21 @@ mod tests {
 
             let order2 = result[1].clone();
             assert_eq!(order2.chain_id, 137);
-            assert_eq!(order2.id, Bytes::from_str("0x0234").unwrap());
+            assert_eq!(
+                order2.id,
+                B256::from_str(
+                    "0x0000000000000000000000000000000000000000000000000000000000000234"
+                )
+                .unwrap()
+            );
             assert_eq!(order2.order_bytes, Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap());
-            assert_eq!(order2.order_hash, Bytes::from_str("0x2345").unwrap());
+            assert_eq!(
+                order2.order_hash,
+                B256::from_str(
+                    "0x0000000000000000000000000000000000000000000000000000000000002345"
+                )
+                .unwrap()
+            );
             assert_eq!(
                 order2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1440,7 +1452,7 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();
@@ -1526,7 +1538,7 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await;
             assert!(res.is_ok());
@@ -1561,7 +1573,7 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();

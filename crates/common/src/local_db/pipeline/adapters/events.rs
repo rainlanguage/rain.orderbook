@@ -1,4 +1,4 @@
-use alloy::primitives::{Address, Bytes};
+use alloy::primitives::{Address, B256};
 use async_trait::async_trait;
 use url::Url;
 
@@ -42,7 +42,7 @@ impl EventsPipeline for DefaultEventsPipeline {
             .map_err(Into::into)
     }
 
-    async fn block_hash(&self, block_number: u64) -> Result<Bytes, LocalDbError> {
+    async fn block_hash(&self, block_number: u64) -> Result<B256, LocalDbError> {
         let block = self
             .rpc_client
             .get_block_by_number(block_number)
@@ -90,10 +90,8 @@ impl EventsPipeline for DefaultEventsPipeline {
 mod tests {
     use super::*;
     use crate::rpc_client::RpcClientError;
-    use alloy::{
-        primitives::{B256, U256},
-        sol_types::SolEvent,
-    };
+    use alloy::primitives::{b256, Bytes, U256};
+    use alloy::sol_types::SolEvent;
     use httpmock::MockServer;
     use rain_orderbook_bindings::OrderBook::MetaV1_2;
     use serde_json::json;
@@ -126,15 +124,11 @@ mod tests {
             data: Bytes::new(),
             block_number: U256::from(1),
             block_timestamp: Some(U256::from(2)),
-            transaction_hash: B256::from_str(
-                "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
-            )
-            .unwrap(),
+            transaction_hash: b256!(
+                "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+            ),
             transaction_index: "0x0".to_string(),
-            block_hash: B256::from_str(
-                "0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa",
-            )
-            .unwrap(),
+            block_hash: b256!("0xbbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa"),
             log_index: U256::ZERO,
             removed: false,
         };
@@ -206,7 +200,7 @@ mod tests {
             .block_hash(100)
             .await
             .expect("block hash should deserialize");
-        let expected = Bytes::from_str(polygon_hash).expect("polygon hash should parse");
+        let expected = B256::from_str(polygon_hash).expect("polygon hash should parse");
         assert_eq!(block_hash, expected);
 
         mock.assert();
