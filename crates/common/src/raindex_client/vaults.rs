@@ -1526,7 +1526,7 @@ mod tests {
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
-        use alloy::primitives::{address, Address, Bytes};
+        use alloy::primitives::{address, b256, Address, Bytes};
         use rain_math_float::Float;
         use serde_json;
         use std::cell::RefCell;
@@ -1699,7 +1699,9 @@ mod tests {
             let running_balance = Float::parse("5".to_string()).unwrap();
 
             let balance_change = LocalDbVaultBalanceChange {
-                transaction_hash: Bytes::from_str("0xdeadbeef").unwrap(),
+                transaction_hash: b256!(
+                    "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+                ),
                 log_index: 1,
                 block_number: 1234,
                 block_timestamp: 5678,
@@ -1743,7 +1745,10 @@ mod tests {
             assert_eq!(change.formatted_amount(), "1");
             assert_eq!(change.formatted_new_balance(), "5");
             assert_eq!(change.formatted_old_balance(), "4");
-            assert_eq!(change.transaction().id(), "0xdeadbeef");
+            assert_eq!(
+                change.transaction().id(),
+                "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+            );
         }
 
         #[wasm_bindgen_test]
@@ -1837,7 +1842,7 @@ mod tests {
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy::hex::encode_prefixed;
-        use alloy::primitives::address;
+        use alloy::primitives::{address, b256};
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
         use rain_orderbook_bindings::IERC20::decimalsCall;
@@ -1854,7 +1859,7 @@ mod tests {
             let chain_id = 42161;
             let orderbook = address!("0x0000000000000000000000000000000000000001");
             let transaction = RaindexTransaction::from_local_parts(
-                Bytes::from_str("0xdeadbeef").unwrap(),
+                b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef"),
                 address!("0x0000000000000000000000000000000000000002"),
                 123,
                 456,
@@ -1926,7 +1931,7 @@ mod tests {
             let chain_id = 1;
             let orderbook = address!("0x0000000000000000000000000000000000000004");
             let transaction = RaindexTransaction::from_local_parts(
-                Bytes::from_str("0xfeedface").unwrap(),
+                b256!("0x00000000000000000000000000000000000000000000000000000000feedface"),
                 address!("0x0000000000000000000000000000000000000005"),
                 111,
                 222,
@@ -2365,10 +2370,7 @@ mod tests {
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),
-                Bytes::from_str(
-                    "0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22"
-                )
-                .unwrap()
+                b256!("0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22")
             );
             assert_eq!(
                 result[0].transaction.from(),
