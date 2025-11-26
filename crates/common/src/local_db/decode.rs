@@ -1,7 +1,7 @@
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
-    primitives::{Address, Bytes, B256, U256},
+    primitives::{Address, B256, U256},
     sol_types::{abi::token::WordToken, SolEvent},
 };
 use core::convert::TryFrom;
@@ -78,7 +78,7 @@ pub struct DecodedEventData<T> {
     pub event_type: EventType,
     pub block_number: U256,
     pub block_timestamp: U256,
-    pub transaction_hash: Bytes,
+    pub transaction_hash: B256,
     pub log_index: U256,
     pub decoded_data: T,
 }
@@ -173,7 +173,7 @@ pub fn decode_events(
                 event_type,
                 block_number: event.block_number,
                 block_timestamp: event.block_timestamp.unwrap_or_default(),
-                transaction_hash: Bytes::from(event.transaction_hash.as_slice().to_vec()),
+                transaction_hash: event.transaction_hash,
                 log_index: event.log_index,
                 decoded_data,
             })
@@ -208,7 +208,7 @@ mod test_helpers {
     use super::*;
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
-    use alloy::primitives::{address, Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{address, b256, Address, Bytes, FixedBytes, B256, U256};
     use rain_orderbook_bindings::{
         IOrderBookV5::{
             AddOrderV3, AfterClearV2, ClearConfigV2, ClearStateChangeV2, ClearV3, DepositV2,
@@ -262,21 +262,12 @@ mod test_helpers {
         }
     }
 
-    fn parse_b256(value: &str) -> B256 {
-        let trimmed = value.trim_start_matches("0x").trim_start_matches("0X");
-        if trimmed.is_empty() {
-            return B256::ZERO;
-        }
-        let parsed = U256::from_str_radix(trimmed, 16).expect("valid hex literal for b256");
-        B256::from(parsed)
-    }
-
     fn new_log_entry(
         topic: Bytes,
         data: Bytes,
         block_number: &str,
         block_timestamp: Option<&str>,
-        transaction_hash: &str,
+        transaction_hash: B256,
         log_index: &str,
     ) -> LogEntryResponse {
         LogEntryResponse {
@@ -285,7 +276,7 @@ mod test_helpers {
             data,
             block_number: parse_u256(block_number),
             block_timestamp: block_timestamp.map(parse_u256),
-            transaction_hash: parse_b256(transaction_hash),
+            transaction_hash,
             transaction_index: "0x0".to_string(),
             block_hash: B256::ZERO,
             log_index: parse_u256(log_index),
@@ -316,7 +307,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x123456",
             Some("0x64b8c123"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
             "0x0",
         )
     }
@@ -338,7 +329,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x123456",
             Some("0x64b8c123"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
             "0x0",
         )
     }
@@ -371,7 +362,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x123457",
             Some("0x64b8c124"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891"),
             "0x1",
         )
     }
@@ -399,7 +390,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x123458",
             Some("0x64b8c125"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892"),
             "0x2",
         )
     }
@@ -423,7 +414,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x123459",
             Some("0x64b8c126"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893"),
             "0x3",
         )
     }
@@ -445,7 +436,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x12345a",
             Some("0x64b8c127"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894"),
             "0x4",
         )
     }
@@ -463,7 +454,7 @@ mod test_helpers {
             Bytes::from_str(&encoded).unwrap(),
             "0x12345c",
             Some("0x64b8c129"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896"),
             "0x6",
         );
         entry.address = address!("0x0123456789abcdef0123456789abcdef01234567");
@@ -512,7 +503,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x12345b",
             Some("0x64b8c128"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895"),
             "0x5",
         )
     }
@@ -537,7 +528,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x12345c",
             Some("0x64b8c129"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896"),
             "0x6",
         )
     }
@@ -563,7 +554,7 @@ mod test_helpers {
             Bytes::from(encoded_data),
             "0x12345d",
             Some("0x64b8c12a"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567897",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567897"),
             "0x7",
         )
     }
@@ -929,10 +920,7 @@ mod test_helpers {
         assert_eq!(decoded_event.event_type, EventType::AddOrderV3);
         assert_eq!(decoded_event.block_number, U256::ZERO);
         assert_eq!(decoded_event.block_timestamp, U256::ZERO);
-        assert_eq!(
-            decoded_event.transaction_hash,
-            Bytes::from(vec![0u8; B256::len_bytes()])
-        );
+        assert_eq!(decoded_event.transaction_hash, B256::ZERO);
         assert_eq!(decoded_event.log_index, U256::ZERO);
     }
 
@@ -1035,12 +1023,12 @@ mod test_helpers {
         assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
     }
 
-    fn mk_event(block: u64, log_index: u64, tx: &str) -> DecodedEventData<DecodedEvent> {
+    fn mk_event(block: u64, log_index: u64, tx: B256) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::Unknown,
             block_number: U256::from(block),
             block_timestamp: U256::ZERO,
-            transaction_hash: Bytes::from(parse_b256(tx).as_slice().to_vec()),
+            transaction_hash: tx,
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x".to_string(),
@@ -1052,58 +1040,84 @@ mod test_helpers {
     #[test]
     fn sort_events_by_block_and_log_orders_stably() {
         let mut events = vec![
-            mk_event(2, 1, "0x10"),
-            mk_event(1, 2, "0x20"),
-            mk_event(1, 1, "0x30"),
+            mk_event(
+                2,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000010"),
+            ),
+            mk_event(
+                1,
+                2,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000020"),
+            ),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000030"),
+            ),
         ];
         sort_decoded_events_by_block_and_log(&mut events);
         assert_eq!(
             events[0].transaction_hash,
-            Bytes::from(parse_b256("0x30").as_slice().to_vec())
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000030")
         );
         assert_eq!(
             events[1].transaction_hash,
-            Bytes::from(parse_b256("0x20").as_slice().to_vec())
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000020")
         );
         assert_eq!(
             events[2].transaction_hash,
-            Bytes::from(parse_b256("0x10").as_slice().to_vec())
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000010")
         );
     }
 
     #[test]
     fn sort_events_preserves_relative_order_for_identical_keys() {
         let mut events = vec![
-            mk_event(1, 1, "0x01"),
-            mk_event(1, 1, "0x02"),
-            mk_event(1, 1, "0x03"),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+            ),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000002"),
+            ),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000003"),
+            ),
         ];
-        let expected_order: Vec<_> = events
-            .iter()
-            .map(|event| event.transaction_hash.clone())
-            .collect();
+        let expected_order: Vec<_> = events.iter().map(|event| event.transaction_hash).collect();
         sort_decoded_events_by_block_and_log(&mut events);
-        let actual_order: Vec<_> = events
-            .iter()
-            .map(|event| event.transaction_hash.clone())
-            .collect();
+        let actual_order: Vec<_> = events.iter().map(|event| event.transaction_hash).collect();
         assert_eq!(actual_order, expected_order);
     }
 
     #[test]
     fn sort_events_orders_large_values() {
         let mut events = vec![
-            mk_event(u64::MAX, 0, "0x01"),
-            mk_event(u64::MAX - 1, 1, "0x02"),
+            mk_event(
+                u64::MAX,
+                0,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+            ),
+            mk_event(
+                u64::MAX - 1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000002"),
+            ),
         ];
         sort_decoded_events_by_block_and_log(&mut events);
         assert_eq!(
             events[0].transaction_hash,
-            Bytes::from(parse_b256("0x02").as_slice().to_vec())
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000002")
         );
         assert_eq!(
             events[1].transaction_hash,
-            Bytes::from(parse_b256("0x01").as_slice().to_vec())
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000001")
         );
     }
 }

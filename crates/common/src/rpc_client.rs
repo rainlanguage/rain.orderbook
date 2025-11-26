@@ -22,7 +22,7 @@ pub struct RpcClient {
 #[serde(rename_all = "camelCase")]
 pub struct BlockResponse {
     pub timestamp: U256,
-    pub hash: Bytes,
+    pub hash: B256,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
 }
@@ -239,10 +239,9 @@ impl From<TransportError> for RpcClientError {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
-    use alloy::{hex, primitives::Bytes};
+    use alloy::{hex, primitives::b256};
     use httpmock::MockServer;
     use serde_json::json;
-    use std::str::FromStr;
 
     fn sample_block_response_with_hash(number: &str, timestamp: &str, hash: &str) -> String {
         json!({
@@ -376,8 +375,7 @@ mod tests {
     async fn test_get_block_by_number_ok() {
         let server = MockServer::start();
         let expected_hash =
-            Bytes::from_str("0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899")
-                .unwrap();
+            b256!("0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899");
         let mock = server.mock(|when, then| {
             when.method(httpmock::Method::POST)
                 .header("content-type", "application/json")
@@ -413,8 +411,7 @@ mod tests {
     #[test]
     fn block_response_includes_hash_and_extra_fields() {
         let expected_hash =
-            Bytes::from_str("0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899")
-                .unwrap();
+            b256!("0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899");
         let body =
             sample_block_response_with_hash("0x2a", "0x5f5e100", &format!("{:#x}", expected_hash));
         let parsed: serde_json::Value =

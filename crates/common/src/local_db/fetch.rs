@@ -436,13 +436,14 @@ mod tests {
         }
 
         fn sample_block_response(number: &str, timestamp: Option<&str>) -> String {
+            let hash = "0x0000000000000000000000000000000000000000000000000000000000010101";
             let mut block = json!({
                 "mixHash": "0x01020304",
                 "difficulty": "0x01",
                 "extraData": "0x02",
                 "gasLimit": "0xffff",
                 "gasUsed": "0xff",
-                "hash": "0x010101",
+                "hash": hash,
                 "logsBloom": "0x00",
                 "miner": "0x0a",
                 "nonce": "0x01",
