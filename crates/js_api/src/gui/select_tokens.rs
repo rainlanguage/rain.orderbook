@@ -951,6 +951,7 @@ _ _: 0 0;
 
             let mut gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
+                None,
                 "some-deployment".to_string(),
                 None,
             )
@@ -1000,6 +1001,7 @@ _ _: 0 0;
 
             let mut gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
+                None,
                 "normal-deployment".to_string(),
                 None,
             )
@@ -1046,6 +1048,7 @@ _ _: 0 0;
 
             let gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
+                None,
                 "some-deployment".to_string(),
                 None,
             )
