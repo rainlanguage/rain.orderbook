@@ -19,6 +19,7 @@ use insert::InsertError;
 use query::{LocalDbQueryError, SqlBuildError};
 use rain_orderbook_app_settings::remote::manifest::FetchManifestError;
 use rain_orderbook_app_settings::yaml::YamlError;
+use std::array::TryFromSliceError;
 use std::num::ParseIntError;
 use strict_yaml_rust::ScanError;
 use tokio::task::JoinError;
@@ -66,6 +67,8 @@ pub enum LocalDbError {
         #[source]
         source: ParseIntError,
     },
+    #[error("Block {block_number} not found when fetching block hash")]
+    BlockHashNotFound { block_number: u64 },
 
     #[error("Events is not in expected array format")]
     InvalidEventsFormat,
@@ -75,6 +78,28 @@ pub enum LocalDbError {
 
     #[error("Configuration error: {message}")]
     Config { message: String },
+
+    #[error("Missing runner target for chain {chain_id} orderbook {orderbook_address}")]
+    MissingRunnerTarget {
+        chain_id: u32,
+        orderbook_address: Address,
+    },
+
+    #[error(
+        "Network '{network_key}' has mismatched chain ids (expected {expected}, found {found})"
+    )]
+    RunnerNetworkChainIdMismatch {
+        network_key: String,
+        expected: u32,
+        found: u32,
+    },
+
+    #[error("Failed to build dump url '{url}'")]
+    DumpUrlConstructionFailed {
+        url: String,
+        #[source]
+        source: url::ParseError,
+    },
 
     #[error("Failed to fetch token metadata for {address} after {attempts} attempts")]
     TokenMetadataFetchFailed {
@@ -174,6 +199,9 @@ pub enum LocalDbError {
 
     #[error(transparent)]
     DecodeError(#[from] DecodeError),
+
+    #[error(transparent)]
+    TryFromSliceError(#[from] TryFromSliceError),
 }
 
 impl LocalDbError {
@@ -196,6 +224,10 @@ impl LocalDbError {
             LocalDbError::InvalidBlockNumberString { value, .. } => {
                 format!("Invalid block number provided: {}", value)
             }
+            LocalDbError::BlockHashNotFound { block_number } => format!(
+                "Block {} not found when fetching block hash",
+                block_number
+            ),
             LocalDbError::InvalidEventsFormat => {
                 "Events data is not in the expected array format".to_string()
             }
@@ -213,6 +245,24 @@ impl LocalDbError {
                 network
             ),
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
+            LocalDbError::MissingRunnerTarget {
+                chain_id,
+                orderbook_address,
+            } => format!(
+                "Missing runner target for chain {} orderbook {:#x}",
+                chain_id, orderbook_address
+            ),
+            LocalDbError::RunnerNetworkChainIdMismatch {
+                network_key,
+                expected,
+                found,
+            } => format!(
+                "Network '{}' has mismatched chain ids (expected {}, found {})",
+                network_key, expected, found
+            ),
+            LocalDbError::DumpUrlConstructionFailed { url, source } => {
+                format!("Failed to build dump url '{}': {}", url, source)
+            }
             LocalDbError::DecodeError(err) => format!("Event decoding error: {}", err),
             LocalDbError::TableCheckFailed(err) => {
                 format!("Failed to check required tables: {}", err)
@@ -281,11 +331,12 @@ impl LocalDbError {
             LocalDbError::ERC20Error(err) => format!("ERC20 error: {}", err),
             LocalDbError::FetchConfigError(err) => format!("Fetch configuration error: {}", err),
             LocalDbError::Export(err) => format!("Export error: {}", err),
+            LocalDbError::TryFromSliceError(err) => format!("TryFromSlice error: {}", err),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OrderbookIdentifier {
     pub chain_id: u32,
     pub orderbook_address: Address,

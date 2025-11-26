@@ -131,10 +131,11 @@ mod tests {
     use crate::local_db::query::{
         LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, Bytes};
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
     use serde_json::json;
+    use std::str::FromStr;
 
     const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
@@ -229,8 +230,8 @@ mod tests {
             chain_id: sample_ob_id().chain_id,
             orderbook_address: sample_ob_id().orderbook_address,
             last_block,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }
     }
 

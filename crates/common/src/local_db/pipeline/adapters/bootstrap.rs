@@ -144,13 +144,14 @@ pub trait BootstrapPipeline {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::str::FromStr;
     use std::sync::Mutex;
 
     use super::*;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, Bytes};
     use async_trait::async_trait;
     use serde_json::json;
 
@@ -390,8 +391,8 @@ mod tests {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,
             last_block: 123,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }]);
 
         let db = MockDb::default()
@@ -493,8 +494,8 @@ mod tests {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,
             last_block: 42,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }]);
 
         let db = MockDb::default()

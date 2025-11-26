@@ -1,7 +1,7 @@
 use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
 use super::{
-    ApplyPipeline, EventsPipeline, StatusBus, SyncConfig, SyncOutcome, TokensPipeline,
-    WindowPipeline,
+    ApplyPipeline, ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, SyncOutcome,
+    TokensPipeline, WindowPipeline,
 };
 use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
@@ -13,7 +13,7 @@ use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, 
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, B256};
 use std::collections::{BTreeSet, HashSet};
 use url::Url;
 
@@ -102,11 +102,17 @@ where
             .resolve_token_upserts(input, &token_addresses, &existing_tokens)
             .await?;
 
+        let target_hash_bytes = self.events.block_hash(target_block).await?;
+        let target_hash = B256::try_from(target_hash_bytes.as_ref())?;
+
         self.apply_changes(
             db,
             ApplyContext {
-                ob_id: &input.ob_id,
-                target_block,
+                target_info: &ApplyPipelineTargetInfo {
+                    ob_id: input.ob_id.clone(),
+                    block: target_block,
+                    hash: target_hash,
+                },
                 raw_logs: &all_raw_logs,
                 decoded_events: &decoded_events,
                 existing_tokens: &existing_tokens,
@@ -297,8 +303,7 @@ where
     {
         self.status.send("Building SQL batch").await?;
         let batch = self.apply.build_batch(
-            ctx.ob_id,
-            ctx.target_block,
+            ctx.target_info,
             ctx.raw_logs,
             ctx.decoded_events,
             ctx.existing_tokens,
@@ -310,14 +315,13 @@ where
 
         self.status.send("Running post-sync export").await?;
         self.apply
-            .export_dump(db, ctx.ob_id, ctx.target_block)
+            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.block)
             .await
     }
 }
 
 struct ApplyContext<'a> {
-    ob_id: &'a OrderbookIdentifier,
-    target_block: u64,
+    target_info: &'a ApplyPipelineTargetInfo,
     raw_logs: &'a [LogEntryResponse],
     decoded_events: &'a [DecodedEventData<DecodedEvent>],
     existing_tokens: &'a [Erc20TokenRow],
@@ -343,13 +347,8 @@ mod tests {
     use crate::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
-    use crate::local_db::pipeline::adapters::bootstrap::{
-        BootstrapConfig, BootstrapPipeline, BootstrapState,
-    };
-    use crate::local_db::pipeline::{
-        ApplyPipeline, EventsPipeline, FinalityConfig, StatusBus, SyncConfig, SyncOutcome,
-        TokensPipeline, WindowOverrides, WindowPipeline,
-    };
+    use crate::local_db::pipeline::adapters::bootstrap::BootstrapState;
+    use crate::local_db::pipeline::{ApplyPipelineTargetInfo, FinalityConfig, WindowOverrides};
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
@@ -565,7 +564,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _target_key: &OrderbookIdentifier,
+            _ob_id: &OrderbookIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -686,6 +685,7 @@ mod tests {
         orderbook_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         store_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         decode_results: Mutex<VecDeque<Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>>>,
+        block_hashes: Mutex<VecDeque<Result<Bytes, LocalDbError>>>,
         orderbook_calls: Mutex<Vec<(Address, u64, u64)>>,
         store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
         store_barrier: Mutex<Option<Arc<Barrier>>>,
@@ -714,6 +714,10 @@ mod tests {
             result: Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>,
         ) {
             self.inner.decode_results.lock().unwrap().push_back(result);
+        }
+
+        fn push_block_hash(&self, result: Result<Bytes, LocalDbError>) {
+            self.inner.block_hashes.lock().unwrap().push_back(result);
         }
 
         fn orderbook_calls(&self) -> Vec<(Address, u64, u64)> {
@@ -802,6 +806,15 @@ mod tests {
                 .unwrap()
                 .pop_front()
                 .unwrap_or(Ok(Vec::new()))
+        }
+
+        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
+            self.inner
+                .block_hashes
+                .lock()
+                .unwrap()
+                .pop_front()
+                .unwrap_or_else(|| Ok(Bytes::from_static(&[0u8; 32])))
         }
     }
 
@@ -904,6 +917,7 @@ mod tests {
         decoded_order: Vec<(U256, U256)>,
         existing_tokens: Vec<Address>,
         upsert_tokens: Vec<Address>,
+        end_block_hash: Bytes,
     }
 
     #[derive(Clone, Default)]
@@ -951,8 +965,7 @@ mod tests {
     impl ApplyPipeline for MockApply {
         fn build_batch(
             &self,
-            _target: &OrderbookIdentifier,
-            _target_block: u64,
+            target_info: &ApplyPipelineTargetInfo,
             raw_logs: &[LogEntryResponse],
             decoded_events: &[DecodedEventData<DecodedEvent>],
             existing_tokens: &[Erc20TokenRow],
@@ -977,6 +990,7 @@ mod tests {
                 decoded_order,
                 existing_tokens,
                 upsert_tokens,
+                end_block_hash: target_info.hash.into(),
             });
 
             self.inner
@@ -1147,6 +1161,9 @@ mod tests {
         let store_logs = vec![log_entry(store, 12, 0, 3)];
 
         harness.events.set_latest_blocks(vec![Ok(12)]);
+        harness
+            .events
+            .push_block_hash(Ok(Bytes::from_static(&[1u8; 32])));
         harness.window.set_results(vec![Ok((10, 12))]);
         harness
             .events
@@ -1213,6 +1230,7 @@ mod tests {
         );
         assert_eq!(build.existing_tokens, vec![token_a]);
         assert_eq!(build.upsert_tokens, vec![token_b]);
+        assert_eq!(build.end_block_hash, Bytes::from_static(&[1u8; 32]));
 
         assert_eq!(harness.apply.persist_calls().len(), 1);
         assert_eq!(harness.apply.export_calls().len(), 1);
