@@ -9,7 +9,7 @@ use crate::raindex_client::{
     transactions::RaindexTransaction,
     vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
 };
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, Bytes, B256, U256};
 use rain_orderbook_subgraph_client::{
     types::{common::SgTrade, Id},
     SgPaginationArgs,
@@ -143,9 +143,9 @@ impl RaindexOrder {
                 let exec = JsCallbackExecutor::from_ref(&db_cb);
 
                 #[cfg(target_family = "wasm")]
-                let order_hash = Bytes::from_str(&self.order_hash())?;
+                let order_hash = B256::from_str(&self.order_hash())?;
                 #[cfg(not(target_family = "wasm"))]
-                let order_hash = self.order_hash();
+                let order_hash = B256::from_str(&self.order_hash().to_string())?;
 
                 let local_trades = fetch_order_trades(
                     &exec,
@@ -265,7 +265,7 @@ impl RaindexOrder {
                 let exec = JsCallbackExecutor::from_ref(&db_cb);
 
                 #[cfg(target_family = "wasm")]
-                let order_hash = Bytes::from_str(&self.order_hash())?;
+                let order_hash = B256::from_str(&self.order_hash())?;
                 #[cfg(not(target_family = "wasm"))]
                 let order_hash = self.order_hash();
 
@@ -338,7 +338,7 @@ impl RaindexTrade {
 
         let input_change = RaindexVaultBalanceChange::try_from_local_trade_side(
             chain_id,
-            trade.orderbook_address,
+            trade.orderbook,
             &transaction,
             trade.input_vault_id,
             LocalTradeTokenInfo {
@@ -356,7 +356,7 @@ impl RaindexTrade {
 
         let output_change = RaindexVaultBalanceChange::try_from_local_trade_side(
             chain_id,
-            trade.orderbook_address,
+            trade.orderbook,
             &transaction,
             trade.output_vault_id,
             LocalTradeTokenInfo {
@@ -374,12 +374,12 @@ impl RaindexTrade {
 
         Ok(RaindexTrade {
             id: Bytes::from_str(&trade.trade_id)?,
-            order_hash: trade.order_hash,
+            order_hash: trade.order_hash.into(),
             transaction,
             input_vault_balance_change: input_change,
             output_vault_balance_change: output_change,
             timestamp: U256::from(trade.block_timestamp),
-            orderbook: trade.orderbook_address,
+            orderbook: trade.orderbook,
         })
     }
 }
@@ -401,7 +401,7 @@ mod test_helpers {
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
-        use alloy::primitives::{address, Address, Bytes, U256};
+        use alloy::primitives::{address, b256, bytes, Address, Bytes, B256, U256};
         use js_sys::Array;
         use rain_orderbook_subgraph_client::utils::float::{F1, F2, F3, NEG2};
         use serde_json::{self, json};
@@ -418,22 +418,20 @@ mod test_helpers {
             output_vault: LocalDbVault,
             trade: LocalDbOrderTrade,
             orderbook_address: Address,
-            order_hash: Bytes,
+            order_hash: B256,
             input_token: Address,
             output_token: Address,
         }
 
         fn build_local_trade_fixture(
-            tx_hash: &str,
+            tx_hash: B256,
             trade_log_index: u64,
             trade_count: u64,
         ) -> LocalTradeFixture {
             const CHAIN_ID: u32 = 42161;
             let orderbook_address = address!("0x2f209e5b67a33b8fe96e28f24628df6da301c8eb");
-            let order_hash = Bytes::from_str(
-                "0x0000000000000000000000000000000000000000000000000000000000000abc",
-            )
-            .unwrap();
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
             let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
             let input_vault_id = U256::from_str("0x01").unwrap();
             let output_vault_id = U256::from_str("0x02").unwrap();
@@ -448,18 +446,17 @@ mod test_helpers {
             const OUTPUT_RUNNING_HEX: &str =
                 "0x0000000000000000000000000000000000000000000000000000000000000001";
 
+            let tx_hash_hex = format!("{tx_hash:#x}");
             let trade_id = format!(
                 "0x{}{:016x}",
-                tx_hash.trim_start_matches("0x"),
+                tx_hash_hex.trim_start_matches("0x"),
                 trade_log_index
             )
             .to_lowercase();
 
-            let order_bytes = Bytes::from_str(
-                "0x00000000000000000000000000000000000000000000000000000000000000ff",
-            )
-            .unwrap();
-            let transaction_hash_bytes = Bytes::from_str(tx_hash).unwrap();
+            let order_bytes =
+                bytes!("0x00000000000000000000000000000000000000000000000000000000000000ff");
+            let transaction_hash = tx_hash;
             let transaction_sender = address!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
 
             let input_vault = LocalDbVault {
@@ -508,7 +505,7 @@ mod test_helpers {
                 block_number: 123_456,
                 orderbook_address,
                 order_bytes: order_bytes.clone(),
-                transaction_hash: transaction_hash_bytes.clone(),
+                transaction_hash,
                 inputs: Some(order_inputs_payload),
                 outputs: Some(order_outputs_payload),
                 trade_count,
@@ -518,11 +515,11 @@ mod test_helpers {
 
             let trade = LocalDbOrderTrade {
                 trade_kind: "take".into(),
-                orderbook_address,
+                orderbook: orderbook_address,
                 order_hash: order_hash.clone(),
                 order_owner: owner,
                 order_nonce: "0".into(),
-                transaction_hash: transaction_hash_bytes.clone(),
+                transaction_hash,
                 log_index: trade_log_index,
                 block_number: 123_460,
                 block_timestamp: 1_700_000_000,
@@ -662,7 +659,8 @@ mod test_helpers {
         #[wasm_bindgen_test]
         async fn test_get_trades_list_local_db_path() {
             let trade_log_index = 1u64;
-            let tx_hash = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let tx_hash =
+                b256!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
             let fixture = build_local_trade_fixture(tx_hash, trade_log_index, 4);
             let trade_id = fixture.trade.trade_id.clone();
 
@@ -756,7 +754,7 @@ mod test_helpers {
         #[wasm_bindgen_test]
         async fn test_get_trade_count_local_db_path() {
             let fixture = build_local_trade_fixture(
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                b256!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
                 3,
                 7,
             );
@@ -793,7 +791,7 @@ mod test_helpers {
             local_db::OrderbookIdentifier,
             raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS},
         };
-        use alloy::primitives::Bytes;
+        use alloy::primitives::{b256, Bytes};
         use httpmock::MockServer;
         use rain_math_float::Float;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -923,7 +921,7 @@ mod test_helpers {
               "id": "0x0123",
               "tradeEvent": {
                 "transaction": {
-                  "id": "0x0123",
+                  "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
                   "from": "0x0000000000000000000000000000000000000000",
                   "blockNumber": "0",
                   "timestamp": "0"
@@ -931,7 +929,7 @@ mod test_helpers {
                 "sender": "sender1"
               },
               "outputVaultBalanceChange": {
-                "id": "0x0123",
+                "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
                 "__typename": "TradeVaultBalanceChange",
                 "amount": NEG2,
                 "newVaultBalance": F0,
@@ -949,7 +947,7 @@ mod test_helpers {
                 },
                 "timestamp": "1700000000",
                 "transaction": {
-                  "id": "0x0123",
+                  "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
                   "from": "0x0000000000000000000000000000000000000000",
                   "blockNumber": "0",
                   "timestamp": "1700000000"
@@ -981,7 +979,7 @@ mod test_helpers {
                 },
                 "timestamp": "1700000000",
                 "transaction": {
-                  "id": "0x0123",
+                  "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
                   "from": "0x0000000000000000000000000000000000000000",
                   "blockNumber": "0",
                   "timestamp": "1700000000"
@@ -1003,7 +1001,7 @@ mod test_helpers {
                 "id": "0x0234",
                 "tradeEvent": {
                   "transaction": {
-                    "id": "0x0234",
+                    "id": "0x0000000000000000000000000000000000000000000000000000000000000234",
                     "from": "0x0000000000000000000000000000000000000001",
                     "blockNumber": "0",
                     "timestamp": "0"
@@ -1029,7 +1027,7 @@ mod test_helpers {
                   },
                   "timestamp": "1700086400",
                   "transaction": {
-                    "id": "0x0234",
+                    "id": "0x0000000000000000000000000000000000000000000000000000000000000234",
                     "from": "0x0000000000000000000000000000000000000001",
                     "blockNumber": "0",
                     "timestamp": "1700086400"
@@ -1061,7 +1059,7 @@ mod test_helpers {
                   },
                   "timestamp": "0",
                   "transaction": {
-                    "id": "0x0234",
+                    "id": "0x0000000000000000000000000000000000000000000000000000000000000234",
                     "from": "0x0000000000000000000000000000000000000005",
                     "blockNumber": "0",
                     "timestamp": "1700086400"
@@ -1122,19 +1120,18 @@ mod test_helpers {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();
             let trades = order.get_trades_list(None, None, None).await.unwrap();
             assert_eq!(trades.len(), 2);
 
+            let tx_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000123");
             let trade1 = &trades[0].clone();
             assert_eq!(trade1.id(), Bytes::from_str("0x0123").unwrap());
-            assert_eq!(
-                trade1.transaction().id(),
-                Bytes::from_str("0x0123").unwrap()
-            );
+            assert_eq!(trade1.transaction().id(), tx_hash);
             assert_eq!(
                 trade1.transaction().from(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1186,7 +1183,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.output_vault_balance_change().transaction().id(),
-                Bytes::from_str("0x0123").unwrap()
+                tx_hash
             );
             assert_eq!(
                 trade1.output_vault_balance_change().transaction().from(),
@@ -1246,7 +1243,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade1.input_vault_balance_change().transaction().id(),
-                Bytes::from_str("0x0123").unwrap()
+                tx_hash
             );
             assert_eq!(
                 trade1
@@ -1309,7 +1306,7 @@ mod test_helpers {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();
@@ -1317,8 +1314,10 @@ mod test_helpers {
                 .get_trade_detail(Bytes::from_str("0x0123").unwrap())
                 .await
                 .unwrap();
+            let tx_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000123");
             assert_eq!(trade.id(), Bytes::from_str("0x0123").unwrap());
-            assert_eq!(trade.transaction().id(), Bytes::from_str("0x0123").unwrap());
+            assert_eq!(trade.transaction().id(), tx_hash);
             assert_eq!(
                 trade.transaction().from(),
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1370,7 +1369,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.output_vault_balance_change().transaction().id(),
-                Bytes::from_str("0x0123").unwrap()
+                tx_hash
             );
             assert_eq!(
                 trade
@@ -1426,7 +1425,7 @@ mod test_helpers {
             );
             assert_eq!(
                 trade.input_vault_balance_change().transaction().id(),
-                Bytes::from_str("0x0123").unwrap()
+                tx_hash
             );
             assert_eq!(
                 trade.input_vault_balance_change().transaction().from(),
@@ -1490,7 +1489,7 @@ mod test_helpers {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();

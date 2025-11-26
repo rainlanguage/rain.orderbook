@@ -1,4 +1,4 @@
-use alloy::primitives::Bytes;
+use alloy::primitives::B256;
 
 use crate::local_db::query::fetch_order_trades_count::{
     build_fetch_trade_count_stmt, extract_trade_count, LocalDbTradeCountRow,
@@ -9,7 +9,7 @@ use crate::local_db::OrderbookIdentifier;
 pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     ob_id: &OrderbookIdentifier,
-    order_hash: Bytes,
+    order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<u64, LocalDbQueryError> {
@@ -23,16 +23,16 @@ mod wasm_tests {
     use super::*;
     use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
-    use alloy::primitives::Address;
+    use alloy::primitives::{b256, Address};
     use std::cell::RefCell;
     use std::rc::Rc;
-    use std::str::FromStr;
     use wasm_bindgen_test::*;
     use wasm_bindgen_utils::prelude::wasm_bindgen;
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_and_extracts_count() {
-        let order_hash = Bytes::from_str("0xabcd").unwrap();
+        let order_hash =
+            b256!("0x000000000000000000000000000000000000000000000000000000000000abcd");
         let start = Some(10);
         let end = Some(20);
 
@@ -80,7 +80,7 @@ mod wasm_tests {
         let res = super::fetch_order_trades_count(
             &exec,
             &OrderbookIdentifier::new(1, Address::ZERO),
-            Bytes::from_str("0xdeadbeef").unwrap(),
+            b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef"),
             None,
             None,
         )
