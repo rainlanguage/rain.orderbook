@@ -51,6 +51,22 @@ where
     S: StatusBus + 'static,
     L: Leadership + 'static,
 {
+    fn noop_outcomes(&self) -> Vec<SyncOutcome> {
+        self.base_targets
+            .iter()
+            .map(|target| {
+                let deployment_block = target.inputs.cfg.deployment_block;
+                SyncOutcome {
+                    ob_id: target.inputs.ob_id.clone(),
+                    start_block: deployment_block,
+                    target_block: deployment_block,
+                    fetched_logs: 0,
+                    decoded_events: 0,
+                }
+            })
+            .collect()
+    }
+
     pub fn with_environment(
         settings_yaml: String,
         environment: RunnerEnvironment<B, W, E, T, A, S>,
@@ -78,7 +94,7 @@ where
         if self.leadership_guard.is_none() {
             match self.leadership.acquire().await? {
                 Some(guard) => self.leadership_guard = Some(guard),
-                None => return Ok(vec![]),
+                None => return Ok(self.noop_outcomes()),
             }
         }
 
@@ -177,6 +193,7 @@ mod tests {
     use crate::local_db::pipeline::runner::environment::{
         DumpFuture, EnginePipelines, ManifestFuture,
     };
+    use crate::local_db::pipeline::runner::utils::RunnerTarget;
     use crate::local_db::pipeline::{
         ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, TokensPipeline,
         WindowPipeline,
@@ -1021,6 +1038,21 @@ orderbooks:
         assert_eq!(addrs, expected_sorted);
     }
 
+    fn expect_noop_outcomes(outcomes: &[SyncOutcome], targets: &[RunnerTarget]) {
+        assert_eq!(outcomes.len(), targets.len());
+        for target in targets {
+            let outcome = outcomes
+                .iter()
+                .find(|outcome| outcome.ob_id == target.inputs.ob_id)
+                .unwrap_or_else(|| panic!("missing outcome for target {}", target.orderbook_key));
+            let deployment_block = target.inputs.cfg.deployment_block;
+            assert_eq!(outcome.start_block, deployment_block);
+            assert_eq!(outcome.target_block, deployment_block);
+            assert_eq!(outcome.fetched_logs, 0);
+            assert_eq!(outcome.decoded_events, 0);
+        }
+    }
+
     #[test]
     fn with_environment_propagates_settings_parse_error() {
         let telemetry = Telemetry::default();
@@ -1142,7 +1174,7 @@ orderbooks:
     }
 
     #[tokio::test]
-    async fn run_returns_empty_when_leadership_not_acquired() {
+    async fn run_returns_noop_outcomes_when_leadership_not_acquired() {
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
@@ -1154,7 +1186,7 @@ orderbooks:
         prepare_db_baseline(&db);
 
         let outcomes = runner.run(&db).await.expect("run succeeds");
-        assert!(outcomes.is_empty());
+        expect_noop_outcomes(&outcomes, &runner.base_targets);
         assert!(!runner.manifests_loaded);
         assert!(!runner.has_bootstrapped);
         assert_eq!(telemetry.manifest_fetch_count(), 0);
@@ -1175,7 +1207,7 @@ orderbooks:
         let db_skip = RecordingDb::default();
         prepare_db_baseline(&db_skip);
         let outcomes_skip = runner.run(&db_skip).await.expect("skip run succeeds");
-        assert!(outcomes_skip.is_empty());
+        expect_noop_outcomes(&outcomes_skip, &runner.base_targets);
         assert!(!runner.manifests_loaded);
         assert!(!runner.has_bootstrapped);
 
