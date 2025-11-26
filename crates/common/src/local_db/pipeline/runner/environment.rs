@@ -152,7 +152,7 @@ mod tests {
     use crate::local_db::query::LocalDbQueryExecutor;
     use crate::local_db::{LocalDbError, OrderbookIdentifier};
     use crate::rpc_client::LogEntryResponse;
-    use alloy::primitives::{address, Address, Bytes};
+    use alloy::primitives::{address, b256, Address, B256};
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::MANIFEST_VERSION;
     use rain_orderbook_app_settings::local_db_remotes::LocalDbRemoteCfg;
@@ -353,8 +353,10 @@ mod tests {
             Ok(Vec::new())
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
-            Ok(Bytes::from(vec![0u8; 32]))
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
+            Ok(b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ))
         }
     }
 

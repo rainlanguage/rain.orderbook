@@ -3,12 +3,12 @@ use crate::local_db::query::fetch_order_trades::{
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::OrderbookIdentifier;
-use alloy::primitives::Bytes;
+use alloy::primitives::B256;
 
 pub async fn fetch_order_trades<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     ob_id: &OrderbookIdentifier,
-    order_hash: Bytes,
+    order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<Vec<LocalDbOrderTrade>, LocalDbQueryError> {
@@ -21,10 +21,9 @@ mod wasm_tests {
     use super::*;
     use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
-    use alloy::primitives::Address;
+    use alloy::primitives::{b256, Address};
     use std::cell::RefCell;
     use std::rc::Rc;
-    use std::str::FromStr;
     use wasm_bindgen_test::*;
     use wasm_bindgen_utils::prelude::*;
 
@@ -32,7 +31,8 @@ mod wasm_tests {
     async fn wrapper_uses_builder_sql_exactly() {
         let chain_id = 111;
         let orderbook = Address::from([0x77; 20]);
-        let order_hash = Bytes::from_str("0xabcd").unwrap();
+        let order_hash =
+            b256!("0x000000000000000000000000000000000000000000000000000000000000abcd");
         let start = Some(100);
         let end = Some(200);
 

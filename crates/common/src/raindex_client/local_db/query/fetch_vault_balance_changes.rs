@@ -73,7 +73,7 @@ mod wasm_tests {
         );
 
         let row_json = r#"[{
-            "transactionHash":"0x0000000000000000000000000000000000000abc",
+            "transactionHash":"0x0000000000000000000000000000000000000000000000000000000000000abc",
             "logIndex":1,
             "blockNumber":100,
             "blockTimestamp":999,
