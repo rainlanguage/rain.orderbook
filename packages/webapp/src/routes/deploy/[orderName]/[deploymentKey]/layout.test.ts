@@ -37,6 +37,7 @@ describe('Layout load function', () => {
 		expect(mockParent).toHaveBeenCalled();
 		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(
 			mockDotrain,
+			undefined,
 			mockDeploymentKey
 		);
 
@@ -66,7 +67,7 @@ describe('Layout load function', () => {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
 
-		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(mockDotrain, '');
+		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(mockDotrain, undefined, '');
 
 		expect(result).toEqual({
 			deployment: {
