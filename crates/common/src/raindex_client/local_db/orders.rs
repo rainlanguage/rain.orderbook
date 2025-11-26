@@ -6,7 +6,7 @@ use crate::local_db::query::fetch_vault::LocalDbVault;
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
-use alloy::primitives::Bytes;
+use alloy::primitives::B256;
 use serde::Deserialize;
 use serde_json::from_str;
 use std::rc::Rc;
@@ -78,12 +78,12 @@ impl RaindexClient {
         &self,
         executor: &E,
         ob_id: &OrderbookIdentifier,
-        order_hash: &Bytes,
+        order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let fetch_args = FetchOrdersArgs {
             chain_ids: vec![ob_id.chain_id],
             orderbook_addresses: vec![ob_id.orderbook_address],
-            order_hash: Some(order_hash.clone()),
+            order_hash: Some(*order_hash),
             ..FetchOrdersArgs::default()
         };
 
@@ -122,7 +122,7 @@ mod tests {
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
         use crate::raindex_client::ChainIds;
-        use alloy::primitives::{address, Bytes, U256};
+        use alloy::primitives::{address, b256, bytes, Bytes, U256};
         use serde_json::{self, json};
         use wasm_bindgen_test::wasm_bindgen_test;
         use wasm_bindgen_utils::prelude::*;
@@ -164,21 +164,15 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_orders_local_db_callback_path() {
-            let order_hash = Bytes::from_str(
-                "0x0000000000000000000000000000000000000000000000000000000000000abc",
-            )
-            .unwrap();
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
             let order_hash_str = order_hash.to_string();
             let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-            let order_bytes = Bytes::from_str(
-                "0x00000000000000000000000000000000000000000000000000000000000000ff",
-            )
-            .unwrap();
+            let order_bytes =
+                bytes!("0x00000000000000000000000000000000000000000000000000000000000000ff");
             let order_bytes_str = order_bytes.to_string();
-            let transaction_hash = Bytes::from_str(
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            )
-            .unwrap();
+            let transaction_hash =
+                b256!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
             let meta = Bytes::from_str("0x1234").unwrap();
             let meta_str = meta.to_string();
             let input_vault_id = U256::from_str("0x0a").unwrap();
@@ -254,7 +248,7 @@ mod tests {
                 block_timestamp: 123456,
                 block_number: 654321,
                 orderbook_address,
-                order_bytes: order_bytes.clone(),
+                order_bytes: order_bytes,
                 transaction_hash: transaction_hash.clone(),
                 inputs: Some(inputs_json.to_string()),
                 outputs: Some(outputs_json.to_string()),
@@ -321,19 +315,13 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_order_by_hash_local_db_path() {
-            let order_hash = Bytes::from_str(
-                "0x0000000000000000000000000000000000000000000000000000000000000abc",
-            )
-            .unwrap();
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
             let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-            let transaction_hash = Bytes::from_str(
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-            )
-            .unwrap();
-            let order_bytes = Bytes::from_str(
-                "0x00000000000000000000000000000000000000000000000000000000000000ff",
-            )
-            .unwrap();
+            let transaction_hash =
+                b256!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+            let order_bytes =
+                bytes!("0x00000000000000000000000000000000000000000000000000000000000000ff");
             let meta = Bytes::from_str("0x1234").unwrap();
             let input_vault_id = U256::from_str("0x0a").unwrap();
             let output_vault_id = U256::from_str("0x0b").unwrap();
@@ -403,7 +391,7 @@ mod tests {
 
             let local_order = LocalDbOrder {
                 chain_id: 42161,
-                order_hash: order_hash.clone(),
+                order_hash,
                 owner,
                 block_timestamp: 123456,
                 block_number: 654321,

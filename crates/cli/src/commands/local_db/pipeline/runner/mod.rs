@@ -288,7 +288,7 @@ fn ensure_clean_db(path: &Path) -> Result<(), LocalDbError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{address, Address, Bytes};
+    use alloy::primitives::{address, Address, Bytes, B256};
     use async_trait::async_trait;
     use flate2::read::GzDecoder;
     use rain_orderbook_app_settings::local_db_manifest::{
@@ -599,8 +599,8 @@ mod tests {
             Ok(Vec::new())
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
-            Ok(Bytes::from(vec![0u8; 32]))
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
+            Ok(B256::ZERO)
         }
     }
 

@@ -1,6 +1,6 @@
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
 use crate::utils::serde::bool_from_int_or_bool;
-use alloy::primitives::{Address, Bytes};
+use alloy::primitives::{Address, Bytes, B256};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -20,7 +20,7 @@ pub struct FetchOrdersArgs {
     pub orderbook_addresses: Vec<Address>,
     pub filter: FetchOrdersActiveFilter,
     pub owners: Vec<Address>,
-    pub order_hash: Option<Bytes>,
+    pub order_hash: Option<B256>,
     pub tokens: Vec<Address>,
 }
 
@@ -28,13 +28,13 @@ pub struct FetchOrdersArgs {
 #[serde(rename_all = "camelCase")]
 pub struct LocalDbOrder {
     pub chain_id: u32,
-    pub order_hash: Bytes,
+    pub order_hash: B256,
     pub owner: Address,
     pub block_timestamp: u64,
     pub block_number: u64,
     pub orderbook_address: Address,
     pub order_bytes: Bytes,
-    pub transaction_hash: Bytes,
+    pub transaction_hash: B256,
     pub inputs: Option<String>,
     pub outputs: Option<String>,
     pub trade_count: u64,
@@ -171,10 +171,7 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
     )?;
 
     // Optional order hash param
-    let order_hash_val = args
-        .order_hash
-        .as_ref()
-        .map(|hash| SqlValue::from(hash.clone()));
+    let order_hash_val = args.order_hash.as_ref().map(|hash| SqlValue::from(*hash));
     stmt.bind_param_clause(ORDER_HASH_CLAUSE, ORDER_HASH_CLAUSE_BODY, order_hash_val)?;
 
     // Tokens list
@@ -193,7 +190,7 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::address;
+    use alloy::primitives::{address, b256};
     use std::str::FromStr;
 
     #[test]
@@ -221,7 +218,9 @@ mod tests {
                 address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e"),
                 address!("0x87d08841bdAd4aB82883a322D2c0eF557EC154fE"),
             ],
-            order_hash: Some(Bytes::from_str("0xdeadbeef").unwrap()),
+            order_hash: Some(b256!(
+                "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+            )),
             tokens: vec![
                 address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB"),
                 address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e"),

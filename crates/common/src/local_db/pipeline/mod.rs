@@ -19,7 +19,7 @@ use crate::local_db::query::{
 };
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::{Address, Bytes, B256};
+use alloy::primitives::{Address, B256};
 use async_trait::async_trait;
 
 /// Optional manual window overrides usually supplied by CLI/producer.
@@ -127,7 +127,7 @@ pub trait EventsPipeline {
     async fn latest_block(&self) -> Result<u64, LocalDbError>;
 
     /// Fetches the canonical block hash for the provided block number.
-    async fn block_hash(&self, block_number: u64) -> Result<Bytes, LocalDbError>;
+    async fn block_hash(&self, block_number: u64) -> Result<B256, LocalDbError>;
 
     /// Fetches orderbook logs within the inclusive block range.
     async fn fetch_orderbook(
