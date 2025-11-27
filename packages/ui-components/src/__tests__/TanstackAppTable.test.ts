@@ -40,13 +40,23 @@ const createMockQuery = (pages: ReturnType<typeof createPages>, overrides = {}) 
 };
 
 // Helper function for common render props
-const renderTable = (query: ReturnType<typeof createMockQuery>) => {
+type TableRenderOptions = {
+	enableVirtualization?: boolean;
+	estimatedRowHeight?: number;
+	virtualizationOverscan?: number;
+};
+
+const renderTable = (
+	query: ReturnType<typeof createMockQuery>,
+	options: TableRenderOptions = {}
+) => {
 	return render(TanstackAppTableTest, {
 		query: query as unknown as CreateInfiniteQueryResult<InfiniteData<unknown[], unknown>, Error>,
 		emptyMessage: 'No rows',
 		title: 'Test Table',
 		head: 'Test head',
-		queryKey: 'test'
+		queryKey: 'test',
+		...options
 	});
 };
 
@@ -73,6 +83,18 @@ test('shows empty message', async () => {
 	renderTable(mockQuery);
 
 	await waitFor(() => expect(screen.getByTestId('emptyMessage')).toHaveTextContent('No rows'));
+});
+
+test('renders rows when first page is empty but later pages have data', async () => {
+	const pages = writable({
+		pages: [[], ['page1']],
+		pageParams: [0, 1]
+	});
+	const mockQuery = createMockQuery(pages);
+	renderTable(mockQuery);
+
+	await waitFor(() => expect(screen.getByTestId('bodyRow')).toHaveTextContent('page1'));
+	expect(screen.queryByTestId('emptyMessage')).not.toBeInTheDocument();
 });
 
 test('loads more rows', async () => {
@@ -165,4 +187,41 @@ test('invalidates queries when refresh button is clicked', async () => {
 	await userEvent.click(refreshButton);
 
 	expect(mockInvalidateTanstackQueries).toHaveBeenCalledWith(expect.anything(), ['test']);
+});
+
+test('virtualizes rows based on viewport height', async () => {
+	const rows = Array.from({ length: 20 }, (_, i) => `row-${i}`);
+	const pages = createPages(rows);
+	const mockQuery = createMockQuery(pages);
+	const innerHeightSpy = vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(60);
+
+	renderTable(mockQuery, { virtualizationOverscan: 0, estimatedRowHeight: 20 });
+
+	await waitFor(() => {
+		expect(screen.getAllByTestId('bodyRow')).toHaveLength(3);
+	});
+
+	expect(screen.getAllByTestId('bodyRow')[0]).toHaveTextContent('row-0');
+	innerHeightSpy.mockRestore();
+});
+
+test('renders all rows when virtualization is disabled', async () => {
+	const rows = Array.from({ length: 10 }, (_, i) => `row-${i}`);
+	const pages = createPages(rows);
+	const mockQuery = createMockQuery(pages);
+
+	renderTable(mockQuery, { enableVirtualization: false });
+
+	await waitFor(() => {
+		expect(screen.getAllByTestId('bodyRow')).toHaveLength(rows.length);
+	});
+});
+
+test('exposes horizontal scroll container', async () => {
+	const pages = createPages();
+	const mockQuery = createMockQuery(pages);
+	renderTable(mockQuery);
+
+	const container = await screen.findByTestId('tanstackTableContainer');
+	expect(container).toHaveClass('overflow-x-auto');
 });
