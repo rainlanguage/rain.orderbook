@@ -20,7 +20,9 @@
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 	import { onDestroy, onMount } from 'svelte';
 
-	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data;
+	const { errorMessage, localDb, raindexClient } = $page.data;
+	// TODO: Will be activated when all the local db PRs are merged
+	// const { settingsYamlText } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -35,11 +37,13 @@
 
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb) return;
-		raindexClient.startLocalDbScheduler(settingsYamlText);
+		// TODO: Will be activated when all the local db PRs are merged
+		// raindexClient.startLocalDbScheduler(settingsYamlText);
 	});
 	onDestroy(() => {
 		if (!raindexClient) return;
-		raindexClient.stopLocalDbScheduler();
+		// TODO: Will be activated when all the local db PRs are merged
+		// raindexClient.stopLocalDbScheduler();
 	});
 
 	$: if (browser && window.navigator) {
