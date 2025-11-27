@@ -666,7 +666,7 @@ impl YamlParseableValue for GuiCfg {
                     .map(|v| {
                         v.as_str().ok_or(YamlError::Field {
                             kind: FieldErrorKind::InvalidType {
-                                field: "description".to_string(),
+                                field: "short-description".to_string(),
                                 expected: "a string".to_string(),
                             },
                             location: "gui".to_string(),

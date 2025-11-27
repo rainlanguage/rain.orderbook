@@ -540,18 +540,27 @@ impl YamlParsableHash for OrderCfg {
         let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), context);
         let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
-        if let Some(context) = context {
+        let tokens = if let Some(context) = context {
             if context.select_tokens.is_some() {
                 match tokens {
-                    Ok(_) => {}
-                    Err(YamlError::Field {
-                        kind: FieldErrorKind::Missing(_),
-                        ..
-                    }) => {}
-                    Err(err) => return Err(err),
+                    Ok(tokens) => Ok(tokens),
+                    Err(err) => match err {
+                        YamlError::Field {
+                            kind: FieldErrorKind::Missing(field),
+                            location,
+                        } if field == "tokens" && location == "root" => Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing(field),
+                            location,
+                        }),
+                        other => return Err(other),
+                    },
                 }
+            } else {
+                tokens
             }
-        }
+        } else {
+            tokens
+        };
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
