@@ -18,6 +18,7 @@ pub struct DotrainYaml {
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
     pub cache: Cache,
+    pub profile: ContextProfile,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DotrainYaml);
@@ -109,6 +110,7 @@ impl YamlParsable for DotrainYaml {
         Ok(DotrainYaml {
             documents,
             cache: Cache::default(),
+            profile: ContextProfile::Strict,
         })
     }
 
@@ -116,6 +118,7 @@ impl YamlParsable for DotrainYaml {
         DotrainYaml {
             documents,
             cache: Cache::default(),
+            profile: ContextProfile::Strict,
         }
     }
 
@@ -123,6 +126,7 @@ impl YamlParsable for DotrainYaml {
         DotrainYaml {
             documents: dotrain_yaml.documents,
             cache: dotrain_yaml.cache,
+            profile: dotrain_yaml.profile,
         }
     }
 
@@ -130,6 +134,7 @@ impl YamlParsable for DotrainYaml {
         DotrainYaml {
             documents: orderbook_yaml.documents,
             cache: orderbook_yaml.cache,
+            profile: ContextProfile::Strict,
         }
     }
 }
@@ -145,6 +150,21 @@ impl ContextProvider for DotrainYaml {
 }
 
 impl DotrainYaml {
+    pub fn new_with_profile(
+        sources: Vec<String>,
+        validate: DotrainYamlValidation,
+        profile: ContextProfile,
+    ) -> Result<Self, YamlError> {
+        let mut instance = Self::new(sources, validate)?;
+        instance.profile = profile;
+        Ok(instance)
+    }
+
+    pub fn with_profile(mut self, profile: ContextProfile) -> Self {
+        self.profile = profile;
+        self
+    }
+
     pub fn build_context(&self, profile: &ContextProfile) -> Result<Context, YamlError> {
         let mut context = self.create_context();
 
@@ -175,7 +195,6 @@ impl DotrainYaml {
                     }
                 }
             }
-            ContextProfile::Minimal => {}
         }
 
         Ok(context)
@@ -185,15 +204,12 @@ impl DotrainYaml {
         Ok(self.get_orders()?.keys().cloned().collect())
     }
     pub fn get_orders(&self) -> Result<HashMap<String, OrderCfg>, YamlError> {
-        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        let context = self.build_context(&self.profile)?;
+        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(orders)
     }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_order(&mut context, Some(key.to_string()));
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
+        let context = self.build_context(&self.profile)?;
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn get_order_for_gui_deployment(
@@ -201,18 +217,10 @@ impl DotrainYaml {
         order_key: &str,
         deployment_key: &str,
     ) -> Result<OrderCfg, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_order(&mut context, Some(order_key.to_string()));
-        self.expand_context_with_current_deployment(&mut context, Some(deployment_key.to_string()));
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
-        if let Some(select_tokens) =
-            GuiCfg::parse_select_tokens(self.documents.clone(), deployment_key)?
-        {
-            context.add_select_tokens(select_tokens.iter().map(|st| st.key.clone()).collect());
-        }
-
+        let context = self.build_context(&ContextProfile::gui(
+            Some(order_key.to_string()),
+            Some(deployment_key.to_string()),
+        ))?;
         OrderCfg::parse_from_yaml(self.documents.clone(), order_key, Some(&context))
     }
 
@@ -220,35 +228,28 @@ impl DotrainYaml {
         Ok(self.get_scenarios()?.keys().cloned().collect())
     }
     pub fn get_scenarios(&self) -> Result<HashMap<String, ScenarioCfg>, YamlError> {
-        let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(scenarios)
+        let context = self.build_context(&self.profile)?;
+        ScenarioCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_scenario(&self, key: &str) -> Result<ScenarioCfg, YamlError> {
-        ScenarioCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile)?;
+        ScenarioCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_deployments()?.keys().cloned().collect())
     }
     pub fn get_deployments(&self) -> Result<HashMap<String, DeploymentCfg>, YamlError> {
-        let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(deployments)
+        let context = self.build_context(&self.profile)?;
+        DeploymentCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_deployment(&mut context, Some(key.to_string()));
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
+        let context = self.build_context(&self.profile)?;
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_deployment(&mut context, current_deployment);
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
+        let context = self.build_context(&ContextProfile::gui(None, current_deployment))?;
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 
@@ -256,11 +257,12 @@ impl DotrainYaml {
         Ok(self.get_charts()?.keys().cloned().collect())
     }
     pub fn get_charts(&self) -> Result<HashMap<String, ChartCfg>, YamlError> {
-        let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(charts)
+        let context = self.build_context(&self.profile)?;
+        ChartCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_chart(&self, key: &str) -> Result<ChartCfg, YamlError> {
-        ChartCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile)?;
+        ChartCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 }
 
@@ -311,6 +313,7 @@ impl<'de> Deserialize<'de> for DotrainYaml {
                 Ok(DotrainYaml {
                     documents,
                     cache: Cache::default(),
+                    profile: ContextProfile::Strict,
                 })
             }
         }
@@ -849,12 +852,76 @@ mod tests {
             Some("deployment1".to_string())
         );
 
-        let minimal_ctx = dotrain_yaml
-            .build_context(&ContextProfile::Minimal)
+        let propagated = DotrainYaml::from_dotrain_yaml(dotrain_yaml);
+        let propagated_ctx = propagated
+            .build_context(&ContextProfile::gui(
+                Some("order1".to_string()),
+                Some("deployment1".to_string()),
+            ))
             .unwrap();
-        assert!(minimal_ctx.get_remote_networks().is_none());
-        assert!(minimal_ctx.get_remote_tokens().is_none());
-        assert!(minimal_ctx.gui_context.is_none());
+        assert_eq!(
+            propagated_ctx
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_order.clone()),
+            Some("order1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_order_uses_profile() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpcs:
+                    - https://mainnet.infura.io
+                chain-id: 1
+        deployers:
+            deployer1:
+                address: 0x0000000000000000000000000000000000000002
+                network: mainnet
+        orders:
+            order1:
+                deployer: deployer1
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        scenarios:
+            scenario1:
+                deployer: deployer1
+        deployments:
+            deployment1:
+                order: order1
+                scenario: scenario1
+        gui:
+            deployments:
+                deployment1:
+                    select-tokens:
+                        - key: token1
+                        - key: token2
+        "#;
+
+        let strict_yaml =
+            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+        let err = strict_yaml.get_order("order1").unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("tokens".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let gui_yaml = DotrainYaml::new_with_profile(
+            vec![yaml.to_string()],
+            DotrainYamlValidation::default(),
+            ContextProfile::gui(Some("order1".to_string()), Some("deployment1".to_string())),
+        )
+        .unwrap();
+        let order = gui_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].token, None);
+        assert_eq!(order.outputs[0].token, None);
     }
 
     #[test]

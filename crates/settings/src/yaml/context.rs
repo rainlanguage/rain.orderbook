@@ -14,7 +14,6 @@ pub enum ContextProfile {
         current_order: Option<String>,
         current_deployment: Option<String>,
     },
-    Minimal,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ContextProfile);
@@ -29,10 +28,6 @@ impl ContextProfile {
             current_order,
             current_deployment,
         }
-    }
-
-    pub fn minimal() -> Self {
-        Self::Minimal
     }
 }
 
@@ -353,7 +348,6 @@ mod tests {
     fn test_context_profile_helpers() {
         assert_eq!(ContextProfile::strict(), ContextProfile::Strict);
         assert_eq!(ContextProfile::default(), ContextProfile::Strict);
-        assert_eq!(ContextProfile::minimal(), ContextProfile::Minimal);
 
         let gui_full = ContextProfile::gui(Some("order1".to_string()), None);
         match gui_full {
