@@ -1,6 +1,6 @@
 use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
 use crate::utils::serde::bool_from_int_or_bool;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, Bytes, B256};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -19,35 +19,28 @@ pub struct FetchOrdersArgs {
     pub chain_ids: Vec<u32>,
     pub orderbook_addresses: Vec<Address>,
     pub filter: FetchOrdersActiveFilter,
-    pub owners: Vec<String>,
-    pub order_hash: Option<String>,
-    pub tokens: Vec<String>,
+    pub owners: Vec<Address>,
+    pub order_hash: Option<B256>,
+    pub tokens: Vec<Address>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalDbOrder {
-    #[serde(alias = "chainId")]
     pub chain_id: u32,
-    #[serde(alias = "orderHash")]
-    pub order_hash: String,
-    pub owner: String,
-    #[serde(alias = "blockTimestamp")]
+    pub order_hash: B256,
+    pub owner: Address,
     pub block_timestamp: u64,
-    #[serde(alias = "blockNumber")]
     pub block_number: u64,
-    #[serde(alias = "orderbookAddress")]
-    pub orderbook_address: String,
-    #[serde(alias = "orderBytes")]
-    pub order_bytes: String,
-    #[serde(alias = "transactionHash")]
-    pub transaction_hash: String,
+    pub orderbook_address: Address,
+    pub order_bytes: Bytes,
+    pub transaction_hash: B256,
     pub inputs: Option<String>,
     pub outputs: Option<String>,
-    #[serde(alias = "tradeCount")]
     pub trade_count: u64,
     #[serde(deserialize_with = "bool_from_int_or_bool")]
     pub active: bool,
-    pub meta: Option<String>,
+    pub meta: Option<Bytes>,
 }
 
 /// Builds the SQL query fetching orders from the local database based on the
@@ -98,7 +91,7 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
         FetchOrdersActiveFilter::Active => "active",
         FetchOrdersActiveFilter::Inactive => "inactive",
     };
-    stmt.push(SqlValue::Text(active_str.to_string()));
+    stmt.push(SqlValue::from(active_str));
 
     // Chain ids (deduplicated, sorted)
     let mut chain_ids = args.chain_ids.clone();
@@ -111,13 +104,8 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
     orderbooks.dedup();
 
     // Helper closures to bind repeated clauses without ownership issues
-    let chain_ids_iter = || chain_ids.iter().copied().map(|id| SqlValue::U64(id as u64));
-    let orderbooks_iter = || {
-        orderbooks.iter().map(|addr| {
-            let lower = addr.to_string().to_ascii_lowercase();
-            SqlValue::Text(lower)
-        })
-    };
+    let chain_ids_iter = || chain_ids.iter().cloned().map(SqlValue::from);
+    let orderbooks_iter = || orderbooks.iter().cloned().map(SqlValue::from);
 
     // Apply chain-id filters across query sections
     stmt.bind_list_clause(
@@ -173,57 +161,27 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
         orderbooks_iter(),
     )?;
 
-    // Owners list (lowercased, trimmed, non-empty)
-    let mut owners_lower = args
-        .owners
-        .iter()
-        .filter_map(|o| {
-            let t = o.trim();
-            if t.is_empty() {
-                None
-            } else {
-                Some(t.to_ascii_lowercase())
-            }
-        })
-        .collect::<Vec<_>>();
-    // Deduplicate to keep IN-list and params minimal (deterministic order)
+    let mut owners_lower = args.owners.clone();
     owners_lower.sort();
     owners_lower.dedup();
     stmt.bind_list_clause(
         OWNERS_CLAUSE,
         OWNERS_CLAUSE_BODY,
-        owners_lower.into_iter().map(SqlValue::Text),
+        owners_lower.into_iter().map(SqlValue::from),
     )?;
 
     // Optional order hash param
-    let order_hash_val = args
-        .order_hash
-        .as_ref()
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty())
-        .map(|s| SqlValue::Text(s.to_string()));
+    let order_hash_val = args.order_hash.as_ref().map(|hash| SqlValue::from(*hash));
     stmt.bind_param_clause(ORDER_HASH_CLAUSE, ORDER_HASH_CLAUSE_BODY, order_hash_val)?;
 
     // Tokens list
-    let mut tokens_lower = args
-        .tokens
-        .iter()
-        .filter_map(|t| {
-            let x = t.trim();
-            if x.is_empty() {
-                None
-            } else {
-                Some(x.to_ascii_lowercase())
-            }
-        })
-        .collect::<Vec<_>>();
-    // Deduplicate to avoid redundant IN parameters (deterministic order)
+    let mut tokens_lower = args.tokens.clone();
     tokens_lower.sort();
     tokens_lower.dedup();
     stmt.bind_list_clause(
         TOKENS_CLAUSE,
         TOKENS_CLAUSE_BODY,
-        tokens_lower.into_iter().map(SqlValue::Text),
+        tokens_lower.into_iter().map(SqlValue::from),
     )?;
 
     Ok(stmt)
@@ -232,6 +190,7 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::primitives::{address, b256};
     use std::str::FromStr;
 
     #[test]
@@ -252,14 +211,20 @@ mod tests {
     fn owners_tokens_and_order_hash_filters_with_params() {
         let args = FetchOrdersArgs {
             chain_ids: vec![137, 1],
-            orderbook_addresses: vec![Address::from_str(
-                "0xabcdef0000000000000000000000000000000000",
-            )
-            .unwrap()],
+            orderbook_addresses: vec![address!("0xabcdef0000000000000000000000000000000000")],
             filter: FetchOrdersActiveFilter::Active,
-            owners: vec![" 0xA ".into(), "".into(), "Owner".into()],
-            order_hash: Some(" 0xHash ".into()),
-            tokens: vec!["TOKA".into(), "   ".into()],
+            owners: vec![
+                address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB"),
+                address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e"),
+                address!("0x87d08841bdAd4aB82883a322D2c0eF557EC154fE"),
+            ],
+            order_hash: Some(b256!(
+                "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+            )),
+            tokens: vec![
+                address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB"),
+                address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e"),
+            ],
         };
 
         let stmt = build_fetch_orders_stmt(&args).unwrap();

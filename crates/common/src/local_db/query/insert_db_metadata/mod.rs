@@ -3,7 +3,7 @@ use crate::local_db::query::{SqlStatement, SqlValue};
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
 pub fn insert_db_metadata_stmt(version: u32) -> SqlStatement {
-    SqlStatement::new_with_params(QUERY_TEMPLATE, [SqlValue::from(version as u64)])
+    SqlStatement::new_with_params(QUERY_TEMPLATE, [SqlValue::from(version)])
 }
 
 #[cfg(test)]

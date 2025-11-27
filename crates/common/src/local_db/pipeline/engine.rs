@@ -13,7 +13,7 @@ use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, 
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::{Address, B256};
+use alloy::primitives::Address;
 use std::collections::{BTreeSet, HashSet};
 use url::Url;
 
@@ -103,8 +103,7 @@ where
             .resolve_token_upserts(input, &token_addresses, &existing_tokens)
             .await?;
 
-        let target_hash_bytes = self.events.block_hash(target_block).await?;
-        let target_hash = B256::try_from(target_hash_bytes.as_ref())?;
+        let target_hash = self.events.block_hash(target_block).await?;
 
         self.apply_changes(
             db,
@@ -355,13 +354,12 @@ mod tests {
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
     };
     use crate::local_db::FetchConfig;
-    use alloy::primitives::{hex, Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{b256, Address, Bytes, FixedBytes, B256, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use serde_json;
     use std::cell::RefCell;
     use std::collections::VecDeque;
-    use std::str::FromStr;
     use std::sync::{Arc, Mutex};
     use tokio::sync::Barrier;
     use url::Url;
@@ -374,20 +372,22 @@ mod tests {
         Address::from([byte; 20])
     }
 
-    fn tx_bytes(tag: u8) -> Bytes {
-        Bytes::from_str(&format!("0x{tag:02x}")).unwrap()
+    fn tx_hash(tag: u8) -> B256 {
+        let mut bytes = [0u8; 32];
+        bytes[31] = tag;
+        B256::from(bytes)
     }
 
     fn log_entry(address: Address, block: u64, log_index: u64, tx: u8) -> LogEntryResponse {
         LogEntryResponse {
-            address: hex::encode_prefixed(address),
-            topics: vec!["0x1".into()],
-            data: "0x01".into(),
+            address,
+            topics: vec![Bytes::from(vec![0x1; 32])],
+            data: Bytes::from(vec![0x01]),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(block + 100)),
-            transaction_hash: format!("0x{tx:064x}"),
+            transaction_hash: tx_hash(tx),
             transaction_index: hex_u64(0),
-            block_hash: "0xdeadbeef".into(),
+            block_hash: B256::from([0xde; 32]),
             log_index: U256::from(log_index),
             removed: false,
         }
@@ -404,7 +404,7 @@ mod tests {
             event_type: EventType::DepositV2,
             block_number: U256::from(block),
             block_timestamp: U256::from(block + 100),
-            transaction_hash: tx_bytes(tx),
+            transaction_hash: tx_hash(tx),
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: addr(0x33),
@@ -428,7 +428,7 @@ mod tests {
             event_type: EventType::AddOrderV3,
             block_number: U256::from(block),
             block_timestamp: U256::from(block + 200),
-            transaction_hash: tx_bytes(tx),
+            transaction_hash: tx_hash(tx),
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::AddOrderV3(Box::new(AddOrderV3 {
                 sender: addr(0x44),
@@ -464,7 +464,7 @@ mod tests {
             event_type: EventType::InterpreterStoreSet,
             block_number: U256::from(block),
             block_timestamp: U256::from(block + 300),
-            transaction_hash: tx_bytes(tx),
+            transaction_hash: tx_hash(tx),
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
@@ -687,7 +687,7 @@ mod tests {
         orderbook_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         store_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         decode_results: Mutex<VecDeque<Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>>>,
-        block_hashes: Mutex<VecDeque<Result<Bytes, LocalDbError>>>,
+        block_hashes: Mutex<VecDeque<Result<B256, LocalDbError>>>,
         orderbook_calls: Mutex<Vec<(Address, u64, u64)>>,
         store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
         store_barrier: Mutex<Option<Arc<Barrier>>>,
@@ -718,7 +718,7 @@ mod tests {
             self.inner.decode_results.lock().unwrap().push_back(result);
         }
 
-        fn push_block_hash(&self, result: Result<Bytes, LocalDbError>) {
+        fn push_block_hash(&self, result: Result<B256, LocalDbError>) {
             self.inner.block_hashes.lock().unwrap().push_back(result);
         }
 
@@ -810,13 +810,13 @@ mod tests {
                 .unwrap_or(Ok(Vec::new()))
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
             self.inner
                 .block_hashes
                 .lock()
                 .unwrap()
                 .pop_front()
-                .unwrap_or_else(|| Ok(Bytes::from_static(&[0u8; 32])))
+                .unwrap_or_else(|| Ok(B256::ZERO))
         }
     }
 
@@ -919,7 +919,7 @@ mod tests {
         decoded_order: Vec<(U256, U256)>,
         existing_tokens: Vec<Address>,
         upsert_tokens: Vec<Address>,
-        end_block_hash: Bytes,
+        end_block_hash: B256,
     }
 
     #[derive(Clone, Default)]
@@ -992,7 +992,7 @@ mod tests {
                 decoded_order,
                 existing_tokens,
                 upsert_tokens,
-                end_block_hash: target_info.hash.into(),
+                end_block_hash: target_info.hash,
             });
 
             self.inner
@@ -1163,9 +1163,9 @@ mod tests {
         let store_logs = vec![log_entry(store, 12, 0, 3)];
 
         harness.events.set_latest_blocks(vec![Ok(12)]);
-        harness
-            .events
-            .push_block_hash(Ok(Bytes::from_static(&[1u8; 32])));
+        harness.events.push_block_hash(Ok(b256!(
+            "0x0000000000000000000000000000000000000000000000000000000000000001"
+        )));
         harness.window.set_results(vec![Ok((10, 12))]);
         harness
             .events
@@ -1232,7 +1232,10 @@ mod tests {
         );
         assert_eq!(build.existing_tokens, vec![token_a]);
         assert_eq!(build.upsert_tokens, vec![token_b]);
-        assert_eq!(build.end_block_hash, Bytes::from_static(&[1u8; 32]));
+        assert_eq!(
+            build.end_block_hash,
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000001")
+        );
 
         assert_eq!(harness.apply.persist_calls().len(), 1);
         assert_eq!(harness.apply.export_calls().len(), 1);
@@ -2049,7 +2052,7 @@ mod tests {
         assert_eq!(stmt.params()[0], SqlValue::U64(ob_id.chain_id as u64));
         assert_eq!(
             stmt.params()[1],
-            SqlValue::Text(ob_id.orderbook_address.to_string())
+            SqlValue::Text("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
         );
     }
 

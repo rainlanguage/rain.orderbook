@@ -66,7 +66,7 @@ mod tests {
 
     use super::super::decode::InterpreterStoreSetEvent;
     use super::*;
-    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{b256, Address, Bytes, FixedBytes, U256};
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use rain_orderbook_bindings::IOrderBookV5::{
         AddOrderV3, DepositV2, OrderV4, RemoveOrderV3, SignedContextV1, TakeOrderConfigV4,
@@ -78,7 +78,9 @@ mod tests {
             event_type: super::super::decode::EventType::Unknown,
             block_number: U256::ZERO,
             block_timestamp: U256::ZERO,
-            transaction_hash: "0x0".into(),
+            transaction_hash: b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ),
             log_index: U256::ZERO,
             decoded_data: event,
         }

@@ -1,4 +1,4 @@
-use alloy::primitives::U256;
+use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
 use alloy::rpc::types::Filter;
@@ -22,7 +22,7 @@ pub struct RpcClient {
 #[serde(rename_all = "camelCase")]
 pub struct BlockResponse {
     pub timestamp: U256,
-    pub hash: String,
+    pub hash: B256,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
 }
@@ -31,14 +31,14 @@ pub struct BlockResponse {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogEntryResponse {
-    pub address: String,
-    pub topics: Vec<String>,
-    pub data: String,
+    pub address: Address,
+    pub topics: Vec<Bytes>,
+    pub data: Bytes,
     pub block_number: U256,
     pub block_timestamp: Option<U256>,
-    pub transaction_hash: String,
+    pub transaction_hash: B256,
     pub transaction_index: String,
-    pub block_hash: String,
+    pub block_hash: B256,
     pub log_index: U256,
     pub removed: bool,
 }
@@ -239,10 +239,9 @@ impl From<TransportError> for RpcClientError {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
-    use alloy::{hex, primitives::Bytes};
+    use alloy::{hex, primitives::b256};
     use httpmock::MockServer;
     use serde_json::json;
-    use std::str::FromStr;
 
     fn sample_block_response_with_hash(number: &str, timestamp: &str, hash: &str) -> String {
         json!({
@@ -285,15 +284,15 @@ mod tests {
 
     fn sample_log_entry(block_number: &str) -> serde_json::Value {
         json!({
-            "address": "0x123",
-            "topics": ["0xabc"],
+            "address": "0x0000000000000000000000000000000000000123",
+            "topics": ["0x0000000000000000000000000000000000000000000000000000000000000abc"],
             "data": "0xdeadbeef",
             "blockNumber": block_number,
-            "blockTimestamp": "0x5",
-            "transactionHash": "0xtransaction",
+            "blockTimestamp": "0x05",
+            "transactionHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
             "transactionIndex": "0x0",
-            "blockHash": "0xblock",
-            "logIndex": "0x0",
+            "blockHash": "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "logIndex": "0x00",
             "removed": false
         })
     }
@@ -375,7 +374,8 @@ mod tests {
     #[tokio::test]
     async fn test_get_block_by_number_ok() {
         let server = MockServer::start();
-        let expected_hash = "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899";
+        let expected_hash =
+            b256!("0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899");
         let mock = server.mock(|when, then| {
             when.method(httpmock::Method::POST)
                 .header("content-type", "application/json")
@@ -390,7 +390,7 @@ mod tests {
                 .body(sample_block_response_with_hash(
                     "0x64",
                     "0x64b8c123",
-                    expected_hash,
+                    "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
                 ));
         });
 
@@ -400,16 +400,20 @@ mod tests {
         let block = response.expect("block response present");
         assert_eq!(block.timestamp, U256::from(0x64b8c123u64));
         assert_eq!(block.hash, expected_hash);
-        let hash_bytes = Bytes::from_str(&block.hash).expect("hash is valid hex");
-        assert_eq!(format!("{hash_bytes:#x}"), expected_hash);
+        assert_eq!(
+            format!("{:#x}", block.hash),
+            "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+        );
 
         mock.assert();
     }
 
     #[test]
     fn block_response_includes_hash_and_extra_fields() {
-        let expected_hash = "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899";
-        let body = sample_block_response_with_hash("0x2a", "0x5f5e100", expected_hash);
+        let expected_hash =
+            b256!("0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899");
+        let body =
+            sample_block_response_with_hash("0x2a", "0x5f5e100", &format!("{:#x}", expected_hash));
         let parsed: serde_json::Value =
             serde_json::from_str(&body).expect("valid json for block response");
         let block: BlockResponse = serde_json::from_value(parsed["result"].clone())
@@ -425,9 +429,11 @@ mod tests {
             .expect("flattened field mixHash present");
         assert_eq!(mix_hash, "0xmix");
 
-        let hash_bytes = Bytes::from_str(&block.hash).expect("hash converts to bytes");
-        assert_eq!(format!("{hash_bytes:#x}"), expected_hash);
-        assert_eq!(hash_bytes.len(), 32);
+        assert_eq!(
+            format!("{:#x}", block.hash),
+            "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+        );
+        assert_eq!(block.hash.len(), 32);
     }
 
     #[tokio::test]
