@@ -1,8 +1,8 @@
 use super::{cache::Cache, orderbook::OrderbookYaml, ValidationConfig, *};
 use crate::{ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
-    de::{self, SeqAccess, Visitor},
-    ser::SerializeSeq,
+    de::{self, IgnoredAny, MapAccess, SeqAccess, Visitor},
+    ser::SerializeStruct,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{
@@ -19,6 +19,7 @@ pub struct DotrainYaml {
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
     pub cache: Cache,
+    pub profile: ContextProfile,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(DotrainYaml);
@@ -110,6 +111,7 @@ impl YamlParsable for DotrainYaml {
         Ok(DotrainYaml {
             documents,
             cache: Cache::default(),
+            profile: ContextProfile::Strict,
         })
     }
 
@@ -117,6 +119,7 @@ impl YamlParsable for DotrainYaml {
         DotrainYaml {
             documents,
             cache: Cache::default(),
+            profile: ContextProfile::Strict,
         }
     }
 
@@ -124,6 +127,7 @@ impl YamlParsable for DotrainYaml {
         DotrainYaml {
             documents: dotrain_yaml.documents,
             cache: dotrain_yaml.cache,
+            profile: dotrain_yaml.profile,
         }
     }
 
@@ -131,6 +135,7 @@ impl YamlParsable for DotrainYaml {
         DotrainYaml {
             documents: orderbook_yaml.documents,
             cache: orderbook_yaml.cache,
+            profile: ContextProfile::Strict,
         }
     }
 }
@@ -146,19 +151,74 @@ impl ContextProvider for DotrainYaml {
 }
 
 impl DotrainYaml {
+    pub fn new_with_profile(
+        sources: Vec<String>,
+        validate: DotrainYamlValidation,
+        profile: ContextProfile,
+    ) -> Result<Self, YamlError> {
+        let mut instance = Self::new(sources, validate)?;
+        instance.profile = profile;
+        Ok(instance)
+    }
+
+    pub fn with_profile(mut self, profile: ContextProfile) -> Self {
+        self.profile = profile;
+        self
+    }
+
+    pub fn build_context(&self, profile: &ContextProfile) -> Result<Context, YamlError> {
+        let mut context = self.create_context();
+
+        match profile {
+            ContextProfile::Strict => {
+                self.expand_context_with_remote_networks(&mut context);
+                self.expand_context_with_remote_tokens(&mut context);
+            }
+            ContextProfile::Gui {
+                current_order,
+                current_deployment,
+            } => {
+                self.expand_context_with_current_order(&mut context, current_order.clone());
+                self.expand_context_with_current_deployment(
+                    &mut context,
+                    current_deployment.clone(),
+                );
+                self.expand_context_with_remote_networks(&mut context);
+                self.expand_context_with_remote_tokens(&mut context);
+
+                if let Some(deployment_key) = current_deployment {
+                    if let Some(select_tokens) =
+                        GuiCfg::parse_select_tokens(self.documents.clone(), deployment_key)?
+                    {
+                        context.add_select_tokens(
+                            select_tokens.iter().map(|st| st.key.clone()).collect(),
+                        );
+                    }
+                }
+                if let Some(order_key) = current_order {
+                    let order = OrderCfg::parse_from_yaml(
+                        self.documents.clone(),
+                        order_key,
+                        Some(&context),
+                    )?;
+                    context.add_order(Arc::new(order));
+                }
+            }
+        }
+
+        Ok(context)
+    }
+
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_orders()?.keys().cloned().collect())
     }
     pub fn get_orders(&self) -> Result<HashMap<String, OrderCfg>, YamlError> {
-        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        let context = self.build_context(&self.profile)?;
+        let orders = OrderCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         Ok(orders)
     }
     pub fn get_order(&self, key: &str) -> Result<OrderCfg, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_order(&mut context, Some(key.to_string()));
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
+        let context = self.build_context(&self.profile)?;
         OrderCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn get_order_for_gui_deployment(
@@ -166,18 +226,10 @@ impl DotrainYaml {
         order_key: &str,
         deployment_key: &str,
     ) -> Result<OrderCfg, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_order(&mut context, Some(order_key.to_string()));
-        self.expand_context_with_current_deployment(&mut context, Some(deployment_key.to_string()));
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
-        if let Some(select_tokens) =
-            GuiCfg::parse_select_tokens(self.documents.clone(), deployment_key)?
-        {
-            context.add_select_tokens(select_tokens.iter().map(|st| st.key.clone()).collect());
-        }
-
+        let context = self.build_context(&ContextProfile::gui(
+            Some(order_key.to_string()),
+            Some(deployment_key.to_string()),
+        ))?;
         OrderCfg::parse_from_yaml(self.documents.clone(), order_key, Some(&context))
     }
 
@@ -185,35 +237,28 @@ impl DotrainYaml {
         Ok(self.get_scenarios()?.keys().cloned().collect())
     }
     pub fn get_scenarios(&self) -> Result<HashMap<String, ScenarioCfg>, YamlError> {
-        let scenarios = ScenarioCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(scenarios)
+        let context = self.build_context(&self.profile)?;
+        ScenarioCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_scenario(&self, key: &str) -> Result<ScenarioCfg, YamlError> {
-        ScenarioCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile)?;
+        ScenarioCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_deployment_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_deployments()?.keys().cloned().collect())
     }
     pub fn get_deployments(&self) -> Result<HashMap<String, DeploymentCfg>, YamlError> {
-        let deployments = DeploymentCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(deployments)
+        let context = self.build_context(&self.profile)?;
+        DeploymentCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_deployment(&self, key: &str) -> Result<DeploymentCfg, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_deployment(&mut context, Some(key.to_string()));
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
+        let context = self.build_context(&self.profile)?;
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_current_deployment(&mut context, current_deployment);
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-
+        let context = self.build_context(&ContextProfile::gui(None, current_deployment))?;
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 
@@ -221,11 +266,12 @@ impl DotrainYaml {
         Ok(self.get_charts()?.keys().cloned().collect())
     }
     pub fn get_charts(&self) -> Result<HashMap<String, ChartCfg>, YamlError> {
-        let charts = ChartCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(charts)
+        let context = self.build_context(&self.profile)?;
+        ChartCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_chart(&self, key: &str) -> Result<ChartCfg, YamlError> {
-        ChartCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile)?;
+        ChartCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
@@ -281,12 +327,16 @@ impl Serialize for DotrainYaml {
     where
         S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.documents.len()))?;
+        let mut documents = Vec::with_capacity(self.documents.len());
         for doc in &self.documents {
             let yaml_str = Self::get_yaml_string(doc.clone()).map_err(serde::ser::Error::custom)?;
-            seq.serialize_element(&yaml_str)?;
+            documents.push(yaml_str);
         }
-        seq.end()
+
+        let mut state = serializer.serialize_struct("DotrainYaml", 2)?;
+        state.serialize_field("documents", &documents)?;
+        state.serialize_field("profile", &self.profile)?;
+        state.end()
     }
 }
 
@@ -302,6 +352,50 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a sequence of YAML documents as strings")
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let mut documents: Option<Vec<String>> = None;
+                let mut profile = ContextProfile::Strict;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "documents" => {
+                            if documents.is_some() {
+                                return Err(de::Error::duplicate_field("documents"));
+                            }
+                            documents = Some(map.next_value()?);
+                        }
+                        "profile" => {
+                            profile = map.next_value()?;
+                        }
+                        _ => {
+                            let _ = map.next_value::<IgnoredAny>()?;
+                        }
+                    }
+                }
+
+                let documents = documents.ok_or_else(|| de::Error::missing_field("documents"))?;
+                let documents = documents
+                    .into_iter()
+                    .map(|doc_str| {
+                        let docs =
+                            StrictYamlLoader::load_from_str(&doc_str).map_err(de::Error::custom)?;
+                        if docs.is_empty() {
+                            return Err(de::Error::custom("Empty YAML document"));
+                        }
+                        Ok(Arc::new(RwLock::new(docs[0].clone())))
+                    })
+                    .collect::<Result<Vec<_>, M::Error>>()?;
+
+                Ok(DotrainYaml {
+                    documents,
+                    cache: Cache::default(),
+                    profile,
+                })
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -323,11 +417,12 @@ impl<'de> Deserialize<'de> for DotrainYaml {
                 Ok(DotrainYaml {
                     documents,
                     cache: Cache::default(),
+                    profile: ContextProfile::Strict,
                 })
             }
         }
 
-        deserializer.deserialize_seq(DotrainYamlVisitor)
+        deserializer.deserialize_any(DotrainYamlVisitor)
     }
 }
 
@@ -335,9 +430,14 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 mod tests {
     use crate::yaml::FieldErrorKind;
     use crate::{
-        yaml::orderbook::OrderbookYamlValidation, BinXOptionsCfg, BinXTransformCfg, DotOptionsCfg,
-        GuiSelectTokensCfg, HexBinOptionsCfg, HexBinTransformCfg, LineOptionsCfg, MarkCfg,
-        RectYOptionsCfg, TransformCfg, TransformOutputsCfg, VaultType,
+        test::*,
+        yaml::{
+            context::{ContextProfile, YamlCacheTrait},
+            orderbook::OrderbookYamlValidation,
+        },
+        BinXOptionsCfg, BinXTransformCfg, DotOptionsCfg, GuiSelectTokensCfg, HexBinOptionsCfg,
+        HexBinTransformCfg, LineOptionsCfg, MarkCfg, RectYOptionsCfg, TransformCfg,
+        TransformOutputsCfg, VaultType,
     };
     use alloy::primitives::U256;
     use orderbook::OrderbookYaml;
@@ -747,6 +847,18 @@ mod tests {
             GuiCfg::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
         assert!(select_tokens.is_none());
 
+        let gui_context = dotrain_yaml
+            .build_context(&ContextProfile::gui(None, Some("deployment1".to_string())))
+            .unwrap();
+        assert_eq!(
+            gui_context
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_deployment.clone()),
+            Some("deployment1".to_string())
+        );
+        assert_eq!(gui_context.select_tokens, Some(vec!["token2".to_string()]));
+
         let field_presets =
             GuiCfg::parse_field_presets(dotrain_yaml.documents.clone(), "deployment1", "key1")
                 .unwrap()
@@ -830,6 +942,191 @@ mod tests {
                 transform: None,
             })
         );
+    }
+
+    #[test]
+    fn test_build_context_profiles() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpcs:
+                    - https://mainnet.infura.io
+                chain-id: 1
+        deployers:
+            deployer1:
+                address: 0x0000000000000000000000000000000000000002
+                network: mainnet
+        tokens:
+            token1:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000003
+                decimals: 18
+            token2:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000004
+                decimals: 18
+        orders:
+            order1:
+                deployer: deployer1
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        "#;
+
+        let mut dotrain_yaml =
+            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+
+        let remote_network = mock_network();
+        let remote_token = mock_token("remote-token");
+        dotrain_yaml
+            .cache
+            .update_remote_network("remote-net".to_string(), remote_network.as_ref().clone());
+        dotrain_yaml
+            .cache
+            .update_remote_token("remote-token".to_string(), remote_token.as_ref().clone());
+
+        let strict_ctx = dotrain_yaml.build_context(&ContextProfile::Strict).unwrap();
+        assert!(strict_ctx.get_remote_network("remote-net").is_some());
+        assert!(strict_ctx.get_remote_token("remote-token").is_some());
+        assert!(strict_ctx.gui_context.is_none());
+        assert!(strict_ctx.order.is_none());
+
+        let gui_ctx = dotrain_yaml
+            .build_context(&ContextProfile::gui(
+                Some("order1".to_string()),
+                Some("deployment1".to_string()),
+            ))
+            .unwrap();
+        assert!(gui_ctx.get_remote_network("remote-net").is_some());
+        assert!(gui_ctx.get_remote_token("remote-token").is_some());
+        assert_eq!(
+            gui_ctx
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_order.clone()),
+            Some("order1".to_string())
+        );
+        assert_eq!(
+            gui_ctx
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_deployment.clone()),
+            Some("deployment1".to_string())
+        );
+        assert_eq!(
+            gui_ctx.order.as_ref().map(|order| order.key.clone()),
+            Some("order1".to_string())
+        );
+
+        let propagated = DotrainYaml::from_dotrain_yaml(dotrain_yaml);
+        let propagated_ctx = propagated
+            .build_context(&ContextProfile::gui(
+                Some("order1".to_string()),
+                Some("deployment1".to_string()),
+            ))
+            .unwrap();
+        assert_eq!(
+            propagated_ctx
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_order.clone()),
+            Some("order1".to_string())
+        );
+        assert_eq!(
+            propagated_ctx.order.as_ref().map(|order| order.key.clone()),
+            Some("order1".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_order_uses_profile() {
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpcs:
+                    - https://mainnet.infura.io
+                chain-id: 1
+        deployers:
+            deployer1:
+                address: 0x0000000000000000000000000000000000000002
+                network: mainnet
+        orders:
+            order1:
+                deployer: deployer1
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        scenarios:
+            scenario1:
+                deployer: deployer1
+        deployments:
+            deployment1:
+                order: order1
+                scenario: scenario1
+        gui:
+            deployments:
+                deployment1:
+                    select-tokens:
+                        - key: token1
+                        - key: token2
+        "#;
+
+        let strict_yaml =
+            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+        let err = strict_yaml.get_order("order1").unwrap_err();
+        assert_eq!(
+            err,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("tokens".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let gui_yaml = DotrainYaml::new_with_profile(
+            vec![yaml.to_string()],
+            DotrainYamlValidation::default(),
+            ContextProfile::gui(Some("order1".to_string()), Some("deployment1".to_string())),
+        )
+        .unwrap();
+        let order = gui_yaml.get_order("order1").unwrap();
+        assert_eq!(order.inputs[0].token, None);
+        assert_eq!(order.outputs[0].token, None);
+    }
+
+    #[test]
+    fn test_dotrain_yaml_serialization_preserves_profile() {
+        let yaml = "orders: {}".to_string();
+        let dotrain_yaml = DotrainYaml::new_with_profile(
+            vec![yaml.clone()],
+            DotrainYamlValidation::default(),
+            ContextProfile::gui(Some("order1".to_string()), Some("deployment1".to_string())),
+        )
+        .unwrap();
+
+        let serialized = serde_json::to_string(&dotrain_yaml).unwrap();
+        let round_tripped: DotrainYaml = serde_json::from_str(&serialized).unwrap();
+        match round_tripped.profile {
+            ContextProfile::Gui {
+                current_order,
+                current_deployment,
+            } => {
+                assert_eq!(current_order.as_deref(), Some("order1"));
+                assert_eq!(current_deployment.as_deref(), Some("deployment1"));
+            }
+            _ => panic!("expected gui profile"),
+        }
+    }
+
+    #[test]
+    fn test_dotrain_yaml_legacy_sequence_deserialization_defaults_profile() {
+        let yaml = "orders: {}".to_string();
+        let legacy_serialized = serde_json::to_string(&vec![yaml.clone()]).unwrap();
+
+        let deserialized: DotrainYaml = serde_json::from_str(&legacy_serialized).unwrap();
+        assert!(matches!(deserialized.profile, ContextProfile::Strict));
+        assert_eq!(deserialized.documents.len(), 1);
     }
 
     #[test]

@@ -10,8 +10,8 @@ use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::LocalDbError;
 use crate::local_db::OrderbookIdentifier;
-use crate::local_db::DATABASE_SCHEMA_VERSION;
 use async_trait::async_trait;
+use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
@@ -53,7 +53,7 @@ pub trait BootstrapPipeline {
             .query_json::<Vec<DbMetadataRow>>(&fetch_db_metadata_stmt())
             .await?;
         if let Some(row) = rows.first() {
-            let expected = db_schema_version.unwrap_or(DATABASE_SCHEMA_VERSION);
+            let expected = db_schema_version.unwrap_or(DB_SCHEMA_VERSION);
             if row.db_schema_version != expected {
                 return Err(LocalDbError::SchemaVersionMismatch {
                     expected,
@@ -108,7 +108,7 @@ pub trait BootstrapPipeline {
         db.query_text(&clear_tables_stmt()).await?;
         db.query_text(&create_tables_stmt()).await?;
         db.query_text(&insert_db_metadata_stmt(
-            db_schema_version.unwrap_or(DATABASE_SCHEMA_VERSION),
+            db_schema_version.unwrap_or(DB_SCHEMA_VERSION),
         ))
         .await?;
         Ok(())
@@ -144,13 +144,14 @@ pub trait BootstrapPipeline {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::str::FromStr;
     use std::sync::Mutex;
 
     use super::*;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, Bytes};
     use async_trait::async_trait;
     use serde_json::json;
 
@@ -285,7 +286,7 @@ mod tests {
         let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION,
+            db_schema_version: DB_SCHEMA_VERSION,
             created_at: None,
             updated_at: None,
         };
@@ -299,7 +300,7 @@ mod tests {
         let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION + 1,
+            db_schema_version: DB_SCHEMA_VERSION + 1,
             created_at: None,
             updated_at: None,
         };
@@ -308,8 +309,8 @@ mod tests {
         let err = adapter.ensure_schema(&db, None).await.unwrap_err();
         match err {
             LocalDbError::SchemaVersionMismatch { expected, found } => {
-                assert_eq!(expected, DATABASE_SCHEMA_VERSION);
-                assert_eq!(found, DATABASE_SCHEMA_VERSION + 1);
+                assert_eq!(expected, DB_SCHEMA_VERSION);
+                assert_eq!(found, DB_SCHEMA_VERSION + 1);
             }
             other => panic!("unexpected error: {other:?}"),
         }
@@ -318,7 +319,7 @@ mod tests {
     #[tokio::test]
     async fn ensure_schema_honors_override_ok() {
         let adapter = TestBootstrapPipeline::new();
-        let override_version = DATABASE_SCHEMA_VERSION + 7;
+        let override_version = DB_SCHEMA_VERSION + 7;
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: override_version,
@@ -336,7 +337,7 @@ mod tests {
     #[tokio::test]
     async fn ensure_schema_honors_override_mismatch() {
         let adapter = TestBootstrapPipeline::new();
-        let row_version = DATABASE_SCHEMA_VERSION + 3;
+        let row_version = DB_SCHEMA_VERSION + 3;
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: row_version,
@@ -346,12 +347,12 @@ mod tests {
         let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([db_row]));
 
         let err = adapter
-            .ensure_schema(&db, Some(DATABASE_SCHEMA_VERSION))
+            .ensure_schema(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap_err();
         match err {
             LocalDbError::SchemaVersionMismatch { expected, found } => {
-                assert_eq!(expected, DATABASE_SCHEMA_VERSION);
+                assert_eq!(expected, DB_SCHEMA_VERSION);
                 assert_eq!(found, row_version);
             }
             other => panic!("unexpected error: {other:?}"),
@@ -390,8 +391,8 @@ mod tests {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,
             last_block: 123,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }]);
 
         let db = MockDb::default()
@@ -493,8 +494,8 @@ mod tests {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,
             last_block: 42,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }]);
 
         let db = MockDb::default()
@@ -554,10 +555,10 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
 
         adapter
-            .reset_db(&db, Some(DATABASE_SCHEMA_VERSION))
+            .reset_db(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
@@ -567,9 +568,7 @@ mod tests {
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
             calls[2],
-            insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-                .sql()
-                .to_string()
+            insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
         );
     }
 
@@ -579,22 +578,19 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
 
         adapter.reset_db(&db, None).await.unwrap();
 
         let calls = db.calls();
         assert_eq!(calls.len(), 3);
-        assert_eq!(
-            calls[2],
-            insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION).sql()
-        );
+        assert_eq!(calls[2], insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql());
     }
 
     #[tokio::test]
     async fn reset_db_uses_custom_version_when_some() {
         let adapter = TestBootstrapPipeline::new();
-        let custom_version = DATABASE_SCHEMA_VERSION + 9;
+        let custom_version = DB_SCHEMA_VERSION + 9;
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")

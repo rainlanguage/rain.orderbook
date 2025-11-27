@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS target_watermarks (
     orderbook_address TEXT NOT NULL,
     last_block INTEGER NOT NULL DEFAULT 0,
     last_hash TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
     PRIMARY KEY (chain_id, orderbook_address)
 );
 
@@ -238,7 +238,7 @@ CREATE TABLE meta_events (
     block_timestamp INTEGER NOT NULL,
     sender TEXT NOT NULL,
     subject TEXT NOT NULL,
-    meta BLOB NOT NULL,
+    meta TEXT NOT NULL,
     PRIMARY KEY (chain_id, orderbook_address, transaction_hash, log_index)
 );
 CREATE INDEX idx_deposits_vault ON deposits(chain_id, orderbook_address, sender, token, vault_id);

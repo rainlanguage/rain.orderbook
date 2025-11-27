@@ -1,8 +1,22 @@
+pub mod cli;
 pub mod executor;
-
-pub mod dump;
 pub mod pipeline;
-pub mod sync;
 
-pub use dump::DbDump;
-pub use sync::SyncLocalDb;
+use anyhow::Result;
+use clap::Subcommand;
+use cli::RunPipeline;
+
+#[derive(Subcommand)]
+#[command(about = "Local database operations")]
+pub enum LocalDbCommands {
+    #[command(name = "sync")]
+    Sync(RunPipeline),
+}
+
+impl LocalDbCommands {
+    pub async fn execute(self) -> Result<()> {
+        match self {
+            LocalDbCommands::Sync(cmd) => cmd.execute().await,
+        }
+    }
+}

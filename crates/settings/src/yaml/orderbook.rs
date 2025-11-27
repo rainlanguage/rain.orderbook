@@ -7,8 +7,8 @@ use crate::{
 };
 use alloy::primitives::Address;
 use serde::{
-    de::{self, Deserializer, SeqAccess, Visitor},
-    ser::{Serialize, SerializeSeq, Serializer},
+    de::{self, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor},
+    ser::{Serialize, SerializeStruct, Serializer},
     Deserialize,
 };
 use std::{
@@ -25,6 +25,7 @@ pub struct OrderbookYaml {
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
     pub cache: Cache,
+    pub profile: ContextProfile,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderbookYaml);
@@ -151,6 +152,7 @@ impl YamlParsable for OrderbookYaml {
         Ok(OrderbookYaml {
             documents,
             cache: Cache::default(),
+            profile: ContextProfile::Strict,
         })
     }
 
@@ -158,6 +160,7 @@ impl YamlParsable for OrderbookYaml {
         OrderbookYaml {
             documents,
             cache: Cache::default(),
+            profile: ContextProfile::Strict,
         }
     }
 
@@ -165,6 +168,7 @@ impl YamlParsable for OrderbookYaml {
         OrderbookYaml {
             documents: orderbook_yaml.documents,
             cache: orderbook_yaml.cache,
+            profile: orderbook_yaml.profile,
         }
     }
 
@@ -172,6 +176,7 @@ impl YamlParsable for OrderbookYaml {
         OrderbookYaml {
             documents: dotrain_yaml.documents,
             cache: dotrain_yaml.cache,
+            profile: dotrain_yaml.profile,
         }
     }
 }
@@ -187,22 +192,43 @@ impl ContextProvider for OrderbookYaml {
 }
 
 impl OrderbookYaml {
-    pub fn initialize_context_and_expand_remote_data(&self) -> Result<Context, YamlError> {
+    pub fn new_with_profile(
+        sources: Vec<String>,
+        validate: OrderbookYamlValidation,
+        profile: ContextProfile,
+    ) -> Result<Self, YamlError> {
+        let mut instance = Self::new(sources, validate)?;
+        instance.profile = profile;
+        Ok(instance)
+    }
+
+    pub fn with_profile(mut self, profile: ContextProfile) -> Self {
+        self.profile = profile;
+        self
+    }
+
+    pub fn build_context(&self, profile: &ContextProfile) -> Context {
         let mut context = self.create_context();
-        self.expand_context_with_remote_networks(&mut context);
-        self.expand_context_with_remote_tokens(&mut context);
-        Ok(context)
+
+        match profile {
+            ContextProfile::Strict | ContextProfile::Gui { .. } => {
+                self.expand_context_with_remote_networks(&mut context);
+                self.expand_context_with_remote_tokens(&mut context);
+            }
+        }
+
+        context
     }
 
     pub fn get_network_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_networks()?.keys().cloned().collect())
     }
     pub fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn get_network_by_chain_id(&self, chain_id: u32) -> Result<NetworkCfg, YamlError> {
@@ -219,75 +245,77 @@ impl OrderbookYaml {
     }
 
     pub fn get_remote_networks(&self) -> Result<HashMap<String, RemoteNetworksCfg>, YamlError> {
-        let remote_networks = RemoteNetworksCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(remote_networks)
+        let context = self.build_context(&self.profile);
+        RemoteNetworksCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
 
     pub fn get_token_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_tokens()?.keys().cloned().collect())
     }
     pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_remote_tokens(&self) -> Result<Option<RemoteTokensCfg>, YamlError> {
-        let mut context = Context::new();
-        self.expand_context_with_remote_networks(&mut context);
-
-        let remote_tokens =
-            RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), None)?;
-        Ok(remote_tokens)
+        let context = self.build_context(&self.profile);
+        RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_subgraphs()?.keys().cloned().collect())
     }
     pub fn get_subgraphs(&self) -> Result<HashMap<String, SubgraphCfg>, YamlError> {
-        let subgraphs = SubgraphCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(subgraphs)
+        let context = self.build_context(&self.profile);
+        SubgraphCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
-        SubgraphCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile);
+        SubgraphCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_local_db_remote_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_local_db_remotes()?.keys().cloned().collect())
     }
     pub fn get_local_db_remotes(&self) -> Result<HashMap<String, LocalDbRemoteCfg>, YamlError> {
-        LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), None)
+        let context = self.build_context(&self.profile);
+        LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_local_db_remote(&self, key: &str) -> Result<LocalDbRemoteCfg, YamlError> {
-        LocalDbRemoteCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile);
+        LocalDbRemoteCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_local_db_sync_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_local_db_syncs()?.keys().cloned().collect())
     }
     pub fn get_local_db_syncs(&self) -> Result<HashMap<String, LocalDbSyncCfg>, YamlError> {
-        LocalDbSyncCfg::parse_all_from_yaml(self.documents.clone(), None)
+        let context = self.build_context(&self.profile);
+        LocalDbSyncCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_local_db_sync(&self, key: &str) -> Result<LocalDbSyncCfg, YamlError> {
-        LocalDbSyncCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile);
+        LocalDbSyncCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_orderbooks()?.keys().cloned().collect())
     }
     pub fn get_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         OrderbookCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, YamlError> {
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), None)?;
+        let context = self.build_context(&self.profile);
+        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         for (_, orderbook) in orderbooks {
             if orderbook.address == address {
                 return Ok(orderbook);
@@ -345,11 +373,12 @@ impl OrderbookYaml {
         Ok(self.get_metaboards()?.keys().cloned().collect())
     }
     pub fn get_metaboards(&self) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
-        let metaboards = MetaboardCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(metaboards)
+        let context = self.build_context(&self.profile);
+        MetaboardCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
-        MetaboardCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile);
+        MetaboardCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
         MetaboardCfg::add_record_to_yaml(self.documents[0].clone(), key, value)
@@ -359,11 +388,11 @@ impl OrderbookYaml {
         Ok(self.get_deployers()?.keys().cloned().collect())
     }
     pub fn get_deployers(&self) -> Result<HashMap<String, DeployerCfg>, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
-        let context = self.initialize_context_and_expand_remote_data()?;
+        let context = self.build_context(&self.profile);
         DeployerCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -397,11 +426,12 @@ impl OrderbookYaml {
         Ok(accounts.keys().cloned().collect())
     }
     pub fn get_accounts(&self) -> Result<HashMap<String, AccountCfg>, YamlError> {
-        let accounts = AccountCfg::parse_all_from_yaml(self.documents.clone(), None)?;
-        Ok(accounts)
+        let context = self.build_context(&self.profile);
+        AccountCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_account(&self, key: &str) -> Result<AccountCfg, YamlError> {
-        AccountCfg::parse_from_yaml(self.documents.clone(), key, None)
+        let context = self.build_context(&self.profile);
+        AccountCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
@@ -528,12 +558,16 @@ impl Serialize for OrderbookYaml {
     where
         S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.documents.len()))?;
+        let mut documents = Vec::with_capacity(self.documents.len());
         for doc in &self.documents {
             let yaml_str = Self::get_yaml_string(doc.clone()).map_err(serde::ser::Error::custom)?;
-            seq.serialize_element(&yaml_str)?;
+            documents.push(yaml_str);
         }
-        seq.end()
+
+        let mut state = serializer.serialize_struct("OrderbookYaml", 2)?;
+        state.serialize_field("documents", &documents)?;
+        state.serialize_field("profile", &self.profile)?;
+        state.end()
     }
 }
 
@@ -549,6 +583,50 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a sequence of YAML documents as strings")
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let mut documents: Option<Vec<String>> = None;
+                let mut profile = ContextProfile::Strict;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "documents" => {
+                            if documents.is_some() {
+                                return Err(de::Error::duplicate_field("documents"));
+                            }
+                            documents = Some(map.next_value()?);
+                        }
+                        "profile" => {
+                            profile = map.next_value()?;
+                        }
+                        _ => {
+                            let _ = map.next_value::<IgnoredAny>()?;
+                        }
+                    }
+                }
+
+                let documents = documents.ok_or_else(|| de::Error::missing_field("documents"))?;
+                let documents = documents
+                    .into_iter()
+                    .map(|doc_str| {
+                        let docs =
+                            StrictYamlLoader::load_from_str(&doc_str).map_err(de::Error::custom)?;
+                        if docs.is_empty() {
+                            return Err(de::Error::custom("Empty YAML document"));
+                        }
+                        Ok(Arc::new(RwLock::new(docs[0].clone())))
+                    })
+                    .collect::<Result<Vec<_>, M::Error>>()?;
+
+                Ok(OrderbookYaml {
+                    documents,
+                    cache: Cache::default(),
+                    profile,
+                })
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -570,11 +648,12 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
                 Ok(OrderbookYaml {
                     documents,
                     cache: Cache::default(),
+                    profile: ContextProfile::Strict,
                 })
             }
         }
 
-        deserializer.deserialize_seq(OrderbookYamlVisitor)
+        deserializer.deserialize_any(OrderbookYamlVisitor)
     }
 }
 
@@ -585,6 +664,62 @@ mod tests {
     use httpmock::MockServer;
     use std::str::FromStr;
     use url::Url;
+
+    #[test]
+    fn test_orderbook_yaml_profile_helpers() {
+        let sources = vec![FULL_YAML.to_string()];
+        let ob = OrderbookYaml::new_with_profile(
+            sources.clone(),
+            OrderbookYamlValidation::default(),
+            ContextProfile::Gui {
+                current_order: None,
+                current_deployment: None,
+            },
+        )
+        .unwrap();
+        assert!(matches!(ob.profile, ContextProfile::Gui { .. }));
+
+        let ob_default = OrderbookYaml::new(sources, OrderbookYamlValidation::default()).unwrap();
+        assert!(matches!(ob_default.profile, ContextProfile::Strict));
+
+        let ob_strict = ob.with_profile(ContextProfile::Strict);
+        assert!(matches!(ob_strict.profile, ContextProfile::Strict));
+    }
+
+    #[test]
+    fn test_orderbook_yaml_serialization_preserves_profile() {
+        let ob = OrderbookYaml::new_with_profile(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+            ContextProfile::Gui {
+                current_order: Some("order1".to_string()),
+                current_deployment: None,
+            },
+        )
+        .unwrap();
+
+        let serialized = serde_json::to_string(&ob).unwrap();
+        let round_tripped: OrderbookYaml = serde_json::from_str(&serialized).unwrap();
+        match round_tripped.profile {
+            ContextProfile::Gui {
+                current_order,
+                current_deployment,
+            } => {
+                assert_eq!(current_order.as_deref(), Some("order1"));
+                assert!(current_deployment.is_none());
+            }
+            _ => panic!("expected gui profile"),
+        }
+    }
+
+    #[test]
+    fn test_orderbook_yaml_legacy_sequence_deserialization_defaults_profile() {
+        let legacy_serialized = serde_json::to_string(&vec![FULL_YAML.to_string()]).unwrap();
+        let deserialized: OrderbookYaml = serde_json::from_str(&legacy_serialized).unwrap();
+
+        assert!(matches!(deserialized.profile, ContextProfile::Strict));
+        assert_eq!(deserialized.documents.len(), 1);
+    }
 
     const FULL_YAML: &str = r#"
     version: 4

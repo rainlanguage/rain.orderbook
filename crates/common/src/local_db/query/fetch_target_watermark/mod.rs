@@ -12,8 +12,8 @@ pub struct TargetWatermarkRow {
     pub chain_id: u32,
     pub orderbook_address: Address,
     pub last_block: u64,
-    pub last_hash: Option<Bytes>,
-    pub updated_at: Option<String>,
+    pub last_hash: Bytes,
+    pub updated_at: u64,
 }
 
 pub fn fetch_target_watermark_stmt(ob_id: &OrderbookIdentifier) -> SqlStatement {
@@ -28,10 +28,7 @@ pub fn fetch_target_watermark_stmt(ob_id: &OrderbookIdentifier) -> SqlStatement 
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-
     use super::*;
-    use alloy::primitives::address;
 
     #[test]
     fn fetch_stmt_binds_params() {
@@ -75,33 +72,5 @@ mod tests {
         assert!(s.starts_with("0x"));
         assert_eq!(s.len(), 42); // 0x + 40 hex chars
         assert_eq!(s, &addr.to_string());
-    }
-
-    #[test]
-    fn target_watermark_row_serde_roundtrip_none_fields() {
-        let row = TargetWatermarkRow {
-            chain_id: 5,
-            orderbook_address: Address::ZERO,
-            last_block: 123,
-            last_hash: None,
-            updated_at: None,
-        };
-        let j = serde_json::to_value(&row).expect("serialize");
-        let rt: TargetWatermarkRow = serde_json::from_value(j).expect("deserialize");
-        assert_eq!(rt, row);
-    }
-
-    #[test]
-    fn target_watermark_row_serde_roundtrip_some_fields() {
-        let row = TargetWatermarkRow {
-            chain_id: 10,
-            orderbook_address: address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-            last_block: 999_999,
-            last_hash: Some(Bytes::from_str("0xdeadbeef").unwrap()),
-            updated_at: Some("2024-01-01T00:00:00Z".to_owned()),
-        };
-        let j = serde_json::to_value(&row).expect("serialize");
-        let rt: TargetWatermarkRow = serde_json::from_value(j).expect("deserialize");
-        assert_eq!(rt, row);
     }
 }

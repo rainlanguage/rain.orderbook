@@ -6780,6 +6780,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "derive_builder 0.20.2",
+ "futures",
  "httpmock",
  "rain_orderbook_bindings",
  "reqwest 0.12.20",
@@ -6819,6 +6820,7 @@ dependencies = [
  "clap",
  "comfy-table",
  "csv",
+ "flate2",
  "futures",
  "httpmock",
  "itertools 0.14.0",
@@ -6877,6 +6879,7 @@ dependencies = [
  "rain_orderbook_subgraph_client",
  "rain_orderbook_test_fixtures",
  "reqwest 0.12.20",
+ "rusqlite",
  "serde",
  "serde-wasm-bindgen 0.4.5",
  "serde_bytes",

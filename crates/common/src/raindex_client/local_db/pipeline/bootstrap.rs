@@ -1,5 +1,5 @@
 use crate::local_db::{
-    pipeline::{BootstrapConfig, BootstrapPipeline, BootstrapState},
+    pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState},
     query::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
         LocalDbQueryExecutor,
@@ -117,7 +117,6 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
-    use crate::local_db::pipeline::BootstrapConfig;
     use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
@@ -132,10 +131,11 @@ mod tests {
     use crate::local_db::query::{
         LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use crate::local_db::DATABASE_SCHEMA_VERSION;
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, Bytes};
     use async_trait::async_trait;
+    use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
     use serde_json::json;
+    use std::str::FromStr;
 
     const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
@@ -230,8 +230,8 @@ mod tests {
             chain_id: sample_ob_id().chain_id,
             orderbook_address: sample_ob_id().orderbook_address,
             last_block,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }
     }
 
@@ -241,7 +241,7 @@ mod tests {
         let tables_json = json!([]);
         let db_meta_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION,
+            db_schema_version: DB_SCHEMA_VERSION,
             created_at: None,
             updated_at: None,
         };
@@ -251,9 +251,9 @@ mod tests {
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
         adapter
-            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
@@ -263,9 +263,7 @@ mod tests {
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
             calls[2],
-            insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-                .sql()
-                .to_string()
+            insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
         );
     }
 
@@ -289,20 +287,16 @@ mod tests {
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
         adapter
-            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
         assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
         assert!(calls.contains(&create_tables_stmt().sql().to_string()));
-        assert!(calls.contains(
-            &insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-                .sql()
-                .to_string()
-        ));
+        assert!(calls.contains(&insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()));
     }
 
     #[tokio::test]
@@ -320,7 +314,7 @@ mod tests {
 
         let mismatched_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION + 1,
+            db_schema_version: DB_SCHEMA_VERSION + 1,
             created_at: None,
             updated_at: None,
         };
@@ -331,10 +325,10 @@ mod tests {
             .with_json(&fetch_db_metadata_stmt(), json!([mismatched_row]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
 
         adapter
-            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
@@ -358,7 +352,7 @@ mod tests {
 
         let db_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION,
+            db_schema_version: DB_SCHEMA_VERSION,
             created_at: None,
             updated_at: None,
         };
@@ -369,7 +363,7 @@ mod tests {
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]));
 
         adapter
-            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
@@ -384,7 +378,7 @@ mod tests {
         let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
 
         let err = adapter
-            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap_err();
 

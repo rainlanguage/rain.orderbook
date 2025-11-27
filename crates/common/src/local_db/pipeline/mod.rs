@@ -8,7 +8,8 @@
 //!
 
 pub mod adapters;
-pub use adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState};
+pub mod engine;
+pub mod runner;
 
 use super::OrderbookIdentifier;
 use crate::erc20::TokenInfo;
@@ -18,7 +19,7 @@ use crate::local_db::query::{
 };
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, Bytes, B256};
 use async_trait::async_trait;
 
 /// Optional manual window overrides usually supplied by CLI/producer.
@@ -60,9 +61,9 @@ pub struct SyncConfig {
 
 /// Coarse execution summary for a single sync cycle.
 #[derive(Debug, Clone)]
-pub struct SyncOutcome<'a> {
+pub struct SyncOutcome {
     /// Target that was synced.
-    pub ob_id: &'a OrderbookIdentifier,
+    pub ob_id: OrderbookIdentifier,
     /// Start block (inclusive) that was used.
     pub start_block: u64,
     /// Target block (inclusive) that was used.
@@ -125,6 +126,9 @@ pub trait EventsPipeline {
     /// Returns the latest chain block number according to the backend.
     async fn latest_block(&self) -> Result<u64, LocalDbError>;
 
+    /// Fetches the canonical block hash for the provided block number.
+    async fn block_hash(&self, block_number: u64) -> Result<Bytes, LocalDbError>;
+
     /// Fetches orderbook logs within the inclusive block range.
     async fn fetch_orderbook(
         &self,
@@ -180,6 +184,13 @@ pub trait TokensPipeline {
     ) -> Result<Vec<(Address, TokenInfo)>, LocalDbError>;
 }
 
+#[derive(Debug, Clone)]
+pub struct ApplyPipelineTargetInfo {
+    pub ob_id: OrderbookIdentifier,
+    pub block: u64,
+    pub hash: B256,
+}
+
 /// Translates fetched/decoded data into SQL and persists it atomically.
 ///
 /// Responsibilities (concrete):
@@ -187,7 +198,7 @@ pub trait TokensPipeline {
 ///   - Raw events INSERTs.
 ///   - Token upserts for provided `(Address, TokenInfo)` pairs.
 ///   - Decoded event INSERTs for all orderbook-scoped tables, binding the
-///     target key.
+///     target orderbook.
 ///   - Watermark update to the `target_block` (and later last hash).
 /// - Persist the batch with a single-writer gate; must assert that the batch
 ///   is transaction-wrapped and fail if not.
@@ -200,8 +211,7 @@ pub trait ApplyPipeline {
     /// atomic execution (the caller will ensure single-writer semantics).
     fn build_batch(
         &self,
-        ob_id: &OrderbookIdentifier,
-        target_block: u64,
+        target_info: &ApplyPipelineTargetInfo,
         raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
         existing_tokens: &[Erc20TokenRow],

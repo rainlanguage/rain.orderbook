@@ -1,5 +1,6 @@
-use alloy::primitives::Address;
+use alloy::primitives::{Address, Bytes};
 use async_trait::async_trait;
+use std::str::FromStr;
 use url::Url;
 
 use crate::local_db::decode::{decode_events, DecodedEvent, DecodedEventData};
@@ -42,6 +43,15 @@ impl EventsPipeline for DefaultEventsPipeline {
             .map_err(Into::into)
     }
 
+    async fn block_hash(&self, block_number: u64) -> Result<Bytes, LocalDbError> {
+        let block = self
+            .rpc_client
+            .get_block_by_number(block_number)
+            .await?
+            .ok_or_else(|| LocalDbError::BlockHashNotFound { block_number })?;
+        Ok(Bytes::from_str(&block.hash)?)
+    }
+
     async fn fetch_orderbook(
         &self,
         orderbook_address: Address,
@@ -82,7 +92,9 @@ mod tests {
     use super::*;
     use crate::rpc_client::RpcClientError;
     use alloy::{hex, primitives::U256, sol_types::SolEvent};
+    use httpmock::MockServer;
     use rain_orderbook_bindings::OrderBook::MetaV1_2;
+    use serde_json::json;
 
     fn test_url() -> Url {
         Url::parse("http://localhost:8545").expect("valid test url")
@@ -122,7 +134,7 @@ mod tests {
 
         let err = pipe.decode(&[bad_log]).expect_err("expected decode error");
         match err {
-            LocalDbError::DecodeError { .. } => {}
+            LocalDbError::DecodeError(_) => {}
             other => panic!("unexpected error variant: {other:?}"),
         }
     }
@@ -145,5 +157,51 @@ mod tests {
             }
             other => panic!("unexpected error variant: {other:?}"),
         }
+    }
+
+    #[tokio::test]
+    async fn block_hash_conversion_preserves_polygon_hash() {
+        let server = MockServer::start();
+        let polygon_hash = "0xfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeedfeed";
+
+        let mock = server.mock(|when, then| {
+            when.method(httpmock::Method::POST)
+                .header("content-type", "application/json")
+                .json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "eth_getBlockByNumber",
+                    "params": ["0x64", false]
+                }));
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    json!({
+                        "jsonrpc": "2.0",
+                        "id": 1,
+                        "result": {
+                            "timestamp": "0x64b8c123",
+                            "hash": polygon_hash,
+                            "totalDifficulty": "0x2"
+                        }
+                    })
+                    .to_string(),
+                );
+        });
+
+        let mut pipeline =
+            DefaultEventsPipeline::with_hyperrpc(137, "token".to_string()).expect("valid pipeline");
+        pipeline.rpc_client.update_rpc_urls(vec![
+            Url::parse(&server.base_url()).expect("valid server url")
+        ]);
+
+        let block_hash = pipeline
+            .block_hash(100)
+            .await
+            .expect("block hash should deserialize");
+        let expected = Bytes::from_str(polygon_hash).expect("polygon hash should parse");
+        assert_eq!(block_hash, expected);
+
+        mock.assert();
     }
 }
