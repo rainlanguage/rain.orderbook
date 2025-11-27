@@ -320,6 +320,7 @@ mod tests {
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, QuoteV2, IOV2};
+    use rain_orderbook_common::utils::order_hash::order_hash;
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
 
@@ -331,7 +332,7 @@ mod tests {
             validOutputs: vec![IOV2::default()],
             ..Default::default()
         };
-        let order_hash_bytes = keccak256(order.abi_encode()).0;
+        let order_hash_bytes = order_hash(&order).0;
         let order_hash_u256 = U256::from_be_bytes(order_hash_bytes);
         let order_hash = encode_prefixed(order_hash_bytes);
         let mut id = vec![];
