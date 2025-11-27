@@ -602,7 +602,16 @@ impl DotrainOrderGui {
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;
         let dotrain = self.generate_dotrain_text()?;
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let deployment = self.get_current_deployment()?;
+        let dotrain_order = DotrainOrder::create_with_profile(
+            dotrain.clone(),
+            None,
+            ContextProfile::gui(
+                Some(deployment.deployment.order.key),
+                Some(deployment.deployment.key),
+            ),
+        )
+        .await?;
         let rainlang = dotrain_order
             .compose_deployment_to_rainlang(self.selected_deployment.clone())
             .await?;
