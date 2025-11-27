@@ -6,12 +6,12 @@ use crate::{
     OrderbookCfg, TokenCfg,
 };
 use alloy::primitives::Address;
-use std::collections::BTreeMap;
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     ser::{Serialize, SerializeSeq, Serializer},
     Deserialize,
 };
+use std::collections::BTreeMap;
 use std::{
     fmt,
     sync::{Arc, RwLock},

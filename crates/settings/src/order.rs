@@ -30,6 +30,7 @@ impl_wasm_traits!(VaultType);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIOCfg {
+    pub token_key: String,
     pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(
         target_family = "wasm",
@@ -709,6 +710,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name.clone(),
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -793,6 +795,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name.clone(),
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -836,12 +839,15 @@ impl YamlParsableHash for OrderCfg {
             .map(|input| {
                 let mut input_yaml = Hash::new();
 
-                if let Some(token) = &input.token {
-                    input_yaml.insert(
-                        StrictYaml::String("token".to_string()),
-                        StrictYaml::String(token.key.clone()),
-                    );
-                }
+                let token_key = input
+                    .token
+                    .as_ref()
+                    .map(|token| token.key.clone())
+                    .unwrap_or_else(|| input.token_key.clone());
+                input_yaml.insert(
+                    StrictYaml::String("token".to_string()),
+                    StrictYaml::String(token_key),
+                );
 
                 if let Some(vault_id) = input.vault_id {
                     input_yaml.insert(
@@ -860,12 +866,15 @@ impl YamlParsableHash for OrderCfg {
             .map(|output| {
                 let mut output_yaml = Hash::new();
 
-                if let Some(token) = &output.token {
-                    output_yaml.insert(
-                        StrictYaml::String("token".to_string()),
-                        StrictYaml::String(token.key.clone()),
-                    );
-                }
+                let token_key = output
+                    .token
+                    .as_ref()
+                    .map(|token| token.key.clone())
+                    .unwrap_or_else(|| output.token_key.clone());
+                output_yaml.insert(
+                    StrictYaml::String("token".to_string()),
+                    StrictYaml::String(token_key),
+                );
 
                 if let Some(vault_id) = output.vault_id {
                     output_yaml.insert(
@@ -1238,10 +1247,12 @@ orders:
                 document: document.clone(),
                 key: "with-optional".to_string(),
                 inputs: vec![OrderIOCfg {
+                    token_key: input_token.key.clone(),
                     token: Some(input_token.clone()),
                     vault_id: Some(U256::from(1u8)),
                 }],
                 outputs: vec![OrderIOCfg {
+                    token_key: output_token.key.clone(),
                     token: Some(output_token.clone()),
                     vault_id: Some(U256::from(2u8)),
                 }],
@@ -1256,10 +1267,12 @@ orders:
                 document,
                 key: "without-optional".to_string(),
                 inputs: vec![OrderIOCfg {
+                    token_key: input_token.key.clone(),
                     token: Some(input_token.clone()),
                     vault_id: None,
                 }],
                 outputs: vec![OrderIOCfg {
+                    token_key: output_token.key.clone(),
                     token: Some(output_token.clone()),
                     vault_id: None,
                 }],

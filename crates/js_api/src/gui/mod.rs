@@ -177,12 +177,20 @@ impl DotrainOrderGui {
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), settings.clone()).await?;
-        let dotrain_hash = DotrainOrderGui::compute_state_hash(&dotrain_order)?;
 
         let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
         if !keys.contains(&selected_deployment) {
             return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
         }
+
+        let dotrain_hash = DotrainOrderGui::compute_state_hash(
+            &dotrain_order,
+            &DeploymentCfg::parse_order_key(
+                dotrain_order.dotrain_yaml().documents,
+                &selected_deployment,
+            )?,
+            &selected_deployment,
+        )?;
 
         Ok(DotrainOrderGui {
             dotrain_order,
@@ -576,11 +584,15 @@ impl DotrainOrderGui {
         return_description = "Complete dotrain content with YAML frontmatter separator"
     )]
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
+        let current_deployment = self.get_current_deployment()?;
         let rain_document = RainDocument::create(self.dotrain_order.dotrain()?, None, None, None);
         let dotrain = format!(
             "{}\n{}\n{}\n{}",
             self.dotrain_order.orderbook_yaml().to_yaml_string()?,
-            self.dotrain_order.dotrain_yaml().to_yaml_string()?,
+            self.dotrain_order.dotrain_yaml().to_yaml_string(
+                Some(current_deployment.deployment.order.key.clone()),
+                Some(current_deployment.deployment.key.clone())
+            )?,
             FRONTMATTER_SEPARATOR,
             rain_document.body()
         );

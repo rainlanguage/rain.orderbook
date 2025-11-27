@@ -229,23 +229,31 @@ impl DotrainYaml {
         ChartCfg::parse_from_yaml(self.documents.clone(), key, None)
     }
 
-    pub fn to_yaml_string(&self) -> Result<String, YamlError> {
+    pub fn to_yaml_string(
+        &self,
+        current_order: Option<String>,
+        current_deployment: Option<String>,
+    ) -> Result<String, YamlError> {
         let mut sections: BTreeMap<String, StrictYaml> = BTreeMap::new();
 
         let mut context = Context::new();
+        self.expand_context_with_current_order(&mut context, current_order.clone());
+        self.expand_context_with_current_deployment(&mut context, current_deployment.clone());
         self.expand_context_with_remote_networks(&mut context);
         self.expand_context_with_remote_tokens(&mut context);
-        if GuiCfg::check_gui_key_exists(self.documents.clone())? {
-            let mut select_tokens = Vec::new();
-            for deployment_key in GuiCfg::parse_deployment_keys(self.documents.clone())? {
-                if let Some(tokens) =
-                    GuiCfg::parse_select_tokens(self.documents.clone(), &deployment_key)?
+
+        if let Some(gui) = GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
+        {
+            let gui_yaml = gui.to_yaml_hash()?;
+            sections.insert("gui".to_string(), gui_yaml);
+
+            if let Some(current_deployment) = current_deployment {
+                if let Some(select_tokens) =
+                    GuiCfg::parse_select_tokens(self.documents.clone(), &current_deployment)?
                 {
-                    select_tokens.extend(tokens.into_iter().map(|t| t.key));
+                    context
+                        .add_select_tokens(select_tokens.iter().map(|st| st.key.clone()).collect());
                 }
-            }
-            if !select_tokens.is_empty() {
-                context.add_select_tokens(select_tokens);
             }
         }
 
@@ -254,6 +262,13 @@ impl DotrainYaml {
             Some(&context),
         ))?;
         if let Some(orders) = orders {
+            if let Some(current_order) = &current_order {
+                let order = orders
+                    .get(current_order)
+                    .ok_or_else(|| YamlError::KeyNotFound(current_order.to_string()))?;
+                context.add_order(Arc::new(order.clone()));
+            }
+
             if !orders.is_empty() {
                 let orders_yaml = OrderCfg::to_yaml_hash(&orders)?;
                 sections.insert("orders".to_string(), orders_yaml);
@@ -280,12 +295,6 @@ impl DotrainYaml {
                 let deployments_yaml = DeploymentCfg::to_yaml_hash(&deployments)?;
                 sections.insert("deployments".to_string(), deployments_yaml);
             }
-        }
-
-        if let Some(gui) = GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
-        {
-            let gui_yaml = gui.to_yaml_hash()?;
-            sections.insert("gui".to_string(), gui_yaml);
         }
 
         let charts = to_yaml_string_missing_check(self.get_charts())?;
@@ -1041,7 +1050,7 @@ orders:
 
         let dotrain_yaml =
             DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
-        let yaml_string = dotrain_yaml.to_yaml_string().unwrap();
+        let yaml_string = dotrain_yaml.to_yaml_string(None, None).unwrap();
 
         assert!(yaml_string.contains("orders"));
         assert!(!yaml_string.contains("scenarios"));
@@ -1078,7 +1087,7 @@ orders:
         let dotrain_yaml =
             DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
 
-        let err = dotrain_yaml.to_yaml_string().unwrap_err();
+        let err = dotrain_yaml.to_yaml_string(None, None).unwrap_err();
         assert!(matches!(
             err,
             YamlError::Field {
@@ -1096,7 +1105,7 @@ orders:
         )
         .unwrap();
 
-        let yaml_string = dotrain_yaml.to_yaml_string().unwrap();
+        let yaml_string = dotrain_yaml.to_yaml_string(None, None).unwrap();
         let new_dotrain_yaml = DotrainYaml::new(
             vec![ORDERBOOK_CONTEXT_YAML.to_string(), yaml_string],
             DotrainYamlValidation::default(),

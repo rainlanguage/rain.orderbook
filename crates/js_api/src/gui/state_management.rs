@@ -229,7 +229,14 @@ impl DotrainOrderGui {
 
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
         let dotrain_order = DotrainOrder::create(dotrain.clone(), settings.clone()).await?;
-        let original_dotrain_hash = DotrainOrderGui::compute_state_hash(&dotrain_order)?;
+        let original_dotrain_hash = DotrainOrderGui::compute_state_hash(
+            &dotrain_order,
+            &DeploymentCfg::parse_order_key(
+                dotrain_order.dotrain_yaml().documents,
+                &state.selected_deployment,
+            )?,
+            &state.selected_deployment,
+        )?;
 
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
@@ -399,9 +406,16 @@ impl DotrainOrderGui {
     }
 }
 impl DotrainOrderGui {
-    pub fn compute_state_hash(dotrain_order: &DotrainOrder) -> Result<String, GuiError> {
+    pub fn compute_state_hash(
+        dotrain_order: &DotrainOrder,
+        selected_order: &str,
+        selected_deployment: &str,
+    ) -> Result<String, GuiError> {
         let orderbook_yaml = dotrain_order.orderbook_yaml().to_yaml_string()?;
-        let dotrain_yaml = dotrain_order.dotrain_yaml().to_yaml_string()?;
+        let dotrain_yaml = dotrain_order.dotrain_yaml().to_yaml_string(
+            Some(selected_order.to_string()),
+            Some(selected_deployment.to_string()),
+        )?;
         let rain_document = RainDocument::create(dotrain_order.dotrain()?, None, None, None);
         let rainlang_body = rain_document.body().to_string();
 
@@ -424,7 +438,7 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDN2tJS6EkKPRX6A7pkk_iRCD2pMX6gB6PgUZPFSNbdGFdU_BP-ZInORgzOYd6bfW9nhilpt_gAXKx4uOJLbGgqXgANQoomE8ED0XKmyBugFDHl1rNuz52P1SdUW7GmmFO5F2ms_v0ARlImDV1nIpizSGxlwyZ2VU-TAO9SdsocKMtIjW773hfQcmV6OBcSKqN3kP1sh18Lvaq6P7RK2j0edjXyAYbjoKJq5qrpOH9A93HHrbuT0dzbWLjuht50Q1q1tNrz7QOu2eOZ7A6iZNFqzir_3-oSlNFA4mtTHNKEieOacnkBghSS28gBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTU_CQBDtotGYeCImnkz8AW76BYSSeEITErQRikS5QTtK0-1u044i8U_wk0lhtoSGOcx7s-_tzGQaxj6uCBexjGL5zW1DxxmhbVl1k8PowTIqpskFIaoEpHuq22nncXVNVaFS4BJwpfJE_7sjXCJmPdMUKpyLpSqw17W6bTPPQv6Ti__SwcrM9OjnyeCGaLM1_dvUEmuyS5In5Q73LjvX9dB3G8Yhjna1qwG257G66lSq43kPRCFJi6g9DvzBFL_G8dtvp_86_AyCRb818zsvT_MVztYf2QjeR4-3-hIgIES-a8ojyIRapyBxC4cEqx_IAQAA";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
@@ -503,9 +517,10 @@ mod tests {
     async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
         version: 4
-        dotrain:
-            name: Test
-            description: Test
+        deployments:
+            select-token-deployment:
+                order: missing-order
+                scenario: missing-scenario
         ---
         #test
         "#;

@@ -404,9 +404,10 @@ impl YamlParsableHash for ScenarioCfg {
     fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
         let mut scenario_yaml = Hash::new();
 
-        let bindings_yaml = self
-            .bindings
-            .iter()
+        let mut bindings_entries: Vec<_> = self.bindings.iter().collect();
+        bindings_entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+        let bindings_yaml = bindings_entries
+            .into_iter()
             .map(|(k, v)| (StrictYaml::String(k.clone()), StrictYaml::String(v.clone())))
             .collect();
         scenario_yaml.insert(

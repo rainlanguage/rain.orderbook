@@ -279,6 +279,28 @@ impl Context {
         }
     }
 
+    fn select_token_key_for_path(&self, path: &str) -> Option<String> {
+        let parts: Vec<&str> = path.split('.').collect();
+        if parts.len() < 3 || parts[0] != "order" {
+            return None;
+        }
+
+        let index = parts.get(2)?.parse::<usize>().ok()?;
+        let order = self.order()?;
+
+        let token_key = match parts.get(1).copied()? {
+            "inputs" => order.inputs.get(index).map(|io| io.token_key.clone()),
+            "outputs" => order.outputs.get(index).map(|io| io.token_key.clone()),
+            _ => None,
+        }?;
+
+        if self.is_select_token(&token_key) {
+            Some(token_key)
+        } else {
+            None
+        }
+    }
+
     pub fn interpolate(&self, input: &str) -> Result<String, ContextError> {
         let mut result = input.to_string();
         let mut start = 0;
@@ -288,7 +310,16 @@ impl Context {
             if let Some(var_end) = result[var_start..].find('}') {
                 let var_end = var_start + var_end + 1;
                 let var = &result[var_start + 2..var_end - 1];
-                let replacement = self.resolve_path(var)?;
+                let replacement = match self.resolve_path(var) {
+                    Ok(value) => value,
+                    Err(ContextError::PropertyNotFound(property))
+                        if property == "token" && self.select_token_key_for_path(var).is_some() =>
+                    {
+                        start = var_end;
+                        continue;
+                    }
+                    Err(err) => return Err(err),
+                };
                 result.replace_range(var_start..var_end, &replacement);
                 start = var_start + replacement.len();
             } else {
@@ -324,10 +355,12 @@ mod tests {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
+                token_key: token.key.clone(),
                 token: Some(Arc::new(token.clone())),
                 vault_id: Some(U256::from(42)),
             }],
             outputs: vec![OrderIOCfg {
+                token_key: token.key.clone(),
                 token: Some(Arc::new(token.clone())),
                 vault_id: None,
             }],
@@ -424,10 +457,12 @@ mod tests {
             document: default_document(),
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
+                token_key: "token1".to_string(),
                 token: Some(mock_token("token1")),
                 vault_id: Some(U256::from(10)),
             }],
             outputs: vec![OrderIOCfg {
+                token_key: "token2".to_string(),
                 token: Some(mock_token("token2")),
                 vault_id: None,
             }],
