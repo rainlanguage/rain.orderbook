@@ -1,12 +1,13 @@
-use crate::local_db::query::fetch_vault::LocalDbVault;
+use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::query::fetch_vaults::{build_fetch_vaults_stmt, FetchVaultsArgs};
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
-use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::vaults::GetVaultsFilters;
 
 impl FetchVaultsArgs {
     pub fn from_filters(filters: GetVaultsFilters) -> Self {
         FetchVaultsArgs {
+            chain_ids: Vec::new(),
+            orderbook_addresses: Vec::new(),
             owners: filters.owners,
             tokens: filters.tokens.unwrap_or_default(),
             hide_zero_balance: filters.hide_zero_balance,
@@ -22,10 +23,9 @@ impl From<GetVaultsFilters> for FetchVaultsArgs {
 
 pub async fn fetch_vaults<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &OrderbookIdentifier,
     args: FetchVaultsArgs,
 ) -> Result<Vec<LocalDbVault>, LocalDbQueryError> {
-    let stmt = build_fetch_vaults_stmt(ob_id, &args)?;
+    let stmt = build_fetch_vaults_stmt(&args)?;
     exec.query_json(&stmt).await
 }
 
@@ -78,10 +78,14 @@ mod tests {
             ];
             args.tokens = vec![address!("0x00000000000000000000000000000000000000aa")];
             args.hide_zero_balance = true;
+            args.chain_ids = vec![1, 137];
+            args.orderbook_addresses = vec![
+                Address::from([0x11; 20]),
+                Address::from([0x22; 20]),
+                Address::from([0x22; 20]),
+            ];
 
-            let orderbook = Address::from([0x44; 20]);
-            let expected_stmt =
-                build_fetch_vaults_stmt(&OrderbookIdentifier::new(137, orderbook), &args).unwrap();
+            let expected_stmt = build_fetch_vaults_stmt(&args).unwrap();
 
             let store = Rc::new(RefCell::new((
                 String::new(),
@@ -90,8 +94,7 @@ mod tests {
             let callback = create_sql_capturing_callback("[]", store.clone());
             let exec = JsCallbackExecutor::from_ref(&callback);
 
-            let res =
-                super::fetch_vaults(&exec, &OrderbookIdentifier::new(137, orderbook), args).await;
+            let res = super::fetch_vaults(&exec, args).await;
             assert!(res.is_ok());
 
             let captured = store.borrow().clone();

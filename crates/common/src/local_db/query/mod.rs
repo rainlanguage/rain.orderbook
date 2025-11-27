@@ -11,7 +11,6 @@ pub mod fetch_orders;
 pub mod fetch_store_addresses;
 pub mod fetch_tables;
 pub mod fetch_target_watermark;
-pub mod fetch_vault;
 pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
 pub mod insert_db_metadata;
