@@ -1,12 +1,15 @@
 use crate::utils::{parse_positive_u32, parse_positive_u64, parse_url};
-use crate::yaml::{require_hash, require_string, require_vec, FieldErrorKind, YamlError};
+use crate::yaml::{
+    optional_hash, require_hash, require_string, require_vec, FieldErrorKind, YamlError,
+};
 use alloy::primitives::{Address, Bytes};
 use std::collections::HashMap;
 use std::str::FromStr;
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml, StrictYamlEmitter};
 use url::Url;
 
 pub const MANIFEST_VERSION: u32 = 1;
+pub const DB_SCHEMA_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LocalDbManifest {
@@ -15,10 +18,50 @@ pub struct LocalDbManifest {
     pub networks: HashMap<String, ManifestNetwork>,
 }
 
+impl Default for LocalDbManifest {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ManifestNetwork {
-    pub chain_id: u64,
+    pub chain_id: u32,
     pub orderbooks: Vec<ManifestOrderbook>,
+}
+
+impl ManifestNetwork {
+    pub fn new(chain_id: u32) -> Self {
+        Self {
+            chain_id,
+            orderbooks: Vec::new(),
+        }
+    }
+
+    pub fn push_orderbook(&mut self, orderbook: ManifestOrderbook) {
+        self.orderbooks.push(orderbook);
+    }
+
+    fn to_yaml_hash(&self) -> Hash {
+        let mut hash = Hash::new();
+        hash.insert(
+            StrictYaml::String("chain-id".to_string()),
+            StrictYaml::String(self.chain_id.to_string()),
+        );
+
+        let orderbooks_yaml: Vec<StrictYaml> = self
+            .orderbooks
+            .iter()
+            .map(ManifestOrderbook::to_yaml_hash)
+            .collect();
+
+        hash.insert(
+            StrictYaml::String("orderbooks".to_string()),
+            StrictYaml::Array(orderbooks_yaml),
+        );
+
+        hash
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -30,12 +73,148 @@ pub struct ManifestOrderbook {
     pub end_block_time_ms: u64,
 }
 
+impl ManifestOrderbook {
+    fn to_yaml_hash(&self) -> StrictYaml {
+        let mut hash = Hash::new();
+        hash.insert(
+            StrictYaml::String("address".to_string()),
+            StrictYaml::String(self.address.to_string()),
+        );
+        hash.insert(
+            StrictYaml::String("dump-url".to_string()),
+            StrictYaml::String(self.dump_url.to_string()),
+        );
+        hash.insert(
+            StrictYaml::String("end-block".to_string()),
+            StrictYaml::String(self.end_block.to_string()),
+        );
+        hash.insert(
+            StrictYaml::String("end-block-hash".to_string()),
+            StrictYaml::String(self.end_block_hash.to_string()),
+        );
+        hash.insert(
+            StrictYaml::String("end-block-time-ms".to_string()),
+            StrictYaml::String(self.end_block_time_ms.to_string()),
+        );
+        StrictYaml::Hash(hash)
+    }
+}
+
 impl LocalDbManifest {
-    pub fn find(&self, chain_id: u64, address: Address) -> Option<&ManifestOrderbook> {
+    pub fn find(&self, chain_id: u32, address: Address) -> Option<&ManifestOrderbook> {
         self.networks
             .values()
             .find(|n| n.chain_id == chain_id)
             .and_then(|n| n.orderbooks.iter().find(|ob| ob.address == address))
+    }
+
+    pub fn new() -> Self {
+        Self {
+            manifest_version: MANIFEST_VERSION,
+            db_schema_version: DB_SCHEMA_VERSION,
+            networks: HashMap::new(),
+        }
+    }
+
+    pub fn add_network<K: Into<String>>(&mut self, key: K, chain_id: u32) -> Result<(), YamlError> {
+        let key = key.into();
+
+        if key.trim().is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "key".to_string(),
+                    reason: "network name must not be empty".to_string(),
+                },
+                location: "manifest.networks".to_string(),
+            });
+        }
+
+        if chain_id == 0 {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "chain-id".to_string(),
+                    reason: "must be greater than zero".to_string(),
+                },
+                location: format!("manifest.networks.{}", key),
+            });
+        }
+
+        if self.networks.contains_key(&key) {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "networks".to_string(),
+                    reason: format!("network '{}' already exists", key),
+                },
+                location: "manifest".to_string(),
+            });
+        }
+
+        self.networks.insert(key, ManifestNetwork::new(chain_id));
+        Ok(())
+    }
+
+    pub fn push_orderbook(
+        &mut self,
+        network_key: &str,
+        orderbook: ManifestOrderbook,
+    ) -> Result<(), YamlError> {
+        match self.networks.get_mut(network_key) {
+            Some(network) => {
+                network.push_orderbook(orderbook);
+                Ok(())
+            }
+            None => Err(YamlError::Field {
+                kind: FieldErrorKind::Missing(network_key.to_string()),
+                location: "manifest.networks".to_string(),
+            }),
+        }
+    }
+
+    pub fn to_yaml_node(&self) -> StrictYaml {
+        let mut root = Hash::new();
+        root.insert(
+            StrictYaml::String("manifest-version".to_string()),
+            StrictYaml::String(self.manifest_version.to_string()),
+        );
+        root.insert(
+            StrictYaml::String("db-schema-version".to_string()),
+            StrictYaml::String(self.db_schema_version.to_string()),
+        );
+
+        let mut networks_hash = Hash::new();
+        let mut network_keys: Vec<_> = self.networks.keys().cloned().collect();
+        network_keys.sort();
+
+        for key in network_keys {
+            if let Some(network) = self.networks.get(&key) {
+                networks_hash.insert(
+                    StrictYaml::String(key),
+                    StrictYaml::Hash(network.to_yaml_hash()),
+                );
+            }
+        }
+
+        root.insert(
+            StrictYaml::String("networks".to_string()),
+            StrictYaml::Hash(networks_hash),
+        );
+
+        StrictYaml::Hash(root)
+    }
+
+    pub fn to_yaml_string(&self) -> Result<String, YamlError> {
+        let document = self.to_yaml_node();
+        let mut out_str = String::new();
+        let mut emitter = StrictYamlEmitter::new(&mut out_str);
+        emitter.dump(&document)?;
+
+        let out_str = if out_str.starts_with("---") {
+            out_str.trim_start_matches("---").trim_start().to_string()
+        } else {
+            out_str
+        };
+
+        Ok(out_str)
     }
 }
 
@@ -95,6 +274,19 @@ fn parse_manifest_header(doc: &StrictYaml, location_root: &str) -> Result<(u32, 
         location_root.to_string(),
     )?;
 
+    if db_schema_version != DB_SCHEMA_VERSION {
+        return Err(YamlError::Field {
+            kind: FieldErrorKind::InvalidValue {
+                field: "db-schema-version".to_string(),
+                reason: format!(
+                    "unsupported database schema version {}, expected {}",
+                    db_schema_version, DB_SCHEMA_VERSION
+                ),
+            },
+            location: location_root.to_string(),
+        });
+    }
+
     Ok((manifest_version, db_schema_version))
 }
 
@@ -102,32 +294,33 @@ fn parse_networks(
     doc: &StrictYaml,
     location_root: &str,
 ) -> Result<HashMap<String, ManifestNetwork>, YamlError> {
-    let networks_hash = require_hash(doc, Some("networks"), Some(location_root.to_string()))?;
     let mut networks: HashMap<String, ManifestNetwork> = HashMap::new();
 
-    for (key_yaml, network_yaml) in networks_hash.iter() {
-        let network_key = key_yaml
-            .as_str()
-            .ok_or(YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "key".to_string(),
-                    expected: "a string".to_string(),
-                },
-                location: "manifest.networks".to_string(),
-            })?
-            .to_string();
-        if network_key.trim().is_empty() {
-            return Err(YamlError::Field {
-                kind: FieldErrorKind::InvalidValue {
-                    field: "key".to_string(),
-                    reason: "network name must not be empty".to_string(),
-                },
-                location: "manifest.networks".to_string(),
-            });
-        }
+    if let Some(networks_hash) = optional_hash(doc, "networks") {
+        for (key_yaml, network_yaml) in networks_hash.iter() {
+            let network_key = key_yaml
+                .as_str()
+                .ok_or(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "key".to_string(),
+                        expected: "a string".to_string(),
+                    },
+                    location: "manifest.networks".to_string(),
+                })?
+                .to_string();
+            if network_key.trim().is_empty() {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidValue {
+                        field: "key".to_string(),
+                        reason: "network name must not be empty".to_string(),
+                    },
+                    location: "manifest.networks".to_string(),
+                });
+            }
 
-        let network = parse_single_network(&network_key, network_yaml, location_root)?;
-        networks.insert(network_key.clone(), network);
+            let network = parse_single_network(&network_key, network_yaml, location_root)?;
+            networks.insert(network_key.clone(), network);
+        }
     }
 
     Ok(networks)
@@ -142,7 +335,7 @@ fn parse_single_network(
 
     let _network_hash = require_hash(network_yaml, None, Some(location_network.clone()))?;
 
-    let chain_id = parse_positive_u64(
+    let chain_id = parse_positive_u32(
         &require_string(
             network_yaml,
             Some("chain-id"),
@@ -229,18 +422,121 @@ mod tests {
         StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone()
     }
 
+    fn sample_orderbook() -> ManifestOrderbook {
+        ManifestOrderbook {
+            address: Address::from_str("0x00000000000000000000000000000000000000aa").unwrap(),
+            dump_url: Url::parse("https://example.com/dump").unwrap(),
+            end_block: 42,
+            end_block_hash: Bytes::from_str("0x0abc").unwrap(),
+            end_block_time_ms: 1234,
+        }
+    }
+
+    #[test]
+    fn test_manifest_builder_roundtrip_and_determinism() {
+        let mut manifest = LocalDbManifest::new();
+        manifest.add_network("mainnet", 1).unwrap();
+        manifest.add_network("polygon", 137).unwrap();
+
+        let ob_main = ManifestOrderbook {
+            address: Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
+            dump_url: Url::parse("https://example.com/mainnet").unwrap(),
+            end_block: 50,
+            end_block_hash: Bytes::from_str("0x0def").unwrap(),
+            end_block_time_ms: 2000,
+        };
+        let ob_polygon = ManifestOrderbook {
+            address: Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+            dump_url: Url::parse("https://example.com/polygon").unwrap(),
+            end_block: 60,
+            end_block_hash: Bytes::from_str("0x0fed").unwrap(),
+            end_block_time_ms: 3000,
+        };
+
+        manifest.push_orderbook("mainnet", ob_main.clone()).unwrap();
+        manifest
+            .push_orderbook("polygon", ob_polygon.clone())
+            .unwrap();
+
+        let yaml_one = manifest.to_yaml_string().unwrap();
+        let yaml_two = manifest.to_yaml_string().unwrap();
+        assert_eq!(yaml_one, yaml_two);
+
+        let doc = StrictYamlLoader::load_from_str(&yaml_one).unwrap();
+        let reparsed = parse_manifest_doc(&doc[0]).unwrap();
+        assert_eq!(manifest, reparsed);
+    }
+
+    #[test]
+    fn test_push_orderbook_without_network_errors() {
+        let mut manifest = LocalDbManifest::new();
+        let orderbook = sample_orderbook();
+        let err = manifest
+            .push_orderbook("missing", orderbook)
+            .expect_err("should error when network missing");
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::Missing(field),
+                location,
+            } => {
+                assert_eq!(field, "missing");
+                assert_eq!(location, "manifest.networks");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_add_network_duplicate_key_errors() {
+        let mut manifest = LocalDbManifest::new();
+        manifest.add_network("mainnet", 1).unwrap();
+        let err = manifest
+            .add_network("mainnet", 1)
+            .expect_err("duplicate network should error");
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, reason },
+                location,
+            } => {
+                assert_eq!(field, "networks");
+                assert!(reason.contains("already exists"));
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_add_network_rejects_zero_chain_id() {
+        let mut manifest = LocalDbManifest::new();
+        let err = manifest
+            .add_network("goerli", 0)
+            .expect_err("zero chain id should error");
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, reason },
+                location,
+            } => {
+                assert_eq!(field, "chain-id");
+                assert_eq!(reason, "must be greater than zero");
+                assert_eq!(location, "manifest.networks.goerli");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
     #[test]
     fn test_header_helper_ok_and_incompatible() {
         // OK header
         let yaml_ok = r#"
 manifest-version: 1
-db-schema-version: 7
+db-schema-version: 1
 networks: {}
 "#;
         let doc = load(yaml_ok);
         let (mv, sv) = parse_manifest_header(&doc, "manifest").expect("header parses");
         assert_eq!(mv, 1);
-        assert_eq!(sv, 7);
+        assert_eq!(sv, 1);
 
         // Incompatible manifest version
         let yaml_bad = r#"
@@ -255,6 +551,24 @@ networks: {}
                 location,
             } => {
                 assert_eq!(field, "manifest-version");
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
+
+        // Incompatible db schema version
+        let yaml_bad_schema = r#"
+manifest-version: 1
+db-schema-version: 999
+networks: {}
+"#;
+        let err = parse_manifest_header(&load(yaml_bad_schema), "manifest").unwrap_err();
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, .. },
+                location,
+            } => {
+                assert_eq!(field, "db-schema-version");
                 assert_eq!(location, "manifest");
             }
             other => panic!("unexpected error: {other:?}"),
@@ -343,13 +657,33 @@ networks: {}
     }
 
     #[test]
-    fn test_missing_networks() {
+    fn test_missing_networks_defaults_to_empty() {
         let yaml = r#"
 manifest-version: 1
 db-schema-version: 1
 "#;
+        let manifest = parse_manifest_doc(&load(yaml)).unwrap();
+        assert!(manifest.networks.is_empty());
+    }
+
+    #[test]
+    fn test_manifest_doc_rejects_mismatched_db_schema_version() {
+        let yaml = r#"
+manifest-version: 1
+db-schema-version: 999
+networks: {}
+"#;
         let err = parse_manifest_doc(&load(yaml)).unwrap_err();
-        assert!(matches!(err, YamlError::Field { .. }));
+        match err {
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { field, .. },
+                location,
+            } => {
+                assert_eq!(field, "db-schema-version");
+                assert_eq!(location, "manifest");
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 
     #[test]

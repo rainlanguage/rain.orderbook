@@ -1,4 +1,7 @@
-use crate::local_db::query::{SqlBuildError, SqlStatement, SqlValue};
+use crate::local_db::{
+    query::{SqlBuildError, SqlStatement, SqlValue},
+    OrderbookIdentifier,
+};
 use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
@@ -65,15 +68,16 @@ const END_TS_CLAUSE: &str = "/*END_TS_CLAUSE*/";
 const END_TS_BODY: &str = "\nAND block_timestamp <= {param}\n";
 
 pub fn build_fetch_order_trades_stmt(
-    chain_id: u32,
+    ob_id: &OrderbookIdentifier,
     order_hash: &str,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
-    // ?1: order hash (raw, lower() in SQL), ?2: chain id
-    stmt.push(SqlValue::Text(order_hash.to_string()));
-    stmt.push(SqlValue::I64(chain_id as i64));
+    // ?1: chain id, ?2: orderbook address, ?3: order hash
+    stmt.push(SqlValue::I64(ob_id.chain_id as i64));
+    stmt.push(SqlValue::Text(ob_id.orderbook_address.to_string()));
+    stmt.push(SqlValue::Text(order_hash.trim().to_string()));
 
     // Optional time filters
     let start_param = if let Some(v) = start_timestamp {
@@ -104,35 +108,51 @@ pub fn build_fetch_order_trades_stmt(
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::Address;
+
     use super::*;
 
     #[test]
     fn builds_with_chain_id_and_filters() {
-        let stmt = build_fetch_order_trades_stmt(137, "AbC'X", Some(11), Some(22)).unwrap();
+        let stmt = build_fetch_order_trades_stmt(
+            &OrderbookIdentifier::new(137, Address::ZERO),
+            "AbC'X",
+            Some(11),
+            Some(22),
+        )
+        .unwrap();
         // Fixed params
-        assert!(stmt.sql.contains("et_in.chain_id = ?2"));
-        assert!(stmt.sql.contains("et_out.chain_id = ?2"));
+        assert!(stmt.sql.contains("et_in.chain_id = ?1"));
+        assert!(stmt.sql.contains("et_out.chain_id = ?1"));
         // Dynamic param clauses inserted
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
         assert!(stmt.sql.contains("block_timestamp >="));
         assert!(stmt.sql.contains("block_timestamp <="));
-        // First two params: order hash and chain id
-        assert_eq!(stmt.params.len(), 4); // includes start and end
-        assert_eq!(stmt.params[0], SqlValue::Text("AbC'X".to_string()));
-        assert_eq!(stmt.params[1], SqlValue::I64(137));
+        // First three fixed params: chain id (?1), orderbook address (?2), order hash (?3)
+        assert_eq!(stmt.params.len(), 5); // includes start and end
+        assert_eq!(stmt.params[0], SqlValue::I64(137));
+        assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
+        assert_eq!(stmt.params[2], SqlValue::Text("AbC'X".to_string()));
     }
 
     #[test]
     fn builds_without_time_filters_when_none() {
-        let stmt = build_fetch_order_trades_stmt(1, "hash", None, None).unwrap();
+        let stmt = build_fetch_order_trades_stmt(
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            "hash",
+            None,
+            None,
+        )
+        .unwrap();
         assert!(!stmt.sql.contains("block_timestamp >="));
         assert!(!stmt.sql.contains("block_timestamp <="));
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
-        assert_eq!(stmt.params.len(), 2);
-        // Order of fixed params: order hash (?1) then chain id (?2)
-        assert_eq!(stmt.params[0], SqlValue::Text("hash".to_string()));
-        assert_eq!(stmt.params[1], SqlValue::I64(1));
+        assert_eq!(stmt.params.len(), 3);
+        // Order of fixed params: chain id (?1), orderbook (?2), order hash (?3)
+        assert_eq!(stmt.params[0], SqlValue::I64(1));
+        assert_eq!(stmt.params[1], SqlValue::Text(Address::ZERO.to_string()));
+        assert_eq!(stmt.params[2], SqlValue::Text("hash".to_string()));
     }
 }

@@ -2,14 +2,16 @@ use crate::local_db::query::fetch_order_trades_count::{
     build_fetch_trade_count_stmt, extract_trade_count, LocalDbTradeCountRow,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::OrderbookIdentifier;
 
 pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
+    ob_id: &OrderbookIdentifier,
     order_hash: &str,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<u64, LocalDbQueryError> {
-    let stmt = build_fetch_trade_count_stmt(order_hash, start_timestamp, end_timestamp)?;
+    let stmt = build_fetch_trade_count_stmt(ob_id, order_hash, start_timestamp, end_timestamp)?;
     let rows: Vec<LocalDbTradeCountRow> = exec.query_json(&stmt).await?;
     Ok(extract_trade_count(&rows))
 }
@@ -19,6 +21,7 @@ mod wasm_tests {
     use super::*;
     use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
+    use alloy::primitives::Address;
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen_test::*;
@@ -30,7 +33,14 @@ mod wasm_tests {
         let start = Some(10);
         let end = Some(20);
 
-        let expected_stmt = build_fetch_trade_count_stmt(order_hash, start, end).unwrap();
+        let orderbook = Address::from([0x88; 20]);
+        let expected_stmt = build_fetch_trade_count_stmt(
+            &OrderbookIdentifier::new(1, orderbook),
+            order_hash,
+            start,
+            end,
+        )
+        .unwrap();
 
         // Return one row with count 5
         let response = r#"[{"trade_count":5}]"#;
@@ -41,7 +51,14 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback(response, store.clone());
         let exec = JsCallbackExecutor::new(&callback);
 
-        let res = super::fetch_order_trades_count(&exec, order_hash, start, end).await;
+        let res = super::fetch_order_trades_count(
+            &exec,
+            &OrderbookIdentifier::new(1, orderbook),
+            order_hash,
+            start,
+            end,
+        )
+        .await;
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), 5);
 
@@ -57,7 +74,14 @@ mod wasm_tests {
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::new(&callback);
-        let res = super::fetch_order_trades_count(&exec, "hash", None, None).await;
+        let res = super::fetch_order_trades_count(
+            &exec,
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            "hash",
+            None,
+            None,
+        )
+        .await;
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), 0);
     }

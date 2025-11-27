@@ -1,5 +1,5 @@
 import { getSyncStatus } from '@rainlanguage/orderbook';
-import type { RaindexClient, SyncStatusResponse } from '@rainlanguage/orderbook';
+import type { Hex, RaindexClient, SyncStatusResponse } from '@rainlanguage/orderbook';
 import type { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import {
 	dbSyncIsActive,
@@ -14,11 +14,20 @@ interface StartLocalDbSyncOptions {
 	raindexClient: RaindexClient;
 	localDb: SQLiteWasmDatabase;
 	chainId?: number;
+	orderbookAddress?: Hex;
 	intervalMs?: number;
 }
 
+// NOTE: This function will be replaced with a more robust solution
+// after we introduce the new sync logic in the Raindex client.
 export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
-	const { raindexClient, localDb, chainId = 42161, intervalMs = 10_000 } = options;
+	const {
+		raindexClient,
+		localDb,
+		chainId = 42161,
+		orderbookAddress = '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB',
+		intervalMs = 10_000
+	} = options;
 
 	const queryFn = localDb.query.bind(localDb);
 	// Ensure the Raindex client uses the WASM SQLite DB for its local queries
@@ -32,7 +41,7 @@ export function startLocalDbSync(options: StartLocalDbSyncOptions): () => void {
 
 	async function updateSyncStatus() {
 		try {
-			const statusResult = await getSyncStatus(queryFn);
+			const statusResult = await getSyncStatus(queryFn, chainId, orderbookAddress);
 			if (!statusResult.error && statusResult.value && statusResult.value.length > 0) {
 				const latestStatus = statusResult.value[statusResult.value.length - 1];
 				dbSyncLastBlock.set(latestStatus.last_synced_block?.toString?.() ?? null);
@@ -117,7 +126,6 @@ if (import.meta.vitest) {
 	type MockFn = ReturnType<typeof vi.fn>;
 	interface MockedStartOptions {
 		setDbCallback: MockFn;
-		getLocalDbClient: MockFn;
 		syncLocalDatabase: MockFn;
 		query: MockFn;
 	}
@@ -147,13 +155,11 @@ if (import.meta.vitest) {
 		deps: MockedStartOptions;
 	} => {
 		const setDbCallback = vi.fn();
-		const getLocalDbClient = vi.fn();
 		const syncLocalDatabase = vi.fn();
 		const query = vi.fn();
 
 		const raindexClient = {
 			setDbCallback,
-			getLocalDbClient,
 			syncLocalDatabase
 		} as unknown as RaindexClient;
 
@@ -164,7 +170,7 @@ if (import.meta.vitest) {
 		return {
 			raindexClient,
 			localDb,
-			deps: { setDbCallback, getLocalDbClient, syncLocalDatabase, query }
+			deps: { setDbCallback, syncLocalDatabase, query }
 		};
 	};
 
@@ -202,6 +208,12 @@ if (import.meta.vitest) {
 			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
 			expect(get(dbSyncIsRunning)).toBe(false);
 
+			const boundQueryFn = deps.setDbCallback.mock.calls[0][0];
+			const firstCall = mockedGetSyncStatus.mock.calls[0];
+			expect(firstCall[0]).toBe(boundQueryFn);
+			expect(firstCall[1]).toBe(999);
+			expect(String(firstCall[2]).toLowerCase()).toBe('0x2f209e5b67a33b8fe96e28f24628df6da301c8eb');
+
 			dbSyncIsActive.set(true);
 			dbSyncIsRunning.set(true);
 			stop();
@@ -217,7 +229,8 @@ if (import.meta.vitest) {
 			const statusUpdates: string[] = [];
 
 			const syncStatus: SyncStatusResponse = {
-				id: 1,
+				chain_id: 42161,
+				orderbook_address: '0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB',
 				last_synced_block: 123456,
 				updated_at: updatedAt
 			};
@@ -249,6 +262,17 @@ if (import.meta.vitest) {
 			expect(get(dbSyncLastSyncTime)?.toISOString()).toBe(updatedAt);
 			expect(deps.syncLocalDatabase).toHaveBeenCalledTimes(1);
 			expect(mockedGetSyncStatus).toHaveBeenCalledTimes(2);
+
+			const boundQueryFn = deps.setDbCallback.mock.calls[0][0];
+			const firstBootstrapCall = mockedGetSyncStatus.mock.calls[0];
+			const secondBootstrapCall = mockedGetSyncStatus.mock.calls[1];
+			const expectedAddress = '0x2f209e5b67a33b8fe96e28f24628df6da301c8eb';
+			expect(firstBootstrapCall[0]).toBe(boundQueryFn);
+			expect(firstBootstrapCall[1]).toBe(42161);
+			expect(String(firstBootstrapCall[2]).toLowerCase()).toBe(expectedAddress);
+			expect(secondBootstrapCall[0]).toBe(boundQueryFn);
+			expect(secondBootstrapCall[1]).toBe(42161);
+			expect(String(secondBootstrapCall[2]).toLowerCase()).toBe(expectedAddress);
 
 			expect(vi.getTimerCount()).toBeGreaterThan(0);
 			await vi.advanceTimersByTimeAsync(10_000);

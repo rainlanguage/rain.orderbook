@@ -1,3 +1,4 @@
+use alloy::primitives::U256;
 use alloy::providers::Provider;
 use alloy::rpc::json_rpc::{Id, RequestMeta};
 use alloy::rpc::types::Filter;
@@ -16,32 +17,12 @@ pub struct RpcClient {
     provider: Arc<ReadProvider>,
 }
 
-/// Typed view of the block payload returned by HyperSync's `eth_getBlockByNumber`.
+/// Minimal block view required for timestamp backfilling.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockResponse {
-    pub mix_hash: Option<String>,
-    pub difficulty: String,
-    pub extra_data: String,
-    pub gas_limit: String,
-    pub gas_used: String,
+    pub timestamp: U256,
     pub hash: String,
-    pub logs_bloom: String,
-    pub miner: String,
-    pub nonce: String,
-    pub number: String,
-    pub parent_hash: String,
-    pub receipts_root: String,
-    pub sha3_uncles: String,
-    pub size: String,
-    pub state_root: String,
-    pub timestamp: String,
-    pub total_difficulty: String,
-    pub transactions_root: String,
-    #[serde(default)]
-    pub uncles: Vec<String>,
-    #[serde(default)]
-    pub transactions: Vec<String>,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
 }
@@ -53,12 +34,12 @@ pub struct LogEntryResponse {
     pub address: String,
     pub topics: Vec<String>,
     pub data: String,
-    pub block_number: String,
-    pub block_timestamp: Option<String>,
+    pub block_number: U256,
+    pub block_timestamp: Option<U256>,
     pub transaction_hash: String,
     pub transaction_index: String,
     pub block_hash: String,
-    pub log_index: String,
+    pub log_index: U256,
     pub removed: bool,
 }
 
@@ -112,6 +93,7 @@ impl RpcClient {
 
     pub fn build_hyper_url(chain_id: u32, api_token: &str) -> Result<Url, RpcClientError> {
         let base = match chain_id {
+            137 => "https://polygon.rpc.hypersync.xyz",
             8453 => "https://base.rpc.hypersync.xyz",
             42161 => "https://arbitrum.rpc.hypersync.xyz",
             _ => return Err(RpcClientError::UnsupportedChainId { chain_id }),
@@ -257,11 +239,12 @@ impl From<TransportError> for RpcClientError {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
-    use alloy::hex;
+    use alloy::{hex, primitives::Bytes};
     use httpmock::MockServer;
     use serde_json::json;
+    use std::str::FromStr;
 
-    fn sample_block_response(number: &str, timestamp: &str) -> String {
+    fn sample_block_response_with_hash(number: &str, timestamp: &str, hash: &str) -> String {
         json!({
             "jsonrpc": "2.0",
             "id": 1,
@@ -271,7 +254,7 @@ mod tests {
                 "extraData": "0xextra",
                 "gasLimit": "0xffff",
                 "gasUsed": "0xff",
-                "hash": "0xhash",
+                "hash": hash,
                 "logsBloom": "0x0",
                 "miner": "0xminer",
                 "nonce": "0xnonce",
@@ -313,6 +296,15 @@ mod tests {
             "logIndex": "0x0",
             "removed": false
         })
+    }
+
+    #[test]
+    fn test_build_hyper_url_polygon_chain_id() {
+        let url = RpcClient::build_hyper_url(137, "test_token");
+        assert!(url.is_ok());
+        let url = url.unwrap().to_string();
+        assert!(url.contains("polygon.rpc.hypersync.xyz"));
+        assert!(url.contains("test_token"));
     }
 
     #[test]
@@ -383,6 +375,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_block_by_number_ok() {
         let server = MockServer::start();
+        let expected_hash = "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899";
         let mock = server.mock(|when, then| {
             when.method(httpmock::Method::POST)
                 .header("content-type", "application/json")
@@ -394,16 +387,47 @@ mod tests {
                 }));
             then.status(200)
                 .header("content-type", "application/json")
-                .body(sample_block_response("0x64", "0x64b8c123"));
+                .body(sample_block_response_with_hash(
+                    "0x64",
+                    "0x64b8c123",
+                    expected_hash,
+                ));
         });
 
         let client =
             RpcClient::new_with_urls(vec![Url::parse(&server.base_url()).unwrap()]).unwrap();
         let response = client.get_block_by_number(100).await.unwrap();
-        assert!(response.is_some());
-        assert_eq!(response.unwrap().timestamp, "0x64b8c123");
+        let block = response.expect("block response present");
+        assert_eq!(block.timestamp, U256::from(0x64b8c123u64));
+        assert_eq!(block.hash, expected_hash);
+        let hash_bytes = Bytes::from_str(&block.hash).expect("hash is valid hex");
+        assert_eq!(format!("{hash_bytes:#x}"), expected_hash);
 
         mock.assert();
+    }
+
+    #[test]
+    fn block_response_includes_hash_and_extra_fields() {
+        let expected_hash = "0xaabbccddeeff00112233445566778899aabbccddeeff00112233445566778899";
+        let body = sample_block_response_with_hash("0x2a", "0x5f5e100", expected_hash);
+        let parsed: serde_json::Value =
+            serde_json::from_str(&body).expect("valid json for block response");
+        let block: BlockResponse = serde_json::from_value(parsed["result"].clone())
+            .expect("block response should deserialize");
+
+        assert_eq!(block.hash, expected_hash);
+        assert_eq!(block.timestamp, U256::from(0x5f5e100u64));
+
+        let mix_hash = block
+            .extra
+            .get("mixHash")
+            .and_then(|value| value.as_str())
+            .expect("flattened field mixHash present");
+        assert_eq!(mix_hash, "0xmix");
+
+        let hash_bytes = Bytes::from_str(&block.hash).expect("hash converts to bytes");
+        assert_eq!(format!("{hash_bytes:#x}"), expected_hash);
+        assert_eq!(hash_bytes.len(), 32);
     }
 
     #[tokio::test]
@@ -452,7 +476,7 @@ mod tests {
         let logs = client.get_logs(&filter).await.unwrap();
 
         assert_eq!(logs.len(), 1);
-        assert_eq!(logs[0].block_number, "0x64");
+        assert_eq!(logs[0].block_number, U256::from(0x64));
 
         mock.assert();
     }
