@@ -16,6 +16,8 @@ DROP TABLE IF EXISTS meta_events;
 DROP TABLE IF EXISTS erc20_tokens;
 DROP TABLE IF EXISTS interpreter_store_sets;
 DROP TABLE IF EXISTS sync_status;
+DROP TABLE IF EXISTS vault_balance_changes;
+DROP TABLE IF EXISTS running_vault_balances;
 
 COMMIT;
 
