@@ -7,6 +7,7 @@ use crate::local_db::insert::{
 };
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
+use crate::local_db::query::upsert_vault_balances::upsert_vault_balances_batch;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::OrderbookIdentifier;
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
@@ -31,12 +32,13 @@ pub struct ApplyPipelineTargetInfo {
 ///   - Token upserts for provided `(Address, TokenInfo)` pairs.
 ///   - Decoded event INSERTs for all orderbook-scoped tables, binding the
 ///     target orderbook.
+///   - Vault balance change/running balance upserts.
 ///   - Watermark update to the `target_block` (and later last hash).
 /// - Persist the batch with a single-writer gate; must assert that the batch
 ///   is transaction-wrapped and fail if not.
 ///
-/// Policy (environment-specific):
-/// - Dump export after a successful persist (producer only); browser is no-op.
+/// Policy (environment-specific): Dump export after a successful persist
+/// (producer only); browser is no-op.
 #[async_trait(?Send)]
 pub trait ApplyPipeline {
     /// Builds the SQL batch for a cycle. The batch must be suitable for
@@ -78,6 +80,15 @@ pub trait ApplyPipeline {
             build_decoded_event_sql(&target_info.ob_id, decoded_events, &decimals_by_token)?;
         batch.extend(decoded_batch);
 
+        // Vault balance change/running balance updates
+        if target_info.start_block <= target_info.target_block {
+            batch.extend(upsert_vault_balances_batch(
+                &target_info.ob_id,
+                target_info.start_block,
+                target_info.target_block,
+            ));
+        }
+
         // Watermark update to target block
         batch.add(upsert_target_watermark_stmt(
             &target_info.ob_id,
@@ -86,16 +97,6 @@ pub trait ApplyPipeline {
         ));
 
         Ok(batch)
-    }
-
-    /// Builds environment-specific statements that should be appended to the
-    /// primary batch before persisting. The default implementation returns an
-    /// empty batch and therefore has no effect.
-    fn build_post_batch(
-        &self,
-        _target_info: &ApplyPipelineTargetInfo,
-    ) -> Result<SqlStatementBatch, LocalDbError> {
-        Ok(SqlStatementBatch::new())
     }
 
     /// Persists the previously built batch. Implementations must assert that
@@ -346,12 +347,16 @@ mod tests {
             .build_batch(&build_target_info(&ob_id, 1, 42), &[], &[], &[], &[])
             .expect("batch ok");
 
-        // Expect only a single watermark statement when there is no work.
+        // Expect vault balance refresh plus the watermark when there is no work.
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql().trim()).collect();
-        assert_eq!(texts.len(), 1);
+        assert_eq!(texts.len(), 3);
+        assert!(texts.iter().any(|s| s.contains("vault_balance_changes")));
         assert!(texts
             .iter()
-            .all(|s| s.contains("INSERT INTO target_watermarks")));
+            .any(|s| s.contains("INSERT OR REPLACE INTO running_vault_balances")));
+        assert!(texts
+            .iter()
+            .any(|s| s.contains("INSERT INTO target_watermarks")));
     }
 
     #[test]

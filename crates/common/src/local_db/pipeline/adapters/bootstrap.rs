@@ -2,6 +2,7 @@ use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
+use crate::local_db::query::create_views::create_views_batch;
 use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
 use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
@@ -112,6 +113,7 @@ pub trait BootstrapPipeline {
             db_schema_version.unwrap_or(DB_SCHEMA_VERSION),
         ))
         .await?;
+        db.execute_batch(&create_views_batch()).await?;
         Ok(())
     }
 
@@ -150,6 +152,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
+    use crate::local_db::query::create_views::create_views_batch;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
@@ -174,6 +177,12 @@ mod tests {
             self.text_map
                 .insert(stmt.sql().to_string(), value.to_string());
             self
+        }
+        fn with_views(self) -> Self {
+            create_views_batch()
+                .statements()
+                .iter()
+                .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
@@ -571,7 +580,8 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter
             .reset_db(&db, Some(DB_SCHEMA_VERSION))
@@ -579,13 +589,23 @@ mod tests {
             .unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(
+            calls.len(),
+            3 + expected_views.len(),
+            "unexpected number of executed statements"
+        );
         assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
             calls[2],
             insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
         );
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -594,13 +614,21 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter.reset_db(&db, None).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(calls[0], clear_tables_stmt().sql());
+        assert_eq!(calls[1], create_tables_stmt().sql());
         assert_eq!(calls[2], insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql());
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -610,13 +638,21 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(custom_version), "ok");
+            .with_text(&insert_db_metadata_stmt(custom_version), "ok")
+            .with_views();
 
         adapter.reset_db(&db, Some(custom_version)).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(calls[0], clear_tables_stmt().sql());
+        assert_eq!(calls[1], create_tables_stmt().sql());
         assert_eq!(calls[2], insert_db_metadata_stmt(custom_version).sql());
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]

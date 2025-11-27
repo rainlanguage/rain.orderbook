@@ -2,7 +2,6 @@ use crate::local_db::{
     pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState},
     query::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
-        upsert_vault_balances::upsert_vault_balances_batch,
         LocalDbQueryExecutor,
     },
     LocalDbError, OrderbookIdentifier,
@@ -15,26 +14,6 @@ pub struct ClientBootstrapAdapter;
 impl ClientBootstrapAdapter {
     pub fn new() -> Self {
         Self {}
-    }
-
-    async fn refresh_running_vault_balances<DB>(
-        &self,
-        db: &DB,
-        ob_id: &OrderbookIdentifier,
-        start_block: u64,
-        end_block: u64,
-    ) -> Result<(), LocalDbError>
-    where
-        DB: LocalDbQueryExecutor + ?Sized,
-    {
-        if start_block > end_block {
-            return Ok(());
-        }
-
-        let batch = upsert_vault_balances_batch(ob_id, start_block, end_block).ensure_transaction();
-
-        db.execute_batch(&batch).await?;
-        Ok(())
     }
 
     fn check_threshold(
@@ -81,13 +60,6 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
             if self.is_fresh_db(db, &config.ob_id).await? {
                 db.query_text(dump_stmt).await?;
-                self.refresh_running_vault_balances(
-                    db,
-                    &config.ob_id,
-                    config.deployment_block,
-                    config.latest_block,
-                )
-                .await?;
                 return Ok(());
             }
 
@@ -100,13 +72,6 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
                 Err(_) => {
                     self.clear_orderbook_data(db, &config.ob_id).await?;
                     db.query_text(dump_stmt).await?;
-                    self.refresh_running_vault_balances(
-                        db,
-                        &config.ob_id,
-                        config.deployment_block,
-                        config.latest_block,
-                    )
-                    .await?;
                 }
             }
         }
@@ -156,6 +121,7 @@ mod tests {
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
+    use crate::local_db::query::create_views::create_views_batch;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::fetch_target_watermark::{
@@ -194,6 +160,13 @@ mod tests {
         }
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
+        }
+
+        fn with_views(self) -> Self {
+            create_views_batch()
+                .statements()
+                .iter()
+                .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
     }
 
@@ -287,20 +260,26 @@ mod tests {
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
         assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
             calls[2],
             insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
         );
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -323,16 +302,26 @@ mod tests {
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
         assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
         assert!(calls.contains(&create_tables_stmt().sql().to_string()));
         assert!(calls.contains(&insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()));
+        assert!(
+            expected_views.iter().all(|stmt| calls.contains(stmt)),
+            "missing view creation statements"
+        );
     }
 
     #[tokio::test]
@@ -361,7 +350,8 @@ mod tests {
             .with_json(&fetch_db_metadata_stmt(), json!([mismatched_row]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
@@ -369,8 +359,17 @@ mod tests {
             .unwrap();
 
         let calls = db.calls();
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
         assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
         assert!(calls.contains(&create_tables_stmt().sql().to_string()));
+        assert!(
+            expected_views.iter().all(|stmt| calls.contains(stmt)),
+            "missing view creation statements"
+        );
     }
 
     #[tokio::test]
@@ -437,29 +436,14 @@ mod tests {
             deployment_block: 1,
         };
 
-        let refresh_batch =
-            upsert_vault_balances_batch(&cfg.ob_id, cfg.deployment_block, cfg.latest_block)
-                .ensure_transaction();
-
-        let mut db = MockDb::default()
+        let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_target_watermark_stmt(&cfg.ob_id), json!([]))
             .with_text(&dump_stmt, "ok");
 
-        for stmt in refresh_batch.statements() {
-            db = db.with_text(stmt, "ok");
-        }
-
         adapter.engine_run(&db, &cfg).await.unwrap();
 
-        let mut expected = vec![dump_stmt.sql().to_string()];
-        expected.extend(
-            refresh_batch
-                .statements()
-                .iter()
-                .map(|stmt| stmt.sql().to_string()),
-        );
-        assert_eq!(db.calls(), expected);
+        assert_eq!(db.calls(), vec![dump_stmt.sql().to_string()]);
     }
 
     #[tokio::test]
@@ -477,9 +461,6 @@ mod tests {
             deployment_block: 1,
         };
 
-        let refresh_batch = upsert_vault_balances_batch(&cfg.ob_id, cfg.deployment_block, latest)
-            .ensure_transaction();
-
         let clear_batch = clear_orderbook_data_batch(&sample_ob_id());
         let mut db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
@@ -493,10 +474,6 @@ mod tests {
             db = db.with_text(stmt, "cleared");
         }
 
-        for stmt in refresh_batch.statements() {
-            db = db.with_text(stmt, "upserted");
-        }
-
         adapter.engine_run(&db, &cfg).await.unwrap();
 
         let calls = db.calls();
@@ -506,12 +483,6 @@ mod tests {
             .map(|stmt| stmt.sql().to_string())
             .collect();
         expected.push(dump_stmt.sql().to_string());
-        expected.extend(
-            refresh_batch
-                .statements()
-                .iter()
-                .map(|stmt| stmt.sql().to_string()),
-        );
         assert_eq!(calls, expected);
     }
 
