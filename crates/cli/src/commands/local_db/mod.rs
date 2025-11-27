@@ -1,5 +1,6 @@
 pub mod cli;
 pub mod executor;
+pub mod functions;
 pub mod pipeline;
 
 use anyhow::Result;

@@ -1,3 +1,4 @@
+use super::functions;
 use async_trait::async_trait;
 use rain_orderbook_common::local_db::query::{
     FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch, SqlValue,
@@ -36,6 +37,9 @@ impl RusqliteExecutor {
             .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
         conn.busy_timeout(Duration::from_millis(500))
             .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
+        functions::register_all(&conn).map_err(|e| {
+            LocalDbQueryError::database(format!("Failed to register sqlite functions: {e}"))
+        })?;
         Ok(conn)
     }
 
