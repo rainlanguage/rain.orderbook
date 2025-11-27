@@ -497,15 +497,18 @@ price: 2e18;
             key: "".to_string(),
             inputs: vec![
                 OrderIOCfg {
+                    token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
                     vault_id: None,
                 },
                 OrderIOCfg {
+                    token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
                 },
             ],
             outputs: vec![OrderIOCfg {
+                token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
                 vault_id: None,
             }],
@@ -610,15 +613,18 @@ _ _: 0 0;
             key: "".to_string(),
             inputs: vec![
                 OrderIOCfg {
+                    token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
                 },
                 OrderIOCfg {
+                    token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
                 },
             ],
             outputs: vec![OrderIOCfg {
+                token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
             }],
@@ -766,15 +772,18 @@ _ _: 0 0;
             key: "".to_string(),
             inputs: vec![
                 OrderIOCfg {
+                    token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
                     vault_id: None,
                 },
                 OrderIOCfg {
+                    token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
                 },
             ],
             outputs: vec![OrderIOCfg {
+                token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
                 vault_id: None,
             }],
@@ -1098,15 +1107,18 @@ _ _: 16 52;
             key: "".to_string(),
             inputs: vec![
                 OrderIOCfg {
+                    token_key: token1_arc.key.clone(),
                     token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
                 },
                 OrderIOCfg {
+                    token_key: token2_arc.key.clone(),
                     token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
                 },
             ],
             outputs: vec![OrderIOCfg {
+                token_key: token3_arc.key.clone(),
                 token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
             }],

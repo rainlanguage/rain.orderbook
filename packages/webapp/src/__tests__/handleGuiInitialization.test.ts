@@ -24,11 +24,17 @@ describe('handleGuiInitialization', () => {
 
 	it('should initialize GUI with state from URL when valid', async () => {
 		(DotrainOrderGui.newFromState as Mock).mockImplementation(() => ({ value: {} }));
-		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'validStateUrl');
+		const result = await handleGuiInitialization(
+			mockDotrain,
+			undefined,
+			mockDeploymentKey,
+			'validStateUrl'
+		);
 
 		expect(result).toEqual({ gui: {}, error: null });
 		expect(DotrainOrderGui.newFromState).toHaveBeenCalledWith(
 			mockDotrain,
+			undefined,
 			'validStateUrl',
 			pushGuiStateToUrlHistory
 		);
@@ -43,12 +49,18 @@ describe('handleGuiInitialization', () => {
 			value: {}
 		});
 
-		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, 'invalidStateUrl');
+		const result = await handleGuiInitialization(
+			mockDotrain,
+			undefined,
+			mockDeploymentKey,
+			'invalidStateUrl'
+		);
 
 		expect(result).toEqual({ gui: {}, error: null });
 		expect(DotrainOrderGui.newFromState).toHaveBeenCalled();
 		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
 			mockDotrain,
+			undefined,
 			mockDeploymentKey,
 			pushGuiStateToUrlHistory
 		);
@@ -59,12 +71,13 @@ describe('handleGuiInitialization', () => {
 			value: {}
 		});
 
-		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
+		const result = await handleGuiInitialization(mockDotrain, undefined, mockDeploymentKey, null);
 
 		expect(result).toEqual({ gui: {}, error: null });
 		expect(DotrainOrderGui.newFromState).not.toHaveBeenCalled();
 		expect(DotrainOrderGui.newWithDeployment).toHaveBeenCalledWith(
 			mockDotrain,
+			undefined,
 			mockDeploymentKey,
 			pushGuiStateToUrlHistory
 		);
@@ -75,7 +88,7 @@ describe('handleGuiInitialization', () => {
 			error: { readableMsg: 'deployment failed' }
 		});
 
-		const result = await handleGuiInitialization(mockDotrain, mockDeploymentKey, null);
+		const result = await handleGuiInitialization(mockDotrain, undefined, mockDeploymentKey, null);
 
 		expect(result).toEqual({
 			gui: null,

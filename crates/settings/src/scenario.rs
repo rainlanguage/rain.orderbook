@@ -78,7 +78,7 @@ impl ScenarioCfg {
                 let binding_value = require_string(binding_value, None, Some(location.clone()))?;
 
                 let interpolated_value = match context {
-                    Some(context) => context.interpolate(&binding_value)?,
+                    Some(context) => context.interpolate_with_select_tokens(&binding_value)?,
                     None => binding_value.to_string(),
                 };
 
@@ -101,7 +101,7 @@ impl ScenarioCfg {
             }
 
             let binding_value = match context {
-                Some(context) => context.interpolate(&v)?,
+                Some(context) => context.interpolate_with_select_tokens(&v)?,
                 None => v.to_string(),
             };
 

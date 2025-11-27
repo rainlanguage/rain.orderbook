@@ -209,7 +209,7 @@ describe('Full Deployment Tests', () => {
 			);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitOrder, 'flare'))
+				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitOrder, undefined, 'flare'))
 					.value as DotrainOrderGui;
 				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
