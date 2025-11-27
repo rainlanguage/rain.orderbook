@@ -286,16 +286,16 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				}
 			],
 			active: true,
-				addEvents: [
-					{
-						transaction: {
-							blockNumber: '0',
-							timestamp: '0',
-							id: BYTES32_ZERO,
-							from: '0x0000000000000000000000000000000000000000'
-						}
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '0',
+						timestamp: '0',
+						id: BYTES32_ZERO,
+						from: '0x0000000000000000000000000000000000000000'
 					}
-				],
+				}
+			],
 			meta: null,
 			timestampAdded: '0',
 			orderbook: {
@@ -377,16 +377,16 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		const mockOrderTradesList: SgTrade[] = [
 			{
 				id: '0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4894',
-					timestamp: '1632000000',
-					tradeEvent: {
-						sender: '0x0000000000000000000000000000000000000000',
-						transaction: {
-							id: BYTES32_ZERO,
-							from: '0x0000000000000000000000000000000000000000',
-							timestamp: '1632000000',
-							blockNumber: '0'
-						}
-					},
+				timestamp: '1632000000',
+				tradeEvent: {
+					sender: '0x0000000000000000000000000000000000000000',
+					transaction: {
+						id: BYTES32_ZERO,
+						from: '0x0000000000000000000000000000000000000000',
+						timestamp: '1632000000',
+						blockNumber: '0'
+					}
+				},
 				outputVaultBalanceChange: {
 					amount: '0x0000000000000000000000000000000000000000000000000000000000000001',
 					vault: {
@@ -401,17 +401,17 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						}
 					},
 					id: 'output-change-1',
-						__typename: 'TradeVaultBalanceChange',
-						newVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000002',
-						oldVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000003',
+					__typename: 'TradeVaultBalanceChange',
+					newVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000002',
+					oldVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000003',
+					timestamp: '1632000000',
+					transaction: {
+						id: BYTES32_ZERO,
+						from: '0x0000000000000000000000000000000000000000',
 						timestamp: '1632000000',
-						transaction: {
-							id: BYTES32_ZERO,
-							from: '0x0000000000000000000000000000000000000000',
-							timestamp: '1632000000',
-							blockNumber: '0'
-						},
-						orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+						blockNumber: '0'
+					},
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
 				},
 				order: {
 					id: order1.id,
@@ -431,39 +431,39 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						}
 					},
 					id: 'input-change-1',
-						__typename: 'TradeVaultBalanceChange',
-						newVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000004',
-						oldVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000005',
+					__typename: 'TradeVaultBalanceChange',
+					newVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000004',
+					oldVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000005',
+					timestamp: '1632000000',
+					transaction: {
+						id: BYTES32_ZERO,
+						from: '0x0000000000000000000000000000000000000000',
 						timestamp: '1632000000',
-						transaction: {
-							id: BYTES32_ZERO,
-							from: '0x0000000000000000000000000000000000000000',
-							timestamp: '1632000000',
-							blockNumber: '0'
-						},
-						orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+						blockNumber: '0'
+					},
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 				}
 			}
-			] as unknown as SgTrade[];
+		] as unknown as SgTrade[];
 
-			const mockTrade: SgTrade = {
+		const mockTrade: SgTrade = {
+			id: BYTES32_0123,
+			order: {
 				id: BYTES32_0123,
-				order: {
+				orderHash: BYTES32_0123
+			},
+			tradeEvent: {
+				sender: '0x0000000000000000000000000000000000000000',
+				transaction: {
 					id: BYTES32_0123,
-					orderHash: BYTES32_0123
-				},
-				tradeEvent: {
-					sender: '0x0000000000000000000000000000000000000000',
-					transaction: {
-						id: BYTES32_0123,
-						from: '0x0000000000000000000000000000000000000000',
-						blockNumber: '0',
-						timestamp: '0'
-					}
-				},
+					from: '0x0000000000000000000000000000000000000000',
+					blockNumber: '0',
+					timestamp: '0'
+				}
+			},
 			timestamp: '0',
 			orderbook: {
 				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
@@ -484,14 +484,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						symbol: 'T1',
 						decimals: '18'
 					}
-					},
-					timestamp: '0',
-					transaction: {
-						id: BYTES32_0123,
-						from: '0x0000000000000000000000000000000000000000',
-						blockNumber: '0',
-						timestamp: '0'
-					},
+				},
+				timestamp: '0',
+				transaction: {
+					id: BYTES32_0123,
+					from: '0x0000000000000000000000000000000000000000',
+					blockNumber: '0',
+					timestamp: '0'
+				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 				}
@@ -512,14 +512,14 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						symbol: 'T2',
 						decimals: '6'
 					}
-					},
-					timestamp: '0',
-					transaction: {
-						id: BYTES32_0234,
-						from: '0x0000000000000000000000000000000000000000',
-						blockNumber: '0',
-						timestamp: '0'
-					},
+				},
+				timestamp: '0',
+				transaction: {
+					id: BYTES32_0234,
+					from: '0x0000000000000000000000000000000000000000',
+					blockNumber: '0',
+					timestamp: '0'
+				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
 				}
@@ -1970,21 +1970,21 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		});
 	});
 
-		describe('Transactions', () => {
-			const transaction = {
-				id: BYTES32_0123,
-				from: '0x1000000000000000000000000000000000000000',
-				blockNumber: '2356',
-				timestamp: '1734054063'
-			} as SgTransaction;
+	describe('Transactions', () => {
+		const transaction = {
+			id: BYTES32_0123,
+			from: '0x1000000000000000000000000000000000000000',
+			blockNumber: '2356',
+			timestamp: '1734054063'
+		} as SgTransaction;
 
-			it('should get transaction', async () => {
-				await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { transaction } }));
+		it('should get transaction', async () => {
+			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { transaction } }));
 
-				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-				const result = extractWasmEncodedData(
-					await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
-				);
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(
+				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+			);
 			assert.equal(result.id, transaction.id);
 			assert.equal(result.from, transaction.from);
 			assert.equal(result.blockNumber, BigInt(transaction.blockNumber));
