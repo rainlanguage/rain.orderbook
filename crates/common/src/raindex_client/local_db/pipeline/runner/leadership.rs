@@ -115,11 +115,6 @@ async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
     let options = Object::new();
     Reflect::set(
         &options,
-        &JsValue::from_str("name"),
-        &JsValue::from_str(LOCK_NAME),
-    )?;
-    Reflect::set(
-        &options,
         &JsValue::from_str("mode"),
         &JsValue::from_str("exclusive"),
     )?;
@@ -160,8 +155,9 @@ async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
         }
     }) as Box<dyn FnMut(JsValue) -> JsValue>);
 
-    let request_result = request_fn.call2(
+    let request_result = request_fn.call3(
         &locks_value,
+        &JsValue::from_str(LOCK_NAME),
         &options.into(),
         callback.as_ref().unchecked_ref(),
     );
