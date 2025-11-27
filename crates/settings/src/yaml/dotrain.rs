@@ -204,6 +204,10 @@ impl DotrainYaml {
         self.expand_context_with_remote_networks(&mut context);
         self.expand_context_with_remote_tokens(&mut context);
 
+        if let Some(select_tokens) = GuiCfg::parse_select_tokens(self.documents.clone(), key)? {
+            context.add_select_tokens(select_tokens.iter().map(|st| st.key.clone()).collect());
+        }
+
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 

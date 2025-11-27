@@ -39,6 +39,8 @@ strict-yaml-rust = { workspace = true }
 url = { workspace = true, features = ["serde"] }
 rain-math-float.workspace = true
 getrandom = { workspace = true }
+rain-metadata = { workspace = true }
+rain-metaboard-subgraph = { workspace = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
