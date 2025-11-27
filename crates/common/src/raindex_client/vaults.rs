@@ -314,6 +314,7 @@ impl RaindexVault {
                     &OrderbookIdentifier::new(self.chain_id, self.orderbook),
                     self.vault_id,
                     self.token.address,
+                    self.owner,
                 )
                 .await?;
 
@@ -1581,7 +1582,7 @@ mod tests {
                     .unwrap();
 
             let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
-                if sql.contains("running_balance") {
+                if sql.contains("runningBalance") {
                     js_sys::JSON::parse(&balance_payload).unwrap()
                 } else {
                     js_sys::JSON::parse(&vaults_payload).unwrap()

@@ -140,10 +140,10 @@ fn build_select_statement(
 
     let order_clause = order_columns.join(", ");
     let mut stmt = SqlStatement::new(format!(
-        "SELECT {columns_sql} FROM \"{table}\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY {order_clause};"
+        "SELECT {columns_sql} FROM \"{table}\" WHERE chain_id = ?1 AND orderbook_address = ?2 ORDER BY {order_clause};"
     ));
     stmt.push(SqlValue::from(ob_id.chain_id as u64));
-    stmt.push(SqlValue::from(ob_id.orderbook_address.to_string()));
+    stmt.push(SqlValue::from(ob_id.orderbook_address));
     stmt
 }
 
@@ -204,7 +204,8 @@ mod tests {
     use crate::local_db::query::{
         create_tables::CREATE_TABLES_SQL, LocalDbQueryError, SqlStatementBatch, SqlValue,
     };
-    use alloy::{hex, primitives::Address};
+    use alloy::hex;
+    use alloy::primitives::{hex::encode_prefixed, Address};
     use async_trait::async_trait;
     use futures::executor;
     use rusqlite::{params, types::ValueRef, Connection};
@@ -375,7 +376,7 @@ mod tests {
 
     fn insert_for_target(conn: &Connection, target: &TestTarget, base_idx: i64) {
         let chain = target.chain_id;
-        let orderbook = target.orderbook.to_string();
+        let orderbook = encode_prefixed(target.orderbook);
         let label = target.label;
 
         let raw_tx = format!("raw_tx_{label}");
@@ -978,19 +979,12 @@ mod tests {
         let expected_alt = expected_dump(42161, alt_target.orderbook_address, "alt", 20);
         let expected_other = expected_dump(10, other_target.orderbook_address, "other", 30);
 
+        let norm = |s: &str| normalize_sql(s).to_lowercase();
+        assert_eq!(norm(&sql_main), norm(&expected_main), "main dump mismatch");
+        assert_eq!(norm(&sql_alt), norm(&expected_alt), "alt dump mismatch");
         assert_eq!(
-            normalize_sql(&sql_main),
-            normalize_sql(&expected_main),
-            "main dump mismatch"
-        );
-        assert_eq!(
-            normalize_sql(&sql_alt),
-            normalize_sql(&expected_alt),
-            "alt dump mismatch"
-        );
-        assert_eq!(
-            normalize_sql(&sql_other),
-            normalize_sql(&expected_other),
+            norm(&sql_other),
+            norm(&expected_other),
             "other dump mismatch"
         );
     }
@@ -1019,7 +1013,7 @@ mod tests {
             orderbook_address: Address::from_str("0x0000000000000000000000000000000000000aaa")
                 .unwrap(),
         };
-        let orderbook = ob_id.orderbook_address.to_string();
+        let orderbook = encode_prefixed(ob_id.orderbook_address);
 
         {
             let conn = executor.conn.borrow();
@@ -1090,15 +1084,12 @@ mod tests {
         let stmt = build_select_statement("deposits", &columns, &ob_id);
         assert_eq!(
             stmt.sql(),
-            "SELECT \"orderbook_address\", \"chain_id\", \"alpha\", \"beta\" FROM \"deposits\" WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2) ORDER BY \"chain_id\", \"orderbook_address\", \"alpha\", \"beta\";"
+            "SELECT \"orderbook_address\", \"chain_id\", \"alpha\", \"beta\" FROM \"deposits\" WHERE chain_id = ?1 AND orderbook_address = ?2 ORDER BY \"chain_id\", \"orderbook_address\", \"alpha\", \"beta\";"
         );
         let params = stmt.params();
         assert_eq!(params.len(), 2);
         assert_eq!(params[0], SqlValue::from(ob_id.chain_id as u64));
-        assert_eq!(
-            params[1],
-            SqlValue::from(ob_id.orderbook_address.to_string())
-        );
+        assert_eq!(params[1], SqlValue::from(ob_id.orderbook_address));
     }
 
     #[test]
@@ -1183,7 +1174,7 @@ mod tests {
         let ts = |offset: i64| 1_700_000_000 + offset;
 
         let meta_hex = format!("0x{}", hex::encode(label.as_bytes()));
-        let orderbook = orderbook.to_string();
+        let orderbook = encode_prefixed(orderbook);
         let watermark_block = 2_000 + base_idx;
         let watermark_ms = 1_700_000_000_000i64 + base_idx * 1_000;
 

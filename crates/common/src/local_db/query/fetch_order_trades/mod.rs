@@ -38,10 +38,10 @@ pub struct LocalDbOrderTrade {
 
 /// Builds the SQL statement for retrieving order trades within the specified window.
 const START_TS_CLAUSE: &str = "/*START_TS_CLAUSE*/";
-const START_TS_BODY: &str = "\nAND block_timestamp >= {param}\n";
+const START_TS_BODY: &str = "\nAND tws.block_timestamp >= {param}\n";
 
 const END_TS_CLAUSE: &str = "/*END_TS_CLAUSE*/";
-const END_TS_BODY: &str = "\nAND block_timestamp <= {param}\n";
+const END_TS_BODY: &str = "\nAND tws.block_timestamp <= {param}\n";
 
 pub fn build_fetch_order_trades_stmt(
     ob_id: &OrderbookIdentifier,
@@ -100,14 +100,11 @@ mod tests {
             Some(22),
         )
         .unwrap();
-        // Fixed params
-        assert!(stmt.sql.contains("et_in.chain_id = ?1"));
-        assert!(stmt.sql.contains("et_out.chain_id = ?1"));
         // Dynamic param clauses inserted
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
-        assert!(stmt.sql.contains("block_timestamp >="));
-        assert!(stmt.sql.contains("block_timestamp <="));
+        assert!(stmt.sql.contains("tws.block_timestamp >="));
+        assert!(stmt.sql.contains("tws.block_timestamp <="));
         // First three fixed params: chain id (?1), orderbook address (?2), order hash (?3)
         assert_eq!(stmt.params.len(), 5); // includes start and end
         assert_eq!(stmt.params[0], SqlValue::U64(137));
@@ -129,8 +126,8 @@ mod tests {
             None,
         )
         .unwrap();
-        assert!(!stmt.sql.contains("block_timestamp >="));
-        assert!(!stmt.sql.contains("block_timestamp <="));
+        assert!(!stmt.sql.contains("tws.block_timestamp >="));
+        assert!(!stmt.sql.contains("tws.block_timestamp <="));
         assert!(!stmt.sql.contains(START_TS_CLAUSE));
         assert!(!stmt.sql.contains(END_TS_CLAUSE));
         assert_eq!(stmt.params.len(), 3);

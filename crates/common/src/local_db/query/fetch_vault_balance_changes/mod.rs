@@ -26,6 +26,7 @@ pub fn build_fetch_balance_changes_stmt(
     ob_id: &OrderbookIdentifier,
     vault_id: U256,
     token: Address,
+    owner: Address,
 ) -> SqlStatement {
     SqlStatement::new_with_params(
         QUERY_TEMPLATE,
@@ -34,6 +35,7 @@ pub fn build_fetch_balance_changes_stmt(
             SqlValue::from(ob_id.orderbook_address),
             SqlValue::from(vault_id),
             SqlValue::from(token),
+            SqlValue::from(owner),
         ],
     )
 }
@@ -50,9 +52,10 @@ mod tests {
             &OrderbookIdentifier::new(1, Address::ZERO),
             U256::from(1),
             Address::ZERO,
+            Address::ZERO,
         );
-        assert!(stmt.sql.contains("?3 AS vault_id"));
-        assert!(stmt.sql.contains("?4 AS token"));
-        assert_eq!(stmt.params.len(), 4);
+        assert!(stmt.sql.contains("params AS"));
+        assert!(stmt.sql.contains("?1 AS chain_id"));
+        assert_eq!(stmt.params.len(), 5);
     }
 }

@@ -5,4 +5,4 @@ SELECT
     updated_at
 FROM sync_status
 WHERE chain_id = ?1
-  AND lower(orderbook_address) = lower(?2);
+  AND orderbook_address = ?2;

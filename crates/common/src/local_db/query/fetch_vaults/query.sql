@@ -98,16 +98,16 @@ vault_order_lists AS (
   GROUP BY chain_id, orderbook_address, token, vault_id
 )
 SELECT
-  o.chain_id,
-  o.orderbook_address,
-  o.vault_id,
+  o.chain_id AS chainId,
+  o.orderbook_address AS orderbookAddress,
+  o.vault_id AS vaultId,
   o.token,
   o.owner,
-  et.name   AS token_name,
-  et.symbol AS token_symbol,
-  et.decimals AS token_decimals,
-  vol.input_orders,
-  vol.output_orders,
+  et.name   AS tokenName,
+  et.symbol AS tokenSymbol,
+  et.decimals AS tokenDecimals,
+  vol.input_orders AS inputOrders,
+  vol.output_orders AS outputOrders,
   o.balance
 FROM vault_balances o
 LEFT JOIN vault_order_lists vol
