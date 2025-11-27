@@ -119,6 +119,16 @@ impl YamlParseableValue for RemoteTokensCfg {
             document: documents[document_index].clone(),
         }))
     }
+
+    fn to_yaml_array(&self) -> Result<StrictYaml, YamlError> {
+        let urls = self
+            .urls
+            .iter()
+            .map(|url| StrictYaml::String(url.to_string()))
+            .collect();
+
+        Ok(StrictYaml::Array(urls))
+    }
 }
 
 impl Default for RemoteTokensCfg {
@@ -198,6 +208,31 @@ using-tokens-from:
                 "http://test.com/".to_string(),
                 "using-tokens-from".to_string()
             )
+        );
+    }
+
+    #[test]
+    fn test_to_yaml_array_serializes_urls() {
+        let cfg = RemoteTokensCfg {
+            document: default_document(),
+            urls: vec![
+                Url::parse("https://example.com/first.json").unwrap(),
+                Url::parse("https://example.com/second.json").unwrap(),
+            ],
+        };
+
+        let yaml = cfg.to_yaml_array().unwrap();
+
+        let StrictYaml::Array(urls) = yaml else {
+            panic!("remote tokens were not serialized to a YAML array");
+        };
+
+        assert_eq!(
+            urls,
+            vec![
+                StrictYaml::String("https://example.com/first.json".to_string()),
+                StrictYaml::String("https://example.com/second.json".to_string()),
+            ]
         );
     }
 

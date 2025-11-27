@@ -84,6 +84,10 @@ impl YamlParsableHash for LocalDbRemoteCfg {
 
         Ok(remotes)
     }
+
+    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
+        Ok(StrictYaml::String(self.url.to_string()))
+    }
 }
 
 impl Default for LocalDbRemoteCfg {
@@ -106,6 +110,7 @@ impl PartialEq for LocalDbRemoteCfg {
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
+    use std::collections::HashMap;
 
     #[test]
     fn test_parse_local_db_remotes_from_yaml_multiple_files() {
@@ -200,5 +205,44 @@ local-db-remotes:
             }
             _ => panic!("unexpected error type"),
         }
+    }
+
+    #[test]
+    fn test_to_yaml_hash() {
+        let mut remotes = HashMap::new();
+        remotes.insert(
+            "mainnet".to_string(),
+            LocalDbRemoteCfg {
+                document: default_document(),
+                key: "mainnet".to_string(),
+                url: Url::parse("https://example.com/localdb/mainnet").unwrap(),
+            },
+        );
+        remotes.insert(
+            "polygon".to_string(),
+            LocalDbRemoteCfg {
+                document: default_document(),
+                key: "polygon".to_string(),
+                url: Url::parse("https://example.com/localdb/polygon").unwrap(),
+            },
+        );
+
+        let yaml_hash = LocalDbRemoteCfg::to_yaml_hash(&remotes).unwrap();
+
+        let StrictYaml::Hash(hash) = yaml_hash else {
+            panic!("expected hash");
+        };
+        assert_eq!(
+            hash.get(&StrictYaml::String("mainnet".to_string())),
+            Some(&StrictYaml::String(
+                "https://example.com/localdb/mainnet".to_string()
+            ))
+        );
+        assert_eq!(
+            hash.get(&StrictYaml::String("polygon".to_string())),
+            Some(&StrictYaml::String(
+                "https://example.com/localdb/polygon".to_string()
+            ))
+        );
     }
 }
