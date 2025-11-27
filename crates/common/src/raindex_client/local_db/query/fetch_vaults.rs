@@ -97,7 +97,7 @@ mod tests {
                 wasm_bindgen::JsValue::UNDEFINED,
             )));
             let callback = create_sql_capturing_callback("[]", store.clone());
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             let res =
                 super::fetch_vaults(&exec, &OrderbookIdentifier::new(137, orderbook), args).await;

@@ -4,9 +4,9 @@
 	import { PageHeader, useRaindexClient } from '@rainlanguage/ui-components';
 	import { Button, Textarea } from 'flowbite-svelte';
 	import init, { SQLiteWasmDatabase, type WasmEncodedResult } from '@rainlanguage/sqlite-web';
-	import { clearTables, getSyncStatus } from '@rainlanguage/orderbook';
+	import { clearTables } from '@rainlanguage/orderbook';
 
-	let raindexClient = useRaindexClient();
+	const raindexClient = useRaindexClient();
 
 	let db: WasmEncodedResult<SQLiteWasmDatabase> | null = null;
 	let sqlQuery = '';
@@ -14,35 +14,16 @@
 	let isLoading = false;
 	let error = '';
 
-	// Sync status message from raindexClient.syncLocalDatabase callback
-	let syncStatus: string = '';
-
-	// Auto-sync state variables
-	let autoSyncEnabled = false;
-	let lastSyncedBlock: string | null = null;
-	let lastSyncTime: Date | null = null;
-	let autoSyncInterval: ReturnType<typeof setInterval> | null = null;
-
-	// Whether a sync operation is actively running
-	let isSyncing = false;
-
+	// Show/hide advanced SQL query editor
 	let showCustomQuery = false;
 
 	onMount(async () => {
 		await init();
-		db = SQLiteWasmDatabase.new('rainlanguage_orderbook_webapp');
+		db = SQLiteWasmDatabase.new('worker.db');
 
 		if (db && !db.error && db.value) {
 			const queryFn = db.value.query.bind(db.value);
 			raindexClient.setDbCallback(queryFn);
-		}
-
-		// Populate last sync info on load
-		await updateSyncStatus();
-
-		// Auto-start syncing after db is initialized
-		if (db && !db.error && db.value) {
-			// await startAutoSync();
 		}
 	});
 
@@ -53,37 +34,17 @@
 		error = '';
 		queryResults = null;
 
-		// Split SQL by semicolons and filter out empty statements
-		const statements = sqlQuery
-			.split(';')
-			.map((stmt) => stmt.trim())
-			.filter((stmt) => stmt.length > 0);
-
-		const allResults = [];
-
-		for (const statement of statements) {
-			const result = await db.value.query(statement);
-			if (result.error) {
-				error = `Error in statement "${statement}": ${result.error.msg}`;
-				break;
-			} else {
-				try {
-					const parsedResult = JSON.parse(result.value);
-					allResults.push({
-						statement,
-						result: parsedResult
-					});
-				} catch {
-					allResults.push({
-						statement,
-						result: result.value
-					});
-				}
-			}
+		const result = await db.value.query(sqlQuery);
+		if (result.error) {
+			error = result.error.msg;
+			isLoading = false;
+			return;
 		}
 
-		if (!error) {
-			queryResults = statements.length === 1 ? allResults[0]?.result : allResults;
+		try {
+			queryResults = JSON.parse(result.value);
+		} catch {
+			queryResults = result.value;
 		}
 
 		isLoading = false;
@@ -107,87 +68,6 @@
 		}
 
 		isLoading = false;
-	}
-
-	async function startAutoSync() {
-		if (!db?.value || autoSyncEnabled) return;
-
-		autoSyncEnabled = true;
-
-		// Initial sync
-		await performAutoSync();
-		// Get current sync status
-		await updateSyncStatus();
-
-		// Set up interval for every 5 seconds
-		autoSyncInterval = setInterval(async () => {
-			await performAutoSync();
-		}, 5000);
-	}
-
-	async function updateSyncStatus() {
-		if (!db?.value) return;
-
-		try {
-			error = '';
-			const queryFn = db.value.query.bind(db.value);
-			const statusResult = await getSyncStatus(
-				queryFn,
-				42161,
-				'0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB'
-			);
-
-			if (!statusResult.error && statusResult.value) {
-				const statusArray = statusResult.value;
-				if (statusArray && statusArray.length > 0) {
-					const latestStatus = statusArray[statusArray.length - 1];
-					lastSyncedBlock = latestStatus.last_synced_block.toString();
-					lastSyncTime = latestStatus.updated_at ? new Date(latestStatus.updated_at) : new Date();
-				}
-			}
-		} catch (err) {
-			error = err instanceof Error ? err.message : String(err);
-		}
-	}
-
-	function stopAutoSync() {
-		autoSyncEnabled = false;
-		if (autoSyncInterval) {
-			clearInterval(autoSyncInterval);
-			autoSyncInterval = null;
-		}
-	}
-
-	async function performAutoSync() {
-		if (!db?.value || isLoading) return;
-
-		try {
-			isSyncing = true;
-			const queryFn = db.value.query.bind(db.value);
-
-			// Sync database and capture status updates
-			const syncResult = await raindexClient.syncLocalDatabase(
-				queryFn,
-				(status: string) => {
-					// Update the UI with latest status message
-					syncStatus = status;
-				},
-				42161
-			);
-
-			if (syncResult.error) {
-				error = syncResult.error.msg;
-				return;
-			}
-
-			error = '';
-			// Update sync status display
-			await updateSyncStatus();
-		} catch (err) {
-			error = err instanceof Error ? err.message : String(err);
-		} finally {
-			isSyncing = false;
-		}
 	}
 
 	// Fetch all orders using raindexClient
@@ -265,7 +145,7 @@
 	}
 
 	onDestroy(() => {
-		stopAutoSync();
+		// Nothing to clean up currently; placeholder for future resources.
 	});
 </script>
 
@@ -289,69 +169,9 @@
 			<div
 				class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 			>
-				<div class="mb-4">
-					<div class="mb-4 flex items-center justify-between">
-						<h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-							Database Operations
-						</h3>
-						<div class="flex items-center gap-3">
-							{#if autoSyncEnabled || lastSyncedBlock}
-								<div class="text-right text-sm">
-									<div class="flex items-center text-blue-700 dark:text-blue-300">
-										{#if autoSyncEnabled}
-											<div class="mr-2 h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-											<span class="font-medium">Auto-Sync Active</span>
-										{:else}
-											<div class="mr-2 h-2 w-2 rounded-full bg-gray-400"></div>
-											<span class="font-medium text-gray-500">Auto-Sync Stopped</span>
-										{/if}
-									</div>
-									{#if isSyncing && syncStatus}
-										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-											Status: {syncStatus}
-										</div>
-									{:else if lastSyncedBlock}
-										<div class="mt-1 text-xs text-gray-600 dark:text-gray-400">
-											Last sync: block {lastSyncedBlock}
-											{#if lastSyncTime}
-												at {lastSyncTime.toLocaleString()}
-											{/if}
-										</div>
-									{/if}
-								</div>
-							{/if}
-							<button
-								on:click={() => {
-									if (autoSyncEnabled) {
-										stopAutoSync();
-									} else {
-										startAutoSync();
-									}
-								}}
-								disabled={isLoading}
-								class="flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors {autoSyncEnabled
-									? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
-									: 'border-green-500 bg-green-500 text-white hover:bg-green-600'} {isLoading
-									? 'cursor-not-allowed opacity-50'
-									: 'cursor-pointer'}"
-								title={autoSyncEnabled ? 'Stop Auto-Sync' : 'Start Auto-Sync'}
-							>
-								{#if autoSyncEnabled}
-									<!-- Stop/Pause Icon -->
-									<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-										<rect x="6" y="4" width="4" height="16" />
-										<rect x="14" y="4" width="4" height="16" />
-									</svg>
-								{:else}
-									<!-- Play Icon -->
-									<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-										<polygon points="5,3 19,12 5,21" />
-									</svg>
-								{/if}
-							</button>
-						</div>
-					</div>
-				</div>
+				<h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+					Database Operations
+				</h3>
 
 				<div class="mb-6">
 					<h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">

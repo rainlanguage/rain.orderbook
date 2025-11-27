@@ -196,6 +196,7 @@ mod tests {
                 },
                 dump_str: None,
                 block_number_threshold: 100,
+                manifest_end_block: 1,
             },
         }
     }

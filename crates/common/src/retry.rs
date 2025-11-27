@@ -1,6 +1,12 @@
 use crate::{erc20::Error as ERC20Error, local_db::LocalDbError};
+use std::future::Future;
+
+#[cfg(not(target_family = "wasm"))]
 use backon::{ExponentialBuilder, Retryable};
-use std::{future::Future, time::Duration};
+#[cfg(target_family = "wasm")]
+use gloo_timers::future::TimeoutFuture;
+#[cfg(not(target_family = "wasm"))]
+use std::time::Duration;
 
 pub const DEFAULT_BASE_DELAY_MILLIS: u64 = 500;
 
@@ -8,6 +14,15 @@ pub const DEFAULT_BASE_DELAY_MILLIS: u64 = 500;
 pub enum RetryError<E> {
     InvalidMaxAttempts,
     Operation(E),
+}
+
+#[inline]
+fn ensure_max_attempts<E>(max_attempts: usize) -> Result<(), RetryError<E>> {
+    if max_attempts == 0 {
+        Err(RetryError::InvalidMaxAttempts)
+    } else {
+        Ok(())
+    }
 }
 
 impl From<RetryError<LocalDbError>> for LocalDbError {
@@ -28,6 +43,7 @@ impl From<RetryError<ERC20Error>> for ERC20Error {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry>(
     operation: F,
     max_attempts: usize,
@@ -38,9 +54,7 @@ where
     Fut: Future<Output = Result<T, E>>,
     ShouldRetry: Fn(&E) -> bool,
 {
-    if max_attempts == 0 {
-        return Err(RetryError::InvalidMaxAttempts);
-    }
+    ensure_max_attempts::<E>(max_attempts)?;
 
     let backoff = ExponentialBuilder::default()
         .with_min_delay(Duration::from_millis(DEFAULT_BASE_DELAY_MILLIS))
@@ -54,7 +68,40 @@ where
         .await
 }
 
-#[cfg(test)]
+#[cfg(target_family = "wasm")]
+pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry>(
+    operation: F,
+    max_attempts: usize,
+    should_retry: ShouldRetry,
+) -> Result<T, RetryError<E>>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
+    ShouldRetry: Fn(&E) -> bool,
+{
+    ensure_max_attempts::<E>(max_attempts)?;
+
+    let mut delay_ms = DEFAULT_BASE_DELAY_MILLIS;
+
+    for attempt in 0..max_attempts {
+        match operation().await {
+            Ok(value) => return Ok(value),
+            Err(err) => {
+                if attempt + 1 >= max_attempts || !should_retry(&err) {
+                    return Err(RetryError::Operation(err));
+                }
+
+                let delay = delay_ms.min(u64::from(u32::MAX)) as u32;
+                TimeoutFuture::new(delay).await;
+                delay_ms = delay_ms.saturating_mul(2);
+            }
+        }
+    }
+
+    Err(RetryError::InvalidMaxAttempts)
+}
+
+#[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -148,5 +195,121 @@ mod tests {
             other => panic!("expected config error, got {other:?}"),
         }
         assert_eq!(attempts.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn ensure_max_attempts_rejects_zero() {
+        let err = super::ensure_max_attempts::<TestError>(0).unwrap_err();
+        assert!(matches!(err, RetryError::InvalidMaxAttempts));
+    }
+
+    #[test]
+    fn ensure_max_attempts_allows_positive_values() {
+        assert!(super::ensure_max_attempts::<TestError>(1).is_ok());
+    }
+}
+
+#[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
+mod wasm_tests {
+    use super::*;
+    use std::cell::Cell;
+    use std::rc::Rc;
+    use wasm_bindgen_test::*;
+
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    #[derive(Debug)]
+    enum TestError {
+        Rpc,
+        Json,
+    }
+
+    #[wasm_bindgen_test]
+    async fn retries_and_succeeds_after_transient_error() {
+        let attempts = Rc::new(Cell::new(0));
+        let operation_attempts = attempts.clone();
+
+        let result = retry_with_backoff(
+            move || {
+                let attempts = operation_attempts.clone();
+                async move {
+                    let current = attempts.get();
+                    attempts.set(current + 1);
+                    if current == 0 {
+                        Err(TestError::Rpc)
+                    } else {
+                        Ok(42u32)
+                    }
+                }
+            },
+            3,
+            |err| matches!(err, TestError::Rpc),
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
+        assert_eq!(attempts.get(), 2);
+    }
+
+    #[wasm_bindgen_test]
+    async fn stops_after_max_attempts() {
+        let attempts = Rc::new(Cell::new(0));
+        let operation_attempts = attempts.clone();
+
+        let err = retry_with_backoff(
+            move || {
+                let attempts = operation_attempts.clone();
+                async move {
+                    let current = attempts.get();
+                    attempts.set(current + 1);
+                    Err::<(), _>(TestError::Rpc)
+                }
+            },
+            2,
+            |err| matches!(err, TestError::Rpc),
+        )
+        .await
+        .unwrap_err();
+
+        match err {
+            RetryError::Operation(TestError::Rpc) => {}
+            other => panic!("expected Rpc error, got {other:?}"),
+        }
+        assert_eq!(attempts.get(), 2);
+    }
+
+    #[wasm_bindgen_test]
+    async fn does_not_retry_non_retryable_error() {
+        let attempts = Rc::new(Cell::new(0));
+        let operation_attempts = attempts.clone();
+
+        let err = retry_with_backoff(
+            move || {
+                let attempts = operation_attempts.clone();
+                async move {
+                    let current = attempts.get();
+                    attempts.set(current + 1);
+                    Err::<(), _>(TestError::Json)
+                }
+            },
+            3,
+            |err| matches!(err, TestError::Rpc),
+        )
+        .await
+        .unwrap_err();
+
+        match err {
+            RetryError::Operation(TestError::Json) => {}
+            other => panic!("expected Json error, got {other:?}"),
+        }
+        assert_eq!(attempts.get(), 1);
+    }
+
+    #[wasm_bindgen_test]
+    fn ensure_max_attempts_behavior() {
+        let err = super::ensure_max_attempts::<TestError>(0).unwrap_err();
+        assert!(matches!(err, RetryError::InvalidMaxAttempts));
+        assert!(super::ensure_max_attempts::<TestError>(1).is_ok());
     }
 }

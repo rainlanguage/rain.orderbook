@@ -140,7 +140,7 @@ impl RaindexOrder {
         if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 let order_hash = self.order_hash().to_string();
                 let local_trades = fetch_order_trades(
                     &exec,
@@ -257,7 +257,7 @@ impl RaindexOrder {
         if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
             if let Some(db_cb) = raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 let order_hash = self.order_hash().to_string();
                 let count = fetch_order_trades_count(
                     &exec,

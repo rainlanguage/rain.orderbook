@@ -527,7 +527,7 @@ impl RaindexClient {
 
         if !local_ids.is_empty() {
             let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 self.get_orders_local_db(exec, id, filters.clone())
             }))
             .await?;
@@ -705,7 +705,7 @@ impl RaindexClient {
 
         if is_chain_supported_local_db(ob_id.chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 if let Some(order) = self
                     .get_order_by_hash_local_db(&exec, ob_id, &order_hash_hex)
                     .await?
@@ -974,6 +974,7 @@ mod tests {
             orders: Vec<LocalDbOrder>,
             vaults: Vec<LocalDbVault>,
         ) -> js_sys::Function {
+            use js_sys::{Array, BigInt};
             let orders_json = serde_json::to_string(&orders).unwrap();
             let orders_result = WasmEncodedResult::Success::<String> {
                 value: orders_json,
@@ -998,8 +999,7 @@ mod tests {
             let mut vault_payloads: Vec<(String, String)> = Vec::new();
             for vault in vaults.into_iter() {
                 // Match on the vault_id value passed as a parameter to the query.
-                // We will check this against the serialized params JSON.
-                let lookup = format!("\"{}\"", vault.vault_id);
+                let lookup = vault.vault_id.clone();
                 let json = serde_json::to_string(&vec![vault]).unwrap();
                 let result = WasmEncodedResult::Success::<String> {
                     value: json,
@@ -1022,14 +1022,26 @@ mod tests {
                 }
 
                 if sql.contains("FLOAT_SUM(vd") {
-                    // Serialize params and try to match against captured vault ids
-                    let params_json = js_sys::JSON::stringify(&params)
-                        .unwrap()
-                        .as_string()
-                        .unwrap_or_default();
-                    for (needle, payload) in &vault_payloads {
-                        if params_json.contains(needle) {
-                            return js_sys::JSON::parse(payload).unwrap();
+                    if Array::is_array(&params) {
+                        let params_array = Array::from(&params);
+                        for (needle, payload) in &vault_payloads {
+                            let found = params_array.iter().any(|value| {
+                                if let Some(text) = value.as_string() {
+                                    text == *needle
+                                } else if let Ok(bigint) = value.dyn_into::<BigInt>() {
+                                    bigint
+                                        .to_string(10)
+                                        .unwrap()
+                                        .as_string()
+                                        .map(|s| s == *needle)
+                                        .unwrap_or(false)
+                                } else {
+                                    false
+                                }
+                            });
+                            if found {
+                                return js_sys::JSON::parse(payload).unwrap();
+                            }
                         }
                     }
                 }

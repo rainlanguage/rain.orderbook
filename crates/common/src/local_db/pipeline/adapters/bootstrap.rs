@@ -1,4 +1,4 @@
-use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
+use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -122,7 +122,8 @@ pub trait BootstrapPipeline {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        db.query_text(&clear_orderbook_data_stmt(ob_id)).await?;
+        let batch = clear_orderbook_data_batch(ob_id);
+        db.execute_batch(&batch).await?;
         Ok(())
     }
 
@@ -206,8 +207,22 @@ mod tests {
 
     #[async_trait(?Send)]
     impl LocalDbQueryExecutor for RecordingTextExecutor {
-        async fn execute_batch(&self, _: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
-            panic!("execute_batch should not be called in these tests");
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            let mut captured = self.captured_sql.lock().unwrap();
+            captured.extend(batch.statements().iter().map(|stmt| stmt.sql().to_string()));
+
+            let outcome = self
+                .result
+                .lock()
+                .unwrap()
+                .take()
+                .expect("execute_batch called more than expected");
+
+            match outcome {
+                Ok(()) => Ok(()),
+                Err(LocalDbError::LocalDbQueryError(inner)) => Err(inner),
+                Err(err) => Err(LocalDbQueryError::database(err.to_string())),
+            }
         }
 
         async fn query_json<T>(&self, _: &SqlStatement) -> Result<T, LocalDbQueryError>
@@ -654,28 +669,32 @@ mod tests {
     #[tokio::test]
     async fn clear_orderbook_data_executes_expected_statement() {
         let adapter = TestBootstrapPipeline::new();
-        let target = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
+        let ob_id = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
         let db = RecordingTextExecutor::succeed();
 
         adapter
-            .clear_orderbook_data(&db, &target)
+            .clear_orderbook_data(&db, &ob_id)
             .await
             .expect("clear_orderbook_data should succeed");
 
         let captured = db.captured_sql();
-        assert_eq!(captured.len(), 1);
-        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
+        let expected: Vec<String> = clear_orderbook_data_batch(&ob_id)
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        assert_eq!(captured, expected);
     }
 
     #[tokio::test]
     async fn clear_orderbook_data_propagates_error() {
         let adapter = TestBootstrapPipeline::new();
-        let target = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
+        let ob_id = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
         let inner_error = LocalDbQueryError::database("boom");
         let db = RecordingTextExecutor::fail(LocalDbError::from(inner_error.clone()));
 
         let err = adapter
-            .clear_orderbook_data(&db, &target)
+            .clear_orderbook_data(&db, &ob_id)
             .await
             .expect_err("clear_orderbook_data should propagate error");
 
@@ -687,7 +706,11 @@ mod tests {
         }
 
         let captured = db.captured_sql();
-        assert_eq!(captured.len(), 1);
-        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
+        let expected: Vec<String> = clear_orderbook_data_batch(&ob_id)
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        assert_eq!(captured, expected);
     }
 }

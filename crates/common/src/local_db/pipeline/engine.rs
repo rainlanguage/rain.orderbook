@@ -36,6 +36,7 @@ pub struct SyncInputs {
     pub cfg: SyncConfig,
     pub dump_str: Option<String>,
     pub block_number_threshold: u32,
+    pub manifest_end_block: u64,
 }
 
 impl<B, W, E, T, A, S> SyncEngine<B, W, E, T, A, S>
@@ -154,8 +155,8 @@ where
                 &BootstrapConfig {
                     ob_id: input.ob_id.clone(),
                     dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
-                    latest_block,
                     block_number_threshold: input.block_number_threshold,
+                    latest_block: input.manifest_end_block,
                 },
             )
             .await?;
@@ -495,6 +496,7 @@ mod tests {
             },
             dump_str: None,
             block_number_threshold: 10_000,
+            manifest_end_block: 1,
         }
     }
 
@@ -1574,9 +1576,9 @@ mod tests {
 
         let calls = harness.apply.export_calls();
         assert_eq!(calls.len(), 1);
-        let (target, end_block) = &calls[0];
-        assert_eq!(target.chain_id, inputs.ob_id.chain_id);
-        assert_eq!(target.orderbook_address, inputs.ob_id.orderbook_address);
+        let (ob_id, end_block) = &calls[0];
+        assert_eq!(ob_id.chain_id, ob_id.chain_id);
+        assert_eq!(ob_id.orderbook_address, ob_id.orderbook_address);
         assert_eq!(*end_block, 105);
     }
 

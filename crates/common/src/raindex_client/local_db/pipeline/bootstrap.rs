@@ -117,7 +117,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
-    use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
+    use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -423,22 +423,37 @@ mod tests {
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
         };
-        let clear_stmt = clear_orderbook_data_stmt(&cfg.ob_id);
-        let clear_sql = clear_stmt.sql().to_string();
-        let dump_sql = dump_stmt.sql().to_string();
 
-        let db = MockDb::default()
+        let clear_batch = clear_orderbook_data_batch(&sample_ob_id());
+        let mut db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
                 &fetch_target_watermark_stmt(&cfg.ob_id),
                 json!([watermark_row(last_synced)]),
             )
-            .with_text(&clear_stmt, "cleared")
             .with_text(&dump_stmt, "dumped");
+
+        for stmt in clear_batch.statements() {
+            db = db.with_text(stmt, "cleared");
+        }
+
+        let cfg = BootstrapConfig {
+            ob_id: sample_ob_id(),
+            dump_stmt: Some(dump_stmt.clone()),
+            latest_block: latest,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+        };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
 
-        assert_eq!(db.calls(), vec![clear_sql, dump_sql]);
+        let calls = db.calls();
+        let mut expected: Vec<String> = clear_batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        expected.push(dump_stmt.sql().to_string());
+        assert_eq!(calls, expected);
     }
 
     #[tokio::test]

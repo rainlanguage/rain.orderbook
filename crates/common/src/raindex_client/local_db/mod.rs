@@ -5,7 +5,6 @@ use wasm_bindgen_utils::result::WasmEncodedError;
 pub mod executor;
 pub mod pipeline;
 pub mod query;
-pub mod sync;
 
 impl From<LocalDbError> for WasmEncodedError {
     fn from(value: LocalDbError) -> Self {

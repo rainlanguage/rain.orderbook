@@ -113,7 +113,7 @@ mod tests {
                 wasm_bindgen::JsValue::UNDEFINED,
             )));
             let callback = create_sql_capturing_callback("[]", store.clone());
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
 
             // Act
             let res =
@@ -151,7 +151,7 @@ mod tests {
             closure.forget();
 
             let args = FetchOrdersArgs::default();
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let res =
                 super::fetch_orders(&exec, &OrderbookIdentifier::new(1, orderbook()), args).await;
             assert!(res.is_err());
@@ -174,7 +174,7 @@ mod tests {
             )));
             let callback = create_sql_capturing_callback("not-json", store.clone());
 
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let res =
                 super::fetch_orders(&exec, &OrderbookIdentifier::new(1, orderbook()), args).await;
             assert!(matches!(
@@ -205,7 +205,7 @@ mod tests {
             closure.forget();
 
             let args = FetchOrdersArgs::default();
-            let exec = JsCallbackExecutor::new(&callback);
+            let exec = JsCallbackExecutor::from_ref(&callback);
             let res =
                 super::fetch_orders(&exec, &OrderbookIdentifier::new(1, orderbook()), args).await;
             assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));

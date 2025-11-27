@@ -310,7 +310,7 @@ impl RaindexVault {
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if is_chain_supported_local_db(self.chain_id) {
             if let Some(db_cb) = self.raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
                 let token_address = self.token.address.to_string();
                 let local_changes = fetch_vault_balance_changes(
@@ -1119,7 +1119,7 @@ impl RaindexClient {
 
         if !local_ids.is_empty() {
             let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 self.get_vaults_local_db(exec, id, filters.clone())
             }))
             .await?;
@@ -1353,7 +1353,7 @@ impl RaindexClient {
 
         if is_chain_supported_local_db(ob_id.chain_id) {
             if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
+                let exec = JsCallbackExecutor::from_ref(&db_cb);
                 if let Some(vault) = self.get_vault_local_db(&exec, ob_id, &vault_id).await? {
                     return Ok(vault);
                 }
@@ -1705,7 +1705,7 @@ mod tests {
 
             let callback = make_local_db_vaults_callback(vec![vault]);
 
-            let mut client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
@@ -1825,6 +1825,7 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_filters() {
+            use wasm_bindgen::JsCast;
             use wasm_bindgen_utils::prelude::JsValue;
             let owner_kept = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             let token_kept = "0x00000000000000000000000000000000000000aa";
@@ -1839,7 +1840,7 @@ mod tests {
             let json = serde_json::to_string(&vec![keep_vault]).unwrap();
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
 
-            let mut client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
@@ -1870,25 +1871,38 @@ mod tests {
             assert!(sql.0.contains("AND NOT FLOAT_IS_ZERO("));
 
             // Params should include chain id, owner and token values bound in order
-            let params: Vec<crate::local_db::query::SqlValue> =
-                wasm_bindgen_utils::prelude::serde_wasm_bindgen::from_value(sql.1.clone())
-                    .expect("params parse");
+            let params_js = sql.1.clone();
+            assert!(
+                js_sys::Array::is_array(&params_js),
+                "expected array params from callback"
+            );
+            let params_array = js_sys::Array::from(&params_js);
+            assert!(
+                params_array.length() >= 3,
+                "expected at least three params (chain id, owner, token)"
+            );
 
-            // Expect first param to be chain id (I64)
-            assert!(matches!(
-                params.get(0),
-                Some(crate::local_db::query::SqlValue::U64(42161))
-            ));
+            // Expect first param to be chain id (U64 encoded as BigInt)
+            let chain_id = params_array.get(0);
+            let chain_id_bigint = chain_id
+                .dyn_into::<js_sys::BigInt>()
+                .expect("chain id should be BigInt");
+            let chain_id_str = chain_id_bigint.to_string(10).unwrap().as_string().unwrap();
+            assert_eq!(chain_id_str, "42161");
 
             // Expect owner and token to be present among text params
-            let has_owner = params.iter().any(|p| match p {
-                crate::local_db::query::SqlValue::Text(s) => s == owner_kept,
-                _ => false,
-            });
-            let has_token = params.iter().any(|p| match p {
-                crate::local_db::query::SqlValue::Text(s) => s == token_kept,
-                _ => false,
-            });
+            let mut has_owner = false;
+            let mut has_token = false;
+            for value in params_array.iter() {
+                if let Some(text) = value.as_string() {
+                    if text == owner_kept {
+                        has_owner = true;
+                    }
+                    if text == token_kept {
+                        has_token = true;
+                    }
+                }
+            }
             assert!(has_owner, "owner missing in params");
             assert!(has_token, "token missing in params");
         }

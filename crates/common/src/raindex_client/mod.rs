@@ -1,4 +1,5 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
+use crate::raindex_client::local_db::pipeline::runner::scheduler::{self, SchedulerHandle};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -24,6 +25,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
+use std::{cell::RefCell, rc::Rc};
 use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
@@ -82,7 +84,9 @@ impl_wasm_traits!(ChainIds);
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
     #[serde(skip_serializing, skip_deserializing)]
-    local_db_callback: Option<js_sys::Function>,
+    local_db_callback: Rc<RefCell<Option<js_sys::Function>>>,
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
 }
 
 #[wasm_export]
@@ -127,20 +131,70 @@ impl RaindexClient {
         )?;
         Ok(RaindexClient {
             orderbook_yaml,
-            local_db_callback: None,
+            local_db_callback: Rc::new(RefCell::new(None)),
+            local_db_scheduler: Rc::new(RefCell::new(None)),
         })
     }
 
     #[wasm_export(js_name = "setDbCallback", unchecked_return_type = "void")]
     pub fn set_local_db_callback(
-        &mut self,
+        &self,
         #[wasm_export(
             js_name = "callback",
             param_description = "JavaScript function to execute local database queries"
         )]
         callback: js_sys::Function,
     ) -> Result<(), RaindexError> {
-        self.local_db_callback = Some(callback);
+        let mut slot = self.local_db_callback.borrow_mut();
+        *slot = Some(callback);
+        Ok(())
+    }
+
+    #[wasm_export(js_name = "startLocalDbScheduler", unchecked_return_type = "void")]
+    pub async fn start_local_db_scheduler(
+        &self,
+        #[wasm_export(
+            js_name = "settingsYaml",
+            param_description = "Full settings YAML string used by the client runner"
+        )]
+        settings_yaml: String,
+    ) -> Result<(), RaindexError> {
+        let callback = {
+            let slot = self.local_db_callback.borrow();
+            slot.clone()
+                .ok_or_else(|| RaindexError::JsError("Local DB callback not set".to_string()))?
+        };
+
+        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
+        let existing = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
+
+        if let Some(handle) = existing {
+            handle.stop().await;
+        }
+
+        let handle = scheduler::start(settings_yaml, callback)?;
+        {
+            let mut slot = scheduler_cell.borrow_mut();
+            *slot = Some(handle);
+        }
+        Ok(())
+    }
+
+    #[wasm_export(js_name = "stopLocalDbScheduler", unchecked_return_type = "void")]
+    pub async fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
+        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
+        let handle = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
+
+        if let Some(handle) = handle {
+            handle.stop().await;
+        }
+
         Ok(())
     }
 
@@ -220,7 +274,7 @@ impl RaindexClient {
     }
 
     fn local_db_callback(&self) -> Option<js_sys::Function> {
-        self.local_db_callback.clone()
+        self.local_db_callback.borrow().as_ref().cloned()
     }
 }
 
@@ -546,7 +600,7 @@ accounts:
         yamls: Vec<String>,
         callback: js_sys::Function,
     ) -> RaindexClient {
-        let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        let client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
         client.set_local_db_callback(callback).unwrap();
         client
     }
