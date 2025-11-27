@@ -1,6 +1,46 @@
 use crate::{NetworkCfg, OrderCfg, OrderIOCfg, TokenCfg};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "kebab-case")]
+pub enum ContextProfile {
+    Strict,
+    Gui {
+        current_order: Option<String>,
+        current_deployment: Option<String>,
+    },
+    Minimal,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ContextProfile);
+
+impl ContextProfile {
+    pub fn strict() -> Self {
+        Self::Strict
+    }
+
+    pub fn gui(current_order: Option<String>, current_deployment: Option<String>) -> Self {
+        Self::Gui {
+            current_order,
+            current_deployment,
+        }
+    }
+
+    pub fn minimal() -> Self {
+        Self::Minimal
+    }
+}
+
+impl Default for ContextProfile {
+    fn default() -> Self {
+        Self::Strict
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct GuiContext {
@@ -308,6 +348,25 @@ mod tests {
     use crate::{test::*, yaml::default_document};
     use alloy::primitives::{Address, U256};
     use strict_yaml_rust::StrictYaml;
+
+    #[test]
+    fn test_context_profile_helpers() {
+        assert_eq!(ContextProfile::strict(), ContextProfile::Strict);
+        assert_eq!(ContextProfile::default(), ContextProfile::Strict);
+        assert_eq!(ContextProfile::minimal(), ContextProfile::Minimal);
+
+        let gui_full = ContextProfile::gui(Some("order1".to_string()), None);
+        match gui_full {
+            ContextProfile::Gui {
+                current_order,
+                current_deployment,
+            } => {
+                assert_eq!(current_order, Some("order1".to_string()));
+                assert_eq!(current_deployment, None);
+            }
+            _ => panic!("expected gui context profile"),
+        }
+    }
 
     fn setup_test_order_with_vault_id() -> Arc<OrderCfg> {
         let token = TokenCfg {
