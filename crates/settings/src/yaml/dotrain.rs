@@ -194,6 +194,14 @@ impl DotrainYaml {
                         );
                     }
                 }
+                if let Some(order_key) = current_order {
+                    let order = OrderCfg::parse_from_yaml(
+                        self.documents.clone(),
+                        order_key,
+                        Some(&context),
+                    )?;
+                    context.add_order(Arc::new(order));
+                }
             }
         }
 
@@ -809,11 +817,36 @@ mod tests {
 
     #[test]
     fn test_build_context_profiles() {
-        let mut dotrain_yaml = DotrainYaml::new(
-            vec!["orders: {}".to_string()],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
+        let yaml = r#"
+        networks:
+            mainnet:
+                rpcs:
+                    - https://mainnet.infura.io
+                chain-id: 1
+        deployers:
+            deployer1:
+                address: 0x0000000000000000000000000000000000000002
+                network: mainnet
+        tokens:
+            token1:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000003
+                decimals: 18
+            token2:
+                network: mainnet
+                address: 0x0000000000000000000000000000000000000004
+                decimals: 18
+        orders:
+            order1:
+                deployer: deployer1
+                inputs:
+                    - token: token1
+                outputs:
+                    - token: token2
+        "#;
+
+        let mut dotrain_yaml =
+            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
 
         let remote_network = mock_network();
         let remote_token = mock_token("remote-token");
@@ -828,6 +861,7 @@ mod tests {
         assert!(strict_ctx.get_remote_network("remote-net").is_some());
         assert!(strict_ctx.get_remote_token("remote-token").is_some());
         assert!(strict_ctx.gui_context.is_none());
+        assert!(strict_ctx.order.is_none());
 
         let gui_ctx = dotrain_yaml
             .build_context(&ContextProfile::gui(
@@ -851,6 +885,10 @@ mod tests {
                 .and_then(|gc| gc.current_deployment.clone()),
             Some("deployment1".to_string())
         );
+        assert_eq!(
+            gui_ctx.order.as_ref().map(|order| order.key.clone()),
+            Some("order1".to_string())
+        );
 
         let propagated = DotrainYaml::from_dotrain_yaml(dotrain_yaml);
         let propagated_ctx = propagated
@@ -864,6 +902,10 @@ mod tests {
                 .gui_context
                 .as_ref()
                 .and_then(|gc| gc.current_order.clone()),
+            Some("order1".to_string())
+        );
+        assert_eq!(
+            propagated_ctx.order.as_ref().map(|order| order.key.clone()),
             Some("order1".to_string())
         );
     }
