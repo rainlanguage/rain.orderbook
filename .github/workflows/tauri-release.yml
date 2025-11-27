@@ -108,6 +108,7 @@ jobs:
       - run: |
           rm -rf target
           rm -rf tauri-app/src-tauri/target
+          rm -rf tauri-app/.env
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-release
         working-directory: ./tauri-app
