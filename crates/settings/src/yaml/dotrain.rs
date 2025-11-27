@@ -145,6 +145,42 @@ impl ContextProvider for DotrainYaml {
 }
 
 impl DotrainYaml {
+    pub fn build_context(&self, profile: &ContextProfile) -> Result<Context, YamlError> {
+        let mut context = self.create_context();
+
+        match profile {
+            ContextProfile::Strict => {
+                self.expand_context_with_remote_networks(&mut context);
+                self.expand_context_with_remote_tokens(&mut context);
+            }
+            ContextProfile::Gui {
+                current_order,
+                current_deployment,
+            } => {
+                self.expand_context_with_current_order(&mut context, current_order.clone());
+                self.expand_context_with_current_deployment(
+                    &mut context,
+                    current_deployment.clone(),
+                );
+                self.expand_context_with_remote_networks(&mut context);
+                self.expand_context_with_remote_tokens(&mut context);
+
+                if let Some(deployment_key) = current_deployment {
+                    if let Some(select_tokens) =
+                        GuiCfg::parse_select_tokens(self.documents.clone(), deployment_key)?
+                    {
+                        context.add_select_tokens(
+                            select_tokens.iter().map(|st| st.key.clone()).collect(),
+                        );
+                    }
+                }
+            }
+            ContextProfile::Minimal => {}
+        }
+
+        Ok(context)
+    }
+
     pub fn get_order_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_orders()?.keys().cloned().collect())
     }
@@ -286,9 +322,14 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 #[cfg(test)]
 mod tests {
     use crate::{
-        yaml::orderbook::OrderbookYamlValidation, BinXOptionsCfg, BinXTransformCfg, DotOptionsCfg,
-        GuiSelectTokensCfg, HexBinOptionsCfg, HexBinTransformCfg, LineOptionsCfg, MarkCfg,
-        RectYOptionsCfg, TransformCfg, TransformOutputsCfg, VaultType,
+        test::*,
+        yaml::{
+            context::{ContextProfile, YamlCacheTrait},
+            orderbook::OrderbookYamlValidation,
+        },
+        BinXOptionsCfg, BinXTransformCfg, DotOptionsCfg, GuiSelectTokensCfg, HexBinOptionsCfg,
+        HexBinTransformCfg, LineOptionsCfg, MarkCfg, RectYOptionsCfg, TransformCfg,
+        TransformOutputsCfg, VaultType,
     };
     use alloy::primitives::U256;
     use orderbook::OrderbookYaml;
@@ -666,6 +707,18 @@ mod tests {
             GuiCfg::parse_select_tokens(dotrain_yaml.documents.clone(), "deployment2").unwrap();
         assert!(select_tokens.is_none());
 
+        let gui_context = dotrain_yaml
+            .build_context(&ContextProfile::gui(None, Some("deployment1".to_string())))
+            .unwrap();
+        assert_eq!(
+            gui_context
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_deployment.clone()),
+            Some("deployment1".to_string())
+        );
+        assert_eq!(gui_context.select_tokens, Some(vec!["token2".to_string()]));
+
         let field_presets =
             GuiCfg::parse_field_presets(dotrain_yaml.documents.clone(), "deployment1", "key1")
                 .unwrap()
@@ -749,6 +802,59 @@ mod tests {
                 transform: None,
             })
         );
+    }
+
+    #[test]
+    fn test_build_context_profiles() {
+        let mut dotrain_yaml = DotrainYaml::new(
+            vec!["orders: {}".to_string()],
+            DotrainYamlValidation::default(),
+        )
+        .unwrap();
+
+        let remote_network = mock_network();
+        let remote_token = mock_token("remote-token");
+        dotrain_yaml
+            .cache
+            .update_remote_network("remote-net".to_string(), remote_network.as_ref().clone());
+        dotrain_yaml
+            .cache
+            .update_remote_token("remote-token".to_string(), remote_token.as_ref().clone());
+
+        let strict_ctx = dotrain_yaml.build_context(&ContextProfile::Strict).unwrap();
+        assert!(strict_ctx.get_remote_network("remote-net").is_some());
+        assert!(strict_ctx.get_remote_token("remote-token").is_some());
+        assert!(strict_ctx.gui_context.is_none());
+
+        let gui_ctx = dotrain_yaml
+            .build_context(&ContextProfile::gui(
+                Some("order1".to_string()),
+                Some("deployment1".to_string()),
+            ))
+            .unwrap();
+        assert!(gui_ctx.get_remote_network("remote-net").is_some());
+        assert!(gui_ctx.get_remote_token("remote-token").is_some());
+        assert_eq!(
+            gui_ctx
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_order.clone()),
+            Some("order1".to_string())
+        );
+        assert_eq!(
+            gui_ctx
+                .gui_context
+                .as_ref()
+                .and_then(|gc| gc.current_deployment.clone()),
+            Some("deployment1".to_string())
+        );
+
+        let minimal_ctx = dotrain_yaml
+            .build_context(&ContextProfile::Minimal)
+            .unwrap();
+        assert!(minimal_ctx.get_remote_networks().is_none());
+        assert!(minimal_ctx.get_remote_tokens().is_none());
+        assert!(minimal_ctx.gui_context.is_none());
     }
 
     #[test]
