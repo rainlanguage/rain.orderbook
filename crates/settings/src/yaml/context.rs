@@ -377,10 +377,12 @@ mod tests {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
+                token_key: "token1".to_string(),
                 token: Some(Arc::new(token.clone())),
                 vault_id: Some(U256::from(42)),
             }],
             outputs: vec![OrderIOCfg {
+                token_key: "token2".to_string(),
                 token: Some(Arc::new(token.clone())),
                 vault_id: None,
             }],
@@ -477,10 +479,12 @@ mod tests {
             document: default_document(),
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
+                token_key: "token1".to_string(),
                 token: Some(mock_token("token1")),
                 vault_id: Some(U256::from(10)),
             }],
             outputs: vec![OrderIOCfg {
+                token_key: "token2".to_string(),
                 token: Some(mock_token("token2")),
                 vault_id: None,
             }],

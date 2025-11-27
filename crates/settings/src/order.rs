@@ -30,6 +30,7 @@ impl_wasm_traits!(VaultType);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIOCfg {
+    pub token_key: String,
     pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(
         target_family = "wasm",
@@ -707,6 +708,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name,
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -791,6 +793,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name,
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -1236,10 +1239,12 @@ orders:
                 document: document.clone(),
                 key: "with-optional".to_string(),
                 inputs: vec![OrderIOCfg {
+                    token_key: "input-token".to_string(),
                     token: Some(input_token.clone()),
                     vault_id: Some(U256::from(1u8)),
                 }],
                 outputs: vec![OrderIOCfg {
+                    token_key: "output-token".to_string(),
                     token: Some(output_token.clone()),
                     vault_id: Some(U256::from(2u8)),
                 }],
@@ -1254,10 +1259,12 @@ orders:
                 document,
                 key: "without-optional".to_string(),
                 inputs: vec![OrderIOCfg {
+                    token_key: "input-token".to_string(),
                     token: Some(input_token.clone()),
                     vault_id: None,
                 }],
                 outputs: vec![OrderIOCfg {
+                    token_key: "output-token".to_string(),
                     token: Some(output_token.clone()),
                     vault_id: None,
                 }],
