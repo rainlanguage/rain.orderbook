@@ -435,9 +435,20 @@ impl OrderbookYaml {
     }
 
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
+        let context = self.build_context(&self.profile);
         let mut yaml_hash = Hash::new();
 
-        let networks = to_yaml_string_missing_check(self.get_networks())?;
+        if let Some(spec_version) = to_yaml_string_missing_check(self.get_spec_version())? {
+            yaml_hash.insert(
+                StrictYaml::String("version".to_string()),
+                StrictYaml::String(spec_version),
+            );
+        }
+
+        let networks = to_yaml_string_missing_check(NetworkCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
         if let Some(networks) = networks {
             if !networks.is_empty() {
                 let networks_yaml = NetworkCfg::to_yaml_hash(&networks)?;
@@ -445,36 +456,20 @@ impl OrderbookYaml {
             }
         }
 
-        let remote_networks = to_yaml_string_missing_check(self.get_remote_networks())?;
-        if let Some(remote_networks) = remote_networks {
-            if !remote_networks.is_empty() {
-                let remote_networks_yaml = RemoteNetworksCfg::to_yaml_hash(&remote_networks)?;
-                yaml_hash.insert(
-                    StrictYaml::String("using-networks-from".to_string()),
-                    remote_networks_yaml,
-                );
-            }
+        let remote_networks =
+            RemoteNetworksCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
+        if !remote_networks.is_empty() {
+            let remote_networks_yaml = RemoteNetworksCfg::to_yaml_hash(&remote_networks)?;
+            yaml_hash.insert(
+                StrictYaml::String("using-networks-from".to_string()),
+                remote_networks_yaml,
+            );
         }
 
-        let tokens = to_yaml_string_missing_check(self.get_tokens())?;
-        if let Some(tokens) = tokens {
-            if !tokens.is_empty() {
-                let tokens_yaml = TokenCfg::to_yaml_hash(&tokens)?;
-                yaml_hash.insert(StrictYaml::String("tokens".to_string()), tokens_yaml);
-            }
-        }
-
-        if let Some(remote_tokens) = self.get_remote_tokens()? {
-            if !remote_tokens.urls.is_empty() {
-                let remote_tokens_yaml = remote_tokens.to_yaml_array()?;
-                yaml_hash.insert(
-                    StrictYaml::String("using-tokens-from".to_string()),
-                    remote_tokens_yaml,
-                );
-            }
-        }
-
-        let subgraphs = to_yaml_string_missing_check(self.get_subgraphs())?;
+        let subgraphs = to_yaml_string_missing_check(SubgraphCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
         if let Some(subgraphs) = subgraphs {
             if !subgraphs.is_empty() {
                 let subgraphs_yaml = SubgraphCfg::to_yaml_hash(&subgraphs)?;
@@ -482,33 +477,10 @@ impl OrderbookYaml {
             }
         }
 
-        let local_db_remotes = self.get_local_db_remotes()?;
-        if !local_db_remotes.is_empty() {
-            let remotes_yaml = LocalDbRemoteCfg::to_yaml_hash(&local_db_remotes)?;
-            yaml_hash.insert(
-                StrictYaml::String("local-db-remotes".to_string()),
-                remotes_yaml,
-            );
-        }
-
-        let local_db_syncs = self.get_local_db_syncs()?;
-        if !local_db_syncs.is_empty() {
-            let syncs_yaml = LocalDbSyncCfg::to_yaml_hash(&local_db_syncs)?;
-            yaml_hash.insert(StrictYaml::String("local-db-sync".to_string()), syncs_yaml);
-        }
-
-        let orderbooks = to_yaml_string_missing_check(self.get_orderbooks())?;
-        if let Some(orderbooks) = orderbooks {
-            if !orderbooks.is_empty() {
-                let orderbooks_yaml = OrderbookCfg::to_yaml_hash(&orderbooks)?;
-                yaml_hash.insert(
-                    StrictYaml::String("orderbooks".to_string()),
-                    orderbooks_yaml,
-                );
-            }
-        }
-
-        let metaboards = to_yaml_string_missing_check(self.get_metaboards())?;
+        let metaboards = to_yaml_string_missing_check(MetaboardCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
         if let Some(metaboards) = metaboards {
             if !metaboards.is_empty() {
                 let metaboards_yaml = MetaboardCfg::to_yaml_hash(&metaboards)?;
@@ -519,7 +491,47 @@ impl OrderbookYaml {
             }
         }
 
-        let deployers = to_yaml_string_missing_check(self.get_deployers())?;
+        let tokens = to_yaml_string_missing_check(TokenCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
+        if let Some(tokens) = tokens {
+            if !tokens.is_empty() {
+                let tokens_yaml = TokenCfg::to_yaml_hash(&tokens)?;
+                yaml_hash.insert(StrictYaml::String("tokens".to_string()), tokens_yaml);
+            }
+        }
+
+        if let Some(remote_tokens) =
+            RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
+        {
+            if !remote_tokens.urls.is_empty() {
+                let remote_tokens_yaml = remote_tokens.to_yaml_array()?;
+                yaml_hash.insert(
+                    StrictYaml::String("using-tokens-from".to_string()),
+                    remote_tokens_yaml,
+                );
+            }
+        }
+
+        let orderbooks = to_yaml_string_missing_check(OrderbookCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
+        if let Some(orderbooks) = orderbooks {
+            if !orderbooks.is_empty() {
+                let orderbooks_yaml = OrderbookCfg::to_yaml_hash(&orderbooks)?;
+                yaml_hash.insert(
+                    StrictYaml::String("orderbooks".to_string()),
+                    orderbooks_yaml,
+                );
+            }
+        }
+
+        let deployers = to_yaml_string_missing_check(DeployerCfg::parse_all_from_yaml(
+            self.documents.clone(),
+            Some(&context),
+        ))?;
         if let Some(deployers) = deployers {
             if !deployers.is_empty() {
                 let deployers_yaml = DeployerCfg::to_yaml_hash(&deployers)?;
@@ -527,7 +539,7 @@ impl OrderbookYaml {
             }
         }
 
-        let accounts = self.get_accounts()?;
+        let accounts = AccountCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         if !accounts.is_empty() {
             let accounts_yaml = AccountCfg::to_yaml_hash(&accounts)?;
             yaml_hash.insert(StrictYaml::String("accounts".to_string()), accounts_yaml);
@@ -541,11 +553,21 @@ impl OrderbookYaml {
             );
         }
 
-        if let Some(spec_version) = to_yaml_string_missing_check(self.get_spec_version())? {
+        let local_db_remotes =
+            LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
+        if !local_db_remotes.is_empty() {
+            let remotes_yaml = LocalDbRemoteCfg::to_yaml_hash(&local_db_remotes)?;
             yaml_hash.insert(
-                StrictYaml::String("version".to_string()),
-                StrictYaml::String(spec_version),
+                StrictYaml::String("local-db-remotes".to_string()),
+                remotes_yaml,
             );
+        }
+
+        let local_db_syncs =
+            LocalDbSyncCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
+        if !local_db_syncs.is_empty() {
+            let syncs_yaml = LocalDbSyncCfg::to_yaml_hash(&local_db_syncs)?;
+            yaml_hash.insert(StrictYaml::String("local-db-sync".to_string()), syncs_yaml);
         }
 
         let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
