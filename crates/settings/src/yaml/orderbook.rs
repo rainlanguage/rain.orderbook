@@ -7,8 +7,8 @@ use crate::{
 };
 use alloy::primitives::Address;
 use serde::{
-    de::{self, Deserializer, SeqAccess, Visitor},
-    ser::{Serialize, SerializeSeq, Serializer},
+    de::{self, Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor},
+    ser::{Serialize, SerializeStruct, Serializer},
     Deserialize,
 };
 use std::{
@@ -439,12 +439,16 @@ impl Serialize for OrderbookYaml {
     where
         S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.documents.len()))?;
+        let mut documents = Vec::with_capacity(self.documents.len());
         for doc in &self.documents {
             let yaml_str = Self::get_yaml_string(doc.clone()).map_err(serde::ser::Error::custom)?;
-            seq.serialize_element(&yaml_str)?;
+            documents.push(yaml_str);
         }
-        seq.end()
+
+        let mut state = serializer.serialize_struct("OrderbookYaml", 2)?;
+        state.serialize_field("documents", &documents)?;
+        state.serialize_field("profile", &self.profile)?;
+        state.end()
     }
 }
 
@@ -460,6 +464,50 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a sequence of YAML documents as strings")
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let mut documents: Option<Vec<String>> = None;
+                let mut profile = ContextProfile::Strict;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "documents" => {
+                            if documents.is_some() {
+                                return Err(de::Error::duplicate_field("documents"));
+                            }
+                            documents = Some(map.next_value()?);
+                        }
+                        "profile" => {
+                            profile = map.next_value()?;
+                        }
+                        _ => {
+                            let _ = map.next_value::<IgnoredAny>()?;
+                        }
+                    }
+                }
+
+                let documents = documents.ok_or_else(|| de::Error::missing_field("documents"))?;
+                let documents = documents
+                    .into_iter()
+                    .map(|doc_str| {
+                        let docs =
+                            StrictYamlLoader::load_from_str(&doc_str).map_err(de::Error::custom)?;
+                        if docs.is_empty() {
+                            return Err(de::Error::custom("Empty YAML document"));
+                        }
+                        Ok(Arc::new(RwLock::new(docs[0].clone())))
+                    })
+                    .collect::<Result<Vec<_>, M::Error>>()?;
+
+                Ok(OrderbookYaml {
+                    documents,
+                    cache: Cache::default(),
+                    profile,
+                })
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -486,7 +534,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
             }
         }
 
-        deserializer.deserialize_seq(OrderbookYamlVisitor)
+        deserializer.deserialize_any(OrderbookYamlVisitor)
     }
 }
 
@@ -516,6 +564,41 @@ mod tests {
 
         let ob_strict = ob.with_profile(ContextProfile::Strict);
         assert!(matches!(ob_strict.profile, ContextProfile::Strict));
+    }
+
+    #[test]
+    fn test_orderbook_yaml_serialization_preserves_profile() {
+        let ob = OrderbookYaml::new_with_profile(
+            vec![FULL_YAML.to_string()],
+            OrderbookYamlValidation::default(),
+            ContextProfile::Gui {
+                current_order: Some("order1".to_string()),
+                current_deployment: None,
+            },
+        )
+        .unwrap();
+
+        let serialized = serde_json::to_string(&ob).unwrap();
+        let round_tripped: OrderbookYaml = serde_json::from_str(&serialized).unwrap();
+        match round_tripped.profile {
+            ContextProfile::Gui {
+                current_order,
+                current_deployment,
+            } => {
+                assert_eq!(current_order.as_deref(), Some("order1"));
+                assert!(current_deployment.is_none());
+            }
+            _ => panic!("expected gui profile"),
+        }
+    }
+
+    #[test]
+    fn test_orderbook_yaml_legacy_sequence_deserialization_defaults_profile() {
+        let legacy_serialized = serde_json::to_string(&vec![FULL_YAML.to_string()]).unwrap();
+        let deserialized: OrderbookYaml = serde_json::from_str(&legacy_serialized).unwrap();
+
+        assert!(matches!(deserialized.profile, ContextProfile::Strict));
+        assert_eq!(deserialized.documents.len(), 1);
     }
 
     const FULL_YAML: &str = r#"

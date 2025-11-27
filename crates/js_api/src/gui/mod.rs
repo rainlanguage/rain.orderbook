@@ -607,8 +607,8 @@ impl DotrainOrderGui {
             dotrain.clone(),
             None,
             ContextProfile::gui(
-                Some(deployment.deployment.order.key),
-                Some(deployment.deployment.key),
+                Some(deployment.deployment.order.key.clone()),
+                Some(deployment.deployment.key.clone()),
             ),
         )
         .await?;

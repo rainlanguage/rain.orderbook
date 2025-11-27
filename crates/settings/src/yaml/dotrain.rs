@@ -1,8 +1,8 @@
 use super::{cache::Cache, orderbook::OrderbookYaml, ValidationConfig, *};
 use crate::{ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
-    de::{self, SeqAccess, Visitor},
-    ser::SerializeSeq,
+    de::{self, IgnoredAny, MapAccess, SeqAccess, Visitor},
+    ser::SerializeStruct,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{
@@ -279,12 +279,16 @@ impl Serialize for DotrainYaml {
     where
         S: Serializer,
     {
-        let mut seq = serializer.serialize_seq(Some(self.documents.len()))?;
+        let mut documents = Vec::with_capacity(self.documents.len());
         for doc in &self.documents {
             let yaml_str = Self::get_yaml_string(doc.clone()).map_err(serde::ser::Error::custom)?;
-            seq.serialize_element(&yaml_str)?;
+            documents.push(yaml_str);
         }
-        seq.end()
+
+        let mut state = serializer.serialize_struct("DotrainYaml", 2)?;
+        state.serialize_field("documents", &documents)?;
+        state.serialize_field("profile", &self.profile)?;
+        state.end()
     }
 }
 
@@ -300,6 +304,50 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a sequence of YAML documents as strings")
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let mut documents: Option<Vec<String>> = None;
+                let mut profile = ContextProfile::Strict;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "documents" => {
+                            if documents.is_some() {
+                                return Err(de::Error::duplicate_field("documents"));
+                            }
+                            documents = Some(map.next_value()?);
+                        }
+                        "profile" => {
+                            profile = map.next_value()?;
+                        }
+                        _ => {
+                            let _ = map.next_value::<IgnoredAny>()?;
+                        }
+                    }
+                }
+
+                let documents = documents.ok_or_else(|| de::Error::missing_field("documents"))?;
+                let documents = documents
+                    .into_iter()
+                    .map(|doc_str| {
+                        let docs =
+                            StrictYamlLoader::load_from_str(&doc_str).map_err(de::Error::custom)?;
+                        if docs.is_empty() {
+                            return Err(de::Error::custom("Empty YAML document"));
+                        }
+                        Ok(Arc::new(RwLock::new(docs[0].clone())))
+                    })
+                    .collect::<Result<Vec<_>, M::Error>>()?;
+
+                Ok(DotrainYaml {
+                    documents,
+                    cache: Cache::default(),
+                    profile,
+                })
             }
 
             fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
@@ -326,7 +374,7 @@ impl<'de> Deserialize<'de> for DotrainYaml {
             }
         }
 
-        deserializer.deserialize_seq(DotrainYamlVisitor)
+        deserializer.deserialize_any(DotrainYamlVisitor)
     }
 }
 
@@ -964,6 +1012,40 @@ mod tests {
         let order = gui_yaml.get_order("order1").unwrap();
         assert_eq!(order.inputs[0].token, None);
         assert_eq!(order.outputs[0].token, None);
+    }
+
+    #[test]
+    fn test_dotrain_yaml_serialization_preserves_profile() {
+        let yaml = "orders: {}".to_string();
+        let dotrain_yaml = DotrainYaml::new_with_profile(
+            vec![yaml.clone()],
+            DotrainYamlValidation::default(),
+            ContextProfile::gui(Some("order1".to_string()), Some("deployment1".to_string())),
+        )
+        .unwrap();
+
+        let serialized = serde_json::to_string(&dotrain_yaml).unwrap();
+        let round_tripped: DotrainYaml = serde_json::from_str(&serialized).unwrap();
+        match round_tripped.profile {
+            ContextProfile::Gui {
+                current_order,
+                current_deployment,
+            } => {
+                assert_eq!(current_order.as_deref(), Some("order1"));
+                assert_eq!(current_deployment.as_deref(), Some("deployment1"));
+            }
+            _ => panic!("expected gui profile"),
+        }
+    }
+
+    #[test]
+    fn test_dotrain_yaml_legacy_sequence_deserialization_defaults_profile() {
+        let yaml = "orders: {}".to_string();
+        let legacy_serialized = serde_json::to_string(&vec![yaml.clone()]).unwrap();
+
+        let deserialized: DotrainYaml = serde_json::from_str(&legacy_serialized).unwrap();
+        assert!(matches!(deserialized.profile, ContextProfile::Strict));
+        assert_eq!(deserialized.documents.len(), 1);
     }
 
     #[test]
