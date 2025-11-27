@@ -1,8 +1,6 @@
+use super::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
 use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
-use super::{
-    ApplyPipeline, ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, SyncOutcome,
-    TokensPipeline, WindowPipeline,
-};
+use super::{EventsPipeline, StatusBus, SyncConfig, SyncOutcome, TokensPipeline, WindowPipeline};
 use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
 use crate::local_db::decode::{
@@ -110,7 +108,8 @@ where
             ApplyContext {
                 target_info: &ApplyPipelineTargetInfo {
                     ob_id: input.ob_id.clone(),
-                    block: target_block,
+                    start_block,
+                    target_block,
                     hash: target_hash,
                 },
                 raw_logs: &all_raw_logs,
@@ -156,6 +155,7 @@ where
                     dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
                     block_number_threshold: input.block_number_threshold,
                     latest_block: input.manifest_end_block,
+                    deployment_block: input.cfg.deployment_block,
                 },
             )
             .await?;
@@ -302,20 +302,22 @@ where
         DB: LocalDbQueryExecutor + ?Sized,
     {
         self.status.send("Building SQL batch").await?;
-        let batch = self.apply.build_batch(
+        let mut batch = self.apply.build_batch(
             ctx.target_info,
             ctx.raw_logs,
             ctx.decoded_events,
             ctx.existing_tokens,
             ctx.tokens_to_upsert,
         )?;
+        let post_batch = self.apply.build_post_batch(ctx.target_info)?;
+        batch.extend(post_batch);
 
         self.status.send("Persisting to database").await?;
         self.apply.persist(db, &batch).await?;
 
         self.status.send("Running post-sync export").await?;
         self.apply
-            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.block)
+            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.target_block)
             .await
     }
 }
@@ -347,8 +349,9 @@ mod tests {
     use crate::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
+    use crate::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use crate::local_db::pipeline::adapters::bootstrap::BootstrapState;
-    use crate::local_db::pipeline::{ApplyPipelineTargetInfo, FinalityConfig, WindowOverrides};
+    use crate::local_db::pipeline::{FinalityConfig, WindowOverrides};
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
@@ -1000,7 +1003,14 @@ mod tests {
                 .lock()
                 .unwrap()
                 .pop_front()
-                .unwrap_or_else(|| Ok(SqlStatementBatch::new().ensure_transaction()))
+                .unwrap_or_else(|| Ok(SqlStatementBatch::new()))
+        }
+
+        fn build_post_batch(
+            &self,
+            _target_info: &ApplyPipelineTargetInfo,
+        ) -> Result<SqlStatementBatch, LocalDbError> {
+            Ok(SqlStatementBatch::new())
         }
 
         async fn persist<DB>(&self, _db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
@@ -1612,13 +1622,17 @@ mod tests {
 
         let configs = harness.bootstrap.configs();
         assert_eq!(configs.len(), 1);
-        let dump_stmt = configs[0]
+        let config = &configs[0];
+        let dump_stmt = config
             .dump_stmt
             .as_ref()
             .expect("dump statement present")
             .sql()
             .to_owned();
         assert_eq!(dump_stmt, "SELECT 1");
+        assert_eq!(config.deployment_block, inputs.cfg.deployment_block);
+        assert_eq!(config.block_number_threshold, inputs.block_number_threshold);
+        assert_eq!(config.latest_block, inputs.manifest_end_block);
     }
 
     #[tokio::test]

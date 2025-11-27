@@ -5,32 +5,42 @@ use crate::local_db::insert::{
     generate_erc20_token_statements as build_token_upserts,
     raw_events_to_statements as build_raw_event_sql,
 };
-use crate::local_db::pipeline::{ApplyPipeline, ApplyPipelineTargetInfo};
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
+use crate::local_db::OrderbookIdentifier;
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, B256};
 use async_trait::async_trait;
 use std::collections::HashMap;
 
-/// Default implementation of the ApplyPipeline.
-///
-/// - Translates fetched/decoded inputs into SQL using existing builders.
-/// - Wraps statements in a transaction and persists via the shared executor.
-/// - Export hook is a no-op; producers can override in their adapter.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct DefaultApplyPipeline;
-
-impl DefaultApplyPipeline {
-    pub const fn new() -> Self {
-        Self
-    }
+#[derive(Debug, Clone)]
+pub struct ApplyPipelineTargetInfo {
+    pub ob_id: OrderbookIdentifier,
+    pub start_block: u64,
+    pub target_block: u64,
+    pub hash: B256,
 }
 
+/// Translates fetched/decoded data into SQL and persists it atomically.
+///
+/// Responsibilities (concrete):
+/// - Build a transactional batch containing:
+///   - Raw events INSERTs.
+///   - Token upserts for provided `(Address, TokenInfo)` pairs.
+///   - Decoded event INSERTs for all orderbook-scoped tables, binding the
+///     target orderbook.
+///   - Watermark update to the `target_block` (and later last hash).
+/// - Persist the batch with a single-writer gate; must assert that the batch
+///   is transaction-wrapped and fail if not.
+///
+/// Policy (environment-specific):
+/// - Dump export after a successful persist (producer only); browser is no-op.
 #[async_trait(?Send)]
-impl ApplyPipeline for DefaultApplyPipeline {
+pub trait ApplyPipeline {
+    /// Builds the SQL batch for a cycle. The batch must be suitable for
+    /// atomic execution (the caller will ensure single-writer semantics).
     fn build_batch(
         &self,
         target_info: &ApplyPipelineTargetInfo,
@@ -71,14 +81,25 @@ impl ApplyPipeline for DefaultApplyPipeline {
         // Watermark update to target block
         batch.add(upsert_target_watermark_stmt(
             &target_info.ob_id,
-            target_info.block,
+            target_info.target_block,
             target_info.hash.into(),
         ));
 
-        // Ensure atomicity
-        Ok(batch.ensure_transaction())
+        Ok(batch)
     }
 
+    /// Builds environment-specific statements that should be appended to the
+    /// primary batch before persisting. The default implementation returns an
+    /// empty batch and therefore has no effect.
+    fn build_post_batch(
+        &self,
+        _target_info: &ApplyPipelineTargetInfo,
+    ) -> Result<SqlStatementBatch, LocalDbError> {
+        Ok(SqlStatementBatch::new())
+    }
+
+    /// Persists the previously built batch. Implementations must assert that
+    /// the input is wrapped in a transaction and return an error otherwise.
     async fn persist<DB>(&self, db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -86,7 +107,34 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let stmts = batch.clone().ensure_transaction();
         db.execute_batch(&stmts).await.map_err(LocalDbError::from)
     }
+
+    /// Optional policy hook to export dumps after a successful persist.
+    /// Default implementation is a no-op.
+    async fn export_dump<DB>(
+        &self,
+        _db: &DB,
+        _ob_id: &OrderbookIdentifier,
+        _end_block: u64,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Ok(())
+    }
 }
+
+/// Default apply adapter using the trait's provided behavior.
+#[derive(Debug, Clone, Default)]
+pub struct DefaultApplyPipeline;
+
+impl DefaultApplyPipeline {
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+#[async_trait(?Send)]
+impl ApplyPipeline for DefaultApplyPipeline {}
 
 #[cfg(test)]
 mod tests {
@@ -98,10 +146,15 @@ mod tests {
     const SAMPLE_HASH_B256: B256 =
         b256!("0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000");
 
-    fn build_target_info(ob_id: &OrderbookIdentifier, block: u64) -> ApplyPipelineTargetInfo {
+    fn build_target_info(
+        ob_id: &OrderbookIdentifier,
+        start_block: u64,
+        target_block: u64,
+    ) -> ApplyPipelineTargetInfo {
         ApplyPipelineTargetInfo {
             ob_id: ob_id.clone(),
-            block,
+            start_block,
+            target_block,
             hash: SAMPLE_HASH_B256,
         }
     }
@@ -200,7 +253,7 @@ mod tests {
     }
 
     #[test]
-    fn build_batch_wraps_transaction_and_contains_watermark() {
+    fn build_batch_contains_watermark() {
         let pipeline = DefaultApplyPipeline::new();
         let ob_id = sample_ob_id();
         let token = Address::from([3u8; 20]);
@@ -219,7 +272,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 123),
+                &build_target_info(&ob_id, 1, 123),
                 &[],
                 &decoded,
                 &existing,
@@ -228,8 +281,8 @@ mod tests {
             .expect("batch ok");
 
         assert!(
-            batch.is_transaction(),
-            "batch must be wrapped in a transaction"
+            batch.clone().ensure_transaction().is_transaction(),
+            "ensure_transaction should wrap the statements"
         );
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
@@ -290,20 +343,15 @@ mod tests {
         let ob_id = sample_ob_id();
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 42), &[], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 42), &[], &[], &[], &[])
             .expect("batch ok");
 
-        // Expect exactly BEGIN, UPDATE, COMMIT
+        // Expect only a single watermark statement when there is no work.
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql().trim()).collect();
-        assert_eq!(texts.first().copied(), Some("BEGIN TRANSACTION"));
+        assert_eq!(texts.len(), 1);
         assert!(texts
             .iter()
-            .any(|s| s.contains("INSERT INTO target_watermarks")));
-        assert_eq!(
-            texts.last().copied().map(|s| s.to_ascii_uppercase()),
-            Some("COMMIT".into())
-        );
-        assert!(batch.is_transaction());
+            .all(|s| s.contains("INSERT INTO target_watermarks")));
     }
 
     #[test]
@@ -337,7 +385,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 1, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -400,7 +448,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 1, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -433,7 +481,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let err = pipeline
-            .build_batch(&build_target_info(&ob_id, 1), &[], &decoded, &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 1), &[], &decoded, &[], &[])
             .unwrap_err();
 
         use crate::local_db::insert::InsertError;
@@ -471,7 +519,13 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 1), &[], &[], &existing, &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 1, 1),
+                &[],
+                &[],
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         let upsert_stmts: Vec<_> = batch
@@ -502,7 +556,13 @@ mod tests {
 
         let target_block = 12345u64;
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, target_block), &[], &[], &[], &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, target_block),
+                &[],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -551,7 +611,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 1, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -643,7 +703,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 1, 100),
                 &[],
                 &decoded,
                 &[],
@@ -693,7 +753,7 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 1), &[], &[], &[], &upserts)
+            .build_batch(&build_target_info(&ob_id, 1, 1), &[], &[], &[], &upserts)
             .expect("batch ok");
 
         let stmt = batch
@@ -737,7 +797,7 @@ mod tests {
         let b = mk(10, 3);
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 10), &[a, b], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 10), &[a, b], &[], &[], &[])
             .expect("batch ok");
 
         let raws: Vec<_> = batch
@@ -790,7 +850,7 @@ mod tests {
         let raw = [mk(1, 0), mk(1, 1)];
 
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 2), &raw, &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 2), &raw, &[], &[], &[])
             .expect("batch ok");
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
@@ -811,7 +871,7 @@ mod tests {
         let pipeline = DefaultApplyPipeline::new();
         let ob_id = sample_ob_id();
         let batch = pipeline
-            .build_batch(&build_target_info(&ob_id, 77), &[], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 77), &[], &[], &[], &[])
             .expect("batch ok");
         let count = batch
             .statements()
@@ -860,7 +920,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 9),
+                &build_target_info(&ob_id, 1, 9),
                 &[mk_raw(9, 0)],
                 &decoded,
                 &[],
@@ -888,16 +948,10 @@ mod tests {
             .iter()
             .position(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .expect("watermark present");
-        let idx_commit = batch
-            .statements()
-            .iter()
-            .position(|s| s.sql().trim().eq_ignore_ascii_case("COMMIT"))
-            .expect("commit present");
 
         assert!(idx_raw < idx_token, "raw should precede token upserts");
         assert!(idx_token < idx_decoded, "token upserts before decoded");
         assert!(idx_decoded < idx_watermark, "decoded before watermark");
-        assert!(idx_watermark < idx_commit, "watermark before commit");
     }
 
     #[test]
@@ -917,10 +971,22 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let b1 = pipeline
-            .build_batch(&build_target_info(&ob_id, 5), &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 5),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b1 ok");
         let b2 = pipeline
-            .build_batch(&build_target_info(&ob_id, 5), &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 5),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b2 ok");
 
         assert_eq!(b1.statements().len(), b2.statements().len());
@@ -938,7 +1004,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 5),
+                &build_target_info(&ob_id, 1, 5),
                 &[],
                 &[withdraw_event(token)],
                 &[],
@@ -984,7 +1050,7 @@ mod tests {
         let decoded = vec![deposit_event(token_a), deposit_event(token_b)];
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 100),
+                &build_target_info(&ob_id, 1, 100),
                 &[],
                 &decoded,
                 &existing,
@@ -1043,7 +1109,7 @@ mod tests {
 
         let batch = pipeline
             .build_batch(
-                &build_target_info(&ob_id, 5),
+                &build_target_info(&ob_id, 1, 5),
                 &[],
                 &[withdraw_event(token)],
                 &[],

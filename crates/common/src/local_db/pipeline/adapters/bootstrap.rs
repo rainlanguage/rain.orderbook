@@ -20,6 +20,7 @@ pub struct BootstrapConfig {
     pub dump_stmt: Option<SqlStatement>,
     pub latest_block: u64,
     pub block_number_threshold: u32,
+    pub deployment_block: u64,
 }
 
 /// Bootstrap state snapshot used by environment orchestration to decide actions.
@@ -645,6 +646,7 @@ mod tests {
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 10_000,
+            deployment_block: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();

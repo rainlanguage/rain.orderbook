@@ -1,11 +1,11 @@
 use super::leadership::DefaultLeadership;
 use super::ClientRunner;
 use crate::local_db::pipeline::adapters::{
-    apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
-    window::DefaultWindowPipeline,
+    events::DefaultEventsPipeline, tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
 };
 use crate::local_db::LocalDbError;
 use crate::raindex_client::local_db::executor::JsCallbackExecutor;
+use crate::raindex_client::local_db::pipeline::apply::ClientApplyAdapter;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
 use crate::raindex_client::local_db::LocalDbStatusSnapshot;
@@ -26,7 +26,7 @@ type DefaultClientRunner = ClientRunner<
     DefaultWindowPipeline,
     DefaultEventsPipeline,
     DefaultTokensPipeline,
-    DefaultApplyPipeline,
+    ClientApplyAdapter,
     ClientStatusBus,
     DefaultLeadership,
 >;

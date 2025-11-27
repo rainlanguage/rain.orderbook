@@ -2,6 +2,7 @@ use crate::local_db::{
     pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline, BootstrapState},
     query::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
+        upsert_vault_balances::upsert_vault_balances_batch,
         LocalDbQueryExecutor,
     },
     LocalDbError, OrderbookIdentifier,
@@ -14,6 +15,26 @@ pub struct ClientBootstrapAdapter;
 impl ClientBootstrapAdapter {
     pub fn new() -> Self {
         Self {}
+    }
+
+    async fn refresh_running_vault_balances<DB>(
+        &self,
+        db: &DB,
+        ob_id: &OrderbookIdentifier,
+        start_block: u64,
+        end_block: u64,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        if start_block > end_block {
+            return Ok(());
+        }
+
+        let batch = upsert_vault_balances_batch(ob_id, start_block, end_block).ensure_transaction();
+
+        db.execute_batch(&batch).await?;
+        Ok(())
     }
 
     fn check_threshold(
@@ -60,6 +81,13 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
             if self.is_fresh_db(db, &config.ob_id).await? {
                 db.query_text(dump_stmt).await?;
+                self.refresh_running_vault_balances(
+                    db,
+                    &config.ob_id,
+                    config.deployment_block,
+                    config.latest_block,
+                )
+                .await?;
                 return Ok(());
             }
 
@@ -72,6 +100,13 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
                 Err(_) => {
                     self.clear_orderbook_data(db, &config.ob_id).await?;
                     db.query_text(dump_stmt).await?;
+                    self.refresh_running_vault_balances(
+                        db,
+                        &config.ob_id,
+                        config.deployment_block,
+                        config.latest_block,
+                    )
+                    .await?;
                 }
             }
         }
@@ -210,6 +245,7 @@ mod tests {
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         }
     }
 
@@ -398,16 +434,32 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 100,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
-        let db = MockDb::default()
+        let refresh_batch =
+            upsert_vault_balances_batch(&cfg.ob_id, cfg.deployment_block, cfg.latest_block)
+                .ensure_transaction();
+
+        let mut db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_target_watermark_stmt(&cfg.ob_id), json!([]))
             .with_text(&dump_stmt, "ok");
 
+        for stmt in refresh_batch.statements() {
+            db = db.with_text(stmt, "ok");
+        }
+
         adapter.engine_run(&db, &cfg).await.unwrap();
 
-        assert_eq!(db.calls(), vec![dump_stmt.sql().to_string()]);
+        let mut expected = vec![dump_stmt.sql().to_string()];
+        expected.extend(
+            refresh_batch
+                .statements()
+                .iter()
+                .map(|stmt| stmt.sql().to_string()),
+        );
+        assert_eq!(db.calls(), expected);
     }
 
     #[tokio::test]
@@ -422,7 +474,11 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
+
+        let refresh_batch = upsert_vault_balances_batch(&cfg.ob_id, cfg.deployment_block, latest)
+            .ensure_transaction();
 
         let clear_batch = clear_orderbook_data_batch(&sample_ob_id());
         let mut db = MockDb::default()
@@ -437,12 +493,9 @@ mod tests {
             db = db.with_text(stmt, "cleared");
         }
 
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
-            latest_block: latest,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
+        for stmt in refresh_batch.statements() {
+            db = db.with_text(stmt, "upserted");
+        }
 
         adapter.engine_run(&db, &cfg).await.unwrap();
 
@@ -453,6 +506,12 @@ mod tests {
             .map(|stmt| stmt.sql().to_string())
             .collect();
         expected.push(dump_stmt.sql().to_string());
+        expected.extend(
+            refresh_batch
+                .statements()
+                .iter()
+                .map(|stmt| stmt.sql().to_string()),
+        );
         assert_eq!(calls, expected);
     }
 
@@ -507,6 +566,7 @@ mod tests {
             dump_stmt: None,
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()
@@ -533,6 +593,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()

@@ -116,6 +116,7 @@ mod tests {
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -151,6 +152,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -188,6 +190,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         // Expect error due to missing dump mapping, after successful reset
@@ -222,6 +225,7 @@ mod tests {
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 1,
+            deployment_block: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
