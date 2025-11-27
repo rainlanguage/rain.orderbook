@@ -32,12 +32,6 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
-        let dotrain_bytes = bincode::serialize(&dotrain)?;
-        let hash = Sha256::digest(dotrain_bytes);
-        Ok(URL_SAFE.encode(hash))
-    }
-
     fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPresetCfg {
         if value.is_preset {
             GuiPresetCfg {
@@ -179,7 +173,7 @@ impl DotrainOrderGui {
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(self.dotrain_order.dotrain()?)?,
+            dotrain_hash: self.dotrain_hash.clone(),
             selected_deployment: self.selected_deployment.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -220,6 +214,10 @@ impl DotrainOrderGui {
     pub async fn new_from_state(
         #[wasm_export(param_description = "Must match the original dotrain content exactly")]
         dotrain: String,
+        #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
+        settings: Option<Vec<String>>,
         #[wasm_export(param_description = "Previously serialized state string")] serialized: String,
         #[wasm_export(param_description = "Optional callback for future state changes")]
         state_update_callback: Option<js_sys::Function>,
@@ -229,28 +227,23 @@ impl DotrainOrderGui {
         let mut decoder = GzDecoder::new(&compressed[..]);
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
-
-        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone())?;
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
 
-        if original_dotrain_hash != state.dotrain_hash {
-            return Err(GuiError::DotrainMismatch);
-        }
-
-        let frontmatter = RainDocument::get_front_matter(&dotrain)
-            .unwrap_or("")
-            .to_string();
-        let dotrain_yaml =
-            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings.clone())?;
 
         let order_key =
-            DeploymentCfg::parse_order_key(dotrain_yaml.documents, &state.selected_deployment)?;
+            DeploymentCfg::parse_order_key(documents.clone(), &state.selected_deployment)?;
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
-            None,
+            settings,
             ContextProfile::gui(Some(order_key), Some(state.selected_deployment.clone())),
         )
         .await?;
+
+        let original_dotrain_hash = DotrainOrderGui::compute_state_hash(&dotrain_order)?;
+        if original_dotrain_hash != state.dotrain_hash {
+            return Err(GuiError::DotrainMismatch);
+        }
 
         let field_values = state
             .field_values
@@ -269,6 +262,7 @@ impl DotrainOrderGui {
             field_values,
             deposits,
             selected_deployment: state.selected_deployment.clone(),
+            dotrain_hash: original_dotrain_hash,
             state_update_callback,
         };
 
@@ -414,6 +408,21 @@ impl DotrainOrderGui {
         })
     }
 }
+impl DotrainOrderGui {
+    pub fn compute_state_hash(dotrain_order: &DotrainOrder) -> Result<String, GuiError> {
+        let orderbook_yaml = dotrain_order.orderbook_yaml().to_yaml_string()?;
+        let dotrain_yaml = dotrain_order.dotrain_yaml().to_yaml_string()?;
+
+        let rain_document = RainDocument::create(dotrain_order.dotrain()?, None, None, None);
+        let rainlang_body = rain_document.body().to_string();
+
+        let tuple = (orderbook_yaml, dotrain_yaml, rainlang_body);
+        let dotrain_bytes = bincode::serialize(&tuple)?;
+
+        let hash = Sha256::digest(dotrain_bytes);
+        Ok(URL_SAFE.encode(hash))
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -427,7 +436,7 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QUUvDMBBupiiCT0PwSfAHGJo0qywDXxyiIBOUIeJLcW1YS7OkpOd0-if8ydLt0rGye7jvu3xf7o7rBZs4QZwVJivMnPLAxwEiZ6xrigg-sKBlnhwhgi2VEfu67XfuVqdY1XahqFHwZV3p_10g5gDVKAy1TT90bmsYDdkwDl2V0k-nfxsHaTLxo--mD2dI-4PX779OIn1yjPK02eFSkENfPz6JXrCNnV15O4BLSbpq1KqRlFdIk6SauDJfPr-Ns2xVxwMnE3Y_E_HL8keNi_fbeZwAv56AsDfn_hJKqxTouinNVKXtaqEM_AOC1mMyyAEAAA==";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTU_CQBDtotGYeCImnkz8AW76BYSSeEITErQRikS5QTtK0-1u044i8U_wk0lhtoSGOcx7s-_tzGQaxj6uCBexjGL5zW1DxxmhbVl1k8PowTIqpskFIaoEpHuq22nncXVNVaFS4BJwpfJE_7sjXCJmPdMUKpyLpSqw17W6bTPPQv6Ti__SwcrM9OjnyeCGaLM1_dvUEmuyS5In5Q73LjvX9dB3G8Yhjna1qwG257G66lSq43kPRCFJi6g9DvzBFL_G8dtvp_86_AyCRb818zsvT_MVztYf2QjeR4-3-hIgIES-a8ojyIRapyBxC4cEqx_IAQAA";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
@@ -464,13 +473,15 @@ mod tests {
         let state = gui.serialize_state().unwrap();
         assert!(!state.is_empty());
         assert_eq!(state, SERIALIZED_STATE);
+        wasm_bindgen_test::console_log!("{}", SERIALIZED_STATE);
     }
 
     #[wasm_bindgen_test]
     async fn test_new_from_state() {
-        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
-            .await
-            .unwrap();
+        let gui =
+            DotrainOrderGui::new_from_state(get_yaml(), None, SERIALIZED_STATE.to_string(), None)
+                .await
+                .unwrap();
 
         assert!(gui.is_select_token_set("token3".to_string()).unwrap());
         assert_eq!(gui.get_deposits().unwrap()[0].amount, "100");
@@ -504,13 +515,62 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
-        dotrain:
-            name: Test
-            description: Test
+            version: 4
+            networks:
+                test:
+                    rpcs:
+                        - http://localhost:8085/rpc-url
+                    chain-id: 123
+            subgraphs:
+                test: http://localhost:8085/rpc-url
+            tokens:
+                token1:
+                    network: test
+                    address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+            deployers:
+                test:
+                    network: test
+                    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+            orderbooks:
+                test:
+                    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+                    network: test
+                    subgraph: test
+                    deployment-block: 12345
+            scenarios:
+                test:
+                    deployer: test
+            orders:
+                test:
+                    inputs:
+                        - token: token1
+                    outputs:
+                        - token: token1
+                    deployer: test
+                    orderbook: test
+            deployments:
+                select-token-deployment:
+                    order: test
+                    scenario: test
+            gui:
+                name: Test
+                description: Fixed limit order
+                deployments:
+                    select-token-deployment:
+                        name: Test deployment
+                        description: Test description
+                        deposits:
+                            - token: token1
+                        fields:
+                            - binding: binding-1
+                              name: Field 1 name
+        ---
+        #test
         "#;
 
         let err = DotrainOrderGui::new_from_state(
             dotrain.to_string(),
+            None,
             SERIALIZED_STATE.to_string(),
             None,
         )
@@ -545,6 +605,7 @@ mod tests {
 
         let mut gui = DotrainOrderGui::new_with_deployment(
             get_yaml(),
+            None,
             "some-deployment".to_string(),
             Some(callback_js.clone()),
         )
