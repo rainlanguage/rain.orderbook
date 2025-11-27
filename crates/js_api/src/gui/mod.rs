@@ -12,6 +12,7 @@ use rain_orderbook_app_settings::{
     network::NetworkCfg,
     order::OrderCfg,
     yaml::{
+        context::ContextProfile,
         dotrain::{DotrainYaml, DotrainYamlValidation},
         YamlError, YamlParsable,
     },
@@ -165,15 +166,27 @@ impl DotrainOrderGui {
             This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let frontmatter = RainDocument::get_front_matter(&dotrain)
+            .unwrap_or("")
+            .to_string();
+        let dotrain_yaml =
+            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
 
-        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(dotrain_yaml.documents.clone())?;
         if !keys.contains(&selected_deployment) {
             return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
         }
 
+        let order_key =
+            DeploymentCfg::parse_order_key(dotrain_yaml.documents, &selected_deployment)?;
+
         Ok(DotrainOrderGui {
-            dotrain_order,
+            dotrain_order: DotrainOrder::create_with_profile(
+                dotrain.clone(),
+                None,
+                ContextProfile::gui(Some(order_key), Some(selected_deployment.clone())),
+            )
+            .await?,
             selected_deployment,
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
