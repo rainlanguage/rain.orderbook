@@ -196,7 +196,10 @@ impl ParseDeploymentConfigSourceError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::{mock_deployer, mock_network, mock_orderbook};
+    use crate::{
+        test::{mock_deployer, mock_network, mock_orderbook},
+        yaml::default_documents,
+    };
     use yaml::tests::get_document;
 
     #[test]
@@ -559,6 +562,7 @@ deployments:
             key: "with-optionals".to_string(),
             scenario: Arc::new(ScenarioCfg {
                 document: default_document(),
+                documents: default_documents(),
                 key: "scenario-with-runs".to_string(),
                 bindings: HashMap::new(),
                 runs: Some(3),
@@ -581,6 +585,7 @@ deployments:
             key: "without-optionals".to_string(),
             scenario: Arc::new(ScenarioCfg {
                 document: default_document(),
+                documents: default_documents(),
                 key: "scenario-no-optionals".to_string(),
                 bindings: HashMap::new(),
                 runs: None,

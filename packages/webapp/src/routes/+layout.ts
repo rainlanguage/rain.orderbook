@@ -1,54 +1,74 @@
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
-import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
-import type { Mock } from 'vitest';
+import {
+	DotrainRegistry,
+	RaindexClient,
+	type AccountCfg,
+	type Address,
+	type Hex
+} from '@rainlanguage/orderbook';
 import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
-import { REMOTE_SETTINGS_URL } from '$lib/constants';
+import { REGISTRY_URL } from '$lib/constants';
 
 export interface LayoutData {
 	errorMessage?: string;
 	stores: AppStoresInterface | null;
 	raindexClient: RaindexClient | null;
+	registry: DotrainRegistry | null;
+	registryUrl: string;
+	localDb: SQLiteWasmDatabase | null;
 }
 
-export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
+export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	let errorMessage: string | undefined;
-	let settingsYamlText: string;
-
-	try {
-		const response = await fetch(REMOTE_SETTINGS_URL);
-		if (!response.ok) {
-			throw new Error('Error status: ' + response.status.toString());
+	const registryParam = url.searchParams.get('registry');
+	let registryUrl = REGISTRY_URL;
+	if (registryParam) {
+		registryUrl = registryParam;
+		if (typeof localStorage !== 'undefined') {
+			try {
+				localStorage.setItem('registry', registryParam);
+			} catch {
+				// ignore persistence failure
+			}
 		}
-		settingsYamlText = await response.text();
-	} catch (error: unknown) {
-		errorMessage = 'Failed to get site config settings. ' + (error as Error).message;
-		return {
-			errorMessage,
-			stores: null,
-			raindexClient: null
-		};
+	} else {
+		if (typeof localStorage !== 'undefined') {
+			try {
+				registryUrl = localStorage.getItem('registry') || REGISTRY_URL;
+			} catch {
+				registryUrl = REGISTRY_URL;
+			}
+		}
+	}
+	let registry: DotrainRegistry | null = null;
+	let raindexClient: RaindexClient | null = null;
+
+	if (!errorMessage) {
+		try {
+			const registryResult = await DotrainRegistry.new(registryUrl);
+			if (registryResult.error) {
+				errorMessage = 'Failed to load registry. ' + registryResult.error.readableMsg;
+			} else {
+				registry = registryResult.value;
+			}
+		} catch (error: unknown) {
+			errorMessage = 'Failed to load registry. ' + (error as Error).message;
+		}
 	}
 
-	let raindexClient: RaindexClient | null = null;
 	try {
-		const raindexClientRes = RaindexClient.new([settingsYamlText]);
-		if (raindexClientRes.error) {
-			return {
-				errorMessage: raindexClientRes.error.readableMsg,
-				stores: null,
-				raindexClient: null
-			};
-		} else {
-			raindexClient = raindexClientRes.value;
+		if (!errorMessage && registry) {
+			const raindexClientRes = RaindexClient.new([registry.settings as string]);
+			if (raindexClientRes.error) {
+				errorMessage = raindexClientRes.error.readableMsg;
+			} else {
+				raindexClient = raindexClientRes.value;
+			}
 		}
 	} catch (error: unknown) {
-		return {
-			errorMessage: 'Error initializing RaindexClient: ' + (error as Error).message,
-			stores: null,
-			raindexClient: null
-		};
+		errorMessage = 'Error initializing RaindexClient: ' + (error as Error).message;
 	}
 
 	let localDb: SQLiteWasmDatabase | null = null;
@@ -56,18 +76,21 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		await init();
 		const localDbRes = SQLiteWasmDatabase.new('worker.db');
 		if (localDbRes.error) {
-			return {
-				errorMessage: 'Error initializing local database: ' + localDbRes.error.readableMsg,
-				stores: null,
-				raindexClient: null
-			};
+			errorMessage = 'Error initializing local database: ' + localDbRes.error.readableMsg;
 		} else {
 			localDb = localDbRes.value;
 		}
 	} catch (error: unknown) {
+		errorMessage = 'Error initializing local database: ' + (error as Error).message;
+	}
+
+	if (errorMessage) {
 		return {
-			errorMessage: 'Error initializing local database: ' + (error as Error).message,
+			errorMessage,
 			stores: null,
+			registry,
+			registryUrl,
+			localDb,
 			raindexClient: null
 		};
 	}
@@ -85,6 +108,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			showMyItemsOnly: writable<boolean>(false),
 			activeTokens: writable<Address[]>([])
 		},
+		registry,
+		registryUrl,
 		localDb,
 		raindexClient
 	};
@@ -95,14 +120,18 @@ export const ssr = false;
 if (import.meta.vitest) {
 	const { describe, it, expect, beforeEach, vi } = import.meta.vitest;
 
-	const mockFetch = vi.fn();
-	vi.stubGlobal('fetch', mockFetch);
+	const mockRegistryNew = vi.fn();
+	const mockRaindexClientNew = vi.fn();
 
 	vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+		const original = (await importOriginal()) as Record<string, unknown>;
 		return {
-			...(await importOriginal()),
+			...original,
+			DotrainRegistry: {
+				new: mockRegistryNew
+			},
 			RaindexClient: {
-				new: vi.fn()
+				new: mockRaindexClientNew
 			}
 		};
 	});
@@ -111,71 +140,63 @@ if (import.meta.vitest) {
 		beforeEach(() => {
 			vi.clearAllMocks();
 			vi.resetAllMocks();
-		});
-
-		it('should return errorMessage if fetch fails with non-OK status', async () => {
-			mockFetch.mockResolvedValueOnce({
-				ok: false,
-				status: 404,
-				statusText: 'Not Found'
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-
-			expect(result).toHaveProperty('stores', null);
-			expect(result).toHaveProperty('errorMessage');
-			expect(result.errorMessage).toContain('Failed to get site config settings.');
-			expect(result.errorMessage).toContain('Error status: 404');
-		});
-
-		it('should return errorMessage if response.text() fails', async () => {
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.reject(new Error('Invalid YAML'))
-			});
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-
-			expect(result).toHaveProperty('stores', null);
-			expect(result).toHaveProperty('errorMessage');
-			expect(result.errorMessage).toContain('Failed to get site config settings.');
-			expect(result.errorMessage).toContain('Invalid YAML');
-		});
-
-		it('should handle fetch failure', async () => {
-			mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
-
-			expect(result).toHaveProperty('stores', null);
-			expect(result).toHaveProperty('errorMessage');
-			expect(result.errorMessage).toContain('Failed to get site config settings.');
-			expect(result.errorMessage).toContain('Network error');
-		});
-
-		it('should handle empty or malformed settings YAML', async () => {
-			(RaindexClient.new as Mock).mockReturnValue({
-				value: undefined,
-				error: {
-					msg: 'Malformed settings',
-					readableMsg: 'Malformed settings'
+			// basic localStorage stub for load()
+			// @ts-expect-error mock storage
+			global.localStorage = {
+				data: {} as Record<string, string>,
+				getItem(key: string) {
+					return this.data[key] ?? null;
+				},
+				setItem(key: string, value: string) {
+					this.data[key] = value;
+				},
+				removeItem(key: string) {
+					delete this.data[key];
 				}
+			};
+		});
+
+		it('should return errorMessage if registry fails to load', async () => {
+			mockRegistryNew.mockRejectedValueOnce(new Error('Network error'));
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const result = await load({ url: new URL('http://localhost:3000') } as any);
+
+			expect(result).toHaveProperty('stores', null);
+			expect(result.errorMessage).toContain('Failed to load registry');
+		});
+
+		it('should return errorMessage if RaindexClient fails to initialize', async () => {
+			const mockRegistry = { settings: vi.fn().mockReturnValue('settings') };
+			mockRegistryNew.mockResolvedValueOnce({
+				value: mockRegistry
 			});
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				text: () => Promise.resolve('malformed')
+			mockRaindexClientNew.mockReturnValue({
+				error: { readableMsg: 'Malformed settings' }
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const result = await load({ fetch: mockFetch } as any);
+			const result = await load({ url: new URL('http://localhost:3000') } as any);
 
 			expect(result).toHaveProperty('stores', null);
-			expect(result).toHaveProperty('errorMessage');
 			expect(result.errorMessage).toContain('Malformed settings');
-			expect(result.errorMessage).toContain('Malformed settings');
+		});
+
+		it('should initialize when registry and RaindexClient succeed', async () => {
+			const mockRegistry = { settings: 'settings' };
+			mockRegistryNew.mockResolvedValueOnce({
+				value: mockRegistry
+			});
+			mockRaindexClientNew.mockReturnValue({
+				value: { client: true }
+			});
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const result = await load({ url: new URL('http://localhost:3000') } as any);
+
+			expect(result.errorMessage).toBeUndefined();
+			expect(result.stores).not.toBeNull();
+			expect(result.registry).toEqual(mockRegistry);
 		});
 	});
 }

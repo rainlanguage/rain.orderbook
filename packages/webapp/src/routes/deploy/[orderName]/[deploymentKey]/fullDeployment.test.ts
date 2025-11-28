@@ -56,6 +56,10 @@ describe('Full Deployment Tests', () => {
 	let fixedLimitOrder: string;
 	let auctionOrder: string;
 	let dynamicSpreadOrder: string;
+	const registryOrders: Record<string, string> = {};
+	const mockRegistry = {
+		getGui: vi.fn()
+	};
 
 	const fetchRegistry = async () => {
 		const response = await fetch(REGISTRY_URL);
@@ -96,10 +100,13 @@ describe('Full Deployment Tests', () => {
 		const registry = await fetchRegistry();
 		fixedLimitOrder = await fetchOrder(registry['fixed-limit']);
 		assert(fixedLimitOrder, 'Fixed limit order not found');
+		registryOrders['fixed-limit'] = fixedLimitOrder;
 		auctionOrder = await fetchOrder(registry['auction-dca']);
 		assert(auctionOrder, 'Auction order not found');
+		registryOrders['auction-dca'] = auctionOrder;
 		dynamicSpreadOrder = await fetchOrder(registry['dynamic-spread']);
 		assert(dynamicSpreadOrder, 'Dynamic spread order not found');
+		registryOrders['dynamic-spread'] = dynamicSpreadOrder;
 	});
 
 	beforeEach(async () => {
@@ -120,6 +127,16 @@ describe('Full Deployment Tests', () => {
 			transactions: readable()
 		});
 		mockConnectedStore.mockSetSubscribeValue(true);
+		mockRegistry.getGui.mockReset();
+		mockRegistry.getGui.mockImplementation(
+			async (orderName: string, deploymentKey: string, serializedState, callback) => {
+				const dotrain = registryOrders[orderName];
+				if (!dotrain) {
+					return { error: { msg: 'missing order' } };
+				}
+				return DotrainOrderGui.newWithDeployment(dotrain, undefined, deploymentKey, callback);
+			}
+		);
 	});
 
 	afterEach(async () => {
@@ -131,10 +148,13 @@ describe('Full Deployment Tests', () => {
 		async () => {
 			mockPageStore.mockSetSubscribeValue({
 				data: {
-					dotrain: fixedLimitOrder,
+					orderName: 'fixed-limit',
 					deployment: {
-						key: 'flare'
+						key: 'flare',
+						name: 'flare',
+						description: ''
 					},
+					registry: mockRegistry,
 					orderDetail: {
 						name: 'Fixed limit'
 					}

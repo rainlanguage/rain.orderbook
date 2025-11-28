@@ -18,8 +18,9 @@
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
+	import { setRegistryContext } from '$lib/providers/registryContext';
 
-	const { errorMessage, localDb, raindexClient } = $page.data;
+	const { errorMessage, localDb, raindexClient, registry, registryUrl } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -37,6 +38,8 @@
 			walletInitError = error;
 		});
 	}
+
+	$: setRegistryContext({ registry, registryUrl });
 </script>
 
 {#if walletInitError}

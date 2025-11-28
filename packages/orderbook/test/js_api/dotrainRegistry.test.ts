@@ -211,6 +211,24 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 			const result = await DotrainRegistry.new('http://localhost:8231/registry.txt');
 			assert(result.error);
 		});
+
+		it('should validate registry format without fetching orders', async () => {
+			const registryContent = `http://localhost:8231/settings.yaml
+fixed-limit http://localhost:8231/fixed-limit.rain`;
+
+			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+
+			const result = await DotrainRegistry.validate('http://localhost:8231/registry.txt');
+			const value = extractWasmEncodedData(result);
+			assert.strictEqual(value, undefined);
+		});
+
+		it('should fail validation for invalid registry format', async () => {
+			await mockServer.forGet('/invalid-registry.txt').thenReply(200, 'invalid');
+
+			const result = await DotrainRegistry.validate('http://localhost:8231/invalid-registry.txt');
+			assert(result.error);
+		});
 	});
 
 	describe('DotrainRegistry Order Management', () => {
@@ -241,11 +259,12 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 		it('should get all order details', () => {
 			const orderDetails = extractWasmEncodedData(registry.getAllOrderDetails());
 
-			assert.strictEqual(orderDetails.size, 2);
-			assert(orderDetails.has('fixed-limit'));
-			assert(orderDetails.has('auction-dca'));
+			assert.strictEqual(orderDetails.valid.size, 2);
+			assert.strictEqual(orderDetails.invalid.size, 0);
+			assert(orderDetails.valid.has('fixed-limit'));
+			assert(orderDetails.valid.has('auction-dca'));
 
-			const fixedLimitDetails = orderDetails.get('fixed-limit');
+			const fixedLimitDetails = orderDetails.valid.get('fixed-limit');
 			assert(fixedLimitDetails);
 			assert.strictEqual(fixedLimitDetails.name, 'Test gui');
 			assert.strictEqual(fixedLimitDetails.description, 'Test description');
