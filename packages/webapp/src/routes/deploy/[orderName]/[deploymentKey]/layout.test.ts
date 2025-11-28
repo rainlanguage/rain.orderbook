@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { load } from './+layout';
-import { redirect } from '@sveltejs/kit';
 
 const deploymentMap = new Map([
 	['test-deployment', { name: 'Test Deployment', description: 'This is a test deployment' }]
@@ -45,6 +44,6 @@ describe('Layout load function', () => {
 				parent: mockParent
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any)
-		).rejects.toEqual(redirect(307, '/deploy'));
+		).rejects.toMatchObject({ status: 307, location: '/deploy' });
 	});
 });

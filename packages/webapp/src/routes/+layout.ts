@@ -16,14 +16,15 @@ export interface LayoutData {
 	stores: AppStoresInterface | null;
 	raindexClient: RaindexClient | null;
 	registry: DotrainRegistry | null;
-	registryUrl: string;
 	localDb: SQLiteWasmDatabase | null;
 }
 
 export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	let errorMessage: string | undefined;
+
 	const registryParam = url.searchParams.get('registry');
 	let registryUrl = REGISTRY_URL;
+
 	if (registryParam) {
 		registryUrl = registryParam;
 		if (typeof localStorage !== 'undefined') {
@@ -42,9 +43,8 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			}
 		}
 	}
-	let registry: DotrainRegistry | null = null;
-	let raindexClient: RaindexClient | null = null;
 
+	let registry: DotrainRegistry | null = null;
 	if (!errorMessage) {
 		try {
 			const registryResult = await DotrainRegistry.new(registryUrl);
@@ -58,6 +58,7 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 		}
 	}
 
+	let raindexClient: RaindexClient | null = null;
 	try {
 		if (!errorMessage && registry) {
 			const raindexClientRes = RaindexClient.new([registry.settings as string]);
@@ -72,16 +73,18 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	}
 
 	let localDb: SQLiteWasmDatabase | null = null;
-	try {
-		await init();
-		const localDbRes = SQLiteWasmDatabase.new('worker.db');
-		if (localDbRes.error) {
-			errorMessage = 'Error initializing local database: ' + localDbRes.error.readableMsg;
-		} else {
-			localDb = localDbRes.value;
+	if (!errorMessage) {
+		try {
+			await init();
+			const localDbRes = SQLiteWasmDatabase.new('worker.db');
+			if (localDbRes.error) {
+				errorMessage = 'Error initializing local database: ' + localDbRes.error.readableMsg;
+			} else {
+				localDb = localDbRes.value;
+			}
+		} catch (error: unknown) {
+			errorMessage = 'Error initializing local database: ' + (error as Error).message;
 		}
-	} catch (error: unknown) {
-		errorMessage = 'Error initializing local database: ' + (error as Error).message;
 	}
 
 	if (errorMessage) {
@@ -89,7 +92,6 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			errorMessage,
 			stores: null,
 			registry,
-			registryUrl,
 			localDb,
 			raindexClient: null
 		};
@@ -109,7 +111,6 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			activeTokens: writable<Address[]>([])
 		},
 		registry,
-		registryUrl,
 		localDb,
 		raindexClient
 	};
@@ -120,8 +121,12 @@ export const ssr = false;
 if (import.meta.vitest) {
 	const { describe, it, expect, beforeEach, vi } = import.meta.vitest;
 
-	const mockRegistryNew = vi.fn();
-	const mockRaindexClientNew = vi.fn();
+	const { mockRegistryNew, mockRaindexClientNew, mockInit, mockLocalDbNew } = vi.hoisted(() => ({
+		mockRegistryNew: vi.fn(),
+		mockRaindexClientNew: vi.fn(),
+		mockInit: vi.fn(),
+		mockLocalDbNew: vi.fn()
+	}));
 
 	vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 		const original = (await importOriginal()) as Record<string, unknown>;
@@ -136,10 +141,16 @@ if (import.meta.vitest) {
 		};
 	});
 
+	vi.mock('@rainlanguage/sqlite-web', () => ({
+		default: mockInit,
+		SQLiteWasmDatabase: {
+			new: mockLocalDbNew
+		}
+	}));
+
 	describe('Layout load function', () => {
 		beforeEach(() => {
 			vi.clearAllMocks();
-			vi.resetAllMocks();
 			// basic localStorage stub for load()
 			// @ts-expect-error mock storage
 			global.localStorage = {
@@ -154,6 +165,8 @@ if (import.meta.vitest) {
 					delete this.data[key];
 				}
 			};
+			mockInit.mockResolvedValue(undefined);
+			mockLocalDbNew.mockReturnValue({ value: { db: true } });
 		});
 
 		it('should return errorMessage if registry fails to load', async () => {

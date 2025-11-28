@@ -9,7 +9,7 @@ import {
 	type TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
 import { readable, writable } from 'svelte/store';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { DotrainRegistry, type NameAndDescriptionCfg } from '@rainlanguage/orderbook';
 import { REGISTRY_URL } from '$lib/constants';
 import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
@@ -53,33 +53,8 @@ vi.mock('$lib/stores/wagmi', () => ({
 }));
 
 describe('Full Deployment Tests', () => {
-	let fixedLimitOrder: string;
-	let auctionOrder: string;
-	let dynamicSpreadOrder: string;
-	const registryOrders: Record<string, string> = {};
-	const mockRegistry = {
-		getGui: vi.fn()
-	};
+	let registry: DotrainRegistry | null = null;
 
-	const fetchRegistry = async () => {
-		const response = await fetch(REGISTRY_URL);
-		const registry = await response.text();
-		const linksMap = Object.fromEntries(
-			registry
-				.split('\n')
-				.map((line) => line.trim().split(' '))
-				.filter((parts) => parts.length === 2)
-		);
-		return linksMap;
-	};
-	const fetchOrder = async (url: string) => {
-		try {
-			const response = await fetch(url);
-			return await response.text();
-		} catch (error) {
-			assert.fail(error as string);
-		}
-	};
 	function findLockRegion(a: string, b: string): { prefixEnd: number; suffixEnd: number } {
 		expect(a.length).toEqual(b.length);
 		const length = a.length;
@@ -97,16 +72,11 @@ describe('Full Deployment Tests', () => {
 	}
 
 	beforeAll(async () => {
-		const registry = await fetchRegistry();
-		fixedLimitOrder = await fetchOrder(registry['fixed-limit']);
-		assert(fixedLimitOrder, 'Fixed limit order not found');
-		registryOrders['fixed-limit'] = fixedLimitOrder;
-		auctionOrder = await fetchOrder(registry['auction-dca']);
-		assert(auctionOrder, 'Auction order not found');
-		registryOrders['auction-dca'] = auctionOrder;
-		dynamicSpreadOrder = await fetchOrder(registry['dynamic-spread']);
-		assert(dynamicSpreadOrder, 'Dynamic spread order not found');
-		registryOrders['dynamic-spread'] = dynamicSpreadOrder;
+		const registryResult = await DotrainRegistry.new(REGISTRY_URL);
+		if (registryResult.error) {
+			throw new Error('Failed to create registry');
+		}
+		registry = registryResult.value;
 	});
 
 	beforeEach(async () => {
@@ -127,16 +97,6 @@ describe('Full Deployment Tests', () => {
 			transactions: readable()
 		});
 		mockConnectedStore.mockSetSubscribeValue(true);
-		mockRegistry.getGui.mockReset();
-		mockRegistry.getGui.mockImplementation(
-			async (orderName: string, deploymentKey: string, serializedState, callback) => {
-				const dotrain = registryOrders[orderName];
-				if (!dotrain) {
-					return { error: { msg: 'missing order' } };
-				}
-				return DotrainOrderGui.newWithDeployment(dotrain, undefined, deploymentKey, callback);
-			}
-		);
 	});
 
 	afterEach(async () => {
@@ -146,18 +106,25 @@ describe('Full Deployment Tests', () => {
 	it(
 		'Fixed limit order',
 		async () => {
+			if (!registry) {
+				throw new Error('No registry available');
+			}
+
+			const fixedLimitDeploymentDetails = registry.getDeploymentDetails('fixed-limit');
+			if (fixedLimitDeploymentDetails.error) {
+				throw new Error('Failed to get deployment details');
+			}
+			const deployment = fixedLimitDeploymentDetails.value.get('flare') as NameAndDescriptionCfg;
+			const fixedLimitOrderDetail = registry
+				.getAllOrderDetails()
+				.value?.valid.get('fixed-limit') as NameAndDescriptionCfg;
+
 			mockPageStore.mockSetSubscribeValue({
 				data: {
 					orderName: 'fixed-limit',
-					deployment: {
-						key: 'flare',
-						name: 'flare',
-						description: ''
-					},
-					registry: mockRegistry,
-					orderDetail: {
-						name: 'Fixed limit'
-					}
+					deployment: { key: 'flare', ...deployment },
+					registry,
+					orderDetail: fixedLimitOrderDetail
 				}
 			});
 			const screen = render(Page);
@@ -167,14 +134,14 @@ describe('Full Deployment Tests', () => {
 				() => {
 					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
 				},
-				{ timeout: 300000 }
+				{ timeout: 30000 }
 			);
 
 			await waitFor(
 				() => {
 					expect(screen.getAllByRole('button', { name: /chevron down solid/i }).length).toBe(2);
 				},
-				{ timeout: 300000 }
+				{ timeout: 30000 }
 			);
 			const tokenSelectionButtons = screen.getAllByRole('button', { name: /chevron down solid/i });
 
@@ -184,7 +151,7 @@ describe('Full Deployment Tests', () => {
 				() => {
 					expect(screen.getByTestId('select-token-success-token1')).toBeInTheDocument();
 				},
-				{ timeout: 300000 }
+				{ timeout: 30000 }
 			);
 			await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -194,7 +161,7 @@ describe('Full Deployment Tests', () => {
 				() => {
 					expect(screen.getByTestId('select-token-success-token2')).toBeInTheDocument();
 				},
-				{ timeout: 300000 }
+				{ timeout: 30000 }
 			);
 			await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -225,12 +192,18 @@ describe('Full Deployment Tests', () => {
 					const disclaimerButton = screen.getByText('Deploy');
 					await userEvent.click(disclaimerButton);
 				},
-				{ timeout: 300000 }
+				{ timeout: 30000 }
 			);
 
 			const getDeploymentArgs = async () => {
-				const gui = (await DotrainOrderGui.newWithDeployment(fixedLimitOrder, undefined, 'flare'))
-					.value as DotrainOrderGui;
+				if (!registry) {
+					throw new Error('Registry not initialized');
+				}
+				const guiResult = await registry.getGui('fixed-limit', 'flare');
+				if (guiResult.error) {
+					throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
+				}
+				const gui = guiResult.value;
 				await gui.setSelectToken('token1', '0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d');
 				await gui.setSelectToken('token2', '0x12e605bc104e93B45e1aD99F9e555f659051c2BB');
 				gui.setVaultId('output', 'token1', '0x123');
@@ -271,7 +244,7 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 300000 }
+		{ timeout: 30000 }
 	);
 
 	// TODO: Issue #2037

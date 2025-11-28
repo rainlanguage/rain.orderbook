@@ -1,11 +1,11 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import DeployPage from './+page.svelte';
-import { goto } from '$app/navigation';
 import { useAccount, useToasts, useTransactions } from '@rainlanguage/ui-components';
 import { readable, writable } from 'svelte/store';
 
 const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
+const { mockedGoto } = await vi.hoisted(() => ({ mockedGoto: vi.fn() }));
 
 const { mockConnectedStore, mockAppKitModalStore } = await vi.hoisted(
 	() => import('$lib/__mocks__/stores')
@@ -18,12 +18,9 @@ vi.mock('$app/stores', async (importOriginal) => {
 	};
 });
 
-vi.mock('$app/navigation', async (importOriginal) => {
-	return {
-		...((await importOriginal()) as object),
-		goto: vi.fn()
-	};
-});
+vi.mock('$app/navigation', () => ({
+	goto: mockedGoto
+}));
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const mockDeploymentSteps = (await import('$lib/__mocks__/MockComponent.svelte')).default;
@@ -129,7 +126,7 @@ describe('DeployPage', () => {
 
 		await vi.runAllTimersAsync();
 
-		expect(goto).toHaveBeenCalledWith('/deploy');
+		expect(mockedGoto).toHaveBeenCalledWith('/deploy');
 
 		vi.useRealTimers();
 	});
