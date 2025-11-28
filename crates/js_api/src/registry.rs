@@ -120,6 +120,10 @@ pub struct OrderDetailsResult {
 }
 impl_wasm_traits!(OrderDetailsResult);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct OrderUrls(pub HashMap<String, String>);
+impl_wasm_traits!(OrderUrls);
+
 #[derive(Error, Debug)]
 pub enum DotrainRegistryError {
     #[error("Failed to fetch registry from URL: {0}")]
@@ -202,20 +206,17 @@ impl DotrainRegistry {
         self.settings.clone()
     }
     #[wasm_bindgen(getter = orderUrls)]
-    pub fn order_urls(&self) -> js_sys::Map {
-        let map = js_sys::Map::new();
-        for (key, value) in &self.order_urls {
-            map.set(&key.into(), &value.to_string().into());
-        }
-        map
+    pub fn order_urls(&self) -> OrderUrls {
+        OrderUrls(
+            self.order_urls
+                .iter()
+                .map(|(key, value)| (key.clone(), value.to_string()))
+                .collect(),
+        )
     }
     #[wasm_bindgen(getter = orders)]
-    pub fn orders(&self) -> js_sys::Map {
-        let map = js_sys::Map::new();
-        for (key, value) in &self.orders {
-            map.set(&key.into(), &value.into());
-        }
-        map
+    pub fn orders(&self) -> OrderUrls {
+        OrderUrls(self.orders.clone())
     }
 }
 
@@ -994,10 +995,10 @@ _ _: 1 1;
             assert_eq!(registry.settings(), MOCK_SETTINGS_CONTENT);
 
             let order_urls_map = registry.order_urls();
-            assert_eq!(order_urls_map.size(), 1);
+            assert_eq!(order_urls_map.0.len(), 1);
 
             let orders_map = registry.orders();
-            assert_eq!(orders_map.size(), 1);
+            assert_eq!(orders_map.0.len(), 1);
         }
 
         #[wasm_bindgen_test]
