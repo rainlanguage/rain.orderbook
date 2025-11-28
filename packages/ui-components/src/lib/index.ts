@@ -86,6 +86,7 @@ export type {
 } from './types/modal';
 export type { ValidOrderDetail, InvalidOrderDetail } from './types/order.ts';
 export type { ToastProps } from './types/toast';
+export type { DotrainRegistryContext } from './providers/dotrainRegistry/context';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -133,6 +134,7 @@ export { default as GuiProvider } from './providers/GuiProvider.svelte';
 export { default as RaindexClientProvider } from './providers/RaindexClientProvider.svelte';
 export { default as WalletProvider } from './providers/wallet/WalletProvider.svelte';
 export { default as RegistryProvider } from './providers/registry/RegistryProvider.svelte';
+export { default as DotrainRegistryProvider } from './providers/dotrainRegistry/DotrainRegistryProvider.svelte';
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
 export { default as TransactionProvider } from './providers/transactions/TransactionProvider.svelte';
 export { default as LocalDbProvider } from './providers/LocalDbProvider.svelte';
@@ -143,6 +145,7 @@ export { useRaindexClient, RAINDEX_CLIENT_CONTEXT_KEY } from './hooks/useRaindex
 export { useLocalDb } from './hooks/useLocalDb';
 export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
+export { useDotrainRegistry } from './providers/dotrainRegistry/useDotrainRegistry';
 export { useToasts } from './providers/toasts/useToasts';
 export { useTransactions } from './providers/transactions/useTransactions';
 

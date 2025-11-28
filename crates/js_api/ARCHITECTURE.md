@@ -127,7 +127,7 @@
     - Subsequent lines: `"<orderKey> <url-to-order.rain>"`
   - Flow:
     - `DotrainRegistry.new(registryUrl)` → fetch registry text → parse → fetch settings → fetch all orders (concurrently) → store in-memory.
-    - `getAllOrderDetails()` → parse order-level metadata for every merged dotrain.
+    - `getAllOrderDetails()` → parse order-level metadata for every merged dotrain, returning both valid and invalid entries (with errors) keyed by order.
     - `getOrderKeys()` → keys from `order_urls`.
     - `getDeploymentDetails(orderKey)` → deployment name/description map for a specific order.
   - `getGui(orderKey, deploymentKey, serializedState?, stateCallback?)` → merge `settings + order`, optionally restore serialized state, and produce a `DotrainOrderGui` instance.

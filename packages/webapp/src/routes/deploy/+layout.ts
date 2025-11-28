@@ -1,42 +1,67 @@
-import { REGISTRY_URL } from '$lib/constants';
 import type { LayoutLoad } from './$types';
 import type { InvalidOrderDetail, ValidOrderDetail } from '@rainlanguage/ui-components';
-import { fetchRegistryDotrains, validateOrders } from '@rainlanguage/ui-components/services';
-import type { RegistryDotrain } from '@rainlanguage/ui-components/services';
+import type { DotrainRegistry } from '@rainlanguage/orderbook';
 
 /**
-+ * Type defining the structure of the load function's return value,
-+ * including registry information and validation results.
-+ */
+ * Type defining the structure of the load function's return value,
+ * including registry information and validation results.
+ */
 type LoadResult = {
-	registryFromUrl: string;
-	registryDotrains: RegistryDotrain[];
 	validOrders: ValidOrderDetail[];
 	invalidOrders: InvalidOrderDetail[];
+	registry: DotrainRegistry | null;
 	error: string | null;
 };
 
-export const load: LayoutLoad<LoadResult> = async ({ url }) => {
-	const registryFromUrl = url.searchParams.get('registry') || REGISTRY_URL;
+export const load: LayoutLoad<LoadResult> = async ({ parent }) => {
+	const parentData = await parent();
+	const registry = (parentData as { registry?: DotrainRegistry | null }).registry ?? null;
+
+	if (!registry) {
+		return {
+			validOrders: [],
+			invalidOrders: [],
+			registry,
+			error: 'Registry not loaded'
+		};
+	}
 
 	try {
-		const registryDotrains = await fetchRegistryDotrains(registryFromUrl);
+		const orderDetails = registry.getAllOrderDetails();
+		if (orderDetails.error) {
+			return {
+				validOrders: [],
+				invalidOrders: [],
+				registry,
+				error: orderDetails.error.readableMsg ?? orderDetails.error.msg
+			};
+		}
 
-		const { validOrders, invalidOrders } = await validateOrders(registryDotrains);
+		const validOrders: ValidOrderDetail[] = Array.from(orderDetails.value.valid.entries()).map(
+			([name, details]) => ({
+				name,
+				dotrain: registry.orders.get(name) ?? '',
+				details
+			})
+		);
+		const invalidOrders: InvalidOrderDetail[] = Array.from(
+			orderDetails.value.invalid.entries()
+		).map(([name, err]) => ({
+			name,
+			error: err.readableMsg ?? err.msg
+		}));
 
 		return {
-			registryFromUrl,
-			registryDotrains,
 			validOrders,
 			invalidOrders,
+			registry,
 			error: null
 		};
 	} catch (error: unknown) {
 		return {
-			registryFromUrl,
-			registryDotrains: [],
 			validOrders: [],
 			invalidOrders: [],
+			registry,
 			error: error instanceof Error ? error.message : 'Unknown error occurred'
 		};
 	}

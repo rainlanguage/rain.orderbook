@@ -2,6 +2,20 @@ import { writable } from 'svelte/store';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 
+type MockDeployment = { key: string; name?: string; description?: string } | null;
+
+type MockPageState = {
+	data: Record<string, unknown> & { deployment: MockDeployment };
+	url: URL;
+	params: Record<string, unknown>;
+	form: Record<string, unknown>;
+	status: number;
+	error: unknown;
+	route: {
+		id: string | null;
+	};
+};
+
 if (import.meta.vitest) {
 	vi.mock(import('@rainlanguage/orderbook'), async (importOriginal) => {
 		const actual = await importOriginal();
@@ -11,10 +25,10 @@ if (import.meta.vitest) {
 	});
 }
 
-const initialPageState = {
+const initialPageState: MockPageState = {
 	data: {
 		dotrain: 'some dotrain content',
-		deployment: { key: 'deploy-key' },
+		deployment: { key: 'deploy-key', name: '', description: '' },
 		orderDetail: {}
 	},
 	url: new URL('http://localhost:3000/deploy'),
@@ -27,7 +41,7 @@ const initialPageState = {
 	}
 };
 
-const mockPageWritable = writable<typeof initialPageState>(initialPageState);
+const mockPageWritable = writable<MockPageState>(initialPageState);
 const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
 const mockShowInactiveOrdersWritable = writable<boolean>(true);
 const mockOrderHashWritable = writable<string>('');
@@ -127,7 +141,7 @@ export const mockSelectedChainIdsStore = {
 export const mockPageStore = {
 	subscribe: mockPageWritable.subscribe,
 	set: mockPageWritable.set,
-	mockSetSubscribeValue: (newValue: Partial<typeof initialPageState>): void => {
+	mockSetSubscribeValue: (newValue: Partial<MockPageState>): void => {
 		mockPageWritable.update((currentValue) => ({
 			...currentValue,
 			...newValue
