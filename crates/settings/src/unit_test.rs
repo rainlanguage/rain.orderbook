@@ -83,6 +83,7 @@ impl TestConfigSource {
 
         let scenario = Arc::new(ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            documents: Arc::new(Vec::new()),
             key: self.scenario_name.clone(),
             bindings: bindings.clone(),
             runs: self.scenario.runs,

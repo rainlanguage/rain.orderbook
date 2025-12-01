@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import OrderPage from '../lib/components/deployment/OrderPage.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
-import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
+import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -14,24 +14,18 @@ vi.mock('../lib/components/deployment/DeploymentsSection.svelte', async () => {
 
 describe('OrderPage', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		vi.resetAllMocks();
+		mockFetch.mockReset();
 	});
 
-	it('renders order details successfully with rawDotrain', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
-				name: 'Test Order',
-				description: 'Test Description',
-				short_description: 'Test Short Description'
-			}
-		};
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
-
+	it('renders order details when provided directly', async () => {
 		render(OrderPage, {
 			props: {
-				dotrain: mockDotrain
+				orderName: 'TestOrder',
+				orderDetail: {
+					name: 'Test Order',
+					description: 'Test Description',
+					short_description: 'Test Short Description'
+				}
 			}
 		});
 
@@ -41,107 +35,20 @@ describe('OrderPage', () => {
 		});
 	});
 
-	it('renders order details successfully from fetch', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
-				name: 'Test Order',
-				description: 'Test Description',
-				short_description: 'Test Short Description'
-			}
-		};
-
-		mockFetch.mockResolvedValueOnce({
-			text: () => Promise.resolve(mockDotrain)
-		});
-
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
-
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
-
-		await waitFor(() => {
-			expect(screen.getByText('Test Order')).toBeInTheDocument();
-			expect(screen.getByText('Test Description')).toBeInTheDocument();
-		});
-	});
-
-	it('displays error message when order details fail', async () => {
-		const mockDotrain = 'mock dotrain content';
-
-		// Mock fetch response
-		mockFetch.mockResolvedValueOnce({
-			text: () => Promise.resolve(mockDotrain)
-		});
-
-		// Mock DotrainOrderGui methods
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce({
-			error: {
-				msg: 'Failed to get order details'
-			}
-		});
-
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
-
-		await waitFor(() => {
-			expect(screen.getByText('Error: Failed to get order details')).toBeInTheDocument();
-		});
-	});
-
-	it('handles markdown fetch failure', async () => {
-		const mockDotrain = 'mock dotrain content';
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce({
-			value: {
-				name: 'Test Order',
-				description: 'https://example.com/description.md',
-				short_description: 'Test Short Description'
-			}
-		});
-		// Mock fetch to reject
-		mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
-
-		render(OrderPage, {
-			props: {
-				orderName: 'TestOrder',
-				dotrain: mockDotrain
-			}
-		});
-
-		await waitFor(() => {
-			expect(screen.getByText('Failed to fetch markdown')).toBeInTheDocument();
-		});
-	});
-
-	it('renders markdown if description is a markdown url', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
-				name: 'Test Order',
-				description: 'https://example.com/description.md',
-				short_description: 'Test Short Description'
-			}
-		};
-
+	it('renders markdown when description is a markdown url', async () => {
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			text: () => Promise.resolve('mock markdown content')
 		});
 
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
-
 		render(OrderPage, {
 			props: {
 				orderName: 'TestOrder',
-				dotrain: mockDotrain
+				orderDetail: {
+					name: 'Test Order',
+					description: 'https://example.com/description.md',
+					short_description: 'Test Short Description'
+				}
 			}
 		});
 
@@ -152,27 +59,39 @@ describe('OrderPage', () => {
 		});
 	});
 
-	it('falls back to plain text when markdown fetch fails', async () => {
-		const mockDotrain = 'mock dotrain content';
-		const mockOrderDetails = {
-			value: {
-				name: 'Test Order',
-				description: 'https://example.com/description.md',
-				short_description: 'Test Short Description'
-			}
-		};
+	it('handles markdown fetch failure', async () => {
+		mockFetch.mockRejectedValueOnce(new Error('Failed to fetch'));
 
+		render(OrderPage, {
+			props: {
+				orderName: 'TestOrder',
+				orderDetail: {
+					name: 'Test Order',
+					description: 'https://example.com/description.md',
+					short_description: 'Test Short Description'
+				}
+			}
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Failed to fetch markdown')).toBeInTheDocument();
+		});
+	});
+
+	it('falls back to plain text when markdown fetch is not ok', async () => {
 		mockFetch.mockResolvedValueOnce({
 			ok: false,
 			statusText: 'Not Found'
 		});
 
-		(DotrainOrderGui.getOrderDetails as Mock).mockResolvedValueOnce(mockOrderDetails);
-
 		render(OrderPage, {
 			props: {
 				orderName: 'TestOrder',
-				dotrain: mockDotrain
+				orderDetail: {
+					name: 'Test Order',
+					description: 'https://example.com/description.md',
+					short_description: 'Test Short Description'
+				}
 			}
 		});
 
@@ -182,5 +101,17 @@ describe('OrderPage', () => {
 				'https://example.com/description.md'
 			);
 		});
+	});
+
+	it('shows fallback when order detail is missing', () => {
+		render(OrderPage, {
+			// Casting to satisfy the required prop in tests
+			props: {
+				orderName: 'TestOrder',
+				orderDetail: undefined as unknown as NameAndDescriptionCfg
+			}
+		});
+
+		expect(screen.getByText('Failed to load order details.')).toBeInTheDocument();
 	});
 });

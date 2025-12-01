@@ -8,12 +8,14 @@ vi.mock('@sveltejs/kit', () => ({
 
 describe('Layout load function', () => {
 	const mockorderName = 'test-order';
-	const mockDotrain = 'https://dotrain.example.com';
 	const mockorderDetail = {
 		name: 'Test Order',
 		description: 'This is a test order',
 		config: {}
 	};
+	const mockDeployments = new Map([
+		['test-deployment', { name: 'Test Deployment', description: 'desc' }]
+	]);
 
 	const mockParent = vi.fn();
 
@@ -21,10 +23,6 @@ describe('Layout load function', () => {
 		vi.resetAllMocks();
 
 		mockParent.mockResolvedValue({
-			registryDotrains: [
-				{ name: mockorderName, dotrain: mockDotrain },
-				{ name: 'other-order', dotrain: 'https://other.example.com' }
-			],
 			validOrders: [
 				{
 					name: mockorderName,
@@ -34,7 +32,11 @@ describe('Layout load function', () => {
 					name: 'other-order',
 					details: { name: 'Other', description: 'Other order', config: {} }
 				}
-			]
+			],
+			invalidOrders: [],
+			registry: {
+				getDeploymentDetails: vi.fn().mockReturnValue({ value: mockDeployments })
+			}
 		});
 	});
 
@@ -47,14 +49,17 @@ describe('Layout load function', () => {
 
 		expect(mockParent).toHaveBeenCalled();
 		expect(result).toEqual({
-			dotrain: mockDotrain,
 			orderName: mockorderName,
 			orderDetail: mockorderDetail,
+			deployments: mockDeployments,
+			registry: {
+				getDeploymentDetails: expect.any(Function)
+			},
 			pageName: mockorderName
 		});
 	});
 
-	it('should redirect if order name is not found in registryDotrains', async () => {
+	it('should redirect if order name is not found in validOrders', async () => {
 		try {
 			await load({
 				params: { orderName: 'non-existent-order' },
@@ -68,10 +73,14 @@ describe('Layout load function', () => {
 
 	it('should redirect if order details are not found in validOrders', async () => {
 		mockParent.mockResolvedValue({
-			registryDotrains: [{ name: 'incomplete-order', dotrain: 'https://incomplete.example.com' }],
 			validOrders: [
+				{ name: 'incomplete-order', details: undefined },
 				{ name: 'other-order', details: { name: 'Other', description: '', config: {} } }
-			]
+			],
+			invalidOrders: [],
+			registry: {
+				getDeploymentDetails: vi.fn().mockReturnValue({ value: mockDeployments })
+			}
 		});
 
 		try {

@@ -1,7 +1,7 @@
 use crate::error::CommandResult;
 use crate::{toast::toast_error, transaction_status::TransactionStatusNoticeRwLock};
 use alloy::primitives::Bytes;
-use rain_orderbook_app_settings::{deployment::DeploymentCfg, scenario::ScenarioCfg};
+use rain_orderbook_app_settings::{yaml::default_documents, deployment::DeploymentCfg, scenario::ScenarioCfg};
 use rain_orderbook_common::{
     add_order::AddOrderArgs, csv::TryIntoCsv, dotrain_order::DotrainOrder,
     remove_order::RemoveOrderArgs, subgraph::SubgraphArgs, transaction::TransactionArgs,
@@ -595,6 +595,7 @@ _ _: 0 0;
             None,
             ScenarioCfg {
                 document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                documents: default_documents(),
                 key: "polygon".to_string(),
                 bindings: HashMap::new(),
                 runs: None,
@@ -646,6 +647,7 @@ _ _: 0 0;
             None,
             ScenarioCfg {
                 document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                documents: default_documents(),
                 key: "nonexistent".to_string(),
                 bindings: HashMap::new(),
                 runs: None,
@@ -696,6 +698,7 @@ _ _: invalid syntax;
             None,
             ScenarioCfg {
                 document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+                documents: default_documents(),
                 key: "polygon".to_string(),
                 bindings: HashMap::new(),
                 runs: None,

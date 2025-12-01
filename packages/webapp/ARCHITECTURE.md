@@ -32,7 +32,7 @@ nix develop -c npm run dev
 ## Runtime & State
 
 - App bootstrap (`src/routes/+layout.ts`)
-  - Fetches a remote settings YAML (`REMOTE_SETTINGS_URL`) and constructs a `RaindexClient` from `@rainlanguage/orderbook`.
+  - Loads the dotrain registry (`REGISTRY_URL` or `?registry=` override) via the WASM `DotrainRegistry` and constructs a `RaindexClient` from the registry’s shared settings.
   - Exposes a set of Svelte stores (selected chains, active accounts, filters, etc.) to child routes.
   - `export const ssr = false;` — the app renders client‑side only.
 - Layout shell (`src/routes/+layout.svelte`)
@@ -112,8 +112,7 @@ PUBLIC_WALLETCONNECT_PROJECT_ID=<your_walletconnect_project_id>
 - Notes
   - Use the `PUBLIC_` prefix (SvelteKit convention) for variables that must be available in the browser.
   - Never commit secrets. Use Vercel/hosted environment variables for deploys.
-  - Settings source: `REMOTE_SETTINGS_URL` in `src/routes/+layout.ts` controls where the app fetches YAML configuration.
-  - Deploy registry: `REGISTRY_URL` in `src/lib/constants.ts` can be overridden via the `?registry=` query parameter.
+  - Deploy registry: `REGISTRY_URL` in `src/lib/constants.ts` can be overridden via the `?registry=` query parameter (persisted by `RegistryManager`).
 
 
 ## How It Fits The Workspace
@@ -133,4 +132,3 @@ PUBLIC_WALLETCONNECT_PROJECT_ID=<your_walletconnect_project_id>
 
 
 This document explains the purpose and structure of `packages/webapp`, how the app boots and wires providers, where key features live, and how it integrates with the rest of the Rain Orderbook workspace.
-
