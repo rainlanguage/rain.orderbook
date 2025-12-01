@@ -24,6 +24,7 @@ use rain_orderbook_subgraph_client::{
     },
     MultiOrderbookSubgraphClient,
     OrderbookSubgraphClient,
+    OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
 use serde::{Deserialize, Serialize};
@@ -619,12 +620,6 @@ impl RaindexClient {
 
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
-        if local_ids.is_empty() && sg_ids.is_empty() {
-            return subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await;
-        }
-
         match self.local_db() {
             Some(local_db) => {
                 if !local_ids.is_empty() {
@@ -760,9 +755,14 @@ impl OrdersDataSource for SubgraphOrders<'_> {
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let raindex_client = Rc::new(self.client.clone());
         let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
-        let order = client
+        let order = match client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
-            .await?;
+            .await
+        {
+            Ok(order) => order,
+            Err(OrderbookSubgraphClientError::Empty) => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
         let order = RaindexOrder::try_from_sg_order(raindex_client, ob_id.chain_id, order, None)?;
         Ok(Some(order))
     }
@@ -795,7 +795,11 @@ impl RaindexClient {
             .get_by_hash(ob_id, &order_hash)
             .await?
             .ok_or_else(|| {
-                RaindexError::OrderbookNotFound(ob_id.orderbook_address.to_string(), ob_id.chain_id)
+                RaindexError::OrderNotFound(
+                    ob_id.orderbook_address.to_string(),
+                    ob_id.chain_id,
+                    order_hash.clone(),
+                )
             })
     }
 }
@@ -1575,6 +1579,49 @@ mod tests {
                 res.vaults_list().items()[2].id(),
                 expected_order.inputs[1].id()
             );
+        }
+
+        #[tokio::test]
+        async fn test_get_order_by_hash_not_found() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+            let order_hash = Bytes::from_str("0x0123").unwrap();
+            let res = raindex_client
+                .get_order_by_hash(
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
+                    order_hash.clone(),
+                )
+                .await;
+
+            match res {
+                Err(RaindexError::OrderNotFound(address, chain_id, hash)) => {
+                    assert_eq!(address, CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string());
+                    assert_eq!(chain_id, 1);
+                    assert_eq!(hash, order_hash);
+                }
+                Err(err) => panic!("unexpected error {err:?}"),
+                Ok(_) => panic!("expected error"),
+            }
         }
 
         #[tokio::test]

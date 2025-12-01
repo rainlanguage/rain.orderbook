@@ -9,7 +9,7 @@ use alloy::{
     hex::FromHexError,
     primitives::{
         ruint::{FromUintError, ParseError},
-        Address, ParseSignedError,
+        Address, Bytes, ParseSignedError,
     },
 };
 use rain_math_float::FloatError;
@@ -295,6 +295,8 @@ pub enum RaindexError {
     DepositArgsError(#[from] DepositError),
     #[error("Orderbook not found for address: {0} on chain ID: {1}")]
     OrderbookNotFound(String, u32),
+    #[error("Order not found for address: {0} on chain ID: {1} with hash: {2}")]
+    OrderNotFound(String, u32, Bytes),
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
     #[error(transparent)]
@@ -417,6 +419,12 @@ impl RaindexError {
                 format!(
                     "Orderbook not found for address: {} on chain ID: {}",
                     address, chain_id
+                )
+            }
+            RaindexError::OrderNotFound(address, chain_id, order_hash) => {
+                format!(
+                    "Order not found for address: {} on chain ID: {} with hash: {}",
+                    address, chain_id, order_hash
                 )
             }
             RaindexError::OrderDetailError(err) => {

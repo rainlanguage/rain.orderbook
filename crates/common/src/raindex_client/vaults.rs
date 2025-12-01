@@ -1100,6 +1100,11 @@ impl RaindexClient {
             return Ok(RaindexVaultsList::new(vaults));
         };
 
+        if ids.is_empty() {
+            let vaults = self.get_vaults_sg(None, filters, page).await?;
+            return Ok(RaindexVaultsList::new(vaults));
+        };
+
         let mut local_ids = Vec::new();
         let mut sg_ids = Vec::new();
 
@@ -1115,11 +1120,6 @@ impl RaindexClient {
 
         if self.local_db().is_none() {
             sg_ids.append(&mut local_ids);
-        }
-
-        if local_ids.is_empty() && sg_ids.is_empty() {
-            let vaults = self.get_vaults_sg(None, filters, page).await?;
-            return Ok(RaindexVaultsList::new(vaults));
         }
 
         if let Some(local_db) = self.local_db() {

@@ -37,7 +37,6 @@ pub(crate) struct LocalDb {
     query_text_fn: Rc<QueryTextFn>,
     query_json_fn: Rc<QueryJsonFn>,
 }
-unsafe impl Sync for LocalDb {}
 
 impl LocalDb {
     pub(crate) fn new<E>(executor: E) -> Self
@@ -242,9 +241,6 @@ mod tests {
             }
         }
     }
-
-    // We only share immutable references across threads; Mutex guards the interior.
-    unsafe impl Sync for RecordingExec {}
 
     #[async_trait::async_trait(?Send)]
     impl LocalDbQueryExecutor for RecordingExec {
