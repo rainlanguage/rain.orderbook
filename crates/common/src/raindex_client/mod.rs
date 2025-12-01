@@ -1,5 +1,5 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
-use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
+use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -84,7 +84,7 @@ impl_wasm_traits!(ChainIds);
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
     #[serde(skip_serializing, skip_deserializing)]
-    local_db_callback: Rc<RefCell<Option<js_sys::Function>>>,
+    local_db: Rc<RefCell<Option<LocalDb>>>,
     #[serde(skip_serializing, skip_deserializing)]
     local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
 }
@@ -131,7 +131,7 @@ impl RaindexClient {
         )?;
         Ok(RaindexClient {
             orderbook_yaml,
-            local_db_callback: Rc::new(RefCell::new(None)),
+            local_db: Rc::new(RefCell::new(None)),
             local_db_scheduler: Rc::new(RefCell::new(None)),
         })
     }
@@ -145,8 +145,8 @@ impl RaindexClient {
         )]
         callback: js_sys::Function,
     ) -> Result<(), RaindexError> {
-        let mut slot = self.local_db_callback.borrow_mut();
-        *slot = Some(callback);
+        let mut slot = self.local_db.borrow_mut();
+        *slot = Some(LocalDb::from_js_callback(callback));
         Ok(())
     }
 
@@ -225,8 +225,8 @@ impl RaindexClient {
         Ok(orderbooks)
     }
 
-    fn local_db_callback(&self) -> Option<js_sys::Function> {
-        self.local_db_callback.borrow().as_ref().cloned()
+    fn local_db(&self) -> Option<LocalDb> {
+        self.local_db.borrow().as_ref().cloned()
     }
 }
 
