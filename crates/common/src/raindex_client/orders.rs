@@ -1,4 +1,4 @@
-use super::local_db::executor::JsCallbackExecutor;
+use super::local_db::orders::LocalDbOrders;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vault::LocalDbVault;
@@ -12,6 +12,7 @@ use crate::{
     },
 };
 use alloy::primitives::{keccak256, Address, Bytes, U256};
+use async_trait::async_trait;
 use csv::{ReaderBuilder, Terminator};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
@@ -32,6 +33,31 @@ use tsify::Tsify;
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
+
+pub(crate) struct SubgraphOrders<'a> {
+    client: &'a RaindexClient,
+}
+impl<'a> SubgraphOrders<'a> {
+    pub(crate) fn new(client: &'a RaindexClient) -> Self {
+        Self { client }
+    }
+}
+
+#[async_trait(?Send)]
+pub(crate) trait OrdersDataSource {
+    async fn list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetOrdersFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexOrder>, RaindexError>;
+
+    async fn get_by_hash(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &Bytes,
+    ) -> Result<Option<RaindexOrder>, RaindexError>;
+}
 
 /// A single order representation within a given orderbook.
 ///
@@ -564,91 +590,62 @@ impl RaindexClient {
         #[wasm_export(param_description = "Page number for pagination (optional, defaults to 1)")]
         page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let Some(ids) = chain_ids else {
-            return self.get_orders_sg(None, filters, page).await;
+        let filters = filters.unwrap_or_default();
+        let page_number = page.unwrap_or(1);
+        let subgraph_source = SubgraphOrders::new(self);
+
+        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
+            return subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await;
         };
 
-        let all_ids = ids.0;
+        if ids.is_empty() {
+            return subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await;
+        }
 
-        let Some(db_cb) = self.local_db_callback() else {
-            return self.get_orders_sg(Some(all_ids), filters, page).await;
-        };
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
 
-        let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
-            .into_iter()
-            .partition(|&id| is_chain_supported_local_db(id));
+        for id in ids.drain(..) {
+            if is_chain_supported_local_db(id) {
+                local_ids.push(id);
+            } else {
+                sg_ids.push(id);
+            }
+        }
 
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
         if local_ids.is_empty() && sg_ids.is_empty() {
-            return self.get_orders_sg(None, filters, page).await;
+            return subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await;
         }
 
-        if !local_ids.is_empty() {
-            let exec = JsCallbackExecutor::from_ref(&db_cb);
-            let local_orders = self
-                .get_orders_local_db(exec, local_ids, filters.clone())
-                .await?;
-            orders.extend(local_orders);
+        match self.local_db() {
+            Some(local_db) => {
+                if !local_ids.is_empty() {
+                    let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+                    let local_orders = local_source
+                        .list(Some(local_ids.clone()), &filters, None)
+                        .await?;
+                    orders.extend(local_orders);
+                }
+            }
+            None => {
+                sg_ids.append(&mut local_ids);
+            }
         }
 
         if !sg_ids.is_empty() {
-            let sg = self.get_orders_sg(Some(sg_ids), filters, page).await?;
+            let sg = subgraph_source
+                .list(Some(sg_ids), &filters, Some(page_number))
+                .await?;
             orders.extend(sg);
         }
-
-        Ok(orders)
-    }
-
-    async fn get_orders_sg(
-        &self,
-        chain_ids: Option<Vec<u32>>,
-        filters: Option<GetOrdersFilters>,
-        page: Option<u16>,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
-        let multi_subgraph_args = self.get_multi_subgraph_args(chain_ids)?;
-
-        let client = MultiOrderbookSubgraphClient::new(
-            multi_subgraph_args.values().flatten().cloned().collect(),
-        );
-
-        let orders = client
-            .orders_list(
-                filters
-                    .unwrap_or(GetOrdersFilters {
-                        owners: vec![],
-                        active: None,
-                        order_hash: None,
-                        tokens: None,
-                    })
-                    .try_into()?,
-                SgPaginationArgs {
-                    page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
-                },
-            )
-            .await;
-
-        let orders = orders
-            .iter()
-            .map(|order| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or(RaindexError::SubgraphNotFound(
-                        order.subgraph_name.clone(),
-                        order.order.order_hash.0.clone(),
-                    ))?;
-                RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
-                    chain_id,
-                    order.order.clone(),
-                    None,
-                )
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
 
         Ok(orders)
     }
@@ -707,6 +704,70 @@ impl RaindexClient {
         .await
     }
 }
+
+#[async_trait(?Send)]
+impl OrdersDataSource for SubgraphOrders<'_> {
+    async fn list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetOrdersFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
+
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
+        let orders = client
+            .orders_list(
+                filters.clone().try_into()?,
+                SgPaginationArgs {
+                    page: page.unwrap_or(1),
+                    page_size: DEFAULT_PAGE_SIZE,
+                },
+            )
+            .await;
+
+        let orders = orders
+            .iter()
+            .map(|order| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or(RaindexError::SubgraphNotFound(
+                        order.subgraph_name.clone(),
+                        order.order.order_hash.0.clone(),
+                    ))?;
+                RaindexOrder::try_from_sg_order(
+                    raindex_client.clone(),
+                    chain_id,
+                    order.order.clone(),
+                    None,
+                )
+            })
+            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+
+        Ok(orders)
+    }
+
+    async fn get_by_hash(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &Bytes,
+    ) -> Result<Option<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
+        let order = RaindexOrder::try_from_sg_order(raindex_client, ob_id.chain_id, order, None)?;
+        Ok(Some(order))
+    }
+}
+
 impl RaindexClient {
     pub async fn get_order_by_hash(
         &self,
@@ -721,30 +782,25 @@ impl RaindexClient {
             ));
         }
 
-        let order_hash_hex = order_hash.to_string();
-
         if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-                if let Some(order) = self
-                    .get_order_by_hash_local_db(&exec, ob_id, &order_hash_hex)
-                    .await?
-                {
+            if let Some(local_db) = self.local_db() {
+                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+                if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
                     return Ok(order);
                 }
             }
         }
 
-        let raindex_client = Rc::new(self.clone());
-        let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
-        let order = client.order_detail_by_hash(SgBytes(order_hash_hex)).await?;
-        let order =
-            RaindexOrder::try_from_sg_order(raindex_client.clone(), ob_id.chain_id, order, None)?;
-        Ok(order)
+        SubgraphOrders::new(self)
+            .get_by_hash(ob_id, &order_hash)
+            .await?
+            .ok_or_else(|| {
+                RaindexError::OrderbookNotFound(ob_id.orderbook_address.to_string(), ob_id.chain_id)
+            })
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GetOrdersFilters {
     #[tsify(type = "Address[]")]
