@@ -393,8 +393,10 @@ mod test_helpers {
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
         use alloy::primitives::{Address, Bytes};
+        use js_sys::Array;
         use rain_orderbook_subgraph_client::utils::float::{F1, F2, F3, NEG2};
         use serde_json::{self, json};
+        use std::collections::HashMap;
         use std::str::FromStr;
         use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
         use wasm_bindgen_test::wasm_bindgen_test;
@@ -417,6 +419,7 @@ mod test_helpers {
             trade_log_index: u64,
             trade_count: u64,
         ) -> LocalTradeFixture {
+            const CHAIN_ID: u32 = 42161;
             const ORDERBOOK_ADDRESS: &str = "0x2f209e5b67a33b8fe96e28f24628df6da301c8eb";
             const ORDER_HASH: &str =
                 "0x0000000000000000000000000000000000000000000000000000000000000abc";
@@ -440,22 +443,6 @@ mod test_helpers {
                 trade_log_index
             )
             .to_lowercase();
-
-            let order = LocalDbOrder {
-                order_hash: ORDER_HASH.to_string(),
-                owner: OWNER.to_string(),
-                block_timestamp: 1_700_000_010,
-                block_number: 123_456,
-                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
-                order_bytes: "0x00000000000000000000000000000000000000000000000000000000000000ff"
-                    .to_string(),
-                transaction_hash: tx_hash.to_string(),
-                inputs: Some(format!("0:{}:{}", INPUT_VAULT_ID, INPUT_TOKEN)),
-                outputs: Some(format!("0:{}:{}", OUTPUT_VAULT_ID, OUTPUT_TOKEN)),
-                trade_count,
-                active: true,
-                meta: Some("0x1234".to_string()),
-            };
 
             let input_vault = LocalDbVault {
                 vault_id: INPUT_VAULT_ID.to_string(),
@@ -481,6 +468,35 @@ mod test_helpers {
                 balance: OUTPUT_RUNNING_HEX.to_string(),
                 input_orders: None,
                 output_orders: Some(format!("0x01:{}:0", ORDER_HASH)),
+            };
+
+            let order_inputs_payload = serde_json::to_string(&vec![json!({
+                "ioIndex": 0,
+                "vault": input_vault.clone()
+            })])
+            .unwrap();
+
+            let order_outputs_payload = serde_json::to_string(&vec![json!({
+                "ioIndex": 0,
+                "vault": output_vault.clone()
+            })])
+            .unwrap();
+
+            let order = LocalDbOrder {
+                chain_id: CHAIN_ID,
+                order_hash: ORDER_HASH.to_string(),
+                owner: OWNER.to_string(),
+                block_timestamp: 1_700_000_010,
+                block_number: 123_456,
+                orderbook_address: ORDERBOOK_ADDRESS.to_string(),
+                order_bytes: "0x00000000000000000000000000000000000000000000000000000000000000ff"
+                    .to_string(),
+                transaction_hash: tx_hash.to_string(),
+                inputs: Some(order_inputs_payload),
+                outputs: Some(order_outputs_payload),
+                trade_count,
+                active: true,
+                meta: Some("0x1234".to_string()),
             };
 
             let trade = LocalDbOrderTrade {
@@ -574,9 +590,9 @@ mod test_helpers {
                     .as_string()
                     .unwrap();
 
-            let mut vault_payloads: Vec<(String, String)> = Vec::new();
+            let mut vault_payloads = HashMap::new();
             for vault in vaults.into_iter() {
-                let lookup = format!("'{}'", vault.vault_id);
+                let lookup = vault.vault_id.to_ascii_lowercase();
                 let json = serde_json::to_string(&vec![vault]).unwrap();
                 let result = WasmEncodedResult::Success::<String> {
                     value: json,
@@ -587,13 +603,14 @@ mod test_helpers {
                         .unwrap()
                         .as_string()
                         .unwrap();
-                vault_payloads.push((lookup, payload));
+                vault_payloads.insert(lookup, payload);
             }
 
-            let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
+            let callback = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
                 if sql.contains("FROM order_events")
-                    && sql.contains("GROUP_CONCAT(")
-                    && sql.contains("ios.io_type = 'input'")
+                    && (sql.contains("json_group_array") || sql.contains("GROUP_CONCAT("))
+                    && (sql.contains("ios.io_type = 'input'")
+                        || sql.contains("lower(ios.io_type) = 'input'"))
                 {
                     return js_sys::JSON::parse(&orders_payload).unwrap();
                 }
@@ -602,20 +619,25 @@ mod test_helpers {
                     return js_sys::JSON::parse(&trade_count_payload).unwrap();
                 }
 
-                if sql.contains("AS trade_kind") {
+                if sql.contains(" AS trade_kind") {
                     return js_sys::JSON::parse(&trades_payload).unwrap();
                 }
 
-                if sql.contains("FLOAT_SUM(vd") {
-                    for (needle, payload) in &vault_payloads {
-                        if sql.contains(needle) {
-                            return js_sys::JSON::parse(payload).unwrap();
+                if sql.contains("?3 AS vault_id") {
+                    if !params.is_undefined() && !params.is_null() {
+                        let params_array = Array::from(&params);
+                        if let Some(vault_id_val) = params_array.get(2).as_string() {
+                            let vault_id = vault_id_val.to_ascii_lowercase();
+                            if let Some(payload) = vault_payloads.get(&vault_id) {
+                                return js_sys::JSON::parse(payload).unwrap();
+                            }
                         }
                     }
                 }
 
                 js_sys::JSON::parse(&empty_payload).unwrap()
-            }) as Box<dyn Fn(String) -> JsValue>);
+            })
+                as Box<dyn FnMut(String, JsValue) -> JsValue>);
 
             callback.into_js_value().dyn_into().unwrap()
         }
