@@ -1,5 +1,5 @@
 import { RegistryManager } from '../providers/registry/RegistryManager';
-import { DotrainRegistry } from '@rainlanguage/orderbook';
+import { fetchRegistryDotrains } from './registry';
 
 export async function loadRegistryUrl(
 	url: string,
@@ -14,10 +14,7 @@ export async function loadRegistryUrl(
 	}
 
 	try {
-		const validationResult = await DotrainRegistry.validate(url);
-		if (validationResult.error) {
-			throw new Error(validationResult.error.readableMsg);
-		}
+		await fetchRegistryDotrains(url);
 		registryManager.setRegistry(url);
 		window.location.reload();
 	} catch (e) {
