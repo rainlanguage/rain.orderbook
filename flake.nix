@@ -276,6 +276,7 @@
               wasm-pack test --headless --chrome --features browser-tests -- leadership::wasm_tests
               wasm-pack test --headless --chrome --features browser-tests -- scheduler::wasm_tests
               wasm-pack test --headless --chrome --features browser-tests -- retry::wasm_tests
+              wasm-pack test --headless --chrome --features browser-tests -- raindex_client::local_db::wasm_tests
             '';
             additionalBuildInputs = [
               pkgs.wasm-pack

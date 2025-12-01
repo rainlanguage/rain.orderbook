@@ -3,17 +3,23 @@ use crate::local_db::query::{
     FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch, SqlValue,
 };
 use async_trait::async_trait;
+use futures::lock::Mutex;
 use js_sys::{Array, BigInt};
+use std::rc::Rc;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
 
 #[derive(Clone)]
 pub struct JsCallbackExecutor {
     callback: js_sys::Function,
+    serialize: Rc<Mutex<()>>,
 }
 
 impl JsCallbackExecutor {
     pub fn new(callback: js_sys::Function) -> Self {
-        Self { callback }
+        Self {
+            callback,
+            serialize: Rc::new(Mutex::new(())),
+        }
     }
 
     pub fn from_ref(callback: &js_sys::Function) -> Self {
@@ -24,7 +30,10 @@ impl JsCallbackExecutor {
         &self.callback
     }
 
-    async fn invoke_statement(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+    async fn invoke_statement_unlocked(
+        &self,
+        stmt: &SqlStatement,
+    ) -> Result<String, LocalDbQueryError> {
         // If there are no parameters, pass `undefined` to the JS callback
         // instead of an empty array to match the SDK's expected semantics.
         let js_params_val = if stmt.params.is_empty() {
@@ -73,6 +82,11 @@ impl JsCallbackExecutor {
             }
         }
     }
+
+    async fn invoke_statement(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+        let _guard = self.serialize.lock().await;
+        self.invoke_statement_unlocked(stmt).await
+    }
 }
 
 // SAFETY: WASM builds run on a single thread; the wrapped JavaScript callback is only invoked on
@@ -82,6 +96,7 @@ unsafe impl Sync for JsCallbackExecutor {}
 #[async_trait(?Send)]
 impl LocalDbQueryExecutor for JsCallbackExecutor {
     async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        let _guard = self.serialize.lock().await;
         if !batch.is_transaction() {
             return Err(LocalDbQueryError::database(
                 "SQL statement batch must be wrapped in a transaction",
@@ -89,9 +104,9 @@ impl LocalDbQueryExecutor for JsCallbackExecutor {
         }
 
         for stmt in batch {
-            if let Err(err) = self.invoke_statement(stmt).await {
+            if let Err(err) = self.invoke_statement_unlocked(stmt).await {
                 let rollback_stmt = SqlStatement::new("ROLLBACK");
-                let _ = self.invoke_statement(&rollback_stmt).await;
+                let _ = self.invoke_statement_unlocked(&rollback_stmt).await;
                 return Err(err);
             }
         }
