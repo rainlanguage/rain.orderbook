@@ -271,6 +271,29 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 			assert.strictEqual(fixedLimitDetails.short_description, 'Test short description');
 		});
 
+		it('should handle mixed valid and invalid orders', async () => {
+			mockServer.reset();
+
+			const registryContent = `http://localhost:8231/settings.yaml
+valid-order http://localhost:8231/valid.rain
+invalid-order http://localhost:8231/invalid.rain`;
+
+			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_CONTENT);
+			await mockServer.forGet('/valid.rain').thenReply(200, FIRST_DOTRAIN_CONTENT);
+			await mockServer.forGet('/invalid.rain').thenReply(200, 'not a dotrain file');
+
+			const registryResult = await DotrainRegistry.new('http://localhost:8231/registry.txt');
+			const mixedRegistry = extractWasmEncodedData(registryResult);
+
+			const orderDetails = extractWasmEncodedData(mixedRegistry.getAllOrderDetails());
+
+			assert.strictEqual(orderDetails.valid.size, 1);
+			assert.strictEqual(orderDetails.invalid.size, 1);
+			assert(orderDetails.valid.has('valid-order'));
+			assert(orderDetails.invalid.has('invalid-order'));
+		});
+
 		it('should get deployment details for specific order', () => {
 			const deploymentDetails = extractWasmEncodedData(
 				registry.getDeploymentDetails('fixed-limit')

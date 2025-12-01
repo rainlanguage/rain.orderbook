@@ -1,4 +1,4 @@
-import { getDotrainRegistryContext } from './context';
+import { getDotrainRegistryContext, type DotrainRegistryContext } from './context';
 
 /**
  * Hook to access the current Dotrain registry context.
@@ -22,8 +22,17 @@ if (import.meta.vitest) {
 		});
 
 		it('should return the registry context', () => {
-			const mockContext = { registry: null };
-			mockGetContext.mockReturnValue(mockContext as never);
+			const mockContext: DotrainRegistryContext = {
+				registry: null,
+				manager: {
+					getCurrentRegistry: vi.fn().mockReturnValue(''),
+					setRegistry: vi.fn(),
+					resetToDefault: vi.fn(),
+					updateUrlWithRegistry: vi.fn(),
+					isCustomRegistry: vi.fn().mockReturnValue(false)
+				} as unknown as DotrainRegistryContext['manager']
+			};
+			mockGetContext.mockReturnValue(mockContext);
 
 			const result = useDotrainRegistry();
 
