@@ -945,6 +945,13 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::{
+            local_db::query::{
+                fetch_orders::LocalDbOrder, FromDbJson, LocalDbQueryError, LocalDbQueryExecutor,
+                SqlStatement, SqlStatementBatch,
+            },
+            raindex_client::local_db::LocalDb,
+        };
         use alloy::primitives::U256;
         use httpmock::MockServer;
         use rain_math_float::Float;
@@ -960,6 +967,35 @@ mod tests {
         };
         use serde_json::{json, Value};
         use std::str::FromStr;
+
+        #[derive(Clone)]
+        struct StaticJsonExec {
+            json: String,
+        }
+
+        #[async_trait(?Send)]
+        impl LocalDbQueryExecutor for StaticJsonExec {
+            async fn execute_batch(
+                &self,
+                _batch: &SqlStatementBatch,
+            ) -> Result<(), LocalDbQueryError> {
+                Ok(())
+            }
+
+            async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+            where
+                T: FromDbJson,
+            {
+                serde_json::from_str(&self.json)
+                    .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+            }
+
+            async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+                Err(LocalDbQueryError::database(
+                    "query_text not supported in StaticJsonExec",
+                ))
+            }
+        }
 
         #[test]
         fn try_from_local_db_orders_csv_parses_records() {
@@ -1630,6 +1666,306 @@ mod tests {
 
             assert!(res.rainlang.is_some());
             assert_eq!(res.rainlang, Some("/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC\namt: 100,\nio: call<2>();\n\n/* 1. handle-io */ \n:call<3>(),\n:ensure(equal-to(output-vault-decrease() 100) \"must take full amount\");\n\n/* 2. get-io-ratio-now */ \nelapsed: call<4>(),\nio: saturating-sub(0.0177356 div(mul(elapsed sub(0.0177356 0.0173844)) 60));\n\n/* 3. one-shot */ \n:ensure(is-zero(get(hash(order-hash() \"has-executed\"))) \"has executed\"),\n:set(hash(order-hash() \"has-executed\") 1);\n\n/* 4. get-elapsed */ \n_: sub(now() get(hash(order-hash() \"deploy-time\")));".to_string()));
+        }
+
+        #[tokio::test]
+        async fn local_db_orders_parse_ios() {
+            let local_orderbook = "0x0987654321098765432109876543210987654321";
+            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let token = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+            let inputs_payload = serde_json::to_string(&vec![json!({
+                "ioIndex": 1,
+                "vault": {
+                    "vaultId": "0x01",
+                    "token": token,
+                    "owner": owner,
+                    "orderbookAddress": local_orderbook,
+                    "tokenName": "USDC",
+                    "tokenSymbol": "USDC",
+                    "tokenDecimals": 6,
+                    "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "inputOrders": null,
+                    "outputOrders": null
+                }
+            })])
+            .unwrap();
+            let outputs_payload = serde_json::to_string(&vec![json!({
+                "ioIndex": 0,
+                "vault": {
+                    "vaultId": "0x02",
+                    "token": token,
+                    "owner": owner,
+                    "orderbookAddress": local_orderbook,
+                    "tokenName": "USDC",
+                    "tokenSymbol": "USDC",
+                    "tokenDecimals": 6,
+                    "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "inputOrders": null,
+                    "outputOrders": null
+                }
+            })])
+            .unwrap();
+
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash: "0x0abc".to_string(),
+                owner: owner.to_string(),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: local_orderbook.to_string(),
+                order_bytes: "0x01".to_string(),
+                transaction_hash: "0x10".to_string(),
+                inputs: Some(inputs_payload),
+                outputs: Some(outputs_payload),
+                trade_count: 2,
+                active: true,
+                meta: None,
+            };
+
+            let exec = StaticJsonExec {
+                json: serde_json::to_string(&vec![local_order]).unwrap(),
+            };
+            let local_db = LocalDb::new(exec.clone());
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    "https://example/sg2",
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db.clone());
+
+            let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
+            let orders = orders_source
+                .list(Some(vec![137]), &GetOrdersFilters::default(), None)
+                .await
+                .unwrap();
+
+            assert_eq!(orders.len(), 1);
+            let order = &orders[0];
+            assert_eq!(order.inputs.len(), 1);
+            assert_eq!(order.outputs.len(), 1);
+            assert_eq!(order.trades_count, 2);
+            assert_eq!(order.orderbook, Address::from_str(local_orderbook).unwrap());
+        }
+
+        #[tokio::test]
+        async fn local_db_orders_bubble_deserialization_error() {
+            let exec = StaticJsonExec {
+                json: "not-json".to_string(),
+            };
+            let local_db = LocalDb::new(exec);
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    "https://example/sg2",
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db.clone());
+
+            let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
+            let err = orders_source
+                .list(Some(vec![137]), &GetOrdersFilters::default(), None)
+                .await
+                .unwrap_err();
+            match err {
+                RaindexError::LocalDbQueryError(LocalDbQueryError::Deserialization { .. }) => {}
+                other => panic!("unexpected error: {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn get_orders_routes_between_local_and_subgraph() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "orders": [
+                      get_order1_json()
+                    ]
+                  }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "orders": []
+                  }
+                }));
+            });
+
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash: "0x0abc".to_string(),
+                owner: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: "0x0987654321098765432109876543210987654321".to_string(),
+                order_bytes: "0x01".to_string(),
+                transaction_hash: "0x10".to_string(),
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: None,
+            };
+
+            let exec = StaticJsonExec {
+                json: serde_json::to_string(&vec![local_order]).unwrap(),
+            };
+            let local_db = LocalDb::new(exec);
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db);
+
+            let result = client
+                .get_orders(
+                    Some(ChainIds(vec![1, 137])),
+                    Some(GetOrdersFilters::default()),
+                    Some(1),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 2);
+            assert!(result
+                .iter()
+                .any(|o| o.order_hash == Bytes::from_str("0x0abc").unwrap()));
+            assert!(result.iter().any(|o| o.order_hash
+                == Bytes::from_str(
+                    "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
+                )
+                .unwrap()));
+        }
+
+        #[tokio::test]
+        async fn get_orders_falls_back_to_subgraph_when_no_local_db() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "orders": [
+                      {
+                        "id": "0x0234",
+                        "orderBytes": "0x01",
+                        "orderHash": "0x2345",
+                        "owner": "0x0000000000000000000000000000000000000000",
+                        "outputs": [],
+                        "inputs": [],
+                        "active": true,
+                        "addEvents": [
+                          {
+                            "transaction": {
+                              "blockNumber": "0",
+                              "timestamp": "0",
+                              "id": "0x0000000000000000000000000000000000000000",
+                              "from": "0x0000000000000000000000000000000000000000"
+                            }
+                          }
+                        ],
+                        "meta": null,
+                        "timestampAdded": "0",
+                        "orderbook": {
+                          "id": "0x0987654321098765432109876543210987654321"
+                        },
+                        "trades": [],
+                        "removeEvents": []
+                      }
+                    ]
+                  }
+                }));
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    &sg_server.url("/sg2"),
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result = client
+                .get_orders(
+                    Some(ChainIds(vec![137])),
+                    Some(GetOrdersFilters::default()),
+                    Some(1),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].order_hash, Bytes::from_str("0x2345").unwrap());
+        }
+
+        #[tokio::test]
+        async fn get_order_by_hash_hits_local_before_subgraph() {
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash: "0x0abc".to_string(),
+                owner: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: "0x0987654321098765432109876543210987654321".to_string(),
+                order_bytes: "0x01".to_string(),
+                transaction_hash: "0x10".to_string(),
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: None,
+            };
+
+            let exec = StaticJsonExec {
+                json: serde_json::to_string(&vec![local_order]).unwrap(),
+            };
+            let local_db = LocalDb::new(exec);
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    "https://example/sg2",
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db);
+
+            let order = client
+                .get_order_by_hash(
+                    &OrderbookIdentifier::new(
+                        137,
+                        Address::from_str("0x0987654321098765432109876543210987654321").unwrap(),
+                    ),
+                    Bytes::from_str("0x0abc").unwrap(),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(order.order_hash, Bytes::from_str("0x0abc").unwrap());
+            assert_eq!(order.chain_id, 137);
         }
 
         // TODO: Issue #1989
