@@ -46,6 +46,10 @@ vi.mock('$lib/components/charts/OrderTradesChart.svelte', async () => {
 	const mockLightweightCharts = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return { default: mockLightweightCharts };
 });
+vi.mock('$lib/components/CodeMirrorRainlang.svelte', async () => {
+	const mockCodeMirror = (await import('../lib/__mocks__/CodeMirrorRainlang.svelte')).default;
+	return { default: mockCodeMirror };
+});
 const orderbookAddress = '0x123456789012345678901234567890123456abcd';
 const orderHash = '0x0234';
 
@@ -135,6 +139,10 @@ const mockMatchesAccount = vi.fn();
 describe('OrderDetail', () => {
 	let queryClient: QueryClient;
 	let mockRaindexClient: RaindexClient;
+	const resolveOrder = (override: Partial<RaindexOrder> = {}) =>
+		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
+			value: { ...mockOrder, ...override }
+		});
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
@@ -334,5 +342,89 @@ describe('OrderDetail', () => {
 		await user.click(withdrawButton[0]);
 
 		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
+	});
+
+	it('renders the Dotrain tab and content when dotrain source exists', async () => {
+		const user = userEvent.setup();
+		resolveOrder({ dotrainSource: 'dotrain:source' });
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		const dotrainTab = await screen.findByText('Dotrain');
+		await user.click(dotrainTab);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('codemirror-rainlang')).toHaveTextContent('dotrain:source');
+		});
+	});
+
+	it('does not render the Dotrain tab when dotrain source is missing', async () => {
+		resolveOrder({ dotrainSource: undefined });
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.queryByText('Dotrain')).not.toBeInTheDocument();
+		});
+	});
+
+	it('renders the GUI state tab with formatted JSON when present', async () => {
+		const user = userEvent.setup();
+		const guiState = JSON.stringify({ foo: 'bar' });
+		resolveOrder({ dotrainGuiState: guiState });
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		const guiTab = await screen.findByText('Gui State');
+		await user.click(guiTab);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('gui-state-json')).toHaveTextContent('"foo": "bar"');
+		});
+	});
+
+	it('handles invalid GUI state JSON gracefully', async () => {
+		const user = userEvent.setup();
+		resolveOrder({ dotrainGuiState: '{invalid' });
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		const guiTab = await screen.findByText('Gui State');
+		await user.click(guiTab);
+
+		await waitFor(() => {
+			expect(mockErrToast).toHaveBeenCalledWith('Failed to parse GUI state');
+			expect(screen.getByTestId('gui-state-json')).toHaveTextContent('Invalid GUI state');
+		});
+	});
+
+	it('renders on-chain Rainlang even without a Dotrain source', async () => {
+		const user = userEvent.setup();
+		const rainlangText = '/* rainlang source */';
+		resolveOrder({ rainlang: rainlangText, dotrainSource: undefined });
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		const rainlangTab = await screen.findByText('On-chain Rainlang');
+		await user.click(rainlangTab);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('codemirror-rainlang')).toHaveTextContent(rainlangText);
+		});
 	});
 });

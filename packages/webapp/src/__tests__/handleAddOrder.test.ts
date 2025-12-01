@@ -15,10 +15,12 @@ const mockHandleTransactionConfirmationModal = vi.fn().mockResolvedValue({ succe
 const mockErrToast = vi.fn();
 const mockCreateApprovalTransaction = vi.fn();
 const mockCreateAddOrderTransaction = vi.fn();
+const mockCreateMetaTransaction = vi.fn();
 
 const mockManager = {
 	createApprovalTransaction: mockCreateApprovalTransaction,
-	createAddOrderTransaction: mockCreateAddOrderTransaction
+	createAddOrderTransaction: mockCreateAddOrderTransaction,
+	createMetaTransaction: mockCreateMetaTransaction
 } as unknown as TransactionManager;
 
 // New Mocks for gui
@@ -41,11 +43,17 @@ const mockDeps: HandleAddOrderDependencies = {
 	raindexClient: mockRaindexClient
 };
 
+const mockMetaCall = {
+	to: '0x0000000000000000000000000000000000000000' as Hex,
+	calldata: '0xdeadbeef' as Hex
+};
+
 const mockDeploymentArgs: DeploymentTransactionArgs = {
 	approvals: [],
 	deploymentCalldata: '0xdeploymentCalldata' as Hex,
 	orderbookAddress: '0xorderbookAddressFromArgs' as Hex,
-	chainId: 1
+	chainId: 1,
+	emitMetaCall: undefined
 };
 
 describe('handleAddOrder', () => {
@@ -61,7 +69,8 @@ describe('handleAddOrder', () => {
 	it('should handle an order with no approvals, calling createAddOrderTransaction on confirm', async () => {
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
-			approvals: []
+			approvals: [],
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
@@ -70,11 +79,24 @@ describe('handleAddOrder', () => {
 
 		await handleAddOrder(mockDeps);
 
-		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
 
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			1,
+			expect.objectContaining({
+				modalTitle: 'Publishing metadata',
+				args: expect.objectContaining({
+					toAddress: mockMetaCall.to,
+					chainId: currentTestSpecificArgs.chainId,
+					calldata: mockMetaCall.calldata,
+					onConfirm: expect.any(Function)
+				})
+			})
+		);
+
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
+			2,
 			expect.objectContaining({
 				open: true,
 				modalTitle: 'Deploying your order',
@@ -87,9 +109,20 @@ describe('handleAddOrder', () => {
 			})
 		);
 
-		// Manually call the onConfirm for add order
+		// Manually call the onConfirm callbacks
+		const metaOnConfirm = mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+		await metaOnConfirm('0xmetaTxHash' as Hex);
+		expect(mockCreateMetaTransaction).toHaveBeenCalledTimes(1);
+		expect(mockCreateMetaTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({
+				chainId: currentTestSpecificArgs.chainId,
+				txHash: '0xmetaTxHash',
+				queryKey: QKEY_ORDERS
+			})
+		);
+
 		const addOrderOnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
 		const mockAddOrderTxHash = '0xaddOrderHashFromTest' as Hex;
 		await addOrderOnConfirm(mockAddOrderTxHash);
 
@@ -112,7 +145,8 @@ describe('handleAddOrder', () => {
 		};
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
-			approvals: [approval1]
+			approvals: [approval1],
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
@@ -122,12 +156,13 @@ describe('handleAddOrder', () => {
 		// Mock sequential calls - approval first, then deployment
 		mockHandleTransactionConfirmationModal
 			.mockResolvedValueOnce({ success: true, hash: '0xapprovalHash' })
+			.mockResolvedValueOnce({ success: true, hash: '0xabc123' })
 			.mockResolvedValueOnce({ success: true, hash: '0xdeploymentHash' });
 
 		await handleAddOrder(mockDeps);
 
-		// Should be called twice: once for approval, once for deployment
-		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
+		// Should be called three times: approval, metadata, deployment
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(3);
 
 		// First call should be for approval
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
@@ -145,9 +180,24 @@ describe('handleAddOrder', () => {
 			})
 		);
 
-		// Second call should be for deployment
+		// Second call should be for metadata
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			2,
+			expect.objectContaining({
+				open: true,
+				modalTitle: 'Publishing metadata',
+				args: expect.objectContaining({
+					toAddress: mockMetaCall.to,
+					chainId: currentTestSpecificArgs.chainId,
+					calldata: mockMetaCall.calldata,
+					onConfirm: expect.any(Function)
+				})
+			})
+		);
+
+		// Third call should be for deployment
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
+			3,
 			expect.objectContaining({
 				open: true,
 				modalTitle: 'Deploying your order',
@@ -163,8 +213,9 @@ describe('handleAddOrder', () => {
 		// Verify onConfirm functions would call the right transaction managers
 		const approvalOnConfirm =
 			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+		const metaOnConfirm = mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
 		const deploymentOnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
+			mockHandleTransactionConfirmationModal.mock.calls[2][0].args.onConfirm;
 
 		// Simulate calling onConfirm for approval
 		await approvalOnConfirm('0xapprovalTxHash' as Hex);
@@ -172,6 +223,16 @@ describe('handleAddOrder', () => {
 			expect.objectContaining({
 				chainId: currentTestSpecificArgs.chainId,
 				txHash: '0xapprovalTxHash',
+				queryKey: QKEY_ORDERS
+			})
+		);
+
+		// Simulate calling onConfirm for metadata
+		await metaOnConfirm('0xabc123' as Hex);
+		expect(mockCreateMetaTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({
+				chainId: currentTestSpecificArgs.chainId,
+				txHash: '0xabc123',
 				queryKey: QKEY_ORDERS
 			})
 		);
@@ -201,14 +262,15 @@ describe('handleAddOrder', () => {
 		};
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
-			approvals: [approval1, approval2]
+			approvals: [approval1, approval2],
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
 			error: null
 		});
 
-		// Mock sequential calls - 2 approvals + deployment
+		// Mock sequential calls - 2 approvals + metadata + deployment
 		mockHandleTransactionConfirmationModal
 			.mockResolvedValueOnce({ success: true, hash: '0xapproval1Hash' })
 			.mockResolvedValueOnce({ success: true, hash: '0xapproval2Hash' })
@@ -216,8 +278,8 @@ describe('handleAddOrder', () => {
 
 		await handleAddOrder(mockDeps);
 
-		// Should be called 3 times: 2 approvals + 1 deployment
-		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(3);
+		// Should be called 4 times: 2 approvals + metadata + deployment
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(4);
 
 		// First approval
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
@@ -237,9 +299,18 @@ describe('handleAddOrder', () => {
 			})
 		);
 
-		// Deployment
+		// Metadata
 		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
 			3,
+			expect.objectContaining({
+				modalTitle: 'Publishing metadata',
+				args: expect.objectContaining({ toAddress: mockMetaCall.to })
+			})
+		);
+
+		// Deployment
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenNthCalledWith(
+			4,
 			expect.objectContaining({
 				modalTitle: 'Deploying your order',
 				args: expect.objectContaining({ toAddress: currentTestSpecificArgs.orderbookAddress })
@@ -251,8 +322,9 @@ describe('handleAddOrder', () => {
 			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
 		const approval2OnConfirm =
 			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
+		const metaOnConfirm = mockHandleTransactionConfirmationModal.mock.calls[2][0].args.onConfirm;
 		const deploymentOnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[2][0].args.onConfirm;
+			mockHandleTransactionConfirmationModal.mock.calls[3][0].args.onConfirm;
 
 		// Simulate calling onConfirm for first approval
 		await approval1OnConfirm('0xapproval1TxHash' as Hex);
@@ -268,6 +340,16 @@ describe('handleAddOrder', () => {
 			expect.objectContaining({ txHash: '0xapproval2TxHash' })
 		);
 
+		// Simulate calling onConfirm for metadata
+		await metaOnConfirm('0xabc124' as Hex);
+		expect(mockCreateMetaTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({
+				chainId: currentTestSpecificArgs.chainId,
+				txHash: '0xabc124',
+				queryKey: QKEY_ORDERS
+			})
+		);
+
 		// Simulate calling onConfirm for deployment
 		await deploymentOnConfirm('0xdeploymentTxHash' as Hex);
 		expect(mockCreateAddOrderTransaction).toHaveBeenCalledWith(
@@ -278,6 +360,50 @@ describe('handleAddOrder', () => {
 		);
 	});
 
+	it('should call errToast and stop if metadata publication is cancelled or fails', async () => {
+		const currentTestSpecificArgs: DeploymentTransactionArgs = {
+			...mockDeploymentArgs,
+			emitMetaCall: mockMetaCall
+		};
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
+			value: currentTestSpecificArgs,
+			error: null
+		});
+
+		// First modal: metadata returns unsuccessfully
+		mockHandleTransactionConfirmationModal.mockResolvedValueOnce({ success: false });
+
+		await handleAddOrder(mockDeps);
+
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+		expect(mockErrToast).toHaveBeenCalledWith('Metadata publication was cancelled or failed');
+		expect(mockCreateMetaTransaction).not.toHaveBeenCalled();
+		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
+	});
+
+	it('should call errToast and stop if metadata publication throws', async () => {
+		const currentTestSpecificArgs: DeploymentTransactionArgs = {
+			...mockDeploymentArgs,
+			emitMetaCall: mockMetaCall
+		};
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
+			value: currentTestSpecificArgs,
+			error: null
+		});
+
+		const thrownError = new Error('metadata failed');
+		mockHandleTransactionConfirmationModal.mockRejectedValueOnce(thrownError);
+
+		await handleAddOrder(mockDeps);
+
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+		expect(mockErrToast).toHaveBeenCalledWith(
+			`Metadata publication failed: ${thrownError.message}`
+		);
+		expect(mockCreateMetaTransaction).not.toHaveBeenCalled();
+		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
+	});
+
 	it('should use different txHashes from modal onConfirms when they differ', async () => {
 		const approval1 = {
 			token: '0xtoken1' as Hex,
@@ -286,7 +412,8 @@ describe('handleAddOrder', () => {
 		};
 		const currentTestSpecificArgs: DeploymentTransactionArgs = {
 			...mockDeploymentArgs,
-			approvals: [approval1]
+			approvals: [approval1],
+			emitMetaCall: mockMetaCall
 		};
 		mockGetDeploymentTransactionArgs.mockResolvedValue({
 			value: currentTestSpecificArgs,
@@ -296,18 +423,20 @@ describe('handleAddOrder', () => {
 		// Mock sequential calls with specific hashes
 		mockHandleTransactionConfirmationModal
 			.mockResolvedValueOnce({ success: true, hash: '0xspecificApprovalHash' })
+			.mockResolvedValueOnce({ success: true, hash: '0xabc125' })
 			.mockResolvedValueOnce({ success: true, hash: '0xspecificAddOrderHash' });
 
 		await handleAddOrder(mockDeps);
 
-		// Should be called twice: approval + deployment
-		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(2);
+		// Should be called three times: approval + metadata + deployment
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(3);
 
 		// Verify onConfirm functions would call the right transaction managers with specific hashes
 		const approvalOnConfirm =
 			mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+		const metaOnConfirm = mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
 		const addOrderOnConfirm =
-			mockHandleTransactionConfirmationModal.mock.calls[1][0].args.onConfirm;
+			mockHandleTransactionConfirmationModal.mock.calls[2][0].args.onConfirm;
 
 		// Simulate calling onConfirm for approval with specific hash
 		const specificApprovalHash = '0xspecificApprovalHash' as Hex;
@@ -317,6 +446,17 @@ describe('handleAddOrder', () => {
 			expect.objectContaining({
 				chainId: currentTestSpecificArgs.chainId,
 				txHash: specificApprovalHash, // Check specific hash
+				queryKey: QKEY_ORDERS
+			})
+		);
+
+		// Simulate calling onConfirm for metadata
+		const metaHash = '0xabc125' as Hex;
+		await metaOnConfirm(metaHash);
+		expect(mockCreateMetaTransaction).toHaveBeenCalledWith(
+			expect.objectContaining({
+				chainId: currentTestSpecificArgs.chainId,
+				txHash: metaHash,
 				queryKey: QKEY_ORDERS
 			})
 		);

@@ -6,6 +6,7 @@ use crate::local_db::query::{
     fetch_vault::LocalDbVault,
 };
 use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
+use crate::parsed_meta::ParsedMeta;
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
 use crate::raindex_client::local_db::query::fetch_vault::fetch_vaults_for_io_string;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
@@ -18,6 +19,12 @@ use crate::{
 };
 use alloy::primitives::{keccak256, Address, Bytes, U256};
 use csv::{ReaderBuilder, Terminator};
+use futures::{stream, StreamExt, TryStreamExt};
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
+use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
+use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
+use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
+use rain_orderbook_subgraph_client::types::common::SgOrderWithSubgraphName;
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
@@ -30,11 +37,14 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClient,
     SgPaginationArgs,
 };
+use std::collections::HashMap;
 use std::{collections::HashSet, io::Cursor, rc::Rc, str::FromStr};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
+// Limit concurrent dotrain source fetches to avoid overwhelming the subgraph/metaboard.
+const MAX_CONCURRENT_DOTRAIN_SOURCE_FETCHES: usize = 5;
 
 /// A single order representation within a given orderbook.
 ///
@@ -61,6 +71,7 @@ pub struct RaindexOrder {
     active: bool,
     timestamp_added: U256,
     meta: Option<Bytes>,
+    parsed_meta: Vec<ParsedMeta>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -114,9 +125,27 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<String> {
         self.meta.clone().map(|meta| meta.to_string())
     }
+    #[wasm_bindgen(getter = parsedMeta)]
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
     #[wasm_bindgen(getter)]
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
+    }
+    #[wasm_bindgen(getter = dotrainSource)]
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    #[wasm_bindgen(getter = dotrainGuiState)]
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
     }
     #[wasm_bindgen(getter)]
     pub fn transaction(&self) -> Option<RaindexTransaction> {
@@ -176,8 +205,23 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<Bytes> {
         self.meta.clone()
     }
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
+    }
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
     }
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
@@ -247,7 +291,19 @@ impl RaindexOrder {
     pub fn get_rpc_urls(&self) -> Result<Vec<Url>, RaindexError> {
         self.raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
-
+    #[wasm_export(skip)]
+    pub fn get_metaboard_client(&self) -> Result<Option<MetaboardSubgraphClient>, RaindexError> {
+        let raindex_client = self.get_raindex_client();
+        let network = raindex_client
+            .orderbook_yaml
+            .get_network_by_chain_id(self.chain_id)?;
+        let metaboard = match raindex_client.orderbook_yaml.get_metaboard(&network.key) {
+            Ok(metaboard) => metaboard,
+            Err(YamlError::KeyNotFound(_) | YamlError::NotFound(_)) => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+        Ok(Some(MetaboardSubgraphClient::new(metaboard.url.clone())))
+    }
     // /// Retrieves volume data for all vaults associated with this order over a specified time period
     // ///
     // /// Queries historical volume information across all vaults that belong to this order,
@@ -574,27 +630,36 @@ impl RaindexClient {
             )
             .await;
 
-        let orders = orders
+        let subgraph_to_chain: HashMap<_, _> = multi_subgraph_args
             .iter()
-            .map(|order| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or(RaindexError::SubgraphNotFound(
-                        order.subgraph_name.clone(),
-                        order.order.order_hash.0.clone(),
-                    ))?;
-                RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
-                    chain_id,
-                    order.order.clone(),
-                    None,
-                )
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+            .flat_map(|(chain_id, args)| args.iter().map(move |arg| (arg.name.clone(), *chain_id)))
+            .collect();
 
-        Ok(orders)
+        let raindex_orders = orders
+            .into_iter()
+            .map(
+                |SgOrderWithSubgraphName {
+                     order: sg_order,
+                     subgraph_name,
+                 }| {
+                    let chain_id = *subgraph_to_chain.get(&subgraph_name).ok_or(
+                        RaindexError::SubgraphNotFound(
+                            subgraph_name.clone(),
+                            sg_order.order_hash.0.clone(),
+                        ),
+                    )?;
+                    RaindexOrder::try_from_sg_order(
+                        Rc::clone(&raindex_client),
+                        chain_id,
+                        sg_order,
+                        None,
+                    )
+                },
+            )
+            .collect::<Result<Vec<_>, RaindexError>>()?;
+        let raindex_orders = fetch_orders_dotrain_sources(raindex_orders).await?;
+
+        Ok(raindex_orders)
     }
 
     async fn get_orders_local_db<E: LocalDbQueryExecutor>(
@@ -718,8 +783,9 @@ impl RaindexClient {
         let raindex_client = Rc::new(self.clone());
         let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
         let order = client.order_detail_by_hash(SgBytes(order_hash_hex)).await?;
-        let order =
+        let mut order =
             RaindexOrder::try_from_sg_order(raindex_client.clone(), ob_id.chain_id, order, None)?;
+        order.fetch_dotrain_source().await?;
         Ok(order)
     }
 
@@ -799,6 +865,60 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
 }
 
 impl RaindexOrder {
+    pub async fn fetch_dotrain_source(&mut self) -> Result<(), RaindexError> {
+        if self
+            .parsed_meta
+            .iter()
+            .any(|meta| matches!(meta, ParsedMeta::DotrainSourceV1(_)))
+        {
+            return Ok(());
+        }
+
+        let dotrain_gui_state = match self.parsed_meta.iter().find_map(|meta| {
+            if let ParsedMeta::DotrainGuiStateV1(state) = meta {
+                Some(state.clone())
+            } else {
+                None
+            }
+        }) {
+            Some(state) => state,
+            None => return Ok(()),
+        };
+
+        let client = match self.get_metaboard_client()? {
+            Some(client) => client,
+            None => return Ok(()),
+        };
+
+        let subject_hash = dotrain_gui_state.dotrain_hash();
+
+        let metabytes = match client
+            .get_metabytes_by_subject(&MetaBigInt(alloy::hex::encode_prefixed(subject_hash)))
+            .await
+        {
+            Ok(bytes) => bytes,
+            Err(_) => return Ok(()),
+        };
+
+        for meta_bytes in metabytes {
+            let documents = match RainMetaDocumentV1Item::cbor_decode(&meta_bytes) {
+                Ok(documents) => documents,
+                Err(_) => continue,
+            };
+
+            for document in documents {
+                if document.magic == KnownMagic::DotrainSourceV1 {
+                    if let Ok(source) = DotrainSourceV1::try_from(document) {
+                        self.parsed_meta.push(ParsedMeta::DotrainSourceV1(source));
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn try_from_sg_order(
         raindex_client: Rc<RaindexClient>,
         chain_id: u32,
@@ -808,7 +928,8 @@ impl RaindexOrder {
         let rainlang = order
             .meta
             .as_ref()
-            .and_then(|meta| meta.0.try_decode_rainlangsource().ok());
+            .map(|meta| meta.0.try_decode_rainlangsource())
+            .transpose()?;
 
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
@@ -850,8 +971,15 @@ impl RaindexOrder {
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
             meta: order
                 .meta
+                .clone()
                 .map(|meta| Bytes::from_str(&meta.0))
                 .transpose()?,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .and_then(|meta| alloy::hex::decode(&meta.0).ok())
+                .and_then(|bytes| ParsedMeta::parse_from_bytes(&bytes).ok())
+                .unwrap_or_default(),
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
@@ -945,8 +1073,15 @@ impl RaindexOrder {
             timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
             meta: order
                 .meta
-                .map(|meta| Bytes::from_str(meta.as_str()))
+                .clone()
+                .map(|meta| Bytes::from_str(&meta))
                 .transpose()?,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .and_then(|meta| alloy::hex::decode(meta).ok())
+                .and_then(|bytes| ParsedMeta::parse_from_bytes(&bytes).ok())
+                .unwrap_or_default(),
             rainlang,
             transaction: None,
             trades_count: order.trade_count as u16,
@@ -954,9 +1089,50 @@ impl RaindexOrder {
     }
 }
 
+/// Fetch dotrain sources for a batch of orders with bounded concurrency.
+pub(crate) async fn fetch_orders_dotrain_sources(
+    orders: Vec<RaindexOrder>,
+) -> Result<Vec<RaindexOrder>, RaindexError> {
+    stream::iter(orders.into_iter().map(|mut order| async move {
+        order.fetch_dotrain_source().await?;
+        Ok::<_, RaindexError>(order)
+    }))
+    .buffered(MAX_CONCURRENT_DOTRAIN_SOURCE_FETCHES)
+    .try_collect::<Vec<_>>()
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_metadata::types::dotrain::{
+        gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1,
+    };
+    use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
+    use std::collections::BTreeMap;
+
+    fn sample_dotrain_source() -> DotrainSourceV1 {
+        DotrainSourceV1("sample dotrain source".to_string())
+    }
+
+    fn sample_dotrain_gui_state(source: &DotrainSourceV1) -> DotrainGuiStateV1 {
+        DotrainGuiStateV1 {
+            dotrain_hash: source.hash(),
+            field_values: BTreeMap::new(),
+            deposits: BTreeMap::new(),
+            select_tokens: BTreeMap::new(),
+            vault_ids: BTreeMap::new(),
+            selected_deployment: "0".to_string(),
+        }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    fn encode_meta_items_hex(items: Vec<RainMetaDocumentV1Item>) -> String {
+        let encoded =
+            RainMetaDocumentV1Item::cbor_encode_seq(&items, KnownMagic::RainMetaDocumentV1)
+                .expect("meta encoding should succeed");
+        format!("0x{}", alloy::hex::encode(encoded))
+    }
 
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
@@ -1246,15 +1422,57 @@ mod tests {
                 "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string()
             );
         }
+
+        #[wasm_bindgen_test]
+        fn test_parsed_meta_getters() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let gui_state_json = serde_json::to_string(&gui_state).unwrap();
+
+            let client =
+                RaindexClient::new(vec![get_local_db_test_yaml()], None).expect("yaml should load");
+
+            let order = RaindexOrder {
+                raindex_client: Rc::new(client),
+                chain_id: 1,
+                id: Bytes::from_str("0x01").unwrap(),
+                order_bytes: Bytes::from_str("0x02").unwrap(),
+                order_hash: Bytes::from_str("0x03").unwrap(),
+                owner: Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
+                inputs: vec![],
+                outputs: vec![],
+                orderbook: Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
+                active: true,
+                timestamp_added: U256::from(1u64),
+                meta: None,
+                parsed_meta: vec![
+                    ParsedMeta::DotrainSourceV1(source.clone()),
+                    ParsedMeta::DotrainGuiStateV1(gui_state.clone()),
+                ],
+                rainlang: None,
+                transaction: None,
+                trades_count: 0,
+            };
+
+            assert_eq!(order.dotrain_source(), Some(source.0));
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+            assert_eq!(order.parsed_meta().len(), 2);
+            assert_eq!(order.dotrain_gui_state(), Some(gui_state_json));
+        }
     }
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
+        use crate::local_db::query::fetch_orders::LocalDbOrder;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::U256;
+        use httpmock::Method::POST;
         use httpmock::MockServer;
         use rain_math_float::Float;
+        use rain_metadata::{ContentEncoding, ContentLanguage, ContentType};
         use rain_orderbook_subgraph_client::utils::float::*;
         use rain_orderbook_subgraph_client::{
             // performance::{
@@ -1265,8 +1483,272 @@ mod tests {
                 SgVault,
             },
         };
+        use serde_bytes::ByteBuf;
         use serde_json::{json, Value};
         use std::str::FromStr;
+
+        fn build_client_with_metaboard(metaboard_url: &str, subgraph_url: &str) -> RaindexClient {
+            let yaml = get_test_yaml(
+                subgraph_url,
+                subgraph_url,
+                "http://localhost:8545",
+                "http://localhost:9545",
+            );
+            let yaml = yaml
+                .replace("https://api.thegraph.com/subgraphs/name/xyz", metaboard_url)
+                .replace(
+                    "https://api.thegraph.com/subgraphs/name/polygon",
+                    metaboard_url,
+                );
+            RaindexClient::new(vec![yaml], None).unwrap()
+        }
+
+        #[test]
+        fn try_from_sg_order_populates_parsed_meta() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let meta_hex = encode_meta_items_hex(vec![
+                RainMetaDocumentV1Item::from(source.clone()),
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(meta_hex));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let order =
+                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 2);
+            assert_eq!(order.dotrain_source(), Some(source.0));
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
+
+        #[test]
+        fn try_from_local_db_populates_parsed_meta() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let meta_hex = encode_meta_items_hex(vec![
+                RainMetaDocumentV1Item::from(source.clone()),
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let local_order = LocalDbOrder {
+                order_hash: "0x0abc".to_string(),
+                owner: "0x0000000000000000000000000000000000000001".to_string(),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                order_bytes: "0x01".to_string(),
+                transaction_hash: "0x02".to_string(),
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: Some(meta_hex),
+            };
+
+            let order =
+                RaindexOrder::try_from_local_db(Rc::new(client), 1, local_order, vec![], vec![])
+                    .unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 2);
+            assert_eq!(order.dotrain_source(), Some(source.0));
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_skips_when_source_already_present() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let meta_hex = encode_meta_items_hex(vec![
+                RainMetaDocumentV1Item::from(source.clone()),
+                RainMetaDocumentV1Item::try_from(gui_state).unwrap(),
+            ]);
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(meta_hex));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+            order.fetch_dotrain_source().await.unwrap();
+            assert_eq!(order.parsed_meta().len(), 2);
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_returns_ok_without_gui_state() {
+            let mut sg_order = get_order1();
+            sg_order.meta = None;
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+            order.fetch_dotrain_source().await.unwrap();
+            assert!(order.parsed_meta().is_empty());
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_adds_source_from_metaboard() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let rainlang_meta = RainMetaDocumentV1Item {
+                payload: ByteBuf::from("sample rainlang source".as_bytes()),
+                magic: KnownMagic::RainlangSourceV1,
+                content_type: ContentType::OctetStream,
+                content_encoding: ContentEncoding::None,
+                content_language: ContentLanguage::None,
+            };
+            let order_meta_hex = encode_meta_items_hex(vec![
+                rainlang_meta,
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+
+            let server = MockServer::start_async().await;
+            let meta_bytes = RainMetaDocumentV1Item::cbor_encode_seq(
+                &vec![RainMetaDocumentV1Item::from(source.clone())],
+                KnownMagic::RainMetaDocumentV1,
+            )
+            .unwrap();
+            let metaboard_meta_hex = format!("0x{}", alloy::hex::encode(meta_bytes));
+
+            server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "metaV1S": [
+                            {
+                                "meta": metaboard_meta_hex,
+                                "metaHash": "0x01",
+                                "sender": "0x0000000000000000000000000000000000000000",
+                                "id": "0x01",
+                                "metaBoard": { "address": "0x0000000000000000000000000000000000000000" },
+                                "subject": gui_state.dotrain_hash().to_string()
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            let client = Rc::new(build_client_with_metaboard(
+                &server.url("/"),
+                &server.url("/sg"),
+            ));
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(order_meta_hex));
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::clone(&client), 1, sg_order, None).unwrap();
+
+            order.fetch_dotrain_source().await.unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 2);
+            assert_eq!(order.dotrain_source(), Some(source.0));
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_handles_invalid_meta_bytes() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let rainlang_meta = RainMetaDocumentV1Item {
+                payload: ByteBuf::from("sample rainlang source".as_bytes()),
+                magic: KnownMagic::RainlangSourceV1,
+                content_type: ContentType::OctetStream,
+                content_encoding: ContentEncoding::None,
+                content_language: ContentLanguage::None,
+            };
+            let meta_hex = encode_meta_items_hex(vec![
+                rainlang_meta,
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+
+            let server = MockServer::start_async().await;
+
+            server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "metaV1S": [
+                            {
+                                "meta": "0xzz",
+                                "metaHash": "0x01",
+                                "sender": "0x0000000000000000000000000000000000000000",
+                                "id": "0x01",
+                                "metaBoard": { "address": "0x0000000000000000000000000000000000000000" },
+                                "subject": gui_state.dotrain_hash().to_string()
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            let client = Rc::new(build_client_with_metaboard(
+                &server.url("/"),
+                &server.url("/sg"),
+            ));
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(meta_hex));
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::clone(&client), 1, sg_order, None).unwrap();
+
+            order.fetch_dotrain_source().await.unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 1);
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
 
         #[test]
         fn try_from_local_db_orders_csv_parses_records() {
@@ -1846,59 +2328,6 @@ mod tests {
                 res.vaults_list().items()[2].id(),
                 expected_order.inputs[1].id()
             );
-        }
-
-        #[tokio::test]
-        async fn test_invalid_meta() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "orders": [
-                            json!({
-                            "id": "0x1a69eeb7970d3c8d5776493327fb262e31fc880c9cc4a951607418a7963d9fa1",
-                            "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000f08bcbce72f62c95dcb7c07dcb5ed26acfcfbc1100000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000005c00000000000000000000000000000000000000000000000000000000000000640392c489ef67afdc348209452c338ea5ba2b6152b936e152f610d05e1a20621a40000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae60000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000049d000000000000000000000000000000000000000000000000000000000000000f0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000c7d713b49da0000914d696e20747261646520616d6f756e742e00000000000000000000000000008b616d6f756e742d75736564000000000000000000000000000000000000000000000000000000000000000000000000000000000000000340aad21b3b70000000000000000000000000000000000000000000000000006194049f30f7200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000b1a2bc2ec500000000000000000000000000000000000000000000000000000e043da6172500008f6c6173742d74726164652d74696d65000000000000000000000000000000008d6c6173742d74726164652d696f0000000000000000000000000000000000008c696e697469616c2d74696d650000000000000000000000000000000000000000000000000000000000000000000000000000000000000006f05b59d3b200000000000000000000000000000000000000000000000000008ac7230489e80000000000000000000000020000915e36ef882941816356bc3718df868054f868ad000000000000000000000000000000000000000000000000000000000000027d0a00000024007400e0015801b401e001f40218025c080500040b20000200100001001000000b120003001000010b110004001000030b0100051305000201100001011000003d120000011000020010000003100404211200001d02000001100003031000010c1200004911000003100404001000012b12000001100003031000010c1200004a0200001a0b00090b1000060b20000700100000001000011b1200001a10000047120000001000001a1000004712000001100000011000002e12000001100005011000042e120000001000053d12000001100004001000042e1200000010000601100005001000032e120000481200011d0b020a0010000001100000011000062713000001100003031000010c12000049110000001000030010000247120000001000010b110008001000050110000700100001201200001f12000001100000011000004712000000100006001000073d120000011000002b12000000100008001000043b120000160901080b1000070b10000901100008001000013d1200001b12000001100006001000013d1200000b100009001000033a120000001000040010000248120001001000000b110008001000053d12000000100006001000042b1200000a0401011a10000001100009031000010c1200004a020000001000000110000a031000010c1200004a020000040200010110000b031000010c120000491100000803000201100009031000010c120000491100000110000a031000010c12000049110000100c01030110000d001000002e1200000110000c3e1200000010000100100001001000010010000100100001001000010010000100100001001000013d1a0000020100010210000e3611000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012a6e3c06415539f92823a18ba63e1c0303040c4892970a0d1e3a27663d7583b33",
-                            "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4",
-                            "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
-                            "outputs": [],
-                            "inputs": [],
-                            "orderbook": {
-                                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
-                            },
-                            "active": true,
-                            "timestampAdded": "1739448802",
-                            "meta": "0x123456",
-                            "addEvents": [],
-                            "trades": [],
-                            "removeEvents": []
-                            })
-                        ]
-                    }
-                }));
-            });
-
-            let raindex_client = RaindexClient::new(
-                vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
-                    // not used
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
-                )],
-                None,
-            )
-            .unwrap();
-            let res = raindex_client
-                .get_order_by_hash(
-                    &OrderbookIdentifier::new(
-                        1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                    ),
-                    Bytes::from_str("0x0123").unwrap(),
-                )
-                .await;
-            assert!(res.is_ok());
         }
 
         #[tokio::test]
