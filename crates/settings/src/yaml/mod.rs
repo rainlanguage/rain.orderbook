@@ -525,6 +525,10 @@ pub fn default_document() -> Arc<RwLock<StrictYaml>> {
     Arc::new(RwLock::new(StrictYaml::String("".to_string())))
 }
 
+pub fn default_documents() -> Arc<Vec<Arc<RwLock<StrictYaml>>>> {
+    Arc::new(Vec::new())
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
