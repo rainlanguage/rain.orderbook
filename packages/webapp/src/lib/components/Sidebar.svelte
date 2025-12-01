@@ -23,7 +23,6 @@
 		logoLight,
 		WalletConnect,
 		TransactionList,
-		// @ts-expect-error TODO: component is gated until we merge all the local db PRs
 		LocalDbStatusCard
 	} from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
