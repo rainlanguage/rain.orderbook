@@ -1,15 +1,26 @@
-use super::{
-    super::orders::{GetOrdersFilters, RaindexOrder},
-    RaindexClient, RaindexError,
-};
+use super::super::orders::{GetOrdersFilters, OrdersDataSource, RaindexOrder};
+use super::{LocalDb, RaindexError};
 use crate::local_db::query::fetch_vault::LocalDbVault;
-use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
+use crate::local_db::query::LocalDbQueryError;
 use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
+use crate::raindex_client::RaindexClient;
 use alloy::primitives::B256;
+use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::from_str;
 use std::rc::Rc;
+
+pub struct LocalDbOrders<'a> {
+    pub(crate) db: &'a LocalDb,
+    pub(crate) client: Rc<RaindexClient>,
+}
+
+impl<'a> LocalDbOrders<'a> {
+    pub(crate) fn new(db: &'a LocalDb, client: Rc<RaindexClient>) -> Self {
+        Self { db, client }
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,27 +54,30 @@ pub(crate) fn parse_io_vaults(
     Ok(ios.into_iter().map(|io| io.vault).collect())
 }
 
-impl RaindexClient {
-    pub(crate) async fn get_orders_local_db<E: LocalDbQueryExecutor>(
+#[async_trait(?Send)]
+impl OrdersDataSource for LocalDbOrders<'_> {
+    async fn list(
         &self,
-        executor: E,
-        chain_ids: Vec<u32>,
-        filters: Option<GetOrdersFilters>,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetOrdersFilters,
+        _page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
-        let mut fetch_args = filters.map(FetchOrdersArgs::from).unwrap_or_default();
-        if !chain_ids.is_empty() {
-            fetch_args.chain_ids = chain_ids;
+        let mut fetch_args = FetchOrdersArgs::from(filters.clone());
+        if let Some(ids) = chain_ids {
+            if !ids.is_empty() {
+                fetch_args.chain_ids = ids;
+            }
         }
 
-        let local_db_orders = fetch_orders(&executor, fetch_args).await?;
+        let local_db_orders = fetch_orders(self.db, fetch_args).await?;
         let mut orders: Vec<RaindexOrder> = Vec::with_capacity(local_db_orders.len());
+        let client = Rc::clone(&self.client);
 
         for local_db_order in local_db_orders {
             let inputs = parse_io_vaults("inputs", &local_db_order.inputs)?;
             let outputs = parse_io_vaults("outputs", &local_db_order.outputs)?;
             let order = RaindexOrder::from_local_db_order(
-                Rc::clone(&raindex_client),
+                Rc::clone(&client),
                 local_db_order,
                 inputs,
                 outputs,
@@ -74,9 +88,8 @@ impl RaindexClient {
         Ok(orders)
     }
 
-    pub(crate) async fn get_order_by_hash_local_db<E: LocalDbQueryExecutor + ?Sized>(
+    async fn get_by_hash(
         &self,
-        executor: &E,
         ob_id: &OrderbookIdentifier,
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
@@ -87,18 +100,13 @@ impl RaindexClient {
             ..FetchOrdersArgs::default()
         };
 
-        let local_db_orders = fetch_orders(executor, fetch_args).await?;
-        let raindex_client = Rc::new(self.clone());
+        let local_db_orders = fetch_orders(self.db, fetch_args).await?;
+        let client = Rc::clone(&self.client);
 
         if let Some(local_db_order) = local_db_orders.into_iter().next() {
             let inputs = parse_io_vaults("inputs", &local_db_order.inputs)?;
             let outputs = parse_io_vaults("outputs", &local_db_order.outputs)?;
-            let order = RaindexOrder::from_local_db_order(
-                Rc::clone(&raindex_client),
-                local_db_order,
-                inputs,
-                outputs,
-            )?;
+            let order = RaindexOrder::from_local_db_order(client, local_db_order, inputs, outputs)?;
 
             return Ok(Some(order));
         }
