@@ -1,15 +1,16 @@
+use alloy::primitives::Address;
+
 use crate::local_db::{
     query::{SqlBuildError, SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
-use std::collections::HashSet;
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
 #[derive(Debug, Clone, Default)]
 pub struct FetchVaultsArgs {
-    pub owners: Vec<String>,
-    pub tokens: Vec<String>,
+    pub owners: Vec<Address>,
+    pub tokens: Vec<Address>,
     pub hide_zero_balance: bool,
 }
 
@@ -39,47 +40,25 @@ pub fn build_fetch_vaults_stmt(
     args: &FetchVaultsArgs,
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
-    // ?1: chain id
-    stmt.push(SqlValue::U64(ob_id.chain_id as u64));
-    // ?2: orderbook address
-    stmt.push(SqlValue::Text(ob_id.orderbook_address.to_string()));
+    stmt.push(SqlValue::from(ob_id.chain_id));
+    stmt.push(SqlValue::from(ob_id.orderbook_address));
 
-    // Owners list (trim, non-empty, lowercase) with order-preserving dedup
-    let mut owners: Vec<String> = Vec::new();
-    let mut seen: HashSet<String> = HashSet::new();
-    for owner in args.owners.iter() {
-        let t = owner.trim();
-        if t.is_empty() {
-            continue;
-        }
-        let lowered = t.to_ascii_lowercase();
-        if seen.insert(lowered.clone()) {
-            owners.push(lowered);
-        }
-    }
+    let mut owners = args.owners.clone();
+    owners.sort();
+    owners.dedup();
     stmt.bind_list_clause(
         OWNERS_CLAUSE,
         OWNERS_CLAUSE_BODY,
-        owners.into_iter().map(SqlValue::Text),
+        owners.into_iter().map(SqlValue::from),
     )?;
 
-    // Tokens list (trim, non-empty, lowercase) with order-preserving dedup
-    let mut tokens: Vec<String> = Vec::new();
-    let mut seen_tokens: HashSet<String> = HashSet::new();
-    for token in args.tokens.iter() {
-        let t = token.trim();
-        if t.is_empty() {
-            continue;
-        }
-        let lowered = t.to_ascii_lowercase();
-        if seen_tokens.insert(lowered.clone()) {
-            tokens.push(lowered);
-        }
-    }
+    let mut tokens = args.tokens.clone();
+    tokens.sort();
+    tokens.dedup();
     stmt.bind_list_clause(
         TOKENS_CLAUSE,
         TOKENS_CLAUSE_BODY,
-        tokens.into_iter().map(SqlValue::Text),
+        tokens.into_iter().map(SqlValue::from),
     )?;
 
     // Hide zero balance clause
@@ -94,7 +73,7 @@ pub fn build_fetch_vaults_stmt(
 
 #[cfg(test)]
 mod tests {
-    use alloy::primitives::Address;
+    use alloy::primitives::{address, Address};
 
     use super::*;
 
@@ -117,8 +96,11 @@ mod tests {
     #[test]
     fn owners_tokens_and_hide_zero() {
         let mut args = mk_args();
-        args.owners = vec![" 0xA ".into(), "O'Owner".into()];
-        args.tokens = vec!["TOK'A".into()];
+        args.owners = vec![
+            address!("0x87d08841bdAd4aB82883a322D2c0eF557EC154fE"),
+            address!("0x632ffCd874c1dDD5aCf9c26918D31CA3c96c0ec8"),
+        ];
+        args.tokens = vec![address!("0x1AC6F2786A51b20d47050f3f9E4B0e831427B498")];
         args.hide_zero_balance = true;
         let stmt =
             build_fetch_vaults_stmt(&OrderbookIdentifier::new(137, Address::ZERO), &args).unwrap();

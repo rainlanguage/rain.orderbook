@@ -5,7 +5,7 @@ use crate::local_db::query::LocalDbQueryError;
 use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
 use crate::raindex_client::RaindexClient;
-use alloy::primitives::Bytes;
+use alloy::primitives::B256;
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::from_str;
@@ -91,12 +91,12 @@ impl OrdersDataSource for LocalDbOrders<'_> {
     async fn get_by_hash(
         &self,
         ob_id: &OrderbookIdentifier,
-        order_hash: &Bytes,
+        order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let fetch_args = FetchOrdersArgs {
             chain_ids: vec![ob_id.chain_id],
             orderbook_addresses: vec![ob_id.orderbook_address],
-            order_hash: Some(order_hash.to_string()),
+            order_hash: Some(*order_hash),
             ..FetchOrdersArgs::default()
         };
 
@@ -130,7 +130,7 @@ mod tests {
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
         use crate::raindex_client::ChainIds;
-        use alloy::primitives::{Address, Bytes};
+        use alloy::primitives::{address, b256, bytes, Bytes, U256};
         use serde_json::{self, json};
         use wasm_bindgen_test::wasm_bindgen_test;
         use wasm_bindgen_utils::prelude::*;
@@ -172,22 +172,28 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_orders_local_db_callback_path() {
-            let order_hash = "0x0000000000000000000000000000000000000000000000000000000000000abc";
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let order_bytes = "0x00000000000000000000000000000000000000000000000000000000000000ff";
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
+            let order_hash_str = order_hash.to_string();
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let order_bytes =
+                bytes!("0x00000000000000000000000000000000000000000000000000000000000000ff");
+            let order_bytes_str = order_bytes.to_string();
             let transaction_hash =
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-            let meta = "0x1234";
-            let input_vault_id = "0x0a";
-            let output_vault_id = "0x0b";
-            let input_token = "0x00000000000000000000000000000000000000aa";
-            let output_token = "0x00000000000000000000000000000000000000bb";
+                b256!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+            let meta = Bytes::from_str("0x1234").unwrap();
+            let meta_str = meta.to_string();
+            let input_vault_id = U256::from_str("0x0a").unwrap();
+            let output_vault_id = U256::from_str("0x0b").unwrap();
+            let input_token = address!("0x00000000000000000000000000000000000000aa");
+            let output_token = address!("0x00000000000000000000000000000000000000bb");
+            let orderbook_address = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
 
             let input_vault = LocalDbVault {
-                vault_id: input_vault_id.to_string(),
-                token: input_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                vault_id: input_vault_id,
+                token: input_token,
+                owner,
+                orderbook_address,
                 token_name: "Token A".to_string(),
                 token_symbol: "TKNA".to_string(),
                 token_decimals: 18,
@@ -198,10 +204,10 @@ mod tests {
             };
 
             let output_vault = LocalDbVault {
-                vault_id: output_vault_id.to_string(),
-                token: output_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                vault_id: output_vault_id,
+                token: output_token,
+                owner,
+                orderbook_address,
                 token_name: "Token B".to_string(),
                 token_symbol: "TKNB".to_string(),
                 token_decimals: 6,
@@ -245,18 +251,18 @@ mod tests {
 
             let local_order = LocalDbOrder {
                 chain_id: 42161,
-                order_hash: order_hash.to_string(),
-                owner: owner.to_string(),
+                order_hash: order_hash.clone(),
+                owner,
                 block_timestamp: 123456,
                 block_number: 654321,
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                order_bytes: order_bytes.to_string(),
-                transaction_hash: transaction_hash.to_string(),
+                orderbook_address,
+                order_bytes: order_bytes,
+                transaction_hash: transaction_hash.clone(),
                 inputs: Some(inputs_json.to_string()),
                 outputs: Some(outputs_json.to_string()),
                 trade_count: 7,
                 active: true,
-                meta: Some(meta.to_string()),
+                meta: Some(meta.clone()),
             };
 
             let callback = make_local_db_callback(vec![local_order.clone()]);
@@ -272,16 +278,16 @@ mod tests {
 
             let order = &orders[0];
             assert_eq!(order.chain_id(), 42161);
-            assert_eq!(order.order_hash(), order_hash.to_string());
-            assert_eq!(order.order_bytes(), order_bytes.to_string());
-            assert_eq!(order.owner().to_lowercase(), owner.to_string());
+            assert_eq!(order.order_hash(), order_hash_str);
+            assert_eq!(order.order_bytes(), order_bytes_str);
+            assert_eq!(
+                order.owner().to_lowercase(),
+                owner.to_string().to_lowercase()
+            );
             assert!(order.active());
             assert_eq!(order.trades_count(), local_order.trade_count as u16);
-            assert_eq!(order.meta(), Some(meta.to_string()));
-            assert_eq!(
-                order.orderbook(),
-                "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string()
-            );
+            assert_eq!(order.meta(), Some(meta_str));
+            assert_eq!(order.orderbook(), orderbook_address.to_string());
             assert!(order.transaction().is_none());
 
             let timestamp = order.timestamp_added().unwrap();
@@ -300,7 +306,7 @@ mod tests {
             );
             assert_eq!(
                 input_vaults[0].orderbook(),
-                input_vault.orderbook_address.clone()
+                input_vault.orderbook_address.to_string()
             );
 
             let output_vaults = order.outputs_list().items();
@@ -311,26 +317,31 @@ mod tests {
             );
             assert_eq!(
                 output_vaults[0].orderbook(),
-                output_vault.orderbook_address.clone()
+                output_vault.orderbook_address.to_string()
             );
         }
 
         #[wasm_bindgen_test]
         async fn test_get_order_by_hash_local_db_path() {
-            let order_hash = "0x0000000000000000000000000000000000000000000000000000000000000abc";
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let order_bytes = "0x00000000000000000000000000000000000000000000000000000000000000ff";
-            let meta = "0x1234";
-            let input_vault_id = "0x0a";
-            let output_vault_id = "0x0b";
-            let input_token = "0x00000000000000000000000000000000000000aa";
-            let output_token = "0x00000000000000000000000000000000000000bb";
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let transaction_hash =
+                b256!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+            let order_bytes =
+                bytes!("0x00000000000000000000000000000000000000000000000000000000000000ff");
+            let meta = Bytes::from_str("0x1234").unwrap();
+            let input_vault_id = U256::from_str("0x0a").unwrap();
+            let output_vault_id = U256::from_str("0x0b").unwrap();
+            let input_token = address!("0x00000000000000000000000000000000000000aa");
+            let output_token = address!("0x00000000000000000000000000000000000000bb");
+            let orderbook_address = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
 
             let input_vault = LocalDbVault {
-                vault_id: input_vault_id.to_string(),
-                token: input_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                vault_id: input_vault_id,
+                token: input_token,
+                owner,
+                orderbook_address,
                 token_name: "Token A".to_string(),
                 token_symbol: "TKNA".to_string(),
                 token_decimals: 18,
@@ -341,10 +352,10 @@ mod tests {
             };
 
             let output_vault = LocalDbVault {
-                vault_id: output_vault_id.to_string(),
-                token: output_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                vault_id: output_vault_id,
+                token: output_token,
+                owner,
+                orderbook_address,
                 token_name: "Token B".to_string(),
                 token_symbol: "TKNB".to_string(),
                 token_decimals: 6,
@@ -388,19 +399,18 @@ mod tests {
 
             let local_order = LocalDbOrder {
                 chain_id: 42161,
-                order_hash: order_hash.to_string(),
-                owner: owner.to_string(),
+                order_hash,
+                owner,
                 block_timestamp: 123456,
                 block_number: 654321,
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                order_bytes: order_bytes.to_string(),
-                transaction_hash:
-                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                orderbook_address,
+                order_bytes: order_bytes.clone(),
+                transaction_hash: transaction_hash.clone(),
                 inputs: Some(inputs_json.to_string()),
                 outputs: Some(outputs_json.to_string()),
                 trade_count: 3,
                 active: true,
-                meta: Some(meta.to_string()),
+                meta: Some(meta.clone()),
             };
 
             let callback = make_local_db_callback(vec![local_order.clone()]);
@@ -409,11 +419,8 @@ mod tests {
 
             let order = client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
-                        42161,
-                        Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap(),
-                    ),
-                    Bytes::from_str(order_hash).unwrap(),
+                    &OrderbookIdentifier::new(42161, orderbook_address),
+                    order_hash.clone(),
                 )
                 .await
                 .expect("local db order fetch should succeed");
@@ -421,14 +428,14 @@ mod tests {
             assert_eq!(order.chain_id(), 42161);
             assert_eq!(order.order_hash(), order_hash.to_string());
             assert_eq!(order.order_bytes(), order_bytes.to_string());
-            assert_eq!(order.owner().to_lowercase(), owner.to_string());
+            assert_eq!(
+                order.owner().to_lowercase(),
+                owner.to_string().to_lowercase()
+            );
             assert!(order.active());
             assert_eq!(order.trades_count(), local_order.trade_count as u16);
             assert_eq!(order.meta(), Some(meta.to_string()));
-            assert_eq!(
-                order.orderbook(),
-                "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string()
-            );
+            assert_eq!(order.orderbook(), orderbook_address.to_string());
         }
     }
 }

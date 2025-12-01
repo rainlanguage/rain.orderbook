@@ -5,9 +5,6 @@ use crate::local_db::OrderbookIdentifier;
 pub const CLEAR_ORDERBOOK_DATA_SQL: &str = include_str!("query.sql");
 
 pub fn clear_orderbook_data_batch(ob_id: &OrderbookIdentifier) -> SqlStatementBatch {
-    let chain_val = SqlValue::from(ob_id.chain_id as u64);
-    let address_val = SqlValue::from(ob_id.orderbook_address.to_string());
-
     let statements: Vec<SqlStatement> = REQUIRED_TABLES
         .iter()
         .copied()
@@ -18,8 +15,8 @@ pub fn clear_orderbook_data_batch(ob_id: &OrderbookIdentifier) -> SqlStatementBa
                     "DELETE FROM {table}\nWHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2)"
                 ),
                 [
-                    chain_val.clone(),
-                    address_val.clone(),
+                    SqlValue::from(ob_id.chain_id),
+                    SqlValue::from(ob_id.orderbook_address),
                 ],
             )
         })
@@ -78,7 +75,7 @@ mod tests {
                 stmt.params(),
                 &[
                     SqlValue::U64(chain_id as u64),
-                    SqlValue::Text(addr.to_string())
+                    SqlValue::Text("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
                 ]
             );
         }

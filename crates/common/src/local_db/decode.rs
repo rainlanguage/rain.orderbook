@@ -1,7 +1,7 @@
 use crate::rpc_client::LogEntryResponse;
 use alloy::{
     hex,
-    primitives::{Address, Bytes, B256, U256},
+    primitives::{Address, B256, U256},
     sol_types::{abi::token::WordToken, SolEvent},
 };
 use core::convert::TryFrom;
@@ -13,7 +13,6 @@ use rain_orderbook_bindings::{
     OrderBook::MetaV1_2,
 };
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecodeError {
@@ -40,35 +39,33 @@ pub enum EventType {
 }
 
 impl EventType {
-    fn from_topic(topic: &str) -> Self {
-        if let Ok(bytes) = hex::decode(topic) {
-            if bytes == AddOrderV3::SIGNATURE_HASH.as_slice() {
-                return Self::AddOrderV3;
-            }
-            if bytes == TakeOrderV3::SIGNATURE_HASH.as_slice() {
-                return Self::TakeOrderV3;
-            }
-            if bytes == WithdrawV2::SIGNATURE_HASH.as_slice() {
-                return Self::WithdrawV2;
-            }
-            if bytes == DepositV2::SIGNATURE_HASH.as_slice() {
-                return Self::DepositV2;
-            }
-            if bytes == RemoveOrderV3::SIGNATURE_HASH.as_slice() {
-                return Self::RemoveOrderV3;
-            }
-            if bytes == ClearV3::SIGNATURE_HASH.as_slice() {
-                return Self::ClearV3;
-            }
-            if bytes == AfterClearV2::SIGNATURE_HASH.as_slice() {
-                return Self::AfterClearV2;
-            }
-            if bytes == MetaV1_2::SIGNATURE_HASH.as_slice() {
-                return Self::MetaV1_2;
-            }
-            if bytes == Set::SIGNATURE_HASH.as_slice() {
-                return Self::InterpreterStoreSet;
-            }
+    fn from_topic(topic: &[u8]) -> Self {
+        if topic == AddOrderV3::SIGNATURE_HASH.as_slice() {
+            return Self::AddOrderV3;
+        }
+        if topic == TakeOrderV3::SIGNATURE_HASH.as_slice() {
+            return Self::TakeOrderV3;
+        }
+        if topic == WithdrawV2::SIGNATURE_HASH.as_slice() {
+            return Self::WithdrawV2;
+        }
+        if topic == DepositV2::SIGNATURE_HASH.as_slice() {
+            return Self::DepositV2;
+        }
+        if topic == RemoveOrderV3::SIGNATURE_HASH.as_slice() {
+            return Self::RemoveOrderV3;
+        }
+        if topic == ClearV3::SIGNATURE_HASH.as_slice() {
+            return Self::ClearV3;
+        }
+        if topic == AfterClearV2::SIGNATURE_HASH.as_slice() {
+            return Self::AfterClearV2;
+        }
+        if topic == MetaV1_2::SIGNATURE_HASH.as_slice() {
+            return Self::MetaV1_2;
+        }
+        if topic == Set::SIGNATURE_HASH.as_slice() {
+            return Self::InterpreterStoreSet;
         }
 
         Self::Unknown
@@ -81,7 +78,7 @@ pub struct DecodedEventData<T> {
     pub event_type: EventType,
     pub block_number: U256,
     pub block_timestamp: U256,
-    pub transaction_hash: Bytes,
+    pub transaction_hash: B256,
     pub log_index: U256,
     pub decoded_data: T,
 }
@@ -127,18 +124,13 @@ pub fn decode_events(
                     field: "topic0",
                     index,
                 })?;
-            let trimmed_data = event.data.trim();
-            let data_without_prefix = trimmed_data
-                .strip_prefix("0x")
-                .or_else(|| trimmed_data.strip_prefix("0X"))
-                .unwrap_or(trimmed_data);
-            if data_without_prefix.trim().is_empty() {
+            if event.data.is_empty() {
                 return Err(DecodeError::MissingRequiredField {
                     field: "data",
                     index,
                 });
             }
-            let event_type = EventType::from_topic(topic0);
+            let event_type = EventType::from_topic(topic0.as_ref());
 
             let decoded_data = match event_type {
                 EventType::AddOrderV3 => {
@@ -167,12 +159,12 @@ pub fn decode_events(
                 }
                 EventType::InterpreterStoreSet => {
                     DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
-                        store_address: Address::from_str(&event.address)?,
+                        store_address: event.address,
                         payload: decode_event::<Set>(event)?,
                     }))
                 }
                 EventType::Unknown => DecodedEvent::Unknown(UnknownEventDecoded {
-                    raw_data: event.data.clone(),
+                    raw_data: format!("{:#x}", event.data),
                     note: "Unknown event type - could not decode".to_string(),
                 }),
             };
@@ -181,7 +173,7 @@ pub fn decode_events(
                 event_type,
                 block_number: event.block_number,
                 block_timestamp: event.block_timestamp.unwrap_or_default(),
-                transaction_hash: Bytes::from_str(&event.transaction_hash)?,
+                transaction_hash: event.transaction_hash,
                 log_index: event.log_index,
                 decoded_data,
             })
@@ -194,14 +186,13 @@ fn decode_event<E: SolEvent>(event: &LogEntryResponse) -> Result<E, DecodeError>
         .topics
         .iter()
         .map(|topic| {
-            let bytes = hex::decode(topic).map_err(DecodeError::HexDecode)?;
-            let b256 = B256::try_from(bytes.as_slice())
+            let b256 = B256::try_from(topic.as_ref())
                 .map_err(|_| DecodeError::AbiDecode("topic length != 32 bytes".to_string()))?;
             Ok::<WordToken, DecodeError>(WordToken::from(b256))
         })
         .collect::<Result<Vec<_>, DecodeError>>()?;
-    let data = hex::decode(&event.data).map_err(DecodeError::HexDecode)?;
-    E::decode_raw_log(topics, &data).map_err(|err| DecodeError::AbiDecode(err.to_string()))
+    E::decode_raw_log(topics, event.data.as_ref())
+        .map_err(|err| DecodeError::AbiDecode(err.to_string()))
 }
 
 pub fn sort_decoded_events_by_block_and_log(events: &mut [DecodedEventData<DecodedEvent>]) {
@@ -217,7 +208,7 @@ mod test_helpers {
     use super::*;
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
-    use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{address, b256, Address, Bytes, FixedBytes, B256, U256};
     use rain_orderbook_bindings::{
         IOrderBookV5::{
             AddOrderV3, AfterClearV2, ClearConfigV2, ClearStateChangeV2, ClearV3, DepositV2,
@@ -272,22 +263,22 @@ mod test_helpers {
     }
 
     fn new_log_entry(
-        topic: String,
-        data: String,
+        topic: Bytes,
+        data: Bytes,
         block_number: &str,
         block_timestamp: Option<&str>,
-        transaction_hash: &str,
+        transaction_hash: B256,
         log_index: &str,
     ) -> LogEntryResponse {
         LogEntryResponse {
-            address: "0x0000000000000000000000000000000000000000".to_string(),
+            address: Address::ZERO,
             topics: vec![topic],
             data,
             block_number: parse_u256(block_number),
             block_timestamp: block_timestamp.map(parse_u256),
-            transaction_hash: transaction_hash.to_string(),
+            transaction_hash,
             transaction_index: "0x0".to_string(),
-            block_hash: "0x0".to_string(),
+            block_hash: B256::ZERO,
             log_index: parse_u256(log_index),
             removed: false,
         }
@@ -312,11 +303,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(ClearV3::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(ClearV3::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x123456",
             Some("0x64b8c123"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
             "0x0",
         )
     }
@@ -334,11 +325,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(AddOrderV3::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(AddOrderV3::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x123456",
             Some("0x64b8c123"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"),
             "0x0",
         )
     }
@@ -367,11 +358,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(TakeOrderV3::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(TakeOrderV3::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x123457",
             Some("0x64b8c124"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567891"),
             "0x1",
         )
     }
@@ -395,11 +386,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(WithdrawV2::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(WithdrawV2::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x123458",
             Some("0x64b8c125"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567892"),
             "0x2",
         )
     }
@@ -419,11 +410,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(DepositV2::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(DepositV2::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x123459",
             Some("0x64b8c126"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567893"),
             "0x3",
         )
     }
@@ -441,11 +432,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(RemoveOrderV3::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(RemoveOrderV3::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x12345a",
             Some("0x64b8c127"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567894"),
             "0x4",
         )
     }
@@ -459,14 +450,14 @@ mod test_helpers {
 
         let encoded = format!("0x{}", hex::encode(event_data.encode_data()));
         let mut entry = new_log_entry(
-            format!("0x{}", hex::encode(Set::SIGNATURE_HASH)),
-            encoded,
+            Bytes::from(Set::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from_str(&encoded).unwrap(),
             "0x12345c",
             Some("0x64b8c129"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896"),
             "0x6",
         );
-        entry.address = "0x0123456789abcdef0123456789abcdef01234567".to_string();
+        entry.address = address!("0x0123456789abcdef0123456789abcdef01234567");
         entry
     }
 
@@ -508,11 +499,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(ClearV3::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(ClearV3::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x12345b",
             Some("0x64b8c128"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567895"),
             "0x5",
         )
     }
@@ -533,11 +524,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(AfterClearV2::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(AfterClearV2::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x12345c",
             Some("0x64b8c129"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567896"),
             "0x6",
         )
     }
@@ -559,11 +550,11 @@ mod test_helpers {
 
         let encoded_data = event_data.encode_data();
         new_log_entry(
-            format!("0x{}", hex::encode(MetaV1_2::SIGNATURE_HASH)),
-            format!("0x{}", hex::encode(encoded_data)),
+            Bytes::from(MetaV1_2::SIGNATURE_HASH.as_slice().to_vec()),
+            Bytes::from(encoded_data),
             "0x12345d",
             Some("0x64b8c12a"),
-            "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567897",
+            b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567897"),
             "0x7",
         )
     }
@@ -826,19 +817,19 @@ mod test_helpers {
     #[test]
     fn test_invalid_hex_data_decode() {
         let mut invalid_event = create_add_order_v3_event_data();
-        invalid_event.data = "0xinvalidhex".to_string();
+        invalid_event.data = Bytes::from(vec![0xde, 0xad]);
 
         let result = decode_events(&[invalid_event]);
 
         assert!(result.is_err());
         let error = result.unwrap_err();
-        assert!(matches!(error, DecodeError::HexDecode(_)));
+        assert!(matches!(error, DecodeError::AbiDecode(_)));
     }
 
     #[test]
     fn test_malformed_abi_data_decode() {
         let mut malformed_event = create_add_order_v3_event_data();
-        malformed_event.data = "0x1234".to_string();
+        malformed_event.data = Bytes::from(vec![0x12, 0x34]);
 
         let result = decode_events(&[malformed_event]);
 
@@ -849,10 +840,10 @@ mod test_helpers {
 
     #[test]
     fn test_unknown_event_type_decode() {
-        let unknown_topic = "0x".to_owned() + &"f".repeat(64);
+        let unknown_topic = Bytes::from(vec![0xff; 32]);
         let mut unknown_event = create_add_order_v3_event_data();
         unknown_event.topics = vec![unknown_topic];
-        unknown_event.data = "0x1234567890abcdef".to_string();
+        unknown_event.data = Bytes::from(vec![0x12, 0x34, 0x56, 0x78]);
 
         let decoded_events = decode_events_vec(vec![unknown_event]);
         assert_eq!(decoded_events.len(), 1);
@@ -864,7 +855,7 @@ mod test_helpers {
             panic!("expected Unknown decoded data");
         };
 
-        assert_eq!(unknown.raw_data, "0x1234567890abcdef");
+        assert_eq!(unknown.raw_data, "0x12345678");
         assert_eq!(unknown.note, "Unknown event type - could not decode");
     }
 
@@ -878,7 +869,7 @@ mod test_helpers {
     fn test_event_empty_topics_array() {
         let mut event_empty_topics = create_add_order_v3_event_data();
         event_empty_topics.topics.clear();
-        event_empty_topics.data = "0x1234567890abcdef".to_string();
+        event_empty_topics.data = Bytes::from(vec![0x12, 0x34, 0x56, 0x78]);
 
         let result = decode_events(&[event_empty_topics]);
         assert!(matches!(
@@ -891,7 +882,7 @@ mod test_helpers {
     #[test]
     fn test_event_missing_data_field() {
         let mut event_no_data = create_add_order_v3_event_data();
-        event_no_data.data = String::new();
+        event_no_data.data = Bytes::new();
 
         let result = decode_events(&[event_no_data]);
         assert!(matches!(
@@ -903,17 +894,15 @@ mod test_helpers {
 
     #[test]
     fn test_event_zero_length_hex_data() {
-        for hex_prefix in ["0x", "0X"] {
-            let mut event_no_data = create_add_order_v3_event_data();
-            event_no_data.data = hex_prefix.to_string();
+        let mut event_no_data = create_add_order_v3_event_data();
+        event_no_data.data = Bytes::default();
 
-            let result = decode_events(&[event_no_data]);
-            assert!(matches!(
-                result,
-                Err(DecodeError::MissingRequiredField { field, index })
-                    if field == "data" && index == 0
-            ));
-        }
+        let result = decode_events(&[event_no_data]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::MissingRequiredField { field, index })
+                if field == "data" && index == 0
+        ));
     }
 
     #[test]
@@ -921,7 +910,7 @@ mod test_helpers {
         let mut minimal_event = create_add_order_v3_event_data();
         minimal_event.block_number = U256::ZERO;
         minimal_event.block_timestamp = None;
-        minimal_event.transaction_hash.clear();
+        minimal_event.transaction_hash = B256::ZERO;
         minimal_event.log_index = U256::ZERO;
 
         let decoded_events = decode_events_vec(vec![minimal_event]);
@@ -931,7 +920,7 @@ mod test_helpers {
         assert_eq!(decoded_event.event_type, EventType::AddOrderV3);
         assert_eq!(decoded_event.block_number, U256::ZERO);
         assert_eq!(decoded_event.block_timestamp, U256::ZERO);
-        assert_eq!(decoded_event.transaction_hash, Bytes::from_str("").unwrap());
+        assert_eq!(decoded_event.transaction_hash, B256::ZERO);
         assert_eq!(decoded_event.log_index, U256::ZERO);
     }
 
@@ -1034,12 +1023,12 @@ mod test_helpers {
         assert!(matches!(result[0].decoded_data, DecodedEvent::ClearV3(_)));
     }
 
-    fn mk_event(block: u64, log_index: u64, tx: &str) -> DecodedEventData<DecodedEvent> {
+    fn mk_event(block: u64, log_index: u64, tx: B256) -> DecodedEventData<DecodedEvent> {
         DecodedEventData {
             event_type: EventType::Unknown,
             block_number: U256::from(block),
             block_timestamp: U256::ZERO,
-            transaction_hash: Bytes::from_str(tx).unwrap(),
+            transaction_hash: tx,
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::Unknown(UnknownEventDecoded {
                 raw_data: "0x".to_string(),
@@ -1051,43 +1040,84 @@ mod test_helpers {
     #[test]
     fn sort_events_by_block_and_log_orders_stably() {
         let mut events = vec![
-            mk_event(2, 1, "0x10"),
-            mk_event(1, 2, "0x20"),
-            mk_event(1, 1, "0x30"),
+            mk_event(
+                2,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000010"),
+            ),
+            mk_event(
+                1,
+                2,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000020"),
+            ),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000030"),
+            ),
         ];
         sort_decoded_events_by_block_and_log(&mut events);
-        assert_eq!(events[0].transaction_hash, Bytes::from_str("0x30").unwrap());
-        assert_eq!(events[1].transaction_hash, Bytes::from_str("0x20").unwrap());
-        assert_eq!(events[2].transaction_hash, Bytes::from_str("0x10").unwrap());
+        assert_eq!(
+            events[0].transaction_hash,
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000030")
+        );
+        assert_eq!(
+            events[1].transaction_hash,
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000020")
+        );
+        assert_eq!(
+            events[2].transaction_hash,
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000010")
+        );
     }
 
     #[test]
     fn sort_events_preserves_relative_order_for_identical_keys() {
         let mut events = vec![
-            mk_event(1, 1, "0x01"),
-            mk_event(1, 1, "0x02"),
-            mk_event(1, 1, "0x03"),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+            ),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000002"),
+            ),
+            mk_event(
+                1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000003"),
+            ),
         ];
-        let expected_order: Vec<_> = events
-            .iter()
-            .map(|event| event.transaction_hash.clone())
-            .collect();
+        let expected_order: Vec<_> = events.iter().map(|event| event.transaction_hash).collect();
         sort_decoded_events_by_block_and_log(&mut events);
-        let actual_order: Vec<_> = events
-            .iter()
-            .map(|event| event.transaction_hash.clone())
-            .collect();
+        let actual_order: Vec<_> = events.iter().map(|event| event.transaction_hash).collect();
         assert_eq!(actual_order, expected_order);
     }
 
     #[test]
     fn sort_events_orders_large_values() {
         let mut events = vec![
-            mk_event(u64::MAX, 0, "0x01"),
-            mk_event(u64::MAX - 1, 1, "0x02"),
+            mk_event(
+                u64::MAX,
+                0,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+            ),
+            mk_event(
+                u64::MAX - 1,
+                1,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000002"),
+            ),
         ];
         sort_decoded_events_by_block_and_log(&mut events);
-        assert_eq!(events[0].transaction_hash, Bytes::from_str("0x02").unwrap());
-        assert_eq!(events[1].transaction_hash, Bytes::from_str("0x01").unwrap());
+        assert_eq!(
+            events[0].transaction_hash,
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000002")
+        );
+        assert_eq!(
+            events[1].transaction_hash,
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000001")
+        );
     }
 }

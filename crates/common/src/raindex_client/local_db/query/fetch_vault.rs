@@ -49,7 +49,7 @@ mod wasm_tests {
     async fn wrapper_uses_builder_sql_and_none_on_empty() {
         let chain_id = 100;
         let vault_id = "0x01";
-        let token = "0xabc";
+        let token = "0x0000000000000000000000000000000000000abc";
         let orderbook = Address::from([0x11; 20]);
         let expected_stmt = build_fetch_vault_stmt(
             &OrderbookIdentifier::new(chain_id, orderbook),
@@ -82,7 +82,7 @@ mod wasm_tests {
     async fn wrapper_returns_some_row_when_present() {
         let chain_id = 100;
         let vault_id = "0x01";
-        let token = "0xabc";
+        let token = "0x0000000000000000000000000000000000000abc";
         let orderbook = Address::from([0x22; 20]);
         let expected_stmt = build_fetch_vault_stmt(
             &OrderbookIdentifier::new(chain_id, orderbook),
@@ -91,7 +91,18 @@ mod wasm_tests {
         );
 
         // Single row JSON for LocalDbVault
-        let row_json = r#"[{"vaultId":"1","token":"t","owner":"o","orderbookAddress":"ob","tokenName":"N","tokenSymbol":"S","tokenDecimals":18,"balance":"0x0","inputOrders":null,"outputOrders":null}]"#;
+        let row_json = r#"[{
+            "vaultId":"0x01",
+            "token":"0x0000000000000000000000000000000000000abc",
+            "owner":"0x0000000000000000000000000000000000000001",
+            "orderbookAddress":"0x2222222222222222222222222222222222222222",
+            "tokenName":"N",
+            "tokenSymbol":"S",
+            "tokenDecimals":18,
+            "balance":"0x0",
+            "inputOrders":null,
+            "outputOrders":null
+        }]"#;
 
         let store = Rc::new(RefCell::new((
             String::new(),
@@ -148,11 +159,25 @@ mod wasm_tests {
     #[wasm_bindgen_test]
     async fn fetch_vaults_for_io_string_multiple_calls_and_results() {
         // Build IO string with two valid entries, out of order to test sorting
-        let io = Some("2:v2:t2,1:v1:t1".to_string());
+        let io = Some(
+            "2:0x02:0x00000000000000000000000000000000000000f2,1:0x01:0x00000000000000000000000000000000000000f1"
+                .to_string(),
+        );
         let chain_id = 77u32;
 
         // JSON for a single LocalDbVault row
-        let row_json = r#"[{"vaultId":"1","token":"t","owner":"o","orderbookAddress":"ob","tokenName":"N","tokenSymbol":"S","tokenDecimals":18,"balance":"0x0","inputOrders":null,"outputOrders":null}]"#;
+        let row_json = r#"[{
+            "vaultId":"0x01",
+            "token":"0x00000000000000000000000000000000000000f1",
+            "owner":"0x00000000000000000000000000000000000000aa",
+            "orderbookAddress":"0x0000000000000000000000000000000000000000",
+            "tokenName":"N",
+            "tokenSymbol":"S",
+            "tokenDecimals":18,
+            "balance":"0x0",
+            "inputOrders":null,
+            "outputOrders":null
+        }]"#;
 
         // Capture all SQL calls
         let calls: Rc<RefCell<Vec<(String, wasm_bindgen::JsValue)>>> =
@@ -188,13 +213,13 @@ mod wasm_tests {
         let captured = calls.borrow();
         let expected1 = build_fetch_vault_stmt(
             &OrderbookIdentifier::new(chain_id, Address::ZERO),
-            "v1",
-            "t1",
+            "0x01",
+            "0x00000000000000000000000000000000000000f1",
         );
         let expected2 = build_fetch_vault_stmt(
             &OrderbookIdentifier::new(chain_id, Address::ZERO),
-            "v2",
-            "t2",
+            "0x02",
+            "0x00000000000000000000000000000000000000f2",
         );
         let expected = vec![expected1, expected2];
 
