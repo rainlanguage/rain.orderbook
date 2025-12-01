@@ -74,6 +74,7 @@ describe('Layout load function', () => {
 	it('should redirect if order details are not found in validOrders', async () => {
 		mockParent.mockResolvedValue({
 			validOrders: [
+				{ name: 'incomplete-order', details: undefined },
 				{ name: 'other-order', details: { name: 'Other', description: '', config: {} } }
 			],
 			invalidOrders: [],

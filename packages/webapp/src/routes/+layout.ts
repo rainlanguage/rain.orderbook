@@ -48,7 +48,6 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	if (!errorMessage) {
 		try {
 			const registryResult = await DotrainRegistry.new(registryUrl);
-			console.log(registryResult);
 			if (registryResult.error) {
 				errorMessage = 'Failed to load registry. ' + registryResult.error.readableMsg;
 			} else {
@@ -194,6 +193,25 @@ if (import.meta.vitest) {
 
 			expect(result).toHaveProperty('stores', null);
 			expect(result.errorMessage).toContain('Malformed settings');
+		});
+
+		it('should return errorMessage if local database fails to initialize', async () => {
+			const mockRegistry = { settings: 'settings' };
+			mockRegistryNew.mockResolvedValueOnce({
+				value: mockRegistry
+			});
+			mockRaindexClientNew.mockReturnValue({
+				value: { client: true }
+			});
+			mockLocalDbNew.mockReturnValue({
+				error: { readableMsg: 'Database init failed' }
+			});
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const result = await load({ url: new URL('http://localhost:3000') } as any);
+
+			expect(result).toHaveProperty('stores', null);
+			expect(result.errorMessage).toContain('Error initializing local database');
 		});
 
 		it('should initialize when registry and RaindexClient succeed', async () => {

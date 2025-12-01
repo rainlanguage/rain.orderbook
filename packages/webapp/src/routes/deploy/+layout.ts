@@ -13,9 +13,13 @@ type LoadResult = {
 	error: string | null;
 };
 
+interface ParentData {
+	registry?: DotrainRegistry | null;
+}
+
 export const load: LayoutLoad<LoadResult> = async ({ parent }) => {
-	const parentData = await parent();
-	const registry = (parentData as { registry?: DotrainRegistry | null }).registry ?? null;
+	const parentData: ParentData = await parent();
+	const registry = parentData.registry ?? null;
 
 	if (!registry) {
 		return {

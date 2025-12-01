@@ -26,14 +26,13 @@
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
 
-	if (!deployment || !registry || !orderName) {
-		setTimeout(() => {
-			goto('/deploy');
-		}, 5000);
-	}
-
 	onMount(async () => {
-		if (!deployment || !registry || !orderName) return;
+		if (!deployment || !registry || !orderName) {
+			setTimeout(() => {
+				goto('/deploy');
+			}, 5000);
+			return;
+		}
 
 		const serializedState = stateFromUrl || undefined;
 		const guiResult = await registry.getGui(
