@@ -44,17 +44,20 @@ deployers:
 accounts:
     alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
     bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
+
 orderbooks:
     some-orderbook:
         address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}
         network: some-network
         subgraph: some-sg
+        local-db-remote: remote
         deployment-block: 12345
     other-orderbook:
         address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
         deployment-block: 12345
         network: other-network
         subgraph: other-sg
+        local-db-remote: remote
 tokens:
     token1:
         network: some-network
@@ -1951,7 +1954,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const res = extractWasmEncodedData(await vault.getOwnerBalance());
 			assert.equal(res.balance.toFixedDecimal(18).value, BigInt(1000));
-			assert.equal(res.formattedBalance, '0.000000000000001');
+			assert.equal(res.formattedBalance, '1e-15');
 		});
 	});
 

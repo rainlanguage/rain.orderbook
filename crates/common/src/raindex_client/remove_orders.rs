@@ -4,7 +4,7 @@ use alloy::primitives::{hex::decode, Bytes};
 use alloy::sol_types::{SolCall, SolValue};
 use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::{order_detail_traits::OrderDetailError, Id};
-use std::sync::{Arc, RwLock};
+use std::rc::Rc;
 
 #[wasm_export]
 impl RaindexClient {
@@ -59,7 +59,7 @@ impl RaindexClient {
         orderbook_address: Address,
         tx_hash: Bytes,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Arc::new(RwLock::new(self.clone()));
+        let raindex_client = Rc::new(self.clone());
         let client = self.get_orderbook_client(orderbook_address)?;
 
         let orders = client
@@ -130,7 +130,10 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::{
+            local_db::OrderbookIdentifier,
+            raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS},
+        };
         use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -475,8 +478,10 @@ mod tests {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await

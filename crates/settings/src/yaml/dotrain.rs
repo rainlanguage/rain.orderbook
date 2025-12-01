@@ -56,6 +56,12 @@ impl ValidationConfig for DotrainYamlValidation {
     fn should_validate_subgraphs(&self) -> bool {
         false
     }
+    fn should_validate_local_db_remotes(&self) -> bool {
+        false
+    }
+    fn should_validate_local_db_sync(&self) -> bool {
+        false
+    }
     fn should_validate_orderbooks(&self) -> bool {
         false
     }

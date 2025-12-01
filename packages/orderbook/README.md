@@ -41,455 +41,544 @@ npm install @rainlanguage/orderbook
 
 ## Quick Start
 
-This quickstart guide will show you how to use the SDK to:
+### Example configuration used in this guide
 
-- Parse a YAML configuration file
-- Get RaindexClient instance to interact with the orderbook
-- Get all orders
-- Get a single order by hash
-- Get all vaults
-- Get a single vault
-- Get calldatas for vault deposit and withdraw
-- Get DotrainOrderGui instance to construct UI to deploy an order
-- Deploy an order using the DotrainOrderGui instance
+All of the code snippets below reuse the same fixed-limit dotrain/settings source. The portion before `---` represents the shared orderbook and dotrain YAML, and Rainlang lives after the separator.
 
-Make sure to also check out our [specs repository](https://github.com/rainlanguage/specs) for more details on how configuration files, rainlang, and the orderbook work.
+> **Heads-up:** These values are purely illustrative. Before deploying anything, pull the canonical strategies and settings from [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies) to mirror what our web apps run in production.
 
-### Parse YAML configuration
+```ts
+const FIXED_LIMIT_SOURCE = `
+version: 4
 
-```javascript
-import { parseYaml } from '@rainlanguage/orderbook';
+networks:
+  base:
+    rpcs:
+      - https://base-rpc.publicnode.com
+    chain-id: 8453
+    network-id: 8453
+    currency: ETH
 
-// Prepare YAML configuration. This configuration file is used by the raindex client
-// to do various read operations on the orderbooks configured in the YAML file.
-// It is also used to generate the calldatas to do operations on orders and vaults.
-// The latest version we use in our applications can be found in our repository
-// https://github.com/rainlanguage/rain.strategies/blob/main/settings.yaml
-const YAML = `
-  version: 2
-  networks:
-    flare:
-      rpc: <Flare RPC URL>
-      chain-id: 14
-      network-id: 14
-      currency: FLR
-  subgraphs:
-    flare: <Flare Subgraph URL>
-  orderbooks:
-    flare:
-      address: <Orderbook address on Flare>
-      network: flare
-      subgraph: flare
-  tokens:
-    flare-usdt:
-      network: flare
-      address: <Token address for USDT on Flare>
-      decimals: 6
-      label: USDT
-      symbol: USDT
+metaboards:
+  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/metadata-base/2025-07-06-594f/gn
+
+subgraphs:
+  base: https://example.com/subgraph
+
+local-db-remotes:
+  raindex: https://example.com/subgraph
+
+orderbooks:
+  base:
+    network: base
+    address: 0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775
+    deployment-block: 36667253
+    subgraph: base
+    local-db-remote: raindex
+
+tokens:
+  usdc:
+    network: base
+    address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+    decimals: 6
+    label: USD Coin
+    symbol: USDC
+  weth:
+    network: base
+    address: 0x4200000000000000000000000000000000000006
+    decimals: 18
+    label: Wrapped Ether
+    symbol: WETH
+
+deployers:
+  base:
+    network: base
+    address: 0x6557778Db274f04B9E9f39F8Ff2D621c2036e978
+
+orders:
+  fixed-limit:
+    orderbook: base
+    inputs:
+      - token: usdc
+        vault-id: 1
+    outputs:
+      - token: weth
+        vault-id: 1
+    deployer: base
+
+scenarios:
+  base:
+    orderbook: base
+    runs: 1
+    bindings:
+      raindex-subparser: 0x22839F16281E67E5Fd395fAFd1571e820CbD46cB
+      fixed-io-output-token: 0x4200000000000000000000000000000000000006
+
+deployments:
+  base:
+    order: fixed-limit
+    scenario: base
+
+using-tokens-from:
+  - https://tokens.coingecko.com/base/all.json
+
+gui:
+  name: Fixed limit
+  description: Deploy a USDC -> WETH limit order on Base.
+  short-description: Deploy a USDC -> WETH limit order on Base.
+  deployments:
+    base:
+      name: Base
+      description: Deploy a limit order on Base.
+      deposits:
+        - token: usdc
+          presets:
+            - "0"
+            - "100"
+            - "1000"
+      fields:
+        - binding: fixed-io
+          name: USDC per WETH
+          description: Fixed exchange rate (USDC received per 1 WETH sold)
+          presets:
+            - value: "1800"
+            - value: "1850"
+            - value: "1900"
+        - binding: amount-per-trade
+          name: Amount per trade
+          description: USDC spent per fill
+          presets:
+            - value: "100"
+            - value: "250"
+            - value: "500"
+      select-tokens:
+        - key: input-token
+          name: Token to Buy
+          description: Select the token you want to purchase
+        - key: output-token
+          name: Token to Sell
+          description: Select the token you want to sell
+
+---
+#raindex-subparser !The subparser to use.
+
+#fixed-io !The io ratio for the limit order.
+#fixed-io-output-token !The output token that the fixed io is for. If this doesn't match the runtime output then the fixed-io will be inverted.
+
+#calculate-io
+using-words-from raindex-subparser
+max-output: max-positive-value(),
+io: if(
+  equal-to(
+    output-token()
+    fixed-io-output-token
+  )
+  fixed-io
+  inv(fixed-io)
+);
+
+#handle-io
+:;
+
+#handle-add-order
+:;
 `;
 
-// Parse configuration files. Multiple YAML files can be passed in an array.
-// These files are merged together to form a single configuration object
-// The rules for the merge are defined in the specs repository
-const result = parseYaml([YAML]);
-if (result.error) {
-  console.error("Parse failed:", result.error.readableMsg);
-  // Handle error appropriately in your application
-  return;
-}
-const config = result.value;
-
-// Dotrain order config contains order-related configurations including orders, scenarios, deployments, GUI settings, and charts.
-// It handles the dotrain-specific configuration for order management, testing scenarios, and visualization.
-// Structure: { orders: {}, scenarios: {}, charts: {}, deployments: {}, gui: {} }
-const dotrainConfig = config.dotrainOrder;
-
-// Orderbook config contains the broader orderbook infrastructure including networks, subgraphs, metaboards, orderbooks, tokens, deployers and accounts. 
-// It manages the underlying blockchain and service configurations that support the orderbook.
-// Structure: { version: string, networks: {}, subgraphs: {}, metaboards: {}, orderbooks: {}, accounts: {}, tokens: {}, deployers: {} }
-const orderbookConfig = config.orderbook;
+const ORDERBOOK_SETTINGS = FIXED_LIMIT_SOURCE.split('---')[0];
 ```
 
-### Get raindex client to interact with the orderbook
+### 1. Create a raindex client
 
-```javascript
+This first snippet does three things: (1) load one or more settings YAML strings (these describe networks, accounts, and subgraph URLs), (2) feed those sources into `RaindexClient.new` so the WASM layer can parse and validate them, and (3) unwrap the resulting `WasmEncodedResult` so downstream samples can call the client with standard JS error handling expectations.
+
+```ts
 import { RaindexClient } from '@rainlanguage/orderbook';
 
-// Pass in the YAML configuration to get a raindex client.
-// This client is the main entry point to access orders and vaults in the orderbooks that are configured in the YAML file.
-// Various functions are available to build the UI for listing orders and vaults.
-const raindexClient = RaindexClient.new([YAML]);
-
-// The client automatically connects to the configured subgraphs and RPCs
-// No additional initialization is required
+const clientResult = RaindexClient.new([ORDERBOOK_SETTINGS]);
+if (clientResult.error) throw new Error(clientResult.error.readableMsg);
+const client = clientResult.value;
 ```
 
-### Get all orders
+Pass `true` as the second argument to `RaindexClient.new` when you want strict schema validation.
 
-```javascript
-// Get all orders for all orderbooks in all networks
-// Returns an array of RaindexOrder instances
-const result = await raindexClient.getOrders();
-if (result.error) {
-  console.error("Failed to get orders:", result.error.readableMsg);
-  return;
-}
-const orders = result.value; // RaindexOrder[]
+### 2. Query orders with filters & pagination
 
-// Get all orders for all orderbooks in selected networks
-// Chain IDs reference: Ethereum (1), Polygon (137), Arbitrum (42161), Base (8453), Flare (14)
-const selectedNetworks = [1, 137]; // Ethereum and Polygon
-const filteredResult = await raindexClient.getOrders(selectedNetworks);
-if (filteredResult.error) {
-  console.error("Failed to get orders:", filteredResult.error.readableMsg);
-  return;
-}
-const filteredOrders = filteredResult.value;
+Here we scope the query by chain IDs and typical filters (owner, token, activity flag), ask the client to hydrate matching orders, and then walk the richer helpers on a single `RaindexOrder`—vault listings, trades, quotes, and detail lookups—to show how pagination + follow-up queries hang together.
 
-// Each order contains:
-// - id: unique identifier
-// - orderHash: the keccak256 hash of the order
-// - owner: address that deployed the order
-// - inputs: vaults for tokens that can be sold by the order
-// - outputs: vaults for tokens that can be bought by the order
-// - vaults: all the vaults combined from inputs and outputs
-// More details can be found in the RaindexOrder class documentation
+```ts
+import type { ChainIds, GetOrdersFilters } from '@rainlanguage/orderbook';
+
+const chainIds: ChainIds = [8453];
+const filters: GetOrdersFilters = {
+  owners: ['0x1234...'],
+  active: true,
+  tokens: ['0xTokenAddress']
+};
+
+const ordersResult = await client.getOrders(chainIds, filters, 1);
+if (ordersResult.error) throw new Error(ordersResult.error.readableMsg);
+const orders = ordersResult.value; // RaindexOrder[]
+
+const first = orders[0];
+const vaultList = first.vaultsList; // RaindexVaultsList helper
+const rawVaults = vaultList.items; // RaindexVault[]
+
+const tradesResult = await first.getTradesList();
+if (tradesResult.error) throw new Error(tradesResult.error.readableMsg);
+
+const tradeDetailResult = await first.getTradeDetail('0xTradeId');
+if (tradeDetailResult.error) throw new Error(tradeDetailResult.error.readableMsg);
+
+const quotesResult = await first.getQuotes();
+if (quotesResult.error) throw new Error(quotesResult.error.readableMsg);
 ```
 
-### Get a single order by hash
+Additional helpers worth wiring up:
 
-```javascript
-// Get a single order by hash
-// Parameters:
-// - chainId: The network chain ID (e.g., 1 for Ethereum, 137 for Polygon)
-// - orderbookAddress: The orderbook contract address (e.g., "0x59401C93239a3D8956C7881f0dB45B5727241872")
-// - orderHash: The order hash (e.g., "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12")
-const chainId = 14; // Flare network
-const orderbookAddress = "0x59401C93239a3D8956C7881f0dB45B5727241872";
-const orderHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12";
+- `client.getOrderByHash(chainId, orderbookAddress, orderHash)` – fetch a single order with full vault metadata.
+- `client.getAddOrdersForTransaction(...)` / `client.getRemoveOrdersForTransaction(...)` – diff deployments and removals by transaction hash.
+- `client.getTransaction(orderbookAddress, txHash)` – inspect who sent a transaction, the block number, and timestamp.
 
-const result = await raindexClient.getOrderByHash(chainId, orderbookAddress, orderHash);
-if (result.error) {
-  console.error("Failed to get order:", result.error.readableMsg);
-  return;
+#### Poll for newly deployed orders
+
+After you submit an `execute`/`addOrders` transaction you immediately have the transaction hash, but the subgraph still needs a few blocks to index the resulting order. Rather than re-querying every order and diffing manually, poll `client.getAddOrdersForTransaction` with that hash until it returns at least one `RaindexOrder`.
+
+```ts
+import type { RaindexClient } from '@rainlanguage/orderbook';
+
+const POLL_INTERVAL_MS = 5_000;
+const MAX_ATTEMPTS = 12;
+
+async function waitForOrderFromTx(
+  client: RaindexClient,
+  {
+    chainId,
+    orderbookAddress,
+    txHash
+  }: {
+    chainId: number;
+    orderbookAddress: string;
+    txHash: string;
+  }
+) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const result = await client.getAddOrdersForTransaction(chainId, orderbookAddress, txHash);
+    if (result.error) throw new Error(result.error.readableMsg);
+
+    if (result.value.length) {
+      return result.value[0]; // RaindexOrder; multiple orders are possible for batched deployments
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+  throw new Error('Order not indexed yet; increase MAX_ATTEMPTS or interval if needed');
 }
-const order = result.value; // RaindexOrder instance
 
-// Orders are instances of RaindexOrder
-// Each order has various getters and functions
-// Here are some examples:
-
-// Get the composed Rainlang expression for this order
-const rainlangExpression = order.rainlang; // string
-
-// Get all the vaults associated with this order
-const orderVaultsList = order.vaultsList; // RaindexVaultsList
-const orderVaults = orderVaultsList.items; // RaindexVault[]
-
-// Get calldata to remove this order from the orderbook
-// Returns hex-encoded calldata that can be sent to the orderbook contract
-const removeCalldata = await order.getRemoveCalldata(); // string (hex)
-
-// Get all the trades for this order
-// Returns historical trade data from the subgraph
-const trades = await order.getTradesList(); // Trade[]
-
-// More methods and properties are available in the RaindexOrder class
+const txReceipt = await executeOrder(...);
+const raindexOrder = await waitForOrderFromTx(client, {
+  chainId: 8453,
+  orderbookAddress: '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
+  txHash: txReceipt.transactionHash
+});
 ```
 
-### Order inputs / outputs / vaults
+#### Fetch a single order by hash
 
-An `Order` exposes a `RaindexVaultsList` wrapper around the underlying `RaindexVault[]`.
-The list offers batch operations (e.g. multicall-withdraw).  
-You can still access the raw vaults via the `items` getter:
+```ts
+const orderResult = await client.getOrderByHash(
+  8453, // Base
+  '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
+  '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12'
+);
+if (orderResult.error) throw new Error(orderResult.error.readableMsg);
+const order = orderResult.value; // RaindexOrder
 
-```javascript
-const orderVaultsList = order.vaultsList; // RaindexVaultsList
-const orderVaults = orderVaultsList.items; // RaindexVault[]
+const vaultsList = order.vaultsList;
+const removeCalldataResult = await order.getRemoveCalldata();
+if (removeCalldataResult.error) throw new Error(removeCalldataResult.error.readableMsg);
 ```
 
-The `RaindexOrder` exposes the following getters that return a `RaindexVaultsList`:
+### 3. Work with vaults & Floats
 
-- `vaultsList`
-- `inputsList`
-- `outputsList`
-- `inputsOutputsList`
+Vault workflows usually require combining filters, inspecting the returned `RaindexVaultsList`, and then producing calldata or math-heavy amounts. This example chains those steps: fetch vaults, narrow the list to withdrawable entries, pull history, parse human inputs with `Float`, and finally build deposit/withdraw/approval payloads while checking allowances.
 
-### Get all vaults
+```ts
+import { Float, type GetVaultsFilters } from '@rainlanguage/orderbook';
 
-```javascript
-// Get all vaults for all orderbooks in all networks
-// Vaults are used to hold tokens for orders
-const result = await raindexClient.getVaults();
-if (result.error) {
-  console.error("Failed to get vaults:", result.error.readableMsg);
-  return;
-}
-const vaults = result.value; // RaindexVault[]
+const vaultFilters: GetVaultsFilters = {
+  owners: ['0x1234...'],
+  hideZeroBalance: true
+};
 
-// Get all vaults for all orderbooks in selected networks
-// Chain IDs reference: Ethereum (1), Polygon (137), Arbitrum (42161), Base (8453), Flare (14)
-const selectedNetworks = [1, 137]; // Ethereum and Polygon
-const filteredResult = await raindexClient.getVaults(selectedNetworks);
-if (filteredResult.error) {
-  console.error("Failed to get vaults:", filteredResult.error.readableMsg);
-  return;
-}
-const filteredVaults = filteredResult.value;
+const vaultsResult = await client.getVaults([8453], vaultFilters, 1);
+if (vaultsResult.error) throw new Error(vaultsResult.error.readableMsg);
+const vaultsList = vaultsResult.value; // RaindexVaultsList
 
-// Each vault contains:
-// - id: unique vault identifier
-// - token: the token held in this vault
-// - balance: current balance in the vault
-// - owner: address that owns the vault
-// More details can be found in the RaindexVault class documentation
+const withdrawableResult = vaultsList.getWithdrawableVaults();
+if (withdrawableResult.error) throw new Error(withdrawableResult.error.readableMsg);
+const withdrawableVaults = withdrawableResult.value;
+
+const vault = withdrawableVaults[0];
+const historyResult = await vault.getBalanceChanges();
+if (historyResult.error) throw new Error(historyResult.error.readableMsg);
+
+const depositAmount = Float.parse('10.5');
+if (depositAmount.error) throw new Error(depositAmount.error.readableMsg);
+const depositCalldataResult = await vault.getDepositCalldata(depositAmount.value);
+if (depositCalldataResult.error) throw new Error(depositCalldataResult.error.readableMsg);
+
+const withdrawAmount = Float.parse('2');
+if (withdrawAmount.error) throw new Error(withdrawAmount.error.readableMsg);
+const withdrawCalldataResult = await vault.getWithdrawCalldata(withdrawAmount.value);
+if (withdrawCalldataResult.error) throw new Error(withdrawCalldataResult.error.readableMsg);
+
+const approvalResult = await vault.getApprovalCalldata(depositAmount.value);
+if (approvalResult.error) throw new Error(approvalResult.error.readableMsg);
+
+const allowanceResult = await vault.getAllowance();
+if (allowanceResult.error) throw new Error(allowanceResult.error.readableMsg);
+const allowance = allowanceResult.value;
 ```
 
-### Get a single vault
+`RaindexVaultsList` also exposes `getWithdrawCalldata()` (builds a multicall to empty every vault with a balance), `pickByIds([...])`, and `concat(otherList)` if you need to restructure vault groups before submitting a transaction.
 
-```javascript
-// Get a single vault by its id
-// Parameters:
-// - chainId: The network chain ID (e.g., 1 for Ethereum, 137 for Polygon)
-// - orderbookAddress: The orderbook contract address (e.g., "0x59401C93239a3D8956C7881f0dB45B5727241872")
-// - vaultId: The vault ID (hex string, e.g., "0x01" or "0x2a")
-const chainId = 14; // Flare network
-const orderbookAddress = "0x59401C93239a3D8956C7881f0dB45B5727241872";
-const vaultId = "0x01"; // Vault ID 1 in hex
+#### Fetch a single vault
 
-const result = await raindexClient.getVault(chainId, orderbookAddress, vaultId);
-if (result.error) {
-  console.error("Failed to get vault:", result.error.readableMsg);
-  return;
-}
-const vault = result.value; // RaindexVault instance
+```ts
+const vaultResult = await client.getVault(
+  8453,
+  '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
+  '0x01'
+);
+if (vaultResult.error) throw new Error(vaultResult.error.readableMsg);
+const vault = vaultResult.value; // RaindexVault
 
-// Vaults are instances of RaindexVault
-// Each vault has various getters and functions
-// Here are some examples:
-
-// Get the token information for this vault
-const token = vault.token; // RaindexVaultToken
-
-// Get the current balance for this vault in Float format
-const balance = vault.balance; // Float 
-
-// Get the current balance in human-readable format
-const formattedBalance = vault.formattedBalance; // string (e.g., "1")
-
-// Get the orders that use this vault as input (selling from this vault)
-const inputOrders = vault.ordersAsInput; // RaindexOrderAsIO[]
-
-// Get the orders that use this vault as output (buying into this vault)
-const outputOrders = vault.ordersAsOutput; // RaindexOrderAsIO[]
-
-// Get vault balance change history
-const balanceChanges = await vault.getBalanceChanges(); // RaindexVaultBalanceChange[]
-
-// More methods and properties are available in the RaindexVault class
+const balanceChangesResult = await vault.getBalanceChanges();
+if (balanceChangesResult.error) throw new Error(balanceChangesResult.error.readableMsg);
 ```
 
-### Get calldatas for vault deposit and withdraw
+### 4. Generate quotes & calldata
 
-```javascript
-// Get the vault using the raindex client
-const result = await raindexClient.getVault(14, "0x59401C93239a3D8956C7881f0dB45B5727241872", "0x01");
-if (result.error) {
-  console.error("Failed to get vault:", result.error.readableMsg);
-  return;
-}
-const vault = result.value; // RaindexVault instance
+Once you have hydrated orders, you typically need deterministic hashes plus calldata builders. The snippet below hashes an order struct, generates take-orders calldata, asks an order for its removal calldata, and fetches quotes—mirroring the usual “inspect -> prepare transaction -> submit” flow.
 
-// Get calldata to deposit tokens into this vault
-const depositCalldata = await vault.getDepositCalldata("10.5");
-// Returns hex-encoded calldata to be sent to the orderbook contract
+```ts
+import { getOrderHash, getTakeOrders3Calldata } from '@rainlanguage/orderbook';
 
-// Get calldata to withdraw tokens from this vault
-const withdrawCalldata = await vault.getWithdrawCalldata("5.25");
-// Returns hex-encoded calldata to be sent to the orderbook contract
+const orderHashResult = getOrderHash(orderV4Struct);
+if (orderHashResult.error) throw new Error(orderHashResult.error.readableMsg);
+
+const takeOrdersResult = getTakeOrders3Calldata(takeOrdersConfig);
+if (takeOrdersResult.error) throw new Error(takeOrdersResult.error.readableMsg);
+const takeOrdersCalldata = takeOrdersResult.value; // hex string ready for the contract
+
+const removeCalldataResult = await first.getRemoveCalldata();
+if (removeCalldataResult.error) throw new Error(removeCalldataResult.error.readableMsg);
+
+const quotesResult = await first.getQuotes();
+if (quotesResult.error) throw new Error(quotesResult.error.readableMsg);
 ```
 
-### Get DotrainOrderGui instance to construct UI to deploy an order
+Every `RaindexOrder` exposes `vaultsList`, `inputsList`, `outputsList`, and `inputsOutputsList`, so you can quickly scope which vault IDs map to which IO leg before building calldata.
 
-```javascript
+## Dotrain authoring & deployment flows
+
+### Load remote strategies with `DotrainRegistry`
+
+If you maintain a hosted registry, instantiate the helper, inspect what it exposes, and pull down any dotrain/GUI definitions you need:
+
+```ts
+import { DotrainRegistry } from '@rainlanguage/orderbook';
+
+const registryResult = await DotrainRegistry.new('https://example.com/registry.txt');
+if (registryResult.error) throw new Error(registryResult.error.readableMsg);
+const registry = registryResult.value;
+
+const orderMenuResult = registry.getAllOrderDetails();
+if (orderMenuResult.error) throw new Error(orderMenuResult.error.readableMsg);
+const orderMenu = orderMenuResult.value; // Map<orderKey, { name, description, short_description }>
+
+const deploymentsResult = registry.getDeploymentDetails('fixed-limit');
+if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
+const deployments = deploymentsResult.value;
+```
+
+Registry manifests follow the format:
+
+```
+https://example.com/shared-settings.yaml
+fixed-limit https://example.com/orders/fixed-limit.rain
+dca https://example.com/orders/dca.rain
+```
+
+The SDK merges the shared settings YAML with each order’s `.rain` content before you ever build a GUI.
+
+### Build a deployment GUI
+
+Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `DotrainOrderGui`. The `FIXED_LIMIT_SOURCE` constant declared earlier already includes the required networks/tokens/deployers plus a full `gui` definition, so you can reference it directly (or trim it to your own bindings) instead of copying pieces of `settings.yaml` inline in this guide. Always cross-check the source you feed in with the latest definitions in [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies); that repository tracks the real configurations our UI ships with.
+
+With that single source string (read from disk or built dynamically) you can drive the full GUI workflow:
+
+```ts
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
-// Prepare the dotrain that will be used for this order
-// Various orders can be found in our repository. These are the ones we show in our webapp
-// https://github.com/rainlanguage/rain.strategies/tree/main/src
-const dotrain = `
-  <other configurations are written here>
+const dotrainWithGui = FIXED_LIMIT_SOURCE;
 
-  gui:
-    name: DCA Order
-    description: Dollar cost averaging order for buying tokens over time
-    deployments:
-      flare-dca-eth:
-        name: DCA into ETH on Flare
-        description: Buy ETH with USDT using dollar cost averaging
-        deposits:
-          - token: input-token
-            presets:
-              - 1000
-              - 5000
-              - 10000
-        fields:
-          - binding: amount-per-trade
-            name: Amount per trade
-            description: USDT amount to spend per trade
-            presets:
-              - value: 10
-              - value: 50
-              - value: 100
-          - binding: frequency
-            name: Trade frequency
-            description: Hours between trades
-            presets:
-              - name: Every hour
-                value: 1
-              - name: Every day
-                value: 24
-              - name: Every week
-                value: 168
-        select-tokens:
-          - key: input-token
-            label: USDT
-          - key: output-token
-            label: ETH
-  
-  ---
-  
-  #calculate-io:
-  <your order logic goes here>
-`;
+const deploymentsResult = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
+if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
+const [firstDeployment] = deploymentsResult.value;
 
-// Get details for all deployments defined in the dotrain
-// Use this to build your own UI to select a deployment
-const deploymentResult = await DotrainOrderGui.getDeploymentDetails(dotrain);
-if (deploymentResult.error) {
-  console.error("Failed to get deployment details:", deploymentResult.error.readableMsg);
-  return;
-}
-const deployments = deploymentResult.value;
-// Returns array of deployments with their metadata:
-// [{ key: "flare-dca-eth", name: "DCA into ETH on Flare", description: "..." }]
-
-// Get the DotrainOrderGui instance for a specific deployment
-const selectedDeploymentKey = "flare-dca-eth"; // From deployments[0].key
-const guiResult = await DotrainOrderGui.newWithDeployment(dotrain, selectedDeploymentKey);
-if (guiResult.error) {
-  console.error("Failed to get DotrainOrderGui instance:", guiResult.error.readableMsg);
-  return;
-}
+const guiResult = await DotrainOrderGui.newWithDeployment(dotrainWithGui, firstDeployment);
+if (guiResult.error) throw new Error(guiResult.error.readableMsg);
 const gui = guiResult.value;
 
-// Gui is an instance of DotrainOrderGui
-// You can use the gui to fully control the order deployment process
-
-// Get the tokens that need to be selected before deploying the order
-const selectTokensResult = gui.getSelectTokens();
-if (selectTokensResult.error) {
-  console.error("Failed to get select tokens:", selectTokensResult.error.readableMsg);
-  return;
-}
-const selectTokens = selectTokensResult.value;
-// Returns tokens that need addresses set:
-// [{ key: "input-token", label: "USDT" }, { key: "output-token", label: "ETH" }]
-
-// Set the token addresses for the deployment
-gui.setSelectToken("input-token", "0x96B41289D90444B8ADD57e6F265DB5aE8651DF29"); // USDT on Flare
-gui.setSelectToken("output-token", "0x1D80c49BbBCd1C0911346656B529DF9E5c2F783d"); // WFLR on Flare
-
-// Get all the configuration needed to construct the UI
 const configResult = gui.getAllGuiConfig();
-if (configResult.error) {
-  console.error("Failed to get all gui config:", configResult.error.readableMsg);
-  return;
-}
-const {
-  // All the field definitions that don't have defaults set in the YAML
-  fieldDefinitionsWithoutDefaults,
-  // All the field definitions that have defaults set in the YAML
-  // These fields don't need to be set by the user
-  fieldDefinitionsWithDefaults,
-  // All the tokens that are defined as deposits in the YAML
-  deposits,
-  // All the input and output vault tokens
-  // These can be used to define custom vaultIds for input and output vaults
-  orderInputs,
-  orderOutputs,
-} = configResult.value;
+if (configResult.error) throw new Error(configResult.error.readableMsg);
+const config = configResult.value;
 
-// Set the field values for the deployment
-// Field names come from the "binding" property in the dotrain configuration
-gui.setFieldValue("amount-per-trade", "50"); // 50 USDT per trade
-gui.setFieldValue("frequency", "24"); // Trade every 24 hours
+const selectTokensResult = gui.getSelectTokens();
+if (selectTokensResult.error) throw new Error(selectTokensResult.error.readableMsg);
+const selectTokens = selectTokensResult.value;
 
-// Set the deposit amount for a token
-// Token names come from the deposits configuration
-gui.setDeposit("input-token", "100.65");
+const depositsResult = gui.getDeposits();
+if (depositsResult.error) throw new Error(depositsResult.error.readableMsg);
+const deposits = depositsResult.value;
 
-// Set a custom vaultId for an input vault (optional)
-// Parameters:
-// - isInput: true for input vaults, false for output vaults
-// - index: vault index (0 for first vault, 1 for second, etc.)
-// - vaultId: custom vault ID as string
-gui.setVaultId(true, 0, "42"); // Set custom vault ID 42 for the first input vault
-```
+await gui.setSelectToken('input-token', '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'); // USDC
+await gui.setSelectToken('output-token', '0x4200000000000000000000000000000000000006'); // WETH
+const fieldResult = gui.setFieldValue('fixed-io', '1850');
+if (fieldResult.error) throw new Error(fieldResult.error.readableMsg);
+const amountResult = gui.setFieldValue('amount-per-trade', '250');
+if (amountResult.error) throw new Error(amountResult.error.readableMsg);
+await gui.setDeposit('usdc', '5000');
+const vaultIdResult = gui.setVaultId('input', 'usdc', '42');
+if (vaultIdResult.error) throw new Error(vaultIdResult.error.readableMsg);
 
-### Deploy an order using the DotrainOrderGui instance
+const allowancesResult = await gui.checkAllowances('0xOwner');
+if (allowancesResult.error) throw new Error(allowancesResult.error.readableMsg);
+const allowances = allowancesResult.value;
 
-```javascript
-// After setting all the necessary values in the gui instance
-// we can generate the calldatas to deploy the order
+const approvalCalldatasResult = await gui.generateApprovalCalldatas('0xOwner');
+if (approvalCalldatasResult.error) throw new Error(approvalCalldatasResult.error.readableMsg);
 
-// Pass the owner address for the deployment
-// This will be the address that owns the order and can remove it later
-const ownerAddress = "0x1234567890123456789012345678901234567890"; // Your wallet address
+const depositCalldatasResult = await gui.generateDepositCalldatas();
+if (depositCalldatasResult.error) throw new Error(depositCalldatasResult.error.readableMsg);
 
-const deploymentArgsResult = await gui.getDeploymentTransactionArgs(ownerAddress);
-if (deploymentArgsResult.error) {
-  console.error("Failed to get deployment transaction args:", deploymentArgsResult.error.readableMsg);
-  return;
-}
-const {
-  // List of calldatas to approve tokens for the deployment
-  // Each approval includes the token address and spender address
-  approvals, // Array<{ token: string, spender: string, calldata: string }>
-  // Calldata to deposit tokens (if any) and add the order to the orderbook
-  deploymentCalldata, // string (hex-encoded calldata)
-} = deploymentArgsResult.value;
-```
+const deploymentArgsResult = await gui.getDeploymentTransactionArgs('0xOwner');
+if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
+const { approvals, deploymentCalldata, orderbookAddress, chainId } = deploymentArgsResult.value;
 
-## API Reference
+const rainlangResult = await gui.getComposedRainlang();
+if (rainlangResult.error) throw new Error(rainlangResult.error.readableMsg);
+const composedRainlang = rainlangResult.value;
 
-For detailed API documentation, see the [TypeDoc documentation](https://rainlanguage.github.io/rain.orderbook).
-
-## Error Handling
-
-All SDK methods return a `WasmEncodedResult<T>` object with the following structure:
-
-```typescript
-interface WasmEncodedResult<T> {
-  value?: T;
-  error?: {
-    msg: any;
-    readableMsg: string;
-  };
+const serializedStateResult = gui.serializeState();
+if (!serializedStateResult.error) {
+  localStorage.setItem('fixed-limit-state', serializedStateResult.value);
 }
 ```
 
-Always check for errors before using the value:
+Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(dotrainText, serializedState, callback)` if you want to skip re-entering form choices.
 
-```javascript
-const result = await someMethod();
+#### Deploy with wallet + fetch your order
+
+`gui.getDeploymentTransactionArgs(owner)` returns a `DeploymentTransactionArgs` struct with:
+
+- `approvals: ExtendedApprovalCalldata[]` (each item contains `token`, `calldata`, and the token `symbol` for UX)
+- `deploymentCalldata: Hex` – a multicall that performs deposits (if required) and adds the order in one transaction
+- `orderbookAddress: string` – destination for the multicall
+- `chainId: number` – network you must connect your wallet to
+
+A typical deployment flow is:
+
+1. Run `getDeploymentTransactionArgs`
+2. Submit every approval in series (skip when `approvals` is empty)
+3. Submit the deployment calldata
+4. Poll `client.getAddOrdersForTransaction` (the helper shown earlier) with the deployment hash until the subgraph surfaces your `RaindexOrder`
+
+```ts
+import type { RaindexClient } from '@rainlanguage/orderbook';
+
+const deploymentArgsResult = await gui.getDeploymentTransactionArgs(owner);
+if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
+const { approvals, deploymentCalldata, orderbookAddress, chainId } = deploymentArgsResult.value;
+
+// Assume sendTransaction({ to, data }) and waitForReceipt(hash) come from your wallet stack.
+for (const approval of approvals) {
+  const approvalHash = await sendTransaction({ to: approval.token, data: approval.calldata });
+  await waitForReceipt(approvalHash);
+}
+
+const deploymentHash = await sendTransaction({ to: orderbookAddress, data: deploymentCalldata });
+await waitForReceipt(deploymentHash);
+
+const raindexOrder = await waitForOrderFromTx(client as RaindexClient, {
+  chainId,
+  orderbookAddress,
+  txHash: deploymentHash
+});
+```
+
+After you have a local GUI-aware dotrain source, you can also fetch equivalent sources from a registry and run the same flow:
+
+```ts
+import { DotrainRegistry } from '@rainlanguage/orderbook';
+
+const registryResult = await DotrainRegistry.new('https://example.com/registry.txt');
+if (registryResult.error) throw new Error(registryResult.error.readableMsg);
+const registry = registryResult.value;
+
+const guiSourceResult = await registry.getGui('fixed-limit', 'base');
+if (guiSourceResult.error) throw new Error(guiSourceResult.error.readableMsg);
+const guiFromRegistry = guiSourceResult.value;
+
+// guiFromRegistry is already a DotrainOrderGui instance, so you can reuse
+// the same GUI helper steps shown above (select tokens, deposits, calldata, etc.).
+```
+
+### Work directly with dotrain files
+
+If you just need Rainlang composition (no GUI state), read the dotrain text plus shared settings yourself, instantiate a `DotrainOrder`, and then ask it to compose scenario/deployment/post-task Rainlang. The example below reuses `FIXED_LIMIT_SOURCE`, but you can replace it with the contents of any `.rain` file.
+
+```ts
+import { DotrainOrder } from '@rainlanguage/orderbook';
+
+const dotrainResult = await DotrainOrder.create(FIXED_LIMIT_SOURCE, [ORDERBOOK_SETTINGS]);
+if (dotrainResult.error) throw new Error(dotrainResult.error.readableMsg);
+const dotrain = dotrainResult.value;
+
+const scenarioResult = await dotrain.composeScenarioToRainlang('backtest');
+if (!scenarioResult.error) console.log(scenarioResult.value);
+
+const deploymentResult = await dotrain.composeDeploymentToRainlang('flare-prod');
+if (!deploymentResult.error) console.log(deploymentResult.value);
+
+const postTaskResult = await dotrain.composeScenarioToPostTaskRainlang('flare-prod');
+if (!postTaskResult.error) console.log(postTaskResult.value);
+```
+
+## Utility exports
+
+- `getOrderHash`, `keccak256`, `keccak256HexString` – deterministic hashing helpers for Rain orders or arbitrary payloads.
+- `Float` – arbitrary-precision arithmetic with parsing, formatting, comparisons, math ops, fixed-decimal conversions, and helpers like `Float.zero()` or `.formatWithRange(...)`.
+- `RaindexClient.getAllAccounts()` / `getAllVaultTokens()` – introspect accounts and ERC20 metadata defined in your YAML or discovered via subgraphs.
+- `clearTables`, `getSyncStatus`, `RaindexClient.syncLocalDatabase`, `RaindexClient.setDbCallback` – plug in a persistent cache for offline apps.
+- `RaindexVaultsList.getWithdrawCalldata()` – multicall builder that withdraws every vault with a balance.
+- `RaindexOrder.convertToSgOrder()` – convert WASM order representations back into the raw subgraph schema when you need to interop with other tooling.
+
+## Error handling pattern
+
+Every exported function returns a `WasmEncodedResult<T>`:
+
+```ts
+type WasmEncodedResult<T> =
+  | { value: T; error: undefined }
+  | { value: undefined; error: { msg: string; readableMsg: string } };
+
+const result = await client.getVault(14, '0xOrderbook', '0x01');
 if (result.error) {
-  console.error("Error:", result.error.readableMsg);
-  // Handle error appropriately
+  console.error('Vault lookup failed:', result.error.readableMsg);
   return;
 }
-// Safe to use result.value
+console.log(result.value);
 ```
 
 ## Contributing

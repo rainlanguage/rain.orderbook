@@ -769,7 +769,7 @@ _ _: 0 0;
         ));
 
         let dotrain = r#"
-version: 4
+version: 1
 networks:
     sepolia:
         rpcs:

@@ -1,21 +1,22 @@
+import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
+import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
+import { REMOTE_SETTINGS_URL } from '$lib/constants';
 import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
-import { RaindexClient, type AccountCfg, type Address, type Hex } from '@rainlanguage/orderbook';
 import type { Mock } from 'vitest';
 
 export interface LayoutData {
 	errorMessage?: string;
 	stores: AppStoresInterface | null;
 	raindexClient: RaindexClient | null;
+	localDb: SQLiteWasmDatabase | null;
+	settingsYamlText: string;
 }
-
-const REMOTE_SETTINGS_URL =
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/e5fb0899864c9a2b084dd97312f78ccac1444cab/settings.yaml';
 
 export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 	let errorMessage: string | undefined;
-	let settingsYamlText: string;
+	let settingsYamlText = '';
 
 	try {
 		const response = await fetch(REMOTE_SETTINGS_URL);
@@ -28,7 +29,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		return {
 			errorMessage,
 			stores: null,
-			raindexClient: null
+			raindexClient: null,
+			localDb: null,
+			settingsYamlText
 		};
 	}
 
@@ -39,7 +42,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			return {
 				errorMessage: raindexClientRes.error.readableMsg,
 				stores: null,
-				raindexClient: null
+				raindexClient: null,
+				localDb: null,
+				settingsYamlText
 			};
 		} else {
 			raindexClient = raindexClientRes.value;
@@ -48,9 +53,41 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		return {
 			errorMessage: 'Error initializing RaindexClient: ' + (error as Error).message,
 			stores: null,
-			raindexClient: null
+			raindexClient: null,
+			localDb: null,
+			settingsYamlText
 		};
 	}
+
+	let localDb: SQLiteWasmDatabase | null = null;
+	try {
+		await init();
+		const localDbRes = SQLiteWasmDatabase.new('worker.db');
+		if (localDbRes.error) {
+			return {
+				errorMessage: 'Error initializing local database: ' + localDbRes.error.readableMsg,
+				stores: null,
+				raindexClient: null,
+				localDb: null,
+				settingsYamlText
+			};
+		} else {
+			localDb = localDbRes.value;
+		}
+	} catch (error: unknown) {
+		return {
+			errorMessage: 'Error initializing local database: ' + (error as Error).message,
+			stores: null,
+			raindexClient: null,
+			localDb: null,
+			settingsYamlText
+		};
+	}
+
+	// TODO: will be enabled once all local db PRs are merged
+	// if (localDb && raindexClient) {
+	// 	raindexClient.setDbCallback(localDb.query.bind(localDb));
+	// }
 
 	return {
 		stores: {
@@ -65,7 +102,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			showMyItemsOnly: writable<boolean>(false),
 			activeTokens: writable<Address[]>([])
 		},
-		raindexClient
+		localDb,
+		raindexClient,
+		settingsYamlText
 	};
 };
 

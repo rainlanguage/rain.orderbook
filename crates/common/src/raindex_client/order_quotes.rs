@@ -145,6 +145,7 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod quote_non_wasm_tests {
         use super::*;
+        use crate::local_db::OrderbookIdentifier;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::hex::encode_prefixed;
         use alloy::primitives::{Address, Bytes, U256};
@@ -282,8 +283,10 @@ mod tests {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await
@@ -342,8 +345,10 @@ mod tests {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
                     Bytes::from_str("0x0123").unwrap(),
                 )
                 .await

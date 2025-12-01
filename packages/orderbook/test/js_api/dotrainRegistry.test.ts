@@ -14,15 +14,15 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 };
 
 const MOCK_SETTINGS_CONTENT = `
-version: 3
+version: 4
 networks:
   flare:
-    rpcs: 
+    rpcs:
       - https://mainnet.flare.org
     chain-id: 14
     currency: ETH
   base:
-    rpcs: 
+    rpcs:
       - https://mainnet.base.org
     chain-id: 8453
     currency: ETH
@@ -37,11 +37,13 @@ orderbooks:
     address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
     network: flare
     subgraph: flare
+    local-db-remote: remote
     deployment-block: 12345
   base:
     address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7
     network: base
     subgraph: base
+    local-db-remote: remote
     deployment-block: 12345
 deployers:
   flare:
@@ -293,7 +295,7 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 		});
 
 		it('should create GUI for valid order and deployment', async () => {
-			const gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null));
+			const gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null, null));
 
 			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
 
@@ -305,7 +307,7 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 			const stateCallback = () => {};
 
 			const gui = extractWasmEncodedData(
-				await registry.getGui('fixed-limit', 'base', stateCallback)
+				await registry.getGui('fixed-limit', 'base', null, stateCallback)
 			);
 
 			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
@@ -314,8 +316,25 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 			assert.strictEqual(currentDeployment.description, 'Base order description');
 		});
 
+		it('should restore GUI from serialized state when provided', async () => {
+			let gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null, null));
+
+			gui.setFieldValue('test-binding', '42');
+			const serializedState = extractWasmEncodedData<string>(gui.serializeState());
+
+			gui = extractWasmEncodedData(
+				await registry.getGui('fixed-limit', 'flare', serializedState, null)
+			);
+
+			const fieldValue = extractWasmEncodedData<{ value: string }>(
+				gui.getFieldValue('test-binding')
+			);
+
+			assert.strictEqual(fieldValue.value, '42');
+		});
+
 		it('should handle GUI creation for non-existent order', async () => {
-			const result = await registry.getGui('non-existent', 'flare', null);
+			const result = await registry.getGui('non-existent', 'flare', null, null);
 			assert(result.error);
 			assert(result.error.readableMsg.includes("order key 'non-existent' was not found"));
 		});

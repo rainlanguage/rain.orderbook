@@ -24,6 +24,19 @@ deployers:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
+local-db-remotes:
+  some-orderbook: http://example.com
+
+local-db-sync:
+  some-orderbook:
+    batch-size: 2000
+    max-concurrent-batches: 10
+    retry-attempts: 3
+    retry-delay-ms: 250
+    rate-limit-delay-ms: 1000
+    finality-depth: 30
+    bootstrap-block-threshold: 1000
+
 orderbooks:
     some-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6

@@ -1,0 +1,136 @@
+SELECT
+  COALESCE(la.order_hash, l.order_hash) AS order_hash,
+  l.order_owner AS owner,
+  fa.block_timestamp AS block_timestamp,
+  fa.block_number AS block_number,
+  l.orderbook_address AS orderbook_address,
+  la.order_bytes AS order_bytes,
+  GROUP_CONCAT(
+    CASE
+      WHEN ios.io_type = 'input'
+      THEN ios.io_index || ':' || ios.vault_id || ':' || ios.token
+    END
+  ) AS inputs,
+  GROUP_CONCAT(
+    CASE
+      WHEN ios.io_type = 'output'
+      THEN ios.io_index || ':' || ios.vault_id || ':' || ios.token
+    END
+  ) AS outputs,
+  (
+    SELECT COUNT(*)
+    FROM take_orders t
+    WHERE t.chain_id = ?1
+      AND lower(t.orderbook_address) = lower(?2)
+      AND t.order_owner = l.order_owner
+      AND t.order_nonce = l.order_nonce
+  )
+    + (
+      SELECT COUNT(*)
+      FROM clear_v3_events c
+      WHERE c.chain_id = ?1
+        AND lower(c.orderbook_address) = lower(?2)
+        AND (
+          lower(c.alice_order_hash) = lower(COALESCE(la.order_hash, l.order_hash))
+          OR lower(c.bob_order_hash) = lower(COALESCE(la.order_hash, l.order_hash))
+        )
+    ) AS trade_count,
+  (l.event_type = 'AddOrderV3') AS active,
+  la.transaction_hash AS transaction_hash,
+  (
+    SELECT m.meta
+    FROM meta_events m
+    WHERE m.chain_id = ?1
+      AND lower(m.orderbook_address) = lower(?2)
+      AND lower(m.subject) = lower(COALESCE(la.order_hash, l.order_hash))
+    ORDER BY m.block_number DESC, m.log_index DESC
+    LIMIT 1
+  ) AS meta
+FROM order_events l
+LEFT JOIN (
+  SELECT
+    e1.order_owner,
+    e1.order_nonce,
+    e1.transaction_hash,
+    e1.log_index,
+    e1.order_hash,
+    e1.order_bytes
+  FROM order_events e1
+  WHERE e1.chain_id = ?1
+    AND lower(e1.orderbook_address) = lower(?2)
+    AND e1.event_type = 'AddOrderV3'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM order_events e2
+      WHERE e2.chain_id = ?1
+        AND lower(e2.orderbook_address) = lower(?2)
+        AND e2.event_type = 'AddOrderV3'
+        AND e2.order_owner = e1.order_owner
+        AND e2.order_nonce = e1.order_nonce
+        AND (
+          e2.block_number > e1.block_number
+          OR (e2.block_number = e1.block_number AND e2.log_index > e1.log_index)
+        )
+    )
+) la ON la.order_owner = l.order_owner AND la.order_nonce = l.order_nonce
+LEFT JOIN order_ios ios
+  ON ios.chain_id = ?1
+ AND lower(ios.orderbook_address) = lower(?2)
+ AND ios.transaction_hash = la.transaction_hash
+ AND ios.log_index = la.log_index
+LEFT JOIN (
+  SELECT
+    e1.order_owner,
+    e1.order_nonce,
+    e1.block_timestamp AS block_timestamp,
+    e1.block_number AS block_number
+  FROM order_events e1
+  WHERE e1.chain_id = ?1
+    AND lower(e1.orderbook_address) = lower(?2)
+    AND e1.event_type = 'AddOrderV3'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM order_events e2
+      WHERE e2.chain_id = ?1
+        AND lower(e2.orderbook_address) = lower(?2)
+        AND e2.event_type = 'AddOrderV3'
+        AND e2.order_owner = e1.order_owner
+        AND e2.order_nonce = e1.order_nonce
+        AND (
+          e2.block_number < e1.block_number
+          OR (e2.block_number = e1.block_number AND e2.log_index < e1.log_index)
+        )
+    )
+) fa ON fa.order_owner = l.order_owner AND fa.order_nonce = l.order_nonce
+WHERE l.chain_id = ?1
+  AND lower(l.orderbook_address) = lower(?2)
+  AND NOT EXISTS (
+    SELECT 1
+    FROM order_events e2
+    WHERE e2.chain_id = ?1
+      AND lower(e2.orderbook_address) = lower(?2)
+      AND e2.order_owner = l.order_owner
+      AND e2.order_nonce = l.order_nonce
+      AND (
+        e2.block_number > l.block_number
+        OR (e2.block_number = l.block_number AND e2.log_index > l.log_index)
+      )
+  )
+  AND (
+    ?3 = 'all'
+    OR (?3 = 'active' AND l.event_type = 'AddOrderV3')
+    OR (?3 = 'inactive' AND l.event_type = 'RemoveOrderV3')
+  )
+/*OWNERS_CLAUSE*/
+/*ORDER_HASH_CLAUSE*/
+/*TOKENS_CLAUSE*/
+GROUP BY
+  COALESCE(la.order_hash, l.order_hash),
+  l.order_owner,
+  fa.block_timestamp,
+  fa.block_number,
+  l.orderbook_address,
+  l.order_nonce,
+  l.event_type,
+  la.transaction_hash
+ORDER BY fa.block_timestamp DESC;
