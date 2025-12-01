@@ -1,4 +1,4 @@
-use super::{local_db::executor::JsCallbackExecutor, *};
+use super::*;
 use crate::local_db::{
     is_chain_supported_local_db,
     query::{
@@ -9,6 +9,7 @@ use crate::local_db::{
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::query::fetch_vaults::fetch_vaults;
+use crate::raindex_client::local_db::LocalDb;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -309,12 +310,11 @@ impl RaindexVault {
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if is_chain_supported_local_db(self.chain_id) {
-            if let Some(db_cb) = self.raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
+            if let Some(local_db) = self.raindex_client.local_db() {
                 let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
                 let token_address = self.token.address.to_string();
                 let local_changes = fetch_vault_balance_changes(
-                    &exec,
+                    &local_db,
                     &OrderbookIdentifier::new(self.chain_id, self.orderbook),
                     &vault_id_hex,
                     &token_address,
@@ -1095,36 +1095,46 @@ impl RaindexClient {
             u16,
         >,
     ) -> Result<RaindexVaultsList, RaindexError> {
-        let Some(ids) = chain_ids else {
+        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
             let vaults = self.get_vaults_sg(None, filters, page).await?;
             return Ok(RaindexVaultsList::new(vaults));
         };
 
-        let Some(db_cb) = self.local_db_callback() else {
-            let vaults = self.get_vaults_sg(Some(ids.0), filters, page).await?;
-            return Ok(RaindexVaultsList::new(vaults));
-        };
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
 
-        let all_ids = ids.0;
-        let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
-            .into_iter()
-            .partition(|&id| is_chain_supported_local_db(id));
+        for id in ids.drain(..) {
+            if is_chain_supported_local_db(id) {
+                local_ids.push(id);
+            } else {
+                sg_ids.push(id);
+            }
+        }
 
         let mut vaults: Vec<RaindexVault> = Vec::new();
+
+        if self.local_db().is_none() {
+            sg_ids.append(&mut local_ids);
+        }
 
         if local_ids.is_empty() && sg_ids.is_empty() {
             let vaults = self.get_vaults_sg(None, filters, page).await?;
             return Ok(RaindexVaultsList::new(vaults));
         }
 
-        if !local_ids.is_empty() {
-            let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-                self.get_vaults_local_db(exec, id, filters.clone())
-            }))
-            .await?;
-            for mut chunk in locals {
-                vaults.append(&mut chunk);
+        if let Some(local_db) = self.local_db() {
+            if !local_ids.is_empty() {
+                let client = self.clone();
+                let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
+                    let local_db = local_db.clone();
+                    let filters = filters.clone();
+                    let client = client.clone();
+                    async move { client.get_vaults_local_db(local_db, id, filters).await }
+                }))
+                .await?;
+                for mut chunk in locals {
+                    vaults.append(&mut chunk);
+                }
             }
         }
 
@@ -1190,9 +1200,9 @@ impl RaindexClient {
         Ok(vaults)
     }
 
-    async fn get_vaults_local_db<E: LocalDbQueryExecutor>(
+    async fn get_vaults_local_db(
         &self,
-        executor: E,
+        executor: LocalDb,
         chain_id: u32,
         filters: Option<GetVaultsFilters>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
@@ -1352,9 +1362,8 @@ impl RaindexClient {
         }
 
         if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-                if let Some(vault) = self.get_vault_local_db(&exec, ob_id, &vault_id).await? {
+            if let Some(local_db) = self.local_db() {
+                if let Some(vault) = self.get_vault_local_db(&local_db, ob_id, &vault_id).await? {
                     return Ok(vault);
                 }
             }
