@@ -134,7 +134,7 @@ impl FuzzRunnerContext {
             sources.push(settings);
         }
 
-        let _ = OrderbookYaml::new(
+        OrderbookYaml::new(
             sources.clone(),
             OrderbookYamlValidation {
                 version: true,

@@ -25,40 +25,41 @@ impl YamlParsableString for SpecVersion {
 
         let mut parsed_version: Option<String> = None;
 
-        for (index, document) in documents.iter().enumerate() {
-            let location = if index == 0 {
-                "root".to_string()
-            } else {
-                format!("document {}", index + 1)
-            };
+        documents
+            .iter()
+            .enumerate()
+            .try_fold(None, |parsed_version, (index, document)| {
+                let location = if index == 0 {
+                    "root".to_string()
+                } else {
+                    format!("document {}", index + 1)
+                };
+                let version = {
+                    let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+                    require_string(&document_read, Some("version"), Some(location.clone()))?
+                };
 
-            let version = {
-                let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-                require_string(&document_read, Some("version"), Some(location.clone()))?
-            };
-
-            if let Some(existing_version) = &parsed_version {
-                if existing_version != &version {
-                    return Err(YamlError::Field {
-                        kind: FieldErrorKind::InvalidValue {
-                            field: "version".to_string(),
-                            reason: format!(
-                                "spec version mismatch: expected '{}', found '{}'",
-                                existing_version, version
-                            ),
-                        },
-                        location,
-                    });
+                match parsed_version {
+                    Some(existing_version) if existing_version != version => {
+                        Err(YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "version".to_string(),
+                                reason: format!(
+                                    "spec version mismatch: expected '{}', found '{}'",
+                                    existing_version, version
+                                ),
+                            },
+                            location,
+                        })
+                    }
+                    Some(existing_version) => Ok(Some(existing_version)),
+                    None => Ok(Some(version)),
                 }
-            } else {
-                parsed_version = Some(version);
-            }
-        }
-
-        parsed_version.ok_or_else(|| YamlError::Field {
-            kind: FieldErrorKind::Missing("version".to_string()),
-            location: "root".to_string(),
-        })
+            })?
+            .ok_or_else(|| YamlError::Field {
+                kind: FieldErrorKind::Missing("version".to_string()),
+                location: "root".to_string(),
+            })
     }
 
     fn parse_from_yaml_optional(_: Arc<RwLock<StrictYaml>>) -> Result<Option<String>, YamlError> {
