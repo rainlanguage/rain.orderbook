@@ -23,8 +23,6 @@ impl YamlParsableString for SpecVersion {
             return Err(YamlError::EmptyFile);
         }
 
-        let mut parsed_version: Option<String> = None;
-
         documents
             .iter()
             .enumerate()
