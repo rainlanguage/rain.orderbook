@@ -212,6 +212,86 @@ impl RaindexClient {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::local_db::query::{
+        FromDbJson, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+    };
+    use serde::Deserialize;
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+    struct TestRow {
+        id: u32,
+    }
+
+    #[derive(Clone)]
+    struct RecordingExec {
+        calls: Arc<Mutex<Vec<&'static str>>>,
+        json: String,
+        text: String,
+    }
+
+    impl RecordingExec {
+        fn new(json: impl Into<String>, text: impl Into<String>) -> Self {
+            Self {
+                calls: Arc::new(Mutex::new(Vec::new())),
+                json: json.into(),
+                text: text.into(),
+            }
+        }
+    }
+
+    // We only share immutable references across threads; Mutex guards the interior.
+    unsafe impl Sync for RecordingExec {}
+
+    #[async_trait::async_trait(?Send)]
+    impl LocalDbQueryExecutor for RecordingExec {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            self.calls.lock().unwrap().push("batch");
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            self.calls.lock().unwrap().push("json");
+            serde_json::from_str(&self.json)
+                .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            self.calls.lock().unwrap().push("text");
+            Ok(self.text.clone())
+        }
+    }
+
+    #[tokio::test]
+    async fn local_db_delegates_to_executor() {
+        let exec = RecordingExec::new(r#"[{"id":1}]"#, "ok");
+        let db = LocalDb::new(exec.clone());
+
+        db.execute_batch(&SqlStatementBatch::new()).await.unwrap();
+        let rows: Vec<TestRow> = db.query_json(&SqlStatement::new("SELECT 1")).await.unwrap();
+        let text = db.query_text(&SqlStatement::new("SELECT 2")).await.unwrap();
+
+        assert_eq!(rows, vec![TestRow { id: 1 }]);
+        assert_eq!(text, "ok");
+
+        let calls = exec.calls.lock().unwrap().clone();
+        assert_eq!(calls, vec!["batch", "json", "text"]);
+    }
+
+    #[test]
+    fn debug_impl_is_stable() {
+        let exec = RecordingExec::new("[]", "ok");
+        let db = LocalDb::new(exec);
+        assert!(format!("{:?}", db).contains("LocalDb"));
+    }
+}
+
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
@@ -227,7 +307,7 @@ mod wasm_tests {
     use wasm_bindgen_test::*;
     use wasm_bindgen_utils::{
         prelude::{serde_wasm_bindgen, JsValue},
-        result::WasmEncodedResult,
+        result::{WasmEncodedError, WasmEncodedResult},
     };
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -301,6 +381,46 @@ orderbooks:
         let function: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
         function
+    }
+
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_executes_queries() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+        let db = client.local_db().expect("local db set");
+
+        let stmt = SqlStatement::new("SELECT 1");
+        let rows: Vec<String> = db.query_json(&stmt).await.unwrap();
+        assert!(rows.is_empty());
+
+        let text = db.query_text(&stmt).await.unwrap();
+        assert_eq!(text, "[]");
+    }
+
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_surfaces_errors() {
+        let error = WasmEncodedResult::Err::<String> {
+            value: None,
+            error: WasmEncodedError {
+                msg: "boom".to_string(),
+                readable_msg: "boom readable".to_string(),
+            },
+        };
+        let js_value = serde_wasm_bindgen::to_value(&error).unwrap();
+        let callback = js_sys::Function::new_no_args(&format!(
+            "return Promise.resolve({})",
+            js_sys::JSON::stringify(&js_value)
+                .unwrap()
+                .as_string()
+                .unwrap()
+        ));
+
+        let db = LocalDb::from_js_callback(callback);
+        let stmt = SqlStatement::new("SELECT 1");
+        let err = db.query_text(&stmt).await.unwrap_err();
+        assert!(matches!(err, LocalDbQueryError::Database { .. }));
     }
 
     #[wasm_bindgen_test]
