@@ -15,6 +15,7 @@ pub mod executor;
 pub mod orders;
 pub mod pipeline;
 pub mod query;
+pub mod vaults;
 
 type ExecuteBatchFn =
     dyn Fn(

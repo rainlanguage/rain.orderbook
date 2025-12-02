@@ -1,6 +1,6 @@
 use super::super::orders::{GetOrdersFilters, OrdersDataSource, RaindexOrder};
 use super::{LocalDb, RaindexError};
-use crate::local_db::query::fetch_vault::LocalDbVault;
+use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::query::LocalDbQueryError;
 use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
@@ -125,7 +125,7 @@ mod tests {
         use std::str::FromStr;
 
         use super::*;
-        use crate::local_db::query::{fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault};
+        use crate::local_db::query::{fetch_orders::LocalDbOrder, fetch_vaults::LocalDbVault};
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
@@ -190,6 +190,7 @@ mod tests {
             let orderbook_address = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
 
             let input_vault = LocalDbVault {
+                chain_id: 1,
                 vault_id: input_vault_id,
                 token: input_token,
                 owner,
@@ -204,6 +205,7 @@ mod tests {
             };
 
             let output_vault = LocalDbVault {
+                chain_id: 1,
                 vault_id: output_vault_id,
                 token: output_token,
                 owner,
@@ -220,6 +222,7 @@ mod tests {
             let inputs_json = json!([{
                 "ioIndex": 0,
                 "vault": {
+                    "chainId": input_vault.chain_id,
                     "vaultId": input_vault.vault_id,
                     "token": input_vault.token,
                     "owner": input_vault.owner,
@@ -236,6 +239,7 @@ mod tests {
             let outputs_json = json!([{
                 "ioIndex": 0,
                 "vault": {
+                    "chainId": output_vault.chain_id,
                     "vaultId": output_vault.vault_id,
                     "token": output_vault.token,
                     "owner": output_vault.owner,
@@ -338,6 +342,7 @@ mod tests {
             let orderbook_address = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
 
             let input_vault = LocalDbVault {
+                chain_id: 1,
                 vault_id: input_vault_id,
                 token: input_token,
                 owner,
@@ -352,6 +357,7 @@ mod tests {
             };
 
             let output_vault = LocalDbVault {
+                chain_id: 1,
                 vault_id: output_vault_id,
                 token: output_token,
                 owner,
@@ -368,6 +374,7 @@ mod tests {
             let inputs_json = json!([{
                 "ioIndex": 0,
                 "vault": {
+                    "chainId": input_vault.chain_id,
                     "vaultId": input_vault.vault_id,
                     "token": input_vault.token,
                     "owner": input_vault.owner,
@@ -384,6 +391,7 @@ mod tests {
             let outputs_json = json!([{
                 "ioIndex": 0,
                 "vault": {
+                    "chainId": output_vault.chain_id,
                     "vaultId": output_vault.vault_id,
                     "token": output_vault.token,
                     "owner": output_vault.owner,

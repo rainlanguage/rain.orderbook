@@ -297,6 +297,8 @@ pub enum RaindexError {
     OrderbookNotFound(String, u32),
     #[error("Order not found for address: {0} on chain ID: {1} with hash: {2}")]
     OrderNotFound(String, u32, B256),
+    #[error("Vault not found for address: {0} on chain ID: {1} with id: {2}")]
+    VaultNotFound(String, u32, String),
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
     #[error(transparent)]
@@ -427,6 +429,10 @@ impl RaindexError {
                     address, chain_id, order_hash
                 )
             }
+            RaindexError::VaultNotFound(address, chain_id, vault_id) => format!(
+                "Vault not found for address: {} on chain ID: {} with id: {}",
+                address, chain_id, vault_id
+            ),
             RaindexError::OrderDetailError(err) => {
                 format!("Failed to decode order detail: {}", err)
             }

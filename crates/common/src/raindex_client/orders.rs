@@ -1,7 +1,7 @@
 use super::local_db::orders::LocalDbOrders;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
-use crate::local_db::query::fetch_vault::LocalDbVault;
+use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
@@ -126,7 +126,6 @@ impl RaindexOrder {
                 .map(|v| {
                     RaindexVault::try_from_local_db(
                         Rc::clone(&raindex_client),
-                        chain_id,
                         v,
                         Some(RaindexVaultType::Input),
                     )
@@ -137,7 +136,6 @@ impl RaindexOrder {
                 .map(|v| {
                     RaindexVault::try_from_local_db(
                         Rc::clone(&raindex_client),
-                        chain_id,
                         v,
                         Some(RaindexVaultType::Output),
                     )
@@ -1730,6 +1728,7 @@ mod tests {
             let inputs_payload = serde_json::to_string(&vec![json!({
                 "ioIndex": 1,
                 "vault": {
+                    "chainId": 137,
                     "vaultId": "0x01",
                     "token": token,
                     "owner": owner,
@@ -1746,6 +1745,7 @@ mod tests {
             let outputs_payload = serde_json::to_string(&vec![json!({
                 "ioIndex": 0,
                 "vault": {
+                    "chainId": 137,
                     "vaultId": "0x02",
                     "token": token,
                     "owner": owner,
