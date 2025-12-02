@@ -110,6 +110,7 @@ mod tests {
         let args = mk_args();
         let stmt = build_fetch_vaults_stmt(&args).unwrap();
         assert!(stmt.sql.contains("ORDER BY o.chain_id"));
+        assert!(stmt.sql.contains("AS chainId"));
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));

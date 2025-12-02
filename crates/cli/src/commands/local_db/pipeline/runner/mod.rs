@@ -289,7 +289,7 @@ fn ensure_clean_db(path: &Path) -> Result<(), LocalDbError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{address, Address, Bytes, B256};
+    use alloy::primitives::{address, hex::encode_prefixed, Address, Bytes, B256};
     use async_trait::async_trait;
     use flate2::read::GzDecoder;
     use rain_orderbook_app_settings::local_db_manifest::{
@@ -486,7 +486,7 @@ mod tests {
 
             if self.seed_export {
                 let ob_id = &config.ob_id;
-                let orderbook_address = ob_id.orderbook_address.to_string();
+                let orderbook_address = encode_prefixed(ob_id.orderbook_address);
 
                 let mut batch = SqlStatementBatch::new();
                 batch.add(SqlStatement::new(format!(
