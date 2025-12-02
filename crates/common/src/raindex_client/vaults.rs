@@ -1,10 +1,11 @@
-use super::{local_db::executor::JsCallbackExecutor, *};
+use super::*;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
     is_chain_supported_local_db, query::fetch_vault_balance_changes::LocalDbVaultBalanceChange,
     OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
+use crate::raindex_client::local_db::vaults::LocalDbVaults;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -19,6 +20,7 @@ use alloy::{
     hex,
     primitives::{Address, Bytes, B256, U256},
 };
+use async_trait::async_trait;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
@@ -33,6 +35,7 @@ use rain_orderbook_subgraph_client::{
     },
     MultiOrderbookSubgraphClient,
     OrderbookSubgraphClient,
+    OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
 use std::{rc::Rc, str::FromStr};
@@ -40,6 +43,31 @@ use std::{rc::Rc, str::FromStr};
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
+
+pub(crate) struct SubgraphVaults<'a> {
+    client: &'a RaindexClient,
+}
+impl<'a> SubgraphVaults<'a> {
+    pub(crate) fn new(client: &'a RaindexClient) -> Self {
+        Self { client }
+    }
+}
+
+#[async_trait(?Send)]
+pub(crate) trait VaultsDataSource {
+    async fn list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetVaultsFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexVault>, RaindexError>;
+
+    async fn get_by_id(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        vault_id: &Bytes,
+    ) -> Result<Option<RaindexVault>, RaindexError>;
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -307,10 +335,9 @@ impl RaindexVault {
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if is_chain_supported_local_db(self.chain_id) {
-            if let Some(db_cb) = self.raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
+            if let Some(local_db) = self.raindex_client.local_db() {
                 let local_changes = fetch_vault_balance_changes(
-                    &exec,
+                    &local_db,
                     &OrderbookIdentifier::new(self.chain_id, self.orderbook),
                     self.vault_id,
                     self.token.address,
@@ -1093,96 +1120,59 @@ impl RaindexClient {
             u16,
         >,
     ) -> Result<RaindexVaultsList, RaindexError> {
-        let Some(ids) = chain_ids else {
-            let vaults = self.get_vaults_sg(None, filters, page).await?;
+        let filters = filters.unwrap_or_default();
+        let page_number = page.unwrap_or(1);
+        let subgraph_source = SubgraphVaults::new(self);
+
+        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
+            let vaults = subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await?;
             return Ok(RaindexVaultsList::new(vaults));
         };
 
-        let Some(db_cb) = self.local_db_callback() else {
-            let vaults = self.get_vaults_sg(Some(ids.0), filters, page).await?;
+        if ids.is_empty() {
+            let vaults = subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await?;
             return Ok(RaindexVaultsList::new(vaults));
         };
 
-        let all_ids = ids.0;
-        let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
-            .into_iter()
-            .partition(|&id| is_chain_supported_local_db(id));
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
+
+        for id in ids.drain(..) {
+            if is_chain_supported_local_db(id) {
+                local_ids.push(id);
+            } else {
+                sg_ids.push(id);
+            }
+        }
 
         let mut vaults: Vec<RaindexVault> = Vec::new();
 
-        if local_ids.is_empty() && sg_ids.is_empty() {
-            let vaults = self.get_vaults_sg(None, filters, page).await?;
-            return Ok(RaindexVaultsList::new(vaults));
+        if self.local_db().is_none() {
+            sg_ids.append(&mut local_ids);
         }
 
-        if !local_ids.is_empty() {
-            let exec = JsCallbackExecutor::from_ref(&db_cb);
-            let mut local_vaults = self
-                .get_vaults_local_db(exec, local_ids, filters.clone())
-                .await?;
-            vaults.append(&mut local_vaults);
+        if let Some(local_db) = self.local_db() {
+            if !local_ids.is_empty() {
+                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+                let local_vaults = local_source
+                    .list(Some(local_ids.clone()), &filters, None)
+                    .await?;
+                vaults.extend(local_vaults);
+            }
         }
 
         if !sg_ids.is_empty() {
-            let sg_vaults = self.get_vaults_sg(Some(sg_ids), filters, page).await?;
+            let sg_vaults = subgraph_source
+                .list(Some(sg_ids), &filters, Some(page_number))
+                .await?;
             vaults.extend(sg_vaults);
         }
 
         Ok(RaindexVaultsList::new(vaults))
-    }
-
-    async fn get_vaults_sg(
-        &self,
-        chain_ids: Option<Vec<u32>>,
-        filters: Option<GetVaultsFilters>,
-        page: Option<u16>,
-    ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
-        let multi_subgraph_args = self.get_multi_subgraph_args(chain_ids)?;
-        let client = MultiOrderbookSubgraphClient::new(
-            multi_subgraph_args.values().flatten().cloned().collect(),
-        );
-
-        let vaults = client
-            .vaults_list(
-                filters
-                    .unwrap_or(GetVaultsFilters {
-                        owners: vec![],
-                        hide_zero_balance: false,
-                        tokens: None,
-                    })
-                    .try_into()?,
-                SgPaginationArgs {
-                    page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
-                },
-            )
-            .await;
-
-        let vaults = vaults
-            .iter()
-            .map(|vault| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or_else(|| {
-                        RaindexError::SubgraphNotFound(
-                            vault.subgraph_name.clone(),
-                            vault.vault.vault_id.0.clone(),
-                        )
-                    })?;
-                let vault = RaindexVault::try_from_sg_vault(
-                    raindex_client.clone(),
-                    chain_id,
-                    vault.vault.clone(),
-                    None,
-                )?;
-                Ok(vault)
-            })
-            .collect::<Result<Vec<RaindexVault>, RaindexError>>()?;
-
-        Ok(vaults)
     }
 
     /// Fetches detailed information for a specific vault
@@ -1309,26 +1299,96 @@ impl RaindexClient {
         }
 
         if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-                if let Some(vault) = self.get_vault_local_db(&exec, ob_id, &vault_id).await? {
+            if let Some(local_db) = self.local_db() {
+                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+                if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
                     return Ok(vault);
                 }
             }
         }
 
-        let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
-        let vault = RaindexVault::try_from_sg_vault(
-            Rc::new(self.clone()),
-            ob_id.chain_id,
-            client.vault_detail(Id::new(vault_id.to_string())).await?,
-            None,
-        )?;
-        Ok(vault)
+        SubgraphVaults::new(self)
+            .get_by_id(ob_id, &vault_id)
+            .await?
+            .ok_or_else(|| {
+                RaindexError::VaultNotFound(
+                    ob_id.orderbook_address.to_string(),
+                    ob_id.chain_id,
+                    vault_id.to_string(),
+                )
+            })
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[async_trait(?Send)]
+impl VaultsDataSource for SubgraphVaults<'_> {
+    async fn list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetVaultsFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexVault>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
+        let vaults = client
+            .vaults_list(
+                filters.clone().try_into()?,
+                SgPaginationArgs {
+                    page: page.unwrap_or(1),
+                    page_size: DEFAULT_PAGE_SIZE,
+                },
+            )
+            .await;
+
+        let vaults = vaults
+            .iter()
+            .map(|vault| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or_else(|| {
+                        RaindexError::SubgraphNotFound(
+                            vault.subgraph_name.clone(),
+                            vault.vault.vault_id.0.clone(),
+                        )
+                    })?;
+                let vault = RaindexVault::try_from_sg_vault(
+                    raindex_client.clone(),
+                    chain_id,
+                    vault.vault.clone(),
+                    None,
+                )?;
+                Ok(vault)
+            })
+            .collect::<Result<Vec<RaindexVault>, RaindexError>>()?;
+
+        Ok(vaults)
+    }
+
+    async fn get_by_id(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        vault_id: &Bytes,
+    ) -> Result<Option<RaindexVault>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let vault = match client.vault_detail(Id::new(vault_id.to_string())).await {
+            Ok(vault) => vault,
+            Err(OrderbookSubgraphClientError::Empty) => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+
+        let vault = RaindexVault::try_from_sg_vault(raindex_client, ob_id.chain_id, vault, None)?;
+        Ok(Some(vault))
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GetVaultsFilters {
     #[tsify(type = "Address[]")]

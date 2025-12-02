@@ -1,4 +1,3 @@
-use super::local_db::executor::JsCallbackExecutor;
 use super::*;
 use crate::local_db::query::fetch_order_trades::LocalDbOrderTrade;
 use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
@@ -139,16 +138,14 @@ impl RaindexOrder {
 
         if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
-            if let Some(db_cb) = raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-
+            if let Some(local_db) = raindex_client.local_db() {
                 #[cfg(target_family = "wasm")]
                 let order_hash = B256::from_str(&self.order_hash())?;
                 #[cfg(not(target_family = "wasm"))]
                 let order_hash = B256::from_str(&self.order_hash().to_string())?;
 
                 let local_trades = fetch_order_trades(
-                    &exec,
+                    &local_db,
                     &OrderbookIdentifier::new(chain_id, orderbook),
                     order_hash,
                     start_timestamp,
@@ -261,16 +258,14 @@ impl RaindexOrder {
 
         if is_chain_supported_local_db(chain_id) {
             let raindex_client = self.get_raindex_client();
-            if let Some(db_cb) = raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-
+            if let Some(local_db) = raindex_client.local_db() {
                 #[cfg(target_family = "wasm")]
                 let order_hash = B256::from_str(&self.order_hash())?;
                 #[cfg(not(target_family = "wasm"))]
                 let order_hash = self.order_hash();
 
                 let count = fetch_order_trades_count(
-                    &exec,
+                    &local_db,
                     &OrderbookIdentifier::new(chain_id, orderbook),
                     order_hash,
                     start_timestamp,
