@@ -4,11 +4,10 @@ use crate::local_db::pipeline::adapters::{
     events::DefaultEventsPipeline, tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
 };
 use crate::local_db::LocalDbError;
-use crate::raindex_client::local_db::executor::JsCallbackExecutor;
 use crate::raindex_client::local_db::pipeline::apply::ClientApplyAdapter;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
-use crate::raindex_client::local_db::LocalDbStatusSnapshot;
+use crate::raindex_client::local_db::{LocalDb, LocalDbStatusSnapshot};
 use futures::channel::oneshot;
 use gloo_timers::future::TimeoutFuture;
 use js_sys::Function;
@@ -34,14 +33,14 @@ type DefaultClientRunner = ClientRunner<
 trait SchedulerRunner {
     fn run_once<'a>(
         &'a mut self,
-        db_executor: &'a JsCallbackExecutor,
+        db_executor: &'a LocalDb,
     ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbError>> + 'a>>;
 }
 
 impl SchedulerRunner for DefaultClientRunner {
     fn run_once<'a>(
         &'a mut self,
-        db_executor: &'a JsCallbackExecutor,
+        db_executor: &'a LocalDb,
     ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbError>> + 'a>> {
         Box::pin(async move { self.run(db_executor).await.map(|_| ()) })
     }
@@ -62,15 +61,15 @@ impl SchedulerHandle {
     }
 }
 
-pub fn start(
+pub(crate) fn start(
     settings_yaml: String,
-    db_callback: Function,
+    db: LocalDb,
     status_callback: Option<Function>,
 ) -> Result<SchedulerHandle, LocalDbError> {
     let runner = ClientRunner::new(settings_yaml)?;
     Ok(start_with_runner(
         runner,
-        db_callback,
+        db,
         status_callback,
         DEFAULT_INTERVAL_MS,
     ))
@@ -78,7 +77,7 @@ pub fn start(
 
 fn start_with_runner<R>(
     runner: R,
-    db_callback: Function,
+    db: LocalDb,
     status_callback: Option<Function>,
     interval_ms: u32,
 ) -> SchedulerHandle
@@ -93,7 +92,6 @@ where
 
     spawn_local(async move {
         let mut runner = runner;
-        let db_executor = JsCallbackExecutor::new(db_callback);
         emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::active());
         loop {
             if stop_flag_task.get() {
@@ -101,7 +99,7 @@ where
             }
 
             emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::syncing());
-            match runner.run_once(&db_executor).await {
+            match runner.run_once(&db).await {
                 Ok(_) => emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::active()),
                 Err(err) => emit_status(
                     status_callback.as_deref(),
@@ -149,6 +147,10 @@ mod wasm_tests {
         Function::new_no_args("return undefined;")
     }
 
+    fn noop_local_db() -> LocalDb {
+        LocalDb::from_js_callback(noop_callback())
+    }
+
     impl SchedulerHandle {
         pub(crate) fn stop_flag_ptr(&self) -> *const Cell<bool> {
             Rc::as_ptr(&self.stop_flag)
@@ -174,7 +176,7 @@ mod wasm_tests {
     impl SchedulerRunner for RecordingRunner {
         fn run_once<'a>(
             &'a mut self,
-            _db_executor: &'a JsCallbackExecutor,
+            _db_executor: &'a LocalDb,
         ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbError>> + 'a>> {
             let calls = Rc::clone(&self.calls);
             let failures = Rc::clone(&self.failures);
@@ -195,7 +197,7 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn start_returns_error_for_invalid_yaml() {
-        let result = start("not yaml".to_string(), noop_callback(), None);
+        let result = start("not yaml".to_string(), noop_local_db(), None);
         assert!(result.is_err());
     }
 
@@ -204,7 +206,7 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(Rc::clone(&calls), Rc::clone(&failures), vec![]);
-        let handle = start_with_runner(runner, noop_callback(), None, 1);
+        let handle = start_with_runner(runner, noop_local_db(), None, 1);
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(3).await;
@@ -221,7 +223,7 @@ mod wasm_tests {
         let failures = Rc::new(Cell::new(0));
         let runner =
             RecordingRunner::new(Rc::clone(&calls), Rc::clone(&failures), vec![true, false]);
-        let handle = start_with_runner(runner, noop_callback(), None, 1);
+        let handle = start_with_runner(runner, noop_local_db(), None, 1);
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(5).await;
@@ -237,7 +239,7 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(Rc::clone(&calls), Rc::clone(&failures), vec![]);
-        let handle = start_with_runner(runner, noop_callback(), None, 1);
+        let handle = start_with_runner(runner, noop_local_db(), None, 1);
 
         handle.stop().await;
 
@@ -265,7 +267,7 @@ mod wasm_tests {
             function
         };
 
-        let handle = start_with_runner(runner, noop_callback(), Some(status_callback), 1);
+        let handle = start_with_runner(runner, noop_local_db(), Some(status_callback), 1);
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(5).await;
