@@ -12,6 +12,7 @@ use export::export_dump;
 pub use export::ExportMetadata;
 use manifest::{build_manifest, write_manifest_to_path};
 use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
+use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipeline;
 use rain_orderbook_common::local_db::pipeline::runner::environment::RunnerEnvironment;
 use rain_orderbook_common::local_db::pipeline::runner::remotes::lookup_manifest_entry;
 use rain_orderbook_common::local_db::pipeline::runner::utils::{
@@ -23,7 +24,7 @@ use rain_orderbook_common::local_db::pipeline::{
         tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
     },
     engine::SyncInputs,
-    ApplyPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
+    EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
 };
 use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
@@ -296,6 +297,7 @@ mod tests {
     };
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
     use rain_orderbook_app_settings::remote::manifest::ManifestMap;
+    use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use rain_orderbook_common::local_db::pipeline::adapters::bootstrap::{
         BootstrapConfig, BootstrapPipeline, BootstrapState,
     };
@@ -303,7 +305,7 @@ mod tests {
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use rain_orderbook_common::local_db::pipeline::{
-        ApplyPipelineTargetInfo, EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
+        EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
     };
     use rain_orderbook_common::local_db::query::{
         LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
@@ -657,6 +659,13 @@ mod tests {
                 rain_orderbook_common::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow
             ],
             _tokens_to_upsert: &[(Address, rain_orderbook_common::erc20::TokenInfo)],
+        ) -> Result<SqlStatementBatch, LocalDbError> {
+            Ok(SqlStatementBatch::new())
+        }
+
+        fn build_post_batch(
+            &self,
+            _target_info: &ApplyPipelineTargetInfo,
         ) -> Result<SqlStatementBatch, LocalDbError> {
             Ok(SqlStatementBatch::new())
         }

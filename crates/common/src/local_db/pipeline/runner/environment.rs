@@ -1,10 +1,9 @@
 use super::remotes::{download_and_gunzip, get_manifests};
 use super::utils::RunnerTarget;
+use crate::local_db::pipeline::adapters::apply::ApplyPipeline;
 use crate::local_db::pipeline::adapters::bootstrap::BootstrapPipeline;
 use crate::local_db::pipeline::engine::SyncEngine;
-use crate::local_db::pipeline::{
-    ApplyPipeline, EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
-};
+use crate::local_db::pipeline::{EventsPipeline, StatusBus, TokensPipeline, WindowPipeline};
 use crate::local_db::LocalDbError;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use rain_orderbook_app_settings::remote::manifest::ManifestMap;
@@ -142,14 +141,13 @@ mod tests {
     use super::*;
     use crate::erc20::TokenInfo;
     use crate::local_db::fetch::FetchConfig;
+    use crate::local_db::pipeline::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
     use crate::local_db::pipeline::adapters::bootstrap::{
         BootstrapConfig, BootstrapPipeline, BootstrapState,
     };
     use crate::local_db::pipeline::engine::SyncInputs;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
-    use crate::local_db::pipeline::{
-        ApplyPipelineTargetInfo, FinalityConfig, SyncConfig, WindowOverrides,
-    };
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
     use crate::local_db::query::sql_statement_batch::SqlStatementBatch;
     use crate::local_db::query::LocalDbQueryExecutor;
     use crate::local_db::{LocalDbError, OrderbookIdentifier};
@@ -389,7 +387,7 @@ mod tests {
     }
 
     #[async_trait(?Send)]
-    impl crate::local_db::pipeline::ApplyPipeline for StubApply {
+    impl ApplyPipeline for StubApply {
         fn build_batch(
             &self,
             _target_info: &ApplyPipelineTargetInfo,
