@@ -1,8 +1,13 @@
 use super::{RaindexClient, RaindexError};
+use crate::local_db::query::{
+    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+};
 use crate::local_db::LocalDbError;
+use executor::JsCallbackExecutor;
 use pipeline::runner::scheduler;
 use serde::{Deserialize, Serialize};
-use std::rc::Rc;
+use serde_json::Value;
+use std::{fmt, future::Future, pin::Pin, rc::Rc};
 use tsify::Tsify;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -11,6 +16,100 @@ pub mod orders;
 pub mod pipeline;
 pub mod query;
 pub mod vaults;
+
+type ExecuteBatchFn =
+    dyn Fn(
+        &SqlStatementBatch,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
+
+type QueryTextFn =
+    dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<String, LocalDbQueryError>> + 'static>>;
+
+type QueryJsonFn =
+    dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<Value, LocalDbQueryError>> + 'static>>;
+
+#[derive(Clone)]
+pub(crate) struct LocalDb {
+    execute_batch_fn: Rc<ExecuteBatchFn>,
+    query_text_fn: Rc<QueryTextFn>,
+    query_json_fn: Rc<QueryJsonFn>,
+}
+
+impl LocalDb {
+    pub(crate) fn new<E>(executor: E) -> Self
+    where
+        E: LocalDbQueryExecutor + Sync + 'static,
+    {
+        let exec = Rc::new(executor);
+
+        let execute_batch_fn: Rc<ExecuteBatchFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |batch: &SqlStatementBatch| {
+                let exec = Rc::clone(&exec);
+                let batch = batch.clone();
+                Box::pin(async move { exec.execute_batch(&batch).await })
+            })
+        };
+
+        let query_text_fn: Rc<QueryTextFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |stmt: &SqlStatement| {
+                let exec = Rc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_text(&stmt).await })
+            })
+        };
+
+        let query_json_fn: Rc<QueryJsonFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |stmt: &SqlStatement| {
+                let exec = Rc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_json::<Value>(&stmt).await })
+            })
+        };
+
+        Self {
+            execute_batch_fn,
+            query_text_fn,
+            query_json_fn,
+        }
+    }
+
+    pub(crate) fn from_js_callback(callback: js_sys::Function) -> Self {
+        Self::new(JsCallbackExecutor::new(callback))
+    }
+}
+
+impl fmt::Debug for LocalDb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LocalDb").finish()
+    }
+}
+
+#[async_trait::async_trait(?Send)]
+impl LocalDbQueryExecutor for LocalDb {
+    async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        (self.execute_batch_fn)(batch).await
+    }
+
+    async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+    where
+        T: FromDbJson,
+    {
+        let value = (self.query_json_fn)(stmt).await?;
+        serde_json::from_value(value)
+            .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
+    }
+
+    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+        (self.query_text_fn)(stmt).await
+    }
+}
 
 impl From<LocalDbError> for WasmEncodedError {
     fn from(value: LocalDbError) -> Self {
@@ -73,10 +172,10 @@ impl RaindexClient {
         )]
         status_callback: Option<js_sys::Function>,
     ) -> Result<(), RaindexError> {
-        let callback = {
-            let slot = self.local_db_callback.borrow();
+        let local_db = {
+            let slot = self.local_db.borrow();
             slot.clone()
-                .ok_or_else(|| RaindexError::JsError("Local DB callback not set".to_string()))?
+                .ok_or_else(|| RaindexError::JsError("Local DB not set".to_string()))?
         };
 
         let scheduler_cell = Rc::clone(&self.local_db_scheduler);
@@ -89,7 +188,7 @@ impl RaindexClient {
             handle.stop().await;
         }
 
-        let handle = scheduler::start(settings_yaml, callback, status_callback)?;
+        let handle = scheduler::start(settings_yaml, local_db, status_callback)?;
         {
             let mut slot = scheduler_cell.borrow_mut();
             *slot = Some(handle);
@@ -113,6 +212,83 @@ impl RaindexClient {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::local_db::query::{
+        FromDbJson, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+    };
+    use serde::Deserialize;
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+    struct TestRow {
+        id: u32,
+    }
+
+    #[derive(Clone)]
+    struct RecordingExec {
+        calls: Arc<Mutex<Vec<&'static str>>>,
+        json: String,
+        text: String,
+    }
+
+    impl RecordingExec {
+        fn new(json: impl Into<String>, text: impl Into<String>) -> Self {
+            Self {
+                calls: Arc::new(Mutex::new(Vec::new())),
+                json: json.into(),
+                text: text.into(),
+            }
+        }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl LocalDbQueryExecutor for RecordingExec {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            self.calls.lock().unwrap().push("batch");
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            self.calls.lock().unwrap().push("json");
+            serde_json::from_str(&self.json)
+                .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            self.calls.lock().unwrap().push("text");
+            Ok(self.text.clone())
+        }
+    }
+
+    #[tokio::test]
+    async fn local_db_delegates_to_executor() {
+        let exec = RecordingExec::new(r#"[{"id":1}]"#, "ok");
+        let db = LocalDb::new(exec.clone());
+
+        db.execute_batch(&SqlStatementBatch::new()).await.unwrap();
+        let rows: Vec<TestRow> = db.query_json(&SqlStatement::new("SELECT 1")).await.unwrap();
+        let text = db.query_text(&SqlStatement::new("SELECT 2")).await.unwrap();
+
+        assert_eq!(rows, vec![TestRow { id: 1 }]);
+        assert_eq!(text, "ok");
+
+        let calls = exec.calls.lock().unwrap().clone();
+        assert_eq!(calls, vec!["batch", "json", "text"]);
+    }
+
+    #[test]
+    fn debug_impl_is_stable() {
+        let exec = RecordingExec::new("[]", "ok");
+        let db = LocalDb::new(exec);
+        assert!(format!("{:?}", db).contains("LocalDb"));
+    }
+}
+
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
@@ -128,7 +304,7 @@ mod wasm_tests {
     use wasm_bindgen_test::*;
     use wasm_bindgen_utils::{
         prelude::{serde_wasm_bindgen, JsValue},
-        result::WasmEncodedResult,
+        result::{WasmEncodedError, WasmEncodedResult},
     };
 
     wasm_bindgen_test_configure!(run_in_browser);
@@ -170,7 +346,7 @@ orderbooks:
 
         RaindexClient {
             orderbook_yaml,
-            local_db_callback: Rc::new(RefCell::new(None)),
+            local_db: Rc::new(RefCell::new(None)),
             local_db_scheduler: Rc::new(RefCell::new(None)),
         }
     }
@@ -202,6 +378,46 @@ orderbooks:
         let function: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
         function
+    }
+
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_executes_queries() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+        let db = client.local_db().expect("local db set");
+
+        let stmt = SqlStatement::new("SELECT 1");
+        let rows: Vec<String> = db.query_json(&stmt).await.unwrap();
+        assert!(rows.is_empty());
+
+        let text = db.query_text(&stmt).await.unwrap();
+        assert_eq!(text, "[]");
+    }
+
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_surfaces_errors() {
+        let error = WasmEncodedResult::Err::<String> {
+            value: None,
+            error: WasmEncodedError {
+                msg: "boom".to_string(),
+                readable_msg: "boom readable".to_string(),
+            },
+        };
+        let js_value = serde_wasm_bindgen::to_value(&error).unwrap();
+        let callback = js_sys::Function::new_no_args(&format!(
+            "return Promise.resolve({})",
+            js_sys::JSON::stringify(&js_value)
+                .unwrap()
+                .as_string()
+                .unwrap()
+        ));
+
+        let db = LocalDb::from_js_callback(callback);
+        let stmt = SqlStatement::new("SELECT 1");
+        let err = db.query_text(&stmt).await.unwrap_err();
+        assert!(matches!(err, LocalDbQueryError::Database { .. }));
     }
 
     #[wasm_bindgen_test]
