@@ -45,4 +45,10 @@ WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2);
 DELETE FROM target_watermarks
 WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2);
 
+DELETE FROM vault_balance_changes
+WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2);
+
+DELETE FROM running_vault_balances
+WHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2);
+
 COMMIT;
