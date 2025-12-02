@@ -84,9 +84,10 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
-	if (localDb && raindexClient) {
-		raindexClient.setDbCallback(localDb.query.bind(localDb));
-	}
+	// TODO: will be enabled once all local db PRs are merged
+	// if (localDb && raindexClient) {
+	// 	raindexClient.setDbCallback(localDb.query.bind(localDb));
+	// }
 
 	return {
 		stores: {

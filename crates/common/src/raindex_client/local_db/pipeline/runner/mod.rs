@@ -89,7 +89,7 @@ where
 
     pub async fn run<DB>(&mut self, db: &DB) -> Result<Vec<SyncOutcome>, LocalDbError>
     where
-        DB: LocalDbQueryExecutor + ?Sized + Sync,
+        DB: LocalDbQueryExecutor + ?Sized,
     {
         if self.leadership_guard.is_none() {
             match self.leadership.acquire().await? {
@@ -147,7 +147,7 @@ where
         targets: Vec<RunnerTarget>,
     ) -> Result<Vec<SyncOutcome>, LocalDbError>
     where
-        DB: LocalDbQueryExecutor + ?Sized + Sync,
+        DB: LocalDbQueryExecutor + ?Sized,
     {
         if targets.is_empty() {
             return Ok(vec![]);

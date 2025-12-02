@@ -14,6 +14,7 @@ vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 		logoDark: 'mock-logo-dark.svg',
 		IconTelegram: MockComponent,
 		IconExternalLink: MockComponent,
+		LocalDbStatusCard: (await import('../lib/__mocks__/LocalDbStatusCardMock.svelte')).default,
 		WalletConnect: MockComponent,
 		TransactionList: MockComponent
 	};
