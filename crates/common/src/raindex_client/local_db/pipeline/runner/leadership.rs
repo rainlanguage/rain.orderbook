@@ -254,7 +254,7 @@ mod wasm_tests {
 
     struct LockStub {
         hook: LockHook,
-        _request_closure: Closure<dyn FnMut(JsValue, JsValue) -> JsValue>,
+        _request_closure: Closure<dyn FnMut(JsValue, JsValue, JsValue) -> JsValue>,
         release_promise: Rc<RefCell<Option<Promise>>>,
         release_invoked: Rc<Cell<bool>>,
         _release_then: Rc<RefCell<Option<Closure<dyn FnMut(JsValue)>>>>,
@@ -289,8 +289,8 @@ mod wasm_tests {
             let flag_cell = Rc::clone(&release_invoked);
             let then_cell = Rc::clone(&release_then);
 
-            let request_closure: Closure<dyn FnMut(JsValue, JsValue) -> JsValue> =
-                Closure::wrap(Box::new(move |_options: JsValue, cb: JsValue| -> JsValue {
+            let request_closure: Closure<dyn FnMut(JsValue, JsValue, JsValue) -> JsValue> =
+                Closure::wrap(Box::new(move |_name: JsValue, _options: JsValue, cb: JsValue| -> JsValue {
                     let callback: Function = cb.unchecked_into();
                     let promise_js = match callback.call1(&JsValue::UNDEFINED, &callback_result) {
                         Ok(value) => value,
@@ -315,7 +315,7 @@ mod wasm_tests {
                         Promise::resolve(&JsValue::UNDEFINED).into()
                     }
                 })
-                    as Box<dyn FnMut(JsValue, JsValue) -> JsValue>);
+                    as Box<dyn FnMut(JsValue, JsValue, JsValue) -> JsValue>);
 
             let locks_value = Reflect::get(navigator.as_ref(), &JsValue::from_str("locks"))?;
             let hook = if locks_value.is_undefined() || locks_value.is_null() {
