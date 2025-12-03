@@ -1,6 +1,6 @@
 use rain_orderbook_common::local_db::{
     pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline},
-    query::{LocalDbQueryExecutor, SqlStatement},
+    query::LocalDbQueryExecutor,
     LocalDbError,
 };
 
@@ -22,7 +22,7 @@ impl BootstrapPipeline for ProducerBootstrapAdapter {
         self.reset_db(db, None).await?;
 
         if let Some(dump_stmt) = &config.dump_stmt {
-            db.execute_batch(&dump_stmt).await?;
+            db.execute_batch(dump_stmt).await?;
         }
 
         Ok(())
@@ -190,7 +190,7 @@ mod tests {
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
+            dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
             deployment_block: 1,
@@ -229,7 +229,7 @@ mod tests {
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
+            dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
             deployment_block: 1,

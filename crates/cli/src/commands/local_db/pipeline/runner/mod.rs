@@ -398,6 +398,15 @@ mod tests {
         }
     }
 
+    fn dump_sql(batch: &SqlStatementBatch) -> String {
+        batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum EngineBehavior {
         Success,
@@ -539,7 +548,7 @@ mod tests {
             db.execute_batch(&batch.ensure_transaction()).await?;
 
             self.telemetry
-                .record_bootstrap_dump(config.dump_stmt.as_ref().map(|s| s.sql().to_string()));
+                .record_bootstrap_dump(config.dump_stmt.as_ref().map(dump_sql));
             Ok(())
         }
 
@@ -683,7 +692,7 @@ mod tests {
                 panic!("stub bootstrap panic");
             }
 
-            let dump_stmt = config.dump_stmt.as_ref().map(|stmt| stmt.sql().to_string());
+            let dump_stmt = config.dump_stmt.as_ref().map(dump_sql);
             self.telemetry.record_bootstrap_dump(dump_stmt);
             self.ensure_tables(db).await?;
 

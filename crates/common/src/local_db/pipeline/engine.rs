@@ -1621,13 +1621,10 @@ mod tests {
         let configs = harness.bootstrap.configs();
         assert_eq!(configs.len(), 1);
         let config = &configs[0];
-        let dump_stmt = config
-            .dump_stmt
-            .as_ref()
-            .expect("dump statement present")
-            .sql()
-            .to_owned();
-        assert_eq!(dump_stmt, "SELECT 1");
+        let dump_stmt = config.dump_stmt.as_ref().expect("dump statement present");
+        let statements = dump_stmt.statements();
+        assert_eq!(statements.len(), 1);
+        assert_eq!(statements[0].sql(), "SELECT 1");
         assert_eq!(config.deployment_block, inputs.cfg.deployment_block);
         assert_eq!(config.block_number_threshold, inputs.block_number_threshold);
         assert_eq!(config.latest_block, inputs.manifest_end_block);
