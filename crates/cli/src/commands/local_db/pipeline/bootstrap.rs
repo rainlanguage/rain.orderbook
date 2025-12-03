@@ -78,11 +78,6 @@ mod tests {
                 .iter()
                 .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
-
-        fn with_fast_dump(self, dump: &SqlStatement) -> Self {
-            let fast = wrap_dump_with_fast_pragmas(dump);
-            self.with_text(&fast, "ok")
-        }
     }
 
     #[async_trait(?Send)]
@@ -190,7 +185,7 @@ mod tests {
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
-            .with_fast_dump(&dump_stmt)
+            .with_text(&dump_stmt, "ok")
             .with_views();
 
         let cfg = BootstrapConfig {
@@ -208,7 +203,7 @@ mod tests {
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
         let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
-        let dump = wrap_dump_with_fast_pragmas(&dump_stmt).sql().to_string();
+        let dump = dump_stmt.sql().to_string();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
@@ -248,7 +243,7 @@ mod tests {
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
         let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
-        let dump = wrap_dump_with_fast_pragmas(&dump_stmt).sql().to_string();
+        let dump = dump_stmt.sql().to_string();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
