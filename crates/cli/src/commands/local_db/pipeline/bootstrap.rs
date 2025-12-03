@@ -4,21 +4,6 @@ use rain_orderbook_common::local_db::{
     LocalDbError,
 };
 
-const FAST_IMPORT_PRAGMAS: &str = concat!(
-    "PRAGMA journal_mode=MEMORY;",
-    "PRAGMA synchronous=OFF;",
-    "PRAGMA temp_store=MEMORY;",
-    "PRAGMA locking_mode=EXCLUSIVE;",
-    "PRAGMA cache_size=-200000;"
-);
-
-fn wrap_dump_with_fast_pragmas(dump: &SqlStatement) -> SqlStatement {
-    let mut sql = String::with_capacity(FAST_IMPORT_PRAGMAS.len() + dump.sql().len());
-    sql.push_str(FAST_IMPORT_PRAGMAS);
-    sql.push_str(dump.sql());
-    SqlStatement::new(sql)
-}
-
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ProducerBootstrapAdapter;
 
@@ -37,8 +22,7 @@ impl BootstrapPipeline for ProducerBootstrapAdapter {
         self.reset_db(db, None).await?;
 
         if let Some(dump_stmt) = &config.dump_stmt {
-            let fast_dump = wrap_dump_with_fast_pragmas(dump_stmt);
-            db.query_text(&fast_dump).await?;
+            db.execute_batch(&dump_stmt).await?;
         }
 
         Ok(())

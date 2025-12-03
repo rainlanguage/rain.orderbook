@@ -8,7 +8,7 @@ use crate::local_db::decode::{
 };
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow};
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement, SqlStatementBatch};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
@@ -153,7 +153,14 @@ where
                 db,
                 &BootstrapConfig {
                     ob_id: input.ob_id.clone(),
-                    dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
+                    dump_stmt: input.dump_str.as_ref().map(|value| {
+                        let mut batch_stmt = SqlStatementBatch::new();
+                        for line in value.lines() {
+                            let stmt = SqlStatement::new(line);
+                            batch_stmt.add(stmt);
+                        }
+                        batch_stmt
+                    }),
                     block_number_threshold: input.block_number_threshold,
                     latest_block: input.manifest_end_block,
                     deployment_block: input.cfg.deployment_block,

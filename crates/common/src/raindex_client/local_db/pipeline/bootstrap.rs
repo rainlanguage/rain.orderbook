@@ -59,7 +59,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
 
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
             if self.is_fresh_db(db, &config.ob_id).await? {
-                db.query_text(dump_stmt).await?;
+                db.execute_batch(dump_stmt).await?;
                 return Ok(());
             }
 
@@ -71,7 +71,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
                 Ok(_) => {}
                 Err(_) => {
                     self.clear_orderbook_data(db, &config.ob_id).await?;
-                    db.query_text(dump_stmt).await?;
+                    db.execute_batch(dump_stmt).await?;
                 }
             }
         }
