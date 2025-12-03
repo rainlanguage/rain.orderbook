@@ -13,10 +13,11 @@ pub use export::ExportMetadata;
 use manifest::{build_manifest, write_manifest_to_path};
 use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
 use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipeline;
-use rain_orderbook_common::local_db::pipeline::runner::environment::RunnerEnvironment;
-use rain_orderbook_common::local_db::pipeline::runner::remotes::lookup_manifest_entry;
-use rain_orderbook_common::local_db::pipeline::runner::utils::{
-    build_runner_targets, parse_runner_settings, ParsedRunnerSettings, RunnerTarget,
+use rain_orderbook_common::local_db::pipeline::runner::{
+    environment::RunnerEnvironment,
+    remotes::lookup_manifest_entry,
+    utils::{build_runner_targets, parse_runner_settings, ParsedRunnerSettings, RunnerTarget},
+    RunReport, TargetFailure, TargetStage, TargetSuccess,
 };
 use rain_orderbook_common::local_db::pipeline::{
     adapters::{
@@ -24,7 +25,7 @@ use rain_orderbook_common::local_db::pipeline::{
         tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
     },
     engine::SyncInputs,
-    EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
+    EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
 };
 use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
@@ -81,17 +82,31 @@ where
     }
 
     pub async fn run(&self) -> Result<ProducerRunReport, LocalDbError> {
-        let manifest_map = Arc::new(
-            self.environment
-                .fetch_manifests(&self.settings.orderbooks)
-                .await?,
-        );
+        let manifest_map = match self
+            .environment
+            .fetch_manifests(&self.settings.orderbooks)
+            .await
+        {
+            Ok(map) => Arc::new(map),
+            Err(error) => {
+                let report = RunReport {
+                    successes: Vec::new(),
+                    failures: vec![TargetFailure {
+                        ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+                        orderbook_key: None,
+                        stage: TargetStage::ManifestFetch,
+                        error,
+                    }],
+                };
+                return Ok(ProducerRunReport::from_parts(report, HashMap::new()));
+            }
+        };
         let targets = self.targets.clone();
         let out_root = self.out_root.clone();
         let environment = self.environment.clone();
 
         let local = LocalSet::new();
-        let report = local
+        let (report, exports) = local
             .run_until(async move {
                 let mut tasks = JoinSet::new();
                 for target in targets {
@@ -100,37 +115,33 @@ where
                     let environment = environment.clone();
                     tasks.spawn_local(async move {
                         let manifest_entry = lookup_manifest_entry(manifest_map.as_ref(), &target);
-                        let chain_id = target.inputs.ob_id.chain_id;
-                        let orderbook_address = target.inputs.ob_id.orderbook_address;
-                        match run_orderbook_job::<B, W, E, T, A, S>(
+                        run_orderbook_job::<B, W, E, T, A, S>(
                             target,
                             manifest_entry,
                             environment,
                             out_root,
                         )
                         .await
-                        {
-                            Ok(outcome) => Ok(outcome),
-                            Err(error) => Err(ProducerJobFailure {
-                                chain_id: Some(chain_id),
-                                orderbook_address: Some(orderbook_address),
-                                error,
-                            }),
-                        }
                     });
                 }
 
                 let mut successes = Vec::new();
                 let mut failures = Vec::new();
+                let mut exports: HashMap<OrderbookIdentifier, Option<ExportMetadata>> =
+                    HashMap::new();
                 while let Some(result) = tasks.join_next().await {
                     match result {
-                        Ok(Ok(outcome)) => successes.push(outcome),
+                        Ok(Ok((success, export))) => {
+                            exports.insert(success.outcome.ob_id.clone(), export);
+                            successes.push(success);
+                        }
                         Ok(Err(failure)) => {
                             error!(
-                                address = ?failure.orderbook_address,
+                                address = ?failure.ob_id.orderbook_address,
+                                stage = ?failure.stage,
                                 error = %failure.error,
                                 "producer job failed (chain_id={:?})",
-                                failure.chain_id,
+                                failure.ob_id.chain_id,
                             );
                             failures.push(failure);
                         }
@@ -140,18 +151,28 @@ where
                                 error = %error,
                                 "producer job panicked or was cancelled before completion"
                             );
-                            failures.push(ProducerJobFailure {
-                                chain_id: None,
-                                orderbook_address: None,
+                            failures.push(TargetFailure {
+                                ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+                                orderbook_key: None,
+                                stage: TargetStage::EngineRun,
                                 error,
                             });
                         }
                     }
                 }
-                Ok::<ProducerRunReport, LocalDbError>(ProducerRunReport {
-                    successes,
-                    failures,
-                })
+                Ok::<
+                    (
+                        RunReport,
+                        HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
+                    ),
+                    LocalDbError,
+                >((
+                    RunReport {
+                        successes,
+                        failures,
+                    },
+                    exports,
+                ))
             })
             .await?;
 
@@ -160,22 +181,23 @@ where
                 failures = report.failures.len(),
                 "skipping manifest write because one or more producer jobs failed"
             );
-            return Ok(report);
+            return Ok(ProducerRunReport::from_parts(report, exports));
         }
 
         if report.successes.is_empty() {
-            return Ok(report);
+            return Ok(ProducerRunReport::from_parts(report, exports));
         }
 
         let manifest = build_manifest(
             &report.successes,
+            &exports,
             &self.target_lookup,
             &self.release_base_url,
         )?;
         let manifest_path = self.manifest_output_path.clone();
         write_manifest_to_path(&manifest, manifest_path.as_path()).await?;
 
-        Ok(report)
+        Ok(ProducerRunReport::from_parts(report, exports))
     }
 }
 
@@ -200,23 +222,36 @@ impl
     }
 }
 
-#[derive(Debug)]
-pub struct ProducerOutcome {
-    pub outcome: SyncOutcome,
-    pub exported_dump: Option<ExportMetadata>,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ProducerRunReport {
-    pub successes: Vec<ProducerOutcome>,
-    pub failures: Vec<ProducerJobFailure>,
+    pub successes: Vec<TargetSuccess>,
+    pub failures: Vec<TargetFailure>,
+    pub exports: HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
 }
 
-#[derive(Debug)]
-pub struct ProducerJobFailure {
-    pub chain_id: Option<u32>,
-    pub orderbook_address: Option<Address>,
-    pub error: LocalDbError,
+impl ProducerRunReport {
+    fn from_parts(
+        report: RunReport,
+        exports: HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
+    ) -> Self {
+        Self {
+            successes: report.successes,
+            failures: report.failures,
+            exports,
+        }
+    }
+
+    pub fn successes(&self) -> &[TargetSuccess] {
+        &self.successes
+    }
+
+    pub fn failures(&self) -> &[TargetFailure] {
+        &self.failures
+    }
+
+    pub fn export_for(&self, ob_id: &OrderbookIdentifier) -> Option<&ExportMetadata> {
+        self.exports.get(ob_id)?.as_ref()
+    }
 }
 
 async fn run_orderbook_job<B, W, E, T, A, S>(
@@ -224,7 +259,7 @@ async fn run_orderbook_job<B, W, E, T, A, S>(
     manifest_entry: Option<ManifestOrderbook>,
     environment: RunnerEnvironment<B, W, E, T, A, S>,
     out_root: PathBuf,
-) -> Result<ProducerOutcome, LocalDbError>
+) -> Result<(TargetSuccess, Option<ExportMetadata>), TargetFailure>
 where
     B: BootstrapPipeline + 'static,
     W: WindowPipeline + 'static,
@@ -240,9 +275,21 @@ where
         inputs,
     } = target;
 
+    let ob_id = inputs.ob_id.clone();
+    let ob_key_for_failure = orderbook_key.clone();
+    let mk_failure = move |stage: TargetStage, error: LocalDbError| TargetFailure {
+        ob_id: ob_id.clone(),
+        orderbook_key: Some(ob_key_for_failure.clone()),
+        stage,
+        error,
+    };
+
     let inputs = match manifest_entry {
         Some(entry) => {
-            let dump_sql = environment.download_dump(&entry.dump_url).await?;
+            let dump_sql = environment
+                .download_dump(&entry.dump_url)
+                .await
+                .map_err(|error| mk_failure(TargetStage::DumpDownload, error))?;
             SyncInputs {
                 dump_str: Some(dump_sql),
                 ..inputs
@@ -258,18 +305,24 @@ where
         inputs,
     };
 
-    let db_path = db_path_for_target(&out_root, &target)?;
-    ensure_clean_db(&db_path)?;
+    let db_path = db_path_for_target(&out_root, &target)
+        .map_err(|error| mk_failure(TargetStage::EngineRun, error))?;
+    ensure_clean_db(&db_path).map_err(|error| mk_failure(TargetStage::EngineRun, error))?;
     let executor = RusqliteExecutor::new(&db_path);
 
-    let engine = environment.build_engine(&target)?.into_engine();
-    let outcome = engine.run(&executor, &target.inputs).await?;
-    let exported_dump = export_dump(&executor, &target, &outcome, &out_root).await?;
+    let engine = environment
+        .build_engine(&target)
+        .map_err(|error| mk_failure(TargetStage::EngineBuild, error))?
+        .into_engine();
+    let outcome = engine
+        .run(&executor, &target.inputs)
+        .await
+        .map_err(|error| mk_failure(TargetStage::EngineRun, error))?;
+    let exported_dump = export_dump(&executor, &target, &outcome, &out_root)
+        .await
+        .map_err(|error| mk_failure(TargetStage::Export, error))?;
 
-    Ok(ProducerOutcome {
-        outcome,
-        exported_dump,
-    })
+    Ok((TargetSuccess { outcome }, exported_dump))
 }
 
 fn db_path_for_target(out_root: &Path, target: &RunnerTarget) -> Result<PathBuf, LocalDbError> {
@@ -350,6 +403,155 @@ mod tests {
         SuccessWithExport,
         Fail,
         Panic,
+    }
+
+    #[derive(Clone)]
+    struct BootstrapNoWatermark {
+        telemetry: Telemetry,
+    }
+
+    impl BootstrapNoWatermark {
+        fn new(telemetry: Telemetry) -> Self {
+            Self { telemetry }
+        }
+
+        async fn ensure_tables<DB>(&self, db: &DB) -> Result<(), LocalDbError>
+        where
+            DB: LocalDbQueryExecutor + ?Sized,
+        {
+            let mut batch = SqlStatementBatch::new();
+            batch.add(SqlStatement::new(
+                "CREATE TABLE IF NOT EXISTS target_watermarks (
+                    chain_id INTEGER NOT NULL,
+                    orderbook_address TEXT NOT NULL,
+                    last_block INTEGER NOT NULL DEFAULT 0,
+                    last_hash TEXT,
+                    updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
+                    PRIMARY KEY (chain_id, orderbook_address)
+                );",
+            ));
+            batch.add(SqlStatement::new(
+                "CREATE TABLE IF NOT EXISTS raw_events (
+                    chain_id INTEGER NOT NULL,
+                    orderbook_address TEXT NOT NULL,
+                    transaction_hash TEXT NOT NULL,
+                    log_index INTEGER NOT NULL,
+                    block_number INTEGER NOT NULL,
+                    block_timestamp INTEGER,
+                    address TEXT NOT NULL,
+                    topics TEXT NOT NULL,
+                    data TEXT NOT NULL,
+                    raw_json TEXT NOT NULL,
+                    PRIMARY KEY (chain_id, orderbook_address, transaction_hash, log_index)
+                );",
+            ));
+            batch.add(SqlStatement::new(
+                "CREATE TABLE IF NOT EXISTS order_events (
+                    chain_id INTEGER,
+                    orderbook_address TEXT,
+                    store_address TEXT
+                );",
+            ));
+            batch.add(SqlStatement::new(
+                "CREATE TABLE IF NOT EXISTS interpreter_store_sets (
+                    chain_id INTEGER,
+                    orderbook_address TEXT,
+                    store_address TEXT
+                );",
+            ));
+
+            db.execute_batch(&batch.ensure_transaction())
+                .await
+                .map_err(LocalDbError::from)
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl BootstrapPipeline for BootstrapNoWatermark {
+        async fn ensure_schema<DB>(
+            &self,
+            _db: &DB,
+            _db_schema_version: Option<u32>,
+        ) -> Result<(), LocalDbError>
+        where
+            DB: LocalDbQueryExecutor + ?Sized,
+        {
+            Ok(())
+        }
+
+        async fn inspect_state<DB>(
+            &self,
+            _db: &DB,
+            _ob_id: &OrderbookIdentifier,
+        ) -> Result<BootstrapState, LocalDbError>
+        where
+            DB: LocalDbQueryExecutor + ?Sized,
+        {
+            Ok(BootstrapState {
+                has_required_tables: true,
+                last_synced_block: None,
+            })
+        }
+
+        async fn reset_db<DB>(
+            &self,
+            _db: &DB,
+            _db_schema_version: Option<u32>,
+        ) -> Result<(), LocalDbError>
+        where
+            DB: LocalDbQueryExecutor + ?Sized,
+        {
+            Ok(())
+        }
+
+        async fn clear_orderbook_data<DB>(
+            &self,
+            _db: &DB,
+            _target: &OrderbookIdentifier,
+        ) -> Result<(), LocalDbError>
+        where
+            DB: LocalDbQueryExecutor + ?Sized,
+        {
+            Ok(())
+        }
+
+        async fn engine_run<DB>(
+            &self,
+            db: &DB,
+            config: &BootstrapConfig,
+        ) -> Result<(), LocalDbError>
+        where
+            DB: LocalDbQueryExecutor + ?Sized,
+        {
+            self.ensure_tables(db).await?;
+
+            // Seed a raw event to force export_data_only to return Some, but skip watermark to trigger export failure.
+            let ob_id = &config.ob_id;
+            let orderbook_address = encode_prefixed(ob_id.orderbook_address);
+            let mut batch = SqlStatementBatch::new();
+            batch.add(SqlStatement::new(format!(
+                "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
+                 VALUES ({}, '{}', '0xseedtx', 0, {}, 1_700_000_000, '{}', '[]', '0x00', '{{}}') \
+                 ON CONFLICT(chain_id, orderbook_address, transaction_hash, log_index) DO NOTHING;",
+                ob_id.chain_id, orderbook_address, config.latest_block, orderbook_address
+            )));
+            db.execute_batch(&batch.ensure_transaction()).await?;
+
+            self.telemetry
+                .record_bootstrap_dump(config.dump_stmt.as_ref().map(|s| s.sql().to_string()));
+            Ok(())
+        }
+
+        async fn runner_run<DB>(
+            &self,
+            _db: &DB,
+            _db_schema_version: Option<u32>,
+        ) -> Result<(), LocalDbError>
+        where
+            DB: LocalDbQueryExecutor + ?Sized,
+        {
+            Ok(())
+        }
     }
 
     #[derive(Clone)]
@@ -962,6 +1164,23 @@ orderbooks:
             + Sync,
     >;
 
+    type NoWatermarkEngineBuilder = Arc<
+        dyn Fn(
+                &RunnerTarget,
+            ) -> Result<
+                EnginePipelines<
+                    BootstrapNoWatermark,
+                    StubWindow,
+                    StubEvents,
+                    StubTokens,
+                    StubApply,
+                    StubStatusBus,
+                >,
+                LocalDbError,
+            > + Send
+            + Sync,
+    >;
+
     fn engine_builder_for_behaviors(
         telemetry: Telemetry,
         behaviors: Arc<HashMap<String, EngineBehavior>>,
@@ -1111,11 +1330,12 @@ orderbooks:
         );
 
         let failure = &report.failures[0];
-        assert_eq!(failure.chain_id, Some(42161));
+        assert_eq!(failure.ob_id.chain_id, 42161);
         assert_eq!(
-            failure.orderbook_address,
-            Some(address!("00000000000000000000000000000000000000b2"))
+            failure.ob_id.orderbook_address,
+            address!("00000000000000000000000000000000000000b2")
         );
+        assert_eq!(failure.orderbook_key.as_deref(), Some("fail"));
         assert!(matches!(failure.error, LocalDbError::CustomError(_)));
 
         let dumps: Vec<Option<String>> = telemetry.bootstrap_dumps.lock().unwrap().clone();
@@ -1151,8 +1371,8 @@ orderbooks:
         assert_eq!(report.successes.len(), 0);
         assert_eq!(report.failures.len(), 1);
         let failure = &report.failures[0];
-        assert!(failure.chain_id.is_none());
-        assert!(failure.orderbook_address.is_none());
+        assert_eq!(failure.ob_id.chain_id, 0);
+        assert!(failure.orderbook_key.is_none());
         assert!(matches!(failure.error, LocalDbError::TaskJoin(_)));
     }
 
@@ -1192,13 +1412,11 @@ orderbooks:
         let mut custom_failure = None;
         let mut join_failure = None;
         for failure in &report.failures {
-            match (&failure.chain_id, &failure.orderbook_address) {
-                (Some(42161), Some(addr))
-                    if *addr == address!("00000000000000000000000000000000000000b2") =>
-                {
+            match (failure.ob_id.chain_id, failure.ob_id.orderbook_address) {
+                (42161, addr) if addr == address!("00000000000000000000000000000000000000b2") => {
                     custom_failure = Some(failure);
                 }
-                (None, None) => join_failure = Some(failure),
+                (0, addr) if addr.is_zero() => join_failure = Some(failure),
                 _ => {}
             }
         }
@@ -1211,6 +1429,37 @@ orderbooks:
 
         let dumps = telemetry.dump_requests.lock().unwrap();
         assert_eq!(dumps.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn manifest_not_written_when_any_failure_present() {
+        let yaml = settings_yaml_two_success();
+        let mut behaviors = HashMap::new();
+        behaviors.insert("ok".to_string(), EngineBehavior::Success);
+        behaviors.insert("ok-second".to_string(), EngineBehavior::Fail);
+        let (environment, _telemetry) =
+            build_environment(manifest_for_two_ok_orderbooks(), behaviors);
+        let temp_dir = TempDir::new().unwrap();
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
+
+        let report = runner
+            .run()
+            .await
+            .expect("run completes with mixed outcomes");
+        assert_eq!(report.successes.len(), 1);
+        assert_eq!(report.failures.len(), 1);
+        let manifest_path = temp_dir.path().join("manifest.yaml");
+        assert!(
+            !manifest_path.exists(),
+            "manifest should not be written when failures are present"
+        );
     }
 
     #[tokio::test]
@@ -1241,16 +1490,15 @@ orderbooks:
         )
         .expect("runner");
 
-        let err = runner
+        let report = runner
             .run()
             .await
-            .expect_err("manifest fetch failure should propagate");
-        match err {
-            LocalDbError::CustomError(message) => {
-                assert_eq!(message, "manifest fetch failure");
-            }
-            other => panic!("unexpected error variant: {other:?}"),
-        }
+            .expect("manifest fetch failure should be reported");
+        assert!(report.successes.is_empty());
+        assert_eq!(report.failures.len(), 1);
+        let failure = &report.failures[0];
+        assert_eq!(failure.stage, TargetStage::ManifestFetch);
+        matches!(&failure.error, LocalDbError::CustomError(message) if message == "manifest fetch failure");
     }
 
     #[tokio::test]
@@ -1295,11 +1543,12 @@ orderbooks:
         assert!(report.successes.is_empty());
         assert_eq!(report.failures.len(), 1);
         let failure = &report.failures[0];
-        assert_eq!(failure.chain_id, Some(42161));
+        assert_eq!(failure.ob_id.chain_id, 42161);
         assert_eq!(
-            failure.orderbook_address,
-            Some(address!("00000000000000000000000000000000000000a1"))
+            failure.ob_id.orderbook_address,
+            address!("00000000000000000000000000000000000000a1")
         );
+        assert_eq!(failure.orderbook_key.as_deref(), Some("ok"));
         assert!(matches!(
             &failure.error,
             LocalDbError::CustomError(message) if message.contains("download failed")
@@ -1347,15 +1596,72 @@ orderbooks:
         assert!(report.successes.is_empty());
         assert_eq!(report.failures.len(), 1);
         let failure = &report.failures[0];
-        assert_eq!(failure.chain_id, Some(42161));
+        assert_eq!(failure.ob_id.chain_id, 42161);
         assert_eq!(
-            failure.orderbook_address,
-            Some(address!("00000000000000000000000000000000000000a1"))
+            failure.ob_id.orderbook_address,
+            address!("00000000000000000000000000000000000000a1")
         );
+        assert_eq!(failure.orderbook_key.as_deref(), Some("ok"));
         assert!(matches!(
             &failure.error,
             LocalDbError::CustomError(message) if message == "engine build error"
         ));
+    }
+
+    #[tokio::test]
+    async fn run_records_export_failure_with_stage() {
+        let yaml = settings_yaml_ok_only();
+        let manifest_map = manifest_for_ok_orderbook();
+        let manifest_fetcher = Arc::new(
+            move |_orderbooks: &HashMap<String, OrderbookCfg>| -> ManifestFuture {
+                let manifest_map = manifest_map.clone();
+                Box::pin(async move { Ok(manifest_map) })
+            },
+        );
+        let dump_downloader =
+            Arc::new(|_url: &Url| -> DumpFuture { Box::pin(async { Ok(String::new()) }) });
+
+        let telemetry = Telemetry::default();
+        let engine_builder: NoWatermarkEngineBuilder = Arc::new(move |target: &RunnerTarget| {
+            let bootstrap = BootstrapNoWatermark::new(telemetry.clone());
+            let window = StubWindow::new(0, target.inputs.cfg.deployment_block);
+            let events = StubEvents {
+                latest_block: target.inputs.cfg.deployment_block,
+            };
+            let apply = StubApply::new(false);
+            let status = StubStatusBus::new(telemetry.clone());
+            Ok(EnginePipelines::new(
+                bootstrap, window, events, StubTokens, apply, status,
+            ))
+        });
+
+        let environment: RunnerEnvironment<
+            BootstrapNoWatermark,
+            StubWindow,
+            StubEvents,
+            StubTokens,
+            StubApply,
+            StubStatusBus,
+        > = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
+        let temp_dir = TempDir::new().unwrap();
+        let release_base = Url::parse("https://releases.example.com").unwrap();
+        let runner = ProducerRunner::with_environment(
+            yaml,
+            temp_dir.path().to_path_buf(),
+            release_base,
+            environment,
+        )
+        .expect("runner");
+
+        let report = runner.run().await.expect("run completes with failures");
+        assert_eq!(report.successes.len(), 0);
+        assert_eq!(report.failures.len(), 1);
+        let failure = &report.failures[0];
+        assert_eq!(failure.stage, TargetStage::Export);
+        assert_eq!(
+            failure.ob_id.orderbook_address,
+            address!("00000000000000000000000000000000000000a1")
+        );
     }
 
     #[tokio::test]
@@ -1407,7 +1713,7 @@ orderbooks:
         assert_eq!(outcome.outcome.start_block, 0);
 
         assert!(
-            outcome.exported_dump.is_none(),
+            report.export_for(&outcome.outcome.ob_id).is_none(),
             "stub environment should not emit dumps"
         );
     }
@@ -1434,9 +1740,8 @@ orderbooks:
         }
         let outcome = &report.successes[0];
 
-        let metadata = outcome
-            .exported_dump
-            .as_ref()
+        let metadata = report
+            .export_for(&outcome.outcome.ob_id)
             .expect("export metadata to be present");
         assert!(
             metadata.dump_path.exists(),
