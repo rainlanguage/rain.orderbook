@@ -1,7 +1,8 @@
-use super::pipeline::runner::{ProducerJobFailure, ProducerRunReport};
+use super::pipeline::runner::ProducerRunReport;
 use crate::commands::local_db::pipeline::runner::ProducerRunner;
 use anyhow::Result;
 use clap::Parser;
+use rain_orderbook_common::local_db::pipeline::runner::TargetFailure;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use url::Url;
@@ -58,10 +59,13 @@ impl RunPipeline {
 
         render_report(&report);
 
-        if report.failures.is_empty() {
+        if report.failures().is_empty() {
             Ok(())
         } else {
-            Err(anyhow::anyhow!("one or more producer jobs failed"))
+            Err(anyhow::anyhow!(
+                "one or more producer jobs failed ({} failure(s))",
+                report.failures().len()
+            ))
         }
     }
 }
@@ -72,17 +76,17 @@ fn render_report(report: &ProducerRunReport) {
 }
 
 fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io::Result<()> {
-    if report.successes.is_empty() {
+    if report.successes().is_empty() {
         writeln!(writer, "No producer jobs completed successfully.")?;
     } else {
         writeln!(
             writer,
             "Producer pipeline completed {} successful job(s):",
-            report.successes.len()
+            report.successes().len()
         )?;
-        for outcome in &report.successes {
+        for outcome in report.successes() {
             let ob_id = &outcome.outcome.ob_id;
-            match &outcome.exported_dump {
+            match report.export_for(ob_id) {
                 Some(export) => {
                     writeln!(
                         writer,
@@ -115,15 +119,15 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
         }
     }
 
-    if report.failures.is_empty() {
+    if report.failures().is_empty() {
         writeln!(writer, "All producer jobs completed successfully.")?;
     } else {
         writeln!(
             writer,
             "{} job(s) failed during the producer run:",
-            report.failures.len()
+            report.failures().len()
         )?;
-        for failure in &report.failures {
+        for failure in report.failures() {
             render_failure_to(failure, writer)?;
         }
     }
@@ -131,43 +135,44 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
     Ok(())
 }
 
-fn render_failure_to<W: Write>(failure: &ProducerJobFailure, writer: &mut W) -> io::Result<()> {
-    match (failure.chain_id, failure.orderbook_address) {
-        (Some(chain_id), Some(address)) => writeln!(
+fn render_failure_to<W: Write>(failure: &TargetFailure, writer: &mut W) -> io::Result<()> {
+    let ob_id = &failure.ob_id;
+    let address = ob_id.orderbook_address;
+    let chain_id = ob_id.chain_id;
+    let stage = failure.stage;
+    let message = failure.error.to_readable_msg();
+    let key = failure
+        .orderbook_key
+        .as_deref()
+        .unwrap_or("<unknown-orderbook>");
+
+    if chain_id == 0 && address.is_zero() {
+        writeln!(writer, "- job {} failed at {:?}: {}", key, stage, message)
+    } else {
+        writeln!(
             writer,
-            "- chain {} orderbook {:#x} failed: {}",
-            chain_id, address, failure.error
-        ),
-        (Some(chain_id), None) => writeln!(
-            writer,
-            "- chain {} orderbook <unknown> failed: {}",
-            chain_id, failure.error
-        ),
-        (None, Some(address)) => writeln!(
-            writer,
-            "- chain <unknown> orderbook {:#x} failed: {}",
-            address, failure.error
-        ),
-        (None, None) => writeln!(
-            writer,
-            "- job failed before identifying target: {}",
-            failure.error
-        ),
+            "- chain {} orderbook {:#x} ({}) failed at {:?}: {}",
+            chain_id, address, key, stage, message
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::commands::local_db::pipeline::runner::{ExportMetadata, ProducerOutcome};
+    use crate::commands::local_db::pipeline::runner::export::ExportMetadata;
 
     use super::*;
-    use alloy::primitives::address;
+    use alloy::primitives::{address, Address};
     use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
     use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
+    use rain_orderbook_common::local_db::pipeline::runner::{
+        TargetFailure, TargetStage, TargetSuccess,
+    };
     use rain_orderbook_common::local_db::pipeline::{
         FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
     };
     use rain_orderbook_common::local_db::{FetchConfig, LocalDbError, OrderbookIdentifier};
+    use std::collections::HashMap;
 
     #[test]
     fn default_out_root_is_local_db() {
@@ -183,7 +188,7 @@ mod tests {
         assert_eq!(command.out_root, PathBuf::from("./local-db"));
     }
 
-    fn sample_outcome(chain_id: u32) -> ProducerOutcome {
+    fn sample_success_and_export(chain_id: u32) -> (TargetSuccess, ExportMetadata) {
         let ob_id = OrderbookIdentifier::new(
             chain_id,
             address!("0000000000000000000000000000000000000a11"),
@@ -210,31 +215,35 @@ mod tests {
             inputs,
         };
 
-        ProducerOutcome {
-            outcome: SyncOutcome {
-                ob_id: runner_target.inputs.ob_id.clone(),
-                start_block: 200,
-                target_block: 400,
-                fetched_logs: 123,
-                decoded_events: 456,
-            },
-            exported_dump: Some(ExportMetadata {
-                dump_path: PathBuf::from(format!(
-                    "./local-db/{}/{}-{}.sql.gz",
-                    chain_id, chain_id, runner_target.inputs.ob_id.orderbook_address
-                )),
-                end_block: 400,
-                end_block_hash: "0xdeadbeef".to_string(),
-                end_block_time_ms: 1_700_000_000,
-            }),
-        }
+        let outcome = SyncOutcome {
+            ob_id: runner_target.inputs.ob_id.clone(),
+            start_block: 200,
+            target_block: 400,
+            fetched_logs: 123,
+            decoded_events: 456,
+        };
+        let export = ExportMetadata {
+            dump_path: PathBuf::from(format!(
+                "./local-db/{}/{}-{}.sql.gz",
+                chain_id, chain_id, runner_target.inputs.ob_id.orderbook_address
+            )),
+            end_block: 400,
+            end_block_hash: "0xdeadbeef".to_string(),
+            end_block_time_ms: 1_700_000_000,
+        };
+
+        (TargetSuccess { outcome }, export)
     }
 
     #[test]
     fn render_report_to_writes_success_summary() {
+        let (success, export) = sample_success_and_export(42161);
+        let mut exports = HashMap::new();
+        exports.insert(success.outcome.ob_id.clone(), Some(export));
         let report = ProducerRunReport {
-            successes: vec![sample_outcome(42161)],
+            successes: vec![success],
             failures: vec![],
+            exports,
         };
         let mut buffer = Vec::new();
         render_report_to(&report, &mut buffer).expect("render succeeds");
@@ -250,11 +259,13 @@ mod tests {
 
     #[test]
     fn render_report_to_handles_missing_dump() {
-        let mut outcome = sample_outcome(10);
-        outcome.exported_dump = None;
+        let (success, _) = sample_success_and_export(10);
+        let mut exports = HashMap::new();
+        exports.insert(success.outcome.ob_id.clone(), None);
         let report = ProducerRunReport {
-            successes: vec![outcome],
+            successes: vec![success],
             failures: vec![],
+            exports,
         };
 
         let mut buffer = Vec::new();
@@ -267,14 +278,16 @@ mod tests {
     #[test]
     fn render_report_to_lists_failures() {
         let orderbook_address = address!("0000000000000000000000000000000000000fA1");
-        let failure = ProducerJobFailure {
-            chain_id: Some(1),
-            orderbook_address: Some(orderbook_address),
+        let failure = TargetFailure {
+            ob_id: OrderbookIdentifier::new(1, orderbook_address),
+            orderbook_key: Some("book".into()),
+            stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("oh no".into()),
         };
         let report = ProducerRunReport {
             successes: Vec::new(),
             failures: vec![failure],
+            exports: HashMap::new(),
         };
 
         let mut buffer = Vec::new();
@@ -289,14 +302,16 @@ mod tests {
 
     #[test]
     fn render_failure_to_handles_unknowns() {
-        let failure = ProducerJobFailure {
-            chain_id: None,
-            orderbook_address: None,
+        let failure = TargetFailure {
+            ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+            orderbook_key: None,
+            stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("boom".into()),
         };
         let mut buffer = Vec::new();
         render_failure_to(&failure, &mut buffer).expect("render succeeds");
         let output = String::from_utf8(buffer).expect("utf8");
-        assert!(output.contains("job failed before identifying target"));
+        assert!(output.contains("job <unknown-orderbook> failed"));
+        assert!(output.contains("EngineRun"));
     }
 }
