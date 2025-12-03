@@ -9,7 +9,7 @@ use crate::{
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
-use context::{Context, ContextError};
+use context::{Context, ContextError, ContextProfile};
 use dotrain::DotrainYaml;
 use orderbook::OrderbookYaml;
 use std::collections::HashMap;
