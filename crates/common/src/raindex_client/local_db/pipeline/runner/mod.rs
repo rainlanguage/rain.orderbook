@@ -137,6 +137,7 @@ where
             let bootstrap = ClientBootstrapAdapter::new();
             bootstrap.runner_run(db, Some(DB_SCHEMA_VERSION)).await?;
             let (provisioned, mut provisioning_failures) = self.provision_dumps(targets).await;
+            let had_provisioning_failures = !provisioning_failures.is_empty();
             targets = provisioned;
 
             // Run remaining targets even if some dump downloads failed so we can return the full report.
@@ -147,7 +148,7 @@ where
 
             provisioning_failures.append(&mut run_failures);
 
-            if provisioning_failures.is_empty() {
+            if !had_provisioning_failures {
                 self.has_bootstrapped = true;
             }
 

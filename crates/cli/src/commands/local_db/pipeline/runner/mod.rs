@@ -216,8 +216,9 @@ impl
         out_root: PathBuf,
         release_base_url: Url,
         hypersync_token: String,
+        debug_status: bool,
     ) -> Result<Self, LocalDbError> {
-        let environment = default_environment(hypersync_token);
+        let environment = default_environment(hypersync_token, debug_status);
         Self::with_environment(settings_yaml, out_root, release_base_url, environment)
     }
 }

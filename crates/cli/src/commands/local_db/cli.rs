@@ -39,6 +39,12 @@ pub struct RunPipeline {
         value_parser = clap::value_parser!(Url)
     )]
     pub release_base_url: Url,
+
+    #[clap(
+        long,
+        help = "Emit per-stage status updates from the pipeline as it runs"
+    )]
+    pub debug_status: bool,
 }
 
 impl RunPipeline {
@@ -50,11 +56,18 @@ impl RunPipeline {
             api_token,
             out_root,
             release_base_url,
+            debug_status,
         } = self;
 
         std::fs::create_dir_all(&out_root)?;
 
-        let runner = ProducerRunner::new(settings_yaml, out_root, release_base_url, api_token)?;
+        let runner = ProducerRunner::new(
+            settings_yaml,
+            out_root,
+            release_base_url,
+            api_token,
+            debug_status,
+        )?;
         let report = runner.run().await?;
 
         render_report(&report);
