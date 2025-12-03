@@ -290,31 +290,34 @@ mod wasm_tests {
             let then_cell = Rc::clone(&release_then);
 
             let request_closure: Closure<dyn FnMut(JsValue, JsValue, JsValue) -> JsValue> =
-                Closure::wrap(Box::new(move |_name: JsValue, _options: JsValue, cb: JsValue| -> JsValue {
-                    let callback: Function = cb.unchecked_into();
-                    let promise_js = match callback.call1(&JsValue::UNDEFINED, &callback_result) {
-                        Ok(value) => value,
-                        Err(_) => return Promise::resolve(&JsValue::UNDEFINED).into(),
-                    };
+                Closure::wrap(Box::new(
+                    move |_name: JsValue, _options: JsValue, cb: JsValue| -> JsValue {
+                        let callback: Function = cb.unchecked_into();
+                        let promise_js = match callback.call1(&JsValue::UNDEFINED, &callback_result)
+                        {
+                            Ok(value) => value,
+                            Err(_) => return Promise::resolve(&JsValue::UNDEFINED).into(),
+                        };
 
-                    if let Some(promise) = promise_js.dyn_ref::<Promise>() {
-                        let promise = promise.clone();
-                        promise_cell.borrow_mut().replace(promise.clone());
+                        if let Some(promise) = promise_js.dyn_ref::<Promise>() {
+                            let promise = promise.clone();
+                            promise_cell.borrow_mut().replace(promise.clone());
 
-                        let flag = Rc::clone(&flag_cell);
-                        let then_closure: Closure<dyn FnMut(JsValue)> =
-                            Closure::wrap(Box::new(move |_value: JsValue| {
-                                flag.set(true);
-                            })
-                                as Box<dyn FnMut(JsValue)>);
-                        let _ = promise.then(&then_closure);
-                        *then_cell.borrow_mut() = Some(then_closure);
+                            let flag = Rc::clone(&flag_cell);
+                            let then_closure: Closure<dyn FnMut(JsValue)> =
+                                Closure::wrap(Box::new(move |_value: JsValue| {
+                                    flag.set(true);
+                                })
+                                    as Box<dyn FnMut(JsValue)>);
+                            let _ = promise.then(&then_closure);
+                            *then_cell.borrow_mut() = Some(then_closure);
 
-                        promise.into()
-                    } else {
-                        Promise::resolve(&JsValue::UNDEFINED).into()
-                    }
-                })
+                            promise.into()
+                        } else {
+                            Promise::resolve(&JsValue::UNDEFINED).into()
+                        }
+                    },
+                )
                     as Box<dyn FnMut(JsValue, JsValue, JsValue) -> JsValue>);
 
             let locks_value = Reflect::get(navigator.as_ref(), &JsValue::from_str("locks"))?;
