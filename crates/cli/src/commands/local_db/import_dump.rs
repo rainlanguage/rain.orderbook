@@ -5,7 +5,7 @@ use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use rain_orderbook_common::local_db::query::create_tables::create_tables_stmt;
 use rain_orderbook_common::local_db::query::create_views::create_views_batch;
 use rain_orderbook_common::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
-use rain_orderbook_common::local_db::query::SqlStatement;
+use rain_orderbook_common::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use std::fs;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -91,7 +91,9 @@ impl ImportDump {
 
         println!(
             "Imported dump into {} (setup {} ms, import {} ms)",
-            self.db_path.display(), setup_ms, import_ms
+            self.db_path.display(),
+            setup_ms,
+            import_ms
         );
 
         Ok(())
