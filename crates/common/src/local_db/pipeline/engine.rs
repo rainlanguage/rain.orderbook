@@ -147,6 +147,7 @@ where
         let latest_block = self.events.latest_block().await?;
 
         self.status.send("Running bootstrap").await?;
+        let bootstrap_started = std::time::Instant::now();
         self.bootstrap
             .engine_run(
                 db,
@@ -159,6 +160,11 @@ where
                 },
             )
             .await?;
+        let bootstrap_elapsed = bootstrap_started.elapsed().as_millis();
+        let _ = self
+            .status
+            .send(&format!("Bootstrap completed in {} ms", bootstrap_elapsed))
+            .await;
 
         Ok(latest_block)
     }

@@ -1,8 +1,23 @@
 use rain_orderbook_common::local_db::{
     pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline},
-    query::LocalDbQueryExecutor,
+    query::{LocalDbQueryExecutor, SqlStatement},
     LocalDbError,
 };
+
+const FAST_IMPORT_PRAGMAS: &str = concat!(
+    "PRAGMA journal_mode=MEMORY;",
+    "PRAGMA synchronous=OFF;",
+    "PRAGMA temp_store=MEMORY;",
+    "PRAGMA locking_mode=EXCLUSIVE;",
+    "PRAGMA cache_size=-200000;"
+);
+
+fn wrap_dump_with_fast_pragmas(dump: &SqlStatement) -> SqlStatement {
+    let mut sql = String::with_capacity(FAST_IMPORT_PRAGMAS.len() + dump.sql().len());
+    sql.push_str(FAST_IMPORT_PRAGMAS);
+    sql.push_str(dump.sql());
+    SqlStatement::new(sql)
+}
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ProducerBootstrapAdapter;
@@ -22,7 +37,8 @@ impl BootstrapPipeline for ProducerBootstrapAdapter {
         self.reset_db(db, None).await?;
 
         if let Some(dump_stmt) = &config.dump_stmt {
-            db.query_text(dump_stmt).await?;
+            let fast_dump = wrap_dump_with_fast_pragmas(dump_stmt);
+            db.query_text(&fast_dump).await?;
         }
 
         Ok(())
@@ -77,6 +93,11 @@ mod tests {
                 .statements()
                 .iter()
                 .fold(self, |db, stmt| db.with_text(stmt, "ok"))
+        }
+
+        fn with_fast_dump(self, dump: &SqlStatement) -> Self {
+            let fast = wrap_dump_with_fast_pragmas(dump);
+            self.with_text(&fast, "ok")
         }
     }
 
@@ -185,7 +206,7 @@ mod tests {
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
-            .with_text(&dump_stmt, "ok")
+            .with_fast_dump(&dump_stmt)
             .with_views();
 
         let cfg = BootstrapConfig {
@@ -203,7 +224,7 @@ mod tests {
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
         let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
-        let dump = dump_stmt.sql().to_string();
+        let dump = wrap_dump_with_fast_pragmas(&dump_stmt).sql().to_string();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
@@ -243,7 +264,7 @@ mod tests {
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
         let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
-        let dump = dump_stmt.sql().to_string();
+        let dump = wrap_dump_with_fast_pragmas(&dump_stmt).sql().to_string();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
