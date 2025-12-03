@@ -1,6 +1,7 @@
 use super::export::ExportMetadata;
 use alloy::primitives::{Address, Bytes};
 use rain_orderbook_app_settings::local_db_manifest::{LocalDbManifest, ManifestOrderbook};
+use rain_orderbook_app_settings::remote::manifest::ManifestMap;
 use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
 use rain_orderbook_common::local_db::pipeline::runner::TargetSuccess;
 use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
@@ -10,15 +11,19 @@ use std::str::FromStr;
 use tokio::fs;
 use url::Url;
 
-/// Builds a manifest from successful producer outcomes and their exported dumps.
+/// Builds a manifest by overlaying successful producer outcomes on top of any
+/// previous manifest entries. New dumps replace old ones; failed or skipped
+/// targets keep their last known manifest entry when available.
 pub fn build_manifest(
     successes: &[TargetSuccess],
     exports: &HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
     target_lookup: &HashMap<OrderbookIdentifier, RunnerTarget>,
     release_base_url: &Url,
+    previous_manifests: &ManifestMap,
 ) -> Result<LocalDbManifest, LocalDbError> {
     let mut per_network: HashMap<String, (u32, Vec<ManifestOrderbook>)> = HashMap::new();
 
+    // First, record the latest successful exports.
     for success in successes {
         let ob_id = &success.outcome.ob_id;
         let export = match exports.get(ob_id).and_then(|export| export.as_ref()) {
@@ -33,9 +38,7 @@ pub fn build_manifest(
                     orderbook_address: ob_id.orderbook_address,
                 })?;
 
-        let chain_id = ob_id.chain_id;
-        let network_key = runner_target.network_key.clone();
-        let dump_url = build_dump_url(release_base_url, chain_id, ob_id.orderbook_address)?;
+        let dump_url = build_dump_url(release_base_url, ob_id.chain_id, ob_id.orderbook_address)?;
         let end_block_hash = Bytes::from_str(export.end_block_hash.as_str())?;
 
         let manifest_orderbook = ManifestOrderbook {
@@ -46,17 +49,42 @@ pub fn build_manifest(
             end_block_time_ms: export.end_block_time_ms,
         };
 
-        let entry = per_network
-            .entry(network_key.clone())
-            .or_insert_with(|| (chain_id, Vec::new()));
-        if entry.0 != chain_id {
-            return Err(LocalDbError::RunnerNetworkChainIdMismatch {
-                network_key,
-                expected: entry.0,
-                found: chain_id,
-            });
+        push_entry(
+            &mut per_network,
+            runner_target.network_key.clone(),
+            ob_id.chain_id,
+            manifest_orderbook,
+        )?;
+    }
+
+    // Then, carry forward any existing manifest entries for targets that did
+    // not produce a new dump in this run.
+    for (ob_id, runner_target) in target_lookup {
+        let already_recorded =
+            per_network
+                .get(&runner_target.network_key)
+                .is_some_and(|(_, orderbooks)| {
+                    orderbooks
+                        .iter()
+                        .any(|orderbook| orderbook.address == ob_id.orderbook_address)
+                });
+        if already_recorded {
+            continue;
         }
-        entry.1.push(manifest_orderbook);
+
+        let previous_entry = previous_manifests
+            .get(&runner_target.manifest_url)
+            .and_then(|manifest| manifest.find(ob_id.chain_id, ob_id.orderbook_address))
+            .cloned();
+
+        if let Some(orderbook) = previous_entry {
+            push_entry(
+                &mut per_network,
+                runner_target.network_key.clone(),
+                ob_id.chain_id,
+                orderbook,
+            )?;
+        }
     }
 
     let mut manifest = LocalDbManifest::new();
@@ -74,6 +102,26 @@ pub fn build_manifest(
     }
 
     Ok(manifest)
+}
+
+fn push_entry(
+    per_network: &mut HashMap<String, (u32, Vec<ManifestOrderbook>)>,
+    network_key: String,
+    chain_id: u32,
+    orderbook: ManifestOrderbook,
+) -> Result<(), LocalDbError> {
+    let entry = per_network
+        .entry(network_key.clone())
+        .or_insert_with(|| (chain_id, Vec::new()));
+    if entry.0 != chain_id {
+        return Err(LocalDbError::RunnerNetworkChainIdMismatch {
+            network_key,
+            expected: entry.0,
+            found: chain_id,
+        });
+    }
+    entry.1.push(orderbook);
+    Ok(())
 }
 
 fn build_dump_url(
@@ -108,6 +156,9 @@ mod tests {
     use super::*;
     use crate::commands::local_db::pipeline::runner::export::ExportMetadata;
     use alloy::primitives::address;
+    use rain_orderbook_app_settings::local_db_manifest::{
+        LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
+    };
     use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
     use rain_orderbook_common::local_db::pipeline::{
         FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
@@ -203,7 +254,7 @@ mod tests {
         let successes = vec![skipped_success, included_success];
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect("manifest build succeeds");
 
         assert!(
@@ -250,7 +301,7 @@ mod tests {
         exports.insert(target_b.clone(), Some(export_b));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect("manifest build succeeds");
 
         assert_eq!(manifest.manifest_version, 1);
@@ -305,7 +356,7 @@ mod tests {
         exports.insert(target_b.clone(), Some(export_b));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let err = build_manifest(&successes, &exports, &lookup, &base_url)
+        let err = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect_err("shared network key with different chain ids should error");
 
         match err {
@@ -352,7 +403,7 @@ mod tests {
         exports.insert(target_b.clone(), Some(export_b));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect("manifest build succeeds");
         let anvil = manifest.networks.get("anvil").expect("anvil network");
         let addresses: Vec<_> = anvil.orderbooks.iter().map(|ob| ob.address).collect();
@@ -379,7 +430,7 @@ mod tests {
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
 
-        let err = build_manifest(&successes, &exports, &lookup, &base_url)
+        let err = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect_err("missing target should error");
         match err {
             LocalDbError::MissingRunnerTarget {
@@ -413,7 +464,7 @@ mod tests {
         exports.insert(ob_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let err = build_manifest(&successes, &exports, &lookup, &base_url)
+        let err = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect_err("invalid hash should error");
 
         match err {
@@ -425,12 +476,95 @@ mod tests {
     #[test]
     fn build_manifest_returns_empty_manifest_for_no_successes() {
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest = build_manifest(&[], &HashMap::new(), &HashMap::new(), &base_url)
-            .expect("empty input succeeds");
+        let manifest = build_manifest(
+            &[],
+            &HashMap::new(),
+            &HashMap::new(),
+            &base_url,
+            &HashMap::new(),
+        )
+        .expect("empty input succeeds");
 
         assert!(manifest.networks.is_empty());
         assert_eq!(manifest.manifest_version, 1);
         assert_eq!(manifest.db_schema_version, 2);
+    }
+
+    #[test]
+    fn build_manifest_overlays_successes_and_reuses_previous_entries() {
+        let target_a = OrderbookIdentifier {
+            chain_id: 42161,
+            orderbook_address: address!("0x0000000000000000000000000000000000000aa1"),
+        };
+        let target_b = OrderbookIdentifier {
+            chain_id: 42161,
+            orderbook_address: address!("0x0000000000000000000000000000000000000bb2"),
+        };
+
+        let mut lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
+        lookup.insert(
+            target_a.clone(),
+            sample_runner_target("anvil", target_a.chain_id, target_a.orderbook_address),
+        );
+        lookup.insert(
+            target_b.clone(),
+            sample_runner_target("anvil", target_b.chain_id, target_b.orderbook_address),
+        );
+
+        let (success_a, export_a) = sample_success(&target_a, "dump-a.sql.gz");
+        let successes = vec![success_a];
+        let mut exports = HashMap::new();
+        exports.insert(target_a.clone(), Some(export_a));
+
+        // Previous manifest contains both orderbooks; only A gets a fresh export.
+        let previous_manifest = LocalDbManifest {
+            manifest_version: MANIFEST_VERSION,
+            db_schema_version: DB_SCHEMA_VERSION,
+            networks: HashMap::from([(
+                "anvil".to_string(),
+                ManifestNetwork {
+                    chain_id: target_a.chain_id,
+                    orderbooks: vec![
+                        ManifestOrderbook {
+                            address: target_a.orderbook_address,
+                            dump_url: Url::parse("https://old.example/a.sql.gz").unwrap(),
+                            end_block: 100,
+                            end_block_hash: Bytes::from_str("0x0aaa").unwrap(),
+                            end_block_time_ms: 1_700_000_000,
+                        },
+                        ManifestOrderbook {
+                            address: target_b.orderbook_address,
+                            dump_url: Url::parse("https://old.example/b.sql.gz").unwrap(),
+                            end_block: 200,
+                            end_block_hash: Bytes::from_str("0x0bbb").unwrap(),
+                            end_block_time_ms: 1_700_000_100,
+                        },
+                    ],
+                },
+            )]),
+        };
+        let manifest_url = Url::parse("https://example.com/manifest.yaml").unwrap();
+        let previous_map: ManifestMap = HashMap::from([(manifest_url, previous_manifest)]);
+
+        let base_url = Url::parse("https://releases.example.com").unwrap();
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &previous_map)
+            .expect("manifest build succeeds");
+
+        let anvil = manifest.networks.get("anvil").expect("anvil network");
+        assert_eq!(anvil.orderbooks.len(), 2);
+        // New dump for target A should use the release base URL, while target B
+        // should keep its previous dump URL.
+        assert_eq!(
+            anvil.orderbooks[0].dump_url.as_str(),
+            format!(
+                "https://releases.example.com/{}-{}.sql.gz",
+                target_a.chain_id, target_a.orderbook_address
+            )
+        );
+        assert_eq!(
+            anvil.orderbooks[1].dump_url.as_str(),
+            "https://old.example/b.sql.gz"
+        );
     }
 
     #[test]
@@ -471,7 +605,7 @@ mod tests {
         exports.insert(target_devnet.clone(), Some(export_devnet));
 
         let base_url = Url::parse("https://releases.example.com/").unwrap();
-        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect("manifest build succeeds");
 
         let yaml = manifest
@@ -516,7 +650,7 @@ mod tests {
         exports.insert(ob_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect("manifest build succeeds");
 
         let temp_dir = TempDir::new().unwrap();

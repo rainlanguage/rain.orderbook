@@ -101,6 +101,7 @@ where
                 return Ok(ProducerRunReport::from_parts(report, HashMap::new()));
             }
         };
+        let manifest_map_for_tasks = Arc::clone(&manifest_map);
         let targets = self.targets.clone();
         let out_root = self.out_root.clone();
         let environment = self.environment.clone();
@@ -110,7 +111,7 @@ where
             .run_until(async move {
                 let mut tasks = JoinSet::new();
                 for target in targets {
-                    let manifest_map = Arc::clone(&manifest_map);
+                    let manifest_map = Arc::clone(&manifest_map_for_tasks);
                     let out_root = out_root.clone();
                     let environment = environment.clone();
                     tasks.spawn_local(async move {
@@ -179,13 +180,8 @@ where
         if !report.failures.is_empty() {
             warn!(
                 failures = report.failures.len(),
-                "skipping manifest write because one or more producer jobs failed"
+                "one or more producer jobs failed; reusing previous manifest entries for those targets"
             );
-            return Ok(ProducerRunReport::from_parts(report, exports));
-        }
-
-        if report.successes.is_empty() {
-            return Ok(ProducerRunReport::from_parts(report, exports));
         }
 
         let manifest = build_manifest(
@@ -193,7 +189,11 @@ where
             &exports,
             &self.target_lookup,
             &self.release_base_url,
+            manifest_map.as_ref(),
         )?;
+        if manifest.networks.is_empty() {
+            return Ok(ProducerRunReport::from_parts(report, exports));
+        }
         let manifest_path = self.manifest_output_path.clone();
         write_manifest_to_path(&manifest, manifest_path.as_path()).await?;
 
@@ -1433,10 +1433,10 @@ orderbooks:
     }
 
     #[tokio::test]
-    async fn manifest_not_written_when_any_failure_present() {
+    async fn manifest_written_with_failures_reuses_previous_entries() {
         let yaml = settings_yaml_two_success();
         let mut behaviors = HashMap::new();
-        behaviors.insert("ok".to_string(), EngineBehavior::Success);
+        behaviors.insert("ok".to_string(), EngineBehavior::SuccessWithExport);
         behaviors.insert("ok-second".to_string(), EngineBehavior::Fail);
         let (environment, _telemetry) =
             build_environment(manifest_for_two_ok_orderbooks(), behaviors);
@@ -1445,7 +1445,7 @@ orderbooks:
         let runner = ProducerRunner::with_environment(
             yaml,
             temp_dir.path().to_path_buf(),
-            release_base,
+            release_base.clone(),
             environment,
         )
         .expect("runner");
@@ -1456,10 +1456,24 @@ orderbooks:
             .expect("run completes with mixed outcomes");
         assert_eq!(report.successes.len(), 1);
         assert_eq!(report.failures.len(), 1);
+
         let manifest_path = temp_dir.path().join("manifest.yaml");
+        let manifest_contents =
+            std::fs::read_to_string(&manifest_path).expect("manifest should be written");
+        let manifest_lower = manifest_contents.to_lowercase();
+
+        let trimmed_base = release_base.as_str().trim_end_matches('/');
+        let success_dump = format!(
+            "{}/{}-{}.sql.gz",
+            trimmed_base, 42161, "0x00000000000000000000000000000000000000a1"
+        );
         assert!(
-            !manifest_path.exists(),
-            "manifest should not be written when failures are present"
+            manifest_lower.contains(&success_dump),
+            "expected manifest to contain updated dump URL for succeeded job"
+        );
+        assert!(
+            manifest_lower.contains("https://dumps.example/ok-second.dump.sql"),
+            "expected manifest to retain previous dump URL for failed job"
         );
     }
 
