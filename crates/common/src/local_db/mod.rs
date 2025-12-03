@@ -36,10 +36,10 @@ pub enum LocalDbError {
     #[error(transparent)]
     YamlScan(#[from] ScanError),
 
-    #[error("HTTP request failed")]
+    #[error("HTTP request failed: {0}")]
     Http(#[from] reqwest::Error),
 
-    #[error("RPC error")]
+    #[error("RPC error: {0}")]
     Rpc(#[from] RpcClientError),
 
     #[error("JSON parsing failed")]
@@ -351,4 +351,27 @@ impl OrderbookIdentifier {
 
 pub fn is_chain_supported_local_db(chain_id: u32) -> bool {
     SUPPORTED_LOCAL_DB_CHAINS.contains(&chain_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rpc_error_display_includes_message() {
+        let inner = RpcClientError::RpcError {
+            message: "boom".to_string(),
+        };
+        let err = LocalDbError::Rpc(inner);
+        let display = err.to_string();
+        assert!(
+            display.contains("boom"),
+            "expected display to include inner message, got {display}"
+        );
+        let readable = err.to_readable_msg();
+        assert!(
+            readable.contains("boom"),
+            "expected readable message to include inner message, got {readable}"
+        );
+    }
 }
