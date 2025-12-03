@@ -117,8 +117,9 @@
 	let bottomPadding = 0;
 	let scrollMargin = 0;
 	$: {
+		const hasRows = totalRows > 0;
 		scrollMargin = virtualizationActive ? tableOffsetTop : 0;
-		if (virtualizationActive && virtualizer) {
+		if (virtualizationActive && virtualizer && hasRows) {
 			virtualItems = virtualizer.getVirtualItems();
 			totalSize = virtualizer.getTotalSize();
 			const firstItem = virtualItems[0];
