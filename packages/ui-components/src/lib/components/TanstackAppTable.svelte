@@ -5,6 +5,9 @@
 	import { Button, Table, TableBody, TableBodyRow, TableHead } from 'flowbite-svelte';
 	import { afterUpdate, createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { useQueryClient } from '@tanstack/svelte-query';
+	import { createWindowVirtualizer, type SvelteVirtualizer } from '@tanstack/svelte-virtual';
+	import type { Readable } from 'svelte/store';
+	import type { VirtualItem } from '@tanstack/virtual-core';
 
 	const queryClient = useQueryClient();
 
@@ -21,6 +24,8 @@
 	export let enableVirtualization = true;
 	export let estimatedRowHeight = 56;
 	export let virtualizationOverscan = 8;
+	let measuredRowHeight: number | null = null;
+	$: rowHeight = measuredRowHeight ?? estimatedRowHeight;
 
 	// Transform the query data by applying dataSelector to each page only when the page
 	// reference or selector changes. This keeps the array reference stable so large tables
@@ -48,19 +53,14 @@
 	$: totalRows = flattenedRows.length;
 	$: hasData = totalRows > 0;
 
-	// Virtualization state tied to the window scroll so the table keeps its natural height.
+	// Virtualization (TanStack Virtual) tied to window scroll so the table keeps its natural height.
 	const hasWindow = typeof window !== 'undefined';
-	const supportsResizeObserver = hasWindow && 'ResizeObserver' in window;
 	let tableContainerElement: HTMLDivElement | null = null;
-	let tableContainerObserver: ResizeObserver | null = null;
 	let tableOffsetTop = 0;
-	let windowScrollY = hasWindow ? window.scrollY : 0;
-	let windowHeight = hasWindow ? window.innerHeight : 0;
-	let measuredRowHeight: number | null = null;
-	$: rowHeight = Math.max(1, measuredRowHeight ?? estimatedRowHeight);
-	$: if (!enableVirtualization && measuredRowHeight !== null) {
-		measuredRowHeight = null;
-	}
+	let virtualizerStore: Readable<SvelteVirtualizer<Window, HTMLElement>> | null = null;
+	let virtualizer: SvelteVirtualizer<Window, HTMLElement> | null = null;
+	let unsubscribeVirtualizer: (() => void) | null = null;
+	let virtualizationActive = false;
 
 	function updateTableOffset() {
 		if (!enableVirtualization || !hasWindow || !tableContainerElement) {
@@ -71,106 +71,92 @@
 		tableOffsetTop = rect.top + window.scrollY;
 	}
 
-	function observeTableContainer(element: HTMLDivElement | null) {
-		if (!supportsResizeObserver) {
-			tableContainerObserver?.disconnect();
-			tableContainerObserver = null;
-			return;
-		}
-		if (tableContainerObserver && element === tableContainerElement) {
-			return;
-		}
-		tableContainerObserver?.disconnect();
-		if (element) {
-			tableContainerObserver = new ResizeObserver(() => {
-				updateTableOffset();
-			});
-			tableContainerObserver.observe(element);
-		} else {
-			tableContainerObserver = null;
-		}
-	}
-
 	onMount(() => {
 		if (!hasWindow) {
 			return;
 		}
-		const handleScroll = () => {
-			windowScrollY = window.scrollY;
-		};
-		const handleResize = () => {
-			windowHeight = window.innerHeight;
-			updateTableOffset();
-		};
-		window.addEventListener('scroll', handleScroll, { passive: true });
-		window.addEventListener('resize', handleResize);
-		windowScrollY = window.scrollY;
-		windowHeight = window.innerHeight;
+		virtualizerStore = createWindowVirtualizer<HTMLElement>({
+			count: totalRows,
+			estimateSize: () => rowHeight,
+			overscan: virtualizationOverscan,
+			scrollMargin: tableOffsetTop,
+			getItemKey: (index) => index,
+			enabled: enableVirtualization && totalRows > 0
+		});
+		unsubscribeVirtualizer = virtualizerStore.subscribe((instance) => {
+			virtualizer = instance;
+		});
 		updateTableOffset();
 		return () => {
-			window.removeEventListener('scroll', handleScroll);
-			window.removeEventListener('resize', handleResize);
+			unsubscribeVirtualizer?.();
 		};
 	});
 
-	$: if (enableVirtualization && tableContainerElement) {
-		updateTableOffset();
-		observeTableContainer(tableContainerElement);
-	} else if (!enableVirtualization) {
-		tableContainerObserver?.disconnect();
-		tableContainerObserver = null;
+	afterUpdate(() => {
+		if (enableVirtualization) {
+			updateTableOffset();
+		}
+	});
+
+	$: if (virtualizer) {
+		virtualizer.setOptions({
+			count: totalRows,
+			estimateSize: () => rowHeight,
+			overscan: virtualizationOverscan,
+			scrollMargin: tableOffsetTop,
+			getItemKey: (index) => index,
+			enabled: enableVirtualization && totalRows > 0
+		});
+	}
+
+	$: virtualizationActive = enableVirtualization && Boolean(virtualizer);
+
+	let virtualItems: VirtualItem[] = [];
+	let totalSize = 0;
+	let topPadding = 0;
+	let bottomPadding = 0;
+	let scrollMargin = 0;
+	$: {
+		scrollMargin = virtualizationActive ? tableOffsetTop : 0;
+		if (virtualizationActive && virtualizer) {
+			virtualItems = virtualizer.getVirtualItems();
+			totalSize = virtualizer.getTotalSize();
+			const firstItem = virtualItems[0];
+			const lastItem = virtualItems[virtualItems.length - 1];
+			topPadding = firstItem ? Math.max(0, firstItem.start - scrollMargin) : 0;
+			bottomPadding = lastItem
+				? Math.max(0, totalSize - (lastItem.end - scrollMargin))
+				: Math.max(0, totalSize);
+		} else {
+			virtualItems = [];
+			totalSize = 0;
+			topPadding = 0;
+			bottomPadding = 0;
+		}
 	}
 
 	onDestroy(() => {
-		tableContainerObserver?.disconnect();
+		unsubscribeVirtualizer?.();
 	});
 
-	let startIndex = 0;
-	let endIndex = 0;
-	let visibleRows: DataItem[] = [];
-	let topPadding = 0;
-	let bottomPadding = 0;
-	let shouldMeasureRowHeight = false;
-	$: {
-		const virtualizationEnabled = enableVirtualization && totalRows > 0;
-		const viewportTop = virtualizationEnabled ? windowScrollY : 0;
-		const relativeViewportTop = virtualizationEnabled ? viewportTop - tableOffsetTop : 0;
-		const estimatedVisibleCount = virtualizationEnabled
-			? Math.ceil(windowHeight / rowHeight) + virtualizationOverscan * 2
-			: totalRows;
-		startIndex = virtualizationEnabled
-			? Math.max(
-					0,
-					Math.min(totalRows, Math.floor(relativeViewportTop / rowHeight) - virtualizationOverscan)
-				)
-			: 0;
-		endIndex = virtualizationEnabled
-			? Math.min(totalRows, Math.max(startIndex, startIndex + estimatedVisibleCount))
-			: totalRows;
-		visibleRows = virtualizationEnabled ? flattenedRows.slice(startIndex, endIndex) : flattenedRows;
-		topPadding = virtualizationEnabled ? startIndex * rowHeight : 0;
-		bottomPadding = virtualizationEnabled
-			? Math.max(0, totalRows * rowHeight - topPadding - visibleRows.length * rowHeight)
-			: 0;
-		shouldMeasureRowHeight = virtualizationEnabled && visibleRows.length > 0;
-	}
-
 	afterUpdate(() => {
-		if (!shouldMeasureRowHeight || !tableContainerElement) {
+		if (!virtualizationActive || !virtualizer || !tableContainerElement) {
 			return;
 		}
-		const firstRow = tableContainerElement.querySelector('tbody tr[data-virtual-row="true"]');
-		if (!firstRow) {
+		const rows = Array.from(
+			tableContainerElement.querySelectorAll('tbody tr[data-virtual-row="true"]')
+		) as HTMLElement[];
+		if (!rows.length) {
 			return;
 		}
-		const height = firstRow.getBoundingClientRect().height;
-		if (height > 0) {
-			measuredRowHeight =
-				measuredRowHeight === null
-					? height
-					: Math.abs(measuredRowHeight - height) > 0.5
-						? height
-						: measuredRowHeight;
+		for (const row of rows) {
+			virtualizer.measureElement(row);
+		}
+		if (measuredRowHeight === null) {
+			const sampleHeight = rows[0].getBoundingClientRect().height;
+			if (sampleHeight > 0) {
+				measuredRowHeight = sampleHeight;
+			}
 		}
 	});
 </script>
@@ -205,22 +191,22 @@
 				<slot name="head" />
 			</TableHead>
 			<TableBody>
-				{#if enableVirtualization && topPadding > 0}
+				{#if virtualizationActive && topPadding > 0}
 					<tr aria-hidden="true">
 						<td colspan="1000" class="border-0 p-0" style={`height:${topPadding}px;`} />
 					</tr>
 				{/if}
-				{#if enableVirtualization}
-					{#each visibleRows as item, index (startIndex + index)}
+				{#if virtualizationActive}
+					{#each virtualItems as virtualItem (virtualItem.key)}
 						<TableBodyRow
 							class="whitespace-nowrap"
 							data-testid="bodyRow"
 							data-virtual-row="true"
 							on:click={() => {
-								dispatch('clickRow', { item });
+								dispatch('clickRow', { item: flattenedRows[virtualItem.index] });
 							}}
 						>
-							<slot name="bodyRow" {item} />
+							<slot name="bodyRow" item={flattenedRows[virtualItem.index]} />
 						</TableBodyRow>
 					{/each}
 				{:else}
@@ -238,7 +224,7 @@
 						{/each}
 					{/each}
 				{/if}
-				{#if enableVirtualization && bottomPadding > 0}
+				{#if virtualizationActive && bottomPadding > 0}
 					<tr aria-hidden="true">
 						<td colspan="1000" class="border-0 p-0" style={`height:${bottomPadding}px;`} />
 					</tr>
