@@ -107,19 +107,26 @@ impl RaindexClient {
             .max(1);
         let interval_ms = interval_ms.unwrap_or(DEFAULT_ADD_ORDER_POLL_INTERVAL_MS);
 
-        for attempt in 1..=attempts {
-            if let Some(local_db) = self.local_db() {
-                if is_chain_supported_local_db(chain_id) {
-                    let local_source = LocalDbOrders::new(&local_db, raindex_client.clone());
+        // Phase 1: give the local DB the full polling window before touching subgraph
+        if let Some(local_db) = self.local_db() {
+            if is_chain_supported_local_db(chain_id) {
+                let local_source = LocalDbOrders::new(&local_db, raindex_client.clone());
+                for attempt in 1..=attempts {
                     let local_orders = local_source
                         .get_by_tx_hash(chain_id, orderbook_address, tx_hash)
                         .await?;
                     if !local_orders.is_empty() {
                         return Ok(local_orders);
                     }
+                    if attempt < attempts {
+                        sleep_ms(interval_ms).await;
+                    }
                 }
             }
+        }
 
+        // Phase 2: fall back to subgraph polling
+        for attempt in 1..=attempts {
             let orders = match client
                 .transaction_add_orders(Id::new(tx_hash.to_string()))
                 .await
@@ -169,11 +176,56 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::{
+            local_db::query::{
+                fetch_orders::LocalDbOrder, FromDbJson, LocalDbQueryError, LocalDbQueryExecutor,
+                SqlStatement, SqlStatementBatch,
+            },
+            raindex_client::local_db::LocalDb,
+        };
         use alloy::primitives::{b256, Address, Bytes, U256};
+        use async_trait::async_trait;
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
-        use std::str::FromStr;
+        use std::{
+            str::FromStr,
+            sync::{
+                atomic::{AtomicUsize, Ordering},
+                Arc,
+            },
+        };
+
+        #[derive(Clone)]
+        struct CountingJsonExec {
+            json: String,
+            calls: Arc<AtomicUsize>,
+        }
+
+        #[async_trait(?Send)]
+        impl LocalDbQueryExecutor for CountingJsonExec {
+            async fn execute_batch(
+                &self,
+                _batch: &SqlStatementBatch,
+            ) -> Result<(), LocalDbQueryError> {
+                Ok(())
+            }
+
+            async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+            where
+                T: FromDbJson,
+            {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+                serde_json::from_str(&self.json)
+                    .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
+            }
+
+            async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+                Err(LocalDbQueryError::database(
+                    "query_text not supported in CountingJsonExec",
+                ))
+            }
+        }
 
         fn empty_add_orders_response() -> Value {
             json!({
@@ -529,6 +581,121 @@ mod tests {
                 }
                 other => panic!("expected timeout error, got {other:?}"),
             }
+        }
+
+        #[tokio::test]
+        async fn test_get_transaction_add_orders_prefers_local_db() {
+            let tx_hash =
+                b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef");
+            let orderbook_address =
+                Address::from_str("0x0987654321098765432109876543210987654321").unwrap();
+            let owner = Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap();
+
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash: b256!(
+                    "0x0000000000000000000000000000000000000000000000000000000000000abc"
+                ),
+                owner,
+                block_timestamp: 1_000,
+                block_number: 50,
+                orderbook_address,
+                order_bytes: Bytes::from_str("0x01").unwrap(),
+                transaction_hash: tx_hash,
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: None,
+            };
+
+            let local_exec = CountingJsonExec {
+                json: serde_json::to_string(&vec![local_order]).unwrap(),
+                calls: Arc::new(AtomicUsize::new(0)),
+            };
+            let local_calls = local_exec.calls.clone();
+            let local_db = LocalDb::new(local_exec);
+
+            let sg_server = MockServer::start_async().await;
+            let sg_mock = sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&empty_add_orders_response());
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1").to_string(),
+                    &sg_server.url("/sg2").to_string(),
+                    "http://localhost:3000",
+                    "http://localhost:3000",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db);
+
+            let res = client
+                .get_add_orders_for_transaction(137, orderbook_address, tx_hash, Some(3), Some(1))
+                .await
+                .unwrap();
+
+            assert_eq!(res.len(), 1);
+            assert_eq!(sg_mock.hits(), 0, "subgraph should not be queried");
+            assert_eq!(local_calls.load(Ordering::SeqCst), 1);
+
+            let tx = res[0]
+                .transaction()
+                .expect("local db should populate transaction");
+            assert_eq!(tx.id(), tx_hash);
+            assert_eq!(tx.block_number(), U256::from(50));
+            assert_eq!(tx.timestamp(), U256::from(1_000));
+        }
+
+        #[tokio::test]
+        async fn test_get_transaction_add_orders_exhausts_local_before_subgraph() {
+            let tx_hash =
+                b256!("0x00000000000000000000000000000000000000000000000000000000cafebabe");
+            let orderbook_address =
+                Address::from_str("0x0987654321098765432109876543210987654321").unwrap();
+
+            let local_exec = CountingJsonExec {
+                json: "[]".to_string(),
+                calls: Arc::new(AtomicUsize::new(0)),
+            };
+            let local_calls = local_exec.calls.clone();
+            let local_db = LocalDb::new(local_exec);
+
+            let sg_server = MockServer::start_async().await;
+            let sg_mock = sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200)
+                    .json_body_obj(&sample_add_orders_response());
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1").to_string(),
+                    &sg_server.url("/sg2").to_string(),
+                    "http://localhost:3000",
+                    "http://localhost:3000",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db);
+
+            let res = client
+                .get_add_orders_for_transaction(137, orderbook_address, tx_hash, Some(2), Some(1))
+                .await
+                .unwrap();
+
+            assert_eq!(
+                local_calls.load(Ordering::SeqCst),
+                2,
+                "local DB should be tried for the full attempt budget"
+            );
+            assert_eq!(sg_mock.hits(), 1, "subgraph should be queried after local");
+            assert_eq!(res.len(), 1);
         }
     }
 }
