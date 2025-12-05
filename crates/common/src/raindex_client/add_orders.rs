@@ -163,7 +163,7 @@ impl RaindexClient {
             }
         }
 
-        Err(RaindexError::SubgraphIndexingTimeout { tx_hash, attempts })
+        Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
     }
 }
 
@@ -576,7 +576,7 @@ mod tests {
                 .unwrap_err();
 
             match err {
-                RaindexError::SubgraphIndexingTimeout { attempts, .. } => {
+                RaindexError::TransactionIndexingTimeout { attempts, .. } => {
                     assert_eq!(attempts, DEFAULT_ADD_ORDER_POLL_ATTEMPTS);
                 }
                 other => panic!("expected timeout error, got {other:?}"),
