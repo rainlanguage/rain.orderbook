@@ -793,7 +793,7 @@ describe('createSdkIndexingFn', () => {
 
 		// Should not call updateState with links since array is empty
 		const linksUpdateCalls = mockUpdateState.mock.calls.filter(
-			(call: any[]) => call[0] && 'links' in call[0]
+			(call) => call[0] && typeof call[0] === 'object' && 'links' in call[0]
 		);
 		expect(linksUpdateCalls).toHaveLength(0);
 	});
