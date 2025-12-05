@@ -21,3 +21,4 @@ tauri-app/src/lib/types
 .claude/
 .ai_docs/
 .ai_spec/
+.cursor/

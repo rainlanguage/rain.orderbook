@@ -19,7 +19,6 @@ import {
 	type AwaitSubgraphConfig
 } from '$lib/services/awaitTransactionIndexing';
 import {
-	type RaindexTransaction,
 	type RaindexVault,
 	type RaindexOrder,
 	RaindexClient,
@@ -211,15 +210,9 @@ export class TransactionManager {
 			}
 		];
 
-		const awaitIndexingFn = createSubgraphIndexingFn({
-			chainId,
-			orderbook,
-			txHash,
-			successMessage,
-			fetchEntityFn: raindexClient.getRemoveOrdersForTransaction.bind(raindexClient),
-			isSuccess: (data: RaindexOrder[] | RaindexTransaction) => {
-				return Array.isArray(data) ? data.length > 0 : false;
-			}
+		const awaitIndexingFn = createSdkIndexingFn({
+			call: () => raindexClient.getRemoveOrdersForTransaction(chainId, orderbook, txHash),
+			isSuccess: (orders) => Array.isArray(orders) && orders.length > 0
 		});
 
 		return this.createTransaction({
