@@ -7,18 +7,18 @@ use serde::{Deserialize, Serialize};
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
-/// Transaction info returned from local DB query
+/// Transaction info returned from local DB query.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalDbTransaction {
     pub transaction_hash: B256,
     pub block_number: u64,
     pub block_timestamp: u64,
-    pub owner: Address,
+    pub sender: Address,
 }
 
 /// Builds a SQL statement to fetch transaction info by transaction hash
-/// from the vault_balance_changes table.
+/// from the deposits and withdrawals tables.
 pub fn build_fetch_transaction_by_hash_stmt(
     ob_id: &OrderbookIdentifier,
     tx_hash: B256,
@@ -47,7 +47,8 @@ mod tests {
         let stmt = build_fetch_transaction_by_hash_stmt(&ob_id, tx_hash);
 
         assert!(stmt.sql.contains("SELECT"));
-        assert!(stmt.sql.contains("FROM vault_balance_changes"));
+        assert!(stmt.sql.contains("FROM deposits"));
+        assert!(stmt.sql.contains("FROM withdrawals"));
         assert!(stmt.sql.contains("transaction_hash"));
         assert_eq!(stmt.params.len(), 3);
     }

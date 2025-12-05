@@ -23,6 +23,7 @@ mod wasm_tests {
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen_test::*;
+    use wasm_bindgen_utils::prelude::*;
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
@@ -33,7 +34,7 @@ mod wasm_tests {
 
         let store = Rc::new(RefCell::new((
             String::new(),
-            wasm_bindgen::JsValue::UNDEFINED,
+            JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
@@ -52,7 +53,7 @@ mod wasm_tests {
     async fn wrapper_returns_rows_when_present() {
         let tx_hash = b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
         let orderbook = address!("0x5151515151515151515151515151515151515151");
-        let owner = address!("0x1111111111111111111111111111111111111111");
+        let sender = address!("0x1111111111111111111111111111111111111111");
         let expected_stmt =
             build_fetch_transaction_by_hash_stmt(&OrderbookIdentifier::new(1, orderbook), tx_hash);
 
@@ -61,9 +62,9 @@ mod wasm_tests {
                 "transactionHash":"{}",
                 "blockNumber":100,
                 "blockTimestamp":999,
-                "owner":"{}"
+                "sender":"{}"
             }}]"#,
-            tx_hash, owner
+            tx_hash, sender
         );
 
         let store = Rc::new(RefCell::new((

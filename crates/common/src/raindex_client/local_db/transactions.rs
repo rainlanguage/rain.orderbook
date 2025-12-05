@@ -30,7 +30,7 @@ impl<'a> LocalDbTransactions<'a> {
         if let Some(local_tx) = results.into_iter().next() {
             let tx = RaindexTransaction::from_local_parts(
                 local_tx.transaction_hash,
-                local_tx.owner,
+                local_tx.sender,
                 local_tx.block_number,
                 local_tx.block_timestamp,
             )?;
@@ -53,9 +53,6 @@ mod tests {
         use crate::raindex_client::local_db::LocalDb;
         use alloy::primitives::{address, b256};
         use serde_json::json;
-        use std::cell::RefCell;
-        use std::rc::Rc;
-        use wasm_bindgen::prelude::*;
         use wasm_bindgen_test::wasm_bindgen_test;
         use wasm_bindgen_utils::prelude::*;
 
@@ -83,14 +80,14 @@ mod tests {
         async fn test_get_by_tx_hash_returns_transaction_when_found() {
             let tx_hash =
                 b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
-            let owner = address!("0x1111111111111111111111111111111111111111");
+            let sender = address!("0x1111111111111111111111111111111111111111");
             let orderbook = address!("0x2222222222222222222222222222222222222222");
 
             let tx_json = json!([{
                 "transactionHash": tx_hash.to_string(),
                 "blockNumber": 12345,
                 "blockTimestamp": 1700000000,
-                "owner": owner.to_string()
+                "sender": sender.to_string()
             }]);
 
             let callback = create_mock_callback(&tx_json.to_string());
