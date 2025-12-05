@@ -4,13 +4,11 @@ import {
 	TransactionStatusMessage,
 	TransactionStoreErrorMessage,
 	type TransactionArgs,
-	TransactionName
+	TransactionName,
+	type IndexingContext,
+	type AwaitIndexingFn
 } from '../lib/types/transaction';
 import { waitForTransactionReceipt, type Config } from '@wagmi/core';
-import {
-	awaitSubgraphIndexing,
-	type AwaitSubgraphConfig
-} from '../lib/services/awaitTransactionIndexing';
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
@@ -18,14 +16,6 @@ import type { SgVault } from '@rainlanguage/orderbook';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn()
-}));
-
-vi.mock('../lib/services/awaitTransactionIndexing', () => ({
-	awaitSubgraphIndexing: vi.fn(),
-	getRemoveOrderConfig: vi.fn(() => ({
-		query: 'mock query',
-		variables: { txHash: '0x123' }
-	}))
 }));
 
 describe('TransactionStore', () => {
@@ -100,121 +90,284 @@ describe('TransactionStore', () => {
 		}
 	];
 
-	let transaction: TransactionStore;
-
-	const mockAwaitSubgraphConfig: AwaitSubgraphConfig = {
-		chainId: mockChainId,
-		orderbook: '0x00',
-		txHash: mockTxHash,
-		successMessage: 'Transaction successful',
-		fetchEntityFn: vi.fn(),
-		isSuccess: vi.fn()
-	};
-
 	beforeEach(() => {
 		vi.clearAllMocks();
-		transaction = new TransactionStore(
-			{
-				config: mockConfig,
-				chainId: mockChainId,
-				txHash: mockTxHash,
-				orderHash: mockOrderHash,
-				name: TransactionName.REMOVAL,
-				errorMessage: 'Transaction failed',
-				successMessage: 'Transaction successful',
-				queryKey: 'removeOrder',
-				toastLinks: mockToastLinks,
-				networkKey: 'ethereum',
-				awaitSubgraphConfig: mockAwaitSubgraphConfig,
-				entity: mockVault
-			} as TransactionArgs & { config: Config },
-			mockOnSuccess,
-			mockOnError
-		);
 	});
 
-	it('should initialize with IDLE status and correct links', () => {
-		const state = get(transaction.state);
-		expect(state.status).toBe(TransactionStatusMessage.IDLE);
-		expect(state.links).toEqual(mockToastLinks);
-	});
+	describe('without awaitIndexingFn', () => {
+		it('should initialize with IDLE status and correct links', () => {
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					orderHash: mockOrderHash,
+					name: TransactionName.APPROVAL,
+					errorMessage: 'Transaction failed',
+					successMessage: 'Transaction successful',
+					queryKey: 'approval',
+					toastLinks: mockToastLinks,
+					entity: mockVault
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
 
-	it('should update state when execute is called and keep links', async () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
-			value: {
-				txHash: mockTxHash,
-				successMessage: 'Order removed successfully'
-			}
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.IDLE);
+			expect(state.links).toEqual(mockToastLinks);
 		});
 
-		await transaction.execute();
+		it('should mark SUCCESS immediately after receipt when no indexing function', async () => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 
-		const state = get(transaction.state);
-		expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
-		expect(state.links).toEqual(mockToastLinks);
-		expect(mockOnSuccess).toHaveBeenCalled();
-	});
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					name: TransactionName.APPROVAL,
+					errorMessage: 'Transaction failed',
+					successMessage: 'Transaction successful',
+					queryKey: 'approval',
+					toastLinks: mockToastLinks
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
 
-	it('should handle transaction receipt failure', async () => {
-		vi.mocked(waitForTransactionReceipt).mockRejectedValue(new Error('Transaction failed'));
+			await transaction.execute();
 
-		await transaction.execute();
-
-		const state = get(transaction.state);
-		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.RECEIPT_FAILED);
-		expect(state.links).toEqual(mockToastLinks);
-		expect(mockOnError).toHaveBeenCalled();
-	});
-
-	it('should handle subgraph indexing timeout', async () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
-			error: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
+			expect(mockOnSuccess).toHaveBeenCalled();
+			expect(mockOnError).not.toHaveBeenCalled();
 		});
 
-		await transaction.execute();
+		it('should handle transaction receipt failure', async () => {
+			vi.mocked(waitForTransactionReceipt).mockRejectedValue(new Error('Transaction failed'));
 
-		const state = get(transaction.state);
-		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
-		expect(state.links).toEqual(mockToastLinks);
-		expect(mockOnError).toHaveBeenCalled();
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					name: TransactionName.APPROVAL,
+					errorMessage: 'Transaction failed',
+					successMessage: 'Transaction successful',
+					queryKey: 'approval',
+					toastLinks: mockToastLinks
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
+
+			await transaction.execute();
+
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.ERROR);
+			expect(state.errorDetails).toBe(TransactionStoreErrorMessage.RECEIPT_FAILED);
+			expect(state.links).toEqual(mockToastLinks);
+			expect(mockOnError).toHaveBeenCalled();
+		});
 	});
 
-	it('should handle subgraph indexing failure when value is missing', async () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({});
+	describe('with awaitIndexingFn', () => {
+		it('should call awaitIndexingFn after receipt and handle success', async () => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 
-		await transaction.execute();
+			const mockAwaitIndexingFn: AwaitIndexingFn = vi.fn(async (ctx: IndexingContext) => {
+				ctx.updateState({ status: TransactionStatusMessage.SUCCESS });
+				ctx.onSuccess();
+			});
 
-		const state = get(transaction.state);
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					name: TransactionName.REMOVAL,
+					errorMessage: 'Transaction failed',
+					successMessage: 'Transaction successful',
+					queryKey: 'removeOrder',
+					toastLinks: mockToastLinks,
+					awaitIndexingFn: mockAwaitIndexingFn
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
 
-		expect(state.status).toBe(TransactionStatusMessage.ERROR);
-		expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
-		expect(state.links).toEqual(mockToastLinks);
-		expect(mockOnError).toHaveBeenCalled();
-	});
+			await transaction.execute();
 
-	it('should call onSuccess when execute and indexing are successful', async () => {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
-		vi.mocked(awaitSubgraphIndexing).mockResolvedValue({
-			value: {
-				txHash: mockTxHash,
-				successMessage: 'Order removed successfully'
-			}
+			expect(mockAwaitIndexingFn).toHaveBeenCalledWith(
+				expect.objectContaining({
+					updateState: expect.any(Function),
+					onSuccess: mockOnSuccess,
+					onError: mockOnError,
+					links: mockToastLinks
+				})
+			);
+
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
+			expect(mockOnSuccess).toHaveBeenCalled();
 		});
 
-		await transaction.execute();
+		it('should call awaitIndexingFn after receipt and handle error', async () => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
 
-		const state = get(transaction.state);
-		expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
-		expect(state.links).toEqual(mockToastLinks);
-		expect(mockOnSuccess).toHaveBeenCalled();
+			const mockAwaitIndexingFn: AwaitIndexingFn = vi.fn(async (ctx: IndexingContext) => {
+				ctx.updateState({
+					status: TransactionStatusMessage.ERROR,
+					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+				});
+				ctx.onError();
+			});
+
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					name: TransactionName.REMOVAL,
+					errorMessage: 'Transaction failed',
+					successMessage: 'Transaction successful',
+					queryKey: 'removeOrder',
+					toastLinks: mockToastLinks,
+					awaitIndexingFn: mockAwaitIndexingFn
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
+
+			await transaction.execute();
+
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.ERROR);
+			expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_FAILED);
+			expect(mockOnError).toHaveBeenCalled();
+		});
+
+		it('should handle timeout error from indexing function', async () => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
+
+			const mockAwaitIndexingFn: AwaitIndexingFn = vi.fn(async (ctx: IndexingContext) => {
+				ctx.updateState({
+					status: TransactionStatusMessage.ERROR,
+					errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+				});
+				ctx.onError();
+			});
+
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					name: TransactionName.REMOVAL,
+					errorMessage: 'Transaction failed',
+					successMessage: 'Transaction successful',
+					queryKey: 'removeOrder',
+					toastLinks: mockToastLinks,
+					awaitIndexingFn: mockAwaitIndexingFn
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
+
+			await transaction.execute();
+
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.ERROR);
+			expect(state.errorDetails).toBe(TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR);
+			expect(mockOnError).toHaveBeenCalled();
+		});
+
+		it('should allow indexing function to add links', async () => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
+
+			const newOrderHash = '0xneworderhash123';
+			const mockAwaitIndexingFn: AwaitIndexingFn = vi.fn(async (ctx: IndexingContext) => {
+				ctx.updateState({ status: TransactionStatusMessage.SUCCESS });
+				// Add a "View order" link
+				const newLink = {
+					link: `/orders/1-0xorderbook-${newOrderHash}`,
+					label: 'View order'
+				};
+				ctx.updateState({ links: [newLink, ...ctx.links] });
+				ctx.onSuccess();
+			});
+
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					name: 'Deploying order',
+					errorMessage: 'Deployment failed',
+					successMessage: 'Order deployed successfully',
+					queryKey: 'addOrder',
+					toastLinks: mockToastLinks,
+					awaitIndexingFn: mockAwaitIndexingFn
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
+
+			await transaction.execute();
+
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
+			expect(state.links).toHaveLength(2);
+			expect(state.links[0]).toEqual({
+				link: `/orders/1-0xorderbook-${newOrderHash}`,
+				label: 'View order'
+			});
+			expect(mockOnSuccess).toHaveBeenCalled();
+		});
+
+		it('should update status to PENDING_SUBGRAPH when indexing function sets it', async () => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(waitForTransactionReceipt).mockResolvedValue({} as any);
+
+			let capturedCtx: IndexingContext | null = null;
+			const mockAwaitIndexingFn: AwaitIndexingFn = vi.fn(async (ctx: IndexingContext) => {
+				capturedCtx = ctx;
+				ctx.updateState({ status: TransactionStatusMessage.PENDING_SUBGRAPH });
+				// Simulate some async work
+				await new Promise((resolve) => setTimeout(resolve, 10));
+				ctx.updateState({ status: TransactionStatusMessage.SUCCESS });
+				ctx.onSuccess();
+			});
+
+			const transaction = new TransactionStore(
+				{
+					config: mockConfig,
+					chainId: mockChainId,
+					txHash: mockTxHash,
+					name: TransactionName.DEPOSIT,
+					errorMessage: 'Deposit failed',
+					successMessage: 'Deposit successful',
+					queryKey: 'deposit',
+					toastLinks: mockToastLinks,
+					awaitIndexingFn: mockAwaitIndexingFn
+				} as TransactionArgs & { config: Config },
+				mockOnSuccess,
+				mockOnError
+			);
+
+			await transaction.execute();
+
+			expect(capturedCtx).not.toBeNull();
+			expect(mockOnSuccess).toHaveBeenCalled();
+
+			const state = get(transaction.state);
+			expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
+		});
 	});
 });

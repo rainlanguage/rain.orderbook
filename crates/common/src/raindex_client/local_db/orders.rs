@@ -5,7 +5,7 @@ use crate::local_db::query::LocalDbQueryError;
 use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
 use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
 use crate::raindex_client::RaindexClient;
-use alloy::primitives::B256;
+use alloy::primitives::{Address, B256};
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::from_str;
@@ -19,6 +19,38 @@ pub struct LocalDbOrders<'a> {
 impl<'a> LocalDbOrders<'a> {
     pub(crate) fn new(db: &'a LocalDb, client: Rc<RaindexClient>) -> Self {
         Self { db, client }
+    }
+
+    pub async fn get_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let fetch_args = FetchOrdersArgs {
+            chain_ids: vec![chain_id],
+            orderbook_addresses: vec![orderbook],
+            tx_hash: Some(tx_hash),
+            ..FetchOrdersArgs::default()
+        };
+
+        let local_db_orders = fetch_orders(self.db, fetch_args).await?;
+        let client = Rc::clone(&self.client);
+
+        let mut orders: Vec<RaindexOrder> = Vec::with_capacity(local_db_orders.len());
+        for local_db_order in local_db_orders {
+            let inputs = parse_io_vaults("inputs", &local_db_order.inputs)?;
+            let outputs = parse_io_vaults("outputs", &local_db_order.outputs)?;
+            let order = RaindexOrder::from_local_db_order(
+                Rc::clone(&client),
+                local_db_order,
+                inputs,
+                outputs,
+            )?;
+            orders.push(order);
+        }
+
+        Ok(orders)
     }
 }
 
@@ -292,7 +324,32 @@ mod tests {
             assert_eq!(order.trades_count(), local_order.trade_count as u16);
             assert_eq!(order.meta(), Some(meta_str));
             assert_eq!(order.orderbook(), orderbook_address.to_string());
-            assert!(order.transaction().is_none());
+            let tx = order
+                .transaction()
+                .expect("transaction should be populated");
+            assert_eq!(
+                tx.id().to_lowercase(),
+                transaction_hash.to_string().to_lowercase()
+            );
+            assert_eq!(tx.from().to_lowercase(), owner.to_string().to_lowercase());
+            assert_eq!(
+                tx.block_number()
+                    .unwrap()
+                    .to_string(10)
+                    .unwrap()
+                    .as_string()
+                    .unwrap(),
+                U256::from(local_order.block_number).to_string(),
+            );
+            assert_eq!(
+                tx.timestamp()
+                    .unwrap()
+                    .to_string(10)
+                    .unwrap()
+                    .as_string()
+                    .unwrap(),
+                U256::from(local_order.block_timestamp).to_string()
+            );
 
             let timestamp = order.timestamp_added().unwrap();
             let timestamp_str = timestamp

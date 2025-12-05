@@ -1,13 +1,14 @@
 import type { Hex } from 'viem';
 import { waitForTransactionReceipt } from '@wagmi/core';
-import { TransactionStatusMessage, TransactionStoreErrorMessage } from '$lib/types/transaction';
-import type { TransactionArgs } from '$lib/types/transaction';
 import {
-	awaitSubgraphIndexing,
-	type AwaitSubgraphConfig
-} from '$lib/services/awaitTransactionIndexing';
+	TransactionStatusMessage,
+	TransactionStoreErrorMessage,
+	type AwaitIndexingFn
+} from '$lib/types/transaction';
+import type { TransactionArgs } from '$lib/types/transaction';
 import type { Config } from '@wagmi/core';
 import { writable, type Writable } from 'svelte/store';
+import type { ToastLink } from '$lib/types/toast';
 
 /**
  * Represents the state of a transaction.
@@ -47,14 +48,12 @@ export class TransactionStore implements Transaction {
 	private name: string;
 	private config: Config;
 	private txHash: Hex;
-	private links: {
-		link: string;
-		label: string;
-	}[];
+	private links: ToastLink[];
 	private onSuccess: () => void;
 	private onError: () => void;
-	// Optional subgraphConfig for transactions that need to wait for indexing (e.g. deposit, but not approval)
-	private awaitSubgraphConfig?: AwaitSubgraphConfig;
+	// Optional indexing function called after receipt confirmation.
+	// TransactionStore doesn't know what this function does - it just calls it.
+	private awaitIndexingFn?: AwaitIndexingFn;
 	public readonly state: Writable<TransactionStoreState>;
 
 	/**
@@ -77,7 +76,7 @@ export class TransactionStore implements Transaction {
 			status: TransactionStatusMessage.IDLE,
 			links: this.links
 		});
-		this.awaitSubgraphConfig = args.awaitSubgraphConfig;
+		this.awaitIndexingFn = args.awaitIndexingFn;
 		this.onSuccess = onSuccess;
 		this.onError = onError;
 	}
@@ -106,7 +105,9 @@ export class TransactionStore implements Transaction {
 	}
 
 	/**
-	 * Waits for the transaction receipt to be confirmed on the blockchain
+	 * Waits for the transaction receipt to be confirmed on the blockchain.
+	 * If an indexing function is provided, it will be called after receipt confirmation.
+	 * TransactionStore doesn't know what the indexing function does - it just calls it.
 	 * @param {Hex} hash - The transaction hash to monitor
 	 * @returns {Promise<void>}
 	 * @private
@@ -114,9 +115,18 @@ export class TransactionStore implements Transaction {
 	private async waitForTxReceipt(hash: Hex): Promise<void> {
 		try {
 			await waitForTransactionReceipt(this.config, { hash });
-			if (this.awaitSubgraphConfig) {
-				await this.indexTransaction();
+
+			if (this.awaitIndexingFn) {
+				// Call the indexing function with the context it needs.
+				// The function handles everything: updating state, calling callbacks, etc.
+				await this.awaitIndexingFn({
+					updateState: this.updateState.bind(this),
+					onSuccess: this.onSuccess,
+					onError: this.onError,
+					links: this.links
+				});
 			} else {
+				// No indexing needed, mark as success immediately
 				this.updateState({
 					status: TransactionStatusMessage.SUCCESS
 				});
@@ -129,54 +139,5 @@ export class TransactionStore implements Transaction {
 			});
 			return this.onError();
 		}
-	}
-
-	/**
-	 * Monitors the transaction indexing status in the subgraph
-	 * @returns {Promise<void>}
-	 * @private
-	 */
-	private async indexTransaction(): Promise<void> {
-		if (!this.awaitSubgraphConfig) return;
-
-		this.updateState({
-			status: TransactionStatusMessage.PENDING_SUBGRAPH
-		});
-
-		const result = await awaitSubgraphIndexing(this.awaitSubgraphConfig);
-
-		if (result.error === TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR) {
-			this.updateState({
-				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
-			});
-			return this.onError();
-		}
-
-		if (result.value) {
-			this.updateState({
-				status: TransactionStatusMessage.SUCCESS
-			});
-			const newOrderHash = result.value.orderHash;
-
-			// If we have a new order hash, add the "View order" link
-			if (newOrderHash) {
-				const newLink = {
-					link: `/orders/${this.awaitSubgraphConfig.chainId}-${this.awaitSubgraphConfig.orderbook}-${newOrderHash}`,
-					label: 'View order'
-				};
-				this.updateState({
-					links: [newLink, ...this.links]
-				});
-			}
-
-			return this.onSuccess();
-		}
-
-		this.updateState({
-			status: TransactionStatusMessage.ERROR,
-			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
-		});
-		return this.onError();
 	}
 }
