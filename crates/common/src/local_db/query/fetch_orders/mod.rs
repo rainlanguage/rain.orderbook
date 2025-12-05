@@ -81,7 +81,7 @@ const CLEAR_EVENTS_CHAIN_IDS_CLAUSE_BODY: &str = "AND entries.chain_id IN ({list
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE: &str = "/*CLEAR_EVENTS_ORDERBOOKS_CLAUSE*/";
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE_BODY: &str = "AND entries.orderbook_address IN ({list})";
 const TX_HASH_CLAUSE: &str = "/*TX_HASH_CLAUSE*/";
-const TX_HASH_CLAUSE_BODY: &str = "AND la.transaction_hash = {param}";
+const TX_HASH_CLAUSE_BODY: &str = "AND oe.transaction_hash = {param}";
 
 pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
@@ -396,7 +396,7 @@ mod tests {
             "tx hash marker should be replaced"
         );
         assert!(
-            stmt.sql.contains("la.transaction_hash = ?"),
+            stmt.sql.contains("oe.transaction_hash = ?"),
             "tx hash clause should be present"
         );
         let expected = SqlValue::Text(hex::encode_prefixed(tx_hash));

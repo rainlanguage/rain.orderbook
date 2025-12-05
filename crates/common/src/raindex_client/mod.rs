@@ -369,7 +369,7 @@ impl RaindexError {
             }
             RaindexError::SubgraphIndexingTimeout { tx_hash, attempts } => {
                 format!(
-                    "Timed out waiting for the subgraph to index transaction {tx_hash:#x} after {attempts} attempts."
+                    "Timeout waiting for the subgraph to index transaction {tx_hash:#x} after {attempts} attempts."
                 )
             }
             RaindexError::YamlError(err) => format!(
