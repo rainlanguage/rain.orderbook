@@ -414,6 +414,15 @@ mod tests {
         latest_block: u64,
     }
 
+    fn dump_sql(batch: &SqlStatementBatch) -> String {
+        batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql())
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
     impl Telemetry {
         fn record_manifest_fetch(&self) -> usize {
             self.manifest_fetches.fetch_add(1, Ordering::SeqCst)
@@ -657,7 +666,7 @@ mod tests {
         where
             DB: LocalDbQueryExecutor + ?Sized,
         {
-            let dump_sql = config.dump_stmt.as_ref().map(|stmt| stmt.sql().to_string());
+            let dump_sql = config.dump_stmt.as_ref().map(dump_sql);
             self.telemetry.record_bootstrap(
                 self.orderbook_key.clone(),
                 dump_sql,

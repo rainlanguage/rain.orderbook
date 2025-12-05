@@ -8,7 +8,7 @@ use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
 use crate::local_db::query::fetch_target_watermark::TargetWatermarkRow;
 use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::LocalDbError;
 use crate::local_db::OrderbookIdentifier;
 use async_trait::async_trait;
@@ -18,7 +18,7 @@ use std::collections::HashSet;
 #[derive(Debug, Clone)]
 pub struct BootstrapConfig {
     pub ob_id: OrderbookIdentifier,
-    pub dump_stmt: Option<SqlStatement>,
+    pub dump_stmt: Option<SqlStatementBatch>,
     pub latest_block: u64,
     pub block_number_threshold: u32,
     pub deployment_block: u64,
