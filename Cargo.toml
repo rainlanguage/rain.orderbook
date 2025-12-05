@@ -63,7 +63,6 @@ eyre = "0.6.12"
 tower = "0.5.2"
 getrandom = { version = "0.2", features = ["js"] }
 itertools = "0.14.0"
-foundry-compilers = { git = "https://github.com/foundry-rs/foundry", rev = "ed86c645f037f1cc4e5c1583f074a7b2142c4f66" }
 
 [workspace.dependencies.rain_orderbook_bindings]
 path = "crates/bindings"
