@@ -1,4 +1,5 @@
 use super::local_db::orders::LocalDbOrders;
+use super::trades::RaindexTrade;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
@@ -15,16 +16,13 @@ use alloy::primitives::{b256, keccak256, Address, Bytes, B256, U256};
 use async_trait::async_trait;
 use csv::{ReaderBuilder, Terminator};
 use rain_orderbook_subgraph_client::{
-    // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
             SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
         },
-        // Id,
+        Id,
     },
-    MultiOrderbookSubgraphClient,
-    OrderbookSubgraphClient,
-    OrderbookSubgraphClientError,
+    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
 use serde::{Deserialize, Serialize};
@@ -58,6 +56,37 @@ pub(crate) trait OrdersDataSource {
         ob_id: &OrderbookIdentifier,
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError>;
+
+    async fn get_added_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError>;
+
+    async fn get_removed_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError>;
+
+    async fn trades_list(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexTrade>, RaindexError>;
+
+    async fn trades_count(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<u64, RaindexError>;
 }
 
 /// A single order representation within a given orderbook.
@@ -762,6 +791,108 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         };
         let order = RaindexOrder::try_from_sg_order(raindex_client, ob_id.chain_id, order, None)?;
         Ok(Some(order))
+    }
+
+    async fn get_added_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(orderbook)?;
+        let sg_orders = client
+            .transaction_add_orders(Id::new(tx_hash.to_string()))
+            .await
+            .unwrap_or_default();
+        sg_orders
+            .into_iter()
+            .map(|value| {
+                RaindexOrder::try_from_sg_order(
+                    raindex_client.clone(),
+                    chain_id,
+                    value.order,
+                    value.transaction.try_into().ok(),
+                )
+            })
+            .collect()
+    }
+
+    async fn get_removed_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(orderbook)?;
+        let sg_orders = client
+            .transaction_remove_orders(Id::new(tx_hash.to_string()))
+            .await
+            .unwrap_or_default();
+        sg_orders
+            .into_iter()
+            .map(|value| {
+                RaindexOrder::try_from_sg_order(
+                    raindex_client.clone(),
+                    chain_id,
+                    value.order,
+                    value.transaction.try_into().ok(),
+                )
+            })
+            .collect()
+    }
+
+    async fn trades_list(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexTrade>, RaindexError> {
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
+
+        let trades = client
+            .order_trades_list(
+                Id::new(order.id.0.clone()),
+                SgPaginationArgs {
+                    page: page.unwrap_or(1),
+                    page_size: DEFAULT_PAGE_SIZE,
+                },
+                start_timestamp,
+                end_timestamp,
+            )
+            .await?;
+
+        trades
+            .into_iter()
+            .map(|trade| RaindexTrade::try_from_sg_trade(ob_id.chain_id, trade))
+            .collect()
+    }
+
+    async fn trades_count(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<u64, RaindexError> {
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
+
+        let trades = client
+            .order_trades_list_all(Id::new(order.id.0.clone()), start_timestamp, end_timestamp)
+            .await?;
+
+        Ok(trades.len() as u64)
     }
 }
 
