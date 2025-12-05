@@ -32,10 +32,7 @@ mod wasm_tests {
         let expected_stmt =
             build_fetch_transaction_by_hash_stmt(&OrderbookIdentifier::new(1, orderbook), tx_hash);
 
-        let store = Rc::new(RefCell::new((
-            String::new(),
-            JsValue::UNDEFINED,
-        )));
+        let store = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
 
