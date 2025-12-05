@@ -21,6 +21,7 @@ pub struct FetchOrdersArgs {
     pub filter: FetchOrdersActiveFilter,
     pub owners: Vec<Address>,
     pub order_hash: Option<B256>,
+    pub tx_hash: Option<B256>,
     pub tokens: Vec<Address>,
 }
 
@@ -79,6 +80,8 @@ const CLEAR_EVENTS_CHAIN_IDS_CLAUSE: &str = "/*CLEAR_EVENTS_CHAIN_IDS_CLAUSE*/";
 const CLEAR_EVENTS_CHAIN_IDS_CLAUSE_BODY: &str = "AND entries.chain_id IN ({list})";
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE: &str = "/*CLEAR_EVENTS_ORDERBOOKS_CLAUSE*/";
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE_BODY: &str = "AND entries.orderbook_address IN ({list})";
+const TX_HASH_CLAUSE: &str = "/*TX_HASH_CLAUSE*/";
+const TX_HASH_CLAUSE_BODY: &str = "AND la.transaction_hash = {param}";
 
 pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
@@ -159,6 +162,10 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
         orderbooks_iter(),
     )?;
 
+    // Optional tx hash param
+    let tx_hash_val = args.tx_hash.as_ref().map(|hash| SqlValue::from(*hash));
+    stmt.bind_param_clause(TX_HASH_CLAUSE, TX_HASH_CLAUSE_BODY, tx_hash_val)?;
+
     let mut owners_lower = args.owners.clone();
     owners_lower.sort();
     owners_lower.dedup();
@@ -188,6 +195,7 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::hex;
     use alloy::primitives::{address, b256};
     use std::str::FromStr;
 
@@ -219,6 +227,7 @@ mod tests {
             order_hash: Some(b256!(
                 "0x00000000000000000000000000000000000000000000000000000000deadbeef"
             )),
+            tx_hash: None,
             tokens: vec![
                 address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB"),
                 address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e"),
@@ -370,6 +379,30 @@ mod tests {
         assert!(
             !stmt_no_orderbooks.sql.contains("oe.orderbook_address IN ("),
             "orderbook clause should not appear when list is empty"
+        );
+    }
+
+    #[test]
+    fn tx_hash_clause_included_when_present() {
+        let tx_hash = b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef");
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tx_hash: Some(tx_hash),
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(
+            !stmt.sql.contains(TX_HASH_CLAUSE),
+            "tx hash marker should be replaced"
+        );
+        assert!(
+            stmt.sql.contains("la.transaction_hash = ?"),
+            "tx hash clause should be present"
+        );
+        let expected = SqlValue::Text(hex::encode_prefixed(tx_hash));
+        assert!(
+            stmt.params.contains(&expected),
+            "tx hash param should be bound"
         );
     }
 
