@@ -1,12 +1,11 @@
+use super::orders::{OrdersDataSource, SubgraphOrders};
 use super::*;
+use crate::local_db::is_chain_supported_local_db;
+use crate::raindex_client::local_db::orders::LocalDbOrders;
 use crate::raindex_client::orders::RaindexOrder;
-use crate::{
-    local_db::is_chain_supported_local_db, raindex_client::local_db::orders::LocalDbOrders,
-};
 use alloy::primitives::B256;
 #[cfg(target_family = "wasm")]
 use gloo_timers::future::TimeoutFuture;
-use rain_orderbook_subgraph_client::{types::Id, OrderbookSubgraphClientError};
 use std::rc::Rc;
 #[cfg(not(target_family = "wasm"))]
 use std::time::Duration;
@@ -100,20 +99,18 @@ impl RaindexClient {
         interval_ms: Option<u64>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Rc::new(self.clone());
-        let client = self.get_orderbook_client(orderbook_address)?;
 
         let attempts = max_attempts
             .unwrap_or(DEFAULT_ADD_ORDER_POLL_ATTEMPTS)
             .max(1);
         let interval_ms = interval_ms.unwrap_or(DEFAULT_ADD_ORDER_POLL_INTERVAL_MS);
 
-        // Phase 1: give the local DB the full polling window before touching subgraph
         if let Some(local_db) = self.local_db() {
             if is_chain_supported_local_db(chain_id) {
                 let local_source = LocalDbOrders::new(&local_db, raindex_client.clone());
                 for attempt in 1..=attempts {
                     let local_orders = local_source
-                        .get_by_tx_hash(chain_id, orderbook_address, tx_hash)
+                        .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
                         .await?;
                     if !local_orders.is_empty() {
                         return Ok(local_orders);
@@ -125,34 +122,11 @@ impl RaindexClient {
             }
         }
 
-        // Phase 2: fall back to subgraph polling
+        let subgraph_source = SubgraphOrders::new(self);
         for attempt in 1..=attempts {
-            let orders = match client
-                .transaction_add_orders(Id::new(tx_hash.to_string()))
-                .await
-            {
-                Ok(v) => v,
-                Err(OrderbookSubgraphClientError::Empty) => {
-                    if attempt < attempts {
-                        sleep_ms(interval_ms).await;
-                        continue;
-                    } else {
-                        Vec::new()
-                    }
-                }
-                Err(e) => return Err(e.into()),
-            };
-            let orders = orders
-                .into_iter()
-                .map(|value| {
-                    RaindexOrder::try_from_sg_order(
-                        raindex_client.clone(),
-                        chain_id,
-                        value.order,
-                        Some(value.transaction.try_into()?),
-                    )
-                })
-                .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+            let orders = subgraph_source
+                .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
+                .await?;
 
             if !orders.is_empty() {
                 return Ok(orders);
