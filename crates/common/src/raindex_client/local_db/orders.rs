@@ -1,4 +1,7 @@
 use super::super::orders::{GetOrdersFilters, OrdersDataSource, RaindexOrder};
+use super::super::trades::RaindexTrade;
+use super::query::fetch_order_trades::fetch_order_trades;
+use super::query::fetch_order_trades_count::fetch_order_trades_count;
 use super::{LocalDb, RaindexError};
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::query::LocalDbQueryError;
@@ -21,7 +24,7 @@ impl<'a> LocalDbOrders<'a> {
         Self { db, client }
     }
 
-    pub async fn get_by_tx_hash(
+    async fn fetch_orders_by_tx_hash(
         &self,
         chain_id: u32,
         orderbook: Address,
@@ -144,6 +147,56 @@ impl OrdersDataSource for LocalDbOrders<'_> {
         }
 
         Ok(None)
+    }
+
+    async fn get_added_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        self.fetch_orders_by_tx_hash(chain_id, orderbook, tx_hash)
+            .await
+    }
+
+    async fn get_removed_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        self.fetch_orders_by_tx_hash(chain_id, orderbook, tx_hash)
+            .await
+    }
+
+    async fn trades_list(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+        _page: Option<u16>,
+    ) -> Result<Vec<RaindexTrade>, RaindexError> {
+        let local_trades =
+            fetch_order_trades(self.db, ob_id, *order_hash, start_timestamp, end_timestamp).await?;
+
+        local_trades
+            .into_iter()
+            .map(|trade| RaindexTrade::try_from_local_db_trade(ob_id.chain_id, trade))
+            .collect()
+    }
+
+    async fn trades_count(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<u64, RaindexError> {
+        Ok(
+            fetch_order_trades_count(self.db, ob_id, *order_hash, start_timestamp, end_timestamp)
+                .await?,
+        )
     }
 }
 
