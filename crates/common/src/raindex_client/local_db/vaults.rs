@@ -1,11 +1,18 @@
-use super::{query::fetch_vaults::fetch_vaults, LocalDb, RaindexError};
+use super::{
+    query::fetch_all_tokens::fetch_all_tokens,
+    query::fetch_vault_balance_changes::fetch_vault_balance_changes,
+    query::fetch_vaults::fetch_vaults, LocalDb, RaindexError,
+};
 use crate::{
-    local_db::{
-        query::{fetch_vaults::FetchVaultsArgs, fetch_vaults::LocalDbVault},
-        OrderbookIdentifier,
+    local_db::query::{
+        fetch_all_tokens::FetchAllTokensArgs, fetch_vaults::FetchVaultsArgs,
+        fetch_vaults::LocalDbVault,
     },
     raindex_client::{
-        vaults::{GetVaultsFilters, RaindexVault, VaultsDataSource},
+        vaults::{
+            GetVaultsFilters, RaindexVault, RaindexVaultBalanceChange, RaindexVaultToken,
+            VaultsDataSource,
+        },
         RaindexClient,
     },
 };
@@ -100,6 +107,65 @@ impl VaultsDataSource for LocalDbVaults<'_> {
             .find(|vault| vault.id().to_string().to_lowercase() == requested_id);
 
         Ok(vault)
+    }
+
+    async fn balance_changes_list(
+        &self,
+        vault: &RaindexVault,
+        _page: Option<u16>,
+    ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
+        let ob_id = crate::local_db::OrderbookIdentifier::new(vault.chain_id(), vault.orderbook());
+        let local_changes = fetch_vault_balance_changes(
+            self.db,
+            &ob_id,
+            vault.vault_id(),
+            vault.token().address(),
+            vault.owner(),
+        )
+        .await?;
+
+        local_changes
+            .into_iter()
+            .map(|change| RaindexVaultBalanceChange::try_from_local_db(vault, change))
+            .collect()
+    }
+
+    async fn tokens_list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
+        let Some(chain_ids) = chain_ids else {
+            return Ok(Vec::new());
+        };
+
+        if chain_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let orderbook_addresses = chain_ids
+            .iter()
+            .map(|&chain_id| self.client.get_orderbooks_by_chain_id(chain_id))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .map(|cfg| cfg.address)
+            .collect::<Vec<_>>();
+
+        if orderbook_addresses.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let fetch_args = FetchAllTokensArgs {
+            chain_ids,
+            orderbook_addresses,
+        };
+
+        let local_tokens = fetch_all_tokens(self.db, fetch_args).await?;
+
+        Ok(local_tokens
+            .into_iter()
+            .map(RaindexVaultToken::from_local_db_token)
+            .collect())
     }
 }
 
