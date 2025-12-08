@@ -803,8 +803,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         let client = self.client.get_orderbook_client(orderbook)?;
         let sg_orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))
-            .await
-            .unwrap_or_default();
+            .await?;
         sg_orders
             .into_iter()
             .map(|value| {
@@ -828,8 +827,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         let client = self.client.get_orderbook_client(orderbook)?;
         let sg_orders = client
             .transaction_remove_orders(Id::new(tx_hash.to_string()))
-            .await
-            .unwrap_or_default();
+            .await?;
         sg_orders
             .into_iter()
             .map(|value| {
