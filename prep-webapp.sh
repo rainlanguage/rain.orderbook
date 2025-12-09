@@ -29,6 +29,13 @@ keep=(
 echo "Preparing base setup..."
 ./prep-base.sh
 
+if [ "${CI:-}" = "true" ]; then
+  echo "Cleaning up target directories for builds..."
+  rm -rf target || true
+  rm -rf lib/rain.interpreter/target || true
+  rm -rf lib/rain.tofu.erc20-decimals/target || true
+fi
+
 echo "Building packages..."
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
