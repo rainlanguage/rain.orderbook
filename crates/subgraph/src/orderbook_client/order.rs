@@ -30,27 +30,6 @@ impl OrderbookSubgraphClient {
         Ok(data.orders)
     }
 
-    fn build_filter_with_tokens(
-        tokens: Vec<String>,
-        basic_filters: SgOrdersListQueryFilters,
-    ) -> SgOrdersListQueryAnyFilters {
-        let vault_token_filter = Some(SgVaultTokenFilter {
-            token_in: tokens.clone(),
-        });
-
-        let filter_with_inputs = SgOrdersListQueryFilters {
-            inputs_: vault_token_filter.clone(),
-            ..basic_filters.clone()
-        };
-        let filter_with_outputs = SgOrdersListQueryFilters {
-            outputs_: vault_token_filter.clone(),
-            ..basic_filters.clone()
-        };
-        SgOrdersListQueryAnyFilters {
-            or: vec![filter_with_inputs, filter_with_outputs],
-        }
-    }
-
     /// Fetch all orders, paginated
     pub async fn orders_list(
         &self,
@@ -62,10 +41,13 @@ impl OrderbookSubgraphClient {
         let has_basic_filters = !filter_args.owners.is_empty()
             || filter_args.active.is_some()
             || filter_args.order_hash.is_some();
-        let has_token_filters = !filter_args.tokens.is_empty();
+        let tokens = filter_args.tokens.as_ref();
+        let has_input_tokens = tokens.map_or(false, |tokens| !tokens.inputs.is_empty());
+        let has_output_tokens = tokens.map_or(false, |tokens| !tokens.outputs.is_empty());
+        let has_token_filters = has_input_tokens || has_output_tokens;
 
         let filters = if has_basic_filters || has_token_filters {
-            let basic_filters = SgOrdersListQueryFilters {
+            let mut basic_filters = SgOrdersListQueryFilters {
                 owner_in: filter_args.owners.clone(),
                 active: filter_args.active,
                 order_hash: filter_args.order_hash.clone(),
@@ -73,12 +55,21 @@ impl OrderbookSubgraphClient {
                 outputs_: None,
             };
 
-            Some(if has_token_filters {
-                Self::build_filter_with_tokens(filter_args.tokens, basic_filters)
-            } else {
-                SgOrdersListQueryAnyFilters {
-                    or: vec![basic_filters],
+            if let Some(tokens) = tokens {
+                if has_input_tokens {
+                    basic_filters.inputs_ = Some(SgVaultTokenFilter {
+                        token_in: tokens.inputs.clone(),
+                    });
                 }
+                if has_output_tokens {
+                    basic_filters.outputs_ = Some(SgVaultTokenFilter {
+                        token_in: tokens.outputs.clone(),
+                    });
+                }
+            }
+
+            Some(SgOrdersListQueryAnyFilters {
+                or: vec![basic_filters],
             })
         } else {
             None
@@ -109,7 +100,7 @@ impl OrderbookSubgraphClient {
                         owners: vec![],
                         active: None,
                         order_hash: None,
-                        tokens: vec![],
+                        tokens: None,
                     },
                     SgPaginationArgs {
                         page,
@@ -147,7 +138,9 @@ impl OrderbookSubgraphClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::common::{SgBigInt, SgBytes, SgOrder, SgOrderbook, SgOrdersListFilterArgs};
+    use crate::types::common::{
+        SgBigInt, SgBytes, SgOrder, SgOrderbook, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs,
+    };
     use crate::utils::float::*;
     use cynic::Id;
     use httpmock::prelude::*;
@@ -471,7 +464,7 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
-            tokens: vec![],
+            tokens: None,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -504,7 +497,7 @@ mod tests {
             owners: vec![owner_address_sg.clone()],
             active: Some(true),
             order_hash: None,
-            tokens: vec![],
+            tokens: None,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -535,7 +528,7 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
-            tokens: vec![],
+            tokens: None,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -560,7 +553,7 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
-            tokens: vec![],
+            tokens: None,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -720,7 +713,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orders_list_with_token_filter() {
+    async fn test_orders_list_with_input_token_filter() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
         let token_address = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913".to_string();
@@ -728,7 +721,10 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
-            tokens: vec![token_address.clone()],
+            tokens: Some(SgOrdersTokensFilterArgs {
+                inputs: vec![token_address.clone()],
+                outputs: vec![],
+            }),
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -739,9 +735,8 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains(format!("\"token_in\":[\"{}\"]", token_address))
                 .body_contains("\"inputs_\":")
-                .body_contains("\"outputs_\":");
+                .body_contains(format!("\"token_in\":[\"{}\"]", token_address));
             then.status(200)
                 .json_body(json!({"data": {"orders": expected_orders}}));
         });
@@ -753,7 +748,42 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orders_list_with_multiple_token_filters() {
+    async fn test_orders_list_with_output_token_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let token_address = "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string();
+        let filter_args = SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: Some(SgOrdersTokensFilterArgs {
+                inputs: vec![],
+                outputs: vec![token_address.clone()],
+            }),
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_orders = vec![default_sg_order()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains("\"outputs_\":")
+                .body_contains(format!("\"token_in\":[\"{}\"]", token_address));
+            then.status(200)
+                .json_body(json!({"data": {"orders": expected_orders}}));
+        });
+
+        let result = client.orders_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), expected_orders.len());
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_with_both_token_filters() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
         let token1 = "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d".to_string();
@@ -762,7 +792,10 @@ mod tests {
             owners: vec![],
             active: None,
             order_hash: None,
-            tokens: vec![token1.clone(), token2.clone()],
+            tokens: Some(SgOrdersTokensFilterArgs {
+                inputs: vec![token1.clone()],
+                outputs: vec![token2.clone()],
+            }),
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -773,9 +806,10 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains(format!("\"token_in\":[\"{}\",\"{}\"]", token1, token2))
                 .body_contains("\"inputs_\":")
-                .body_contains("\"outputs_\":");
+                .body_contains("\"outputs_\":")
+                .body_contains(format!("\"token_in\":[\"{}\"]", token1))
+                .body_contains(format!("\"token_in\":[\"{}\"]", token2));
             then.status(200)
                 .json_body(json!({"data": {"orders": expected_orders}}));
         });
@@ -796,7 +830,10 @@ mod tests {
             owners: vec![owner_address.clone()],
             active: Some(true),
             order_hash: None,
-            tokens: vec![token_address.clone()],
+            tokens: Some(SgOrdersTokensFilterArgs {
+                inputs: vec![token_address.clone()],
+                outputs: vec![],
+            }),
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -810,8 +847,7 @@ mod tests {
                 .body_contains("\"owner_in\":[\"0xowner123\"]")
                 .body_contains("\"active\":true")
                 .body_contains(format!("\"token_in\":[\"{}\"]", token_address))
-                .body_contains("\"inputs_\":")
-                .body_contains("\"outputs_\":");
+                .body_contains("\"inputs_\":");
             then.status(200)
                 .json_body(json!({"data": {"orders": expected_orders}}));
         });
