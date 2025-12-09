@@ -23,6 +23,23 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf \
+            "$AGENT_TOOLSDIRECTORY" \
+            /opt/microsoft/msedge \
+            /opt/microsoft/powershell \
+            /opt/pipx \
+            /usr/lib/mono \
+            /usr/local/julia* \
+            /usr/local/lib/android \
+            /usr/local/lib/node_modules \
+            /usr/local/share/powershell \
+            /usr/share/dotnet \
+            /usr/share/swift \
+            /opt/google/chrome \
+            /usr/local/share/chromium
+
       - uses: nixbuild/nix-quick-install-action@v30
         with:
           nix_conf: |
@@ -38,11 +55,17 @@ jobs:
           # collect garbage until the Nix store size (in bytes) is at most this number
           # before trying to save a new cache
           # 1G = 1073741824
-          gc-max-store-size-linux: 1G
+          gc-max-store-size-linux: 10G
 
       - run: ./prep-webapp.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+          COMMIT_SHA: ${{ github.sha }}
+          CARGO_HOME: ${{ github.workspace }}/.cargo
+          CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo/target
+
+      - name: Cleanup Rust artifacts after prep
+        run: rm -rf .cargo target || true
 
       - run: nix develop -c npm run svelte-lint-format-check -w @rainlanguage/webapp
         env:
