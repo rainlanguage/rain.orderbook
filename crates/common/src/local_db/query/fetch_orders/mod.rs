@@ -15,13 +15,19 @@ pub enum FetchOrdersActiveFilter {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct FetchOrdersTokensFilter {
+    pub inputs: Vec<Address>,
+    pub outputs: Vec<Address>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct FetchOrdersArgs {
     pub chain_ids: Vec<u32>,
     pub orderbook_addresses: Vec<Address>,
     pub filter: FetchOrdersActiveFilter,
     pub owners: Vec<Address>,
     pub order_hash: Option<B256>,
-    pub tokens: Vec<Address>,
+    pub tokens: FetchOrdersTokensFilter,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -51,9 +57,11 @@ const OWNERS_CLAUSE_BODY: &str = "AND l.order_owner IN ({list})";
 const ORDER_HASH_CLAUSE: &str = "/*ORDER_HASH_CLAUSE*/";
 const ORDER_HASH_CLAUSE_BODY: &str = "AND COALESCE(la.order_hash, l.order_hash) = {param}";
 
-const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
-const TOKENS_CLAUSE_BODY: &str =
-    "AND EXISTS (\n      SELECT 1 FROM order_ios io2\n      WHERE io2.chain_id = l.chain_id\n        AND io2.orderbook_address = l.orderbook_address\n        AND io2.transaction_hash = la.transaction_hash\n        AND io2.log_index = la.log_index\n        AND io2.token IN ({list})\n    )";
+const INPUT_TOKENS_CLAUSE: &str = "/*INPUT_TOKENS_CLAUSE*/";
+const INPUT_TOKENS_CLAUSE_BODY: &str = "AND EXISTS (\n      SELECT 1 FROM order_ios io2\n      WHERE io2.chain_id = l.chain_id\n        AND io2.orderbook_address = l.orderbook_address\n        AND io2.transaction_hash = la.transaction_hash\n        AND io2.log_index = la.log_index\n        AND lower(io2.io_type) = 'input'\n        AND io2.token IN ({list})\n    )";
+
+const OUTPUT_TOKENS_CLAUSE: &str = "/*OUTPUT_TOKENS_CLAUSE*/";
+const OUTPUT_TOKENS_CLAUSE_BODY: &str = "AND EXISTS (\n      SELECT 1 FROM order_ios io2\n      WHERE io2.chain_id = l.chain_id\n        AND io2.orderbook_address = l.orderbook_address\n        AND io2.transaction_hash = la.transaction_hash\n        AND io2.log_index = la.log_index\n        AND lower(io2.io_type) = 'output'\n        AND io2.token IN ({list})\n    )";
 
 const MAIN_CHAIN_IDS_CLAUSE: &str = "/*MAIN_CHAIN_IDS_CLAUSE*/";
 const MAIN_CHAIN_IDS_CLAUSE_BODY: &str = "AND oe.chain_id IN ({list})";
@@ -172,14 +180,23 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
     let order_hash_val = args.order_hash.as_ref().map(|hash| SqlValue::from(*hash));
     stmt.bind_param_clause(ORDER_HASH_CLAUSE, ORDER_HASH_CLAUSE_BODY, order_hash_val)?;
 
-    // Tokens list
-    let mut tokens_lower = args.tokens.clone();
-    tokens_lower.sort();
-    tokens_lower.dedup();
+    // Directional token filters
+    let mut input_tokens_lower = args.tokens.inputs.clone();
+    input_tokens_lower.sort();
+    input_tokens_lower.dedup();
     stmt.bind_list_clause(
-        TOKENS_CLAUSE,
-        TOKENS_CLAUSE_BODY,
-        tokens_lower.into_iter().map(SqlValue::from),
+        INPUT_TOKENS_CLAUSE,
+        INPUT_TOKENS_CLAUSE_BODY,
+        input_tokens_lower.into_iter().map(SqlValue::from),
+    )?;
+
+    let mut output_tokens_lower = args.tokens.outputs.clone();
+    output_tokens_lower.sort();
+    output_tokens_lower.dedup();
+    stmt.bind_list_clause(
+        OUTPUT_TOKENS_CLAUSE,
+        OUTPUT_TOKENS_CLAUSE_BODY,
+        output_tokens_lower.into_iter().map(SqlValue::from),
     )?;
 
     Ok(stmt)
@@ -201,7 +218,8 @@ mod tests {
         let stmt = build_fetch_orders_stmt(&args).unwrap();
         assert!(stmt.sql.contains("?1 = 'all'"));
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
-        assert!(!stmt.sql.contains(TOKENS_CLAUSE));
+        assert!(!stmt.sql.contains(INPUT_TOKENS_CLAUSE));
+        assert!(!stmt.sql.contains(OUTPUT_TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(ORDER_HASH_CLAUSE));
     }
 
@@ -219,10 +237,13 @@ mod tests {
             order_hash: Some(b256!(
                 "0x00000000000000000000000000000000000000000000000000000000deadbeef"
             )),
-            tokens: vec![
-                address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB"),
-                address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e"),
-            ],
+            tokens: FetchOrdersTokensFilter {
+                inputs: vec![
+                    address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB"),
+                    address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e"),
+                ],
+                outputs: vec![address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB")],
+            },
         };
 
         let stmt = build_fetch_orders_stmt(&args).unwrap();
@@ -232,12 +253,73 @@ mod tests {
 
         // Owners clause present, tokens clause present, order hash clause present
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
-        assert!(!stmt.sql.contains(TOKENS_CLAUSE));
+        assert!(!stmt.sql.contains(INPUT_TOKENS_CLAUSE));
+        assert!(!stmt.sql.contains(OUTPUT_TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(ORDER_HASH_CLAUSE));
 
         // Params include active filter followed by chain/orderbook filters
         assert!(stmt.params.len() >= 3);
         assert_eq!(stmt.params[0], SqlValue::Text("active".to_string()));
+    }
+
+    #[test]
+    fn input_tokens_clause_only_when_inputs_present() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tokens: FetchOrdersTokensFilter {
+                inputs: vec![address!("0x00000000000000000000000000000000000000aa")],
+                outputs: vec![],
+            },
+            ..FetchOrdersArgs::default()
+        };
+
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt
+            .sql
+            .contains("AND lower(io2.io_type) = 'input' AND io2.token IN ("));
+        assert!(!stmt
+            .sql
+            .contains("AND lower(io2.io_type) = 'output' AND io2.token IN ("));
+    }
+
+    #[test]
+    fn output_tokens_clause_only_when_outputs_present() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tokens: FetchOrdersTokensFilter {
+                inputs: vec![],
+                outputs: vec![address!("0x00000000000000000000000000000000000000bb")],
+            },
+            ..FetchOrdersArgs::default()
+        };
+
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt
+            .sql
+            .contains("AND lower(io2.io_type) = 'output' AND io2.token IN ("));
+        assert!(!stmt
+            .sql
+            .contains("AND lower(io2.io_type) = 'input' AND io2.token IN ("));
+    }
+
+    #[test]
+    fn both_token_clauses_when_inputs_and_outputs_present() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tokens: FetchOrdersTokensFilter {
+                inputs: vec![address!("0x00000000000000000000000000000000000000aa")],
+                outputs: vec![address!("0x00000000000000000000000000000000000000bb")],
+            },
+            ..FetchOrdersArgs::default()
+        };
+
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt
+            .sql
+            .contains("AND lower(io2.io_type) = 'input' AND io2.token IN ("));
+        assert!(stmt
+            .sql
+            .contains("AND lower(io2.io_type) = 'output' AND io2.token IN ("));
     }
 
     #[test]

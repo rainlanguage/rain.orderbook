@@ -1,5 +1,6 @@
 use crate::local_db::query::fetch_orders::{
-    build_fetch_orders_stmt, FetchOrdersActiveFilter, FetchOrdersArgs, LocalDbOrder,
+    build_fetch_orders_stmt, FetchOrdersActiveFilter, FetchOrdersArgs, FetchOrdersTokensFilter,
+    LocalDbOrder,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::raindex_client::orders::GetOrdersFilters;
@@ -11,12 +12,19 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             Some(false) => FetchOrdersActiveFilter::Inactive,
             None => FetchOrdersActiveFilter::All,
         };
+        let tokens = filters
+            .tokens
+            .map(|tokens| FetchOrdersTokensFilter {
+                inputs: tokens.inputs.unwrap_or_default(),
+                outputs: tokens.outputs.unwrap_or_default(),
+            })
+            .unwrap_or_default();
 
         FetchOrdersArgs {
             filter,
             owners: filters.owners,
             order_hash: filters.order_hash,
-            tokens: filters.tokens.unwrap_or_default(),
+            tokens,
             ..FetchOrdersArgs::default()
         }
     }
@@ -56,9 +64,10 @@ mod tests {
             vec![address!("0x0123456789abcdef0123456789abcdef01234567")]
         );
         assert_eq!(
-            args.tokens,
+            args.tokens.inputs,
             vec![address!("0x89abcdef0123456789abcdef0123456789abcdef")]
         );
+        assert_eq!(args.tokens.outputs, Vec::<Address>::new());
         // Order hash string preserved
         assert_eq!(
             args.order_hash,
@@ -94,7 +103,7 @@ mod tests {
                 address!("0x0000000000000000000000000000000000000abc"),
                 address!("0x00000000000000000000000000000000000000ef"),
             ];
-            args.tokens = vec![address!("0x00000000000000000000000000000000000000aa")];
+            args.tokens.inputs = vec![address!("0x00000000000000000000000000000000000000aa")];
             args.order_hash = Some(b256!(
                 "0x0000000000000000000000000000000000000000000000000000000000000001"
             ));
