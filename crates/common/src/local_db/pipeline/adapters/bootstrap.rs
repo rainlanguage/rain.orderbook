@@ -1,7 +1,8 @@
-use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
+use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
+use crate::local_db::query::create_views::create_views_batch;
 use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
 use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
@@ -20,6 +21,7 @@ pub struct BootstrapConfig {
     pub dump_stmt: Option<SqlStatement>,
     pub latest_block: u64,
     pub block_number_threshold: u32,
+    pub deployment_block: u64,
 }
 
 /// Bootstrap state snapshot used by environment orchestration to decide actions.
@@ -111,6 +113,7 @@ pub trait BootstrapPipeline {
             db_schema_version.unwrap_or(DB_SCHEMA_VERSION),
         ))
         .await?;
+        db.execute_batch(&create_views_batch()).await?;
         Ok(())
     }
 
@@ -122,7 +125,8 @@ pub trait BootstrapPipeline {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        db.query_text(&clear_orderbook_data_stmt(ob_id)).await?;
+        let batch = clear_orderbook_data_batch(ob_id);
+        db.execute_batch(&batch).await?;
         Ok(())
     }
 
@@ -148,6 +152,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
+    use crate::local_db::query::create_views::create_views_batch;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
@@ -172,6 +177,12 @@ mod tests {
             self.text_map
                 .insert(stmt.sql().to_string(), value.to_string());
             self
+        }
+        fn with_views(self) -> Self {
+            create_views_batch()
+                .statements()
+                .iter()
+                .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
@@ -206,8 +217,22 @@ mod tests {
 
     #[async_trait(?Send)]
     impl LocalDbQueryExecutor for RecordingTextExecutor {
-        async fn execute_batch(&self, _: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
-            panic!("execute_batch should not be called in these tests");
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            let mut captured = self.captured_sql.lock().unwrap();
+            captured.extend(batch.statements().iter().map(|stmt| stmt.sql().to_string()));
+
+            let outcome = self
+                .result
+                .lock()
+                .unwrap()
+                .take()
+                .expect("execute_batch called more than expected");
+
+            match outcome {
+                Ok(()) => Ok(()),
+                Err(LocalDbError::LocalDbQueryError(inner)) => Err(inner),
+                Err(err) => Err(LocalDbQueryError::database(err.to_string())),
+            }
         }
 
         async fn query_json<T>(&self, _: &SqlStatement) -> Result<T, LocalDbQueryError>
@@ -555,7 +580,8 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter
             .reset_db(&db, Some(DB_SCHEMA_VERSION))
@@ -563,13 +589,23 @@ mod tests {
             .unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(
+            calls.len(),
+            3 + expected_views.len(),
+            "unexpected number of executed statements"
+        );
         assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
             calls[2],
             insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
         );
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -578,13 +614,21 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter.reset_db(&db, None).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(calls[0], clear_tables_stmt().sql());
+        assert_eq!(calls[1], create_tables_stmt().sql());
         assert_eq!(calls[2], insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql());
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -594,13 +638,21 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(custom_version), "ok");
+            .with_text(&insert_db_metadata_stmt(custom_version), "ok")
+            .with_views();
 
         adapter.reset_db(&db, Some(custom_version)).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(calls[0], clear_tables_stmt().sql());
+        assert_eq!(calls[1], create_tables_stmt().sql());
         assert_eq!(calls[2], insert_db_metadata_stmt(custom_version).sql());
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -630,6 +682,7 @@ mod tests {
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 10_000,
+            deployment_block: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
@@ -654,28 +707,32 @@ mod tests {
     #[tokio::test]
     async fn clear_orderbook_data_executes_expected_statement() {
         let adapter = TestBootstrapPipeline::new();
-        let target = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
+        let ob_id = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
         let db = RecordingTextExecutor::succeed();
 
         adapter
-            .clear_orderbook_data(&db, &target)
+            .clear_orderbook_data(&db, &ob_id)
             .await
             .expect("clear_orderbook_data should succeed");
 
         let captured = db.captured_sql();
-        assert_eq!(captured.len(), 1);
-        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
+        let expected: Vec<String> = clear_orderbook_data_batch(&ob_id)
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        assert_eq!(captured, expected);
     }
 
     #[tokio::test]
     async fn clear_orderbook_data_propagates_error() {
         let adapter = TestBootstrapPipeline::new();
-        let target = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
+        let ob_id = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
         let inner_error = LocalDbQueryError::database("boom");
         let db = RecordingTextExecutor::fail(LocalDbError::from(inner_error.clone()));
 
         let err = adapter
-            .clear_orderbook_data(&db, &target)
+            .clear_orderbook_data(&db, &ob_id)
             .await
             .expect_err("clear_orderbook_data should propagate error");
 
@@ -687,7 +744,11 @@ mod tests {
         }
 
         let captured = db.captured_sql();
-        assert_eq!(captured.len(), 1);
-        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
+        let expected: Vec<String> = clear_orderbook_data_batch(&ob_id)
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        assert_eq!(captured, expected);
     }
 }

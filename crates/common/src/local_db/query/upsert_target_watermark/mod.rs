@@ -14,10 +14,10 @@ pub fn upsert_target_watermark_stmt(
     SqlStatement::new_with_params(
         QUERY_TEMPLATE,
         [
-            SqlValue::from(ob_id.chain_id as u64),
-            SqlValue::from(ob_id.orderbook_address.to_string()),
+            SqlValue::from(ob_id.chain_id),
+            SqlValue::from(ob_id.orderbook_address),
             SqlValue::from(last_block),
-            SqlValue::from(last_hash.to_string()),
+            SqlValue::from(last_hash),
         ],
     )
 }

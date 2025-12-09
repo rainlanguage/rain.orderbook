@@ -1,11 +1,115 @@
+use super::{RaindexClient, RaindexError};
+use crate::local_db::query::{
+    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+};
 use crate::local_db::LocalDbError;
-use wasm_bindgen_utils::prelude::*;
-use wasm_bindgen_utils::result::WasmEncodedError;
+use executor::JsCallbackExecutor;
+use pipeline::runner::scheduler;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{fmt, future::Future, pin::Pin, rc::Rc};
+use tsify::Tsify;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 pub mod executor;
+pub mod orders;
 pub mod pipeline;
 pub mod query;
-pub mod sync;
+pub mod vaults;
+
+type ExecuteBatchFn =
+    dyn Fn(
+        &SqlStatementBatch,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
+
+type QueryTextFn =
+    dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<String, LocalDbQueryError>> + 'static>>;
+
+type QueryJsonFn =
+    dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<Value, LocalDbQueryError>> + 'static>>;
+
+#[derive(Clone)]
+pub(crate) struct LocalDb {
+    execute_batch_fn: Rc<ExecuteBatchFn>,
+    query_text_fn: Rc<QueryTextFn>,
+    query_json_fn: Rc<QueryJsonFn>,
+}
+
+impl LocalDb {
+    pub(crate) fn new<E>(executor: E) -> Self
+    where
+        E: LocalDbQueryExecutor + Sync + 'static,
+    {
+        let exec = Rc::new(executor);
+
+        let execute_batch_fn: Rc<ExecuteBatchFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |batch: &SqlStatementBatch| {
+                let exec = Rc::clone(&exec);
+                let batch = batch.clone();
+                Box::pin(async move { exec.execute_batch(&batch).await })
+            })
+        };
+
+        let query_text_fn: Rc<QueryTextFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |stmt: &SqlStatement| {
+                let exec = Rc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_text(&stmt).await })
+            })
+        };
+
+        let query_json_fn: Rc<QueryJsonFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |stmt: &SqlStatement| {
+                let exec = Rc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_json::<Value>(&stmt).await })
+            })
+        };
+
+        Self {
+            execute_batch_fn,
+            query_text_fn,
+            query_json_fn,
+        }
+    }
+
+    pub(crate) fn from_js_callback(callback: js_sys::Function) -> Self {
+        Self::new(JsCallbackExecutor::new(callback))
+    }
+}
+
+impl fmt::Debug for LocalDb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LocalDb").finish()
+    }
+}
+
+#[async_trait::async_trait(?Send)]
+impl LocalDbQueryExecutor for LocalDb {
+    async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        (self.execute_batch_fn)(batch).await
+    }
+
+    async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+    where
+        T: FromDbJson,
+    {
+        let value = (self.query_json_fn)(stmt).await?;
+        serde_json::from_value(value)
+            .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
+    }
+
+    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+        (self.query_text_fn)(stmt).await
+    }
+}
 
 impl From<LocalDbError> for WasmEncodedError {
     fn from(value: LocalDbError) -> Self {
@@ -13,5 +117,430 @@ impl From<LocalDbError> for WasmEncodedError {
             msg: value.to_string(),
             readable_msg: value.to_readable_msg(),
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum LocalDbStatus {
+    Active,
+    Syncing,
+    Failure,
+}
+impl_wasm_traits!(LocalDbStatus);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalDbStatusSnapshot {
+    pub status: LocalDbStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+impl_wasm_traits!(LocalDbStatusSnapshot);
+
+impl LocalDbStatusSnapshot {
+    pub fn new(status: LocalDbStatus, error: Option<String>) -> Self {
+        Self { status, error }
+    }
+
+    pub fn active() -> Self {
+        Self::new(LocalDbStatus::Active, None)
+    }
+
+    pub fn syncing() -> Self {
+        Self::new(LocalDbStatus::Syncing, None)
+    }
+
+    pub fn failure(error: String) -> Self {
+        Self::new(LocalDbStatus::Failure, Some(error))
+    }
+}
+
+#[wasm_export]
+impl RaindexClient {
+    #[wasm_export(js_name = "startLocalDbScheduler", unchecked_return_type = "void")]
+    pub async fn start_local_db_scheduler(
+        &self,
+        #[wasm_export(
+            js_name = "settingsYaml",
+            param_description = "Full settings YAML string used by the client runner"
+        )]
+        settings_yaml: String,
+        #[wasm_export(
+            js_name = "statusCallback",
+            param_description = "Optional callback invoked with the current local DB status"
+        )]
+        status_callback: Option<js_sys::Function>,
+    ) -> Result<(), RaindexError> {
+        let local_db = {
+            let slot = self.local_db.borrow();
+            slot.clone()
+                .ok_or_else(|| RaindexError::JsError("Local DB not set".to_string()))?
+        };
+
+        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
+        let existing = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
+
+        if let Some(handle) = existing {
+            handle.stop().await;
+        }
+
+        let handle = scheduler::start(settings_yaml, local_db, status_callback)?;
+        {
+            let mut slot = scheduler_cell.borrow_mut();
+            *slot = Some(handle);
+        }
+        Ok(())
+    }
+
+    #[wasm_export(js_name = "stopLocalDbScheduler", unchecked_return_type = "void")]
+    pub async fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
+        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
+        let handle = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
+
+        if let Some(handle) = handle {
+            handle.stop().await;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::local_db::query::{
+        FromDbJson, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+    };
+    use serde::Deserialize;
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+    struct TestRow {
+        id: u32,
+    }
+
+    #[derive(Clone)]
+    struct RecordingExec {
+        calls: Arc<Mutex<Vec<&'static str>>>,
+        json: String,
+        text: String,
+    }
+
+    impl RecordingExec {
+        fn new(json: impl Into<String>, text: impl Into<String>) -> Self {
+            Self {
+                calls: Arc::new(Mutex::new(Vec::new())),
+                json: json.into(),
+                text: text.into(),
+            }
+        }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl LocalDbQueryExecutor for RecordingExec {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            self.calls.lock().unwrap().push("batch");
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            self.calls.lock().unwrap().push("json");
+            serde_json::from_str(&self.json)
+                .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            self.calls.lock().unwrap().push("text");
+            Ok(self.text.clone())
+        }
+    }
+
+    #[tokio::test]
+    async fn local_db_delegates_to_executor() {
+        let exec = RecordingExec::new(r#"[{"id":1}]"#, "ok");
+        let db = LocalDb::new(exec.clone());
+
+        db.execute_batch(&SqlStatementBatch::new()).await.unwrap();
+        let rows: Vec<TestRow> = db.query_json(&SqlStatement::new("SELECT 1")).await.unwrap();
+        let text = db.query_text(&SqlStatement::new("SELECT 2")).await.unwrap();
+
+        assert_eq!(rows, vec![TestRow { id: 1 }]);
+        assert_eq!(text, "ok");
+
+        let calls = exec.calls.lock().unwrap().clone();
+        assert_eq!(calls, vec!["batch", "json", "text"]);
+    }
+
+    #[test]
+    fn debug_impl_is_stable() {
+        let exec = RecordingExec::new("[]", "ok");
+        let db = LocalDb::new(exec);
+        assert!(format!("{:?}", db).contains("LocalDb"));
+    }
+}
+
+#[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
+mod wasm_tests {
+    use super::*;
+    use gloo_timers::future::TimeoutFuture;
+    use rain_orderbook_app_settings::yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlParsable,
+    };
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use wasm_bindgen::prelude::Closure;
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_test::*;
+    use wasm_bindgen_utils::{
+        prelude::{serde_wasm_bindgen, JsValue},
+        result::{WasmEncodedError, WasmEncodedResult},
+    };
+
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    const SINGLE_ORDERBOOK_SETTINGS_YAML: &str = r#"
+networks:
+  anvil:
+    rpcs:
+      - https://rpc.example/anvil
+    chain-id: 42161
+subgraphs:
+  anvil: https://subgraph.example/anvil
+local-db-remotes:
+  remote-a: https://manifests.example/a.yaml
+local-db-sync:
+  anvil:
+    batch-size: 10
+    max-concurrent-batches: 2
+    retry-attempts: 3
+    retry-delay-ms: 100
+    rate-limit-delay-ms: 1
+    finality-depth: 12
+    bootstrap-block-threshold: 1000
+orderbooks:
+  ob-a:
+    address: 0x00000000000000000000000000000000000000a1
+    network: anvil
+    subgraph: anvil
+    local-db-remote: remote-a
+    deployment-block: 123
+"#;
+
+    fn build_client() -> RaindexClient {
+        let orderbook_yaml = OrderbookYaml::new(
+            vec![SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned()],
+            OrderbookYamlValidation::default(),
+        )
+        .expect("valid orderbook yaml");
+
+        RaindexClient {
+            orderbook_yaml,
+            local_db: Rc::new(RefCell::new(None)),
+            local_db_scheduler: Rc::new(RefCell::new(None)),
+        }
+    }
+
+    fn success_callback() -> js_sys::Function {
+        let result = WasmEncodedResult::Success::<String> {
+            value: "[]".to_string(),
+            error: None,
+        };
+        let js_value = serde_wasm_bindgen::to_value(&result).unwrap();
+        js_sys::Function::new_no_args(&format!(
+            "return Promise.resolve({})",
+            js_sys::JSON::stringify(&js_value)
+                .unwrap()
+                .as_string()
+                .unwrap()
+        ))
+    }
+
+    fn recording_status_callback(
+        store: Rc<RefCell<Vec<LocalDbStatusSnapshot>>>,
+    ) -> js_sys::Function {
+        let closure = Closure::wrap(Box::new(move |value: JsValue| {
+            if let Ok(snapshot) = serde_wasm_bindgen::from_value::<LocalDbStatusSnapshot>(value) {
+                store.borrow_mut().push(snapshot);
+            }
+        }) as Box<dyn FnMut(JsValue)>);
+
+        let function: js_sys::Function = closure.as_ref().clone().unchecked_into();
+        closure.forget();
+        function
+    }
+
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_executes_queries() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+        let db = client.local_db().expect("local db set");
+
+        let stmt = SqlStatement::new("SELECT 1");
+        let rows: Vec<String> = db.query_json(&stmt).await.unwrap();
+        assert!(rows.is_empty());
+
+        let text = db.query_text(&stmt).await.unwrap();
+        assert_eq!(text, "[]");
+    }
+
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_surfaces_errors() {
+        let error = WasmEncodedResult::Err::<String> {
+            value: None,
+            error: WasmEncodedError {
+                msg: "boom".to_string(),
+                readable_msg: "boom readable".to_string(),
+            },
+        };
+        let js_value = serde_wasm_bindgen::to_value(&error).unwrap();
+        let callback = js_sys::Function::new_no_args(&format!(
+            "return Promise.resolve({})",
+            js_sys::JSON::stringify(&js_value)
+                .unwrap()
+                .as_string()
+                .unwrap()
+        ));
+
+        let db = LocalDb::from_js_callback(callback);
+        let stmt = SqlStatement::new("SELECT 1");
+        let err = db.query_text(&stmt).await.unwrap_err();
+        assert!(matches!(err, LocalDbQueryError::Database { .. }));
+    }
+
+    #[wasm_bindgen_test]
+    async fn start_scheduler_without_callback_returns_error() {
+        let client = build_client();
+        let result = client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await;
+        assert!(matches!(result, Err(RaindexError::JsError(_))));
+        assert!(client.local_db_scheduler.borrow().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    async fn start_and_stop_scheduler_updates_handle_state() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await
+            .expect("scheduler starts");
+        assert!(client.local_db_scheduler.borrow().is_some());
+
+        TimeoutFuture::new(0).await;
+
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("scheduler stops");
+        assert!(client.local_db_scheduler.borrow().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    async fn restarting_scheduler_replaces_handle() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await
+            .expect("first scheduler starts");
+
+        TimeoutFuture::new(0).await;
+
+        let first_handle_ptr = client
+            .local_db_scheduler
+            .borrow()
+            .as_ref()
+            .map(|handle| handle.stop_flag_ptr())
+            .expect("first handle exists");
+
+        let statuses = Rc::new(RefCell::new(Vec::new()));
+        let status_callback = recording_status_callback(Rc::clone(&statuses));
+
+        client
+            .start_local_db_scheduler(
+                SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(),
+                Some(status_callback),
+            )
+            .await
+            .expect("second scheduler starts");
+
+        TimeoutFuture::new(0).await;
+
+        let second_handle_ptr = client
+            .local_db_scheduler
+            .borrow()
+            .as_ref()
+            .map(|handle| handle.stop_flag_ptr())
+            .expect("second handle exists");
+
+        assert_ne!(first_handle_ptr, second_handle_ptr);
+        let recorded = statuses.borrow();
+        assert!(recorded
+            .iter()
+            .any(|snapshot| snapshot.status == LocalDbStatus::Active));
+
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("scheduler stops");
+    }
+
+    #[wasm_bindgen_test]
+    async fn start_scheduler_propagates_errors_and_leaves_handle_empty() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        let result = client
+            .start_local_db_scheduler("not yaml".to_owned(), None)
+            .await;
+        assert!(matches!(result, Err(RaindexError::LocalDbError(_))));
+        assert!(client.local_db_scheduler.borrow().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    async fn stop_scheduler_is_idempotent() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await
+            .expect("scheduler starts");
+
+        TimeoutFuture::new(0).await;
+
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("first stop succeeds");
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("second stop succeeds");
+        assert!(client.local_db_scheduler.borrow().is_none());
     }
 }

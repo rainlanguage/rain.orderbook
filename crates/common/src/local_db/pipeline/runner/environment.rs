@@ -1,10 +1,9 @@
 use super::remotes::{download_and_gunzip, get_manifests};
 use super::utils::RunnerTarget;
+use crate::local_db::pipeline::adapters::apply::ApplyPipeline;
 use crate::local_db::pipeline::adapters::bootstrap::BootstrapPipeline;
 use crate::local_db::pipeline::engine::SyncEngine;
-use crate::local_db::pipeline::{
-    ApplyPipeline, EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
-};
+use crate::local_db::pipeline::{EventsPipeline, StatusBus, TokensPipeline, WindowPipeline};
 use crate::local_db::LocalDbError;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use rain_orderbook_app_settings::remote::manifest::ManifestMap;
@@ -142,19 +141,18 @@ mod tests {
     use super::*;
     use crate::erc20::TokenInfo;
     use crate::local_db::fetch::FetchConfig;
+    use crate::local_db::pipeline::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
     use crate::local_db::pipeline::adapters::bootstrap::{
         BootstrapConfig, BootstrapPipeline, BootstrapState,
     };
     use crate::local_db::pipeline::engine::SyncInputs;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
-    use crate::local_db::pipeline::{
-        ApplyPipelineTargetInfo, FinalityConfig, SyncConfig, WindowOverrides,
-    };
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
     use crate::local_db::query::sql_statement_batch::SqlStatementBatch;
     use crate::local_db::query::LocalDbQueryExecutor;
     use crate::local_db::{LocalDbError, OrderbookIdentifier};
     use crate::rpc_client::LogEntryResponse;
-    use alloy::primitives::{address, Address, Bytes};
+    use alloy::primitives::{address, b256, Address, B256};
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::MANIFEST_VERSION;
     use rain_orderbook_app_settings::local_db_remotes::LocalDbRemoteCfg;
@@ -196,6 +194,7 @@ mod tests {
                 },
                 dump_str: None,
                 block_number_threshold: 100,
+                manifest_end_block: 1,
             },
         }
     }
@@ -354,8 +353,10 @@ mod tests {
             Ok(Vec::new())
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
-            Ok(Bytes::from(vec![0u8; 32]))
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
+            Ok(b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ))
         }
     }
 
@@ -386,7 +387,7 @@ mod tests {
     }
 
     #[async_trait(?Send)]
-    impl crate::local_db::pipeline::ApplyPipeline for StubApply {
+    impl ApplyPipeline for StubApply {
         fn build_batch(
             &self,
             _target_info: &ApplyPipelineTargetInfo,
@@ -719,7 +720,7 @@ orderbooks:
         let manifest_yaml = format!(
             r#"
 manifest-version: {version}
-db-schema-version: 1
+db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
