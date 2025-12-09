@@ -7,7 +7,7 @@ use crate::NetworkCfg;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash as StrictHash, StrictYaml};
 use thiserror::Error;
 use url::{ParseError, Url};
 #[cfg(target_family = "wasm")]
@@ -128,6 +128,20 @@ impl YamlParsableHash for RemoteNetworksCfg {
         }
 
         Ok(remote_networks)
+    }
+
+    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
+        let mut hash = StrictHash::new();
+        hash.insert(
+            StrictYaml::String("url".to_string()),
+            StrictYaml::String(self.url.to_string()),
+        );
+        hash.insert(
+            StrictYaml::String("format".to_string()),
+            StrictYaml::String(self.format.clone()),
+        );
+
+        Ok(StrictYaml::Hash(hash))
     }
 }
 
@@ -393,5 +407,66 @@ using-networks-from:
             vec![Url::parse("http://localhost:8085/rpc-url").unwrap()]
         );
         assert_eq!(network.chain_id, 234);
+    }
+
+    #[test]
+    fn test_to_yaml_hash_serializes_all_fields() {
+        let mut remote_networks = HashMap::new();
+        remote_networks.insert(
+            "primary".to_string(),
+            RemoteNetworksCfg {
+                document: Arc::new(RwLock::new(StrictYaml::Hash(StrictHash::new()))),
+                key: "primary".to_string(),
+                url: Url::parse("https://remote.example/chainid").unwrap(),
+                format: "chainid".to_string(),
+            },
+        );
+        remote_networks.insert(
+            "secondary".to_string(),
+            RemoteNetworksCfg {
+                document: Arc::new(RwLock::new(StrictYaml::Hash(StrictHash::new()))),
+                key: "secondary".to_string(),
+                url: Url::parse("https://other.example/network").unwrap(),
+                format: "chainid".to_string(),
+            },
+        );
+
+        let yaml = RemoteNetworksCfg::to_yaml_hash(&remote_networks).unwrap();
+
+        let StrictYaml::Hash(remote_hash) = yaml else {
+            panic!("remote networks were not serialized to a YAML hash");
+        };
+
+        let Some(StrictYaml::Hash(primary_hash)) =
+            remote_hash.get(&StrictYaml::String("primary".to_string()))
+        else {
+            panic!("primary remote network missing from serialized YAML");
+        };
+        let Some(StrictYaml::Hash(secondary_hash)) =
+            remote_hash.get(&StrictYaml::String("secondary".to_string()))
+        else {
+            panic!("secondary remote network missing from serialized YAML");
+        };
+
+        assert_eq!(
+            primary_hash.get(&StrictYaml::String("url".to_string())),
+            Some(&StrictYaml::String(
+                "https://remote.example/chainid".to_string()
+            ))
+        );
+        assert_eq!(
+            primary_hash.get(&StrictYaml::String("format".to_string())),
+            Some(&StrictYaml::String("chainid".to_string()))
+        );
+        assert_eq!(
+            secondary_hash.get(&StrictYaml::String("url".to_string())),
+            Some(&StrictYaml::String(
+                "https://other.example/network".to_string()
+            ))
+        );
+        assert_eq!(
+            secondary_hash.get(&StrictYaml::String("format".to_string())),
+            Some(&StrictYaml::String("chainid".to_string()))
+        );
     }
 }
