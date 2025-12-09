@@ -29,12 +29,12 @@ keep=(
 echo "Preparing base setup..."
 ./prep-base.sh
 
-rm -rf .cargo target || true
+rm -rf target || true
 
 echo "Building packages..."
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
 
-rm -rf .cargo target || true
+rm -rf target || true
 
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
 
