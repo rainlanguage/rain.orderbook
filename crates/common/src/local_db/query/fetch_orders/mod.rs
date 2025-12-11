@@ -274,12 +274,9 @@ mod tests {
         };
 
         let stmt = build_fetch_orders_stmt(&args).unwrap();
-        assert!(stmt
-            .sql
-            .contains("AND lower(io2.io_type) = 'input' AND io2.token IN ("));
-        assert!(!stmt
-            .sql
-            .contains("AND lower(io2.io_type) = 'output' AND io2.token IN ("));
+        assert!(stmt.sql.contains("AND lower(io2.io_type) = 'input'"));
+        assert!(stmt.sql.contains("AND io2.token IN ("));
+        assert!(!stmt.sql.contains("AND lower(io2.io_type) = 'output'"));
     }
 
     #[test]
@@ -294,12 +291,9 @@ mod tests {
         };
 
         let stmt = build_fetch_orders_stmt(&args).unwrap();
-        assert!(stmt
-            .sql
-            .contains("AND lower(io2.io_type) = 'output' AND io2.token IN ("));
-        assert!(!stmt
-            .sql
-            .contains("AND lower(io2.io_type) = 'input' AND io2.token IN ("));
+        assert!(stmt.sql.contains("AND lower(io2.io_type) = 'output'"));
+        assert!(stmt.sql.contains("AND io2.token IN ("));
+        assert!(!stmt.sql.contains("AND lower(io2.io_type) = 'input'"));
     }
 
     #[test]
@@ -314,12 +308,9 @@ mod tests {
         };
 
         let stmt = build_fetch_orders_stmt(&args).unwrap();
-        assert!(stmt
-            .sql
-            .contains("AND lower(io2.io_type) = 'input' AND io2.token IN ("));
-        assert!(stmt
-            .sql
-            .contains("AND lower(io2.io_type) = 'output' AND io2.token IN ("));
+        assert!(stmt.sql.contains("AND lower(io2.io_type) = 'input'"));
+        assert!(stmt.sql.contains("AND lower(io2.io_type) = 'output'"));
+        assert!(stmt.sql.matches("AND io2.token IN (").count() >= 2);
     }
 
     #[test]

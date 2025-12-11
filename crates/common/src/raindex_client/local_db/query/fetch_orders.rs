@@ -41,6 +41,7 @@ pub async fn fetch_orders<E: LocalDbQueryExecutor + ?Sized>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::raindex_client::orders::GetOrdersTokenFilter;
     use alloy::primitives::{address, b256, Address};
     use std::str::FromStr;
 
@@ -54,7 +55,10 @@ mod tests {
             order_hash: Some(b256!(
                 "0x00000000000000000000000000000000000000000000000000000000deadbeef"
             )),
-            tokens: Some(vec![token]),
+            tokens: Some(GetOrdersTokenFilter {
+                inputs: Some(vec![token]),
+                outputs: None,
+            }),
         };
         let args: FetchOrdersArgs = filters.into();
         // Active mapping

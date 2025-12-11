@@ -42,8 +42,8 @@ impl OrderbookSubgraphClient {
             || filter_args.active.is_some()
             || filter_args.order_hash.is_some();
         let tokens = filter_args.tokens.as_ref();
-        let has_input_tokens = tokens.map_or(false, |tokens| !tokens.inputs.is_empty());
-        let has_output_tokens = tokens.map_or(false, |tokens| !tokens.outputs.is_empty());
+        let has_input_tokens = tokens.is_some_and(|tokens| !tokens.inputs.is_empty());
+        let has_output_tokens = tokens.is_some_and(|tokens| !tokens.outputs.is_empty());
         let has_token_filters = has_input_tokens || has_output_tokens;
 
         let filters = if has_basic_filters || has_token_filters {
