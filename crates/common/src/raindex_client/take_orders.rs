@@ -118,273 +118,53 @@ fn try_build_candidate(
 }
 
 #[cfg(test)]
+#[cfg(not(target_family = "wasm"))]
 mod tests {
-    #[cfg(not(target_family = "wasm"))]
-    mod non_wasm_tests {
-        use super::super::*;
-        use alloy::primitives::{Address, U256};
-        use rain_math_float::Float;
-        use rain_orderbook_subgraph_client::utils::float::{F1, F2};
+    use super::*;
+    use crate::add_order::AddOrderArgs;
+    use crate::dotrain_order::DotrainOrder;
+    use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
+    use crate::raindex_client::orders::RaindexOrder;
+    use crate::raindex_client::RaindexClient;
+    use alloy::hex::encode_prefixed;
+    use alloy::primitives::{Address, B256, U256};
+    use alloy::sol_types::{SolCall, SolValue};
+    use rain_math_float::Float;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
+    use rain_orderbook_quote::Pair;
+    use rain_orderbook_subgraph_client::types::common::{
+        SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgVault,
+    };
+    use rain_orderbook_subgraph_client::utils::float::{F1, F2, F6};
+    use rain_orderbook_test_fixtures::LocalEvm;
+    use std::rc::Rc;
 
-        #[test]
-        fn test_try_build_candidate_wrong_direction() {
-            use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
-            use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
-            use rain_orderbook_quote::Pair;
-
-            let token_a = Address::from([4u8; 20]);
-            let token_b = Address::from([5u8; 20]);
-
-            let order = OrderV4 {
-                owner: Address::from([1u8; 20]),
-                nonce: U256::from(1).into(),
-                evaluable: EvaluableV4 {
-                    interpreter: Address::from([2u8; 20]),
-                    store: Address::from([3u8; 20]),
-                    bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
-                },
-                validInputs: vec![IOV2 {
-                    token: token_a,
-                    vaultId: U256::from(100).into(),
-                }],
-                validOutputs: vec![IOV2 {
-                    token: token_b,
-                    vaultId: U256::from(200).into(),
-                }],
-            };
-
-            let quote = RaindexOrderQuote {
-                pair: Pair {
-                    pair_name: "A/B".to_string(),
-                    input_index: 0,
-                    output_index: 0,
-                },
-                block_number: 1,
-                data: Some(RaindexOrderQuoteValue {
-                    max_output: F1,
-                    formatted_max_output: "1".to_string(),
-                    max_input: F1,
-                    formatted_max_input: "1".to_string(),
-                    ratio: F1,
-                    formatted_ratio: "1".to_string(),
-                    inverse_ratio: F1,
-                    formatted_inverse_ratio: "1".to_string(),
-                }),
-                success: true,
-                error: None,
-            };
-
-            // Try with reversed direction - should return None
-            let result = try_build_candidate(
-                &order, &quote, token_b, // reversed
-                token_a, // reversed
-            )
-            .unwrap();
-
-            assert!(result.is_none());
-        }
-
-        #[test]
-        fn test_try_build_candidate_zero_capacity() {
-            use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
-            use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
-            use rain_orderbook_quote::Pair;
-
-            let token_a = Address::from([4u8; 20]);
-            let token_b = Address::from([5u8; 20]);
-
-            let order = OrderV4 {
-                owner: Address::from([1u8; 20]),
-                nonce: U256::from(1).into(),
-                evaluable: EvaluableV4 {
-                    interpreter: Address::from([2u8; 20]),
-                    store: Address::from([3u8; 20]),
-                    bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
-                },
-                validInputs: vec![IOV2 {
-                    token: token_a,
-                    vaultId: U256::from(100).into(),
-                }],
-                validOutputs: vec![IOV2 {
-                    token: token_b,
-                    vaultId: U256::from(200).into(),
-                }],
-            };
-
-            let quote = RaindexOrderQuote {
-                pair: Pair {
-                    pair_name: "A/B".to_string(),
-                    input_index: 0,
-                    output_index: 0,
-                },
-                block_number: 1,
-                data: Some(RaindexOrderQuoteValue {
-                    max_output: Float::zero().unwrap(), // zero capacity
-                    formatted_max_output: "0".to_string(),
-                    max_input: Float::zero().unwrap(),
-                    formatted_max_input: "0".to_string(),
-                    ratio: F1,
-                    formatted_ratio: "1".to_string(),
-                    inverse_ratio: F1,
-                    formatted_inverse_ratio: "1".to_string(),
-                }),
-                success: true,
-                error: None,
-            };
-
-            // Should return None due to zero capacity
-            let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
-
-            assert!(result.is_none());
-        }
-
-        #[test]
-        fn test_try_build_candidate_success() {
-            use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
-            use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
-            use rain_orderbook_quote::Pair;
-
-            let token_a = Address::from([4u8; 20]);
-            let token_b = Address::from([5u8; 20]);
-
-            let order = OrderV4 {
-                owner: Address::from([1u8; 20]),
-                nonce: U256::from(1).into(),
-                evaluable: EvaluableV4 {
-                    interpreter: Address::from([2u8; 20]),
-                    store: Address::from([3u8; 20]),
-                    bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
-                },
-                validInputs: vec![IOV2 {
-                    token: token_a,
-                    vaultId: U256::from(100).into(),
-                }],
-                validOutputs: vec![IOV2 {
-                    token: token_b,
-                    vaultId: U256::from(200).into(),
-                }],
-            };
-
-            let quote = RaindexOrderQuote {
-                pair: Pair {
-                    pair_name: "A/B".to_string(),
-                    input_index: 0,
-                    output_index: 0,
-                },
-                block_number: 1,
-                data: Some(RaindexOrderQuoteValue {
-                    max_output: F2,
-                    formatted_max_output: "2".to_string(),
-                    max_input: F1,
-                    formatted_max_input: "1".to_string(),
-                    ratio: F1,
-                    formatted_ratio: "1".to_string(),
-                    inverse_ratio: F1,
-                    formatted_inverse_ratio: "1".to_string(),
-                }),
-                success: true,
-                error: None,
-            };
-
-            // Correct direction, non-zero capacity - should succeed
-            let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
-
-            assert!(result.is_some());
-            let candidate = result.unwrap();
-            assert_eq!(candidate.input_io_index, 0);
-            assert_eq!(candidate.output_io_index, 0);
-            assert!(candidate.max_output.eq(F2).unwrap());
-        }
-
-        #[test]
-        fn test_try_build_candidate_failed_quote() {
-            use crate::raindex_client::order_quotes::RaindexOrderQuote;
-            use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
-            use rain_orderbook_quote::Pair;
-
-            let token_a = Address::from([4u8; 20]);
-            let token_b = Address::from([5u8; 20]);
-
-            let order = OrderV4 {
-                owner: Address::from([1u8; 20]),
-                nonce: U256::from(1).into(),
-                evaluable: EvaluableV4 {
-                    interpreter: Address::from([2u8; 20]),
-                    store: Address::from([3u8; 20]),
-                    bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
-                },
-                validInputs: vec![IOV2 {
-                    token: token_a,
-                    vaultId: U256::from(100).into(),
-                }],
-                validOutputs: vec![IOV2 {
-                    token: token_b,
-                    vaultId: U256::from(200).into(),
-                }],
-            };
-
-            let quote = RaindexOrderQuote {
-                pair: Pair {
-                    pair_name: "A/B".to_string(),
-                    input_index: 0,
-                    output_index: 0,
-                },
-                block_number: 1,
-                data: None,
-                success: false, // failed quote
-                error: Some("Quote failed".to_string()),
-            };
-
-            // Failed quote should return None
-            let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
-
-            assert!(result.is_none());
-        }
+    struct TestSetup {
+        local_evm: LocalEvm,
+        owner: Address,
+        token1: Address,
+        token2: Address,
+        token1_sg: SgErc20,
+        token2_sg: SgErc20,
+        orderbook: Address,
+        raindex_client: Rc<RaindexClient>,
     }
 
-    #[cfg(not(target_family = "wasm"))]
-    mod integration_tests {
-        use super::super::*;
-        use crate::add_order::AddOrderArgs;
-        use crate::dotrain_order::DotrainOrder;
-        use crate::raindex_client::orders::RaindexOrder;
-        use crate::raindex_client::RaindexClient;
-        use alloy::hex::encode_prefixed;
-        use alloy::primitives::{B256, U256};
-        use alloy::sol_types::{SolCall, SolValue};
-        use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_subgraph_client::types::common::{
-            SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgVault,
-        };
-        use rain_orderbook_subgraph_client::utils::float::F6;
-        use rain_orderbook_test_fixtures::LocalEvm;
-        use std::rc::Rc;
+    async fn setup_test() -> TestSetup {
+        let mut local_evm = LocalEvm::new().await;
+        let owner = local_evm.signer_wallets[0].default_signer().address();
 
-        struct TestSetup {
-            local_evm: LocalEvm,
-            owner: Address,
-            token1: Address,
-            token2: Address,
-            token1_sg: SgErc20,
-            token2_sg: SgErc20,
-            orderbook: Address,
-            raindex_client: Rc<RaindexClient>,
-        }
+        let token1 = local_evm
+            .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
+            .await;
+        let token2 = local_evm
+            .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
+            .await;
+        let orderbook = *local_evm.orderbook.address();
 
-        async fn setup_test() -> TestSetup {
-            let mut local_evm = LocalEvm::new().await;
-            let owner = local_evm.signer_wallets[0].default_signer().address();
-
-            let token1 = local_evm
-                .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
-                .await;
-            let token2 = local_evm
-                .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
-                .await;
-            let orderbook = *local_evm.orderbook.address();
-
-            let yaml = format!(
-                r#"
+        let yaml = format!(
+            r#"
 version: {spec_version}
 networks:
     test-network:
@@ -422,43 +202,43 @@ tokens:
         label: Token2
         symbol: TKN2
 "#,
-                spec_version = SpecVersion::current(),
-                rpc_url = local_evm.url(),
-                orderbook = orderbook,
-                deployer = local_evm.deployer.address(),
-                token1 = token1.address(),
-                token2 = token2.address(),
-            );
+            spec_version = SpecVersion::current(),
+            rpc_url = local_evm.url(),
+            orderbook = orderbook,
+            deployer = local_evm.deployer.address(),
+            token1 = token1.address(),
+            token2 = token2.address(),
+        );
 
-            let raindex_client = Rc::new(RaindexClient::new(vec![yaml], None).expect("Valid yaml"));
+        let raindex_client = Rc::new(RaindexClient::new(vec![yaml], None).expect("Valid yaml"));
 
-            TestSetup {
-                token1: *token1.address(),
-                token2: *token2.address(),
-                token1_sg: SgErc20 {
-                    id: SgBytes(token1.address().to_string()),
-                    address: SgBytes(token1.address().to_string()),
-                    name: Some("Token1".to_string()),
-                    symbol: Some("Token1".to_string()),
-                    decimals: Some(SgBigInt(18.to_string())),
-                },
-                token2_sg: SgErc20 {
-                    id: SgBytes(token2.address().to_string()),
-                    address: SgBytes(token2.address().to_string()),
-                    name: Some("Token2".to_string()),
-                    symbol: Some("Token2".to_string()),
-                    decimals: Some(SgBigInt(18.to_string())),
-                },
-                local_evm,
-                owner,
-                orderbook,
-                raindex_client,
-            }
+        TestSetup {
+            token1: *token1.address(),
+            token2: *token2.address(),
+            token1_sg: SgErc20 {
+                id: SgBytes(token1.address().to_string()),
+                address: SgBytes(token1.address().to_string()),
+                name: Some("Token1".to_string()),
+                symbol: Some("Token1".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            token2_sg: SgErc20 {
+                id: SgBytes(token2.address().to_string()),
+                address: SgBytes(token2.address().to_string()),
+                name: Some("Token2".to_string()),
+                symbol: Some("Token2".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            local_evm,
+            owner,
+            orderbook,
+            raindex_client,
         }
+    }
 
-        fn create_dotrain_config(setup: &TestSetup) -> String {
-            format!(
-                r#"
+    fn create_dotrain_config(setup: &TestSetup) -> String {
+        format!(
+            r#"
 version: {spec_version}
 networks:
     test-network:
@@ -516,343 +296,502 @@ amount price: 100 2;
 #handle-io
 :;
 "#,
-                rpc_url = setup.local_evm.url(),
-                orderbook = setup.orderbook,
-                deployer = setup.local_evm.deployer.address(),
-                token1 = setup.token1,
-                token2 = setup.token2,
-                spec_version = SpecVersion::current(),
-            )
-        }
+            rpc_url = setup.local_evm.url(),
+            orderbook = setup.orderbook,
+            deployer = setup.local_evm.deployer.address(),
+            token1 = setup.token1,
+            token2 = setup.token2,
+            spec_version = SpecVersion::current(),
+        )
+    }
 
-        async fn deploy_order(setup: &TestSetup, dotrain: String) -> (String, B256) {
-            let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
-            let deployment = dotrain_order
-                .dotrain_yaml()
-                .get_deployment("test-deployment")
-                .unwrap();
-            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
-                .await
-                .unwrap()
-                .try_into_call(vec![setup.local_evm.url()])
-                .await
-                .unwrap()
-                .abi_encode();
-
-            let (event, _) = setup.local_evm.add_order(&calldata, setup.owner).await;
-            let order_bytes = encode_prefixed(event.order.abi_encode());
-            let order_hash = B256::from(event.orderHash);
-            (order_bytes, order_hash)
-        }
-
-        fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
-            SgVault {
-                id: SgBytes(vault_id.to_string()),
-                token: token.clone(),
-                balance: SgBytes(F6.as_hex()),
-                vault_id: SgBytes(vault_id.to_string()),
-                owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
-                orderbook: SgOrderbook {
-                    id: SgBytes(setup.orderbook.to_string()),
-                },
-                orders_as_input: vec![],
-                orders_as_output: vec![],
-                balance_changes: vec![],
-            }
-        }
-
-        fn create_sg_order(
-            setup: &TestSetup,
-            order_bytes: String,
-            order_hash: B256,
-            inputs: Vec<SgVault>,
-            outputs: Vec<SgVault>,
-        ) -> SgOrder {
-            SgOrder {
-                id: SgBytes(order_hash.to_string()),
-                orderbook: SgOrderbook {
-                    id: SgBytes(setup.orderbook.to_string()),
-                },
-                order_bytes: SgBytes(order_bytes),
-                order_hash: SgBytes(order_hash.to_string()),
-                owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
-                outputs,
-                inputs,
-                active: true,
-                add_events: vec![],
-                meta: None,
-                timestamp_added: SgBigInt(0.to_string()),
-                trades: vec![],
-                remove_events: vec![],
-            }
-        }
-
-        #[tokio::test]
-        async fn test_build_take_order_candidates_for_correct_direction() {
-            let setup = setup_test().await;
-
-            let vault_id = B256::from(U256::from(1u64));
-
-            // Deposit tokens so the order has capacity
-            setup
-                .local_evm
-                .deposit(
-                    setup.owner,
-                    setup.token1,
-                    U256::from(10).pow(U256::from(20)),
-                    18,
-                    vault_id,
-                )
-                .await;
-            setup
-                .local_evm
-                .deposit(
-                    setup.owner,
-                    setup.token2,
-                    U256::from(10).pow(U256::from(20)),
-                    18,
-                    vault_id,
-                )
-                .await;
-
-            let dotrain = create_dotrain_config(&setup);
-            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
-
-            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
-
-            let inputs = vec![vault1.clone(), vault2.clone()];
-            let outputs = vec![vault1.clone(), vault2.clone()];
-
-            let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
-
-            // Create RaindexOrder from SgOrder
-            let raindex_order = RaindexOrder::try_from_sg_order(
-                Rc::clone(&setup.raindex_client),
-                123, // chain_id
-                sg_order,
-                None,
-            )
-            .expect("Should create RaindexOrder");
-
-            // Test direction: token1 as input, token2 as output
-            // This means we (the taker) give token1 and receive token2
-            let candidates = build_take_order_candidates_for_pair(
-                std::slice::from_ref(&raindex_order),
-                setup.token1, // input (we give)
-                setup.token2, // output (we receive)
-                None,
-                None,
-            )
+    async fn deploy_order(setup: &TestSetup, dotrain: String) -> (String, B256) {
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
+        let deployment = dotrain_order
+            .dotrain_yaml()
+            .get_deployment("test-deployment")
+            .unwrap();
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
             .await
-            .expect("Should build candidates");
-
-            // Should have exactly one candidate for this direction
-            assert_eq!(
-                candidates.len(),
-                1,
-                "Expected 1 candidate for token1->token2 direction"
-            );
-
-            let candidate = &candidates[0];
-            assert!(
-                candidate.max_output.gt(Float::zero().unwrap()).unwrap(),
-                "max_output should be > 0"
-            );
-        }
-
-        #[tokio::test]
-        async fn test_build_take_order_candidates_filters_wrong_direction() {
-            let setup = setup_test().await;
-
-            let vault_id = B256::from(U256::from(1u64));
-
-            // Deposit tokens
-            setup
-                .local_evm
-                .deposit(
-                    setup.owner,
-                    setup.token1,
-                    U256::from(10).pow(U256::from(20)),
-                    18,
-                    vault_id,
-                )
-                .await;
-            setup
-                .local_evm
-                .deposit(
-                    setup.owner,
-                    setup.token2,
-                    U256::from(10).pow(U256::from(20)),
-                    18,
-                    vault_id,
-                )
-                .await;
-
-            let dotrain = create_dotrain_config(&setup);
-            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
-
-            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
-
-            let inputs = vec![vault1.clone(), vault2.clone()];
-            let outputs = vec![vault1.clone(), vault2.clone()];
-
-            let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
-
-            let raindex_order = RaindexOrder::try_from_sg_order(
-                Rc::clone(&setup.raindex_client),
-                123,
-                sg_order,
-                None,
-            )
-            .expect("Should create RaindexOrder");
-
-            // Query for a token that doesn't exist in the order
-            let fake_token = Address::from([0xABu8; 20]);
-            let candidates = build_take_order_candidates_for_pair(
-                &[raindex_order],
-                fake_token, // not in order
-                setup.token2,
-                None,
-                None,
-            )
+            .unwrap()
+            .try_into_call(vec![setup.local_evm.url()])
             .await
-            .expect("Should not fail, just return empty");
+            .unwrap()
+            .abi_encode();
 
-            // No candidates should match
-            assert_eq!(
-                candidates.len(),
-                0,
-                "Expected 0 candidates for non-existent token direction"
-            );
+        let (event, _) = setup.local_evm.add_order(&calldata, setup.owner).await;
+        let order_bytes = encode_prefixed(event.order.abi_encode());
+        let order_hash = B256::from(event.orderHash);
+        (order_bytes, order_hash)
+    }
+
+    fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
+        SgVault {
+            id: SgBytes(vault_id.to_string()),
+            token: token.clone(),
+            balance: SgBytes(F6.as_hex()),
+            vault_id: SgBytes(vault_id.to_string()),
+            owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(setup.orderbook.to_string()),
+            },
+            orders_as_input: vec![],
+            orders_as_output: vec![],
+            balance_changes: vec![],
         }
+    }
 
-        #[tokio::test]
-        async fn test_build_take_order_candidates_filters_zero_capacity() {
-            let setup = setup_test().await;
+    fn create_sg_order(
+        setup: &TestSetup,
+        order_bytes: String,
+        order_hash: B256,
+        inputs: Vec<SgVault>,
+        outputs: Vec<SgVault>,
+    ) -> SgOrder {
+        SgOrder {
+            id: SgBytes(order_hash.to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(setup.orderbook.to_string()),
+            },
+            order_bytes: SgBytes(order_bytes),
+            order_hash: SgBytes(order_hash.to_string()),
+            owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
+            outputs,
+            inputs,
+            active: true,
+            add_events: vec![],
+            meta: None,
+            timestamp_added: SgBigInt(0.to_string()),
+            trades: vec![],
+            remove_events: vec![],
+        }
+    }
 
-            // Create order but don't deposit anything - zero capacity
-            let dotrain = create_dotrain_config(&setup);
-            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+    #[test]
+    fn test_try_build_candidate_wrong_direction() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
 
-            let vault_id = B256::from(U256::from(1u64));
-            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let order = OrderV4 {
+            owner: Address::from([1u8; 20]),
+            nonce: U256::from(1).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([2u8; 20]),
+                store: Address::from([3u8; 20]),
+                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+            },
+            validInputs: vec![IOV2 {
+                token: token_a,
+                vaultId: U256::from(100).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: token_b,
+                vaultId: U256::from(200).into(),
+            }],
+        };
 
-            let inputs = vec![vault1.clone(), vault2.clone()];
-            let outputs = vec![vault1.clone(), vault2.clone()];
+        let quote = RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index: 0,
+                output_index: 0,
+            },
+            block_number: 1,
+            data: Some(RaindexOrderQuoteValue {
+                max_output: F1,
+                formatted_max_output: "1".to_string(),
+                max_input: F1,
+                formatted_max_input: "1".to_string(),
+                ratio: F1,
+                formatted_ratio: "1".to_string(),
+                inverse_ratio: F1,
+                formatted_inverse_ratio: "1".to_string(),
+            }),
+            success: true,
+            error: None,
+        };
 
-            let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
+        let result = try_build_candidate(
+            &order, &quote, token_b, // reversed
+            token_a, // reversed
+        )
+        .unwrap();
 
-            let raindex_order = RaindexOrder::try_from_sg_order(
-                Rc::clone(&setup.raindex_client),
-                123,
-                sg_order,
-                None,
-            )
-            .expect("Should create RaindexOrder");
+        assert!(result.is_none());
+    }
 
-            // Even with correct direction, should return empty due to zero capacity
-            // (no deposits were made)
-            let candidates = build_take_order_candidates_for_pair(
-                &[raindex_order],
+    #[test]
+    fn test_try_build_candidate_zero_capacity() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+
+        let order = OrderV4 {
+            owner: Address::from([1u8; 20]),
+            nonce: U256::from(1).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([2u8; 20]),
+                store: Address::from([3u8; 20]),
+                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+            },
+            validInputs: vec![IOV2 {
+                token: token_a,
+                vaultId: U256::from(100).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: token_b,
+                vaultId: U256::from(200).into(),
+            }],
+        };
+
+        let quote = RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index: 0,
+                output_index: 0,
+            },
+            block_number: 1,
+            data: Some(RaindexOrderQuoteValue {
+                max_output: Float::zero().unwrap(),
+                formatted_max_output: "0".to_string(),
+                max_input: Float::zero().unwrap(),
+                formatted_max_input: "0".to_string(),
+                ratio: F1,
+                formatted_ratio: "1".to_string(),
+                inverse_ratio: F1,
+                formatted_inverse_ratio: "1".to_string(),
+            }),
+            success: true,
+            error: None,
+        };
+
+        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_try_build_candidate_success() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+
+        let order = OrderV4 {
+            owner: Address::from([1u8; 20]),
+            nonce: U256::from(1).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([2u8; 20]),
+                store: Address::from([3u8; 20]),
+                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+            },
+            validInputs: vec![IOV2 {
+                token: token_a,
+                vaultId: U256::from(100).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: token_b,
+                vaultId: U256::from(200).into(),
+            }],
+        };
+
+        let quote = RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index: 0,
+                output_index: 0,
+            },
+            block_number: 1,
+            data: Some(RaindexOrderQuoteValue {
+                max_output: F2,
+                formatted_max_output: "2".to_string(),
+                max_input: F1,
+                formatted_max_input: "1".to_string(),
+                ratio: F1,
+                formatted_ratio: "1".to_string(),
+                inverse_ratio: F1,
+                formatted_inverse_ratio: "1".to_string(),
+            }),
+            success: true,
+            error: None,
+        };
+
+        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+
+        assert!(result.is_some());
+        let candidate = result.unwrap();
+        assert_eq!(candidate.input_io_index, 0);
+        assert_eq!(candidate.output_io_index, 0);
+        assert!(candidate.max_output.eq(F2).unwrap());
+    }
+
+    #[test]
+    fn test_try_build_candidate_failed_quote() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+
+        let order = OrderV4 {
+            owner: Address::from([1u8; 20]),
+            nonce: U256::from(1).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([2u8; 20]),
+                store: Address::from([3u8; 20]),
+                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+            },
+            validInputs: vec![IOV2 {
+                token: token_a,
+                vaultId: U256::from(100).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: token_b,
+                vaultId: U256::from(200).into(),
+            }],
+        };
+
+        let quote = RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index: 0,
+                output_index: 0,
+            },
+            block_number: 1,
+            data: None,
+            success: false,
+            error: Some("Quote failed".to_string()),
+        };
+
+        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_build_take_order_candidates_for_correct_direction() {
+        let setup = setup_test().await;
+
+        let vault_id = B256::from(U256::from(1u64));
+
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
                 setup.token1,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
                 setup.token2,
-                None,
-                None,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
             )
-            .await
-            .expect("Should not fail, just filter out zero capacity");
+            .await;
 
-            // Order has zero capacity so should be filtered out
-            assert_eq!(
-                candidates.len(),
-                0,
-                "Expected 0 candidates for zero-capacity order"
-            );
-        }
+        let dotrain = create_dotrain_config(&setup);
+        let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
 
-        #[tokio::test]
-        async fn test_build_take_order_candidates_multiple_orders_mixed() {
-            let setup = setup_test().await;
+        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
 
-            let vault_id = B256::from(U256::from(1u64));
+        let inputs = vec![vault1.clone(), vault2.clone()];
+        let outputs = vec![vault1.clone(), vault2.clone()];
 
-            // Deposit for first order only
-            setup
-                .local_evm
-                .deposit(
-                    setup.owner,
-                    setup.token1,
-                    U256::from(10).pow(U256::from(20)),
-                    18,
-                    vault_id,
-                )
-                .await;
-            setup
-                .local_evm
-                .deposit(
-                    setup.owner,
-                    setup.token2,
-                    U256::from(10).pow(U256::from(20)),
-                    18,
-                    vault_id,
-                )
-                .await;
+        let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
 
-            let dotrain = create_dotrain_config(&setup);
-            let (order_bytes1, order_hash1) = deploy_order(&setup, dotrain.clone()).await;
-            let (order_bytes2, order_hash2) = deploy_order(&setup, dotrain).await;
+        let raindex_order =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order, None)
+                .expect("Should create RaindexOrder");
 
-            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let candidates = build_take_order_candidates_for_pair(
+            std::slice::from_ref(&raindex_order),
+            setup.token1,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should build candidates");
 
-            let inputs = vec![vault1.clone(), vault2.clone()];
-            let outputs = vec![vault1.clone(), vault2.clone()];
+        assert_eq!(
+            candidates.len(),
+            1,
+            "Expected 1 candidate for token1->token2 direction"
+        );
 
-            let sg_order1 = create_sg_order(
-                &setup,
-                order_bytes1,
-                order_hash1,
-                inputs.clone(),
-                outputs.clone(),
-            );
-            let sg_order2 = create_sg_order(&setup, order_bytes2, order_hash2, inputs, outputs);
+        let candidate = &candidates[0];
+        assert!(
+            candidate.max_output.gt(Float::zero().unwrap()).unwrap(),
+            "max_output should be > 0"
+        );
+    }
 
-            let raindex_order1 = RaindexOrder::try_from_sg_order(
-                Rc::clone(&setup.raindex_client),
-                123,
-                sg_order1,
-                None,
-            )
-            .expect("Should create RaindexOrder");
+    #[tokio::test]
+    async fn test_build_take_order_candidates_filters_wrong_direction() {
+        let setup = setup_test().await;
 
-            let raindex_order2 = RaindexOrder::try_from_sg_order(
-                Rc::clone(&setup.raindex_client),
-                123,
-                sg_order2,
-                None,
-            )
-            .expect("Should create RaindexOrder");
+        let vault_id = B256::from(U256::from(1u64));
 
-            // Both orders should have capacity (same vault with deposited tokens)
-            let candidates = build_take_order_candidates_for_pair(
-                &[raindex_order1, raindex_order2],
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
                 setup.token1,
-                setup.token2,
-                None,
-                None,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
             )
-            .await
-            .expect("Should build candidates");
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token2,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
+            )
+            .await;
 
-            // Both orders should produce candidates for token1->token2 direction
-            assert_eq!(
-                candidates.len(),
-                2,
-                "Expected 2 candidates from 2 orders with capacity"
-            );
-        }
+        let dotrain = create_dotrain_config(&setup);
+        let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+        let inputs = vec![vault1.clone(), vault2.clone()];
+        let outputs = vec![vault1.clone(), vault2.clone()];
+
+        let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
+
+        let raindex_order =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order, None)
+                .expect("Should create RaindexOrder");
+
+        let fake_token = Address::from([0xABu8; 20]);
+        let candidates = build_take_order_candidates_for_pair(
+            &[raindex_order],
+            fake_token,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should not fail, just return empty");
+
+        assert_eq!(
+            candidates.len(),
+            0,
+            "Expected 0 candidates for non-existent token direction"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_build_take_order_candidates_filters_zero_capacity() {
+        let setup = setup_test().await;
+
+        let dotrain = create_dotrain_config(&setup);
+        let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+        let vault_id = B256::from(U256::from(1u64));
+        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+        let inputs = vec![vault1.clone(), vault2.clone()];
+        let outputs = vec![vault1.clone(), vault2.clone()];
+
+        let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
+
+        let raindex_order =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order, None)
+                .expect("Should create RaindexOrder");
+
+        let candidates = build_take_order_candidates_for_pair(
+            &[raindex_order],
+            setup.token1,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should not fail, just filter out zero capacity");
+
+        assert_eq!(
+            candidates.len(),
+            0,
+            "Expected 0 candidates for zero-capacity order"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_build_take_order_candidates_multiple_orders_mixed() {
+        let setup = setup_test().await;
+
+        let vault_id = B256::from(U256::from(1u64));
+
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token1,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token2,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
+            )
+            .await;
+
+        let dotrain = create_dotrain_config(&setup);
+        let (order_bytes1, order_hash1) = deploy_order(&setup, dotrain.clone()).await;
+        let (order_bytes2, order_hash2) = deploy_order(&setup, dotrain).await;
+
+        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+        let inputs = vec![vault1.clone(), vault2.clone()];
+        let outputs = vec![vault1.clone(), vault2.clone()];
+
+        let sg_order1 = create_sg_order(
+            &setup,
+            order_bytes1,
+            order_hash1,
+            inputs.clone(),
+            outputs.clone(),
+        );
+        let sg_order2 = create_sg_order(&setup, order_bytes2, order_hash2, inputs, outputs);
+
+        let raindex_order1 =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order1, None)
+                .expect("Should create RaindexOrder");
+
+        let raindex_order2 =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order2, None)
+                .expect("Should create RaindexOrder");
+
+        let candidates = build_take_order_candidates_for_pair(
+            &[raindex_order1, raindex_order2],
+            setup.token1,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should build candidates");
+
+        assert_eq!(
+            candidates.len(),
+            2,
+            "Expected 2 candidates from 2 orders with capacity"
+        );
     }
 }
