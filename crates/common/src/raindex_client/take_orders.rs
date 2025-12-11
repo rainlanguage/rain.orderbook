@@ -888,4 +888,656 @@ amount price: 100 2;
             "Expected 2 candidates from 2 orders with capacity"
         );
     }
+
+    fn create_dotrain_config_with_vault_id(setup: &TestSetup, vault_id: &str) -> String {
+        format!(
+            r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    test-deployer:
+        network: test-network
+        address: {deployer}
+tokens:
+    t1:
+        network: test-network
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t2:
+        network: test-network
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+orderbook:
+    test-orderbook:
+        address: {orderbook}
+orders:
+    test-order:
+        inputs:
+            - token: t1
+            - token: t2
+        outputs:
+            - token: t1
+              vault-id: {vault_id}
+            - token: t2
+              vault-id: {vault_id}
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            max-amount: 1000
+deployments:
+    test-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#max-amount !Max output amount
+#calculate-io
+amount price: 100 2;
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = setup.local_evm.url(),
+            orderbook = setup.orderbook,
+            deployer = setup.local_evm.deployer.address(),
+            token1 = setup.token1,
+            token2 = setup.token2,
+            spec_version = SpecVersion::current(),
+            vault_id = vault_id,
+        )
+    }
+
+    #[tokio::test]
+    async fn test_mixed_orders_some_with_capacity_some_without() {
+        let setup = setup_test().await;
+
+        let vault_id_with_balance = B256::from(U256::from(1u64));
+        let vault_id_empty = B256::from(U256::from(2u64));
+
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token1,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id_with_balance,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token2,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id_with_balance,
+            )
+            .await;
+
+        let dotrain_with_balance = create_dotrain_config_with_vault_id(&setup, "0x01");
+        let dotrain_no_balance = create_dotrain_config_with_vault_id(&setup, "0x02");
+
+        let (order_bytes1, order_hash1) = deploy_order(&setup, dotrain_with_balance).await;
+        let (order_bytes2, order_hash2) = deploy_order(&setup, dotrain_no_balance).await;
+
+        let vault1_with_balance = create_vault(vault_id_with_balance, &setup, &setup.token1_sg);
+        let vault2_with_balance = create_vault(vault_id_with_balance, &setup, &setup.token2_sg);
+
+        let mut vault1_empty = create_vault(vault_id_empty, &setup, &setup.token1_sg);
+        vault1_empty.balance = SgBytes(Float::zero().unwrap().as_hex());
+        let mut vault2_empty = create_vault(vault_id_empty, &setup, &setup.token2_sg);
+        vault2_empty.balance = SgBytes(Float::zero().unwrap().as_hex());
+
+        let sg_order1 = create_sg_order(
+            &setup,
+            order_bytes1,
+            order_hash1,
+            vec![vault1_with_balance.clone(), vault2_with_balance.clone()],
+            vec![vault1_with_balance.clone(), vault2_with_balance.clone()],
+        );
+
+        let sg_order2 = create_sg_order(
+            &setup,
+            order_bytes2,
+            order_hash2,
+            vec![vault1_empty.clone(), vault2_empty.clone()],
+            vec![vault1_empty.clone(), vault2_empty.clone()],
+        );
+
+        let raindex_order1 =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order1, None)
+                .expect("Should create RaindexOrder");
+
+        let raindex_order2 =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order2, None)
+                .expect("Should create RaindexOrder");
+
+        let order1_hash = raindex_order1.order_hash();
+
+        let candidates = build_take_order_candidates_for_pair(
+            &[raindex_order1, raindex_order2],
+            setup.token1,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should build candidates");
+
+        assert_eq!(
+            candidates.len(),
+            1,
+            "Expected exactly 1 candidate (only the one with capacity)"
+        );
+
+        let candidate = &candidates[0];
+        let candidate_order_hash = alloy::primitives::keccak256(candidate.order.abi_encode());
+        assert_eq!(
+            candidate_order_hash, order1_hash,
+            "Candidate should be from the order with capacity"
+        );
+        assert!(
+            candidate.max_output.gt(Float::zero().unwrap()).unwrap(),
+            "Candidate max_output should be > 0"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_max_output_and_ratio_match_expected_quote_values() {
+        let setup = setup_test().await;
+
+        let vault_id = B256::from(U256::from(1u64));
+        let deposit_amount = U256::from(10).pow(U256::from(20));
+
+        setup
+            .local_evm
+            .deposit(setup.owner, setup.token1, deposit_amount, 18, vault_id)
+            .await;
+        setup
+            .local_evm
+            .deposit(setup.owner, setup.token2, deposit_amount, 18, vault_id)
+            .await;
+
+        let dotrain = create_dotrain_config(&setup);
+        let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+        let inputs = vec![vault1.clone(), vault2.clone()];
+        let outputs = vec![vault1.clone(), vault2.clone()];
+
+        let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
+
+        let raindex_order =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order, None)
+                .expect("Should create RaindexOrder");
+
+        let quotes = raindex_order
+            .get_quotes(None, None)
+            .await
+            .expect("Should get quotes");
+
+        let relevant_quote = quotes
+            .iter()
+            .find(|q| {
+                q.success
+                    && q.data.is_some()
+                    && q.data
+                        .as_ref()
+                        .unwrap()
+                        .max_output
+                        .gt(Float::zero().unwrap())
+                        .unwrap()
+            })
+            .expect("Should have at least one successful quote with capacity");
+
+        let expected_max_output = relevant_quote.data.as_ref().unwrap().max_output;
+        let expected_ratio = relevant_quote.data.as_ref().unwrap().ratio;
+
+        let candidates = build_take_order_candidates_for_pair(
+            std::slice::from_ref(&raindex_order),
+            setup.token1,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should build candidates");
+
+        assert_eq!(candidates.len(), 1, "Expected exactly 1 candidate");
+
+        let candidate = &candidates[0];
+
+        assert!(
+            candidate.max_output.eq(expected_max_output).unwrap(),
+            "Candidate max_output ({:?}) should match expected from quote ({:?})",
+            candidate.max_output.format(),
+            expected_max_output.format()
+        );
+        assert!(
+            candidate.ratio.eq(expected_ratio).unwrap(),
+            "Candidate ratio ({:?}) should match expected from quote ({:?})",
+            candidate.ratio.format(),
+            expected_ratio.format()
+        );
+
+        let expected_max_output_100 = Float::parse("100".to_string()).unwrap();
+        let expected_ratio_2 = Float::parse("2".to_string()).unwrap();
+
+        assert!(
+            candidate.max_output.eq(expected_max_output_100).unwrap(),
+            "max_output should be 100 (from rainlang: amount price: 100 2;)"
+        );
+        assert!(
+            candidate.ratio.eq(expected_ratio_2).unwrap(),
+            "ratio should be 2 (from rainlang: amount price: 100 2;)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_multiple_orders_only_matching_pair_included() {
+        let mut setup = setup_test().await;
+
+        let token3 = setup
+            .local_evm
+            .deploy_new_token("Token3", "Token3", 18, U256::MAX, setup.owner)
+            .await;
+        let token3_sg = SgErc20 {
+            id: SgBytes(token3.address().to_string()),
+            address: SgBytes(token3.address().to_string()),
+            name: Some("Token3".to_string()),
+            symbol: Some("Token3".to_string()),
+            decimals: Some(SgBigInt(18.to_string())),
+        };
+
+        let vault_id = B256::from(U256::from(1u64));
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token1,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token2,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                *token3.address(),
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id,
+            )
+            .await;
+
+        let dotrain_t1_t2 = create_dotrain_config(&setup);
+
+        let dotrain_t1_t3 = format!(
+            r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    test-deployer:
+        network: test-network
+        address: {deployer}
+tokens:
+    t1:
+        network: test-network
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t3:
+        network: test-network
+        address: {token3}
+        decimals: 18
+        label: Token3
+        symbol: Token3
+orderbook:
+    test-orderbook:
+        address: {orderbook}
+orders:
+    test-order:
+        inputs:
+            - token: t1
+        outputs:
+            - token: t3
+              vault-id: 0x01
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            max-amount: 1000
+deployments:
+    test-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#max-amount !Max output amount
+#calculate-io
+amount price: 100 2;
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = setup.local_evm.url(),
+            orderbook = setup.orderbook,
+            deployer = setup.local_evm.deployer.address(),
+            token1 = setup.token1,
+            token3 = token3.address(),
+            spec_version = SpecVersion::current(),
+        );
+
+        let (order_bytes_a, order_hash_a) = deploy_order(&setup, dotrain_t1_t2).await;
+        let (order_bytes_b, order_hash_b) = deploy_order(&setup, dotrain_t1_t3).await;
+
+        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let vault3 = create_vault(vault_id, &setup, &token3_sg);
+
+        let sg_order_a = create_sg_order(
+            &setup,
+            order_bytes_a,
+            order_hash_a,
+            vec![vault1.clone(), vault2.clone()],
+            vec![vault1.clone(), vault2.clone()],
+        );
+        let sg_order_b = create_sg_order(
+            &setup,
+            order_bytes_b,
+            order_hash_b,
+            vec![vault1.clone()],
+            vec![vault3.clone()],
+        );
+
+        let raindex_order_a = RaindexOrder::try_from_sg_order(
+            Rc::clone(&setup.raindex_client),
+            123,
+            sg_order_a,
+            None,
+        )
+        .expect("Should create RaindexOrder A");
+
+        let raindex_order_b = RaindexOrder::try_from_sg_order(
+            Rc::clone(&setup.raindex_client),
+            123,
+            sg_order_b,
+            None,
+        )
+        .expect("Should create RaindexOrder B");
+
+        let order_a_hash = raindex_order_a.order_hash();
+
+        let candidates = build_take_order_candidates_for_pair(
+            &[raindex_order_a, raindex_order_b],
+            setup.token1,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should build candidates");
+
+        assert_eq!(
+            candidates.len(),
+            1,
+            "Expected exactly 1 candidate for token1->token2 direction"
+        );
+
+        let candidate = &candidates[0];
+        let candidate_order_hash = alloy::primitives::keccak256(candidate.order.abi_encode());
+        assert_eq!(
+            candidate_order_hash, order_a_hash,
+            "Candidate should be from order A (token1->token2)"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_single_order_multiple_io_pairs_same_tokens() {
+        let setup = setup_test().await;
+
+        let vault_id_1 = B256::from(U256::from(1u64));
+        let vault_id_2 = B256::from(U256::from(2u64));
+
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token1,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id_1,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token2,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id_1,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token1,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id_2,
+            )
+            .await;
+        setup
+            .local_evm
+            .deposit(
+                setup.owner,
+                setup.token2,
+                U256::from(10).pow(U256::from(20)),
+                18,
+                vault_id_2,
+            )
+            .await;
+
+        let dotrain_multi_io = format!(
+            r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    test-deployer:
+        network: test-network
+        address: {deployer}
+tokens:
+    t1:
+        network: test-network
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t2:
+        network: test-network
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+orderbook:
+    test-orderbook:
+        address: {orderbook}
+orders:
+    test-order:
+        inputs:
+            - token: t1
+              vault-id: 0x01
+            - token: t1
+              vault-id: 0x02
+        outputs:
+            - token: t2
+              vault-id: 0x01
+            - token: t2
+              vault-id: 0x02
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            max-amount: 1000
+deployments:
+    test-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#max-amount !Max output amount
+#calculate-io
+amount price: 100 2;
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+            rpc_url = setup.local_evm.url(),
+            orderbook = setup.orderbook,
+            deployer = setup.local_evm.deployer.address(),
+            token1 = setup.token1,
+            token2 = setup.token2,
+            spec_version = SpecVersion::current(),
+        );
+
+        let (order_bytes, order_hash) = deploy_order(&setup, dotrain_multi_io).await;
+
+        let vault1_t1 = create_vault(vault_id_1, &setup, &setup.token1_sg);
+        let vault1_t2 = create_vault(vault_id_1, &setup, &setup.token2_sg);
+        let vault2_t1 = create_vault(vault_id_2, &setup, &setup.token1_sg);
+        let vault2_t2 = create_vault(vault_id_2, &setup, &setup.token2_sg);
+
+        let inputs = vec![vault1_t1.clone(), vault2_t1.clone()];
+        let outputs = vec![vault1_t2.clone(), vault2_t2.clone()];
+
+        let sg_order = create_sg_order(&setup, order_bytes, order_hash, inputs, outputs);
+
+        let raindex_order =
+            RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order, None)
+                .expect("Should create RaindexOrder");
+
+        let candidates = build_take_order_candidates_for_pair(
+            std::slice::from_ref(&raindex_order),
+            setup.token1,
+            setup.token2,
+            None,
+            None,
+        )
+        .await
+        .expect("Should build candidates");
+
+        assert!(
+            candidates.len() >= 2,
+            "Expected at least 2 candidates from multiple IO pairs with same tokens, got {}",
+            candidates.len()
+        );
+
+        let mut seen_io_pairs: std::collections::HashSet<(u32, u32)> =
+            std::collections::HashSet::new();
+        for candidate in &candidates {
+            let io_pair = (candidate.input_io_index, candidate.output_io_index);
+            assert!(
+                seen_io_pairs.insert(io_pair),
+                "Duplicate IO pair found: ({}, {})",
+                io_pair.0,
+                io_pair.1
+            );
+
+            let order_input_token =
+                candidate.order.validInputs[candidate.input_io_index as usize].token;
+            let order_output_token =
+                candidate.order.validOutputs[candidate.output_io_index as usize].token;
+            assert_eq!(
+                order_input_token, setup.token1,
+                "Candidate input token should match requested input"
+            );
+            assert_eq!(
+                order_output_token, setup.token2,
+                "Candidate output token should match requested output"
+            );
+        }
+    }
+
+    #[test]
+    fn test_try_build_candidate_with_quote_data_none() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+
+        let order = OrderV4 {
+            owner: Address::from([1u8; 20]),
+            nonce: U256::from(1).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([2u8; 20]),
+                store: Address::from([3u8; 20]),
+                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+            },
+            validInputs: vec![IOV2 {
+                token: token_a,
+                vaultId: U256::from(100).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: token_b,
+                vaultId: U256::from(200).into(),
+            }],
+        };
+
+        let quote = RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index: 0,
+                output_index: 0,
+            },
+            block_number: 1,
+            data: None,
+            success: true,
+            error: None,
+        };
+
+        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+
+        assert!(
+            result.is_none(),
+            "Should return None when quote.data is None even if success is true"
+        );
+    }
 }
