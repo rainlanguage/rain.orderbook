@@ -46,41 +46,39 @@ pub struct LocalDbOrder {
 /// Builds the SQL query fetching orders from the local database based on the
 /// supplied filters.
 const OWNERS_CLAUSE: &str = "/*OWNERS_CLAUSE*/";
-const OWNERS_CLAUSE_BODY: &str = "AND lower(l.order_owner) IN ({list})";
+const OWNERS_CLAUSE_BODY: &str = "AND l.order_owner IN ({list})";
 
 const ORDER_HASH_CLAUSE: &str = "/*ORDER_HASH_CLAUSE*/";
-const ORDER_HASH_CLAUSE_BODY: &str =
-    "AND lower(COALESCE(la.order_hash, l.order_hash)) = lower({param})";
+const ORDER_HASH_CLAUSE_BODY: &str = "AND COALESCE(la.order_hash, l.order_hash) = {param}";
 
 const TOKENS_CLAUSE: &str = "/*TOKENS_CLAUSE*/";
 const TOKENS_CLAUSE_BODY: &str =
-    "AND EXISTS (\n      SELECT 1 FROM order_ios io2\n      WHERE io2.chain_id = l.chain_id\n        AND lower(io2.orderbook_address) = lower(l.orderbook_address)\n        AND io2.transaction_hash = la.transaction_hash\n        AND io2.log_index = la.log_index\n        AND lower(io2.token) IN ({list})\n    )";
+    "AND EXISTS (\n      SELECT 1 FROM order_ios io2\n      WHERE io2.chain_id = l.chain_id\n        AND io2.orderbook_address = l.orderbook_address\n        AND io2.transaction_hash = la.transaction_hash\n        AND io2.log_index = la.log_index\n        AND io2.token IN ({list})\n    )";
 
 const MAIN_CHAIN_IDS_CLAUSE: &str = "/*MAIN_CHAIN_IDS_CLAUSE*/";
 const MAIN_CHAIN_IDS_CLAUSE_BODY: &str = "AND oe.chain_id IN ({list})";
 const MAIN_ORDERBOOKS_CLAUSE: &str = "/*MAIN_ORDERBOOKS_CLAUSE*/";
-const MAIN_ORDERBOOKS_CLAUSE_BODY: &str = "AND lower(oe.orderbook_address) IN ({list})";
+const MAIN_ORDERBOOKS_CLAUSE_BODY: &str = "AND oe.orderbook_address IN ({list})";
 
 const LATEST_ADD_CHAIN_IDS_CLAUSE: &str = "/*LATEST_ADD_CHAIN_IDS_CLAUSE*/";
 const LATEST_ADD_CHAIN_IDS_CLAUSE_BODY: &str = "AND oe.chain_id IN ({list})";
 const LATEST_ADD_ORDERBOOKS_CLAUSE: &str = "/*LATEST_ADD_ORDERBOOKS_CLAUSE*/";
-const LATEST_ADD_ORDERBOOKS_CLAUSE_BODY: &str = "AND lower(oe.orderbook_address) IN ({list})";
+const LATEST_ADD_ORDERBOOKS_CLAUSE_BODY: &str = "AND oe.orderbook_address IN ({list})";
 
 const FIRST_ADD_CHAIN_IDS_CLAUSE: &str = "/*FIRST_ADD_CHAIN_IDS_CLAUSE*/";
 const FIRST_ADD_CHAIN_IDS_CLAUSE_BODY: &str = "AND oe.chain_id IN ({list})";
 const FIRST_ADD_ORDERBOOKS_CLAUSE: &str = "/*FIRST_ADD_ORDERBOOKS_CLAUSE*/";
-const FIRST_ADD_ORDERBOOKS_CLAUSE_BODY: &str = "AND lower(oe.orderbook_address) IN ({list})";
+const FIRST_ADD_ORDERBOOKS_CLAUSE_BODY: &str = "AND oe.orderbook_address IN ({list})";
 
 const TAKE_ORDERS_CHAIN_IDS_CLAUSE: &str = "/*TAKE_ORDERS_CHAIN_IDS_CLAUSE*/";
 const TAKE_ORDERS_CHAIN_IDS_CLAUSE_BODY: &str = "AND t.chain_id IN ({list})";
 const TAKE_ORDERS_ORDERBOOKS_CLAUSE: &str = "/*TAKE_ORDERS_ORDERBOOKS_CLAUSE*/";
-const TAKE_ORDERS_ORDERBOOKS_CLAUSE_BODY: &str = "AND lower(t.orderbook_address) IN ({list})";
+const TAKE_ORDERS_ORDERBOOKS_CLAUSE_BODY: &str = "AND t.orderbook_address IN ({list})";
 
 const CLEAR_EVENTS_CHAIN_IDS_CLAUSE: &str = "/*CLEAR_EVENTS_CHAIN_IDS_CLAUSE*/";
 const CLEAR_EVENTS_CHAIN_IDS_CLAUSE_BODY: &str = "AND entries.chain_id IN ({list})";
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE: &str = "/*CLEAR_EVENTS_ORDERBOOKS_CLAUSE*/";
-const CLEAR_EVENTS_ORDERBOOKS_CLAUSE_BODY: &str =
-    "AND lower(entries.orderbook_address) IN ({list})";
+const CLEAR_EVENTS_ORDERBOOKS_CLAUSE_BODY: &str = "AND entries.orderbook_address IN ({list})";
 
 pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
@@ -332,11 +330,11 @@ mod tests {
         }
 
         assert!(
-            stmt.sql.contains("AND lower(oe.orderbook_address) IN (?"),
+            stmt.sql.contains("AND oe.orderbook_address IN (?"),
             "main orderbook filter missing"
         );
         assert!(
-            stmt.sql.contains("AND lower(t.orderbook_address) IN (?"),
+            stmt.sql.contains("AND t.orderbook_address IN (?"),
             "take_orders orderbook filter missing"
         );
 
@@ -370,9 +368,7 @@ mod tests {
         };
         let stmt_no_orderbooks = build_fetch_orders_stmt(&args_no_orderbooks).unwrap();
         assert!(
-            !stmt_no_orderbooks
-                .sql
-                .contains("lower(oe.orderbook_address) IN ("),
+            !stmt_no_orderbooks.sql.contains("oe.orderbook_address IN ("),
             "orderbook clause should not appear when list is empty"
         );
     }
