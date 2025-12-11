@@ -24,21 +24,7 @@ jobs:
           fetch-depth: 0
 
       - name: Free disk space
-        run: |
-          sudo rm -rf \
-            "$AGENT_TOOLSDIRECTORY" \
-            /opt/microsoft/msedge \
-            /opt/microsoft/powershell \
-            /opt/pipx \
-            /usr/lib/mono \
-            /usr/local/julia* \
-            /usr/local/lib/android \
-            /usr/local/lib/node_modules \
-            /usr/local/share/powershell \
-            /usr/share/dotnet \
-            /usr/share/swift \
-            /opt/google/chrome \
-            /usr/local/share/chromium
+        uses: jlumbroso/free-disk-space@v1.3.1
 
       - uses: nixbuild/nix-quick-install-action@v30
         with:
