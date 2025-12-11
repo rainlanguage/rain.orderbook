@@ -1,7 +1,8 @@
-use super::ProducerOutcome;
+use super::export::ExportMetadata;
 use alloy::primitives::{Address, Bytes};
 use rain_orderbook_app_settings::local_db_manifest::{LocalDbManifest, ManifestOrderbook};
 use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
+use rain_orderbook_common::local_db::pipeline::runner::TargetSuccess;
 use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
 use std::path::Path;
@@ -9,20 +10,21 @@ use std::str::FromStr;
 use tokio::fs;
 use url::Url;
 
-/// Builds a manifest from successful producer outcomes.
+/// Builds a manifest from successful producer outcomes and their exported dumps.
 pub fn build_manifest(
-    successes: &[ProducerOutcome],
+    successes: &[TargetSuccess],
+    exports: &HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
     target_lookup: &HashMap<OrderbookIdentifier, RunnerTarget>,
     release_base_url: &Url,
 ) -> Result<LocalDbManifest, LocalDbError> {
     let mut per_network: HashMap<String, (u32, Vec<ManifestOrderbook>)> = HashMap::new();
 
-    for outcome in successes {
-        let export = match &outcome.exported_dump {
+    for success in successes {
+        let ob_id = &success.outcome.ob_id;
+        let export = match exports.get(ob_id).and_then(|export| export.as_ref()) {
             Some(export) => export,
             None => continue,
         };
-        let ob_id = &outcome.outcome.ob_id;
         let runner_target =
             target_lookup
                 .get(ob_id)
@@ -105,7 +107,6 @@ pub async fn write_manifest_to_path(
 mod tests {
     use super::*;
     use crate::commands::local_db::pipeline::runner::export::ExportMetadata;
-    use crate::commands::local_db::pipeline::runner::ProducerOutcome;
     use alloy::primitives::address;
     use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
     use rain_orderbook_common::local_db::pipeline::{
@@ -140,22 +141,27 @@ mod tests {
         }
     }
 
-    fn sample_outcome(target: &OrderbookIdentifier, dump_suffix: &str) -> ProducerOutcome {
-        ProducerOutcome {
-            outcome: SyncOutcome {
-                ob_id: target.clone(),
-                start_block: 0,
-                target_block: 1234,
-                fetched_logs: 10,
-                decoded_events: 5,
+    fn sample_success(
+        target: &OrderbookIdentifier,
+        dump_suffix: &str,
+    ) -> (TargetSuccess, ExportMetadata) {
+        (
+            TargetSuccess {
+                outcome: SyncOutcome {
+                    ob_id: target.clone(),
+                    start_block: 0,
+                    target_block: 1234,
+                    fetched_logs: 10,
+                    decoded_events: 5,
+                },
             },
-            exported_dump: Some(ExportMetadata {
+            ExportMetadata {
                 dump_path: Path::new(dump_suffix).to_path_buf(),
                 end_block: 1234,
                 end_block_hash: "0xfeedface".to_string(),
                 end_block_time_ms: 1_700_000_000,
-            }),
-        }
+            },
+        )
     }
 
     #[test]
@@ -187,16 +193,18 @@ mod tests {
             ),
         );
 
-        let mut skipped_outcome = sample_outcome(&target_skipped, "skipped.sql.gz");
-        skipped_outcome.exported_dump = None;
-        let successes = vec![
-            skipped_outcome,
-            sample_outcome(&target_included, "included.sql.gz"),
-        ];
+        let (skipped_success, _) = sample_success(&target_skipped, "skipped.sql.gz");
+        let (included_success, included_export) =
+            sample_success(&target_included, "included.sql.gz");
+
+        let mut exports = HashMap::new();
+        exports.insert(target_skipped.clone(), None);
+        exports.insert(target_included.clone(), Some(included_export));
+        let successes = vec![skipped_success, included_success];
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest =
-            build_manifest(&successes, &lookup, &base_url).expect("manifest build succeeds");
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+            .expect("manifest build succeeds");
 
         assert!(
             !manifest.networks.contains_key("optimism"),
@@ -234,14 +242,16 @@ mod tests {
             sample_runner_target("optimism", target_b.chain_id, target_b.orderbook_address),
         );
 
-        let successes = vec![
-            sample_outcome(&target_a, "dump-a.sql.gz"),
-            sample_outcome(&target_b, "dump-b.sql.gz"),
-        ];
+        let (success_a, export_a) = sample_success(&target_a, "dump-a.sql.gz");
+        let (success_b, export_b) = sample_success(&target_b, "dump-b.sql.gz");
+        let successes = vec![success_a, success_b];
+        let mut exports = HashMap::new();
+        exports.insert(target_a.clone(), Some(export_a));
+        exports.insert(target_b.clone(), Some(export_b));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest =
-            build_manifest(&successes, &lookup, &base_url).expect("manifest build succeeds");
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+            .expect("manifest build succeeds");
 
         assert_eq!(manifest.manifest_version, 1);
         assert_eq!(manifest.db_schema_version, 2);
@@ -287,13 +297,15 @@ mod tests {
             sample_runner_target("shared", target_b.chain_id, target_b.orderbook_address),
         );
 
-        let successes = vec![
-            sample_outcome(&target_a, "dump-a.sql.gz"),
-            sample_outcome(&target_b, "dump-b.sql.gz"),
-        ];
+        let (success_a, export_a) = sample_success(&target_a, "dump-a.sql.gz");
+        let (success_b, export_b) = sample_success(&target_b, "dump-b.sql.gz");
+        let successes = vec![success_a, success_b];
+        let mut exports = HashMap::new();
+        exports.insert(target_a.clone(), Some(export_a));
+        exports.insert(target_b.clone(), Some(export_b));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let err = build_manifest(&successes, &lookup, &base_url)
+        let err = build_manifest(&successes, &exports, &lookup, &base_url)
             .expect_err("shared network key with different chain ids should error");
 
         match err {
@@ -332,14 +344,16 @@ mod tests {
         );
 
         // Intentionally provide outcomes out of order to ensure sorting occurs.
-        let successes = vec![
-            sample_outcome(&target_a, "dump-a.sql.gz"),
-            sample_outcome(&target_b, "dump-b.sql.gz"),
-        ];
+        let (success_a, export_a) = sample_success(&target_a, "dump-a.sql.gz");
+        let (success_b, export_b) = sample_success(&target_b, "dump-b.sql.gz");
+        let successes = vec![success_a, success_b];
+        let mut exports = HashMap::new();
+        exports.insert(target_a.clone(), Some(export_a));
+        exports.insert(target_b.clone(), Some(export_b));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest =
-            build_manifest(&successes, &lookup, &base_url).expect("manifest build succeeds");
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+            .expect("manifest build succeeds");
         let anvil = manifest.networks.get("anvil").expect("anvil network");
         let addresses: Vec<_> = anvil.orderbooks.iter().map(|ob| ob.address).collect();
         assert_eq!(
@@ -358,11 +372,14 @@ mod tests {
             orderbook_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
         let lookup: HashMap<OrderbookIdentifier, RunnerTarget> = HashMap::new();
-        let successes = vec![sample_outcome(&ob_id, "dump.sql.gz")];
+        let (success, export) = sample_success(&ob_id, "dump.sql.gz");
+        let successes = vec![success];
+        let mut exports = HashMap::new();
+        exports.insert(ob_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
 
-        let err = build_manifest(&successes, &lookup, &base_url)
+        let err = build_manifest(&successes, &exports, &lookup, &base_url)
             .expect_err("missing target should error");
         match err {
             LocalDbError::MissingRunnerTarget {
@@ -389,15 +406,14 @@ mod tests {
             sample_runner_target("arbitrum", ob_id.chain_id, ob_id.orderbook_address),
         );
 
-        let mut invalid_outcome = sample_outcome(&ob_id, "dump.sql.gz");
-        invalid_outcome
-            .exported_dump
-            .as_mut()
-            .expect("export present")
-            .end_block_hash = "not-a-hex-string".to_string();
+        let (success, mut export) = sample_success(&ob_id, "dump.sql.gz");
+        export.end_block_hash = "not-a-hex-string".to_string();
+        let successes = vec![success];
+        let mut exports = HashMap::new();
+        exports.insert(ob_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let err = build_manifest(&[invalid_outcome], &lookup, &base_url)
+        let err = build_manifest(&successes, &exports, &lookup, &base_url)
             .expect_err("invalid hash should error");
 
         match err {
@@ -409,8 +425,8 @@ mod tests {
     #[test]
     fn build_manifest_returns_empty_manifest_for_no_successes() {
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest =
-            build_manifest(&[], &HashMap::new(), &base_url).expect("empty input succeeds");
+        let manifest = build_manifest(&[], &HashMap::new(), &HashMap::new(), &base_url)
+            .expect("empty input succeeds");
 
         assert!(manifest.networks.is_empty());
         assert_eq!(manifest.manifest_version, 1);
@@ -446,14 +462,17 @@ mod tests {
             ),
         );
 
-        let successes = vec![
-            sample_outcome(&target_testnet, "testnet-dump.sql.gz"),
-            sample_outcome(&target_devnet, "devnet-dump.sql.gz"),
-        ];
+        let (success_testnet, export_testnet) =
+            sample_success(&target_testnet, "testnet-dump.sql.gz");
+        let (success_devnet, export_devnet) = sample_success(&target_devnet, "devnet-dump.sql.gz");
+        let successes = vec![success_testnet, success_devnet];
+        let mut exports = HashMap::new();
+        exports.insert(target_testnet.clone(), Some(export_testnet));
+        exports.insert(target_devnet.clone(), Some(export_devnet));
 
         let base_url = Url::parse("https://releases.example.com/").unwrap();
-        let manifest =
-            build_manifest(&successes, &lookup, &base_url).expect("manifest build succeeds");
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+            .expect("manifest build succeeds");
 
         let yaml = manifest
             .to_yaml_string()
@@ -491,11 +510,14 @@ mod tests {
             ob_id.clone(),
             sample_runner_target("anvil", ob_id.chain_id, ob_id.orderbook_address),
         );
-        let successes = vec![sample_outcome(&ob_id, "dump.sql.gz")];
+        let (success, export) = sample_success(&ob_id, "dump.sql.gz");
+        let successes = vec![success];
+        let mut exports = HashMap::new();
+        exports.insert(ob_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
-        let manifest =
-            build_manifest(&successes, &lookup, &base_url).expect("manifest build succeeds");
+        let manifest = build_manifest(&successes, &exports, &lookup, &base_url)
+            .expect("manifest build succeeds");
 
         let temp_dir = TempDir::new().unwrap();
         let manifest_path = temp_dir.path().join("nested/manifest.yaml");

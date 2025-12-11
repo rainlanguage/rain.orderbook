@@ -18,6 +18,7 @@ use crate::commands::local_db::pipeline::{
 
 pub fn default_environment(
     hypersync_token: String,
+    debug_status: bool,
 ) -> RunnerEnvironment<
     ProducerBootstrapAdapter,
     DefaultWindowPipeline,
@@ -35,6 +36,11 @@ pub fn default_environment(
                 hypersync_token.clone(),
             )?;
             let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
+            let status = ProducerStatusBus::new(
+                debug_status,
+                target.orderbook_key.clone(),
+                target.inputs.ob_id.clone(),
+            );
 
             Ok(EnginePipelines::new(
                 ProducerBootstrapAdapter::new(),
@@ -42,7 +48,7 @@ pub fn default_environment(
                 events,
                 tokens,
                 DefaultApplyPipeline::new(),
-                ProducerStatusBus::new(),
+                status,
             ))
         }),
     )
@@ -86,7 +92,7 @@ mod tests {
 
     #[test]
     fn build_engine_configures_hyperrpc_for_supported_chain() {
-        let env = default_environment("super-secret-token".to_string());
+        let env = default_environment("super-secret-token".to_string(), false);
         let target = sample_target(42161);
         let engine = env.build_engine(&target).expect("engine available");
 
@@ -103,7 +109,7 @@ mod tests {
 
     #[test]
     fn build_engine_rejects_unsupported_chain() {
-        let env = default_environment("token".to_string());
+        let env = default_environment("token".to_string(), false);
         let target = sample_target(1);
         match env.build_engine(&target) {
             Err(LocalDbError::Rpc(RpcClientError::UnsupportedChainId { chain_id })) => {
