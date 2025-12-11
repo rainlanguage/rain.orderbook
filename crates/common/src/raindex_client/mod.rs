@@ -38,6 +38,7 @@ pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
 pub mod remove_orders;
+pub mod take_orders;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
