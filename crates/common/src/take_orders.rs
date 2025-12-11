@@ -2,8 +2,11 @@ use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::RaindexError;
 use alloy::primitives::Address;
+use futures::StreamExt;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
+
+const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
 
 /// A candidate for taking an order, representing a specific IO pair direction
 /// with its quote data.
@@ -50,12 +53,21 @@ pub async fn build_take_order_candidates_for_pair(
     block_number: Option<u64>,
     gas: Option<u64>,
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
-    let mut candidates: Vec<TakeOrderCandidate> = Vec::new();
     let gas_string = gas.map(|g| g.to_string());
 
-    for order in orders {
-        let quotes = order.get_quotes(block_number, gas_string.clone()).await?;
+    let quote_results: Vec<Result<_, RaindexError>> =
+        futures::stream::iter(orders.iter().map(|order| {
+            let gas_string = gas_string.clone();
+            async move { order.get_quotes(block_number, gas_string).await }
+        }))
+        .buffer_unordered(DEFAULT_QUOTE_CONCURRENCY)
+        .collect()
+        .await;
 
+    let mut candidates: Vec<TakeOrderCandidate> = Vec::new();
+
+    for (order, quotes_result) in orders.iter().zip(quote_results) {
+        let quotes = quotes_result?;
         let order_v4: OrderV4 = order.try_into()?;
 
         for quote in quotes {
