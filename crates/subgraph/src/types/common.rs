@@ -2,6 +2,14 @@ use crate::schema;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SgOrdersTokensFilterArgs {
+    pub inputs: Vec<String>,
+    pub outputs: Vec<String>,
+}
+impl_wasm_traits!(SgOrdersTokensFilterArgs);
+
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgIdQueryVariables<'a> {
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
@@ -16,7 +24,8 @@ pub struct SgOrdersListFilterArgs {
     pub active: Option<bool>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub order_hash: Option<SgBytes>,
-    pub tokens: Vec<String>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub tokens: Option<SgOrdersTokensFilterArgs>,
 }
 impl_wasm_traits!(SgOrdersListFilterArgs);
 
