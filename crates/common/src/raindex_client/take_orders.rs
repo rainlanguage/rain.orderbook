@@ -557,9 +557,103 @@ amount price: 100 2;
             error: Some("Quote failed".to_string()),
         };
 
-        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+        let result = try_build_candidate(&order, &quote, token_a, token_b);
 
-        assert!(result.is_none());
+        assert!(
+            result.is_ok(),
+            "Failed quote must not cause an error, got: {:?}",
+            result.unwrap_err()
+        );
+        assert!(
+            result.unwrap().is_none(),
+            "Failed quote must not produce a candidate"
+        );
+    }
+
+    #[test]
+    fn test_try_build_candidate_out_of_bounds_indices() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+
+        let order = OrderV4 {
+            owner: Address::from([1u8; 20]),
+            nonce: U256::from(1).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([2u8; 20]),
+                store: Address::from([3u8; 20]),
+                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+            },
+            validInputs: vec![IOV2 {
+                token: token_a,
+                vaultId: U256::from(100).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: token_b,
+                vaultId: U256::from(200).into(),
+            }],
+        };
+
+        let quote_bad_input_index = RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index: 99,
+                output_index: 0,
+            },
+            block_number: 1,
+            data: Some(RaindexOrderQuoteValue {
+                max_output: F1,
+                formatted_max_output: "1".to_string(),
+                max_input: F1,
+                formatted_max_input: "1".to_string(),
+                ratio: F1,
+                formatted_ratio: "1".to_string(),
+                inverse_ratio: F1,
+                formatted_inverse_ratio: "1".to_string(),
+            }),
+            success: true,
+            error: None,
+        };
+
+        let result = try_build_candidate(&order, &quote_bad_input_index, token_a, token_b);
+        assert!(
+            result.is_ok(),
+            "Out-of-bounds input index must not cause an error"
+        );
+        assert!(
+            result.unwrap().is_none(),
+            "Out-of-bounds input index must not produce a candidate"
+        );
+
+        let quote_bad_output_index = RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index: 0,
+                output_index: 99,
+            },
+            block_number: 1,
+            data: Some(RaindexOrderQuoteValue {
+                max_output: F1,
+                formatted_max_output: "1".to_string(),
+                max_input: F1,
+                formatted_max_input: "1".to_string(),
+                ratio: F1,
+                formatted_ratio: "1".to_string(),
+                inverse_ratio: F1,
+                formatted_inverse_ratio: "1".to_string(),
+            }),
+            success: true,
+            error: None,
+        };
+
+        let result = try_build_candidate(&order, &quote_bad_output_index, token_a, token_b);
+        assert!(
+            result.is_ok(),
+            "Out-of-bounds output index must not cause an error"
+        );
+        assert!(
+            result.unwrap().is_none(),
+            "Out-of-bounds output index must not produce a candidate"
+        );
     }
 
     #[tokio::test]
