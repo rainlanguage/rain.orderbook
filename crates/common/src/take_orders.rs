@@ -1,6 +1,6 @@
-use super::*;
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::orders::RaindexOrder;
+use crate::raindex_client::RaindexError;
 use alloy::primitives::Address;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::OrderV4;
