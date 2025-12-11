@@ -146,7 +146,12 @@ impl RaindexOrder {
             timestamp_added: U256::from(order.block_timestamp),
             meta: order.meta,
             rainlang,
-            transaction: None,
+            transaction: Some(RaindexTransaction::from_local_parts(
+                order.transaction_hash,
+                order.owner,
+                order.block_number,
+                order.block_timestamp,
+            )?),
             trades_count: order.trade_count as u16,
         })
     }
