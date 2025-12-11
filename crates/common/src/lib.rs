@@ -15,6 +15,7 @@ pub mod replays;
 pub mod retry;
 pub mod rpc_client;
 pub mod subgraph;
+pub mod take_orders;
 pub mod transaction;
 pub mod types;
 #[cfg(all(not(target_family = "wasm"), test))]
