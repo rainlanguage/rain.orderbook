@@ -285,11 +285,14 @@ mod tests {
             create_sg_order_json, create_sg_order_json_with_orderbook, get_minimal_yaml_for_chain,
             get_multi_orderbook_yaml,
         };
-        use alloy::primitives::{Address, B256, U256};
+        use alloy::network::TransactionBuilder;
+        use alloy::primitives::{keccak256, Address, B256, U256};
+        use alloy::rpc::types::TransactionRequest;
+        use alloy::serde::WithOtherFields;
         use alloy::sol_types::{SolCall, SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_bindings::IOrderBookV5::takeOrders3Call;
+        use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, TakeOrdersConfigV4};
         use serde_json::json;
         use std::ops::Sub;
 
@@ -755,10 +758,6 @@ mod tests {
 
         #[tokio::test]
         async fn test_min_receive_mode_exact_reverts_when_simulated_buy_cannot_be_met() {
-            use alloy::network::TransactionBuilder;
-            use alloy::rpc::types::TransactionRequest;
-            use alloy::serde::WithOtherFields;
-
             let setup = base_setup_test().await;
             let sg_server = MockServer::start_async().await;
 
@@ -934,11 +933,6 @@ mod tests {
 
         #[tokio::test]
         async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
-            use alloy::network::TransactionBuilder;
-            use alloy::rpc::types::TransactionRequest;
-            use alloy::serde::WithOtherFields;
-            use rain_orderbook_bindings::IOrderBookV5::TakeOrdersConfigV4;
-
             let setup = base_setup_test().await;
 
             let vault_id_1 = B256::from(U256::from(1u64));
@@ -1170,11 +1164,6 @@ mod tests {
 
         #[tokio::test]
         async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
-            use alloy::network::TransactionBuilder;
-            use alloy::rpc::types::TransactionRequest;
-            use alloy::serde::WithOtherFields;
-            use rain_orderbook_bindings::IOrderBookV5::TakeOrdersConfigV4;
-
             let setup = base_setup_test().await;
 
             let vault_id_1 = B256::from(U256::from(1u64));
@@ -1919,8 +1908,6 @@ mod tests {
 
         #[tokio::test]
         async fn test_prices_sorted_best_to_worst_matching_config_orders() {
-            use alloy::primitives::keccak256;
-
             let setup = base_setup_test().await;
             let sg_server = MockServer::start_async().await;
 
