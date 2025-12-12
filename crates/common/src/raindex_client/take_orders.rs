@@ -3,12 +3,13 @@ use super::*;
 use crate::rpc_client::RpcClient;
 use crate::take_orders::{
     build_take_order_candidates_for_pair, build_take_orders_config_from_sell_simulation,
-    simulate_sell_over_candidates, MinReceiveMode,
+    simulate_sell_over_candidates, MinReceiveMode, SimulatedSellResult, TakeOrderCandidate,
 };
 use alloy::primitives::{Address, Bytes};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::takeOrders3Call;
+use std::collections::HashMap;
 use std::ops::Div;
 use std::str::FromStr;
 
@@ -19,6 +20,9 @@ use std::str::FromStr;
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct TakeOrdersCalldataResult {
+    /// The orderbook contract address to call with this calldata
+    #[tsify(type = "Address")]
+    pub orderbook: Address,
     /// ABI-encoded calldata for `IOrderBookV5.takeOrders3` (hex in JS)
     #[tsify(type = "Hex")]
     pub calldata: Bytes,
@@ -131,13 +135,10 @@ impl RaindexClient {
             return Err(RaindexError::NoLiquidity);
         }
 
-        let sim = simulate_sell_over_candidates(candidates, sell_amount_float)?;
+        let (best_orderbook, best_sim) =
+            select_best_orderbook_simulation(candidates, sell_amount_float)?;
 
-        if sim.legs.is_empty() {
-            return Err(RaindexError::NoLiquidity);
-        }
-
-        let built = build_take_orders_config_from_sell_simulation(sim, min_receive_mode)?
+        let built = build_take_orders_config_from_sell_simulation(best_sim, min_receive_mode)?
             .ok_or(RaindexError::NoLiquidity)?;
 
         let calldata_bytes = takeOrders3Call {
@@ -164,11 +165,46 @@ impl RaindexClient {
             .collect();
 
         Ok(TakeOrdersCalldataResult {
+            orderbook: best_orderbook,
             calldata,
             effective_price,
             prices,
         })
     }
+}
+
+fn select_best_orderbook_simulation(
+    candidates: Vec<TakeOrderCandidate>,
+    sell_budget: Float,
+) -> Result<(Address, SimulatedSellResult), RaindexError> {
+    let mut orderbook_candidates: HashMap<Address, Vec<TakeOrderCandidate>> = HashMap::new();
+    for candidate in candidates {
+        orderbook_candidates
+            .entry(candidate.orderbook)
+            .or_default()
+            .push(candidate);
+    }
+
+    let mut best_result: Option<(Address, SimulatedSellResult)> = None;
+
+    for (orderbook, candidates) in orderbook_candidates {
+        let sim = simulate_sell_over_candidates(candidates, sell_budget)?;
+
+        if sim.legs.is_empty() {
+            continue;
+        }
+
+        let is_better = match &best_result {
+            None => true,
+            Some((_, best_sim)) => sim.total_buy_amount.gt(best_sim.total_buy_amount)?,
+        };
+
+        if is_better {
+            best_result = Some((orderbook, sim));
+        }
+    }
+
+    best_result.ok_or(RaindexError::NoLiquidity)
 }
 
 #[cfg(test)]

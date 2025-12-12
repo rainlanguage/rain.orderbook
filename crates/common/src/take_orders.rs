@@ -9,6 +9,8 @@ use rain_orderbook_bindings::IOrderBookV5::{
 };
 use serde::{Deserialize, Serialize};
 use std::ops::{Add, Div, Mul, Sub};
+#[cfg(target_family = "wasm")]
+use std::str::FromStr;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
@@ -21,6 +23,8 @@ const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
 /// with the specific input/output indices and the quote data (max_output and ratio).
 #[derive(Clone, Debug)]
 pub struct TakeOrderCandidate {
+    /// The orderbook contract address this order belongs to
+    pub orderbook: Address,
     /// The decoded OrderV4 from on-chain order bytes
     pub order: OrderV4,
     /// Index into the order's validInputs array
@@ -75,9 +79,14 @@ pub async fn build_take_order_candidates_for_pair(
         let quotes = quotes_result?;
         let order_v4: OrderV4 = order.try_into()?;
 
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&order.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = order.orderbook();
+
         for quote in quotes {
             if let Some(candidate) =
-                try_build_candidate(&order_v4, &quote, input_token, output_token)?
+                try_build_candidate(orderbook, &order_v4, &quote, input_token, output_token)?
             {
                 candidates.push(candidate);
             }
@@ -90,6 +99,7 @@ pub async fn build_take_order_candidates_for_pair(
 /// Try to build a TakeOrderCandidate from a quote if it matches the direction
 /// and has non-zero capacity.
 fn try_build_candidate(
+    orderbook: Address,
     order: &OrderV4,
     quote: &RaindexOrderQuote,
     input_token: Address,
@@ -126,6 +136,7 @@ fn try_build_candidate(
     }
 
     Ok(Some(TakeOrderCandidate {
+        orderbook,
         order: order.clone(),
         input_io_index,
         output_io_index,
@@ -623,12 +634,13 @@ amount price: 100 2;
     fn test_try_build_candidate_wrong_direction() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
+        let orderbook = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let f1 = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(f1, f1, f1)), true);
 
-        let result = try_build_candidate(&order, &quote, token_b, token_a).unwrap();
+        let result = try_build_candidate(orderbook, &order, &quote, token_b, token_a).unwrap();
 
         assert!(result.is_none());
     }
@@ -637,13 +649,14 @@ amount price: 100 2;
     fn test_try_build_candidate_zero_capacity() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
+        let orderbook = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let zero = Float::zero().unwrap();
         let f1 = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(zero, zero, f1)), true);
 
-        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b).unwrap();
 
         assert!(result.is_none());
     }
@@ -652,16 +665,18 @@ amount price: 100 2;
     fn test_try_build_candidate_success() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
+        let orderbook = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let f1 = Float::parse("1".to_string()).unwrap();
         let f2 = Float::parse("2".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(f2, f1, f1)), true);
 
-        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b).unwrap();
 
         assert!(result.is_some());
         let candidate = result.unwrap();
+        assert_eq!(candidate.orderbook, orderbook);
         assert_eq!(candidate.input_io_index, 0);
         assert_eq!(candidate.output_io_index, 0);
         assert!(candidate.max_output.eq(f2).unwrap());
@@ -671,11 +686,12 @@ amount price: 100 2;
     fn test_try_build_candidate_failed_quote() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
+        let orderbook = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let quote = make_quote(0, 0, None, false);
 
-        let result = try_build_candidate(&order, &quote, token_a, token_b);
+        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b);
 
         assert!(
             result.is_ok(),
@@ -692,12 +708,14 @@ amount price: 100 2;
     fn test_try_build_candidate_out_of_bounds_indices() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
+        let orderbook = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let f1 = Float::parse("1".to_string()).unwrap();
 
         let quote_bad_input_index = make_quote(99, 0, Some(make_quote_value(f1, f1, f1)), true);
-        let result = try_build_candidate(&order, &quote_bad_input_index, token_a, token_b);
+        let result =
+            try_build_candidate(orderbook, &order, &quote_bad_input_index, token_a, token_b);
         assert!(
             result.is_ok(),
             "Out-of-bounds input index must not cause an error"
@@ -708,7 +726,8 @@ amount price: 100 2;
         );
 
         let quote_bad_output_index = make_quote(0, 99, Some(make_quote_value(f1, f1, f1)), true);
-        let result = try_build_candidate(&order, &quote_bad_output_index, token_a, token_b);
+        let result =
+            try_build_candidate(orderbook, &order, &quote_bad_output_index, token_a, token_b);
         assert!(
             result.is_ok(),
             "Out-of-bounds output index must not cause an error"
@@ -1261,11 +1280,12 @@ amount price: 100 2;
     fn test_try_build_candidate_with_quote_data_none() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
+        let orderbook = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let quote = make_quote(0, 0, None, true);
 
-        let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
+        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b).unwrap();
 
         assert!(
             result.is_none(),
@@ -1275,6 +1295,7 @@ amount price: 100 2;
 
     fn make_simulation_candidate(max_output: Float, ratio: Float) -> TakeOrderCandidate {
         TakeOrderCandidate {
+            orderbook: Address::from([0xAAu8; 20]),
             order: make_basic_order(Address::from([1u8; 20]), Address::from([2u8; 20])),
             input_io_index: 0,
             output_io_index: 0,
@@ -1336,6 +1357,7 @@ amount price: 100 2;
     fn test_simulate_exact_in_sell_multiple_candidates_sorted_by_price() {
         let f1_5 = Float::parse("1.5".to_string()).unwrap();
         let f2_75 = Float::parse("2.75".to_string()).unwrap();
+        let f3_25 = Float::parse("3.25".to_string()).unwrap();
         let expensive = make_simulation_candidate(f2_75, f3_25);
         let cheap = make_simulation_candidate(f2_75, f1_5);
         let candidates = vec![expensive, cheap];
