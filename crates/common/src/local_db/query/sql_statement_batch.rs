@@ -1,5 +1,6 @@
 use super::sql_statement::SqlStatement;
 
+const BEGIN: &str = "BEGIN";
 const BEGIN_TRANSACTION: &str = "BEGIN TRANSACTION";
 const COMMIT: &str = "COMMIT";
 
@@ -110,6 +111,7 @@ impl<'a> IntoIterator for &'a mut SqlStatementBatch {
 
 fn is_begin(sql: &str) -> bool {
     normalized(sql).eq_ignore_ascii_case(BEGIN_TRANSACTION)
+        || normalized(sql).eq_ignore_ascii_case(BEGIN)
 }
 
 fn is_commit(sql: &str) -> bool {
