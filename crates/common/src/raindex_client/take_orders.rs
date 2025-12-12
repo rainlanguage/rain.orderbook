@@ -1034,5 +1034,182 @@ amount price: {max_output} {ratio};
                 res
             );
         }
+
+        #[tokio::test]
+        async fn test_min_receive_mode_exact_reverts_when_simulated_buy_cannot_be_met() {
+            use alloy::network::TransactionBuilder;
+            use alloy::rpc::types::TransactionRequest;
+            use alloy::serde::WithOtherFields;
+
+            let setup = setup_local_evm_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id = B256::from(U256::from(1u64));
+            fund_standard_two_token_vault(&setup, vault_id).await;
+
+            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+            let dotrain = create_dotrain_config(&setup, "50", "2");
+            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+            let order_json = create_sg_order_json(
+                &setup,
+                &order_bytes,
+                order_hash,
+                vec![vault1.clone(), vault2.clone()],
+                vec![vault1.clone(), vault2.clone()],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [order_json]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let result_partial = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "10".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Partial mode calldata build should succeed");
+
+            let result_exact = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "10".to_string(),
+                    MinReceiveMode::Exact,
+                )
+                .await
+                .expect("Exact mode calldata build should succeed");
+
+            let decoded_partial = takeOrders3Call::abi_decode(&result_partial.calldata)
+                .expect("Should decode partial calldata");
+            let config_partial = decoded_partial.config;
+
+            let decoded_exact = takeOrders3Call::abi_decode(&result_exact.calldata)
+                .expect("Should decode exact calldata");
+            let config_exact = decoded_exact.config;
+
+            assert_eq!(
+                config_partial.minimumInput,
+                Float::zero().unwrap().get_inner(),
+                "Partial mode minimumInput should be zero"
+            );
+            assert_eq!(
+                config_exact.minimumInput, config_exact.maximumInput,
+                "Exact mode minimumInput should equal maximumInput"
+            );
+            assert_eq!(
+                config_partial.maximumInput, config_exact.maximumInput,
+                "Both modes should have the same maximumInput (simulated total buy)"
+            );
+
+            let withdraw_amount =
+                Float::from_fixed_decimal(standard_deposit_amount() - U256::from(1), 18)
+                    .unwrap()
+                    .get_inner();
+
+            let withdraw_tx = setup
+                .local_evm
+                .orderbook
+                .withdraw3(setup.token2, vault_id, withdraw_amount, vec![])
+                .from(setup.owner)
+                .into_transaction_request();
+            setup
+                .local_evm
+                .send_transaction(withdraw_tx)
+                .await
+                .expect("Withdraw should succeed");
+
+            let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+            let taker_token1_balance = U256::from(10).pow(U256::from(22));
+            let token1_contract = setup
+                .local_evm
+                .tokens
+                .iter()
+                .find(|t| *t.address() == setup.token1)
+                .unwrap();
+
+            token1_contract
+                .transfer(taker, taker_token1_balance)
+                .from(setup.owner)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+
+            token1_contract
+                .approve(setup.orderbook, taker_token1_balance)
+                .from(taker)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+
+            let exact_tx = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(result_exact.calldata.to_vec())
+                    .with_to(setup.orderbook)
+                    .with_from(taker),
+            );
+
+            let exact_call_result = setup.local_evm.call(exact_tx.clone()).await;
+            assert!(
+                exact_call_result.is_err(),
+                "Exact mode should revert when simulated buy cannot be met, but got: {:?}",
+                exact_call_result
+            );
+
+            let error_str = format!("{:?}", exact_call_result.unwrap_err());
+            assert!(
+                error_str.contains("MinimumInput") || error_str.contains("execution reverted"),
+                "Error should indicate MinimumInput revert, got: {}",
+                error_str
+            );
+
+            let partial_tx = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(result_partial.calldata.to_vec())
+                    .with_to(setup.orderbook)
+                    .with_from(taker),
+            );
+
+            let partial_call_result = setup.local_evm.call(partial_tx.clone()).await;
+            assert!(
+                partial_call_result.is_ok(),
+                "Partial mode should NOT revert (may succeed with smaller totals or be a no-op), but got: {:?}",
+                partial_call_result
+            );
+
+            let partial_tx_result = setup.local_evm.send_transaction(partial_tx).await;
+            assert!(
+                partial_tx_result.is_ok(),
+                "Partial mode transaction should succeed, but got: {:?}",
+                partial_tx_result
+            );
+        }
     }
 }
