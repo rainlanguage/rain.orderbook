@@ -1211,5 +1211,528 @@ amount price: {max_output} {ratio};
                 partial_tx_result
             );
         }
+
+        fn create_dotrain_config_with_vault_and_ratio(
+            setup: &TestSetup,
+            vault_id: &str,
+            max_output: &str,
+            ratio: &str,
+        ) -> String {
+            format!(
+                r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    test-deployer:
+        network: test-network
+        address: {deployer}
+tokens:
+    t1:
+        network: test-network
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t2:
+        network: test-network
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+orderbook:
+    test-orderbook:
+        address: {orderbook}
+orders:
+    test-order:
+        inputs:
+            - token: t1
+        outputs:
+            - token: t2
+              vault-id: {vault_id}
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            max-amount: 1000
+deployments:
+    test-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#max-amount !Max output amount
+#calculate-io
+amount price: {max_output} {ratio};
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+                rpc_url = setup.local_evm.url(),
+                orderbook = setup.orderbook,
+                deployer = setup.local_evm.deployer.address(),
+                token1 = setup.token1,
+                token2 = setup.token2,
+                spec_version = SpecVersion::current(),
+                vault_id = vault_id,
+                max_output = max_output,
+                ratio = ratio,
+            )
+        }
+
+        #[tokio::test]
+        async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
+            use alloy::network::TransactionBuilder;
+            use alloy::rpc::types::TransactionRequest;
+            use alloy::serde::WithOtherFields;
+            use rain_orderbook_bindings::IOrderBookV5::TakeOrdersConfigV4;
+
+            let setup = setup_local_evm_test().await;
+
+            let vault_id_1 = B256::from(U256::from(1u64));
+            let vault_id_2 = B256::from(U256::from(2u64));
+
+            let amount = standard_deposit_amount();
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id_1)
+                .await;
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id_2)
+                .await;
+
+            let dotrain_cheap =
+                create_dotrain_config_with_vault_and_ratio(&setup, "0x01", "50", "1");
+            let dotrain_expensive =
+                create_dotrain_config_with_vault_and_ratio(&setup, "0x02", "50", "2");
+
+            let (order_bytes_cheap, order_hash_cheap) = deploy_order(&setup, dotrain_cheap).await;
+            let (order_bytes_expensive, order_hash_expensive) =
+                deploy_order(&setup, dotrain_expensive).await;
+
+            let vault1 = create_vault(vault_id_1, &setup, &setup.token2_sg);
+            let vault2 = create_vault(vault_id_2, &setup, &setup.token2_sg);
+            let input_vault = create_vault(vault_id_1, &setup, &setup.token1_sg);
+
+            let sg_order_cheap = create_sg_order_json(
+                &setup,
+                &order_bytes_cheap,
+                order_hash_cheap,
+                vec![input_vault.clone()],
+                vec![vault1.clone()],
+            );
+            let sg_order_expensive = create_sg_order_json(
+                &setup,
+                &order_bytes_expensive,
+                order_hash_expensive,
+                vec![input_vault.clone()],
+                vec![vault2.clone()],
+            );
+
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [sg_order_cheap, sg_order_expensive]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let result = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "200".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Should build calldata with both orders");
+
+            let decoded =
+                takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+            let original_config = decoded.config;
+
+            assert_eq!(
+                original_config.orders.len(),
+                2,
+                "Should have 2 orders in config"
+            );
+
+            let worst_ratio = Float::parse("2".to_string()).unwrap();
+            assert_eq!(
+                original_config.maximumIORatio,
+                worst_ratio.get_inner(),
+                "maximumIORatio should equal worst simulated price (2)"
+            );
+
+            assert_eq!(result.prices.len(), 2, "Should have 2 prices");
+            let cheap_price = Float::parse("1".to_string()).unwrap();
+            let expensive_price = Float::parse("2".to_string()).unwrap();
+            assert!(
+                result.prices.iter().any(|p| p.eq(cheap_price).unwrap()),
+                "Should have price 1 in the list"
+            );
+            assert!(
+                result.prices.iter().any(|p| p.eq(expensive_price).unwrap()),
+                "Should have price 2 in the list"
+            );
+
+            let lowered_max_io_ratio = Float::parse("1.5".to_string()).unwrap();
+            let modified_config = TakeOrdersConfigV4 {
+                minimumInput: original_config.minimumInput,
+                maximumInput: original_config.maximumInput,
+                maximumIORatio: lowered_max_io_ratio.get_inner(),
+                orders: original_config.orders.clone(),
+                data: original_config.data.clone(),
+            };
+
+            let modified_calldata_bytes = takeOrders3Call {
+                config: modified_config,
+            }
+            .abi_encode();
+
+            let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+            let taker_balance = U256::from(10).pow(U256::from(22));
+            let token1_contract = setup
+                .local_evm
+                .tokens
+                .iter()
+                .find(|t| *t.address() == setup.token1)
+                .unwrap();
+
+            token1_contract
+                .transfer(taker, taker_balance)
+                .from(setup.owner)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+
+            token1_contract
+                .approve(setup.orderbook, taker_balance)
+                .from(taker)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+
+            let tx = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(modified_calldata_bytes.clone())
+                    .with_to(setup.orderbook)
+                    .with_from(taker),
+            );
+
+            let call_result = setup.local_evm.call(tx.clone()).await;
+            assert!(
+                call_result.is_ok(),
+                "Partial mode with lowered maximumIORatio should not revert, got: {:?}",
+                call_result
+            );
+
+            let token2_contract = setup
+                .local_evm
+                .tokens
+                .iter()
+                .find(|t| *t.address() == setup.token2)
+                .unwrap();
+
+            let taker_token2_before: U256 = token2_contract.balanceOf(taker).call().await.unwrap();
+
+            let tx_result = setup.local_evm.send_transaction(tx).await;
+            assert!(
+                tx_result.is_ok(),
+                "Transaction should succeed, got: {:?}",
+                tx_result
+            );
+
+            let taker_token2_after: U256 = token2_contract.balanceOf(taker).call().await.unwrap();
+
+            let received = taker_token2_after - taker_token2_before;
+            let expected_from_cheap_only =
+                Float::from_fixed_decimal(U256::from(50) * U256::from(10).pow(U256::from(18)), 18)
+                    .unwrap();
+
+            let received_float = Float::from_fixed_decimal(received, 18).unwrap();
+            assert!(
+                received_float.lte(expected_from_cheap_only).unwrap(),
+                "Should only receive from cheap order (max 50), got: {:?}",
+                received_float.format()
+            );
+
+            assert!(
+                received > U256::ZERO,
+                "Should have received some tokens from cheap order"
+            );
+
+            let exact_config = TakeOrdersConfigV4 {
+                minimumInput: original_config.maximumInput,
+                maximumInput: original_config.maximumInput,
+                maximumIORatio: lowered_max_io_ratio.get_inner(),
+                orders: original_config.orders.clone(),
+                data: original_config.data.clone(),
+            };
+
+            let exact_calldata_bytes = takeOrders3Call {
+                config: exact_config,
+            }
+            .abi_encode();
+
+            let exact_tx = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(exact_calldata_bytes)
+                    .with_to(setup.orderbook)
+                    .with_from(taker),
+            );
+
+            let exact_call_result = setup.local_evm.call(exact_tx).await;
+            assert!(
+                exact_call_result.is_err(),
+                "Exact mode should revert when expensive leg is skipped due to maximumIORatio, got: {:?}",
+                exact_call_result
+            );
+
+            let error_str = format!("{:?}", exact_call_result.unwrap_err());
+            assert!(
+                error_str.contains("MinimumInput") || error_str.contains("execution reverted"),
+                "Error should indicate MinimumInput revert because expected buy cannot be met, got: {}",
+                error_str
+            );
+        }
+
+        #[tokio::test]
+        async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
+            use alloy::network::TransactionBuilder;
+            use alloy::rpc::types::TransactionRequest;
+            use alloy::serde::WithOtherFields;
+            use rain_orderbook_bindings::IOrderBookV5::TakeOrdersConfigV4;
+
+            let setup = setup_local_evm_test().await;
+
+            let vault_id_1 = B256::from(U256::from(1u64));
+            let vault_id_2 = B256::from(U256::from(2u64));
+
+            let amount = standard_deposit_amount();
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id_1)
+                .await;
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id_2)
+                .await;
+
+            let dotrain_cheap =
+                create_dotrain_config_with_vault_and_ratio(&setup, "0x01", "50", "1");
+            let dotrain_expensive =
+                create_dotrain_config_with_vault_and_ratio(&setup, "0x02", "50", "2");
+
+            let (order_bytes_cheap, order_hash_cheap) = deploy_order(&setup, dotrain_cheap).await;
+            let (order_bytes_expensive, order_hash_expensive) =
+                deploy_order(&setup, dotrain_expensive.clone()).await;
+
+            let vault1 = create_vault(vault_id_1, &setup, &setup.token2_sg);
+            let vault2 = create_vault(vault_id_2, &setup, &setup.token2_sg);
+            let input_vault = create_vault(vault_id_1, &setup, &setup.token1_sg);
+
+            let sg_order_cheap = create_sg_order_json(
+                &setup,
+                &order_bytes_cheap,
+                order_hash_cheap,
+                vec![input_vault.clone()],
+                vec![vault1.clone()],
+            );
+            let sg_order_expensive = create_sg_order_json(
+                &setup,
+                &order_bytes_expensive,
+                order_hash_expensive,
+                vec![input_vault.clone()],
+                vec![vault2.clone()],
+            );
+
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [sg_order_cheap, sg_order_expensive]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let result = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "200".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Should build calldata with both orders");
+
+            let decoded =
+                takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+            let original_config = decoded.config;
+
+            let worst_ratio = Float::parse("2".to_string()).unwrap();
+            assert_eq!(
+                original_config.maximumIORatio,
+                worst_ratio.get_inner(),
+                "maximumIORatio should equal worst simulated price (2)"
+            );
+
+            let withdraw_amount = Float::from_fixed_decimal(amount, 18).unwrap().get_inner();
+
+            let withdraw_tx = setup
+                .local_evm
+                .orderbook
+                .withdraw3(setup.token2, vault_id_2, withdraw_amount, vec![])
+                .from(setup.owner)
+                .into_transaction_request();
+            setup
+                .local_evm
+                .send_transaction(withdraw_tx)
+                .await
+                .expect("Withdraw should succeed");
+
+            let vault_id_3 = B256::from(U256::from(3u64));
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id_3)
+                .await;
+
+            let dotrain_worsened =
+                create_dotrain_config_with_vault_and_ratio(&setup, "0x03", "50", "3");
+            let (_, _) = deploy_order(&setup, dotrain_worsened).await;
+
+            let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+            let taker_balance = U256::from(10).pow(U256::from(22));
+            let token1_contract = setup
+                .local_evm
+                .tokens
+                .iter()
+                .find(|t| *t.address() == setup.token1)
+                .unwrap();
+
+            token1_contract
+                .transfer(taker, taker_balance)
+                .from(setup.owner)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+
+            token1_contract
+                .approve(setup.orderbook, taker_balance)
+                .from(taker)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+
+            let tx = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(result.calldata.to_vec())
+                    .with_to(setup.orderbook)
+                    .with_from(taker),
+            );
+
+            let token2_contract = setup
+                .local_evm
+                .tokens
+                .iter()
+                .find(|t| *t.address() == setup.token2)
+                .unwrap();
+
+            let taker_token2_before: U256 = token2_contract.balanceOf(taker).call().await.unwrap();
+
+            let tx_result = setup.local_evm.send_transaction(tx).await;
+            assert!(
+                tx_result.is_ok(),
+                "Transaction with original calldata should succeed, got: {:?}",
+                tx_result
+            );
+
+            let taker_token2_after: U256 = token2_contract.balanceOf(taker).call().await.unwrap();
+
+            let received = taker_token2_after - taker_token2_before;
+            let expected_from_cheap_only =
+                Float::from_fixed_decimal(U256::from(50) * U256::from(10).pow(U256::from(18)), 18)
+                    .unwrap();
+
+            let received_float = Float::from_fixed_decimal(received, 18).unwrap();
+            assert!(
+                received_float.lte(expected_from_cheap_only).unwrap(),
+                "Should only receive from cheap order since expensive order's vault was emptied, got: {:?}",
+                received_float.format()
+            );
+
+            assert!(
+                received > U256::ZERO,
+                "Should have received tokens from cheap order"
+            );
+
+            let exact_config = TakeOrdersConfigV4 {
+                minimumInput: original_config.maximumInput,
+                maximumInput: original_config.maximumInput,
+                maximumIORatio: original_config.maximumIORatio,
+                orders: original_config.orders.clone(),
+                data: original_config.data.clone(),
+            };
+
+            let exact_calldata_bytes = takeOrders3Call {
+                config: exact_config,
+            }
+            .abi_encode();
+
+            let exact_tx = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(exact_calldata_bytes)
+                    .with_to(setup.orderbook)
+                    .with_from(taker),
+            );
+
+            let exact_call_result = setup.local_evm.call(exact_tx).await;
+            assert!(
+                exact_call_result.is_err(),
+                "Exact mode should revert when simulated buy cannot be achieved after vault emptied, got: {:?}",
+                exact_call_result
+            );
+        }
     }
 }
