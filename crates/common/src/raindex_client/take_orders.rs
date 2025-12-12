@@ -234,11 +234,24 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
         use super::super::select_best_orderbook_simulation;
+        use crate::add_order::AddOrderArgs;
+        use crate::dotrain_order::DotrainOrder;
+        use crate::raindex_client::tests::get_test_yaml;
+        use crate::raindex_client::RaindexClient;
         use crate::raindex_client::RaindexError;
-        use crate::take_orders::TakeOrderCandidate;
-        use alloy::primitives::{Address, U256};
+        use crate::take_orders::{MinReceiveMode, TakeOrderCandidate};
+        use alloy::hex::encode_prefixed;
+        use alloy::primitives::{Address, B256, U256};
+        use alloy::sol_types::{SolCall, SolValue};
+        use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
+        use rain_orderbook_app_settings::spec_version::SpecVersion;
+        use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, EvaluableV4, OrderV4, IOV2};
+        use rain_orderbook_subgraph_client::types::common::{
+            SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
+        };
+        use rain_orderbook_test_fixtures::LocalEvm;
+        use serde_json::json;
 
         fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
             OrderV4 {
@@ -385,6 +398,641 @@ mod tests {
             assert_eq!(winner, ob_valid);
             assert!(!sim.legs.is_empty());
             assert!(sim.total_buy_amount.gt(Float::zero().unwrap()).unwrap());
+        }
+
+        fn get_minimal_yaml_for_chain(
+            chain_id: u32,
+            rpc_url: &str,
+            sg_url: &str,
+            orderbook_address: &str,
+        ) -> String {
+            format!(
+                r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: {chain_id}
+        network-id: {chain_id}
+        currency: ETH
+subgraphs:
+    test-sg: {sg_url}
+metaboards:
+    test-mb: http://localhost:0/notused
+orderbooks:
+    test-orderbook:
+        address: {orderbook_address}
+        network: test-network
+        subgraph: test-sg
+        local-db-remote: remote
+        deployment-block: 0
+deployers:
+    test-deployer:
+        network: test-network
+        address: 0x1111111111111111111111111111111111111111
+tokens:
+    test-token:
+        network: test-network
+        address: 0x2222222222222222222222222222222222222222
+        decimals: 18
+        label: TestToken
+        symbol: TST
+"#,
+                spec_version = SpecVersion::current(),
+                chain_id = chain_id,
+                rpc_url = rpc_url,
+                sg_url = sg_url,
+                orderbook_address = orderbook_address,
+            )
+        }
+
+        #[tokio::test]
+        async fn test_get_take_orders_calldata_no_orders_returns_no_liquidity() {
+            let sg_server = MockServer::start_async().await;
+
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": []
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": []
+                    }
+                }));
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    "http://localhost:0/unused_rpc1",
+                    "http://localhost:0/unused_rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let res = client
+                .get_take_orders_calldata(
+                    1,
+                    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                    "1".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await;
+
+            assert!(
+                matches!(res, Err(RaindexError::NoLiquidity)),
+                "Expected NoLiquidity error when subgraph returns empty orders, got: {:?}",
+                res
+            );
+        }
+
+        struct TestSetup {
+            local_evm: LocalEvm,
+            owner: Address,
+            token1: Address,
+            token2: Address,
+            token1_sg: SgErc20,
+            token2_sg: SgErc20,
+            orderbook: Address,
+        }
+
+        async fn setup_local_evm_test() -> TestSetup {
+            let mut local_evm = LocalEvm::new().await;
+            let owner = local_evm.signer_wallets[0].default_signer().address();
+
+            let token1 = local_evm
+                .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
+                .await;
+            let token2 = local_evm
+                .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
+                .await;
+            let orderbook = *local_evm.orderbook.address();
+
+            TestSetup {
+                token1: *token1.address(),
+                token2: *token2.address(),
+                token1_sg: SgErc20 {
+                    id: SgBytes(token1.address().to_string()),
+                    address: SgBytes(token1.address().to_string()),
+                    name: Some("Token1".to_string()),
+                    symbol: Some("Token1".to_string()),
+                    decimals: Some(SgBigInt(18.to_string())),
+                },
+                token2_sg: SgErc20 {
+                    id: SgBytes(token2.address().to_string()),
+                    address: SgBytes(token2.address().to_string()),
+                    name: Some("Token2".to_string()),
+                    symbol: Some("Token2".to_string()),
+                    decimals: Some(SgBigInt(18.to_string())),
+                },
+                local_evm,
+                owner,
+                orderbook,
+            }
+        }
+
+        fn create_dotrain_config(setup: &TestSetup, max_output: &str, ratio: &str) -> String {
+            format!(
+                r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    test-deployer:
+        network: test-network
+        address: {deployer}
+tokens:
+    t1:
+        network: test-network
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t2:
+        network: test-network
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+orderbook:
+    test-orderbook:
+        address: {orderbook}
+orders:
+    test-order:
+        inputs:
+            - token: t1
+            - token: t2
+        outputs:
+            - token: t1
+              vault-id: 0x01
+            - token: t2
+              vault-id: 0x01
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            max-amount: 1000
+deployments:
+    test-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#max-amount !Max output amount
+#calculate-io
+amount price: {max_output} {ratio};
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+                rpc_url = setup.local_evm.url(),
+                orderbook = setup.orderbook,
+                deployer = setup.local_evm.deployer.address(),
+                token1 = setup.token1,
+                token2 = setup.token2,
+                spec_version = SpecVersion::current(),
+                max_output = max_output,
+                ratio = ratio,
+            )
+        }
+
+        async fn deploy_order(setup: &TestSetup, dotrain: String) -> (String, B256) {
+            let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
+            let deployment = dotrain_order
+                .dotrain_yaml()
+                .get_deployment("test-deployment")
+                .unwrap();
+            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+                .await
+                .unwrap()
+                .try_into_call(vec![setup.local_evm.url()])
+                .await
+                .unwrap()
+                .abi_encode();
+
+            let (event, _) = setup.local_evm.add_order(&calldata, setup.owner).await;
+            let order_bytes = encode_prefixed(event.order.abi_encode());
+            let order_hash = B256::from(event.orderHash);
+            (order_bytes, order_hash)
+        }
+
+        fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
+            SgVault {
+                id: SgBytes(vault_id.to_string()),
+                token: token.clone(),
+                balance: SgBytes(Float::parse("6".to_string()).unwrap().as_hex()),
+                vault_id: SgBytes(vault_id.to_string()),
+                owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
+                orderbook: SgOrderbook {
+                    id: SgBytes(setup.orderbook.to_string()),
+                },
+                orders_as_input: vec![],
+                orders_as_output: vec![],
+                balance_changes: vec![],
+            }
+        }
+
+        fn create_sg_order_json(
+            setup: &TestSetup,
+            order_bytes: &str,
+            order_hash: B256,
+            inputs: Vec<SgVault>,
+            outputs: Vec<SgVault>,
+        ) -> serde_json::Value {
+            let inputs_json: Vec<serde_json::Value> = inputs
+                .iter()
+                .map(|v| {
+                    json!({
+                        "id": v.id.0,
+                        "owner": v.owner.0,
+                        "vaultId": v.vault_id.0,
+                        "balance": v.balance.0,
+                        "token": {
+                            "id": v.token.id.0,
+                            "address": v.token.address.0,
+                            "name": v.token.name.clone().unwrap_or_default(),
+                            "symbol": v.token.symbol.clone().unwrap_or_default(),
+                            "decimals": v.token.decimals.clone().map(|d| d.0).unwrap_or_default()
+                        },
+                        "orderbook": { "id": v.orderbook.id.0 },
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
+                    })
+                })
+                .collect();
+
+            let outputs_json: Vec<serde_json::Value> = outputs
+                .iter()
+                .map(|v| {
+                    json!({
+                        "id": v.id.0,
+                        "owner": v.owner.0,
+                        "vaultId": v.vault_id.0,
+                        "balance": v.balance.0,
+                        "token": {
+                            "id": v.token.id.0,
+                            "address": v.token.address.0,
+                            "name": v.token.name.clone().unwrap_or_default(),
+                            "symbol": v.token.symbol.clone().unwrap_or_default(),
+                            "decimals": v.token.decimals.clone().map(|d| d.0).unwrap_or_default()
+                        },
+                        "orderbook": { "id": v.orderbook.id.0 },
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
+                    })
+                })
+                .collect();
+
+            json!({
+                "id": order_hash.to_string(),
+                "orderBytes": order_bytes,
+                "orderHash": order_hash.to_string(),
+                "owner": setup.owner.to_string(),
+                "outputs": outputs_json,
+                "inputs": inputs_json,
+                "orderbook": { "id": setup.orderbook.to_string() },
+                "active": true,
+                "timestampAdded": "1739448802",
+                "meta": null,
+                "addEvents": [{
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                        "from": setup.owner.to_string(),
+                        "blockNumber": "1",
+                        "timestamp": "1739448802"
+                    }
+                }],
+                "trades": [],
+                "removeEvents": []
+            })
+        }
+
+        fn standard_deposit_amount() -> U256 {
+            U256::from(10).pow(U256::from(20))
+        }
+
+        async fn fund_standard_two_token_vault(setup: &TestSetup, vault_id: B256) {
+            let amount = standard_deposit_amount();
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token1, amount, 18, vault_id)
+                .await;
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id)
+                .await;
+        }
+
+        #[tokio::test]
+        async fn test_get_take_orders_calldata_no_candidates_returns_no_liquidity() {
+            let setup = setup_local_evm_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id = B256::from(U256::from(1u64));
+            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+            let dotrain = create_dotrain_config(&setup, "100", "2");
+            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+            let order_json = create_sg_order_json(
+                &setup,
+                &order_bytes,
+                order_hash,
+                vec![vault1.clone(), vault2.clone()],
+                vec![vault1.clone(), vault2.clone()],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [order_json]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let res = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "10".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await;
+
+            assert!(
+                matches!(res, Err(RaindexError::NoLiquidity)),
+                "Expected NoLiquidity error when no candidates (no vault balance), got: {:?}",
+                res
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
+            let setup = setup_local_evm_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id = B256::from(U256::from(1u64));
+            fund_standard_two_token_vault(&setup, vault_id).await;
+
+            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+            let dotrain = create_dotrain_config(&setup, "100", "2");
+            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+            let order_json = create_sg_order_json(
+                &setup,
+                &order_bytes,
+                order_hash,
+                vec![vault1.clone(), vault2.clone()],
+                vec![vault1.clone(), vault2.clone()],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [order_json]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let result = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "10".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Should succeed with funded vault and valid order");
+
+            assert_eq!(
+                result.orderbook, setup.orderbook,
+                "Orderbook address should match"
+            );
+
+            let decoded =
+                takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+            let config = decoded.config;
+
+            assert!(
+                !config.orders.is_empty(),
+                "Should have at least one order in config"
+            );
+
+            assert_eq!(
+                config.minimumInput,
+                Float::zero().unwrap().get_inner(),
+                "minimumInput should be zero for Partial mode"
+            );
+
+            assert!(
+                !result.prices.is_empty(),
+                "Should have at least one price in result"
+            );
+
+            let expected_ratio = Float::parse("2".to_string()).unwrap();
+            assert!(
+                result.prices[0].eq(expected_ratio).unwrap(),
+                "Price should match expected ratio of 2, got: {:?}",
+                result.prices[0].format()
+            );
+
+            let zero = Float::zero().unwrap();
+            assert!(
+                result.effective_price.gt(zero).unwrap(),
+                "Effective price should be > 0"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
+            let setup = setup_local_evm_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id = B256::from(U256::from(1u64));
+            fund_standard_two_token_vault(&setup, vault_id).await;
+
+            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+            let dotrain = create_dotrain_config(&setup, "100", "2");
+            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+            let order_json = create_sg_order_json(
+                &setup,
+                &order_bytes,
+                order_hash,
+                vec![vault1.clone(), vault2.clone()],
+                vec![vault1.clone(), vault2.clone()],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [order_json]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let result_partial = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "10".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Partial mode should succeed");
+
+            let result_exact = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "10".to_string(),
+                    MinReceiveMode::Exact,
+                )
+                .await
+                .expect("Exact mode should succeed");
+
+            let decoded_partial = takeOrders3Call::abi_decode(&result_partial.calldata)
+                .expect("Should decode partial calldata");
+            let config_partial = decoded_partial.config;
+
+            let decoded_exact = takeOrders3Call::abi_decode(&result_exact.calldata)
+                .expect("Should decode exact calldata");
+            let config_exact = decoded_exact.config;
+
+            assert_eq!(
+                config_partial.maximumInput, config_exact.maximumInput,
+                "maximumInput should be the same for both modes"
+            );
+
+            assert_eq!(
+                config_partial.minimumInput,
+                Float::zero().unwrap().get_inner(),
+                "minimumInput should be zero for Partial mode"
+            );
+
+            assert_eq!(
+                config_exact.minimumInput, config_exact.maximumInput,
+                "minimumInput should equal maximumInput for Exact mode"
+            );
+
+            assert_eq!(
+                config_partial.maximumIORatio, config_exact.maximumIORatio,
+                "maximumIORatio should be the same for both modes"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_take_orders_calldata_wrong_direction_returns_no_liquidity() {
+            let setup = setup_local_evm_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id = B256::from(U256::from(1u64));
+            fund_standard_two_token_vault(&setup, vault_id).await;
+
+            let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+            let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+            let dotrain = create_dotrain_config(&setup, "100", "2");
+            let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+            let order_json = create_sg_order_json(
+                &setup,
+                &order_bytes,
+                order_hash,
+                vec![vault1.clone(), vault2.clone()],
+                vec![vault1.clone(), vault2.clone()],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [order_json]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let fake_token = "0xcccccccccccccccccccccccccccccccccccccccc";
+            let res = client
+                .get_take_orders_calldata(
+                    123,
+                    fake_token.to_string(),
+                    setup.token2.to_string(),
+                    "10".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await;
+
+            assert!(
+                matches!(res, Err(RaindexError::NoLiquidity)),
+                "Expected NoLiquidity error when using wrong direction/fake token, got: {:?}",
+                res
+            );
         }
     }
 }
