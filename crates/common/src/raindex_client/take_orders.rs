@@ -1,5 +1,6 @@
 use super::orders::{GetOrdersFilters, GetOrdersTokenFilter};
 use super::*;
+use crate::rpc_client::RpcClient;
 use crate::take_orders::{
     build_take_order_candidates_for_pair, build_take_orders_config_from_sell_simulation,
     simulate_sell_over_candidates, MinReceiveMode,
@@ -113,11 +114,15 @@ impl RaindexClient {
             return Err(RaindexError::NoLiquidity);
         }
 
+        let rpc_urls = self.get_rpc_urls_for_chain(chain_id)?;
+        let rpc_client = RpcClient::new_with_urls(rpc_urls)?;
+        let block_number = rpc_client.get_latest_block_number().await?;
+
         let candidates = build_take_order_candidates_for_pair(
             &orders,
             sell_token_addr,
             buy_token_addr,
-            None,
+            Some(block_number),
             None,
         )
         .await?;

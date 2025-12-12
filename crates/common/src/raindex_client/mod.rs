@@ -1,5 +1,6 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
 use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
+use crate::rpc_client::RpcClientError;
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -330,6 +331,8 @@ pub enum RaindexError {
     LocalDbUnsupportedNetwork(u32),
     #[error("No liquidity available for the requested trade")]
     NoLiquidity,
+    #[error(transparent)]
+    RpcClientError(#[from] RpcClientError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -474,6 +477,7 @@ impl RaindexError {
             RaindexError::NoLiquidity => {
                 "No liquidity available for the requested trade. There are no orders matching the token pair or they have insufficient capacity.".to_string()
             }
+            RaindexError::RpcClientError(err) => format!("RPC client error: {err}"),
         }
     }
 }

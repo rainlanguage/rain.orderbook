@@ -1336,7 +1336,6 @@ amount price: 100 2;
     fn test_simulate_exact_in_sell_multiple_candidates_sorted_by_price() {
         let f1_5 = Float::parse("1.5".to_string()).unwrap();
         let f2_75 = Float::parse("2.75".to_string()).unwrap();
-        let f3_25 = Float::parse("3.25".to_string()).unwrap();
         let expensive = make_simulation_candidate(f2_75, f3_25);
         let cheap = make_simulation_candidate(f2_75, f1_5);
         let candidates = vec![expensive, cheap];
@@ -1360,7 +1359,6 @@ amount price: 100 2;
     fn test_simulate_exact_in_sell_multiple_candidates_uses_multiple() {
         let f1_25 = Float::parse("1.25".to_string()).unwrap();
         let f2_5 = Float::parse("2.5".to_string()).unwrap();
-        let f3_75 = Float::parse("3.75".to_string()).unwrap();
         let cheap = make_simulation_candidate(f1_25, f1_25);
         let expensive = make_simulation_candidate(f2_5, f2_5);
         let candidates = vec![expensive, cheap];
