@@ -230,4 +230,161 @@ mod tests {
             assert!(matches!(exact_back, MinReceiveMode::Exact));
         }
     }
+
+    #[cfg(not(target_family = "wasm"))]
+    mod non_wasm_tests {
+        use super::super::select_best_orderbook_simulation;
+        use crate::raindex_client::RaindexError;
+        use crate::take_orders::TakeOrderCandidate;
+        use alloy::primitives::{Address, U256};
+        use rain_math_float::Float;
+        use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
+
+        fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
+            OrderV4 {
+                owner: Address::from([1u8; 20]),
+                nonce: U256::from(1).into(),
+                evaluable: EvaluableV4 {
+                    interpreter: Address::from([2u8; 20]),
+                    store: Address::from([3u8; 20]),
+                    bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+                },
+                validInputs: vec![IOV2 {
+                    token: input_token,
+                    vaultId: U256::from(100).into(),
+                }],
+                validOutputs: vec![IOV2 {
+                    token: output_token,
+                    vaultId: U256::from(200).into(),
+                }],
+            }
+        }
+
+        fn make_candidate(
+            orderbook: Address,
+            max_output: Float,
+            ratio: Float,
+        ) -> TakeOrderCandidate {
+            TakeOrderCandidate {
+                orderbook,
+                order: make_basic_order(Address::from([4u8; 20]), Address::from([5u8; 20])),
+                input_io_index: 0,
+                output_io_index: 0,
+                max_output,
+                ratio,
+            }
+        }
+
+        #[test]
+        fn test_select_best_orderbook_single_orderbook() {
+            let ob1 = Address::from([0x11u8; 20]);
+            let max_output = Float::parse("10".to_string()).unwrap();
+            let ratio = Float::parse("2".to_string()).unwrap();
+            let candidate = make_candidate(ob1, max_output, ratio);
+            let candidates = vec![candidate];
+            let sell_budget = Float::parse("100".to_string()).unwrap();
+
+            let result = select_best_orderbook_simulation(candidates, sell_budget);
+
+            assert!(result.is_ok());
+            let (addr, sim) = result.unwrap();
+            assert_eq!(addr, ob1);
+            assert!(!sim.legs.is_empty());
+            assert!(sim.total_buy_amount.gt(Float::zero().unwrap()).unwrap());
+            assert!(sim.total_sell_amount.gt(Float::zero().unwrap()).unwrap());
+        }
+
+        #[test]
+        fn test_select_best_orderbook_multiple_books_picks_best() {
+            let ob1 = Address::from([0x11u8; 20]);
+            let ob2 = Address::from([0x22u8; 20]);
+
+            let ob1_max_output = Float::parse("5".to_string()).unwrap();
+            let ob1_ratio = Float::parse("1".to_string()).unwrap();
+            let ob1_candidate = make_candidate(ob1, ob1_max_output, ob1_ratio);
+
+            let ob2_max_output = Float::parse("8".to_string()).unwrap();
+            let ob2_ratio = Float::parse("1".to_string()).unwrap();
+            let ob2_candidate = make_candidate(ob2, ob2_max_output, ob2_ratio);
+
+            let candidates = vec![ob1_candidate, ob2_candidate];
+            let sell_budget = Float::parse("100".to_string()).unwrap();
+
+            let result = select_best_orderbook_simulation(candidates, sell_budget);
+
+            assert!(result.is_ok());
+            let (winner, sim) = result.unwrap();
+            assert_eq!(winner, ob2);
+            let expected_buy = Float::parse("8".to_string()).unwrap();
+            assert!(sim.total_buy_amount.eq(expected_buy).unwrap());
+        }
+
+        #[test]
+        fn test_select_best_orderbook_skips_empty_sims() {
+            let ob1 = Address::from([0x11u8; 20]);
+            let ob2 = Address::from([0x22u8; 20]);
+
+            let ob1_max_output = Float::parse("10".to_string()).unwrap();
+            let ob1_ratio = Float::parse("2".to_string()).unwrap();
+            let ob1_candidate = make_candidate(ob1, ob1_max_output, ob1_ratio);
+
+            let ob2_max_output = Float::parse("5".to_string()).unwrap();
+            let ob2_ratio = Float::parse("1".to_string()).unwrap();
+            let ob2_candidate = make_candidate(ob2, ob2_max_output, ob2_ratio);
+
+            let candidates = vec![ob1_candidate, ob2_candidate];
+            let sell_budget = Float::zero().unwrap();
+
+            let result = select_best_orderbook_simulation(candidates, sell_budget);
+
+            assert!(matches!(result, Err(RaindexError::NoLiquidity)));
+        }
+
+        #[test]
+        fn test_select_best_orderbook_all_empty_returns_no_liquidity() {
+            let ob1 = Address::from([0x11u8; 20]);
+            let ob2 = Address::from([0x22u8; 20]);
+
+            let ob1_max_output = Float::parse("10".to_string()).unwrap();
+            let ob1_ratio = Float::parse("2".to_string()).unwrap();
+            let ob1_candidate = make_candidate(ob1, ob1_max_output, ob1_ratio);
+
+            let ob2_max_output = Float::parse("5".to_string()).unwrap();
+            let ob2_ratio = Float::parse("1".to_string()).unwrap();
+            let ob2_candidate = make_candidate(ob2, ob2_max_output, ob2_ratio);
+
+            let candidates = vec![ob1_candidate, ob2_candidate];
+            let sell_budget = Float::zero().unwrap();
+
+            let result = select_best_orderbook_simulation(candidates, sell_budget);
+
+            assert!(result.is_err());
+            assert!(matches!(result, Err(RaindexError::NoLiquidity)));
+        }
+
+        #[test]
+        fn test_select_best_orderbook_skips_empty_picks_valid() {
+            let ob_empty = Address::from([0x11u8; 20]);
+            let ob_valid = Address::from([0x22u8; 20]);
+
+            let empty_max_output = Float::parse("10".to_string()).unwrap();
+            let empty_ratio = Float::parse("1000000".to_string()).unwrap();
+            let empty_candidate = make_candidate(ob_empty, empty_max_output, empty_ratio);
+
+            let valid_max_output = Float::parse("5".to_string()).unwrap();
+            let valid_ratio = Float::parse("1".to_string()).unwrap();
+            let valid_candidate = make_candidate(ob_valid, valid_max_output, valid_ratio);
+
+            let candidates = vec![empty_candidate, valid_candidate];
+            let sell_budget = Float::parse("10".to_string()).unwrap();
+
+            let result = select_best_orderbook_simulation(candidates, sell_budget);
+
+            assert!(result.is_ok());
+            let (winner, sim) = result.unwrap();
+            assert_eq!(winner, ob_valid);
+            assert!(!sim.legs.is_empty());
+            assert!(sim.total_buy_amount.gt(Float::zero().unwrap()).unwrap());
+        }
+    }
 }
