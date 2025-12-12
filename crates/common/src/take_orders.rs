@@ -293,106 +293,33 @@ pub fn build_take_orders_config_from_sell_simulation(
 #[cfg(not(target_family = "wasm"))]
 mod tests {
     use super::*;
-    use crate::add_order::AddOrderArgs;
-    use crate::dotrain_order::DotrainOrder;
-    use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
     use crate::raindex_client::orders::RaindexOrder;
     use crate::raindex_client::RaindexClient;
-    use alloy::hex::encode_prefixed;
+    use crate::test_helpers::candidates::make_simulation_candidate;
+    use crate::test_helpers::dotrain::{
+        create_dotrain_config, create_dotrain_config_with_vault_id,
+    };
+    use crate::test_helpers::local_evm::{
+        create_vault, fund_standard_two_token_vault, setup_test as base_setup_test,
+        standard_deposit_amount, TestSetup as BaseTestSetup,
+    };
+    use crate::test_helpers::orders::{deploy::deploy_order, make_basic_order};
+    use crate::test_helpers::quotes::{make_quote, make_quote_value};
+    use crate::test_helpers::subgraph::create_sg_order;
     use alloy::primitives::{Address, B256, U256};
-    use alloy::sol_types::{SolCall, SolValue};
+    use alloy::sol_types::SolValue;
     use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
-    use rain_orderbook_quote::Pair;
-    use rain_orderbook_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgVault,
-    };
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgErc20, SgVault};
     use std::rc::Rc;
 
-    fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
-        OrderV4 {
-            owner: Address::from([1u8; 20]),
-            nonce: U256::from(1).into(),
-            evaluable: EvaluableV4 {
-                interpreter: Address::from([2u8; 20]),
-                store: Address::from([3u8; 20]),
-                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
-            },
-            validInputs: vec![IOV2 {
-                token: input_token,
-                vaultId: U256::from(100).into(),
-            }],
-            validOutputs: vec![IOV2 {
-                token: output_token,
-                vaultId: U256::from(200).into(),
-            }],
-        }
-    }
-
-    fn make_quote_value(
-        max_output: Float,
-        max_input: Float,
-        ratio: Float,
-    ) -> RaindexOrderQuoteValue {
-        RaindexOrderQuoteValue {
-            max_output,
-            formatted_max_output: max_output.format().unwrap(),
-            max_input,
-            formatted_max_input: max_input.format().unwrap(),
-            ratio,
-            formatted_ratio: ratio.format().unwrap(),
-            inverse_ratio: ratio,
-            formatted_inverse_ratio: ratio.format().unwrap(),
-        }
-    }
-
-    fn make_quote(
-        input_index: u32,
-        output_index: u32,
-        data: Option<RaindexOrderQuoteValue>,
-        success: bool,
-    ) -> RaindexOrderQuote {
-        RaindexOrderQuote {
-            pair: Pair {
-                pair_name: "A/B".to_string(),
-                input_index,
-                output_index,
-            },
-            block_number: 1,
-            data,
-            success,
-            error: if success {
-                None
-            } else {
-                Some("Quote failed".to_string())
-            },
-        }
-    }
-
     struct TestSetup {
-        local_evm: LocalEvm,
-        owner: Address,
-        token1: Address,
-        token2: Address,
-        token1_sg: SgErc20,
-        token2_sg: SgErc20,
-        orderbook: Address,
+        base: BaseTestSetup,
         raindex_client: Rc<RaindexClient>,
     }
 
     async fn setup_test() -> TestSetup {
-        let mut local_evm = LocalEvm::new().await;
-        let owner = local_evm.signer_wallets[0].default_signer().address();
-
-        let token1 = local_evm
-            .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
-            .await;
-        let token2 = local_evm
-            .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
-            .await;
-        let orderbook = *local_evm.orderbook.address();
+        let base = base_setup_test().await;
 
         let yaml = format!(
             r#"
@@ -434,188 +361,19 @@ tokens:
         symbol: TKN2
 "#,
             spec_version = SpecVersion::current(),
-            rpc_url = local_evm.url(),
-            orderbook = orderbook,
-            deployer = local_evm.deployer.address(),
-            token1 = token1.address(),
-            token2 = token2.address(),
+            rpc_url = base.local_evm.url(),
+            orderbook = base.orderbook,
+            deployer = base.local_evm.deployer.address(),
+            token1 = base.token1,
+            token2 = base.token2,
         );
 
         let raindex_client = Rc::new(RaindexClient::new(vec![yaml], None).expect("Valid yaml"));
 
         TestSetup {
-            token1: *token1.address(),
-            token2: *token2.address(),
-            token1_sg: SgErc20 {
-                id: SgBytes(token1.address().to_string()),
-                address: SgBytes(token1.address().to_string()),
-                name: Some("Token1".to_string()),
-                symbol: Some("Token1".to_string()),
-                decimals: Some(SgBigInt(18.to_string())),
-            },
-            token2_sg: SgErc20 {
-                id: SgBytes(token2.address().to_string()),
-                address: SgBytes(token2.address().to_string()),
-                name: Some("Token2".to_string()),
-                symbol: Some("Token2".to_string()),
-                decimals: Some(SgBigInt(18.to_string())),
-            },
-            local_evm,
-            owner,
-            orderbook,
+            base,
             raindex_client,
         }
-    }
-
-    fn create_dotrain_config_with_vault_id(setup: &TestSetup, vault_id: &str) -> String {
-        format!(
-            r#"
-version: {spec_version}
-networks:
-    test-network:
-        rpcs:
-            - {rpc_url}
-        chain-id: 123
-        network-id: 123
-        currency: ETH
-deployers:
-    test-deployer:
-        network: test-network
-        address: {deployer}
-tokens:
-    t1:
-        network: test-network
-        address: {token1}
-        decimals: 18
-        label: Token1
-        symbol: Token1
-    t2:
-        network: test-network
-        address: {token2}
-        decimals: 18
-        label: Token2
-        symbol: Token2
-orderbook:
-    test-orderbook:
-        address: {orderbook}
-orders:
-    test-order:
-        inputs:
-            - token: t1
-            - token: t2
-        outputs:
-            - token: t1
-              vault-id: {vault_id}
-            - token: t2
-              vault-id: {vault_id}
-scenarios:
-    test-scenario:
-        deployer: test-deployer
-        bindings:
-            max-amount: 1000
-deployments:
-    test-deployment:
-        scenario: test-scenario
-        order: test-order
----
-#max-amount !Max output amount
-#calculate-io
-amount price: 100 2;
-#handle-add-order
-:;
-#handle-io
-:;
-"#,
-            rpc_url = setup.local_evm.url(),
-            orderbook = setup.orderbook,
-            deployer = setup.local_evm.deployer.address(),
-            token1 = setup.token1,
-            token2 = setup.token2,
-            spec_version = SpecVersion::current(),
-            vault_id = vault_id,
-        )
-    }
-
-    fn create_dotrain_config(setup: &TestSetup) -> String {
-        create_dotrain_config_with_vault_id(setup, "0x01")
-    }
-
-    async fn deploy_order(setup: &TestSetup, dotrain: String) -> (String, B256) {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
-        let deployment = dotrain_order
-            .dotrain_yaml()
-            .get_deployment("test-deployment")
-            .unwrap();
-        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
-            .await
-            .unwrap()
-            .try_into_call(vec![setup.local_evm.url()])
-            .await
-            .unwrap()
-            .abi_encode();
-
-        let (event, _) = setup.local_evm.add_order(&calldata, setup.owner).await;
-        let order_bytes = encode_prefixed(event.order.abi_encode());
-        let order_hash = B256::from(event.orderHash);
-        (order_bytes, order_hash)
-    }
-
-    fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
-        SgVault {
-            id: SgBytes(vault_id.to_string()),
-            token: token.clone(),
-            balance: SgBytes(Float::parse("6".to_string()).unwrap().as_hex()),
-            vault_id: SgBytes(vault_id.to_string()),
-            owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
-            orderbook: SgOrderbook {
-                id: SgBytes(setup.orderbook.to_string()),
-            },
-            orders_as_input: vec![],
-            orders_as_output: vec![],
-            balance_changes: vec![],
-        }
-    }
-
-    fn create_sg_order(
-        setup: &TestSetup,
-        order_bytes: String,
-        order_hash: B256,
-        inputs: Vec<SgVault>,
-        outputs: Vec<SgVault>,
-    ) -> SgOrder {
-        SgOrder {
-            id: SgBytes(order_hash.to_string()),
-            orderbook: SgOrderbook {
-                id: SgBytes(setup.orderbook.to_string()),
-            },
-            order_bytes: SgBytes(order_bytes),
-            order_hash: SgBytes(order_hash.to_string()),
-            owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
-            outputs,
-            inputs,
-            active: true,
-            add_events: vec![],
-            meta: None,
-            timestamp_added: SgBigInt(0.to_string()),
-            trades: vec![],
-            remove_events: vec![],
-        }
-    }
-
-    fn standard_deposit_amount() -> U256 {
-        U256::from(10).pow(U256::from(20))
-    }
-
-    async fn fund_standard_two_token_vault(setup: &TestSetup, vault_id: B256) {
-        let amount = standard_deposit_amount();
-        setup
-            .local_evm
-            .deposit(setup.owner, setup.token1, amount, 18, vault_id)
-            .await;
-        setup
-            .local_evm
-            .deposit(setup.owner, setup.token2, amount, 18, vault_id)
-            .await;
     }
 
     async fn make_raindex_order(
@@ -624,8 +382,8 @@ amount price: 100 2;
         inputs: Vec<SgVault>,
         outputs: Vec<SgVault>,
     ) -> RaindexOrder {
-        let (order_bytes, order_hash) = deploy_order(setup, dotrain).await;
-        let sg_order = create_sg_order(setup, order_bytes, order_hash, inputs, outputs);
+        let (order_bytes, order_hash) = deploy_order(&setup.base, dotrain).await;
+        let sg_order = create_sg_order(&setup.base, order_bytes, order_hash, inputs, outputs);
         RaindexOrder::try_from_sg_order(Rc::clone(&setup.raindex_client), 123, sg_order, None)
             .expect("Should create RaindexOrder")
     }
@@ -743,20 +501,20 @@ amount price: 100 2;
         let setup = setup_test().await;
 
         let vault_id = B256::from(U256::from(1u64));
-        fund_standard_two_token_vault(&setup, vault_id).await;
+        fund_standard_two_token_vault(&setup.base, vault_id).await;
 
-        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let vault1 = create_vault(vault_id, &setup.base, &setup.base.token1_sg);
+        let vault2 = create_vault(vault_id, &setup.base, &setup.base.token2_sg);
         let inputs = vec![vault1.clone(), vault2.clone()];
         let outputs = vec![vault1.clone(), vault2.clone()];
 
         let raindex_order =
-            make_raindex_order(&setup, create_dotrain_config(&setup), inputs, outputs).await;
+            make_raindex_order(&setup, create_dotrain_config(&setup.base), inputs, outputs).await;
 
         let candidates = build_take_order_candidates_for_pair(
             std::slice::from_ref(&raindex_order),
-            setup.token1,
-            setup.token2,
+            setup.base.token1,
+            setup.base.token2,
             None,
             None,
         )
@@ -781,21 +539,21 @@ amount price: 100 2;
         let setup = setup_test().await;
 
         let vault_id = B256::from(U256::from(1u64));
-        fund_standard_two_token_vault(&setup, vault_id).await;
+        fund_standard_two_token_vault(&setup.base, vault_id).await;
 
-        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let vault1 = create_vault(vault_id, &setup.base, &setup.base.token1_sg);
+        let vault2 = create_vault(vault_id, &setup.base, &setup.base.token2_sg);
         let inputs = vec![vault1.clone(), vault2.clone()];
         let outputs = vec![vault1.clone(), vault2.clone()];
 
         let raindex_order =
-            make_raindex_order(&setup, create_dotrain_config(&setup), inputs, outputs).await;
+            make_raindex_order(&setup, create_dotrain_config(&setup.base), inputs, outputs).await;
 
         let fake_token = Address::from([0xABu8; 20]);
         let candidates = build_take_order_candidates_for_pair(
             &[raindex_order],
             fake_token,
-            setup.token2,
+            setup.base.token2,
             None,
             None,
         )
@@ -814,18 +572,18 @@ amount price: 100 2;
         let setup = setup_test().await;
 
         let vault_id = B256::from(U256::from(1u64));
-        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let vault1 = create_vault(vault_id, &setup.base, &setup.base.token1_sg);
+        let vault2 = create_vault(vault_id, &setup.base, &setup.base.token2_sg);
         let inputs = vec![vault1.clone(), vault2.clone()];
         let outputs = vec![vault1.clone(), vault2.clone()];
 
         let raindex_order =
-            make_raindex_order(&setup, create_dotrain_config(&setup), inputs, outputs).await;
+            make_raindex_order(&setup, create_dotrain_config(&setup.base), inputs, outputs).await;
 
         let candidates = build_take_order_candidates_for_pair(
             &[raindex_order],
-            setup.token1,
-            setup.token2,
+            setup.base.token1,
+            setup.base.token2,
             None,
             None,
         )
@@ -844,22 +602,22 @@ amount price: 100 2;
         let setup = setup_test().await;
 
         let vault_id = B256::from(U256::from(1u64));
-        fund_standard_two_token_vault(&setup, vault_id).await;
+        fund_standard_two_token_vault(&setup.base, vault_id).await;
 
-        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let vault1 = create_vault(vault_id, &setup.base, &setup.base.token1_sg);
+        let vault2 = create_vault(vault_id, &setup.base, &setup.base.token2_sg);
         let inputs = vec![vault1.clone(), vault2.clone()];
         let outputs = vec![vault1.clone(), vault2.clone()];
 
-        let dotrain = create_dotrain_config(&setup);
+        let dotrain = create_dotrain_config(&setup.base);
         let raindex_order1 =
             make_raindex_order(&setup, dotrain.clone(), inputs.clone(), outputs.clone()).await;
         let raindex_order2 = make_raindex_order(&setup, dotrain, inputs, outputs).await;
 
         let candidates = build_take_order_candidates_for_pair(
             &[raindex_order1, raindex_order2],
-            setup.token1,
-            setup.token2,
+            setup.base.token1,
+            setup.base.token2,
             None,
             None,
         )
@@ -880,19 +638,21 @@ amount price: 100 2;
         let vault_id_with_balance = B256::from(U256::from(1u64));
         let vault_id_empty = B256::from(U256::from(2u64));
 
-        fund_standard_two_token_vault(&setup, vault_id_with_balance).await;
+        fund_standard_two_token_vault(&setup.base, vault_id_with_balance).await;
 
-        let vault1_with_balance = create_vault(vault_id_with_balance, &setup, &setup.token1_sg);
-        let vault2_with_balance = create_vault(vault_id_with_balance, &setup, &setup.token2_sg);
+        let vault1_with_balance =
+            create_vault(vault_id_with_balance, &setup.base, &setup.base.token1_sg);
+        let vault2_with_balance =
+            create_vault(vault_id_with_balance, &setup.base, &setup.base.token2_sg);
 
-        let mut vault1_empty = create_vault(vault_id_empty, &setup, &setup.token1_sg);
+        let mut vault1_empty = create_vault(vault_id_empty, &setup.base, &setup.base.token1_sg);
         vault1_empty.balance = SgBytes(Float::zero().unwrap().as_hex());
-        let mut vault2_empty = create_vault(vault_id_empty, &setup, &setup.token2_sg);
+        let mut vault2_empty = create_vault(vault_id_empty, &setup.base, &setup.base.token2_sg);
         vault2_empty.balance = SgBytes(Float::zero().unwrap().as_hex());
 
         let raindex_order1 = make_raindex_order(
             &setup,
-            create_dotrain_config_with_vault_id(&setup, "0x01"),
+            create_dotrain_config_with_vault_id(&setup.base, "0x01"),
             vec![vault1_with_balance.clone(), vault2_with_balance.clone()],
             vec![vault1_with_balance.clone(), vault2_with_balance.clone()],
         )
@@ -900,7 +660,7 @@ amount price: 100 2;
 
         let raindex_order2 = make_raindex_order(
             &setup,
-            create_dotrain_config_with_vault_id(&setup, "0x02"),
+            create_dotrain_config_with_vault_id(&setup.base, "0x02"),
             vec![vault1_empty.clone(), vault2_empty.clone()],
             vec![vault1_empty.clone(), vault2_empty.clone()],
         )
@@ -910,8 +670,8 @@ amount price: 100 2;
 
         let candidates = build_take_order_candidates_for_pair(
             &[raindex_order1, raindex_order2],
-            setup.token1,
-            setup.token2,
+            setup.base.token1,
+            setup.base.token2,
             None,
             None,
         )
@@ -941,15 +701,15 @@ amount price: 100 2;
         let setup = setup_test().await;
 
         let vault_id = B256::from(U256::from(1u64));
-        fund_standard_two_token_vault(&setup, vault_id).await;
+        fund_standard_two_token_vault(&setup.base, vault_id).await;
 
-        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+        let vault1 = create_vault(vault_id, &setup.base, &setup.base.token1_sg);
+        let vault2 = create_vault(vault_id, &setup.base, &setup.base.token2_sg);
         let inputs = vec![vault1.clone(), vault2.clone()];
         let outputs = vec![vault1.clone(), vault2.clone()];
 
         let raindex_order =
-            make_raindex_order(&setup, create_dotrain_config(&setup), inputs, outputs).await;
+            make_raindex_order(&setup, create_dotrain_config(&setup.base), inputs, outputs).await;
 
         let quotes = raindex_order
             .get_quotes(None, None)
@@ -975,8 +735,8 @@ amount price: 100 2;
 
         let candidates = build_take_order_candidates_for_pair(
             std::slice::from_ref(&raindex_order),
-            setup.token1,
-            setup.token2,
+            setup.base.token1,
+            setup.base.token2,
             None,
             None,
         )
@@ -1018,8 +778,9 @@ amount price: 100 2;
         let mut setup = setup_test().await;
 
         let token3 = setup
+            .base
             .local_evm
-            .deploy_new_token("Token3", "Token3", 18, U256::MAX, setup.owner)
+            .deploy_new_token("Token3", "Token3", 18, U256::MAX, setup.base.owner)
             .await;
         let token3_sg = SgErc20 {
             id: SgBytes(token3.address().to_string()),
@@ -1031,19 +792,20 @@ amount price: 100 2;
 
         let vault_id = B256::from(U256::from(1u64));
         let amount = standard_deposit_amount();
-        fund_standard_two_token_vault(&setup, vault_id).await;
+        fund_standard_two_token_vault(&setup.base, vault_id).await;
         setup
+            .base
             .local_evm
-            .deposit(setup.owner, *token3.address(), amount, 18, vault_id)
+            .deposit(setup.base.owner, *token3.address(), amount, 18, vault_id)
             .await;
 
-        let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
-        let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
-        let vault3 = create_vault(vault_id, &setup, &token3_sg);
+        let vault1 = create_vault(vault_id, &setup.base, &setup.base.token1_sg);
+        let vault2 = create_vault(vault_id, &setup.base, &setup.base.token2_sg);
+        let vault3 = create_vault(vault_id, &setup.base, &token3_sg);
 
         let raindex_order_a = make_raindex_order(
             &setup,
-            create_dotrain_config(&setup),
+            create_dotrain_config(&setup.base),
             vec![vault1.clone(), vault2.clone()],
             vec![vault1.clone(), vault2.clone()],
         )
@@ -1104,10 +866,10 @@ amount price: 100 2;
 #handle-io
 :;
 "#,
-            rpc_url = setup.local_evm.url(),
-            orderbook = setup.orderbook,
-            deployer = setup.local_evm.deployer.address(),
-            token1 = setup.token1,
+            rpc_url = setup.base.local_evm.url(),
+            orderbook = setup.base.orderbook,
+            deployer = setup.base.local_evm.deployer.address(),
+            token1 = setup.base.token1,
             token3 = token3.address(),
             spec_version = SpecVersion::current(),
         );
@@ -1124,8 +886,8 @@ amount price: 100 2;
 
         let candidates = build_take_order_candidates_for_pair(
             &[raindex_order_a, raindex_order_b],
-            setup.token1,
-            setup.token2,
+            setup.base.token1,
+            setup.base.token2,
             None,
             None,
         )
@@ -1153,8 +915,8 @@ amount price: 100 2;
         let vault_id_1 = B256::from(U256::from(1u64));
         let vault_id_2 = B256::from(U256::from(2u64));
 
-        fund_standard_two_token_vault(&setup, vault_id_1).await;
-        fund_standard_two_token_vault(&setup, vault_id_2).await;
+        fund_standard_two_token_vault(&setup.base, vault_id_1).await;
+        fund_standard_two_token_vault(&setup.base, vault_id_2).await;
 
         let dotrain_multi_io = format!(
             r#"
@@ -1216,18 +978,18 @@ amount price: 100 2;
 #handle-io
 :;
 "#,
-            rpc_url = setup.local_evm.url(),
-            orderbook = setup.orderbook,
-            deployer = setup.local_evm.deployer.address(),
-            token1 = setup.token1,
-            token2 = setup.token2,
+            rpc_url = setup.base.local_evm.url(),
+            orderbook = setup.base.orderbook,
+            deployer = setup.base.local_evm.deployer.address(),
+            token1 = setup.base.token1,
+            token2 = setup.base.token2,
             spec_version = SpecVersion::current(),
         );
 
-        let vault1_t1 = create_vault(vault_id_1, &setup, &setup.token1_sg);
-        let vault1_t2 = create_vault(vault_id_1, &setup, &setup.token2_sg);
-        let vault2_t1 = create_vault(vault_id_2, &setup, &setup.token1_sg);
-        let vault2_t2 = create_vault(vault_id_2, &setup, &setup.token2_sg);
+        let vault1_t1 = create_vault(vault_id_1, &setup.base, &setup.base.token1_sg);
+        let vault1_t2 = create_vault(vault_id_1, &setup.base, &setup.base.token2_sg);
+        let vault2_t1 = create_vault(vault_id_2, &setup.base, &setup.base.token1_sg);
+        let vault2_t2 = create_vault(vault_id_2, &setup.base, &setup.base.token2_sg);
 
         let inputs = vec![vault1_t1.clone(), vault2_t1.clone()];
         let outputs = vec![vault1_t2.clone(), vault2_t2.clone()];
@@ -1236,8 +998,8 @@ amount price: 100 2;
 
         let candidates = build_take_order_candidates_for_pair(
             std::slice::from_ref(&raindex_order),
-            setup.token1,
-            setup.token2,
+            setup.base.token1,
+            setup.base.token2,
             None,
             None,
         )
@@ -1266,11 +1028,11 @@ amount price: 100 2;
             let order_output_token =
                 candidate.order.validOutputs[candidate.output_io_index as usize].token;
             assert_eq!(
-                order_input_token, setup.token1,
+                order_input_token, setup.base.token1,
                 "Candidate input token should match requested input"
             );
             assert_eq!(
-                order_output_token, setup.token2,
+                order_output_token, setup.base.token2,
                 "Candidate output token should match requested output"
             );
         }
@@ -1291,17 +1053,6 @@ amount price: 100 2;
             result.is_none(),
             "Should return None when quote.data is None even if success is true"
         );
-    }
-
-    fn make_simulation_candidate(max_output: Float, ratio: Float) -> TakeOrderCandidate {
-        TakeOrderCandidate {
-            orderbook: Address::from([0xAAu8; 20]),
-            order: make_basic_order(Address::from([1u8; 20]), Address::from([2u8; 20])),
-            input_io_index: 0,
-            output_io_index: 0,
-            max_output,
-            ratio,
-        }
     }
 
     #[test]
