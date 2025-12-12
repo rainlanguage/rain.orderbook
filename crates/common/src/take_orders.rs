@@ -8,12 +8,24 @@ use rain_orderbook_bindings::IOrderBookV5::{
     OrderV4, SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV4,
 };
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::ops::{Add, Div, Mul, Sub};
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
+
+pub fn cmp_float(a: &Float, b: &Float) -> Result<Ordering, RaindexError> {
+    if a.lt(*b)? {
+        Ok(Ordering::Less)
+    } else if a.gt(*b)? {
+        Ok(Ordering::Greater)
+    } else {
+        Ok(Ordering::Equal)
+    }
+}
 
 /// A candidate for taking an order, representing a specific IO pair direction
 /// with its quote data.
@@ -163,15 +175,22 @@ pub fn simulate_sell_over_candidates(
     mut candidates: Vec<TakeOrderCandidate>,
     sell_budget: Float,
 ) -> Result<SimulatedSellResult, RaindexError> {
+    let comparison_error: RefCell<Option<RaindexError>> = RefCell::new(None);
     candidates.sort_by(|a, b| {
-        if a.ratio.lt(b.ratio).unwrap_or(false) {
-            std::cmp::Ordering::Less
-        } else if a.ratio.gt(b.ratio).unwrap_or(false) {
-            std::cmp::Ordering::Greater
-        } else {
-            std::cmp::Ordering::Equal
+        if comparison_error.borrow().is_some() {
+            return Ordering::Equal;
+        }
+        match cmp_float(&a.ratio, &b.ratio) {
+            Ok(ord) => ord,
+            Err(e) => {
+                *comparison_error.borrow_mut() = Some(e);
+                Ordering::Equal
+            }
         }
     });
+    if let Some(e) = comparison_error.into_inner() {
+        return Err(e);
+    }
 
     let zero = Float::zero()?;
     let mut remaining_sell = sell_budget;
@@ -312,6 +331,27 @@ mod tests {
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_subgraph_client::types::common::{SgBigInt, SgBytes, SgErc20, SgVault};
     use std::rc::Rc;
+
+    #[test]
+    fn test_cmp_float_less() {
+        let a = Float::parse("1".to_string()).unwrap();
+        let b = Float::parse("2".to_string()).unwrap();
+        assert_eq!(cmp_float(&a, &b).unwrap(), Ordering::Less);
+    }
+
+    #[test]
+    fn test_cmp_float_greater() {
+        let a = Float::parse("2".to_string()).unwrap();
+        let b = Float::parse("1".to_string()).unwrap();
+        assert_eq!(cmp_float(&a, &b).unwrap(), Ordering::Greater);
+    }
+
+    #[test]
+    fn test_cmp_float_equal() {
+        let a = Float::parse("1".to_string()).unwrap();
+        let b = Float::parse("1".to_string()).unwrap();
+        assert_eq!(cmp_float(&a, &b).unwrap(), Ordering::Equal);
+    }
 
     struct TestSetup {
         base: BaseTestSetup,

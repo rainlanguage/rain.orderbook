@@ -2,7 +2,7 @@ use super::orders::{GetOrdersFilters, GetOrdersTokenFilter, RaindexOrder};
 use super::*;
 use crate::rpc_client::RpcClient;
 use crate::take_orders::{
-    build_take_order_candidates_for_pair, build_take_orders_config_from_sell_simulation,
+    build_take_order_candidates_for_pair, build_take_orders_config_from_sell_simulation, cmp_float,
     simulate_sell_over_candidates, BuiltTakeOrdersConfig, MinReceiveMode, SimulatedSellResult,
     TakeOrderCandidate,
 };
@@ -54,19 +54,20 @@ async fn build_candidates_for_chain(
     Ok(candidates)
 }
 
-fn worst_price(sim: &SimulatedSellResult) -> Option<Float> {
-    sim.legs
-        .iter()
-        .map(|leg| leg.candidate.ratio)
-        .max_by(|a, b| {
-            if a.gt(*b).unwrap_or(false) {
-                std::cmp::Ordering::Greater
-            } else if a.lt(*b).unwrap_or(false) {
-                std::cmp::Ordering::Less
-            } else {
-                std::cmp::Ordering::Equal
+fn worst_price(sim: &SimulatedSellResult) -> Result<Option<Float>, RaindexError> {
+    let mut max: Option<Float> = None;
+    for leg in &sim.legs {
+        let ratio = leg.candidate.ratio;
+        match &max {
+            None => max = Some(ratio),
+            Some(current_max) => {
+                if cmp_float(&ratio, current_max)? == std::cmp::Ordering::Greater {
+                    max = Some(ratio);
+                }
             }
-        })
+        }
+    }
+    Ok(max)
 }
 
 fn select_best_orderbook_simulation(
@@ -96,18 +97,14 @@ fn select_best_orderbook_simulation(
                 if sim.total_buy_amount.gt(best_sim.total_buy_amount)? {
                     true
                 } else if sim.total_buy_amount.eq(best_sim.total_buy_amount)? {
-                    let sim_worst = worst_price(&sim);
-                    let best_worst = worst_price(best_sim);
+                    let sim_worst = worst_price(&sim)?;
+                    let best_worst = worst_price(best_sim)?;
                     match (sim_worst, best_worst) {
-                        (Some(sw), Some(bw)) => {
-                            if sw.lt(bw)? {
-                                true
-                            } else if sw.eq(bw)? {
-                                orderbook < *best_addr
-                            } else {
-                                false
-                            }
-                        }
+                        (Some(sw), Some(bw)) => match cmp_float(&sw, &bw)? {
+                            std::cmp::Ordering::Less => true,
+                            std::cmp::Ordering::Equal => orderbook < *best_addr,
+                            std::cmp::Ordering::Greater => false,
+                        },
                         _ => orderbook < *best_addr,
                     }
                 } else {
