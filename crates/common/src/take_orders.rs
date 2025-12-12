@@ -1570,4 +1570,85 @@ amount price: 100 2;
             alloy::primitives::U256::from(0)
         );
     }
+
+    #[test]
+    fn test_simulate_multi_leg_partial_fill_second_leg() {
+        let ratio_1 = Float::parse("1".to_string()).unwrap();
+        let ratio_2 = Float::parse("2".to_string()).unwrap();
+        let ratio_3 = Float::parse("3".to_string()).unwrap();
+        let max_output = Float::parse("100".to_string()).unwrap();
+
+        let candidate_cheap = make_simulation_candidate(max_output, ratio_1);
+        let candidate_mid = make_simulation_candidate(max_output, ratio_2);
+        let candidate_expensive = make_simulation_candidate(max_output, ratio_3);
+
+        let candidates = vec![candidate_expensive, candidate_mid, candidate_cheap];
+        let sell_budget = Float::parse("150".to_string()).unwrap();
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert_eq!(result.legs.len(), 2, "Should use exactly 2 legs");
+
+        assert!(
+            result.legs[0].candidate.ratio.eq(ratio_1).unwrap(),
+            "First leg should be cheapest (ratio=1)"
+        );
+        assert!(
+            result.legs[1].candidate.ratio.eq(ratio_2).unwrap(),
+            "Second leg should be mid-price (ratio=2)"
+        );
+
+        let expected_leg1_buy = Float::parse("100".to_string()).unwrap();
+        let expected_leg1_sell = Float::parse("100".to_string()).unwrap();
+        assert!(
+            result.legs[0].buy_amount.eq(expected_leg1_buy).unwrap(),
+            "Leg 1 buy_amount should be 100 (full fill)"
+        );
+        assert!(
+            result.legs[0].sell_amount.eq(expected_leg1_sell).unwrap(),
+            "Leg 1 sell_amount should be 100"
+        );
+
+        let expected_leg2_buy = Float::parse("25".to_string()).unwrap();
+        let expected_leg2_sell = Float::parse("50".to_string()).unwrap();
+        assert!(
+            result.legs[1].buy_amount.eq(expected_leg2_buy).unwrap(),
+            "Leg 2 buy_amount should be 25 (partial: 50 / 2)"
+        );
+        assert!(
+            result.legs[1].sell_amount.eq(expected_leg2_sell).unwrap(),
+            "Leg 2 sell_amount should be 50 (remaining budget)"
+        );
+
+        let expected_total_buy = Float::parse("125".to_string()).unwrap();
+        assert!(
+            result.total_buy_amount.eq(expected_total_buy).unwrap(),
+            "total_buy_amount should be 125 (100 + 25)"
+        );
+        assert!(
+            result.total_sell_amount.eq(sell_budget).unwrap(),
+            "total_sell_amount should equal sell_budget (150)"
+        );
+
+        let built = build_take_orders_config_from_sell_simulation(result, MinReceiveMode::Partial)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            built.config.maximumIORatio,
+            ratio_2.get_inner(),
+            "maximumIORatio should be ratio_2 (worst among used legs)"
+        );
+        assert_eq!(
+            built.config.orders.len(),
+            2,
+            "orders length should match legs length"
+        );
+        assert!(
+            Float::from_raw(built.config.maximumInput)
+                .eq(expected_total_buy)
+                .unwrap(),
+            "maximumInput should equal total_buy_amount"
+        );
+    }
 }
