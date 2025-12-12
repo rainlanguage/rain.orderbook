@@ -2682,5 +2682,123 @@ tokens:
                 assert_eq!(sim.legs[0].candidate.orderbook, ob_better_price);
             }
         }
+
+        #[tokio::test]
+        async fn test_prices_sorted_best_to_worst_matching_config_orders() {
+            use alloy::primitives::keccak256;
+
+            let setup = setup_local_evm_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id_1 = B256::from(U256::from(1u64));
+            let vault_id_2 = B256::from(U256::from(2u64));
+
+            let amount = standard_deposit_amount();
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id_1)
+                .await;
+            setup
+                .local_evm
+                .deposit(setup.owner, setup.token2, amount, 18, vault_id_2)
+                .await;
+
+            let dotrain_cheap =
+                create_dotrain_config_with_vault_and_ratio(&setup, "0x01", "100", "1");
+            let dotrain_expensive =
+                create_dotrain_config_with_vault_and_ratio(&setup, "0x02", "100", "2");
+
+            let (order_bytes_cheap, order_hash_cheap) = deploy_order(&setup, dotrain_cheap).await;
+            let (order_bytes_expensive, order_hash_expensive) =
+                deploy_order(&setup, dotrain_expensive).await;
+
+            let vault1 = create_vault(vault_id_1, &setup, &setup.token2_sg);
+            let vault2 = create_vault(vault_id_2, &setup, &setup.token2_sg);
+            let input_vault = create_vault(vault_id_1, &setup, &setup.token1_sg);
+
+            let sg_order_cheap = create_sg_order_json(
+                &setup,
+                &order_bytes_cheap,
+                order_hash_cheap,
+                vec![input_vault.clone()],
+                vec![vault1.clone()],
+            );
+            let sg_order_expensive = create_sg_order_json(
+                &setup,
+                &order_bytes_expensive,
+                order_hash_expensive,
+                vec![input_vault.clone()],
+                vec![vault2.clone()],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [sg_order_expensive.clone(), sg_order_cheap.clone()]
+                    }
+                }));
+            });
+
+            let yaml = get_minimal_yaml_for_chain(
+                123,
+                &setup.local_evm.url().to_string(),
+                &sg_server.url("/sg"),
+                &setup.orderbook.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let result = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    "200".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Should build calldata with both orders");
+
+            let decoded =
+                takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+            let config = decoded.config;
+
+            assert_eq!(result.prices.len(), 2, "Should have 2 prices for 2 orders");
+            assert_eq!(config.orders.len(), 2, "Should have 2 orders in config");
+
+            let cheap_price = Float::parse("1".to_string()).unwrap();
+            let expensive_price = Float::parse("2".to_string()).unwrap();
+
+            assert!(
+                result.prices[0].eq(cheap_price).unwrap(),
+                "First price should be cheap (1), got: {:?}",
+                result.prices[0].format()
+            );
+            assert!(
+                result.prices[1].eq(expensive_price).unwrap(),
+                "Second price should be expensive (2), got: {:?}",
+                result.prices[1].format()
+            );
+
+            assert!(
+                result.prices[0].lt(result.prices[1]).unwrap(),
+                "Prices should be sorted best (lowest) to worst: {:?} < {:?}",
+                result.prices[0].format(),
+                result.prices[1].format()
+            );
+
+            let first_order_hash = B256::from(keccak256(config.orders[0].order.abi_encode()));
+            let second_order_hash = B256::from(keccak256(config.orders[1].order.abi_encode()));
+
+            assert_eq!(
+                first_order_hash, order_hash_cheap,
+                "First order in config should be the cheap order (ratio=1)"
+            );
+            assert_eq!(
+                second_order_hash, order_hash_expensive,
+                "Second order in config should be the expensive order (ratio=2)"
+            );
+        }
     }
 }
