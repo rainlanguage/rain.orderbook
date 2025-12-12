@@ -252,6 +252,7 @@ mod tests {
         };
         use rain_orderbook_test_fixtures::LocalEvm;
         use serde_json::json;
+        use std::ops::Sub;
 
         fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
             OrderV4 {
@@ -1732,6 +1733,653 @@ amount price: {max_output} {ratio};
                 exact_call_result.is_err(),
                 "Exact mode should revert when simulated buy cannot be achieved after vault emptied, got: {:?}",
                 exact_call_result
+            );
+        }
+
+        struct MultiOrderbookTestSetup {
+            local_evm: LocalEvm,
+            owner: Address,
+            token1: Address,
+            token2: Address,
+            token1_sg: SgErc20,
+            token2_sg: SgErc20,
+            orderbook_a: Address,
+            orderbook_b: Address,
+        }
+
+        async fn setup_multi_orderbook_test() -> MultiOrderbookTestSetup {
+            use rain_orderbook_test_fixtures::Orderbook;
+
+            let mut local_evm = LocalEvm::new().await;
+            let owner = local_evm.signer_wallets[0].default_signer().address();
+
+            let token1 = local_evm
+                .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
+                .await;
+            let token2 = local_evm
+                .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
+                .await;
+
+            let orderbook_a = *local_evm.orderbook.address();
+            let orderbook_b_instance = Orderbook::deploy(local_evm.provider.clone())
+                .await
+                .expect("Should deploy second orderbook");
+            let orderbook_b = *orderbook_b_instance.address();
+
+            MultiOrderbookTestSetup {
+                token1: *token1.address(),
+                token2: *token2.address(),
+                token1_sg: SgErc20 {
+                    id: SgBytes(token1.address().to_string()),
+                    address: SgBytes(token1.address().to_string()),
+                    name: Some("Token1".to_string()),
+                    symbol: Some("Token1".to_string()),
+                    decimals: Some(SgBigInt(18.to_string())),
+                },
+                token2_sg: SgErc20 {
+                    id: SgBytes(token2.address().to_string()),
+                    address: SgBytes(token2.address().to_string()),
+                    name: Some("Token2".to_string()),
+                    symbol: Some("Token2".to_string()),
+                    decimals: Some(SgBigInt(18.to_string())),
+                },
+                local_evm,
+                owner,
+                orderbook_a,
+                orderbook_b,
+            }
+        }
+
+        fn create_dotrain_config_for_orderbook(
+            setup: &MultiOrderbookTestSetup,
+            orderbook: Address,
+            vault_id: &str,
+            max_output: &str,
+            ratio: &str,
+        ) -> String {
+            format!(
+                r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    test-deployer:
+        network: test-network
+        address: {deployer}
+tokens:
+    t1:
+        network: test-network
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t2:
+        network: test-network
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+orderbook:
+    test-orderbook:
+        address: {orderbook}
+orders:
+    test-order:
+        inputs:
+            - token: t1
+        outputs:
+            - token: t2
+              vault-id: {vault_id}
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            max-amount: 1000
+deployments:
+    test-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#max-amount !Max output amount
+#calculate-io
+amount price: {max_output} {ratio};
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+                rpc_url = setup.local_evm.url(),
+                orderbook = orderbook,
+                deployer = setup.local_evm.deployer.address(),
+                token1 = setup.token1,
+                token2 = setup.token2,
+                spec_version = SpecVersion::current(),
+                vault_id = vault_id,
+                max_output = max_output,
+                ratio = ratio,
+            )
+        }
+
+        async fn deploy_order_to_orderbook(
+            setup: &MultiOrderbookTestSetup,
+            orderbook: Address,
+            dotrain: String,
+        ) -> (String, B256, OrderV4) {
+            use alloy::network::TransactionBuilder;
+            use alloy::rpc::types::TransactionRequest;
+            use alloy::serde::WithOtherFields;
+            use rain_orderbook_test_fixtures::Orderbook;
+
+            let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
+            let deployment = dotrain_order
+                .dotrain_yaml()
+                .get_deployment("test-deployment")
+                .unwrap();
+            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+                .await
+                .unwrap()
+                .try_into_call(vec![setup.local_evm.url()])
+                .await
+                .unwrap()
+                .abi_encode();
+
+            let tx_req = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(calldata.to_vec())
+                    .with_to(orderbook)
+                    .with_from(setup.owner),
+            );
+
+            let tx = setup
+                .local_evm
+                .send_transaction(tx_req)
+                .await
+                .expect("Should add order");
+
+            let log = tx
+                .inner
+                .inner
+                .logs()
+                .iter()
+                .find_map(|v| v.log_decode::<Orderbook::AddOrderV3>().ok())
+                .expect("Should have AddOrderV3 event")
+                .inner
+                .data;
+
+            let order_bytes = encode_prefixed(log.order.abi_encode());
+            let order_hash = B256::from(log.orderHash);
+            let order_v4 =
+                OrderV4::abi_decode(&log.order.abi_encode()).expect("Should decode OrderV4");
+
+            (order_bytes, order_hash, order_v4)
+        }
+
+        async fn deposit_to_orderbook(
+            setup: &MultiOrderbookTestSetup,
+            orderbook: Address,
+            token: Address,
+            amount: U256,
+            vault_id: B256,
+        ) {
+            use rain_orderbook_test_fixtures::Orderbook;
+
+            let token_contract = setup
+                .local_evm
+                .tokens
+                .iter()
+                .find(|t| *t.address() == token)
+                .expect("Token should exist");
+
+            token_contract
+                .approve(orderbook, amount)
+                .from(setup.owner)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+
+            let orderbook_instance = Orderbook::new(orderbook, setup.local_evm.provider.clone());
+            let raw_amount = Float::from_fixed_decimal(amount, 18).unwrap().get_inner();
+
+            orderbook_instance
+                .deposit3(token, vault_id, raw_amount, vec![])
+                .from(setup.owner)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+        }
+
+        fn create_sg_order_json_with_orderbook(
+            setup: &MultiOrderbookTestSetup,
+            orderbook: Address,
+            order_bytes: &str,
+            order_hash: B256,
+            inputs: Vec<SgVault>,
+            outputs: Vec<SgVault>,
+        ) -> serde_json::Value {
+            let inputs_json: Vec<serde_json::Value> = inputs
+                .iter()
+                .map(|v| {
+                    json!({
+                        "id": v.id.0,
+                        "owner": v.owner.0,
+                        "vaultId": v.vault_id.0,
+                        "balance": v.balance.0,
+                        "token": {
+                            "id": v.token.id.0,
+                            "address": v.token.address.0,
+                            "name": v.token.name.clone().unwrap_or_default(),
+                            "symbol": v.token.symbol.clone().unwrap_or_default(),
+                            "decimals": v.token.decimals.clone().map(|d| d.0).unwrap_or_default()
+                        },
+                        "orderbook": { "id": orderbook.to_string() },
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
+                    })
+                })
+                .collect();
+
+            let outputs_json: Vec<serde_json::Value> = outputs
+                .iter()
+                .map(|v| {
+                    json!({
+                        "id": v.id.0,
+                        "owner": v.owner.0,
+                        "vaultId": v.vault_id.0,
+                        "balance": v.balance.0,
+                        "token": {
+                            "id": v.token.id.0,
+                            "address": v.token.address.0,
+                            "name": v.token.name.clone().unwrap_or_default(),
+                            "symbol": v.token.symbol.clone().unwrap_or_default(),
+                            "decimals": v.token.decimals.clone().map(|d| d.0).unwrap_or_default()
+                        },
+                        "orderbook": { "id": orderbook.to_string() },
+                        "ordersAsOutput": [],
+                        "ordersAsInput": [],
+                        "balanceChanges": []
+                    })
+                })
+                .collect();
+
+            json!({
+                "id": order_hash.to_string(),
+                "orderBytes": order_bytes,
+                "orderHash": order_hash.to_string(),
+                "owner": setup.owner.to_string(),
+                "outputs": outputs_json,
+                "inputs": inputs_json,
+                "orderbook": { "id": orderbook.to_string() },
+                "active": true,
+                "timestampAdded": "1739448802",
+                "meta": null,
+                "addEvents": [{
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                        "from": setup.owner.to_string(),
+                        "blockNumber": "1",
+                        "timestamp": "1739448802"
+                    }
+                }],
+                "trades": [],
+                "removeEvents": []
+            })
+        }
+
+        fn create_vault_for_orderbook(
+            vault_id: B256,
+            setup: &MultiOrderbookTestSetup,
+            orderbook: Address,
+            token: &SgErc20,
+        ) -> SgVault {
+            SgVault {
+                id: SgBytes(vault_id.to_string()),
+                token: token.clone(),
+                balance: SgBytes(Float::parse("1000".to_string()).unwrap().as_hex()),
+                vault_id: SgBytes(vault_id.to_string()),
+                owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
+                orderbook: SgOrderbook {
+                    id: SgBytes(orderbook.to_string()),
+                },
+                orders_as_input: vec![],
+                orders_as_output: vec![],
+                balance_changes: vec![],
+            }
+        }
+
+        fn get_multi_orderbook_yaml(
+            chain_id: u32,
+            rpc_url: &str,
+            sg_url: &str,
+            orderbook_a: &str,
+            orderbook_b: &str,
+        ) -> String {
+            format!(
+                r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: {chain_id}
+        network-id: {chain_id}
+        currency: ETH
+subgraphs:
+    test-sg: {sg_url}
+metaboards:
+    test-mb: http://localhost:0/notused
+orderbooks:
+    orderbook-a:
+        address: {orderbook_a}
+        network: test-network
+        subgraph: test-sg
+        local-db-remote: remote
+        deployment-block: 0
+    orderbook-b:
+        address: {orderbook_b}
+        network: test-network
+        subgraph: test-sg
+        local-db-remote: remote
+        deployment-block: 0
+deployers:
+    test-deployer:
+        network: test-network
+        address: 0x1111111111111111111111111111111111111111
+tokens:
+    test-token:
+        network: test-network
+        address: 0x2222222222222222222222222222222222222222
+        decimals: 18
+        label: TestToken
+        symbol: TST
+"#,
+                spec_version = SpecVersion::current(),
+                chain_id = chain_id,
+                rpc_url = rpc_url,
+                sg_url = sg_url,
+                orderbook_a = orderbook_a,
+                orderbook_b = orderbook_b,
+            )
+        }
+
+        #[tokio::test]
+        async fn test_cross_orderbook_selection_picks_best_book() {
+            let setup = setup_multi_orderbook_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            assert_ne!(
+                setup.orderbook_a, setup.orderbook_b,
+                "Orderbook addresses should be different"
+            );
+
+            let vault_id_a = B256::from(U256::from(1u64));
+            let vault_id_b = B256::from(U256::from(2u64));
+
+            let deposit_amount = U256::from(10).pow(U256::from(22));
+            deposit_to_orderbook(
+                &setup,
+                setup.orderbook_a,
+                setup.token2,
+                deposit_amount,
+                vault_id_a,
+            )
+            .await;
+            deposit_to_orderbook(
+                &setup,
+                setup.orderbook_b,
+                setup.token2,
+                deposit_amount,
+                vault_id_b,
+            )
+            .await;
+
+            let dotrain_a =
+                create_dotrain_config_for_orderbook(&setup, setup.orderbook_a, "0x01", "5", "2");
+            let (order_bytes_a, order_hash_a, _order_v4_a) =
+                deploy_order_to_orderbook(&setup, setup.orderbook_a, dotrain_a).await;
+
+            let dotrain_b =
+                create_dotrain_config_for_orderbook(&setup, setup.orderbook_b, "0x02", "8", "2");
+            let (order_bytes_b, order_hash_b, order_v4_b) =
+                deploy_order_to_orderbook(&setup, setup.orderbook_b, dotrain_b).await;
+
+            let vault_a_input =
+                create_vault_for_orderbook(vault_id_a, &setup, setup.orderbook_a, &setup.token1_sg);
+            let vault_a_output =
+                create_vault_for_orderbook(vault_id_a, &setup, setup.orderbook_a, &setup.token2_sg);
+            let vault_b_input =
+                create_vault_for_orderbook(vault_id_b, &setup, setup.orderbook_b, &setup.token1_sg);
+            let vault_b_output =
+                create_vault_for_orderbook(vault_id_b, &setup, setup.orderbook_b, &setup.token2_sg);
+
+            let sg_order_a = create_sg_order_json_with_orderbook(
+                &setup,
+                setup.orderbook_a,
+                &order_bytes_a,
+                order_hash_a,
+                vec![vault_a_input],
+                vec![vault_a_output],
+            );
+            let sg_order_b = create_sg_order_json_with_orderbook(
+                &setup,
+                setup.orderbook_b,
+                &order_bytes_b,
+                order_hash_b,
+                vec![vault_b_input],
+                vec![vault_b_output],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [sg_order_a, sg_order_b]
+                    }
+                }));
+            });
+
+            let yaml = get_multi_orderbook_yaml(
+                123,
+                &setup.local_evm.url(),
+                &sg_server.url("/sg"),
+                &setup.orderbook_a.to_string(),
+                &setup.orderbook_b.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let sell_budget = "100";
+            let result = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    sell_budget.to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Should succeed with orders from multiple orderbooks");
+
+            let decoded =
+                takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+            let config = decoded.config;
+
+            assert_eq!(
+                result.orderbook, setup.orderbook_b,
+                "Should select orderbook B (max_output=8 > max_output=5)"
+            );
+
+            assert!(
+                !config.orders.is_empty(),
+                "Should have at least one order from the winning orderbook"
+            );
+
+            for config_item in &config.orders {
+                let config_order = &config_item.order;
+                assert_eq!(
+                    config_order.owner, order_v4_b.owner,
+                    "All orders should be from orderbook B"
+                );
+                assert_eq!(
+                    config_order.evaluable.bytecode, order_v4_b.evaluable.bytecode,
+                    "All order bytecodes should match orderbook B's order"
+                );
+            }
+
+            let expected_ratio = Float::parse("2".to_string()).unwrap();
+            assert!(
+                result.prices[0].eq(expected_ratio).unwrap(),
+                "Price should be 2 (orderbook B's ratio)"
+            );
+
+            let tolerance = Float::parse("0.0001".to_string()).unwrap();
+            let diff = if result.effective_price.gt(expected_ratio).unwrap() {
+                result.effective_price.sub(expected_ratio).unwrap()
+            } else {
+                expected_ratio.sub(result.effective_price).unwrap()
+            };
+            assert!(
+                diff.lte(tolerance).unwrap(),
+                "Effective price should be ~2 (sell/buy ratio), got: {:?}",
+                result.effective_price.format()
+            );
+        }
+
+        #[tokio::test]
+        async fn test_cross_orderbook_selection_flips_when_economics_flip() {
+            let setup = setup_multi_orderbook_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id_a = B256::from(U256::from(1u64));
+            let vault_id_b = B256::from(U256::from(2u64));
+
+            let deposit_amount = U256::from(10).pow(U256::from(22));
+            deposit_to_orderbook(
+                &setup,
+                setup.orderbook_a,
+                setup.token2,
+                deposit_amount,
+                vault_id_a,
+            )
+            .await;
+            deposit_to_orderbook(
+                &setup,
+                setup.orderbook_b,
+                setup.token2,
+                deposit_amount,
+                vault_id_b,
+            )
+            .await;
+
+            let dotrain_a =
+                create_dotrain_config_for_orderbook(&setup, setup.orderbook_a, "0x01", "10", "2");
+            let (order_bytes_a, order_hash_a, order_v4_a) =
+                deploy_order_to_orderbook(&setup, setup.orderbook_a, dotrain_a).await;
+
+            let dotrain_b =
+                create_dotrain_config_for_orderbook(&setup, setup.orderbook_b, "0x02", "3", "2");
+            let (order_bytes_b, order_hash_b, _order_v4_b) =
+                deploy_order_to_orderbook(&setup, setup.orderbook_b, dotrain_b).await;
+
+            let vault_a_input =
+                create_vault_for_orderbook(vault_id_a, &setup, setup.orderbook_a, &setup.token1_sg);
+            let vault_a_output =
+                create_vault_for_orderbook(vault_id_a, &setup, setup.orderbook_a, &setup.token2_sg);
+            let vault_b_input =
+                create_vault_for_orderbook(vault_id_b, &setup, setup.orderbook_b, &setup.token1_sg);
+            let vault_b_output =
+                create_vault_for_orderbook(vault_id_b, &setup, setup.orderbook_b, &setup.token2_sg);
+
+            let sg_order_a = create_sg_order_json_with_orderbook(
+                &setup,
+                setup.orderbook_a,
+                &order_bytes_a,
+                order_hash_a,
+                vec![vault_a_input],
+                vec![vault_a_output],
+            );
+            let sg_order_b = create_sg_order_json_with_orderbook(
+                &setup,
+                setup.orderbook_b,
+                &order_bytes_b,
+                order_hash_b,
+                vec![vault_b_input],
+                vec![vault_b_output],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [sg_order_a, sg_order_b]
+                    }
+                }));
+            });
+
+            let yaml = get_multi_orderbook_yaml(
+                123,
+                &setup.local_evm.url(),
+                &sg_server.url("/sg"),
+                &setup.orderbook_a.to_string(),
+                &setup.orderbook_b.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let sell_budget = "100";
+            let result = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    sell_budget.to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Should succeed with flipped economics");
+
+            assert_eq!(
+                result.orderbook, setup.orderbook_a,
+                "Should select orderbook A (max_output=10 > max_output=3)"
+            );
+
+            let decoded =
+                takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+            let config = decoded.config;
+
+            assert!(
+                !config.orders.is_empty(),
+                "Should have at least one order from the winning orderbook"
+            );
+
+            for config_item in &config.orders {
+                let config_order = &config_item.order;
+                assert_eq!(
+                    config_order.owner, order_v4_a.owner,
+                    "All orders should be from orderbook A"
+                );
+                assert_eq!(
+                    config_order.evaluable.bytecode, order_v4_a.evaluable.bytecode,
+                    "All order bytecodes should match orderbook A's order"
+                );
+            }
+
+            let actual_max_input = Float::from_raw(config.maximumInput);
+            let min_expected = Float::parse("10".to_string()).unwrap();
+            assert!(
+                actual_max_input.gte(min_expected).unwrap(),
+                "maximumInput should be at least 10 (orderbook A's max_output), got: {:?}",
+                actual_max_input.format()
             );
         }
     }
