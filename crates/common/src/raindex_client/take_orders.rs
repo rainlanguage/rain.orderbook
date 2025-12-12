@@ -173,6 +173,21 @@ impl RaindexClient {
     }
 }
 
+fn worst_price(sim: &SimulatedSellResult) -> Option<Float> {
+    sim.legs
+        .iter()
+        .map(|leg| leg.candidate.ratio)
+        .max_by(|a, b| {
+            if a.gt(*b).unwrap_or(false) {
+                std::cmp::Ordering::Greater
+            } else if a.lt(*b).unwrap_or(false) {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        })
+}
+
 fn select_best_orderbook_simulation(
     candidates: Vec<TakeOrderCandidate>,
     sell_budget: Float,
@@ -196,7 +211,28 @@ fn select_best_orderbook_simulation(
 
         let is_better = match &best_result {
             None => true,
-            Some((_, best_sim)) => sim.total_buy_amount.gt(best_sim.total_buy_amount)?,
+            Some((best_addr, best_sim)) => {
+                if sim.total_buy_amount.gt(best_sim.total_buy_amount)? {
+                    true
+                } else if sim.total_buy_amount.eq(best_sim.total_buy_amount)? {
+                    let sim_worst = worst_price(&sim);
+                    let best_worst = worst_price(best_sim);
+                    match (sim_worst, best_worst) {
+                        (Some(sw), Some(bw)) => {
+                            if sw.lt(bw)? {
+                                true
+                            } else if sw.eq(bw)? {
+                                orderbook < *best_addr
+                            } else {
+                                false
+                            }
+                        }
+                        _ => orderbook < *best_addr,
+                    }
+                } else {
+                    false
+                }
+            }
         };
 
         if is_better {
@@ -2381,6 +2417,270 @@ tokens:
                 "maximumInput should be at least 10 (orderbook A's max_output), got: {:?}",
                 actual_max_input.format()
             );
+        }
+
+        #[tokio::test]
+        async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
+            let setup = setup_multi_orderbook_test().await;
+            let sg_server = MockServer::start_async().await;
+
+            let vault_id_a = B256::from(U256::from(1u64));
+            let vault_id_b = B256::from(U256::from(2u64));
+
+            let deposit_amount = U256::from(10).pow(U256::from(22));
+            deposit_to_orderbook(
+                &setup,
+                setup.orderbook_a,
+                setup.token2,
+                deposit_amount,
+                vault_id_a,
+            )
+            .await;
+            deposit_to_orderbook(
+                &setup,
+                setup.orderbook_b,
+                setup.token2,
+                deposit_amount,
+                vault_id_b,
+            )
+            .await;
+
+            let dotrain_a =
+                create_dotrain_config_for_orderbook(&setup, setup.orderbook_a, "0x01", "5", "1");
+            let (order_bytes_a, order_hash_a, order_v4_a) =
+                deploy_order_to_orderbook(&setup, setup.orderbook_a, dotrain_a).await;
+
+            let dotrain_b =
+                create_dotrain_config_for_orderbook(&setup, setup.orderbook_b, "0x02", "8", "1.5");
+            let (order_bytes_b, order_hash_b, _order_v4_b) =
+                deploy_order_to_orderbook(&setup, setup.orderbook_b, dotrain_b).await;
+
+            let vault_a_input =
+                create_vault_for_orderbook(vault_id_a, &setup, setup.orderbook_a, &setup.token1_sg);
+            let vault_a_output =
+                create_vault_for_orderbook(vault_id_a, &setup, setup.orderbook_a, &setup.token2_sg);
+            let vault_b_input =
+                create_vault_for_orderbook(vault_id_b, &setup, setup.orderbook_b, &setup.token1_sg);
+            let vault_b_output =
+                create_vault_for_orderbook(vault_id_b, &setup, setup.orderbook_b, &setup.token2_sg);
+
+            let sg_order_a = create_sg_order_json_with_orderbook(
+                &setup,
+                setup.orderbook_a,
+                &order_bytes_a,
+                order_hash_a,
+                vec![vault_a_input],
+                vec![vault_a_output],
+            );
+            let sg_order_b = create_sg_order_json_with_orderbook(
+                &setup,
+                setup.orderbook_b,
+                &order_bytes_b,
+                order_hash_b,
+                vec![vault_b_input],
+                vec![vault_b_output],
+            );
+
+            sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [sg_order_a, sg_order_b]
+                    }
+                }));
+            });
+
+            let yaml = get_multi_orderbook_yaml(
+                123,
+                &setup.local_evm.url(),
+                &sg_server.url("/sg"),
+                &setup.orderbook_a.to_string(),
+                &setup.orderbook_b.to_string(),
+            );
+
+            let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+            let sell_budget = "5";
+            let result = client
+                .get_take_orders_calldata(
+                    123,
+                    setup.token1.to_string(),
+                    setup.token2.to_string(),
+                    sell_budget.to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await
+                .expect("Should succeed with orders from multiple orderbooks");
+
+            assert_eq!(
+                result.orderbook, setup.orderbook_a,
+                "Should select orderbook A (5 sell yields ~5 buy at ratio 1.0) over B (5 sell yields ~3.33 buy at ratio 1.5)"
+            );
+
+            let decoded =
+                takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+            let config = decoded.config;
+
+            assert!(
+                !config.orders.is_empty(),
+                "Should have at least one order from the winning orderbook"
+            );
+
+            for config_item in &config.orders {
+                let config_order = &config_item.order;
+                assert_eq!(
+                    config_order.owner, order_v4_a.owner,
+                    "All orders should be from orderbook A"
+                );
+                assert_eq!(
+                    config_order.evaluable.bytecode, order_v4_a.evaluable.bytecode,
+                    "All order bytecodes should match orderbook A's order"
+                );
+            }
+
+            assert_eq!(
+                result.prices.len(),
+                1,
+                "Should have exactly one price (from orderbook A only)"
+            );
+            let expected_ratio = Float::parse("1".to_string()).unwrap();
+            assert!(
+                result.prices[0].eq(expected_ratio).unwrap(),
+                "Price should be 1.0 (orderbook A's ratio), got: {:?}",
+                result.prices[0].format()
+            );
+
+            let tolerance = Float::parse("0.0001".to_string()).unwrap();
+            let diff = if result.effective_price.gt(expected_ratio).unwrap() {
+                result.effective_price.sub(expected_ratio).unwrap()
+            } else {
+                expected_ratio.sub(result.effective_price).unwrap()
+            };
+            assert!(
+                diff.lte(tolerance).unwrap(),
+                "Effective price should be ~1.0 (total_sell/total_buy), got: {:?}",
+                result.effective_price.format()
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_take_orders_calldata_invalid_address_returns_from_hex_error() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:0/unused_sg1",
+                    "http://localhost:0/unused_sg2",
+                    "http://localhost:0/unused_rpc1",
+                    "http://localhost:0/unused_rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let res = client
+                .get_take_orders_calldata(
+                    1,
+                    "not-an-address".to_string(),
+                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                    "1".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await;
+
+            assert!(
+                matches!(res, Err(RaindexError::FromHexError(_))),
+                "Expected FromHexError for invalid sellToken address, got: {:?}",
+                res
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_take_orders_calldata_invalid_float_returns_float_error() {
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:0/unused_sg1",
+                    "http://localhost:0/unused_sg2",
+                    "http://localhost:0/unused_rpc1",
+                    "http://localhost:0/unused_rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let res = client
+                .get_take_orders_calldata(
+                    1,
+                    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+                    "not-a-float".to_string(),
+                    MinReceiveMode::Partial,
+                )
+                .await;
+
+            assert!(
+                matches!(res, Err(RaindexError::Float(_))),
+                "Expected Float error for invalid sellAmount, got: {:?}",
+                res
+            );
+        }
+
+        #[test]
+        fn test_select_best_orderbook_tiebreak_identical_totals_prefers_lower_address() {
+            let ob_higher = Address::from([0x22u8; 20]);
+            let ob_lower = Address::from([0x11u8; 20]);
+
+            let max_output = Float::parse("10".to_string()).unwrap();
+            let ratio = Float::parse("1".to_string()).unwrap();
+
+            let higher_candidate = make_candidate(ob_higher, max_output, ratio);
+            let lower_candidate = make_candidate(ob_lower, max_output, ratio);
+
+            let sell_budget = Float::parse("100".to_string()).unwrap();
+
+            for _ in 0..20 {
+                let candidates = vec![higher_candidate.clone(), lower_candidate.clone()];
+                let result = select_best_orderbook_simulation(candidates, sell_budget);
+                assert!(result.is_ok());
+                let (winner, sim) = result.unwrap();
+
+                assert_eq!(
+                    winner, ob_lower,
+                    "Tie-break rule: when total_buy amounts and worst prices are equal, \
+                     prefer the lower orderbook address (0x{:x} < 0x{:x})",
+                    ob_lower, ob_higher
+                );
+                assert_eq!(sim.legs.len(), 1);
+                assert_eq!(sim.legs[0].candidate.orderbook, ob_lower);
+            }
+        }
+
+        #[test]
+        fn test_select_best_orderbook_tiebreak_identical_totals_prefers_lower_worst_price() {
+            let ob_better_price = Address::from([0x22u8; 20]);
+            let ob_worse_price = Address::from([0x11u8; 20]);
+
+            let max_output = Float::parse("10".to_string()).unwrap();
+            let better_ratio = Float::parse("0.9".to_string()).unwrap();
+            let worse_ratio = Float::parse("1.1".to_string()).unwrap();
+
+            let better_candidate = make_candidate(ob_better_price, max_output, better_ratio);
+            let worse_candidate = make_candidate(ob_worse_price, max_output, worse_ratio);
+
+            let sell_budget = Float::parse("100".to_string()).unwrap();
+
+            for _ in 0..20 {
+                let candidates = vec![worse_candidate.clone(), better_candidate.clone()];
+                let result = select_best_orderbook_simulation(candidates, sell_budget);
+                assert!(result.is_ok());
+                let (winner, sim) = result.unwrap();
+
+                assert_eq!(
+                    winner, ob_better_price,
+                    "Tie-break rule: when total_buy amounts are equal, \
+                     prefer the orderbook with the lower worst price (ratio 0.9 < 1.1)"
+                );
+                assert_eq!(sim.legs.len(), 1);
+                assert_eq!(sim.legs[0].candidate.orderbook, ob_better_price);
+            }
         }
     }
 }
