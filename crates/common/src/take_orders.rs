@@ -1,10 +1,15 @@
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::RaindexError;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, Bytes, U256};
 use futures::StreamExt;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV5::OrderV4;
+use rain_orderbook_bindings::IOrderBookV5::{
+    OrderV4, SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV4,
+};
+use serde::{Deserialize, Serialize};
+use std::ops::{Add, Div, Mul, Sub};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
 
@@ -129,6 +134,150 @@ fn try_build_candidate(
     }))
 }
 
+#[derive(Clone, Debug)]
+pub struct SelectedTakeOrderLeg {
+    pub candidate: TakeOrderCandidate,
+    pub buy_amount: Float,
+    pub sell_amount: Float,
+}
+
+#[derive(Clone, Debug)]
+pub struct SimulatedSellResult {
+    pub legs: Vec<SelectedTakeOrderLeg>,
+    pub total_buy_amount: Float,
+    pub total_sell_amount: Float,
+}
+
+pub fn simulate_sell_over_candidates(
+    mut candidates: Vec<TakeOrderCandidate>,
+    sell_budget: Float,
+) -> Result<SimulatedSellResult, RaindexError> {
+    candidates.sort_by(|a, b| {
+        if a.ratio.lt(b.ratio).unwrap_or(false) {
+            std::cmp::Ordering::Less
+        } else if a.ratio.gt(b.ratio).unwrap_or(false) {
+            std::cmp::Ordering::Greater
+        } else {
+            std::cmp::Ordering::Equal
+        }
+    });
+
+    let zero = Float::zero()?;
+    let mut remaining_sell = sell_budget;
+    let mut total_sell_amount = zero;
+    let mut total_buy_amount = zero;
+    let mut legs: Vec<SelectedTakeOrderLeg> = Vec::new();
+
+    for candidate in candidates {
+        if remaining_sell.lte(zero)? {
+            break;
+        }
+
+        let price = candidate.ratio;
+        let max_buy = candidate.max_output;
+        let full_sell_cost = max_buy.mul(price)?;
+
+        let (buy_amount, sell_amount) = if full_sell_cost.lte(remaining_sell)? {
+            (max_buy, full_sell_cost)
+        } else {
+            let sell = remaining_sell;
+            let buy = if price.gt(zero)? {
+                sell.div(price)?
+            } else {
+                zero
+            };
+            (buy, sell)
+        };
+
+        if buy_amount.gt(zero)? {
+            legs.push(SelectedTakeOrderLeg {
+                candidate,
+                buy_amount,
+                sell_amount,
+            });
+
+            remaining_sell = remaining_sell.sub(sell_amount)?;
+            total_buy_amount = total_buy_amount.add(buy_amount)?;
+            total_sell_amount = total_sell_amount.add(sell_amount)?;
+        }
+
+        if remaining_sell.lte(zero)? {
+            break;
+        }
+    }
+
+    Ok(SimulatedSellResult {
+        legs,
+        total_buy_amount,
+        total_sell_amount,
+    })
+}
+
+/// Minimum receive policy for exact-in take orders.
+///
+/// - `Partial`: allow any buy-token amount (including zero) up to the simulated max.
+/// - `Exact`: require the full simulated buy amount or revert via `minimumInput`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum MinReceiveMode {
+    Partial,
+    Exact,
+}
+impl_wasm_traits!(MinReceiveMode);
+
+#[derive(Clone, Debug)]
+pub struct BuiltTakeOrdersConfig {
+    pub config: TakeOrdersConfigV4,
+    pub sim: SimulatedSellResult,
+}
+
+pub fn build_take_orders_config_from_sell_simulation(
+    sim: SimulatedSellResult,
+    min_receive_mode: MinReceiveMode,
+) -> Result<Option<BuiltTakeOrdersConfig>, RaindexError> {
+    if sim.legs.is_empty() {
+        return Ok(None);
+    }
+
+    let zero = Float::zero()?;
+
+    let orders: Vec<TakeOrderConfigV4> = sim
+        .legs
+        .iter()
+        .map(|leg| TakeOrderConfigV4 {
+            order: leg.candidate.order.clone(),
+            inputIOIndex: U256::from(leg.candidate.input_io_index),
+            outputIOIndex: U256::from(leg.candidate.output_io_index),
+            signedContext: vec![] as Vec<SignedContextV1>,
+        })
+        .collect();
+
+    let maximum_input = sim.total_buy_amount.get_inner();
+
+    let minimum_input = match min_receive_mode {
+        MinReceiveMode::Partial => zero.get_inner(),
+        MinReceiveMode::Exact => sim.total_buy_amount.get_inner(),
+    };
+
+    let mut worst_price = zero;
+    for leg in &sim.legs {
+        if leg.candidate.ratio.gt(worst_price)? {
+            worst_price = leg.candidate.ratio;
+        }
+    }
+    let maximum_io_ratio = worst_price.get_inner();
+
+    let config = TakeOrdersConfigV4 {
+        minimumInput: minimum_input,
+        maximumInput: maximum_input,
+        maximumIORatio: maximum_io_ratio,
+        orders,
+        data: Bytes::new(),
+    };
+
+    Ok(Some(BuiltTakeOrdersConfig { config, sim }))
+}
+
 #[cfg(test)]
 #[cfg(not(target_family = "wasm"))]
 mod tests {
@@ -148,7 +297,6 @@ mod tests {
     use rain_orderbook_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgVault,
     };
-    use rain_orderbook_subgraph_client::utils::float::{F1, F2, F6};
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::rc::Rc;
 
@@ -405,7 +553,7 @@ amount price: 100 2;
         SgVault {
             id: SgBytes(vault_id.to_string()),
             token: token.clone(),
-            balance: SgBytes(F6.as_hex()),
+            balance: SgBytes(Float::parse("6".to_string()).unwrap().as_hex()),
             vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             orderbook: SgOrderbook {
@@ -477,7 +625,8 @@ amount price: 100 2;
         let token_b = Address::from([5u8; 20]);
 
         let order = make_basic_order(token_a, token_b);
-        let quote = make_quote(0, 0, Some(make_quote_value(F1, F1, F1)), true);
+        let f1 = Float::parse("1".to_string()).unwrap();
+        let quote = make_quote(0, 0, Some(make_quote_value(f1, f1, f1)), true);
 
         let result = try_build_candidate(&order, &quote, token_b, token_a).unwrap();
 
@@ -491,7 +640,8 @@ amount price: 100 2;
 
         let order = make_basic_order(token_a, token_b);
         let zero = Float::zero().unwrap();
-        let quote = make_quote(0, 0, Some(make_quote_value(zero, zero, F1)), true);
+        let f1 = Float::parse("1".to_string()).unwrap();
+        let quote = make_quote(0, 0, Some(make_quote_value(zero, zero, f1)), true);
 
         let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
 
@@ -504,7 +654,9 @@ amount price: 100 2;
         let token_b = Address::from([5u8; 20]);
 
         let order = make_basic_order(token_a, token_b);
-        let quote = make_quote(0, 0, Some(make_quote_value(F2, F1, F1)), true);
+        let f1 = Float::parse("1".to_string()).unwrap();
+        let f2 = Float::parse("2".to_string()).unwrap();
+        let quote = make_quote(0, 0, Some(make_quote_value(f2, f1, f1)), true);
 
         let result = try_build_candidate(&order, &quote, token_a, token_b).unwrap();
 
@@ -512,7 +664,7 @@ amount price: 100 2;
         let candidate = result.unwrap();
         assert_eq!(candidate.input_io_index, 0);
         assert_eq!(candidate.output_io_index, 0);
-        assert!(candidate.max_output.eq(F2).unwrap());
+        assert!(candidate.max_output.eq(f2).unwrap());
     }
 
     #[test]
@@ -542,8 +694,9 @@ amount price: 100 2;
         let token_b = Address::from([5u8; 20]);
 
         let order = make_basic_order(token_a, token_b);
+        let f1 = Float::parse("1".to_string()).unwrap();
 
-        let quote_bad_input_index = make_quote(99, 0, Some(make_quote_value(F1, F1, F1)), true);
+        let quote_bad_input_index = make_quote(99, 0, Some(make_quote_value(f1, f1, f1)), true);
         let result = try_build_candidate(&order, &quote_bad_input_index, token_a, token_b);
         assert!(
             result.is_ok(),
@@ -554,7 +707,7 @@ amount price: 100 2;
             "Out-of-bounds input index must not produce a candidate"
         );
 
-        let quote_bad_output_index = make_quote(0, 99, Some(make_quote_value(F1, F1, F1)), true);
+        let quote_bad_output_index = make_quote(0, 99, Some(make_quote_value(f1, f1, f1)), true);
         let result = try_build_candidate(&order, &quote_bad_output_index, token_a, token_b);
         assert!(
             result.is_ok(),
@@ -1117,6 +1270,284 @@ amount price: 100 2;
         assert!(
             result.is_none(),
             "Should return None when quote.data is None even if success is true"
+        );
+    }
+
+    fn make_simulation_candidate(max_output: Float, ratio: Float) -> TakeOrderCandidate {
+        TakeOrderCandidate {
+            order: make_basic_order(Address::from([1u8; 20]), Address::from([2u8; 20])),
+            input_io_index: 0,
+            output_io_index: 0,
+            max_output,
+            ratio,
+        }
+    }
+
+    #[test]
+    fn test_simulate_exact_in_sell_empty_candidates() {
+        let candidates: Vec<TakeOrderCandidate> = vec![];
+        let sell_budget = Float::parse("1.5".to_string()).unwrap();
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert!(result.legs.is_empty());
+        assert!(result.total_buy_amount.eq(Float::zero().unwrap()).unwrap());
+        assert!(result.total_sell_amount.eq(Float::zero().unwrap()).unwrap());
+    }
+
+    #[test]
+    fn test_simulate_exact_in_sell_single_candidate_full_fill() {
+        let f1_5 = Float::parse("1.5".to_string()).unwrap();
+        let f2_25 = Float::parse("2.25".to_string()).unwrap();
+        let candidate = make_simulation_candidate(f2_25, f1_5);
+        let candidates = vec![candidate];
+        let sell_budget = Float::parse("3.375".to_string()).unwrap();
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert_eq!(result.legs.len(), 1);
+        assert!(result.total_buy_amount.eq(f2_25).unwrap());
+        assert!(result
+            .total_sell_amount
+            .eq(Float::parse("3.375".to_string()).unwrap())
+            .unwrap());
+    }
+
+    #[test]
+    fn test_simulate_exact_in_sell_single_candidate_partial_fill() {
+        let f1_25 = Float::parse("1.25".to_string()).unwrap();
+        let f4_5 = Float::parse("4.5".to_string()).unwrap();
+        let f2_5 = Float::parse("2.5".to_string()).unwrap();
+        let candidate = make_simulation_candidate(f4_5, f1_25);
+        let candidates = vec![candidate];
+        let sell_budget = f2_5;
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert_eq!(result.legs.len(), 1);
+        assert!(result
+            .total_buy_amount
+            .eq(Float::parse("2".to_string()).unwrap())
+            .unwrap());
+        assert!(result.total_sell_amount.eq(f2_5).unwrap());
+    }
+
+    #[test]
+    fn test_simulate_exact_in_sell_multiple_candidates_sorted_by_price() {
+        let f1_5 = Float::parse("1.5".to_string()).unwrap();
+        let f2_75 = Float::parse("2.75".to_string()).unwrap();
+        let f3_25 = Float::parse("3.25".to_string()).unwrap();
+        let expensive = make_simulation_candidate(f2_75, f3_25);
+        let cheap = make_simulation_candidate(f2_75, f1_5);
+        let candidates = vec![expensive, cheap];
+        let sell_budget = Float::parse("4.125".to_string()).unwrap();
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert_eq!(result.legs.len(), 1);
+        assert!(
+            result.legs[0].candidate.ratio.eq(f1_5).unwrap(),
+            "Should use cheapest candidate first"
+        );
+        assert!(result.total_buy_amount.eq(f2_75).unwrap());
+        assert!(result
+            .total_sell_amount
+            .eq(Float::parse("4.125".to_string()).unwrap())
+            .unwrap());
+    }
+
+    #[test]
+    fn test_simulate_exact_in_sell_multiple_candidates_uses_multiple() {
+        let f1_25 = Float::parse("1.25".to_string()).unwrap();
+        let f2_5 = Float::parse("2.5".to_string()).unwrap();
+        let f3_75 = Float::parse("3.75".to_string()).unwrap();
+        let cheap = make_simulation_candidate(f1_25, f1_25);
+        let expensive = make_simulation_candidate(f2_5, f2_5);
+        let candidates = vec![expensive, cheap];
+        let sell_budget = Float::parse("8".to_string()).unwrap();
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert_eq!(result.legs.len(), 2, "Should use both candidates");
+        assert!(
+            result.legs[0].candidate.ratio.eq(f1_25).unwrap(),
+            "First leg should be cheapest"
+        );
+        assert!(
+            result.legs[1].candidate.ratio.eq(f2_5).unwrap(),
+            "Second leg should be more expensive"
+        );
+    }
+
+    #[test]
+    fn test_simulate_exact_in_sell_zero_budget() {
+        let f2_5 = Float::parse("2.5".to_string()).unwrap();
+        let f1_75 = Float::parse("1.75".to_string()).unwrap();
+        let candidate = make_simulation_candidate(f2_5, f1_75);
+        let candidates = vec![candidate];
+        let sell_budget = Float::zero().unwrap();
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert!(result.legs.is_empty());
+        assert!(result.total_buy_amount.eq(Float::zero().unwrap()).unwrap());
+        assert!(result.total_sell_amount.eq(Float::zero().unwrap()).unwrap());
+    }
+
+    #[test]
+    fn test_simulate_exact_in_sell_with_different_ratio() {
+        let f0_5 = Float::parse("0.5".to_string()).unwrap();
+        let f4_5 = Float::parse("4.5".to_string()).unwrap();
+        let f2_25 = Float::parse("2.25".to_string()).unwrap();
+        let candidate = make_simulation_candidate(f4_5, f0_5);
+        let candidates = vec![candidate];
+        let sell_budget = f2_25;
+
+        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+
+        assert_eq!(result.legs.len(), 1);
+        assert!(result.total_buy_amount.eq(f4_5).unwrap());
+        assert!(result.total_sell_amount.eq(f2_25).unwrap());
+    }
+
+    #[test]
+    fn test_build_config_empty_simulation() {
+        let sim = SimulatedSellResult {
+            legs: vec![],
+            total_buy_amount: Float::zero().unwrap(),
+            total_sell_amount: Float::zero().unwrap(),
+        };
+
+        let result =
+            build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial).unwrap();
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_build_config_partial_mode() {
+        let f1_75 = Float::parse("1.75".to_string()).unwrap();
+        let f2_5 = Float::parse("2.5".to_string()).unwrap();
+        let candidate = make_simulation_candidate(f2_5, f1_75);
+        let sim = SimulatedSellResult {
+            legs: vec![SelectedTakeOrderLeg {
+                candidate,
+                buy_amount: f2_5,
+                sell_amount: f2_5,
+            }],
+            total_buy_amount: f2_5,
+            total_sell_amount: f2_5,
+        };
+
+        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            result.config.minimumInput,
+            Float::zero().unwrap().get_inner()
+        );
+        assert_eq!(result.config.maximumInput, f2_5.get_inner());
+        assert_eq!(result.config.maximumIORatio, f1_75.get_inner());
+        assert_eq!(result.config.orders.len(), 1);
+    }
+
+    #[test]
+    fn test_build_config_exact_mode() {
+        let f1_25 = Float::parse("1.25".to_string()).unwrap();
+        let f2_75 = Float::parse("2.75".to_string()).unwrap();
+        let candidate = make_simulation_candidate(f2_75, f1_25);
+        let sim = SimulatedSellResult {
+            legs: vec![SelectedTakeOrderLeg {
+                candidate,
+                buy_amount: f2_75,
+                sell_amount: f2_75,
+            }],
+            total_buy_amount: f2_75,
+            total_sell_amount: f2_75,
+        };
+
+        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Exact)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(result.config.minimumInput, f2_75.get_inner());
+        assert_eq!(result.config.maximumInput, f2_75.get_inner());
+        assert_eq!(result.config.maximumIORatio, f1_25.get_inner());
+    }
+
+    #[test]
+    fn test_build_config_worst_price_from_multiple_legs() {
+        let f1_5 = Float::parse("1.5".to_string()).unwrap();
+        let f2_75 = Float::parse("2.75".to_string()).unwrap();
+        let f3_25 = Float::parse("3.25".to_string()).unwrap();
+        let cheap_candidate = make_simulation_candidate(f1_5, f1_5);
+        let expensive_candidate = make_simulation_candidate(f1_5, f2_75);
+        let sim = SimulatedSellResult {
+            legs: vec![
+                SelectedTakeOrderLeg {
+                    candidate: cheap_candidate,
+                    buy_amount: f1_5,
+                    sell_amount: f1_5,
+                },
+                SelectedTakeOrderLeg {
+                    candidate: expensive_candidate,
+                    buy_amount: f1_5,
+                    sell_amount: f2_75,
+                },
+            ],
+            total_buy_amount: f3_25,
+            total_sell_amount: Float::parse("4.25".to_string()).unwrap(),
+        };
+
+        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(
+            result.config.maximumIORatio,
+            f2_75.get_inner(),
+            "Should use worst (highest) price"
+        );
+        assert_eq!(result.config.orders.len(), 2);
+    }
+
+    #[test]
+    fn test_build_config_preserves_order() {
+        let f1_25 = Float::parse("1.25".to_string()).unwrap();
+        let f2_5 = Float::parse("2.5".to_string()).unwrap();
+        let f3_75 = Float::parse("3.75".to_string()).unwrap();
+        let candidate1 = make_simulation_candidate(f1_25, f1_25);
+        let candidate2 = make_simulation_candidate(f1_25, f2_5);
+        let sim = SimulatedSellResult {
+            legs: vec![
+                SelectedTakeOrderLeg {
+                    candidate: candidate1.clone(),
+                    buy_amount: f1_25,
+                    sell_amount: f1_25,
+                },
+                SelectedTakeOrderLeg {
+                    candidate: candidate2.clone(),
+                    buy_amount: f1_25,
+                    sell_amount: f2_5,
+                },
+            ],
+            total_buy_amount: f2_5,
+            total_sell_amount: f3_75,
+        };
+
+        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(result.config.orders.len(), 2);
+        assert_eq!(
+            result.config.orders[0].inputIOIndex,
+            alloy::primitives::U256::from(0)
+        );
+        assert_eq!(
+            result.config.orders[1].inputIOIndex,
+            alloy::primitives::U256::from(0)
         );
     }
 }

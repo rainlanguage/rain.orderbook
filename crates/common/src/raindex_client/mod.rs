@@ -38,6 +38,7 @@ pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
 pub mod remove_orders;
+pub mod take_orders;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
@@ -327,6 +328,8 @@ pub enum RaindexError {
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
     LocalDbUnsupportedNetwork(u32),
+    #[error("No liquidity available for the requested trade")]
+    NoLiquidity,
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -467,6 +470,9 @@ impl RaindexError {
             }
             RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
                 format!("The chain ID: {chain_id} is not supported for local database operations.")
+            }
+            RaindexError::NoLiquidity => {
+                "No liquidity available for the requested trade. There are no orders matching the token pair or they have insufficient capacity.".to_string()
             }
         }
     }
