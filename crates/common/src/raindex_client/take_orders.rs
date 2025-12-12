@@ -1,9 +1,10 @@
-use super::orders::{GetOrdersFilters, GetOrdersTokenFilter};
+use super::orders::{GetOrdersFilters, GetOrdersTokenFilter, RaindexOrder};
 use super::*;
 use crate::rpc_client::RpcClient;
 use crate::take_orders::{
     build_take_order_candidates_for_pair, build_take_orders_config_from_sell_simulation,
-    simulate_sell_over_candidates, MinReceiveMode, SimulatedSellResult, TakeOrderCandidate,
+    simulate_sell_over_candidates, BuiltTakeOrdersConfig, MinReceiveMode, SimulatedSellResult,
+    TakeOrderCandidate,
 };
 use alloy::primitives::{Address, Bytes};
 use alloy::sol_types::SolCall;
@@ -12,6 +13,180 @@ use rain_orderbook_bindings::IOrderBookV5::takeOrders3Call;
 use std::collections::HashMap;
 use std::ops::Div;
 use std::str::FromStr;
+
+#[derive(Debug, Clone)]
+struct ParsedTakeOrdersRequest {
+    sell_token: Address,
+    buy_token: Address,
+    sell_amount: Float,
+    min_receive_mode: MinReceiveMode,
+}
+
+fn parse_request(
+    sell_token: &str,
+    buy_token: &str,
+    sell_amount: &str,
+    min_receive_mode: MinReceiveMode,
+) -> Result<ParsedTakeOrdersRequest, RaindexError> {
+    let sell_token = Address::from_str(sell_token)?;
+    let buy_token = Address::from_str(buy_token)?;
+    let sell_amount = Float::parse(sell_amount.to_string())?;
+    Ok(ParsedTakeOrdersRequest {
+        sell_token,
+        buy_token,
+        sell_amount,
+        min_receive_mode,
+    })
+}
+
+async fn build_candidates_for_chain(
+    orders: &[RaindexOrder],
+    sell_token: Address,
+    buy_token: Address,
+    block_number: Option<u64>,
+) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
+    let candidates =
+        build_take_order_candidates_for_pair(orders, sell_token, buy_token, block_number, None)
+            .await?;
+    if candidates.is_empty() {
+        return Err(RaindexError::NoLiquidity);
+    }
+    Ok(candidates)
+}
+
+fn worst_price(sim: &SimulatedSellResult) -> Option<Float> {
+    sim.legs
+        .iter()
+        .map(|leg| leg.candidate.ratio)
+        .max_by(|a, b| {
+            if a.gt(*b).unwrap_or(false) {
+                std::cmp::Ordering::Greater
+            } else if a.lt(*b).unwrap_or(false) {
+                std::cmp::Ordering::Less
+            } else {
+                std::cmp::Ordering::Equal
+            }
+        })
+}
+
+fn select_best_orderbook_simulation(
+    candidates: Vec<TakeOrderCandidate>,
+    sell_budget: Float,
+) -> Result<(Address, SimulatedSellResult), RaindexError> {
+    let mut orderbook_candidates: HashMap<Address, Vec<TakeOrderCandidate>> = HashMap::new();
+    for candidate in candidates {
+        orderbook_candidates
+            .entry(candidate.orderbook)
+            .or_default()
+            .push(candidate);
+    }
+
+    let mut best_result: Option<(Address, SimulatedSellResult)> = None;
+
+    for (orderbook, candidates) in orderbook_candidates {
+        let sim = simulate_sell_over_candidates(candidates, sell_budget)?;
+
+        if sim.legs.is_empty() {
+            continue;
+        }
+
+        let is_better = match &best_result {
+            None => true,
+            Some((best_addr, best_sim)) => {
+                if sim.total_buy_amount.gt(best_sim.total_buy_amount)? {
+                    true
+                } else if sim.total_buy_amount.eq(best_sim.total_buy_amount)? {
+                    let sim_worst = worst_price(&sim);
+                    let best_worst = worst_price(best_sim);
+                    match (sim_worst, best_worst) {
+                        (Some(sw), Some(bw)) => {
+                            if sw.lt(bw)? {
+                                true
+                            } else if sw.eq(bw)? {
+                                orderbook < *best_addr
+                            } else {
+                                false
+                            }
+                        }
+                        _ => orderbook < *best_addr,
+                    }
+                } else {
+                    false
+                }
+            }
+        };
+
+        if is_better {
+            best_result = Some((orderbook, sim));
+        }
+    }
+
+    best_result.ok_or(RaindexError::NoLiquidity)
+}
+
+fn build_calldata_result(
+    orderbook: Address,
+    built_config: BuiltTakeOrdersConfig,
+) -> Result<TakeOrdersCalldataResult, RaindexError> {
+    let calldata_bytes = takeOrders3Call {
+        config: built_config.config,
+    }
+    .abi_encode();
+    let calldata = Bytes::copy_from_slice(&calldata_bytes);
+
+    let zero = Float::zero()?;
+    let effective_price = if built_config.sim.total_buy_amount.gt(zero)? {
+        built_config
+            .sim
+            .total_sell_amount
+            .div(built_config.sim.total_buy_amount)?
+    } else {
+        zero
+    };
+
+    let prices: Vec<Float> = built_config
+        .sim
+        .legs
+        .iter()
+        .map(|leg| leg.candidate.ratio)
+        .collect();
+
+    Ok(TakeOrdersCalldataResult {
+        orderbook,
+        calldata,
+        effective_price,
+        prices,
+    })
+}
+
+impl RaindexClient {
+    async fn fetch_orders_for_pair(
+        &self,
+        chain_id: u32,
+        sell_token: Address,
+        buy_token: Address,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let filters = GetOrdersFilters {
+            owners: vec![],
+            active: Some(true),
+            order_hash: None,
+            tokens: Some(GetOrdersTokenFilter {
+                inputs: Some(vec![sell_token]),
+                outputs: Some(vec![buy_token]),
+            }),
+        };
+
+        let orders = self
+            .get_orders(Some(ChainIds(vec![chain_id])), Some(filters), None)
+            .await?;
+
+        if orders.is_empty() {
+            return Err(RaindexError::NoLiquidity);
+        }
+
+        Ok(orders)
+    }
+}
 
 /// Combined result for generating takeOrders3 calldata and price info.
 ///
@@ -96,151 +271,28 @@ impl RaindexClient {
         )]
         min_receive_mode: MinReceiveMode,
     ) -> Result<TakeOrdersCalldataResult, RaindexError> {
-        let sell_token_addr = Address::from_str(&sell_token)?;
-        let buy_token_addr = Address::from_str(&buy_token)?;
-        let sell_amount_float = Float::parse(sell_amount)?;
-
-        let filters = GetOrdersFilters {
-            owners: vec![],
-            active: Some(true),
-            order_hash: None,
-            tokens: Some(GetOrdersTokenFilter {
-                inputs: Some(vec![sell_token_addr]),
-                outputs: Some(vec![buy_token_addr]),
-            }),
-        };
+        let req = parse_request(&sell_token, &buy_token, &sell_amount, min_receive_mode)?;
 
         let orders = self
-            .get_orders(Some(ChainIds(vec![chain_id])), Some(filters), None)
+            .fetch_orders_for_pair(chain_id, req.sell_token, req.buy_token)
             .await?;
-
-        if orders.is_empty() {
-            return Err(RaindexError::NoLiquidity);
-        }
 
         let rpc_urls = self.get_rpc_urls_for_chain(chain_id)?;
         let rpc_client = RpcClient::new_with_urls(rpc_urls)?;
         let block_number = rpc_client.get_latest_block_number().await?;
 
-        let candidates = build_take_order_candidates_for_pair(
-            &orders,
-            sell_token_addr,
-            buy_token_addr,
-            Some(block_number),
-            None,
-        )
-        .await?;
-
-        if candidates.is_empty() {
-            return Err(RaindexError::NoLiquidity);
-        }
+        let candidates =
+            build_candidates_for_chain(&orders, req.sell_token, req.buy_token, Some(block_number))
+                .await?;
 
         let (best_orderbook, best_sim) =
-            select_best_orderbook_simulation(candidates, sell_amount_float)?;
+            select_best_orderbook_simulation(candidates, req.sell_amount)?;
 
-        let built = build_take_orders_config_from_sell_simulation(best_sim, min_receive_mode)?
+        let built = build_take_orders_config_from_sell_simulation(best_sim, req.min_receive_mode)?
             .ok_or(RaindexError::NoLiquidity)?;
 
-        let calldata_bytes = takeOrders3Call {
-            config: built.config,
-        }
-        .abi_encode();
-        let calldata = Bytes::copy_from_slice(&calldata_bytes);
-
-        let zero = Float::zero()?;
-        let effective_price = if built.sim.total_buy_amount.gt(zero)? {
-            built
-                .sim
-                .total_sell_amount
-                .div(built.sim.total_buy_amount)?
-        } else {
-            zero
-        };
-
-        let prices: Vec<Float> = built
-            .sim
-            .legs
-            .iter()
-            .map(|leg| leg.candidate.ratio)
-            .collect();
-
-        Ok(TakeOrdersCalldataResult {
-            orderbook: best_orderbook,
-            calldata,
-            effective_price,
-            prices,
-        })
+        build_calldata_result(best_orderbook, built)
     }
-}
-
-fn worst_price(sim: &SimulatedSellResult) -> Option<Float> {
-    sim.legs
-        .iter()
-        .map(|leg| leg.candidate.ratio)
-        .max_by(|a, b| {
-            if a.gt(*b).unwrap_or(false) {
-                std::cmp::Ordering::Greater
-            } else if a.lt(*b).unwrap_or(false) {
-                std::cmp::Ordering::Less
-            } else {
-                std::cmp::Ordering::Equal
-            }
-        })
-}
-
-fn select_best_orderbook_simulation(
-    candidates: Vec<TakeOrderCandidate>,
-    sell_budget: Float,
-) -> Result<(Address, SimulatedSellResult), RaindexError> {
-    let mut orderbook_candidates: HashMap<Address, Vec<TakeOrderCandidate>> = HashMap::new();
-    for candidate in candidates {
-        orderbook_candidates
-            .entry(candidate.orderbook)
-            .or_default()
-            .push(candidate);
-    }
-
-    let mut best_result: Option<(Address, SimulatedSellResult)> = None;
-
-    for (orderbook, candidates) in orderbook_candidates {
-        let sim = simulate_sell_over_candidates(candidates, sell_budget)?;
-
-        if sim.legs.is_empty() {
-            continue;
-        }
-
-        let is_better = match &best_result {
-            None => true,
-            Some((best_addr, best_sim)) => {
-                if sim.total_buy_amount.gt(best_sim.total_buy_amount)? {
-                    true
-                } else if sim.total_buy_amount.eq(best_sim.total_buy_amount)? {
-                    let sim_worst = worst_price(&sim);
-                    let best_worst = worst_price(best_sim);
-                    match (sim_worst, best_worst) {
-                        (Some(sw), Some(bw)) => {
-                            if sw.lt(bw)? {
-                                true
-                            } else if sw.eq(bw)? {
-                                orderbook < *best_addr
-                            } else {
-                                false
-                            }
-                        }
-                        _ => orderbook < *best_addr,
-                    }
-                } else {
-                    false
-                }
-            }
-        };
-
-        if is_better {
-            best_result = Some((orderbook, sim));
-        }
-    }
-
-    best_result.ok_or(RaindexError::NoLiquidity)
 }
 
 #[cfg(test)]
@@ -269,11 +321,13 @@ mod tests {
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
-        use super::super::select_best_orderbook_simulation;
+        use super::super::{
+            build_calldata_result, parse_request, select_best_orderbook_simulation,
+        };
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::RaindexClient;
         use crate::raindex_client::RaindexError;
-        use crate::take_orders::MinReceiveMode;
+        use crate::take_orders::{build_take_orders_config_from_sell_simulation, MinReceiveMode};
         use crate::test_helpers::candidates::make_candidate;
         use crate::test_helpers::dotrain::create_dotrain_config_for_orderbook;
         use crate::test_helpers::local_evm::{
@@ -286,7 +340,7 @@ mod tests {
             get_multi_orderbook_yaml,
         };
         use alloy::network::TransactionBuilder;
-        use alloy::primitives::{keccak256, Address, B256, U256};
+        use alloy::primitives::{address, keccak256, Address, B256, U256};
         use alloy::rpc::types::TransactionRequest;
         use alloy::serde::WithOtherFields;
         use alloy::sol_types::{SolCall, SolValue};
@@ -295,6 +349,160 @@ mod tests {
         use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, TakeOrdersConfigV4};
         use serde_json::json;
         use std::ops::Sub;
+
+        #[test]
+        fn test_parse_request_valid_inputs() {
+            let result = parse_request(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "100",
+                MinReceiveMode::Partial,
+            );
+
+            assert!(result.is_ok());
+            let req = result.unwrap();
+            assert_eq!(
+                req.sell_token,
+                address!("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            );
+            assert_eq!(
+                req.buy_token,
+                address!("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+            );
+            assert!(req
+                .sell_amount
+                .eq(Float::parse("100".to_string()).unwrap())
+                .unwrap());
+            assert!(matches!(req.min_receive_mode, MinReceiveMode::Partial));
+        }
+
+        #[test]
+        fn test_parse_request_invalid_sell_token() {
+            let result = parse_request(
+                "not-an-address",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "100",
+                MinReceiveMode::Partial,
+            );
+
+            assert!(matches!(result, Err(RaindexError::FromHexError(_))));
+        }
+
+        #[test]
+        fn test_parse_request_invalid_buy_token() {
+            let result = parse_request(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "invalid",
+                "100",
+                MinReceiveMode::Partial,
+            );
+
+            assert!(matches!(result, Err(RaindexError::FromHexError(_))));
+        }
+
+        #[test]
+        fn test_parse_request_invalid_sell_amount() {
+            let result = parse_request(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "not-a-number",
+                MinReceiveMode::Partial,
+            );
+
+            assert!(matches!(result, Err(RaindexError::Float(_))));
+        }
+
+        #[test]
+        fn test_parse_request_exact_mode() {
+            let result = parse_request(
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "50",
+                MinReceiveMode::Exact,
+            );
+
+            assert!(result.is_ok());
+            let req = result.unwrap();
+            assert!(matches!(req.min_receive_mode, MinReceiveMode::Exact));
+        }
+
+        #[test]
+        fn test_build_calldata_result_produces_valid_calldata() {
+            let ob = Address::from([0x11u8; 20]);
+            let max_output = Float::parse("10".to_string()).unwrap();
+            let ratio = Float::parse("2".to_string()).unwrap();
+            let candidate = make_candidate(ob, max_output, ratio);
+            let candidates = vec![candidate];
+            let sell_budget = Float::parse("100".to_string()).unwrap();
+
+            let (_, sim) = select_best_orderbook_simulation(candidates, sell_budget).unwrap();
+            let built = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
+                .unwrap()
+                .unwrap();
+
+            let result = build_calldata_result(ob, built);
+
+            assert!(result.is_ok());
+            let calldata_result = result.unwrap();
+            assert_eq!(calldata_result.orderbook, ob);
+            assert!(!calldata_result.calldata.is_empty());
+            assert!(!calldata_result.prices.is_empty());
+
+            let decoded = takeOrders3Call::abi_decode(&calldata_result.calldata)
+                .expect("Should decode calldata");
+            assert!(!decoded.config.orders.is_empty());
+        }
+
+        #[test]
+        fn test_build_calldata_result_effective_price_calculation() {
+            let ob = Address::from([0x11u8; 20]);
+            let max_output = Float::parse("10".to_string()).unwrap();
+            let ratio = Float::parse("2".to_string()).unwrap();
+            let candidate = make_candidate(ob, max_output, ratio);
+            let candidates = vec![candidate];
+            let sell_budget = Float::parse("100".to_string()).unwrap();
+
+            let (_, sim) = select_best_orderbook_simulation(candidates, sell_budget).unwrap();
+            let built = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
+                .unwrap()
+                .unwrap();
+
+            let result = build_calldata_result(ob, built).unwrap();
+
+            let zero = Float::zero().unwrap();
+            assert!(
+                result.effective_price.gt(zero).unwrap(),
+                "Effective price should be > 0"
+            );
+        }
+
+        #[test]
+        fn test_build_calldata_result_prices_match_legs() {
+            let ob = Address::from([0x11u8; 20]);
+            let max_output = Float::parse("10".to_string()).unwrap();
+            let ratio = Float::parse("2".to_string()).unwrap();
+            let candidate = make_candidate(ob, max_output, ratio);
+            let candidates = vec![candidate];
+            let sell_budget = Float::parse("100".to_string()).unwrap();
+
+            let (_, sim) = select_best_orderbook_simulation(candidates, sell_budget).unwrap();
+            let leg_count = sim.legs.len();
+            let built = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
+                .unwrap()
+                .unwrap();
+
+            let result = build_calldata_result(ob, built).unwrap();
+
+            assert_eq!(
+                result.prices.len(),
+                leg_count,
+                "Number of prices should match number of legs"
+            );
+            assert!(
+                result.prices[0].eq(ratio).unwrap(),
+                "Price should match the candidate ratio"
+            );
+        }
 
         #[test]
         fn test_select_best_orderbook_single_orderbook() {
