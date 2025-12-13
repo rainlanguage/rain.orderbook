@@ -89,6 +89,7 @@ _ _: 0 0;
 
 	it('should compose scenario to rainlang with config', async () => {
 		const config = `
+version: 4
 scenarios:
     config-scenario:
         network: some-network

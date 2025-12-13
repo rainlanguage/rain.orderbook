@@ -1,4 +1,4 @@
-use crate::yaml::{require_string, YamlError, YamlParsableString};
+use crate::yaml::{require_string, FieldErrorKind, YamlError, YamlParsableString};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::StrictYaml;
 
@@ -18,10 +18,46 @@ impl SpecVersion {
 }
 
 impl YamlParsableString for SpecVersion {
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError> {
-        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
-        let value = require_string(&document_read, Some("version"), Some("root".to_string()))?;
-        Ok(value)
+    fn parse_from_yaml(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Result<String, YamlError> {
+        if documents.is_empty() {
+            return Err(YamlError::EmptyFile);
+        }
+
+        documents
+            .iter()
+            .enumerate()
+            .try_fold(None, |parsed_version, (index, document)| {
+                let location = if index == 0 {
+                    "root".to_string()
+                } else {
+                    format!("document {}", index + 1)
+                };
+                let version = {
+                    let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+                    require_string(&document_read, Some("version"), Some(location.clone()))?
+                };
+
+                match parsed_version {
+                    Some(existing_version) if existing_version != version => {
+                        Err(YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "version".to_string(),
+                                reason: format!(
+                                    "spec version mismatch: expected '{}', found '{}'",
+                                    existing_version, version
+                                ),
+                            },
+                            location,
+                        })
+                    }
+                    Some(existing_version) => Ok(Some(existing_version)),
+                    None => Ok(Some(version)),
+                }
+            })?
+            .ok_or_else(|| YamlError::Field {
+                kind: FieldErrorKind::Missing("version".to_string()),
+                location: "root".to_string(),
+            })
     }
 
     fn parse_from_yaml_optional(_: Arc<RwLock<StrictYaml>>) -> Result<Option<String>, YamlError> {
@@ -51,7 +87,7 @@ mod tests {
 test: test
 "#;
 
-        let error = SpecVersion::parse_from_yaml(get_document(yaml)).unwrap_err();
+        let error = SpecVersion::parse_from_yaml(vec![get_document(yaml)]).unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -68,5 +104,77 @@ test: test
 "#;
         let error = SpecVersion::parse_from_yaml_optional(get_document(yaml)).unwrap_err();
         assert_eq!(error, YamlError::InvalidTraitFunction);
+    }
+
+    #[test]
+    fn test_parse_from_yaml_consistent_versions() {
+        let documents = vec![
+            get_document(
+                r#"
+version: "3"
+"#,
+            ),
+            get_document(
+                r#"
+version: "3"
+"#,
+            ),
+        ];
+
+        let version = SpecVersion::parse_from_yaml(documents).unwrap();
+        assert_eq!(version, "3");
+    }
+
+    #[test]
+    fn test_parse_from_yaml_missing_version() {
+        let documents = vec![
+            get_document(
+                r#"
+version: "3"
+"#,
+            ),
+            get_document(
+                r#"
+name: test
+"#,
+            ),
+        ];
+
+        let error = SpecVersion::parse_from_yaml(documents).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("version".to_string()),
+                location: "document 2".to_string()
+            }
+        )
+    }
+
+    #[test]
+    fn test_parse_from_yaml_mismatched_versions() {
+        let documents = vec![
+            get_document(
+                r#"
+version: "3"
+"#,
+            ),
+            get_document(
+                r#"
+version: "2"
+"#,
+            ),
+        ];
+
+        let error = SpecVersion::parse_from_yaml(documents).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "version".to_string(),
+                    reason: "spec version mismatch: expected '3', found '2'".to_string()
+                },
+                location: "document 2".to_string()
+            }
+        )
     }
 }
