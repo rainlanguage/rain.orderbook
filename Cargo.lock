@@ -1525,6 +1525,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "assert_matches"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
+
+[[package]]
 name = "async-attributes"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9877,6 +9883,27 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "virtual-raindex"
+version = "0.0.0-alpha.0"
+dependencies = [
+ "alloy",
+ "assert_matches",
+ "once_cell",
+ "parking_lot",
+ "proptest",
+ "rain-math-float",
+ "rain_interpreter_bindings",
+ "rain_interpreter_test_fixtures",
+ "rain_orderbook_bindings",
+ "rain_orderbook_common",
+ "rain_orderbook_test_fixtures",
+ "revm 25.0.0",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "vlq"

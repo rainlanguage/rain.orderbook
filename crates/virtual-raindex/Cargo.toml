@@ -1,0 +1,25 @@
+[package]
+name = "virtual-raindex"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+homepage.workspace = true
+
+[dependencies]
+alloy = { workspace = true }
+rain-math-float = { workspace = true }
+rain_orderbook_bindings = { workspace = true }
+rain_interpreter_bindings = { workspace = true }
+rain_orderbook_common = { workspace = true }
+revm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+once_cell = { workspace = true }
+parking_lot = "0.12"
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
+rain_interpreter_test_fixtures = { path = "../../lib/rain.interpreter/crates/test_fixtures" }
+rain_orderbook_test_fixtures = { path = "../../crates/test_fixtures" }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }
+proptest = { workspace = true }
+assert_matches = { workspace = true }
