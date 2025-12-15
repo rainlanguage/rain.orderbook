@@ -328,7 +328,7 @@ mod tests {
         use crate::test_helpers::candidates::make_candidate;
         use crate::test_helpers::dotrain::create_dotrain_config_for_orderbook;
         use crate::test_helpers::local_evm::{
-            create_vault, create_vault_for_orderbook, deposit_to_orderbook,
+            create_vault, create_vault_for_orderbook, deposit_to_orderbook, fund_and_approve_taker,
             setup_multi_orderbook_test, setup_test as base_setup_test, standard_deposit_amount,
         };
         use crate::test_helpers::orders::deploy::deploy_order_to_orderbook;
@@ -1064,32 +1064,14 @@ mod tests {
 
             let taker = setup.local_evm.signer_wallets[1].default_signer().address();
             let taker_token1_balance = U256::from(10).pow(U256::from(22));
-            let token1_contract = setup
-                .local_evm
-                .tokens
-                .iter()
-                .find(|t| *t.address() == setup.token1)
-                .unwrap();
-
-            token1_contract
-                .transfer(taker, taker_token1_balance)
-                .from(setup.owner)
-                .send()
-                .await
-                .unwrap()
-                .get_receipt()
-                .await
-                .unwrap();
-
-            token1_contract
-                .approve(setup.orderbook, taker_token1_balance)
-                .from(taker)
-                .send()
-                .await
-                .unwrap()
-                .get_receipt()
-                .await
-                .unwrap();
+            fund_and_approve_taker(
+                &setup,
+                setup.token1,
+                taker,
+                setup.orderbook,
+                taker_token1_balance,
+            )
+            .await;
 
             let exact_tx = WithOtherFields::new(
                 TransactionRequest::default()
@@ -1256,32 +1238,8 @@ mod tests {
 
             let taker = setup.local_evm.signer_wallets[1].default_signer().address();
             let taker_balance = U256::from(10).pow(U256::from(22));
-            let token1_contract = setup
-                .local_evm
-                .tokens
-                .iter()
-                .find(|t| *t.address() == setup.token1)
-                .unwrap();
-
-            token1_contract
-                .transfer(taker, taker_balance)
-                .from(setup.owner)
-                .send()
-                .await
-                .unwrap()
-                .get_receipt()
-                .await
-                .unwrap();
-
-            token1_contract
-                .approve(setup.orderbook, taker_balance)
-                .from(taker)
-                .send()
-                .await
-                .unwrap()
-                .get_receipt()
-                .await
-                .unwrap();
+            fund_and_approve_taker(&setup, setup.token1, taker, setup.orderbook, taker_balance)
+                .await;
 
             let tx = WithOtherFields::new(
                 TransactionRequest::default()
@@ -1479,32 +1437,8 @@ mod tests {
 
             let taker = setup.local_evm.signer_wallets[1].default_signer().address();
             let taker_balance = U256::from(10).pow(U256::from(22));
-            let token1_contract = setup
-                .local_evm
-                .tokens
-                .iter()
-                .find(|t| *t.address() == setup.token1)
-                .unwrap();
-
-            token1_contract
-                .transfer(taker, taker_balance)
-                .from(setup.owner)
-                .send()
-                .await
-                .unwrap()
-                .get_receipt()
-                .await
-                .unwrap();
-
-            token1_contract
-                .approve(setup.orderbook, taker_balance)
-                .from(taker)
-                .send()
-                .await
-                .unwrap()
-                .get_receipt()
-                .await
-                .unwrap();
+            fund_and_approve_taker(&setup, setup.token1, taker, setup.orderbook, taker_balance)
+                .await;
 
             let tx = WithOtherFields::new(
                 TransactionRequest::default()
