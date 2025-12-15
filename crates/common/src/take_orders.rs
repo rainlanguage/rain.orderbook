@@ -17,6 +17,29 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
 
+fn indices_in_bounds(order: &OrderV4, input_index: u32, output_index: u32) -> bool {
+    (input_index as usize) < order.validInputs.len()
+        && (output_index as usize) < order.validOutputs.len()
+}
+
+fn matches_direction(
+    order: &OrderV4,
+    input_index: u32,
+    output_index: u32,
+    input_token: Address,
+    output_token: Address,
+) -> bool {
+    let order_input_token = order.validInputs[input_index as usize].token;
+    let order_output_token = order.validOutputs[output_index as usize].token;
+    order_input_token == input_token && order_output_token == output_token
+}
+
+fn has_capacity(
+    data: &crate::raindex_client::order_quotes::RaindexOrderQuoteValue,
+) -> Result<bool, RaindexError> {
+    Ok(data.max_output.gt(Float::zero()?)?)
+}
+
 pub fn cmp_float(a: &Float, b: &Float) -> Result<Ordering, RaindexError> {
     if a.lt(*b)? {
         Ok(Ordering::Less)
@@ -47,6 +70,33 @@ pub struct TakeOrderCandidate {
     pub max_output: Float,
     /// Ratio: input per 1 output, from the order's perspective (from quote2.IORatio)
     pub ratio: Float,
+}
+
+fn get_orderbook_address(order: &RaindexOrder) -> Result<Address, RaindexError> {
+    #[cfg(target_family = "wasm")]
+    {
+        Ok(Address::from_str(&order.orderbook())?)
+    }
+    #[cfg(not(target_family = "wasm"))]
+    {
+        Ok(order.orderbook())
+    }
+}
+
+fn build_candidates_for_order(
+    order: &RaindexOrder,
+    quotes: Vec<RaindexOrderQuote>,
+    input_token: Address,
+    output_token: Address,
+) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
+    let order_v4: OrderV4 = order.try_into()?;
+    let orderbook = get_orderbook_address(order)?;
+
+    quotes
+        .iter()
+        .map(|quote| try_build_candidate(orderbook, &order_v4, quote, input_token, output_token))
+        .collect::<Result<Vec<_>, _>>()
+        .map(|opts| opts.into_iter().flatten().collect())
 }
 
 /// Builds a list of `TakeOrderCandidate`s from a list of `RaindexOrder`s for a
@@ -85,31 +135,16 @@ pub async fn build_take_order_candidates_for_pair(
         .collect()
         .await;
 
-    let mut candidates: Vec<TakeOrderCandidate> = Vec::new();
-
-    for (order, quotes_result) in orders.iter().zip(quote_results) {
-        let quotes = quotes_result?;
-        let order_v4: OrderV4 = order.try_into()?;
-
-        #[cfg(target_family = "wasm")]
-        let orderbook = Address::from_str(&order.orderbook())?;
-        #[cfg(not(target_family = "wasm"))]
-        let orderbook = order.orderbook();
-
-        for quote in quotes {
-            if let Some(candidate) =
-                try_build_candidate(orderbook, &order_v4, &quote, input_token, output_token)?
-            {
-                candidates.push(candidate);
-            }
-        }
-    }
-
-    Ok(candidates)
+    orders
+        .iter()
+        .zip(quote_results)
+        .map(|(order, quotes_result)| {
+            build_candidates_for_order(order, quotes_result?, input_token, output_token)
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map(|vecs| vecs.into_iter().flatten().collect())
 }
 
-/// Try to build a TakeOrderCandidate from a quote if it matches the direction
-/// and has non-zero capacity.
 fn try_build_candidate(
     orderbook: Address,
     order: &OrderV4,
@@ -117,33 +152,29 @@ fn try_build_candidate(
     input_token: Address,
     output_token: Address,
 ) -> Result<Option<TakeOrderCandidate>, RaindexError> {
-    if !quote.success {
-        return Ok(None);
-    }
-
-    let data = match &quote.data {
-        Some(d) => d,
-        None => return Ok(None),
+    let data = match (quote.success, &quote.data) {
+        (true, Some(d)) => d,
+        _ => return Ok(None),
     };
 
     let input_io_index = quote.pair.input_index;
     let output_io_index = quote.pair.output_index;
 
-    if input_io_index as usize >= order.validInputs.len() {
-        return Ok(None);
-    }
-    if output_io_index as usize >= order.validOutputs.len() {
+    if !indices_in_bounds(order, input_io_index, output_io_index) {
         return Ok(None);
     }
 
-    let order_input_token = order.validInputs[input_io_index as usize].token;
-    let order_output_token = order.validOutputs[output_io_index as usize].token;
-
-    if order_input_token != input_token || order_output_token != output_token {
+    if !matches_direction(
+        order,
+        input_io_index,
+        output_io_index,
+        input_token,
+        output_token,
+    ) {
         return Ok(None);
     }
 
-    if data.max_output.lte(Float::zero()?)? {
+    if !has_capacity(data)? {
         return Ok(None);
     }
 
@@ -379,6 +410,109 @@ mod tests {
         let a = Float::parse("1".to_string()).unwrap();
         let b = Float::parse("1".to_string()).unwrap();
         assert_eq!(cmp_float(&a, &b).unwrap(), Ordering::Equal);
+    }
+
+    #[test]
+    fn test_indices_in_bounds_valid() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(indices_in_bounds(&order, 0, 0));
+    }
+
+    #[test]
+    fn test_indices_in_bounds_input_out_of_bounds() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(!indices_in_bounds(&order, 99, 0));
+    }
+
+    #[test]
+    fn test_indices_in_bounds_output_out_of_bounds() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(!indices_in_bounds(&order, 0, 99));
+    }
+
+    #[test]
+    fn test_indices_in_bounds_both_out_of_bounds() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(!indices_in_bounds(&order, 99, 99));
+    }
+
+    #[test]
+    fn test_matches_direction_correct() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(matches_direction(&order, 0, 0, token_a, token_b));
+    }
+
+    #[test]
+    fn test_matches_direction_wrong_input() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let token_c = Address::from([6u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(!matches_direction(&order, 0, 0, token_c, token_b));
+    }
+
+    #[test]
+    fn test_matches_direction_wrong_output() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let token_c = Address::from([6u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(!matches_direction(&order, 0, 0, token_a, token_c));
+    }
+
+    #[test]
+    fn test_matches_direction_reversed() {
+        let token_a = Address::from([4u8; 20]);
+        let token_b = Address::from([5u8; 20]);
+        let order = make_basic_order(token_a, token_b);
+        assert!(!matches_direction(&order, 0, 0, token_b, token_a));
+    }
+
+    fn make_quote_value_for_capacity_test(
+        max_output: Float,
+    ) -> crate::raindex_client::order_quotes::RaindexOrderQuoteValue {
+        let zero = Float::zero().unwrap();
+        crate::raindex_client::order_quotes::RaindexOrderQuoteValue {
+            max_output,
+            formatted_max_output: "0".to_string(),
+            max_input: zero,
+            formatted_max_input: "0".to_string(),
+            ratio: zero,
+            formatted_ratio: "0".to_string(),
+            inverse_ratio: zero,
+            formatted_inverse_ratio: "0".to_string(),
+        }
+    }
+
+    #[test]
+    fn test_has_capacity_positive() {
+        let positive = Float::parse("100".to_string()).unwrap();
+        let data = make_quote_value_for_capacity_test(positive);
+        assert!(has_capacity(&data).unwrap());
+    }
+
+    #[test]
+    fn test_has_capacity_zero() {
+        let zero = Float::zero().unwrap();
+        let data = make_quote_value_for_capacity_test(zero);
+        assert!(!has_capacity(&data).unwrap());
+    }
+
+    #[test]
+    fn test_has_capacity_negative() {
+        let negative = Float::parse("-1".to_string()).unwrap();
+        let data = make_quote_value_for_capacity_test(negative);
+        assert!(!has_capacity(&data).unwrap());
     }
 
     struct TestSetup {
