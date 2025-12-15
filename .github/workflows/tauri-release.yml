@@ -88,10 +88,10 @@ jobs:
 
       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
-      # - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
-      #   working-directory: ./tauri-app
-      #   env:
-      #     WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
+        working-directory: ./tauri-app
+        env:
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
       - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
         working-directory: ./tauri-app
 
@@ -108,6 +108,7 @@ jobs:
       - run: |
           rm -rf target
           rm -rf tauri-app/src-tauri/target
+          rm -rf tauri-app/.env
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-release
         working-directory: ./tauri-app
