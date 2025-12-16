@@ -42,6 +42,7 @@ mod tests {
             owners: vec![owner],
             hide_zero_balance: true,
             tokens: Some(vec![token]),
+            only_active_orders: false,
         };
         let args = FetchVaultsArgs::from_filters(filters);
         // Owners lowered
