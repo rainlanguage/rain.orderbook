@@ -19,6 +19,8 @@ import { getLocal } from 'mockttp';
 const CHAIN_ID_1_ORDERBOOK_ADDRESS = '0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6';
 const CHAIN_ID_2_ORDERBOOK_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed';
 const YAML = `
+version: 4
+
 networks:
     some-network:
         rpcs:
