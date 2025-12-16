@@ -69,7 +69,7 @@ mod tests {
         rows: Vec<Erc20TokenRow>,
         // Assertions for the incoming statement
         expect_in_clause: bool,
-        expect_chain_id: Option<i64>,
+        expect_chain_id: Option<u32>,
         expect_orderbook: Option<String>,
         expect_addr_count: Option<usize>,
         // Optional explicit expected address parameter values (in order)
@@ -101,14 +101,14 @@ mod tests {
             }
             if let Some(cid) = self.expect_chain_id {
                 match stmt.params().first() {
-                    Some(crate::local_db::query::SqlValue::I64(v)) => assert_eq!(*v, cid),
-                    other => panic!("expected first param I64({cid}), got {other:?}"),
+                    Some(crate::local_db::query::SqlValue::U64(v)) => assert_eq!(*v, cid as u64),
+                    other => panic!("expected first param U64({cid}), got {other:?}"),
                 }
             }
             if let Some(expected_orderbook) = self.expect_orderbook.as_ref() {
                 match stmt.params().get(1) {
                     Some(crate::local_db::query::SqlValue::Text(actual)) => {
-                        assert_eq!(actual, expected_orderbook);
+                        assert_eq!(actual, &expected_orderbook.to_ascii_lowercase());
                     }
                     other => {
                         panic!("expected second param Text({expected_orderbook}), got {other:?}")

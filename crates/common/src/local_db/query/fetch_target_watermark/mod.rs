@@ -20,8 +20,8 @@ pub fn fetch_target_watermark_stmt(ob_id: &OrderbookIdentifier) -> SqlStatement 
     SqlStatement::new_with_params(
         FETCH_TARGET_WATERMARK_SQL,
         [
-            SqlValue::from(ob_id.chain_id as u64),
-            SqlValue::from(ob_id.orderbook_address.to_string()),
+            SqlValue::from(ob_id.chain_id),
+            SqlValue::from(ob_id.orderbook_address),
         ],
     )
 }
@@ -44,7 +44,7 @@ mod tests {
         assert_eq!(stmt.sql(), FETCH_TARGET_WATERMARK_SQL);
         // Defensive: check placeholders and where clause shape
         let lower = stmt.sql().to_lowercase();
-        assert!(lower.contains("where chain_id = ?1 and lower(orderbook_address) = lower(?2)"));
+        assert!(lower.contains("where chain_id = ?1 and orderbook_address = ?2"));
     }
 
     #[test]
@@ -62,7 +62,7 @@ mod tests {
         );
         assert_eq!(
             params[1],
-            SqlValue::Text(addr.to_string()),
+            SqlValue::Text("0xabababababababababababababababababababab".to_string()),
             "second param must be orderbook_address as hex string"
         );
         // Ensure address string formatting is 0x-prefixed lowercase hex
@@ -71,6 +71,6 @@ mod tests {
         };
         assert!(s.starts_with("0x"));
         assert_eq!(s.len(), 42); // 0x + 40 hex chars
-        assert_eq!(s, &addr.to_string());
+        assert_eq!(s, "0xabababababababababababababababababababab");
     }
 }

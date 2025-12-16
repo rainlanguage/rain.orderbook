@@ -237,18 +237,10 @@ impl DotrainOrderGui {
             return Err(GuiError::DotrainMismatch);
         }
 
-        let frontmatter = RainDocument::get_front_matter(&dotrain)
-            .unwrap_or("")
-            .to_string();
-        let dotrain_yaml =
-            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
-
-        let order_key =
-            DeploymentCfg::parse_order_key(dotrain_yaml.documents, &state.selected_deployment)?;
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             None,
-            ContextProfile::gui(Some(order_key), Some(state.selected_deployment.clone())),
+            ContextProfile::gui(state.selected_deployment.clone()),
         )
         .await?;
 

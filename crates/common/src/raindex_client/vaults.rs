@@ -1,14 +1,11 @@
-use super::{local_db::executor::JsCallbackExecutor, *};
+use super::*;
+use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
-    is_chain_supported_local_db,
-    query::{
-        fetch_vault_balance_changes::LocalDbVaultBalanceChange, fetch_vaults::FetchVaultsArgs,
-        LocalDbQueryExecutor,
-    },
+    is_chain_supported_local_db, query::fetch_vault_balance_changes::LocalDbVaultBalanceChange,
     OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
-use crate::raindex_client::local_db::query::fetch_vaults::fetch_vaults;
+use crate::raindex_client::local_db::vaults::LocalDbVaults;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -18,9 +15,12 @@ use crate::{
     transaction::TransactionArgs,
     withdraw::WithdrawArgs,
 };
-use alloy::hex::encode_prefixed;
-use alloy::primitives::{Address, Bytes, B256, U256};
 use alloy::sol_types::SolCall;
+use alloy::{
+    hex,
+    primitives::{Address, Bytes, B256, U256},
+};
+use async_trait::async_trait;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
@@ -35,6 +35,7 @@ use rain_orderbook_subgraph_client::{
     },
     MultiOrderbookSubgraphClient,
     OrderbookSubgraphClient,
+    OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
 use std::{rc::Rc, str::FromStr};
@@ -42,6 +43,31 @@ use std::{rc::Rc, str::FromStr};
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
+
+pub(crate) struct SubgraphVaults<'a> {
+    client: &'a RaindexClient,
+}
+impl<'a> SubgraphVaults<'a> {
+    pub(crate) fn new(client: &'a RaindexClient) -> Self {
+        Self { client }
+    }
+}
+
+#[async_trait(?Send)]
+pub(crate) trait VaultsDataSource {
+    async fn list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetVaultsFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexVault>, RaindexError>;
+
+    async fn get_by_id(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        vault_id: &Bytes,
+    ) -> Result<Option<RaindexVault>, RaindexError>;
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -309,15 +335,13 @@ impl RaindexVault {
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if is_chain_supported_local_db(self.chain_id) {
-            if let Some(db_cb) = self.raindex_client.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
-                let vault_id_hex = encode_prefixed(B256::from(self.vault_id));
-                let token_address = self.token.address.to_string();
+            if let Some(local_db) = self.raindex_client.local_db() {
                 let local_changes = fetch_vault_balance_changes(
-                    &exec,
+                    &local_db,
                     &OrderbookIdentifier::new(self.chain_id, self.orderbook),
-                    &vault_id_hex,
-                    &token_address,
+                    self.vault_id,
+                    self.token.address,
+                    self.owner,
                 )
                 .await?;
 
@@ -590,7 +614,9 @@ impl TryFrom<String> for RaindexVaultBalanceChangeType {
         }
         match value.as_str() {
             "Deposit" | "DEPOSIT" => Ok(RaindexVaultBalanceChangeType::Deposit),
-            "Withdrawal" | "WITHDRAWAL" => Ok(RaindexVaultBalanceChangeType::Withdrawal),
+            "Withdrawal" | "WITHDRAWAL" | "WITHDRAW" => {
+                Ok(RaindexVaultBalanceChangeType::Withdrawal)
+            }
             "TradeVaultBalanceChange" | "TAKE_INPUT" | "TAKE_OUTPUT" => {
                 Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange)
             }
@@ -715,7 +741,7 @@ impl RaindexVaultBalanceChange {
 
 #[derive(Clone)]
 pub(crate) struct LocalTradeTokenInfo {
-    pub address: String,
+    pub address: Address,
     pub name: Option<String>,
     pub symbol: Option<String>,
     pub decimals: Option<u8>,
@@ -808,10 +834,9 @@ impl RaindexVaultBalanceChange {
         let formatted_new_balance = new_balance.format()?;
         let formatted_old_balance = old_balance.format()?;
 
-        let from_address = Address::from_str(&change.owner).unwrap_or(vault.owner);
         let transaction = RaindexTransaction::from_local_parts(
-            &change.transaction_hash,
-            &from_address.to_string(),
+            change.transaction_hash,
+            change.owner,
             change.block_number,
             change.block_timestamp,
         )?;
@@ -838,7 +863,7 @@ impl RaindexVaultBalanceChange {
         chain_id: u32,
         orderbook: Address,
         transaction: &RaindexTransaction,
-        vault_id: &str,
+        vault_id: U256,
         token: LocalTradeTokenInfo,
         balance: LocalTradeBalanceInfo,
         block_timestamp: u64,
@@ -863,8 +888,8 @@ impl RaindexVaultBalanceChange {
         let decimals = decimals.unwrap_or(18);
         let token = RaindexVaultToken {
             chain_id,
-            id: address.to_lowercase(),
-            address: Address::from_str(&address)?,
+            id: hex::encode_prefixed(address),
+            address,
             name,
             symbol,
             decimals,
@@ -872,7 +897,7 @@ impl RaindexVaultBalanceChange {
 
         Ok(Self {
             r#type: RaindexVaultBalanceChangeType::TradeVaultBalanceChange,
-            vault_id: U256::from_str(vault_id)?,
+            vault_id,
             token,
             amount,
             formatted_amount,
@@ -1095,137 +1120,59 @@ impl RaindexClient {
             u16,
         >,
     ) -> Result<RaindexVaultsList, RaindexError> {
-        let Some(ids) = chain_ids else {
-            let vaults = self.get_vaults_sg(None, filters, page).await?;
+        let filters = filters.unwrap_or_default();
+        let page_number = page.unwrap_or(1);
+        let subgraph_source = SubgraphVaults::new(self);
+
+        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
+            let vaults = subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await?;
             return Ok(RaindexVaultsList::new(vaults));
         };
 
-        let Some(db_cb) = self.local_db_callback() else {
-            let vaults = self.get_vaults_sg(Some(ids.0), filters, page).await?;
+        if ids.is_empty() {
+            let vaults = subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await?;
             return Ok(RaindexVaultsList::new(vaults));
         };
 
-        let all_ids = ids.0;
-        let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
-            .into_iter()
-            .partition(|&id| is_chain_supported_local_db(id));
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
+
+        for id in ids.drain(..) {
+            if is_chain_supported_local_db(id) {
+                local_ids.push(id);
+            } else {
+                sg_ids.push(id);
+            }
+        }
 
         let mut vaults: Vec<RaindexVault> = Vec::new();
 
-        if local_ids.is_empty() && sg_ids.is_empty() {
-            let vaults = self.get_vaults_sg(None, filters, page).await?;
-            return Ok(RaindexVaultsList::new(vaults));
+        if self.local_db().is_none() {
+            sg_ids.append(&mut local_ids);
         }
 
-        if !local_ids.is_empty() {
-            let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::new(&db_cb);
-                self.get_vaults_local_db(exec, id, filters.clone())
-            }))
-            .await?;
-            for mut chunk in locals {
-                vaults.append(&mut chunk);
+        if let Some(local_db) = self.local_db() {
+            if !local_ids.is_empty() {
+                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+                let local_vaults = local_source
+                    .list(Some(local_ids.clone()), &filters, None)
+                    .await?;
+                vaults.extend(local_vaults);
             }
         }
 
         if !sg_ids.is_empty() {
-            let sg_vaults = self.get_vaults_sg(Some(sg_ids), filters, page).await?;
+            let sg_vaults = subgraph_source
+                .list(Some(sg_ids), &filters, Some(page_number))
+                .await?;
             vaults.extend(sg_vaults);
         }
 
         Ok(RaindexVaultsList::new(vaults))
-    }
-
-    async fn get_vaults_sg(
-        &self,
-        chain_ids: Option<Vec<u32>>,
-        filters: Option<GetVaultsFilters>,
-        page: Option<u16>,
-    ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
-        let multi_subgraph_args = self.get_multi_subgraph_args(chain_ids)?;
-        let client = MultiOrderbookSubgraphClient::new(
-            multi_subgraph_args.values().flatten().cloned().collect(),
-        );
-
-        let vaults = client
-            .vaults_list(
-                filters
-                    .unwrap_or(GetVaultsFilters {
-                        owners: vec![],
-                        hide_zero_balance: false,
-                        tokens: None,
-                    })
-                    .try_into()?,
-                SgPaginationArgs {
-                    page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
-                },
-            )
-            .await;
-
-        let vaults = vaults
-            .iter()
-            .map(|vault| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or_else(|| {
-                        RaindexError::SubgraphNotFound(
-                            vault.subgraph_name.clone(),
-                            vault.vault.vault_id.0.clone(),
-                        )
-                    })?;
-                let vault = RaindexVault::try_from_sg_vault(
-                    raindex_client.clone(),
-                    chain_id,
-                    vault.vault.clone(),
-                    None,
-                )?;
-                Ok(vault)
-            })
-            .collect::<Result<Vec<RaindexVault>, RaindexError>>()?;
-
-        Ok(vaults)
-    }
-
-    async fn get_vaults_local_db<E: LocalDbQueryExecutor>(
-        &self,
-        executor: E,
-        chain_id: u32,
-        filters: Option<GetVaultsFilters>,
-    ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let fetch_args_template = filters
-            .clone()
-            .map(FetchVaultsArgs::from_filters)
-            .unwrap_or_default();
-
-        let mut vaults = Vec::new();
-        let orderbooks = self.get_orderbooks_by_chain_id(chain_id)?;
-        let raindex_client = Rc::new(self.clone());
-
-        for orderbook_cfg in orderbooks {
-            let local_vaults = fetch_vaults(
-                &executor,
-                &OrderbookIdentifier::new(chain_id, orderbook_cfg.address),
-                fetch_args_template.clone(),
-            )
-            .await?;
-
-            for local_vault in local_vaults {
-                let vault = RaindexVault::try_from_local_db(
-                    Rc::clone(&raindex_client),
-                    chain_id,
-                    local_vault,
-                    None,
-                )?;
-
-                vaults.push(vault);
-            }
-        }
-
-        Ok(vaults)
     }
 
     /// Fetches detailed information for a specific vault
@@ -1352,61 +1299,96 @@ impl RaindexClient {
         }
 
         if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::new(&db_cb);
-                if let Some(vault) = self.get_vault_local_db(&exec, ob_id, &vault_id).await? {
+            if let Some(local_db) = self.local_db() {
+                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+                if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
                     return Ok(vault);
                 }
             }
         }
 
-        let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
-        let vault = RaindexVault::try_from_sg_vault(
-            Rc::new(self.clone()),
-            ob_id.chain_id,
-            client.vault_detail(Id::new(vault_id.to_string())).await?,
-            None,
-        )?;
-        Ok(vault)
+        SubgraphVaults::new(self)
+            .get_by_id(ob_id, &vault_id)
+            .await?
+            .ok_or_else(|| {
+                RaindexError::VaultNotFound(
+                    ob_id.orderbook_address.to_string(),
+                    ob_id.chain_id,
+                    vault_id.to_string(),
+                )
+            })
     }
 }
 
-impl RaindexClient {
-    async fn get_vault_local_db<E: LocalDbQueryExecutor + ?Sized>(
+#[async_trait(?Send)]
+impl VaultsDataSource for SubgraphVaults<'_> {
+    async fn list(
         &self,
-        executor: &E,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetVaultsFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexVault>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
+        let vaults = client
+            .vaults_list(
+                filters.clone().try_into()?,
+                SgPaginationArgs {
+                    page: page.unwrap_or(1),
+                    page_size: DEFAULT_PAGE_SIZE,
+                },
+            )
+            .await;
+
+        let vaults = vaults
+            .iter()
+            .map(|vault| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == vault.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or_else(|| {
+                        RaindexError::SubgraphNotFound(
+                            vault.subgraph_name.clone(),
+                            vault.vault.vault_id.0.clone(),
+                        )
+                    })?;
+                let vault = RaindexVault::try_from_sg_vault(
+                    raindex_client.clone(),
+                    chain_id,
+                    vault.vault.clone(),
+                    None,
+                )?;
+                Ok(vault)
+            })
+            .collect::<Result<Vec<RaindexVault>, RaindexError>>()?;
+
+        Ok(vaults)
+    }
+
+    async fn get_by_id(
+        &self,
         ob_id: &OrderbookIdentifier,
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
-        let fetch_args = FetchVaultsArgs {
-            hide_zero_balance: false,
-            ..FetchVaultsArgs::default()
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let vault = match client.vault_detail(Id::new(vault_id.to_string())).await {
+            Ok(vault) => vault,
+            Err(OrderbookSubgraphClientError::Empty) => return Ok(None),
+            Err(err) => return Err(err.into()),
         };
 
-        let local_vaults = fetch_vaults(executor, ob_id, fetch_args).await?;
-        let raindex_client = Rc::new(self.clone());
-
-        let requested_id = vault_id.to_string().to_lowercase();
-
-        for local_vault in local_vaults {
-            let vault = RaindexVault::try_from_local_db(
-                Rc::clone(&raindex_client),
-                ob_id.chain_id,
-                local_vault,
-                None,
-            )?;
-
-            let candidate_id = vault.id().to_string().to_lowercase();
-            if candidate_id == requested_id {
-                return Ok(Some(vault));
-            }
-        }
-
-        Ok(None)
+        let vault = RaindexVault::try_from_sg_vault(raindex_client, ob_id.chain_id, vault, None)?;
+        Ok(Some(vault))
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GetVaultsFilters {
     #[tsify(type = "Address[]")]
@@ -1519,41 +1501,35 @@ impl RaindexVault {
 
     pub fn try_from_local_db(
         raindex_client: Rc<RaindexClient>,
-        chain_id: u32,
-        vault: crate::local_db::query::fetch_vault::LocalDbVault,
+        vault: LocalDbVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
         let balance = Float::from_hex(&vault.balance)?;
         let formatted_balance = balance.format()?;
 
-        let id: Vec<u8> = vault
-            .orderbook_address
-            .as_bytes()
-            .iter()
-            .chain(vault.owner.as_bytes())
-            .chain(vault.token.as_bytes())
-            .chain(vault.vault_id.as_bytes())
-            .copied()
-            .collect();
+        let mut id = Vec::from(vault.orderbook_address.as_slice());
+        id.extend_from_slice(vault.owner.as_slice());
+        id.extend_from_slice(vault.token.as_slice());
+        id.extend_from_slice(&vault.vault_id.to_le_bytes::<32>());
 
         Ok(Self {
             raindex_client,
-            chain_id,
+            chain_id: vault.chain_id,
             vault_type,
             id: Bytes::from(id),
-            owner: Address::from_str(&vault.owner)?,
-            vault_id: U256::from_str(&vault.vault_id)?,
+            owner: vault.owner,
+            vault_id: vault.vault_id,
             balance,
             formatted_balance,
             token: RaindexVaultToken {
-                chain_id,
-                id: vault.token.clone(),
-                address: Address::from_str(&vault.token)?,
+                chain_id: vault.chain_id,
+                id: vault.token.to_string(),
+                address: vault.token,
                 name: Some(vault.token_name),
                 symbol: Some(vault.token_symbol),
                 decimals: vault.token_decimals,
             },
-            orderbook: Address::from_str(&vault.orderbook_address)?,
+            orderbook: vault.orderbook_address,
             orders_as_inputs: RaindexOrderAsIO::try_from_local_db_orders_csv(
                 "inputOrders",
                 &vault.input_orders,
@@ -1605,13 +1581,12 @@ mod tests {
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use crate::local_db::query::fetch_vault::LocalDbVault;
         use crate::local_db::query::fetch_vault_balance_changes::LocalDbVaultBalanceChange;
         use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
         use crate::raindex_client::tests::{
             get_local_db_test_yaml, new_test_client_with_db_callback,
         };
-        use alloy::primitives::{Address, Bytes};
+        use alloy::primitives::{address, b256, Address, Bytes};
         use rain_math_float::Float;
         use serde_json;
         use std::cell::RefCell;
@@ -1620,6 +1595,7 @@ mod tests {
         use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
         use wasm_bindgen_test::wasm_bindgen_test;
         use wasm_bindgen_utils::prelude::WasmEncodedResult;
+        use LocalDbVault;
 
         fn make_local_db_vaults_callback(vaults: Vec<LocalDbVault>) -> js_sys::Function {
             let json = serde_json::to_string(&vaults).unwrap();
@@ -1666,7 +1642,7 @@ mod tests {
                     .unwrap();
 
             let callback = Closure::wrap(Box::new(move |sql: String| -> JsValue {
-                if sql.contains("running_balance") {
+                if sql.contains("runningBalance") {
                     js_sys::JSON::parse(&balance_payload).unwrap()
                 } else {
                     js_sys::JSON::parse(&vaults_payload).unwrap()
@@ -1683,10 +1659,11 @@ mod tests {
             balance: Float,
         ) -> LocalDbVault {
             LocalDbVault {
-                vault_id: vault_id.to_string(),
-                token: token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
+                chain_id: 42161,
+                vault_id: U256::from_str(vault_id).unwrap(),
+                token: Address::from_str(token).unwrap(),
+                owner: Address::from_str(owner).unwrap(),
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
                 token_name: "Token".to_string(),
                 token_symbol: "TKN".to_string(),
                 token_decimals: 18,
@@ -1705,7 +1682,7 @@ mod tests {
 
             let callback = make_local_db_vaults_callback(vec![vault]);
 
-            let mut client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
@@ -1742,7 +1719,7 @@ mod tests {
 
             let rc_client = Rc::new(client.clone());
             let derived_vault =
-                RaindexVault::try_from_local_db(Rc::clone(&rc_client), 42161, local_vault, None)
+                RaindexVault::try_from_local_db(Rc::clone(&rc_client), local_vault, None)
                     .expect("local vault should convert");
 
             let vault_id_hex = derived_vault.id();
@@ -1767,22 +1744,30 @@ mod tests {
 
         #[wasm_bindgen_test]
         async fn test_get_balance_changes_local_db_path() {
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let token = "0x00000000000000000000000000000000000000aa";
-            let local_vault =
-                make_local_vault("0x02", token, owner, Float::parse("5".to_string()).unwrap());
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let token = address!("0x00000000000000000000000000000000000000aa");
+            let owner_str = owner.to_string();
+            let token_str = token.to_string();
+            let local_vault = make_local_vault(
+                "0x02",
+                &token_str,
+                &owner_str,
+                Float::parse("5".to_string()).unwrap(),
+            );
 
             let amount = Float::parse("1".to_string()).unwrap();
             let running_balance = Float::parse("5".to_string()).unwrap();
 
             let balance_change = LocalDbVaultBalanceChange {
-                transaction_hash: "0xdeadbeef".to_string(),
+                transaction_hash: b256!(
+                    "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+                ),
                 log_index: 1,
                 block_number: 1234,
                 block_timestamp: 5678,
-                owner: owner.to_string(),
+                owner,
                 change_type: "DEPOSIT".to_string(),
-                token: token.to_string(),
+                token,
                 vault_id: local_vault.vault_id.clone(),
                 delta: amount.as_hex(),
                 running_balance: running_balance.as_hex(),
@@ -1797,7 +1782,7 @@ mod tests {
 
             let rc_client = Rc::new(client.clone());
             let derived_vault =
-                RaindexVault::try_from_local_db(Rc::clone(&rc_client), 42161, local_vault, None)
+                RaindexVault::try_from_local_db(Rc::clone(&rc_client), local_vault, None)
                     .expect("local vault should convert");
 
             let vault_id_bytes = Bytes::from_str(&derived_vault.id()).expect("valid vault id");
@@ -1820,11 +1805,15 @@ mod tests {
             assert_eq!(change.formatted_amount(), "1");
             assert_eq!(change.formatted_new_balance(), "5");
             assert_eq!(change.formatted_old_balance(), "4");
-            assert_eq!(change.transaction().id(), "0xdeadbeef");
+            assert_eq!(
+                change.transaction().id(),
+                "0x00000000000000000000000000000000000000000000000000000000deadbeef"
+            );
         }
 
         #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_filters() {
+            use wasm_bindgen::JsCast;
             use wasm_bindgen_utils::prelude::JsValue;
             let owner_kept = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
             let token_kept = "0x00000000000000000000000000000000000000aa";
@@ -1839,7 +1828,7 @@ mod tests {
             let json = serde_json::to_string(&vec![keep_vault]).unwrap();
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
 
-            let mut client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
                 .set_local_db_callback(callback)
                 .expect("setting callback succeeds");
@@ -1865,30 +1854,43 @@ mod tests {
 
             let sql = captured_sql.borrow();
             // SQL should contain parameterized IN-clauses and hide-zero filter body
-            assert!(sql.0.contains("lower(o.owner) IN ("));
-            assert!(sql.0.contains("lower(o.token) IN ("));
+            assert!(sql.0.contains("o.owner IN ("));
+            assert!(sql.0.contains("o.token IN ("));
             assert!(sql.0.contains("AND NOT FLOAT_IS_ZERO("));
 
             // Params should include chain id, owner and token values bound in order
-            let params: Vec<crate::local_db::query::SqlValue> =
-                wasm_bindgen_utils::prelude::serde_wasm_bindgen::from_value(sql.1.clone())
-                    .expect("params parse");
+            let params_js = sql.1.clone();
+            assert!(
+                js_sys::Array::is_array(&params_js),
+                "expected array params from callback"
+            );
+            let params_array = js_sys::Array::from(&params_js);
+            assert!(
+                params_array.length() >= 3,
+                "expected at least three params (chain id, owner, token)"
+            );
 
-            // Expect first param to be chain id (I64)
-            assert!(matches!(
-                params.get(0),
-                Some(crate::local_db::query::SqlValue::U64(42161))
-            ));
+            // Expect first param to be chain id (U64 encoded as BigInt)
+            let chain_id = params_array.get(0);
+            let chain_id_bigint = chain_id
+                .dyn_into::<js_sys::BigInt>()
+                .expect("chain id should be BigInt");
+            let chain_id_str = chain_id_bigint.to_string(10).unwrap().as_string().unwrap();
+            assert_eq!(chain_id_str, "42161");
 
             // Expect owner and token to be present among text params
-            let has_owner = params.iter().any(|p| match p {
-                crate::local_db::query::SqlValue::Text(s) => s == owner_kept,
-                _ => false,
-            });
-            let has_token = params.iter().any(|p| match p {
-                crate::local_db::query::SqlValue::Text(s) => s == token_kept,
-                _ => false,
-            });
+            let mut has_owner = false;
+            let mut has_token = false;
+            for value in params_array.iter() {
+                if let Some(text) = value.as_string() {
+                    if text == owner_kept {
+                        has_owner = true;
+                    }
+                    if text == token_kept {
+                        has_token = true;
+                    }
+                }
+            }
             assert!(has_owner, "owner missing in params");
             assert!(has_token, "token missing in params");
         }
@@ -1897,10 +1899,10 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
-        use crate::local_db::query::fetch_vault::LocalDbVault;
         use crate::raindex_client::tests::get_test_yaml;
         use crate::raindex_client::tests::CHAIN_ID_1_ORDERBOOK_ADDRESS;
         use alloy::hex::encode_prefixed;
+        use alloy::primitives::{address, b256};
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
         use rain_orderbook_bindings::IERC20::decimalsCall;
@@ -1910,15 +1912,15 @@ mod tests {
         };
         use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
+        use LocalDbVault;
 
         #[test]
         fn test_try_from_local_trade_side_with_running_balance() {
             let chain_id = 42161;
-            let orderbook =
-                Address::from_str("0x0000000000000000000000000000000000000001").unwrap();
+            let orderbook = address!("0x0000000000000000000000000000000000000001");
             let transaction = RaindexTransaction::from_local_parts(
-                "0xdeadbeef",
-                "0x0000000000000000000000000000000000000002",
+                b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef"),
+                address!("0x0000000000000000000000000000000000000002"),
                 123,
                 456,
             )
@@ -1934,9 +1936,9 @@ mod tests {
                 chain_id,
                 orderbook,
                 &transaction,
-                "0x10",
+                U256::from(16),
                 LocalTradeTokenInfo {
-                    address: "0x0000000000000000000000000000000000000003".to_string(),
+                    address: address!("0x0000000000000000000000000000000000000003"),
                     name: Some("Token In".to_string()),
                     symbol: Some("TIN".to_string()),
                     decimals: Some(6),
@@ -1987,11 +1989,10 @@ mod tests {
         #[test]
         fn test_try_from_local_trade_side_defaults() {
             let chain_id = 1;
-            let orderbook =
-                Address::from_str("0x0000000000000000000000000000000000000004").unwrap();
+            let orderbook = address!("0x0000000000000000000000000000000000000004");
             let transaction = RaindexTransaction::from_local_parts(
-                "0xfeedface",
-                "0x0000000000000000000000000000000000000005",
+                b256!("0x00000000000000000000000000000000000000000000000000000000feedface"),
+                address!("0x0000000000000000000000000000000000000005"),
                 111,
                 222,
             )
@@ -2005,9 +2006,9 @@ mod tests {
                 chain_id,
                 orderbook,
                 &transaction,
-                "0x20",
+                U256::from(2),
                 LocalTradeTokenInfo {
-                    address: "0x0000000000000000000000000000000000000006".to_string(),
+                    address: address!("0x0000000000000000000000000000000000000006"),
                     name: None,
                     symbol: None,
                     decimals: None,
@@ -2056,10 +2057,11 @@ mod tests {
             .unwrap();
 
             let local_vault = LocalDbVault {
-                vault_id: "0x01".to_string(),
-                token: "0x0000000000000000000000000000000000000000".to_string(),
-                owner: "0x0000000000000000000000000000000000000000".to_string(),
-                orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                chain_id: 1,
+                vault_id: U256::from(1),
+                token: address!("0x0000000000000000000000000000000000000000"),
+                owner: address!("0x0000000000000000000000000000000000000000"),
+                orderbook_address: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                 token_name: "Test Token".to_string(),
                 token_symbol: "TST".to_string(),
                 token_decimals: 6,
@@ -2070,7 +2072,6 @@ mod tests {
 
             let rv = RaindexVault::try_from_local_db(
                 Rc::new(raindex_client),
-                1,
                 local_vault,
                 Some(RaindexVaultType::Input),
             )
@@ -2429,10 +2430,7 @@ mod tests {
             assert_eq!(result[0].timestamp, U256::from_str("1734054063").unwrap());
             assert_eq!(
                 result[0].transaction.id(),
-                Bytes::from_str(
-                    "0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22"
-                )
-                .unwrap()
+                b256!("0x85857b5c6d0b277f9e971b6b45cab98720f90b8f24d65df020776d675b71fc22")
             );
             assert_eq!(
                 result[0].transaction.from(),

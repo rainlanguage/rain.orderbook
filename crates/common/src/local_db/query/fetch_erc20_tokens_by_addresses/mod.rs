@@ -2,7 +2,7 @@ use crate::local_db::{
     query::{SqlBuildError, SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
-use alloy::{hex, primitives::Address};
+use alloy::primitives::Address;
 use serde::{Deserialize, Serialize};
 
 pub const FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL: &str = include_str!("query.sql");
@@ -32,18 +32,13 @@ pub fn build_fetch_stmt(
     }
 
     let mut stmt = SqlStatement::new(FETCH_ERC20_TOKENS_BY_ADDRESSES_SQL);
-    // ?1: chain id
-    stmt.push(ob_id.chain_id as i64);
-    // ?2: orderbook address
-    stmt.push(ob_id.orderbook_address.to_string());
+    stmt.push(ob_id.chain_id);
+    stmt.push(ob_id.orderbook_address);
     // IN list for addresses
     stmt.bind_list_clause(
         ADDRESSES_CLAUSE,
         ADDRESSES_CLAUSE_BODY,
-        addresses
-            .iter()
-            .cloned()
-            .map(|a| SqlValue::Text(hex::encode_prefixed(a))),
+        addresses.iter().cloned().map(SqlValue::from),
     )?;
     Ok(Some(stmt))
 }
@@ -75,8 +70,11 @@ mod tests {
 
         // Params: chain id, orderbook address, then addresses
         assert_eq!(stmt.params.len(), 4);
-        assert_eq!(stmt.params[0], SqlValue::I64(137));
-        assert_eq!(stmt.params[1], SqlValue::Text(orderbook.to_string()));
+        assert_eq!(stmt.params[0], SqlValue::U64(137));
+        assert_eq!(
+            stmt.params[1],
+            SqlValue::Text("0xbebebebebebebebebebebebebebebebebebebebe".to_string())
+        );
         assert_eq!(
             stmt.params[2],
             SqlValue::Text(hex::encode_prefixed(addrs[0]))

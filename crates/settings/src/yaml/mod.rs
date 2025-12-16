@@ -142,14 +142,8 @@ pub trait ContextProvider {
     }
     fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg>;
 
-    fn expand_context_with_current_deployment(
-        &self,
-        context: &mut Context,
-        current_deployment: Option<String>,
-    ) {
-        if let Some(deployment) = current_deployment {
-            context.add_current_deployment(deployment);
-        }
+    fn expand_context_with_current_deployment(&self, context: &mut Context, deployment: &str) {
+        context.add_current_deployment(deployment.to_string());
     }
 
     fn expand_context_with_current_order(
