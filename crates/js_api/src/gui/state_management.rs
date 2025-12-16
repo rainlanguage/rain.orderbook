@@ -240,7 +240,7 @@ impl DotrainOrderGui {
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             None,
-            ContextProfile::gui(Some(state.selected_deployment.clone())),
+            ContextProfile::gui(state.selected_deployment.clone()),
         )
         .await?;
 

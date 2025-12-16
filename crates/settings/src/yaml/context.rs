@@ -11,14 +11,14 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 ///   batch validation, CLI, and non-GUI flows where the entire config must be consistent.
 /// - Gui: UI-scoped mode. Scopes parsing to the selected deployment, derives its order,
 ///   injects select-tokens for that deployment, and avoids parsing unrelated orders so
-///   handlebars/missing-token templates in other orders don’t fail. Use this for GUI/WASM
+///   handlebars/missing-token templates in other orders don't fail. Use this for GUI/WASM
 ///   flows where the user works within a single deployment at a time.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub enum ContextProfile {
     Strict,
-    Gui { current_deployment: Option<String> },
+    Gui { current_deployment: String },
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ContextProfile);
@@ -28,7 +28,7 @@ impl ContextProfile {
         Self::Strict
     }
 
-    pub fn gui(current_deployment: Option<String>) -> Self {
+    pub fn gui(current_deployment: String) -> Self {
         Self::Gui { current_deployment }
     }
 }
@@ -351,10 +351,10 @@ mod tests {
         assert_eq!(ContextProfile::strict(), ContextProfile::Strict);
         assert_eq!(ContextProfile::default(), ContextProfile::Strict);
 
-        let gui_full = ContextProfile::gui(Some("deployment1".to_string()));
+        let gui_full = ContextProfile::gui("deployment1".to_string());
         match gui_full {
             ContextProfile::Gui { current_deployment } => {
-                assert_eq!(current_deployment, Some("deployment1".to_string()));
+                assert_eq!(current_deployment, "deployment1".to_string());
             }
             _ => panic!("expected gui context profile"),
         }

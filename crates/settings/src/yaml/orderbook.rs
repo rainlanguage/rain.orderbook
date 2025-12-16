@@ -552,7 +552,7 @@ mod tests {
             sources.clone(),
             OrderbookYamlValidation::default(),
             ContextProfile::Gui {
-                current_deployment: None,
+                current_deployment: "deployment1".to_string(),
             },
         )
         .unwrap();
@@ -571,7 +571,7 @@ mod tests {
             vec![FULL_YAML.to_string()],
             OrderbookYamlValidation::default(),
             ContextProfile::Gui {
-                current_deployment: Some("deployment1".to_string()),
+                current_deployment: "deployment1".to_string(),
             },
         )
         .unwrap();
@@ -580,7 +580,7 @@ mod tests {
         let round_tripped: OrderbookYaml = serde_json::from_str(&serialized).unwrap();
         match round_tripped.profile {
             ContextProfile::Gui { current_deployment } => {
-                assert_eq!(current_deployment.as_deref(), Some("deployment1"));
+                assert_eq!(current_deployment, "deployment1");
             }
             _ => panic!("expected gui profile"),
         }

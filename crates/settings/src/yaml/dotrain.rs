@@ -174,32 +174,23 @@ impl DotrainYaml {
                 self.expand_context_with_remote_tokens(&mut context);
             }
             ContextProfile::Gui { current_deployment } => {
-                self.expand_context_with_current_deployment(
-                    &mut context,
-                    current_deployment.clone(),
-                );
+                self.expand_context_with_current_deployment(&mut context, current_deployment);
                 self.expand_context_with_remote_networks(&mut context);
                 self.expand_context_with_remote_tokens(&mut context);
 
-                if let Some(deployment_key) = current_deployment {
-                    if let Some(select_tokens) =
-                        GuiCfg::parse_select_tokens(self.documents.clone(), deployment_key)?
-                    {
-                        context.add_select_tokens(
-                            select_tokens.iter().map(|st| st.key.clone()).collect(),
-                        );
-                    }
-
-                    let order_key =
-                        DeploymentCfg::parse_order_key(self.documents.clone(), deployment_key)?;
-                    context.add_current_order(order_key.clone());
-                    let order = OrderCfg::parse_from_yaml(
-                        self.documents.clone(),
-                        &order_key,
-                        Some(&context),
-                    )?;
-                    context.add_order(Arc::new(order));
+                if let Some(select_tokens) =
+                    GuiCfg::parse_select_tokens(self.documents.clone(), current_deployment)?
+                {
+                    context
+                        .add_select_tokens(select_tokens.iter().map(|st| st.key.clone()).collect());
                 }
+
+                let order_key =
+                    DeploymentCfg::parse_order_key(self.documents.clone(), current_deployment)?;
+                context.add_current_order(order_key.clone());
+                let order =
+                    OrderCfg::parse_from_yaml(self.documents.clone(), &order_key, Some(&context))?;
+                context.add_order(Arc::new(order));
             }
         }
 
@@ -223,7 +214,7 @@ impl DotrainYaml {
         order_key: &str,
         deployment_key: &str,
     ) -> Result<OrderCfg, YamlError> {
-        let context = self.build_context(&ContextProfile::gui(Some(deployment_key.to_string())))?;
+        let context = self.build_context(&ContextProfile::gui(deployment_key.to_string()))?;
         OrderCfg::parse_from_yaml(self.documents.clone(), order_key, Some(&context))
     }
 
@@ -251,8 +242,8 @@ impl DotrainYaml {
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
-        let context = self.build_context(&ContextProfile::gui(current_deployment))?;
+    pub fn get_gui(&self, current_deployment: &str) -> Result<Option<GuiCfg>, YamlError> {
+        let context = self.build_context(&ContextProfile::gui(current_deployment.to_string()))?;
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 
@@ -694,7 +685,7 @@ mod tests {
             "order1"
         );
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
         assert_eq!(gui.deployments.len(), 1);
@@ -762,7 +753,7 @@ mod tests {
         assert!(select_tokens.is_none());
 
         let gui_context = dotrain_yaml
-            .build_context(&ContextProfile::gui(Some("deployment1".to_string())))
+            .build_context(&ContextProfile::gui("deployment1".to_string()))
             .unwrap();
         assert_eq!(
             gui_context
@@ -914,7 +905,7 @@ mod tests {
         assert!(strict_ctx.order.is_none());
 
         let gui_ctx = dotrain_yaml
-            .build_context(&ContextProfile::gui(Some("deployment1".to_string())))
+            .build_context(&ContextProfile::gui("deployment1".to_string()))
             .unwrap();
         assert!(gui_ctx.get_remote_network("remote-net").is_some());
         assert!(gui_ctx.get_remote_token("remote-token").is_some());
@@ -939,7 +930,7 @@ mod tests {
 
         let propagated = DotrainYaml::from_dotrain_yaml(dotrain_yaml);
         let propagated_ctx = propagated
-            .build_context(&ContextProfile::gui(Some("deployment1".to_string())))
+            .build_context(&ContextProfile::gui("deployment1".to_string()))
             .unwrap();
         assert_eq!(
             propagated_ctx
@@ -1002,7 +993,7 @@ mod tests {
         let gui_yaml = DotrainYaml::new_with_profile(
             vec![yaml.to_string()],
             DotrainYamlValidation::default(),
-            ContextProfile::gui(Some("deployment1".to_string())),
+            ContextProfile::gui("deployment1".to_string()),
         )
         .unwrap();
         let order = gui_yaml.get_order("order1").unwrap();
@@ -1016,7 +1007,7 @@ mod tests {
         let dotrain_yaml = DotrainYaml::new_with_profile(
             vec![yaml.clone()],
             DotrainYamlValidation::default(),
-            ContextProfile::gui(Some("deployment1".to_string())),
+            ContextProfile::gui("deployment1".to_string()),
         )
         .unwrap();
 
@@ -1024,7 +1015,7 @@ mod tests {
         let round_tripped: DotrainYaml = serde_json::from_str(&serialized).unwrap();
         match round_tripped.profile {
             ContextProfile::Gui { current_deployment } => {
-                assert_eq!(current_deployment.as_deref(), Some("deployment1"));
+                assert_eq!(current_deployment, "deployment1");
             }
             _ => panic!("expected gui profile"),
         }
@@ -1285,7 +1276,7 @@ mod tests {
         )
         .unwrap();
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
         let deployment = gui.deployments.get("deployment1").unwrap();
 
         assert_eq!(
@@ -1381,7 +1372,7 @@ orders:
             DotrainYamlValidation::default(),
         )
         .unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let error = dotrain_yaml.get_gui("deployment1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1402,7 +1393,7 @@ orders:
             DotrainYamlValidation::default(),
         )
         .unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let error = dotrain_yaml.get_gui("deployment1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {

@@ -181,7 +181,7 @@ impl DotrainOrderGui {
             dotrain_order: DotrainOrder::create_with_profile(
                 dotrain.clone(),
                 None,
-                ContextProfile::gui(Some(selected_deployment.clone())),
+                ContextProfile::gui(selected_deployment.clone()),
             )
             .await?,
             selected_deployment,
@@ -219,7 +219,7 @@ impl DotrainOrderGui {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui(Some(self.selected_deployment.clone()))?
+            .get_gui(&self.selected_deployment)?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
@@ -603,7 +603,7 @@ impl DotrainOrderGui {
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             None,
-            ContextProfile::gui(Some(deployment.deployment.key.clone())),
+            ContextProfile::gui(deployment.deployment.key.clone()),
         )
         .await?;
         let rainlang = dotrain_order
