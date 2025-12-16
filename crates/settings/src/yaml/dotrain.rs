@@ -1,5 +1,5 @@
 use super::{cache::Cache, orderbook::OrderbookYaml, ValidationConfig, *};
-use crate::{ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
+use crate::{spec_version::SpecVersion, ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
     de::{self, SeqAccess, Visitor},
     ser::SerializeSeq,
@@ -38,9 +38,6 @@ impl DotrainYamlValidation {
     }
 }
 impl ValidationConfig for DotrainYamlValidation {
-    fn should_validate_version(&self) -> bool {
-        false
-    }
     fn should_validate_networks(&self) -> bool {
         false
     }
@@ -98,6 +95,8 @@ impl YamlParsable for DotrainYaml {
 
             documents.push(document);
         }
+
+        SpecVersion::validate(documents.clone())?;
 
         if validate.should_validate_orders() {
             OrderCfg::parse_all_from_yaml(documents.clone(), None)?;
@@ -299,6 +298,7 @@ mod tests {
     use super::*;
 
     const FULL_YAML: &str = r#"
+    version: 4
     networks:
         mainnet:
             rpcs:
@@ -438,6 +438,7 @@ mod tests {
     "#;
 
     const HANDLEBARS_YAML: &str = r#"
+    version: 4
     networks:
         mainnet:
             rpcs:
@@ -757,6 +758,7 @@ mod tests {
     #[test]
     fn test_update_vault_ids() {
         let yaml = r#"
+        version: 4
         networks:
             mainnet:
                 rpcs:
@@ -831,6 +833,7 @@ mod tests {
     #[test]
     fn test_update_vault_id() {
         let yaml = r#"
+        version: 4
         networks:
             mainnet:
                 rpcs:
@@ -1021,6 +1024,7 @@ mod tests {
     #[test]
     fn test_parse_orders_missing_token() {
         let yaml_prefix = r#"
+version: 4
 networks:
     mainnet:
         rpcs:

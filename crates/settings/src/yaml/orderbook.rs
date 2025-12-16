@@ -30,7 +30,6 @@ impl_wasm_traits!(OrderbookYaml);
 
 #[derive(Debug, Clone, Default)]
 pub struct OrderbookYamlValidation {
-    pub version: bool,
     pub networks: bool,
     pub remote_networks: bool,
     pub tokens: bool,
@@ -45,7 +44,6 @@ pub struct OrderbookYamlValidation {
 impl OrderbookYamlValidation {
     pub fn full() -> Self {
         OrderbookYamlValidation {
-            version: true,
             networks: true,
             remote_networks: true,
             tokens: true,
@@ -60,9 +58,6 @@ impl OrderbookYamlValidation {
     }
 }
 impl ValidationConfig for OrderbookYamlValidation {
-    fn should_validate_version(&self) -> bool {
-        self.version
-    }
     fn should_validate_networks(&self) -> bool {
         self.networks
     }
@@ -121,22 +116,8 @@ impl YamlParsable for OrderbookYaml {
             documents.push(document);
         }
 
-        if validate.should_validate_version() {
-            let version = SpecVersion::parse_from_yaml(documents.clone())?;
-            if !SpecVersion::is_current(&version) {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidValue {
-                        field: "version".to_string(),
-                        reason: format!(
-                            "spec version mismatch: expected '{}', found '{}'",
-                            SpecVersion::current(),
-                            version
-                        ),
-                    },
-                    location: "root".to_string(),
-                });
-            }
-        }
+        SpecVersion::validate(documents.clone())?;
+
         if validate.should_validate_networks() {
             NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
@@ -749,6 +730,7 @@ mod tests {
     #[test]
     fn test_add_token_to_yaml() {
         let yaml = r#"
+version: 4
 networks:
     mainnet:
         rpcs:
@@ -797,6 +779,7 @@ networks:
     #[test]
     fn test_add_metaboard_to_yaml() {
         let yaml = r#"
+version: 4
 test: test
 "#;
         let ob_yaml =
@@ -1125,6 +1108,7 @@ subgraphs:
     #[test]
     fn test_get_local_db_syncs_and_keys() {
         let yaml = r#"
+version: 4
 local-db-sync:
   test:
     batch-size: 1
@@ -1157,6 +1141,7 @@ local-db-sync:
     #[test]
     fn test_get_local_db_sync_by_key() {
         let yaml = r#"
+version: 4
 local-db-sync:
   test:
     batch-size: 10
@@ -1184,6 +1169,7 @@ local-db-sync:
     #[test]
     fn test_get_local_db_sync_missing_key_error() {
         let yaml = r#"
+version: 4
 local-db-sync:
   test:
     batch-size: 1
@@ -1203,7 +1189,9 @@ local-db-sync:
 
     #[test]
     fn test_get_local_db_syncs_missing_section_is_ok() {
-        let yaml = r#"test: test"#;
+        let yaml = r#"
+version: 4
+test: test"#;
         let ob_yaml =
             OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
 
