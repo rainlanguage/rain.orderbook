@@ -24,6 +24,7 @@ pub mod unit_test; // NOTE: this is used by unit_tests module in common crate
 pub mod utils;
 pub mod yaml;
 
+pub(crate) use accounts::*;
 pub(crate) use chart::*;
 pub(crate) use deployer::*;
 pub(crate) use deployment::*;

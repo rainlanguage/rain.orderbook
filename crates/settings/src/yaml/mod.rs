@@ -4,7 +4,7 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    AccountCfg, NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
@@ -525,6 +525,7 @@ pub fn default_document() -> Arc<RwLock<StrictYaml>> {
 
 pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
     NetworkCfg::sanitize_documents(documents)?;
+    AccountCfg::sanitize_documents(documents)?;
     Ok(())
 }
 
