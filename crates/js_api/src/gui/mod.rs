@@ -177,14 +177,11 @@ impl DotrainOrderGui {
             return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
         }
 
-        let order_key =
-            DeploymentCfg::parse_order_key(dotrain_yaml.documents, &selected_deployment)?;
-
         Ok(DotrainOrderGui {
             dotrain_order: DotrainOrder::create_with_profile(
                 dotrain.clone(),
                 None,
-                ContextProfile::gui(Some(order_key), Some(selected_deployment.clone())),
+                ContextProfile::gui(Some(selected_deployment.clone())),
             )
             .await?,
             selected_deployment,
@@ -606,10 +603,7 @@ impl DotrainOrderGui {
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             None,
-            ContextProfile::gui(
-                Some(deployment.deployment.order.key.clone()),
-                Some(deployment.deployment.key.clone()),
-            ),
+            ContextProfile::gui(Some(deployment.deployment.key.clone())),
         )
         .await?;
         let rainlang = dotrain_order
