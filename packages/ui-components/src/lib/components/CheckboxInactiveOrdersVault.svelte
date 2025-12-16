@@ -13,7 +13,7 @@
 		for="hide-inactive-orders-vaults"
 		class="cursor-pointer whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300"
 	>
-		Hide inactive orders vaults
+		Hide vaults without active orders
 	</Label>
 	<Checkbox
 		id="hide-inactive-orders-vaults"
