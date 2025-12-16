@@ -293,6 +293,7 @@ mod tests {
 mod wasm_tests {
     use super::*;
     use gloo_timers::future::TimeoutFuture;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::{
         orderbook::{OrderbookYaml, OrderbookYamlValidation},
         YamlParsable,
@@ -309,8 +310,10 @@ mod wasm_tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    const SINGLE_ORDERBOOK_SETTINGS_YAML: &str = r#"
-version: 4
+    fn single_orderbook_settings_yaml() -> String {
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -336,11 +339,14 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-a
     deployment-block: 123
-"#;
+"#,
+            version = SpecVersion::current()
+        )
+    }
 
     fn build_client() -> RaindexClient {
         let orderbook_yaml = OrderbookYaml::new(
-            vec![SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned()],
+            vec![single_orderbook_settings_yaml()],
             OrderbookYamlValidation::default(),
         )
         .expect("valid orderbook yaml");
@@ -425,7 +431,7 @@ orderbooks:
     async fn start_scheduler_without_callback_returns_error() {
         let client = build_client();
         let result = client
-            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
             .await;
         assert!(matches!(result, Err(RaindexError::JsError(_))));
         assert!(client.local_db_scheduler.borrow().is_none());
@@ -439,7 +445,7 @@ orderbooks:
             .expect("callback set");
 
         client
-            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
             .await
             .expect("scheduler starts");
         assert!(client.local_db_scheduler.borrow().is_some());
@@ -461,7 +467,7 @@ orderbooks:
             .expect("callback set");
 
         client
-            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
             .await
             .expect("first scheduler starts");
 
@@ -478,10 +484,7 @@ orderbooks:
         let status_callback = recording_status_callback(Rc::clone(&statuses));
 
         client
-            .start_local_db_scheduler(
-                SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(),
-                Some(status_callback),
-            )
+            .start_local_db_scheduler(single_orderbook_settings_yaml(), Some(status_callback))
             .await
             .expect("second scheduler starts");
 
@@ -528,7 +531,7 @@ orderbooks:
             .expect("callback set");
 
         client
-            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
             .await
             .expect("scheduler starts");
 

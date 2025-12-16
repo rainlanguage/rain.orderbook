@@ -463,12 +463,15 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::spec_version::SpecVersion;
     use alloy::primitives::Address;
     use std::str::FromStr;
     use url::Url;
 
-    const FULL_YAML: &str = r#"
-    version: 4
+    fn full_yaml() -> String {
+        format!(
+            r#"
+    version: {version}
     networks:
         mainnet:
             rpcs:
@@ -514,7 +517,10 @@ mod tests {
         admin: 0x0000000000000000000000000000000000000001
         user: 0x0000000000000000000000000000000000000002
     sentry: true
-    "#;
+    "#,
+            version = SpecVersion::current()
+        )
+    }
 
     const _YAML_WITHOUT_OPTIONAL_FIELDS: &str = r#"
     networks:
@@ -541,11 +547,8 @@ mod tests {
 
     #[test]
     fn test_full_yaml() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         assert_eq!(ob_yaml.get_network_keys().unwrap().len(), 1);
         let network = ob_yaml.get_network("mainnet").unwrap();
@@ -658,11 +661,8 @@ mod tests {
 
     #[test]
     fn test_update_network_rpc() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         let mut network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
@@ -700,11 +700,8 @@ mod tests {
 
     #[test]
     fn test_update_token_address() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         let mut token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(
@@ -729,16 +726,18 @@ mod tests {
 
     #[test]
     fn test_add_token_to_yaml() {
-        let yaml = r#"
-version: 4
+        let yaml = format!(
+            r#"
+version: {version}
 networks:
     mainnet:
         rpcs:
             - "https://mainnet.infura.io"
         chain-id: "1"
-"#;
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+"#,
+            version = SpecVersion::current()
+        );
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         TokenCfg::add_record_to_yaml(
             ob_yaml.documents.clone(),
@@ -765,11 +764,8 @@ networks:
 
     #[test]
     fn test_remove_token_from_yaml() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         assert!(ob_yaml.get_token("token1").is_ok());
         TokenCfg::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
@@ -778,12 +774,14 @@ networks:
 
     #[test]
     fn test_add_metaboard_to_yaml() {
-        let yaml = r#"
-version: 4
+        let yaml = format!(
+            r#"
+version: {version}
 test: test
-"#;
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+"#,
+            version = SpecVersion::current()
+        );
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         ob_yaml
             .add_metaboard("test-metaboard", "https://test-metaboard.com")
@@ -801,11 +799,8 @@ test: test
 
     #[test]
     fn test_get_network_by_chain_id() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         // Test successful lookup
         let network = ob_yaml.get_network_by_chain_id(1).unwrap();
@@ -834,11 +829,8 @@ test: test
 
     #[test]
     fn test_get_orderbook_by_network_key() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         // Test successful lookup
         let orderbooks = ob_yaml.get_orderbooks_by_network_key("mainnet").unwrap();
@@ -956,11 +948,8 @@ test: test
 
     #[test]
     fn test_get_orderbooks_by_chain_id_single_network() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         let orderbooks = ob_yaml.get_orderbooks_by_chain_id(1).unwrap();
         assert_eq!(orderbooks.len(), 1);
@@ -1048,11 +1037,8 @@ test: test
 
     #[test]
     fn test_get_local_db_remote_keys() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         let keys = ob_yaml.get_local_db_remote_keys().unwrap();
         assert_eq!(keys, vec!["mainnet".to_string()]);
@@ -1060,11 +1046,8 @@ test: test
 
     #[test]
     fn test_get_local_db_remotes_and_single_remote() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
 
         let remotes = ob_yaml.get_local_db_remotes().unwrap();
         assert_eq!(remotes.len(), 1);
@@ -1107,8 +1090,9 @@ subgraphs:
 
     #[test]
     fn test_get_local_db_syncs_and_keys() {
-        let yaml = r#"
-version: 4
+        let yaml = format!(
+            r#"
+version: {version}
 local-db-sync:
   test:
     batch-size: 1
@@ -1118,9 +1102,10 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
-"#;
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+"#,
+            version = SpecVersion::current()
+        );
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         let keys = ob_yaml.get_local_db_sync_keys().unwrap();
         assert_eq!(keys, vec!["test".to_string()]);
@@ -1140,8 +1125,9 @@ local-db-sync:
 
     #[test]
     fn test_get_local_db_sync_by_key() {
-        let yaml = r#"
-version: 4
+        let yaml = format!(
+            r#"
+version: {version}
 local-db-sync:
   test:
     batch-size: 10
@@ -1151,9 +1137,10 @@ local-db-sync:
     rate-limit-delay-ms: 50
     finality-depth: 60
     bootstrap-block-threshold: 70
-"#;
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+"#,
+            version = SpecVersion::current()
+        );
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         let cfg = ob_yaml.get_local_db_sync("test").unwrap();
         assert_eq!(cfg.key, "test");
@@ -1168,8 +1155,9 @@ local-db-sync:
 
     #[test]
     fn test_get_local_db_sync_missing_key_error() {
-        let yaml = r#"
-version: 4
+        let yaml = format!(
+            r#"
+version: {version}
 local-db-sync:
   test:
     batch-size: 1
@@ -1179,9 +1167,10 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
-"#;
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+"#,
+            version = SpecVersion::current()
+        );
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         let err = ob_yaml.get_local_db_sync("nonexistent").unwrap_err();
         assert_eq!(err, YamlError::KeyNotFound("nonexistent".to_string()));
@@ -1189,11 +1178,13 @@ local-db-sync:
 
     #[test]
     fn test_get_local_db_syncs_missing_section_is_ok() {
-        let yaml = r#"
-version: 4
-test: test"#;
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
+        let yaml = format!(
+            r#"
+version: {version}
+test: test"#,
+            version = SpecVersion::current()
+        );
+        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         let syncs = ob_yaml.get_local_db_syncs().unwrap();
         assert!(syncs.is_empty());

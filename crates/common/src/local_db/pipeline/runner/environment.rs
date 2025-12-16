@@ -157,6 +157,7 @@ mod tests {
     use rain_orderbook_app_settings::local_db_manifest::MANIFEST_VERSION;
     use rain_orderbook_app_settings::local_db_remotes::LocalDbRemoteCfg;
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::default_document;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -666,8 +667,9 @@ mod tests {
 
     #[cfg(not(target_family = "wasm"))]
     fn sample_settings_yaml() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   network-a:
     rpcs:
@@ -693,8 +695,9 @@ orderbooks:
     subgraph: network-a
     local-db-remote: remote-a
     deployment-block: 111
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     #[cfg(not(target_family = "wasm"))]

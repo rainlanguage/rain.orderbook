@@ -99,9 +99,12 @@ pub async fn get_scenarios(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
 
-    const DOTRAIN: &str = r#"
-version: 4
+    fn dotrain_yaml() -> String {
+        format!(
+            r#"
+version: {version}
 networks:
     some-network:
         rpcs:
@@ -177,11 +180,14 @@ _ _: 0 0;
 #handle-io
 :;
 #handle-add-order
-:;"#;
+:;"#,
+            version = SpecVersion::current()
+        )
+    }
 
     #[tokio::test]
     async fn test_get_deployments() {
-        let deployments = get_deployments(DOTRAIN.to_string(), None).await.unwrap();
+        let deployments = get_deployments(dotrain_yaml(), None).await.unwrap();
         assert_eq!(deployments.len(), 2);
         assert!(deployments.contains_key("some-deployment"));
         assert!(deployments.contains_key("other-deployment"));
@@ -189,7 +195,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_get_scenarios() {
-        let scenarios = get_scenarios(DOTRAIN.to_string(), None).await.unwrap();
+        let scenarios = get_scenarios(dotrain_yaml(), None).await.unwrap();
         assert_eq!(scenarios.len(), 2);
         assert!(scenarios.contains_key("some-scenario"));
         assert!(scenarios.contains_key("some-scenario.sub-scenario"));

@@ -297,6 +297,7 @@ mod tests {
     };
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
     use rain_orderbook_app_settings::remote::manifest::ManifestMap;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use rain_orderbook_common::local_db::pipeline::adapters::bootstrap::{
         BootstrapConfig, BootstrapPipeline, BootstrapState,
@@ -713,8 +714,9 @@ mod tests {
     }
 
     fn sample_settings_yaml() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -754,13 +756,15 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-c
     deployment-block: 789
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn settings_yaml_ok_fail() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -793,13 +797,15 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-b
     deployment-block: 456
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn settings_yaml_panic_only() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -825,13 +831,15 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-c
     deployment-block: 789
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn settings_yaml_ok_only() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -857,13 +865,15 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-a
     deployment-block: 123
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn settings_yaml_two_success() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -896,8 +906,9 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-d
     deployment-block: 321
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn manifest_for_ok_orderbook() -> ManifestMap {

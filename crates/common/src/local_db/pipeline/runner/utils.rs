@@ -121,12 +121,14 @@ mod tests {
     use crate::local_db::LocalDbError;
     use alloy::primitives::address;
     use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::default_document;
     use url::Url;
 
     fn sample_settings_yaml() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   network-a:
     rpcs:
@@ -178,8 +180,9 @@ orderbooks:
     subgraph: network-a
     local-db-remote: remote-a
     deployment-block: 333
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn minimal_invalid_yaml() -> &'static str {
@@ -187,8 +190,9 @@ orderbooks:
     }
 
     fn missing_sync_yaml() -> String {
-        r#"
-version: 4
+        format!(
+            r#"
+version: {version}
 networks:
   mainnet:
     rpcs:
@@ -205,8 +209,9 @@ orderbooks:
     subgraph: mainnet
     local-db-remote: remote
     deployment-block: 100
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn parsed_settings() -> ParsedRunnerSettings {
