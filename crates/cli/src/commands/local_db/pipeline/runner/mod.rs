@@ -12,6 +12,7 @@ use export::export_dump;
 pub use export::ExportMetadata;
 use manifest::{build_manifest, write_manifest_to_path};
 use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
+use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipeline;
 use rain_orderbook_common::local_db::pipeline::runner::environment::RunnerEnvironment;
 use rain_orderbook_common::local_db::pipeline::runner::remotes::lookup_manifest_entry;
 use rain_orderbook_common::local_db::pipeline::runner::utils::{
@@ -23,7 +24,7 @@ use rain_orderbook_common::local_db::pipeline::{
         tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
     },
     engine::SyncInputs,
-    ApplyPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
+    EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
 };
 use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
@@ -288,7 +289,7 @@ fn ensure_clean_db(path: &Path) -> Result<(), LocalDbError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::primitives::{address, Address, Bytes};
+    use alloy::primitives::{address, hex::encode_prefixed, Address, Bytes, B256};
     use async_trait::async_trait;
     use flate2::read::GzDecoder;
     use rain_orderbook_app_settings::local_db_manifest::{
@@ -296,6 +297,7 @@ mod tests {
     };
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
     use rain_orderbook_app_settings::remote::manifest::ManifestMap;
+    use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use rain_orderbook_common::local_db::pipeline::adapters::bootstrap::{
         BootstrapConfig, BootstrapPipeline, BootstrapState,
     };
@@ -303,7 +305,7 @@ mod tests {
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use rain_orderbook_common::local_db::pipeline::{
-        ApplyPipelineTargetInfo, EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
+        EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
     };
     use rain_orderbook_common::local_db::query::{
         LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
@@ -484,7 +486,7 @@ mod tests {
 
             if self.seed_export {
                 let ob_id = &config.ob_id;
-                let orderbook_address = ob_id.orderbook_address.to_string();
+                let orderbook_address = encode_prefixed(ob_id.orderbook_address);
 
                 let mut batch = SqlStatementBatch::new();
                 batch.add(SqlStatement::new(format!(
@@ -599,8 +601,8 @@ mod tests {
             Ok(Vec::new())
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
-            Ok(Bytes::from(vec![0u8; 32]))
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
+            Ok(B256::ZERO)
         }
     }
 

@@ -3,14 +3,16 @@ use crate::local_db::query::fetch_vault_balance_changes::{
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::OrderbookIdentifier;
+use alloy::primitives::{Address, U256};
 
 pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     ob_id: &OrderbookIdentifier,
-    vault_id: &str,
-    token: &str,
+    vault_id: U256,
+    token: Address,
+    owner: Address,
 ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
-    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token);
+    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner);
     exec.query_json(&stmt).await
 }
 
@@ -19,7 +21,7 @@ mod wasm_tests {
     use super::*;
     use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
-    use alloy::primitives::Address;
+    use alloy::primitives::{address, Address, U256};
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen_test::*;
@@ -27,13 +29,15 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
-        let vault_id = "  V01'  ";
-        let token = "  0xTo'ken  ";
+        let vault_id = U256::from(1);
+        let token = address!("0x00000000000000000000000000000000000000aa");
         let orderbook = Address::from([0x51; 20]);
+        let owner = address!("0x00000000000000000000000000000000000000f1");
         let expected_stmt = build_fetch_balance_changes_stmt(
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         );
 
         let store = Rc::new(RefCell::new((
@@ -48,6 +52,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         )
         .await;
         assert!(res.is_ok());
@@ -56,26 +61,28 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_returns_rows_when_present() {
-        let vault_id = "v01";
-        let token = "0xtoken";
+        let vault_id = U256::from(1);
+        let token = address!("0x00000000000000000000000000000000000000bb");
         let orderbook = Address::from([0x61; 20]);
+        let owner = address!("0x0000000000000000000000000000000000000011");
         let expected_stmt = build_fetch_balance_changes_stmt(
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         );
 
         let row_json = r#"[{
-            "transaction_hash":"0xabc",
-            "log_index":1,
-            "block_number":100,
-            "block_timestamp":999,
-            "owner":"0xowner",
-            "change_type":"deposit",
-            "token":"0xtoken",
-            "vault_id":"v01",
-            "delta":"0x1",
-            "running_balance":"0x1"
+            "transactionHash":"0x0000000000000000000000000000000000000000000000000000000000000abc",
+            "logIndex":1,
+            "blockNumber":100,
+            "blockTimestamp":999,
+            "owner":"0x0000000000000000000000000000000000000011",
+            "changeType":"deposit",
+            "token":"0x00000000000000000000000000000000000000bb",
+            "vaultId":"0x01",
+            "delta":"0x01",
+            "runningBalance":"0x01"
         }]"#;
 
         let store = Rc::new(RefCell::new((
@@ -90,6 +97,7 @@ mod wasm_tests {
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
+            owner,
         )
         .await;
         assert!(res.is_ok());

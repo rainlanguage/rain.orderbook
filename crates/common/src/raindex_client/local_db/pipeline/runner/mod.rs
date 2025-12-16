@@ -4,10 +4,10 @@ pub mod scheduler;
 
 use crate::local_db::{
     pipeline::{
+        adapters::apply::{ApplyPipeline, DefaultApplyPipeline},
         adapters::{
-            apply::DefaultApplyPipeline, bootstrap::BootstrapPipeline,
-            events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
-            window::DefaultWindowPipeline,
+            bootstrap::BootstrapPipeline, events::DefaultEventsPipeline,
+            tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
         },
         runner::{
             environment::RunnerEnvironment,
@@ -16,7 +16,7 @@ use crate::local_db::{
                 build_runner_targets, parse_runner_settings, ParsedRunnerSettings, RunnerTarget,
             },
         },
-        ApplyPipeline, EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
+        EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
     },
     query::LocalDbQueryExecutor,
     LocalDbError,
@@ -89,7 +89,7 @@ where
 
     pub async fn run<DB>(&mut self, db: &DB) -> Result<Vec<SyncOutcome>, LocalDbError>
     where
-        DB: LocalDbQueryExecutor + ?Sized + Sync,
+        DB: LocalDbQueryExecutor + ?Sized,
     {
         if self.leadership_guard.is_none() {
             match self.leadership.acquire().await? {
@@ -147,7 +147,7 @@ where
         targets: Vec<RunnerTarget>,
     ) -> Result<Vec<SyncOutcome>, LocalDbError>
     where
-        DB: LocalDbQueryExecutor + ?Sized + Sync,
+        DB: LocalDbQueryExecutor + ?Sized,
     {
         if targets.is_empty() {
             return Ok(vec![]);
@@ -189,14 +189,14 @@ mod tests {
     use super::*;
     use crate::local_db::decode::{DecodedEvent, DecodedEventData};
     use crate::local_db::fetch::FetchConfig;
+    use crate::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use crate::local_db::pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapState};
     use crate::local_db::pipeline::runner::environment::{
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use crate::local_db::pipeline::runner::utils::RunnerTarget;
     use crate::local_db::pipeline::{
-        ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, TokensPipeline,
-        WindowPipeline,
+        EventsPipeline, StatusBus, SyncConfig, TokensPipeline, WindowPipeline,
     };
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
@@ -206,7 +206,7 @@ mod tests {
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
     use crate::local_db::{LocalDbError, OrderbookIdentifier};
     use crate::rpc_client::LogEntryResponse;
-    use alloy::primitives::{address, Address, Bytes};
+    use alloy::primitives::{address, b256, Address, Bytes, B256};
     use async_trait::async_trait;
     use rain_orderbook_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
@@ -629,8 +629,10 @@ mod tests {
             Ok(self.latest_block)
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
-            Ok(Bytes::from(vec![0u8; 32]))
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
+            Ok(b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ))
         }
 
         async fn fetch_orderbook(
@@ -801,6 +803,9 @@ mod tests {
         Url::parse("https://manifests.example/b.yaml").unwrap()
     }
 
+    const END_HASH_A: &str = "0x000000000000000000000000000000000000000000000000000000000000dead";
+    const END_HASH_B: &str = "0x000000000000000000000000000000000000000000000000000000000000beef";
+
     fn dump_url_a() -> Url {
         Url::parse("https://dumps.example/ob-a.sql").unwrap()
     }
@@ -810,11 +815,11 @@ mod tests {
     }
 
     fn manifest_for_a() -> ManifestMap {
-        make_manifest(remote_url_a(), ORDERBOOK_A, dump_url_a(), 111, "0xdead")
+        make_manifest(remote_url_a(), ORDERBOOK_A, dump_url_a(), 111, END_HASH_A)
     }
 
     fn manifest_for_b() -> ManifestMap {
-        make_manifest(remote_url_b(), ORDERBOOK_B, dump_url_b(), 222, "0xbeef")
+        make_manifest(remote_url_b(), ORDERBOOK_B, dump_url_b(), 222, END_HASH_B)
     }
 
     fn manifest_for_both() -> ManifestMap {
@@ -830,6 +835,7 @@ mod tests {
         end_block: u64,
         end_hash: &str,
     ) -> ManifestMap {
+        let end_block_hash = B256::from_str(end_hash).unwrap();
         let manifest = LocalDbManifest {
             manifest_version: MANIFEST_VERSION,
             db_schema_version: DB_SCHEMA_VERSION,
@@ -841,7 +847,7 @@ mod tests {
                         address: orderbook_address,
                         dump_url,
                         end_block,
-                        end_block_hash: Bytes::from_str(end_hash).unwrap(),
+                        end_block_hash: Bytes::copy_from_slice(end_block_hash.as_slice()),
                         end_block_time_ms: 1_000,
                     }],
                 },

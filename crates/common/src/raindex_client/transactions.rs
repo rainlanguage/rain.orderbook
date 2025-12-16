@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use super::*;
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, B256, U256};
 use rain_orderbook_subgraph_client::types::{common::SgTransaction, Id};
 use serde::{Deserialize, Serialize};
 #[cfg(target_family = "wasm")]
@@ -11,7 +11,7 @@ use wasm_bindgen_utils::prelude::js_sys::BigInt;
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexTransaction {
-    id: Bytes,
+    id: B256,
     from: Address,
     block_number: U256,
     timestamp: U256,
@@ -40,8 +40,8 @@ impl RaindexTransaction {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexTransaction {
-    pub fn id(&self) -> Bytes {
-        self.id.clone()
+    pub fn id(&self) -> B256 {
+        self.id
     }
     pub fn from(&self) -> Address {
         self.from
@@ -56,14 +56,14 @@ impl RaindexTransaction {
 
 impl RaindexTransaction {
     pub(crate) fn from_local_parts(
-        tx_hash: &str,
-        from: &str,
+        tx_hash: B256,
+        from: Address,
         block_number: u64,
         timestamp: u64,
     ) -> Result<Self, RaindexError> {
         Ok(Self {
-            id: Bytes::from_str(tx_hash)?,
-            from: Address::from_str(from)?,
+            id: tx_hash,
+            from,
             block_number: U256::from(block_number),
             timestamp: U256::from(timestamp),
         })
@@ -111,7 +111,7 @@ impl RaindexClient {
         tx_hash: String,
     ) -> Result<RaindexTransaction, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
-        let tx_hash = Bytes::from_str(&tx_hash)?;
+        let tx_hash = B256::from_str(&tx_hash)?;
         self.get_transaction(orderbook_address, tx_hash).await
     }
 }
@@ -119,7 +119,7 @@ impl RaindexClient {
     pub async fn get_transaction(
         &self,
         orderbook_address: Address,
-        tx_hash: Bytes,
+        tx_hash: B256,
     ) -> Result<RaindexTransaction, RaindexError> {
         let client = self.get_orderbook_client(orderbook_address)?;
         let transaction = client
@@ -133,7 +133,7 @@ impl TryFrom<SgTransaction> for RaindexTransaction {
     type Error = RaindexError;
     fn try_from(transaction: SgTransaction) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: Bytes::from_str(&transaction.id.0)?,
+            id: B256::from_str(&transaction.id.0)?,
             from: Address::from_str(&transaction.from.0)?,
             block_number: U256::from_str(&transaction.block_number.0)?,
             timestamp: U256::from_str(&transaction.timestamp.0)?,
@@ -150,6 +150,7 @@ mod test_helpers {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use alloy::primitives::b256;
         use httpmock::MockServer;
         use serde_json::json;
 
@@ -161,7 +162,7 @@ mod test_helpers {
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "transaction": {
-                            "id": "0x0123",
+                            "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
                             "from": "0x1000000000000000000000000000000000000000",
                             "blockNumber": "12345",
                             "timestamp": "1734054063"
@@ -183,11 +184,14 @@ mod test_helpers {
             let tx = raindex_client
                 .get_transaction(
                     Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();
-            assert_eq!(tx.id(), Bytes::from_str("0x0123").unwrap());
+            assert_eq!(
+                tx.id(),
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000123")
+            );
             assert_eq!(
                 tx.from(),
                 Address::from_str("0x1000000000000000000000000000000000000000").unwrap()

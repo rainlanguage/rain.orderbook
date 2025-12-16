@@ -121,6 +121,7 @@ mod tests {
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
+    use crate::local_db::query::create_views::create_views_batch;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::fetch_target_watermark::{
@@ -159,6 +160,13 @@ mod tests {
         }
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
+        }
+
+        fn with_views(self) -> Self {
+            create_views_batch()
+                .statements()
+                .iter()
+                .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
     }
 
@@ -210,6 +218,7 @@ mod tests {
             dump_stmt: Some(SqlStatement::new("--dump-sql")),
             latest_block,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         }
     }
 
@@ -251,20 +260,26 @@ mod tests {
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
         assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
             calls[2],
             insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
         );
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -287,16 +302,26 @@ mod tests {
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
         assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
         assert!(calls.contains(&create_tables_stmt().sql().to_string()));
         assert!(calls.contains(&insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()));
+        assert!(
+            expected_views.iter().all(|stmt| calls.contains(stmt)),
+            "missing view creation statements"
+        );
     }
 
     #[tokio::test]
@@ -325,7 +350,8 @@ mod tests {
             .with_json(&fetch_db_metadata_stmt(), json!([mismatched_row]))
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
@@ -333,8 +359,17 @@ mod tests {
             .unwrap();
 
         let calls = db.calls();
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
         assert!(calls.contains(&clear_tables_stmt().sql().to_string()));
         assert!(calls.contains(&create_tables_stmt().sql().to_string()));
+        assert!(
+            expected_views.iter().all(|stmt| calls.contains(stmt)),
+            "missing view creation statements"
+        );
     }
 
     #[tokio::test]
@@ -398,6 +433,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 100,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()
@@ -422,6 +458,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let clear_batch = clear_orderbook_data_batch(&sample_ob_id());
@@ -436,13 +473,6 @@ mod tests {
         for stmt in clear_batch.statements() {
             db = db.with_text(stmt, "cleared");
         }
-
-        let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
-            latest_block: latest,
-            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
-        };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
 
@@ -507,6 +537,7 @@ mod tests {
             dump_stmt: None,
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()
@@ -533,6 +564,7 @@ mod tests {
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         let db = MockDb::default()

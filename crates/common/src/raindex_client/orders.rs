@@ -1,13 +1,8 @@
-use super::local_db::executor::JsCallbackExecutor;
+use super::local_db::orders::LocalDbOrders;
 use super::*;
-use crate::local_db::query::LocalDbQueryExecutor;
-use crate::local_db::query::{
-    fetch_orders::{FetchOrdersArgs, LocalDbOrder},
-    fetch_vault::LocalDbVault,
-};
+use crate::local_db::query::fetch_orders::LocalDbOrder;
+use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
-use crate::raindex_client::local_db::query::fetch_orders::fetch_orders;
-use crate::raindex_client::local_db::query::fetch_vault::fetch_vaults_for_io_string;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -16,7 +11,8 @@ use crate::{
         vaults::{RaindexVault, RaindexVaultType},
     },
 };
-use alloy::primitives::{keccak256, Address, Bytes, U256};
+use alloy::primitives::{b256, keccak256, Address, Bytes, B256, U256};
+use async_trait::async_trait;
 use csv::{ReaderBuilder, Terminator};
 use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
@@ -28,13 +24,41 @@ use rain_orderbook_subgraph_client::{
     },
     MultiOrderbookSubgraphClient,
     OrderbookSubgraphClient,
+    OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
+use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, io::Cursor, rc::Rc, str::FromStr};
+use tsify::Tsify;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
+
+pub(crate) struct SubgraphOrders<'a> {
+    client: &'a RaindexClient,
+}
+impl<'a> SubgraphOrders<'a> {
+    pub(crate) fn new(client: &'a RaindexClient) -> Self {
+        Self { client }
+    }
+}
+
+#[async_trait(?Send)]
+pub(crate) trait OrdersDataSource {
+    async fn list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetOrdersFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexOrder>, RaindexError>;
+
+    async fn get_by_hash(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+    ) -> Result<Option<RaindexOrder>, RaindexError>;
+}
 
 /// A single order representation within a given orderbook.
 ///
@@ -51,9 +75,9 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 pub struct RaindexOrder {
     raindex_client: Rc<RaindexClient>,
     chain_id: u32,
-    id: Bytes,
+    id: B256,
     order_bytes: Bytes,
-    order_hash: Bytes,
+    order_hash: B256,
     owner: Address,
     inputs: Vec<RaindexVault>,
     outputs: Vec<RaindexVault>,
@@ -72,6 +96,60 @@ fn get_io_by_type(order: &RaindexOrder, vault_type: RaindexVaultType) -> Vec<Rai
         .into_iter()
         .filter(|v| v.vault_type() == Some(vault_type.clone()))
         .collect()
+}
+
+impl RaindexOrder {
+    pub(crate) fn from_local_db_order(
+        raindex_client: Rc<RaindexClient>,
+        order: LocalDbOrder,
+        inputs: Vec<LocalDbVault>,
+        outputs: Vec<LocalDbVault>,
+    ) -> Result<Self, RaindexError> {
+        let chain_id = order.chain_id;
+        let rainlang = order
+            .meta
+            .as_ref()
+            .and_then(|meta| meta.to_string().try_decode_rainlangsource().ok());
+
+        let mut id = Vec::from(order.orderbook_address.as_slice());
+        id.extend_from_slice(order.order_hash.as_ref());
+
+        Ok(Self {
+            raindex_client: Rc::clone(&raindex_client),
+            chain_id,
+            id: keccak256(&id),
+            order_bytes: order.order_bytes,
+            order_hash: order.order_hash,
+            owner: order.owner,
+            inputs: inputs
+                .into_iter()
+                .map(|v| {
+                    RaindexVault::try_from_local_db(
+                        Rc::clone(&raindex_client),
+                        v,
+                        Some(RaindexVaultType::Input),
+                    )
+                })
+                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
+            outputs: outputs
+                .into_iter()
+                .map(|v| {
+                    RaindexVault::try_from_local_db(
+                        Rc::clone(&raindex_client),
+                        v,
+                        Some(RaindexVaultType::Output),
+                    )
+                })
+                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
+            orderbook: order.orderbook_address,
+            active: order.active,
+            timestamp_added: U256::from(order.block_timestamp),
+            meta: order.meta,
+            rainlang,
+            transaction: None,
+            trades_count: order.trade_count as u16,
+        })
+    }
 }
 
 #[cfg(target_family = "wasm")]
@@ -152,14 +230,14 @@ impl RaindexOrder {
     pub fn chain_id(&self) -> u32 {
         self.chain_id
     }
-    pub fn id(&self) -> Bytes {
-        self.id.clone()
+    pub fn id(&self) -> B256 {
+        self.id
     }
     pub fn order_bytes(&self) -> Bytes {
         self.order_bytes.clone()
     }
-    pub fn order_hash(&self) -> Bytes {
-        self.order_hash.clone()
+    pub fn order_hash(&self) -> B256 {
+        self.order_hash
     }
     pub fn owner(&self) -> Address {
         self.owner
@@ -366,9 +444,9 @@ impl RaindexOrder {
 #[serde(rename_all = "camelCase")]
 pub struct RaindexOrderAsIO {
     #[tsify(type = "Hex")]
-    pub id: Bytes,
+    pub id: B256,
     #[tsify(type = "Hex")]
-    pub order_hash: Bytes,
+    pub order_hash: B256,
     pub active: bool,
 }
 impl_wasm_traits!(RaindexOrderAsIO);
@@ -376,8 +454,8 @@ impl TryFrom<SgOrderAsIO> for RaindexOrderAsIO {
     type Error = RaindexError;
     fn try_from(order: SgOrderAsIO) -> Result<Self, Self::Error> {
         Ok(Self {
-            id: Bytes::from_str(&order.id.0)?,
-            order_hash: Bytes::from_str(&order.order_hash.0)?,
+            id: B256::from_str(&order.id.0)?,
+            order_hash: B256::from_str(&order.order_hash.0)?,
             active: order.active,
         })
     }
@@ -438,7 +516,7 @@ impl RaindexOrderAsIO {
                     field_name
                 )));
             }
-            let order_hash = Bytes::from_str(hash_str)?;
+            let order_hash = B256::from_str(hash_str)?;
             let active = match active_str {
                 "1" => true,
                 "0" => false,
@@ -450,7 +528,7 @@ impl RaindexOrderAsIO {
                 }
             };
             result.push(RaindexOrderAsIO {
-                id: Bytes::from_str("0x01")?,
+                id: b256!("0x0000000000000000000000000000000000000000000000000000000000000001"),
                 order_hash,
                 active,
             });
@@ -505,129 +583,55 @@ impl RaindexClient {
         #[wasm_export(param_description = "Page number for pagination (optional, defaults to 1)")]
         page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let Some(ids) = chain_ids else {
-            return self.get_orders_sg(None, filters, page).await;
+        let filters = filters.unwrap_or_default();
+        let page_number = page.unwrap_or(1);
+        let subgraph_source = SubgraphOrders::new(self);
+
+        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
+            return subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await;
         };
 
-        let all_ids = ids.0;
+        if ids.is_empty() {
+            return subgraph_source
+                .list(None, &filters, Some(page_number))
+                .await;
+        }
 
-        let Some(db_cb) = self.local_db_callback() else {
-            return self.get_orders_sg(Some(all_ids), filters, page).await;
-        };
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
 
-        let (local_ids, sg_ids): (Vec<u32>, Vec<u32>) = all_ids
-            .into_iter()
-            .partition(|&id| is_chain_supported_local_db(id));
+        for id in ids.drain(..) {
+            if is_chain_supported_local_db(id) {
+                local_ids.push(id);
+            } else {
+                sg_ids.push(id);
+            }
+        }
 
         let mut orders: Vec<RaindexOrder> = Vec::new();
 
-        if local_ids.is_empty() && sg_ids.is_empty() {
-            return self.get_orders_sg(None, filters, page).await;
-        }
-
-        if !local_ids.is_empty() {
-            let locals = futures::future::try_join_all(local_ids.into_iter().map(|id| {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-                self.get_orders_local_db(exec, id, filters.clone())
-            }))
-            .await?;
-            for mut chunk in locals {
-                orders.append(&mut chunk);
+        match self.local_db() {
+            Some(local_db) => {
+                if !local_ids.is_empty() {
+                    let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+                    let local_orders = local_source
+                        .list(Some(local_ids.clone()), &filters, None)
+                        .await?;
+                    orders.extend(local_orders);
+                }
+            }
+            None => {
+                sg_ids.append(&mut local_ids);
             }
         }
 
         if !sg_ids.is_empty() {
-            let sg = self.get_orders_sg(Some(sg_ids), filters, page).await?;
+            let sg = subgraph_source
+                .list(Some(sg_ids), &filters, Some(page_number))
+                .await?;
             orders.extend(sg);
-        }
-
-        Ok(orders)
-    }
-
-    async fn get_orders_sg(
-        &self,
-        chain_ids: Option<Vec<u32>>,
-        filters: Option<GetOrdersFilters>,
-        page: Option<u16>,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
-        let multi_subgraph_args = self.get_multi_subgraph_args(chain_ids)?;
-
-        let client = MultiOrderbookSubgraphClient::new(
-            multi_subgraph_args.values().flatten().cloned().collect(),
-        );
-
-        let orders = client
-            .orders_list(
-                filters
-                    .unwrap_or(GetOrdersFilters {
-                        owners: vec![],
-                        active: None,
-                        order_hash: None,
-                        tokens: None,
-                    })
-                    .try_into()?,
-                SgPaginationArgs {
-                    page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
-                },
-            )
-            .await;
-
-        let orders = orders
-            .iter()
-            .map(|order| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or(RaindexError::SubgraphNotFound(
-                        order.subgraph_name.clone(),
-                        order.order.order_hash.0.clone(),
-                    ))?;
-                RaindexOrder::try_from_sg_order(
-                    raindex_client.clone(),
-                    chain_id,
-                    order.order.clone(),
-                    None,
-                )
-            })
-            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
-
-        Ok(orders)
-    }
-
-    async fn get_orders_local_db<E: LocalDbQueryExecutor>(
-        &self,
-        executor: E,
-        chain_id: u32,
-        filters: Option<GetOrdersFilters>,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
-        let mut orders: Vec<RaindexOrder> = Vec::new();
-
-        let fetch_args = filters.map(FetchOrdersArgs::from).unwrap_or_default();
-        let orderbooks = self.get_orderbooks_by_chain_id(chain_id)?;
-
-        for orderbook_cfg in orderbooks {
-            let ob_id = &OrderbookIdentifier::new(chain_id, orderbook_cfg.address);
-            let local_db_orders = fetch_orders(&executor, ob_id, fetch_args.clone()).await?;
-
-            for local_db_order in &local_db_orders {
-                let input_vaults =
-                    fetch_vaults_for_io_string(&executor, ob_id, &local_db_order.inputs).await?;
-                let output_vaults =
-                    fetch_vaults_for_io_string(&executor, ob_id, &local_db_order.outputs).await?;
-
-                let order = RaindexOrder::try_from_local_db(
-                    raindex_client.clone(),
-                    chain_id,
-                    local_db_order.clone(),
-                    input_vaults,
-                    output_vaults,
-                )?;
-                orders.push(order);
-            }
         }
 
         Ok(orders)
@@ -679,7 +683,7 @@ impl RaindexClient {
         order_hash: String,
     ) -> Result<RaindexOrder, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
-        let order_hash = Bytes::from_str(&order_hash)?;
+        let order_hash = B256::from_str(&order_hash)?;
         self.get_order_by_hash(
             &OrderbookIdentifier::new(chain_id, orderbook_address),
             order_hash,
@@ -687,11 +691,80 @@ impl RaindexClient {
         .await
     }
 }
+
+#[async_trait(?Send)]
+impl OrdersDataSource for SubgraphOrders<'_> {
+    async fn list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+        filters: &GetOrdersFilters,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
+
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
+        let orders = client
+            .orders_list(
+                filters.clone().try_into()?,
+                SgPaginationArgs {
+                    page: page.unwrap_or(1),
+                    page_size: DEFAULT_PAGE_SIZE,
+                },
+            )
+            .await;
+
+        let orders = orders
+            .iter()
+            .map(|order| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == order.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or(RaindexError::SubgraphNotFound(
+                        order.subgraph_name.clone(),
+                        order.order.order_hash.0.clone(),
+                    ))?;
+                RaindexOrder::try_from_sg_order(
+                    raindex_client.clone(),
+                    chain_id,
+                    order.order.clone(),
+                    None,
+                )
+            })
+            .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
+
+        Ok(orders)
+    }
+
+    async fn get_by_hash(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+    ) -> Result<Option<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let order = match client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await
+        {
+            Ok(order) => order,
+            Err(OrderbookSubgraphClientError::Empty) => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+        let order = RaindexOrder::try_from_sg_order(raindex_client, ob_id.chain_id, order, None)?;
+        Ok(Some(order))
+    }
+}
+
 impl RaindexClient {
     pub async fn get_order_by_hash(
         &self,
         ob_id: &OrderbookIdentifier,
-        order_hash: Bytes,
+        order_hash: B256,
     ) -> Result<RaindexOrder, RaindexError> {
         let orderbook_cfg = self.get_orderbook_by_address(ob_id.orderbook_address)?;
         if orderbook_cfg.network.chain_id != ob_id.chain_id {
@@ -701,64 +774,29 @@ impl RaindexClient {
             ));
         }
 
-        let order_hash_hex = order_hash.to_string();
-
         if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(db_cb) = self.local_db_callback() {
-                let exec = JsCallbackExecutor::from_ref(&db_cb);
-                if let Some(order) = self
-                    .get_order_by_hash_local_db(&exec, ob_id, &order_hash_hex)
-                    .await?
-                {
+            if let Some(local_db) = self.local_db() {
+                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+                if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
                     return Ok(order);
                 }
             }
         }
 
-        let raindex_client = Rc::new(self.clone());
-        let client = OrderbookSubgraphClient::new(orderbook_cfg.subgraph.url.clone());
-        let order = client.order_detail_by_hash(SgBytes(order_hash_hex)).await?;
-        let order =
-            RaindexOrder::try_from_sg_order(raindex_client.clone(), ob_id.chain_id, order, None)?;
-        Ok(order)
-    }
-
-    async fn get_order_by_hash_local_db<E: LocalDbQueryExecutor + ?Sized>(
-        &self,
-        executor: &E,
-        ob_id: &OrderbookIdentifier,
-        order_hash: &str,
-    ) -> Result<Option<RaindexOrder>, RaindexError> {
-        let fetch_args = FetchOrdersArgs {
-            order_hash: Some(order_hash.to_string()),
-            ..FetchOrdersArgs::default()
-        };
-
-        let local_db_orders = fetch_orders(executor, ob_id, fetch_args).await?;
-        let raindex_client = Rc::new(self.clone());
-
-        if let Some(local_db_order) = local_db_orders.into_iter().next() {
-            let input_vaults =
-                fetch_vaults_for_io_string(executor, ob_id, &local_db_order.inputs).await?;
-            let output_vaults =
-                fetch_vaults_for_io_string(executor, ob_id, &local_db_order.outputs).await?;
-
-            let order = RaindexOrder::try_from_local_db(
-                Rc::clone(&raindex_client),
-                ob_id.chain_id,
-                local_db_order,
-                input_vaults,
-                output_vaults,
-            )?;
-
-            return Ok(Some(order));
-        }
-
-        Ok(None)
+        SubgraphOrders::new(self)
+            .get_by_hash(ob_id, &order_hash)
+            .await?
+            .ok_or_else(|| {
+                RaindexError::OrderNotFound(
+                    ob_id.orderbook_address.to_string(),
+                    ob_id.chain_id,
+                    order_hash,
+                )
+            })
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GetOrdersFilters {
     #[tsify(type = "Address[]")]
@@ -766,7 +804,7 @@ pub struct GetOrdersFilters {
     #[tsify(optional)]
     pub active: Option<bool>,
     #[tsify(optional, type = "Hex")]
-    pub order_hash: Option<Bytes>,
+    pub order_hash: Option<B256>,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
 }
@@ -813,9 +851,9 @@ impl RaindexOrder {
         Ok(Self {
             raindex_client: Rc::clone(&raindex_client),
             chain_id,
-            id: Bytes::from_str(&order.id.0)?,
+            id: B256::from_str(&order.id.0)?,
             order_bytes: Bytes::from_str(&order.order_bytes.0)?,
-            order_hash: Bytes::from_str(&order.order_hash.0)?,
+            order_hash: B256::from_str(&order.order_hash.0)?,
             owner: Address::from_str(&order.owner.0)?,
             inputs: {
                 order
@@ -892,367 +930,25 @@ impl RaindexOrder {
             trades: vec![],
         })
     }
-
-    pub fn try_from_local_db(
-        raindex_client: Rc<RaindexClient>,
-        chain_id: u32,
-        order: LocalDbOrder,
-        inputs: Vec<LocalDbVault>,
-        outputs: Vec<LocalDbVault>,
-    ) -> Result<Self, RaindexError> {
-        let rainlang = order
-            .meta
-            .as_ref()
-            .and_then(|meta| meta.try_decode_rainlangsource().ok());
-
-        let id = [
-            order.orderbook_address.as_bytes(),
-            order.order_hash.as_bytes(),
-        ]
-        .concat();
-
-        Ok(Self {
-            raindex_client: Rc::clone(&raindex_client),
-            chain_id,
-            id: Bytes::from(keccak256(&id).as_slice().to_vec()),
-            order_bytes: Bytes::from_str(&order.order_bytes)?,
-            order_hash: Bytes::from_str(&order.order_hash)?,
-            owner: Address::from_str(&order.owner)?,
-            inputs: inputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_local_db(
-                        Rc::clone(&raindex_client),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Input),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
-            outputs: outputs
-                .iter()
-                .map(|v| {
-                    RaindexVault::try_from_local_db(
-                        Rc::clone(&raindex_client),
-                        chain_id,
-                        v.clone(),
-                        Some(RaindexVaultType::Output),
-                    )
-                })
-                .collect::<Result<Vec<RaindexVault>, RaindexError>>()?,
-            orderbook: Address::from_str(&order.orderbook_address)?,
-            active: order.active,
-            timestamp_added: U256::from_str(&order.block_timestamp.to_string())?,
-            meta: order
-                .meta
-                .map(|meta| Bytes::from_str(meta.as_str()))
-                .transpose()?,
-            rainlang,
-            transaction: None,
-            trades_count: order.trade_count as u16,
-        })
-    }
 }
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_family = "wasm"))]
     use super::*;
-
-    #[cfg(target_family = "wasm")]
-    mod wasm_tests {
-        use super::*;
-        use crate::local_db::query::{fetch_orders::LocalDbOrder, fetch_vault::LocalDbVault};
-        use crate::raindex_client::tests::{
-            get_local_db_test_yaml, new_test_client_with_db_callback,
-        };
-        use serde_json;
-        use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-        use wasm_bindgen_test::wasm_bindgen_test;
-        use wasm_bindgen_utils::prelude::WasmEncodedResult;
-
-        fn make_local_db_callback(
-            orders: Vec<LocalDbOrder>,
-            vaults: Vec<LocalDbVault>,
-        ) -> js_sys::Function {
-            use js_sys::{Array, BigInt};
-            let orders_json = serde_json::to_string(&orders).unwrap();
-            let orders_result = WasmEncodedResult::Success::<String> {
-                value: orders_json,
-                error: None,
-            };
-            let orders_payload =
-                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&orders_result).unwrap())
-                    .unwrap()
-                    .as_string()
-                    .unwrap();
-
-            let empty_result = WasmEncodedResult::Success::<String> {
-                value: "[]".to_string(),
-                error: None,
-            };
-            let empty_payload =
-                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&empty_result).unwrap())
-                    .unwrap()
-                    .as_string()
-                    .unwrap();
-
-            let mut vault_payloads: Vec<(String, String)> = Vec::new();
-            for vault in vaults.into_iter() {
-                // Match on the vault_id value passed as a parameter to the query.
-                let lookup = vault.vault_id.clone();
-                let json = serde_json::to_string(&vec![vault]).unwrap();
-                let result = WasmEncodedResult::Success::<String> {
-                    value: json,
-                    error: None,
-                };
-                let payload =
-                    js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&result).unwrap())
-                        .unwrap()
-                        .as_string()
-                        .unwrap();
-                vault_payloads.push((lookup, payload));
-            }
-
-            let callback = Closure::wrap(Box::new(move |sql: String, params: JsValue| -> JsValue {
-                if sql.contains("FROM order_events")
-                    && sql.contains("GROUP_CONCAT(")
-                    && sql.contains("ios.io_type = 'input'")
-                {
-                    return js_sys::JSON::parse(&orders_payload).unwrap();
-                }
-
-                if sql.contains("FLOAT_SUM(vd") {
-                    if Array::is_array(&params) {
-                        let params_array = Array::from(&params);
-                        for (needle, payload) in &vault_payloads {
-                            let found = params_array.iter().any(|value| {
-                                if let Some(text) = value.as_string() {
-                                    text == *needle
-                                } else if let Ok(bigint) = value.dyn_into::<BigInt>() {
-                                    bigint
-                                        .to_string(10)
-                                        .unwrap()
-                                        .as_string()
-                                        .map(|s| s == *needle)
-                                        .unwrap_or(false)
-                                } else {
-                                    false
-                                }
-                            });
-                            if found {
-                                return js_sys::JSON::parse(payload).unwrap();
-                            }
-                        }
-                    }
-                }
-
-                js_sys::JSON::parse(&empty_payload).unwrap()
-            }) as Box<dyn Fn(String, JsValue) -> JsValue>);
-
-            callback.into_js_value().dyn_into().unwrap()
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_get_orders_local_db_callback_path() {
-            let order_hash = "0x0000000000000000000000000000000000000000000000000000000000000abc";
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let order_bytes = "0x00000000000000000000000000000000000000000000000000000000000000ff";
-            let transaction_hash =
-                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-            let meta = "0x1234";
-            let input_vault_id = "0x0a";
-            let output_vault_id = "0x0b";
-            let input_token = "0x00000000000000000000000000000000000000aa";
-            let output_token = "0x00000000000000000000000000000000000000bb";
-
-            let local_order = LocalDbOrder {
-                order_hash: order_hash.to_string(),
-                owner: owner.to_string(),
-                block_timestamp: 123456,
-                block_number: 654321,
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                order_bytes: order_bytes.to_string(),
-                transaction_hash: transaction_hash.to_string(),
-                inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
-                outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),
-                trade_count: 7,
-                active: true,
-                meta: Some(meta.to_string()),
-            };
-
-            let input_vault = LocalDbVault {
-                vault_id: input_vault_id.to_string(),
-                token: input_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                token_name: "Token A".to_string(),
-                token_symbol: "TKNA".to_string(),
-                token_decimals: 18,
-                balance: "0x000000000000000000000000000000000000000000000000000000000000000a"
-                    .to_string(),
-                input_orders: Some(format!("0x01:{}:1", order_hash)),
-                output_orders: None,
-            };
-
-            let output_vault = LocalDbVault {
-                vault_id: output_vault_id.to_string(),
-                token: output_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                token_name: "Token B".to_string(),
-                token_symbol: "TKNB".to_string(),
-                token_decimals: 6,
-                balance: "0x0000000000000000000000000000000000000000000000000000000000000005"
-                    .to_string(),
-                input_orders: None,
-                output_orders: Some(format!("0x01:{}:0", order_hash)),
-            };
-
-            let callback = make_local_db_callback(
-                vec![local_order.clone()],
-                vec![input_vault.clone(), output_vault.clone()],
-            );
-
-            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
-
-            let orders = client
-                .get_orders(Some(ChainIds(vec![42161])), None, None)
-                .await
-                .expect("local db query should succeed");
-
-            assert_eq!(orders.len(), 1);
-
-            let order = &orders[0];
-            assert_eq!(order.chain_id(), 42161);
-            assert_eq!(order.order_hash(), order_hash.to_string());
-            assert_eq!(order.order_bytes(), order_bytes.to_string());
-            assert_eq!(order.owner().to_lowercase(), owner.to_string());
-            assert!(order.active());
-            assert_eq!(order.trades_count(), local_order.trade_count as u16);
-            assert_eq!(order.meta(), Some(meta.to_string()));
-            assert_eq!(
-                order.orderbook(),
-                "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string()
-            );
-            assert!(order.transaction().is_none());
-
-            let timestamp = order.timestamp_added().unwrap();
-            let timestamp_str = timestamp
-                .to_string(10)
-                .expect("timestamp to_string should succeed")
-                .as_string()
-                .expect("timestamp string conversion should succeed");
-            assert_eq!(timestamp_str, local_order.block_timestamp.to_string());
-
-            let input_vaults = order.inputs_list().items();
-            assert_eq!(input_vaults.len(), 1);
-            assert_eq!(
-                input_vaults[0].token().symbol(),
-                Some(input_vault.token_symbol.clone())
-            );
-            assert_eq!(input_vaults[0].orderbook(), input_vault.orderbook_address);
-
-            let output_vaults = order.outputs_list().items();
-            assert_eq!(output_vaults.len(), 1);
-            assert_eq!(
-                output_vaults[0].token().symbol(),
-                Some(output_vault.token_symbol.clone())
-            );
-            assert_eq!(output_vaults[0].orderbook(), output_vault.orderbook_address);
-        }
-
-        #[wasm_bindgen_test]
-        async fn test_get_order_by_hash_local_db_path() {
-            let order_hash = "0x0000000000000000000000000000000000000000000000000000000000000abc";
-            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-            let order_bytes = "0x00000000000000000000000000000000000000000000000000000000000000ff";
-            let meta = "0x1234";
-            let input_vault_id = "0x0a";
-            let output_vault_id = "0x0b";
-            let input_token = "0x00000000000000000000000000000000000000aa";
-            let output_token = "0x00000000000000000000000000000000000000bb";
-
-            let local_order = LocalDbOrder {
-                order_hash: order_hash.to_string(),
-                owner: owner.to_string(),
-                block_timestamp: 123456,
-                block_number: 654321,
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                order_bytes: order_bytes.to_string(),
-                transaction_hash:
-                    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
-                inputs: Some(format!("0:{}:{}", input_vault_id, input_token)),
-                outputs: Some(format!("0:{}:{}", output_vault_id, output_token)),
-                trade_count: 3,
-                active: true,
-                meta: Some(meta.to_string()),
-            };
-
-            let input_vault = LocalDbVault {
-                vault_id: input_vault_id.to_string(),
-                token: input_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                token_name: "Token A".to_string(),
-                token_symbol: "TKNA".to_string(),
-                token_decimals: 18,
-                balance: "0x000000000000000000000000000000000000000000000000000000000000000a"
-                    .to_string(),
-                input_orders: Some(format!("0x01:{}:1", order_hash)),
-                output_orders: None,
-            };
-
-            let output_vault = LocalDbVault {
-                vault_id: output_vault_id.to_string(),
-                token: output_token.to_string(),
-                owner: owner.to_string(),
-                orderbook_address: "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string(),
-                token_name: "Token B".to_string(),
-                token_symbol: "TKNB".to_string(),
-                token_decimals: 6,
-                balance: "0x0000000000000000000000000000000000000000000000000000000000000005"
-                    .to_string(),
-                input_orders: None,
-                output_orders: Some(format!("0x01:{}:0", order_hash)),
-            };
-
-            let callback = make_local_db_callback(
-                vec![local_order.clone()],
-                vec![input_vault.clone(), output_vault.clone()],
-            );
-
-            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
-
-            let order = client
-                .get_order_by_hash(
-                    &OrderbookIdentifier::new(
-                        42161,
-                        Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap(),
-                    ),
-                    Bytes::from_str(order_hash).unwrap(),
-                )
-                .await
-                .expect("local db order fetch should succeed");
-
-            assert_eq!(order.chain_id(), 42161);
-            assert_eq!(order.order_hash(), order_hash.to_string());
-            assert_eq!(order.order_bytes(), order_bytes.to_string());
-            assert_eq!(order.owner().to_lowercase(), owner.to_string());
-            assert!(order.active());
-            assert_eq!(order.trades_count(), local_order.trade_count as u16);
-            assert_eq!(order.meta(), Some(meta.to_string()));
-            assert_eq!(
-                order.orderbook(),
-                "0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB".to_string()
-            );
-        }
-    }
 
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
-        use alloy::primitives::U256;
+        use crate::{
+            local_db::query::{
+                fetch_orders::LocalDbOrder, FromDbJson, LocalDbQueryError, LocalDbQueryExecutor,
+                SqlStatement, SqlStatementBatch,
+            },
+            raindex_client::local_db::LocalDb,
+        };
+        use alloy::primitives::{b256, U256};
         use httpmock::MockServer;
         use rain_math_float::Float;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -1268,6 +964,35 @@ mod tests {
         use serde_json::{json, Value};
         use std::str::FromStr;
 
+        #[derive(Clone)]
+        struct StaticJsonExec {
+            json: String,
+        }
+
+        #[async_trait(?Send)]
+        impl LocalDbQueryExecutor for StaticJsonExec {
+            async fn execute_batch(
+                &self,
+                _batch: &SqlStatementBatch,
+            ) -> Result<(), LocalDbQueryError> {
+                Ok(())
+            }
+
+            async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+            where
+                T: FromDbJson,
+            {
+                serde_json::from_str(&self.json)
+                    .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+            }
+
+            async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+                Err(LocalDbQueryError::database(
+                    "query_text not supported in StaticJsonExec",
+                ))
+            }
+        }
+
         #[test]
         fn try_from_local_db_orders_csv_parses_records() {
             let csv = Some(
@@ -1280,7 +1005,7 @@ mod tests {
             assert_eq!(parsed.len(), 2);
             assert_eq!(
                 parsed[0].order_hash,
-                Bytes::from_str(
+                B256::from_str(
                     "0xabc0000000000000000000000000000000000000000000000000000000000001"
                 )
                 .unwrap()
@@ -1553,9 +1278,9 @@ mod tests {
                     "data": {
                       "orders": [
                         {
-                          "id": "0x0234",
+                          "id": "0x0000000000000000000000000000000000000000000000000000000000000234",
                           "orderBytes": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-                          "orderHash": "0x2345",
+                          "orderHash": "0x0000000000000000000000000000000000000000000000000000000000002345",
                           "owner": "0x0000000000000000000000000000000000000000",
                           "outputs": [
                             {
@@ -1713,9 +1438,21 @@ mod tests {
 
             let order2 = result[1].clone();
             assert_eq!(order2.chain_id, 137);
-            assert_eq!(order2.id, Bytes::from_str("0x0234").unwrap());
+            assert_eq!(
+                order2.id,
+                B256::from_str(
+                    "0x0000000000000000000000000000000000000000000000000000000000000234"
+                )
+                .unwrap()
+            );
             assert_eq!(order2.order_bytes, Bytes::from_str("0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000").unwrap());
-            assert_eq!(order2.order_hash, Bytes::from_str("0x2345").unwrap());
+            assert_eq!(
+                order2.order_hash,
+                B256::from_str(
+                    "0x0000000000000000000000000000000000000000000000000000000000002345"
+                )
+                .unwrap()
+            );
             assert_eq!(
                 order2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000000").unwrap()
@@ -1809,7 +1546,7 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();
@@ -1846,6 +1583,50 @@ mod tests {
                 res.vaults_list().items()[2].id(),
                 expected_order.inputs[1].id()
             );
+        }
+
+        #[tokio::test]
+        async fn test_get_order_by_hash_not_found() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    // not used
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000123");
+            let res = raindex_client
+                .get_order_by_hash(
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
+                    order_hash,
+                )
+                .await;
+
+            match res {
+                Err(RaindexError::OrderNotFound(address, chain_id, hash)) => {
+                    assert_eq!(address, CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string());
+                    assert_eq!(chain_id, 1);
+                    assert_eq!(hash, order_hash);
+                }
+                Err(err) => panic!("unexpected error {err:?}"),
+                Ok(_) => panic!("expected error"),
+            }
         }
 
         #[tokio::test]
@@ -1895,7 +1676,7 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await;
             assert!(res.is_ok());
@@ -1930,13 +1711,331 @@ mod tests {
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
-                    Bytes::from_str("0x0123").unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
                 .await
                 .unwrap();
 
             assert!(res.rainlang.is_some());
             assert_eq!(res.rainlang, Some("/* 0. calculate-io */ \nusing-words-from 0xFe2411CDa193D9E4e83A5c234C7Fd320101883aC\namt: 100,\nio: call<2>();\n\n/* 1. handle-io */ \n:call<3>(),\n:ensure(equal-to(output-vault-decrease() 100) \"must take full amount\");\n\n/* 2. get-io-ratio-now */ \nelapsed: call<4>(),\nio: saturating-sub(0.0177356 div(mul(elapsed sub(0.0177356 0.0173844)) 60));\n\n/* 3. one-shot */ \n:ensure(is-zero(get(hash(order-hash() \"has-executed\"))) \"has executed\"),\n:set(hash(order-hash() \"has-executed\") 1);\n\n/* 4. get-elapsed */ \n_: sub(now() get(hash(order-hash() \"deploy-time\")));".to_string()));
+        }
+
+        #[tokio::test]
+        async fn local_db_orders_parse_ios() {
+            let local_orderbook = "0x0987654321098765432109876543210987654321";
+            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let token = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+            let inputs_payload = serde_json::to_string(&vec![json!({
+                "ioIndex": 1,
+                "vault": {
+                    "chainId": 137,
+                    "vaultId": "0x01",
+                    "token": token,
+                    "owner": owner,
+                    "orderbookAddress": local_orderbook,
+                    "tokenName": "USDC",
+                    "tokenSymbol": "USDC",
+                    "tokenDecimals": 6,
+                    "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "inputOrders": null,
+                    "outputOrders": null
+                }
+            })])
+            .unwrap();
+            let outputs_payload = serde_json::to_string(&vec![json!({
+                "ioIndex": 0,
+                "vault": {
+                    "chainId": 137,
+                    "vaultId": "0x02",
+                    "token": token,
+                    "owner": owner,
+                    "orderbookAddress": local_orderbook,
+                    "tokenName": "USDC",
+                    "tokenSymbol": "USDC",
+                    "tokenDecimals": 6,
+                    "balance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "inputOrders": null,
+                    "outputOrders": null
+                }
+            })])
+            .unwrap();
+
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash: b256!(
+                    "0x0000000000000000000000000000000000000000000000000000000000000abc"
+                ),
+                owner: Address::from_str(owner).unwrap(),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: Address::from_str(local_orderbook).unwrap(),
+                order_bytes: Bytes::from_str("0x01").unwrap(),
+                transaction_hash: b256!(
+                    "0x0000000000000000000000000000000000000000000000000000000000000010"
+                ),
+                inputs: Some(inputs_payload),
+                outputs: Some(outputs_payload),
+                trade_count: 2,
+                active: true,
+                meta: None,
+            };
+
+            let exec = StaticJsonExec {
+                json: serde_json::to_string(&vec![local_order]).unwrap(),
+            };
+            let local_db = LocalDb::new(exec.clone());
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    "https://example/sg2",
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db.clone());
+
+            let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
+            let orders = orders_source
+                .list(Some(vec![137]), &GetOrdersFilters::default(), None)
+                .await
+                .unwrap();
+
+            assert_eq!(orders.len(), 1);
+            let order = &orders[0];
+            assert_eq!(order.inputs.len(), 1);
+            assert_eq!(order.outputs.len(), 1);
+            assert_eq!(order.trades_count, 2);
+            assert_eq!(order.orderbook, Address::from_str(local_orderbook).unwrap());
+        }
+
+        #[tokio::test]
+        async fn local_db_orders_bubble_deserialization_error() {
+            let exec = StaticJsonExec {
+                json: "not-json".to_string(),
+            };
+            let local_db = LocalDb::new(exec);
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    "https://example/sg2",
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db.clone());
+
+            let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
+            let err = orders_source
+                .list(Some(vec![137]), &GetOrdersFilters::default(), None)
+                .await
+                .unwrap_err();
+            match err {
+                RaindexError::LocalDbQueryError(LocalDbQueryError::Deserialization { .. }) => {}
+                other => panic!("unexpected error: {other:?}"),
+            }
+        }
+
+        #[tokio::test]
+        async fn get_orders_routes_between_local_and_subgraph() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "orders": [
+                      get_order1_json()
+                    ]
+                  }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "orders": []
+                  }
+                }));
+            });
+
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash: b256!(
+                    "0x0000000000000000000000000000000000000000000000000000000000000abc"
+                ),
+                owner: Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: Address::from_str("0x0987654321098765432109876543210987654321")
+                    .unwrap(),
+                order_bytes: Bytes::from_str("0x01").unwrap(),
+                transaction_hash: b256!(
+                    "0x0000000000000000000000000000000000000000000000000000000000000010"
+                ),
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: None,
+            };
+
+            let exec = StaticJsonExec {
+                json: serde_json::to_string(&vec![local_order]).unwrap(),
+            };
+            let local_db = LocalDb::new(exec);
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db);
+
+            let result = client
+                .get_orders(
+                    Some(ChainIds(vec![1, 137])),
+                    Some(GetOrdersFilters::default()),
+                    Some(1),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(result.len(), 2);
+            assert!(result.iter().any(|o| o.order_hash
+                == b256!("0x0000000000000000000000000000000000000000000000000000000000000abc")));
+            assert!(result.iter().any(|o| o.order_hash
+                == b256!("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4")));
+        }
+
+        #[tokio::test]
+        async fn get_orders_falls_back_to_subgraph_when_no_local_db() {
+            let sg_server = MockServer::start_async().await;
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                  "data": {
+                    "orders": [
+                      {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000234",
+                        "orderBytes": "0x01",
+                        "orderHash": "0x0000000000000000000000000000000000000000000000000000000000002345",
+                        "owner": "0x0000000000000000000000000000000000000000",
+                        "outputs": [],
+                        "inputs": [],
+                        "active": true,
+                        "addEvents": [
+                          {
+                            "transaction": {
+                              "blockNumber": "0",
+                              "timestamp": "0",
+                              "id": "0x0000000000000000000000000000000000000000",
+                              "from": "0x0000000000000000000000000000000000000000"
+                            }
+                          }
+                        ],
+                        "meta": null,
+                        "timestampAdded": "0",
+                        "orderbook": {
+                          "id": "0x0987654321098765432109876543210987654321"
+                        },
+                        "trades": [],
+                        "removeEvents": []
+                      }
+                    ]
+                  }
+                }));
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    &sg_server.url("/sg2"),
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let result = client
+                .get_orders(
+                    Some(ChainIds(vec![137])),
+                    Some(GetOrdersFilters::default()),
+                    Some(1),
+                )
+                .await
+                .unwrap();
+            assert_eq!(result.len(), 1);
+            assert_eq!(
+                result[0].order_hash,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000002345")
+            );
+        }
+
+        #[tokio::test]
+        async fn get_order_by_hash_hits_local_before_subgraph() {
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash: b256!(
+                    "0x0000000000000000000000000000000000000000000000000000000000000abc"
+                ),
+                owner: Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: Address::from_str("0x0987654321098765432109876543210987654321")
+                    .unwrap(),
+                order_bytes: Bytes::from_str("0x01").unwrap(),
+                transaction_hash: b256!(
+                    "0x0000000000000000000000000000000000000000000000000000000000000010"
+                ),
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: None,
+            };
+
+            let exec = StaticJsonExec {
+                json: serde_json::to_string(&vec![local_order]).unwrap(),
+            };
+            let local_db = LocalDb::new(exec);
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "https://example/sg1",
+                    "https://example/sg2",
+                    "https://example/rpc1",
+                    "https://example/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+            client.local_db.borrow_mut().replace(local_db);
+
+            let order = client
+                .get_order_by_hash(
+                    &OrderbookIdentifier::new(
+                        137,
+                        Address::from_str("0x0987654321098765432109876543210987654321").unwrap(),
+                    ),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000abc"),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(
+                order.order_hash,
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000abc")
+            );
+            assert_eq!(order.chain_id, 137);
         }
 
         // TODO: Issue #1989

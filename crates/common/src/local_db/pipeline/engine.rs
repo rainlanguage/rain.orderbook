@@ -1,8 +1,6 @@
+use super::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
 use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
-use super::{
-    ApplyPipeline, ApplyPipelineTargetInfo, EventsPipeline, StatusBus, SyncConfig, SyncOutcome,
-    TokensPipeline, WindowPipeline,
-};
+use super::{EventsPipeline, StatusBus, SyncConfig, SyncOutcome, TokensPipeline, WindowPipeline};
 use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
 use crate::local_db::decode::{
@@ -13,7 +11,7 @@ use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, 
 use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::{Address, B256};
+use alloy::primitives::Address;
 use std::collections::{BTreeSet, HashSet};
 use url::Url;
 
@@ -103,15 +101,15 @@ where
             .resolve_token_upserts(input, &token_addresses, &existing_tokens)
             .await?;
 
-        let target_hash_bytes = self.events.block_hash(target_block).await?;
-        let target_hash = B256::try_from(target_hash_bytes.as_ref())?;
+        let target_hash = self.events.block_hash(target_block).await?;
 
         self.apply_changes(
             db,
             ApplyContext {
                 target_info: &ApplyPipelineTargetInfo {
                     ob_id: input.ob_id.clone(),
-                    block: target_block,
+                    start_block,
+                    target_block,
                     hash: target_hash,
                 },
                 raw_logs: &all_raw_logs,
@@ -157,6 +155,7 @@ where
                     dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
                     block_number_threshold: input.block_number_threshold,
                     latest_block: input.manifest_end_block,
+                    deployment_block: input.cfg.deployment_block,
                 },
             )
             .await?;
@@ -316,7 +315,7 @@ where
 
         self.status.send("Running post-sync export").await?;
         self.apply
-            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.block)
+            .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.target_block)
             .await
     }
 }
@@ -348,20 +347,20 @@ mod tests {
     use crate::local_db::decode::{
         DecodedEvent, DecodedEventData, EventType, InterpreterStoreSetEvent,
     };
+    use crate::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use crate::local_db::pipeline::adapters::bootstrap::BootstrapState;
-    use crate::local_db::pipeline::{ApplyPipelineTargetInfo, FinalityConfig, WindowOverrides};
+    use crate::local_db::pipeline::{FinalityConfig, WindowOverrides};
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
     };
     use crate::local_db::FetchConfig;
-    use alloy::primitives::{hex, Address, Bytes, FixedBytes, U256};
+    use alloy::primitives::{b256, Address, Bytes, FixedBytes, B256, U256};
     use async_trait::async_trait;
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use serde_json;
     use std::cell::RefCell;
     use std::collections::VecDeque;
-    use std::str::FromStr;
     use std::sync::{Arc, Mutex};
     use tokio::sync::Barrier;
     use url::Url;
@@ -374,20 +373,22 @@ mod tests {
         Address::from([byte; 20])
     }
 
-    fn tx_bytes(tag: u8) -> Bytes {
-        Bytes::from_str(&format!("0x{tag:02x}")).unwrap()
+    fn tx_hash(tag: u8) -> B256 {
+        let mut bytes = [0u8; 32];
+        bytes[31] = tag;
+        B256::from(bytes)
     }
 
     fn log_entry(address: Address, block: u64, log_index: u64, tx: u8) -> LogEntryResponse {
         LogEntryResponse {
-            address: hex::encode_prefixed(address),
-            topics: vec!["0x1".into()],
-            data: "0x01".into(),
+            address,
+            topics: vec![Bytes::from(vec![0x1; 32])],
+            data: Bytes::from(vec![0x01]),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(block + 100)),
-            transaction_hash: format!("0x{tx:064x}"),
+            transaction_hash: tx_hash(tx),
             transaction_index: hex_u64(0),
-            block_hash: "0xdeadbeef".into(),
+            block_hash: B256::from([0xde; 32]),
             log_index: U256::from(log_index),
             removed: false,
         }
@@ -404,7 +405,7 @@ mod tests {
             event_type: EventType::DepositV2,
             block_number: U256::from(block),
             block_timestamp: U256::from(block + 100),
-            transaction_hash: tx_bytes(tx),
+            transaction_hash: tx_hash(tx),
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: addr(0x33),
@@ -428,7 +429,7 @@ mod tests {
             event_type: EventType::AddOrderV3,
             block_number: U256::from(block),
             block_timestamp: U256::from(block + 200),
-            transaction_hash: tx_bytes(tx),
+            transaction_hash: tx_hash(tx),
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::AddOrderV3(Box::new(AddOrderV3 {
                 sender: addr(0x44),
@@ -464,7 +465,7 @@ mod tests {
             event_type: EventType::InterpreterStoreSet,
             block_number: U256::from(block),
             block_timestamp: U256::from(block + 300),
-            transaction_hash: tx_bytes(tx),
+            transaction_hash: tx_hash(tx),
             log_index: U256::from(log_index),
             decoded_data: DecodedEvent::InterpreterStoreSet(Box::new(InterpreterStoreSetEvent {
                 store_address: store,
@@ -687,7 +688,7 @@ mod tests {
         orderbook_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         store_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
         decode_results: Mutex<VecDeque<Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError>>>,
-        block_hashes: Mutex<VecDeque<Result<Bytes, LocalDbError>>>,
+        block_hashes: Mutex<VecDeque<Result<B256, LocalDbError>>>,
         orderbook_calls: Mutex<Vec<(Address, u64, u64)>>,
         store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
         store_barrier: Mutex<Option<Arc<Barrier>>>,
@@ -718,7 +719,7 @@ mod tests {
             self.inner.decode_results.lock().unwrap().push_back(result);
         }
 
-        fn push_block_hash(&self, result: Result<Bytes, LocalDbError>) {
+        fn push_block_hash(&self, result: Result<B256, LocalDbError>) {
             self.inner.block_hashes.lock().unwrap().push_back(result);
         }
 
@@ -810,13 +811,13 @@ mod tests {
                 .unwrap_or(Ok(Vec::new()))
         }
 
-        async fn block_hash(&self, _block_number: u64) -> Result<Bytes, LocalDbError> {
+        async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
             self.inner
                 .block_hashes
                 .lock()
                 .unwrap()
                 .pop_front()
-                .unwrap_or_else(|| Ok(Bytes::from_static(&[0u8; 32])))
+                .unwrap_or_else(|| Ok(B256::ZERO))
         }
     }
 
@@ -919,7 +920,7 @@ mod tests {
         decoded_order: Vec<(U256, U256)>,
         existing_tokens: Vec<Address>,
         upsert_tokens: Vec<Address>,
-        end_block_hash: Bytes,
+        end_block_hash: B256,
     }
 
     #[derive(Clone, Default)]
@@ -992,7 +993,7 @@ mod tests {
                 decoded_order,
                 existing_tokens,
                 upsert_tokens,
-                end_block_hash: target_info.hash.into(),
+                end_block_hash: target_info.hash,
             });
 
             self.inner
@@ -1000,7 +1001,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .pop_front()
-                .unwrap_or_else(|| Ok(SqlStatementBatch::new().ensure_transaction()))
+                .unwrap_or_else(|| Ok(SqlStatementBatch::new()))
         }
 
         async fn persist<DB>(&self, _db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
@@ -1163,9 +1164,9 @@ mod tests {
         let store_logs = vec![log_entry(store, 12, 0, 3)];
 
         harness.events.set_latest_blocks(vec![Ok(12)]);
-        harness
-            .events
-            .push_block_hash(Ok(Bytes::from_static(&[1u8; 32])));
+        harness.events.push_block_hash(Ok(b256!(
+            "0x0000000000000000000000000000000000000000000000000000000000000001"
+        )));
         harness.window.set_results(vec![Ok((10, 12))]);
         harness
             .events
@@ -1232,7 +1233,10 @@ mod tests {
         );
         assert_eq!(build.existing_tokens, vec![token_a]);
         assert_eq!(build.upsert_tokens, vec![token_b]);
-        assert_eq!(build.end_block_hash, Bytes::from_static(&[1u8; 32]));
+        assert_eq!(
+            build.end_block_hash,
+            b256!("0x0000000000000000000000000000000000000000000000000000000000000001")
+        );
 
         assert_eq!(harness.apply.persist_calls().len(), 1);
         assert_eq!(harness.apply.export_calls().len(), 1);
@@ -1609,13 +1613,17 @@ mod tests {
 
         let configs = harness.bootstrap.configs();
         assert_eq!(configs.len(), 1);
-        let dump_stmt = configs[0]
+        let config = &configs[0];
+        let dump_stmt = config
             .dump_stmt
             .as_ref()
             .expect("dump statement present")
             .sql()
             .to_owned();
         assert_eq!(dump_stmt, "SELECT 1");
+        assert_eq!(config.deployment_block, inputs.cfg.deployment_block);
+        assert_eq!(config.block_number_threshold, inputs.block_number_threshold);
+        assert_eq!(config.latest_block, inputs.manifest_end_block);
     }
 
     #[tokio::test]
@@ -2049,7 +2057,7 @@ mod tests {
         assert_eq!(stmt.params()[0], SqlValue::U64(ob_id.chain_id as u64));
         assert_eq!(
             stmt.params()[1],
-            SqlValue::Text(ob_id.orderbook_address.to_string())
+            SqlValue::Text("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
         );
     }
 

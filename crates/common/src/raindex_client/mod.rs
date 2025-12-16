@@ -1,5 +1,5 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
-use crate::raindex_client::local_db::pipeline::runner::scheduler::{self, SchedulerHandle};
+use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -9,7 +9,7 @@ use alloy::{
     hex::FromHexError,
     primitives::{
         ruint::{FromUintError, ParseError},
-        Address, ParseSignedError,
+        Address, ParseSignedError, B256,
     },
 };
 use rain_math_float::FloatError;
@@ -84,7 +84,7 @@ impl_wasm_traits!(ChainIds);
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
     #[serde(skip_serializing, skip_deserializing)]
-    local_db_callback: Rc<RefCell<Option<js_sys::Function>>>,
+    local_db: Rc<RefCell<Option<LocalDb>>>,
     #[serde(skip_serializing, skip_deserializing)]
     local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
 }
@@ -131,7 +131,7 @@ impl RaindexClient {
         )?;
         Ok(RaindexClient {
             orderbook_yaml,
-            local_db_callback: Rc::new(RefCell::new(None)),
+            local_db: Rc::new(RefCell::new(None)),
             local_db_scheduler: Rc::new(RefCell::new(None)),
         })
     }
@@ -145,56 +145,8 @@ impl RaindexClient {
         )]
         callback: js_sys::Function,
     ) -> Result<(), RaindexError> {
-        let mut slot = self.local_db_callback.borrow_mut();
-        *slot = Some(callback);
-        Ok(())
-    }
-
-    #[wasm_export(js_name = "startLocalDbScheduler", unchecked_return_type = "void")]
-    pub async fn start_local_db_scheduler(
-        &self,
-        #[wasm_export(
-            js_name = "settingsYaml",
-            param_description = "Full settings YAML string used by the client runner"
-        )]
-        settings_yaml: String,
-    ) -> Result<(), RaindexError> {
-        let callback = {
-            let slot = self.local_db_callback.borrow();
-            slot.clone()
-                .ok_or_else(|| RaindexError::JsError("Local DB callback not set".to_string()))?
-        };
-
-        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
-        let existing = {
-            let mut slot = scheduler_cell.borrow_mut();
-            slot.take()
-        };
-
-        if let Some(handle) = existing {
-            handle.stop().await;
-        }
-
-        let handle = scheduler::start(settings_yaml, callback)?;
-        {
-            let mut slot = scheduler_cell.borrow_mut();
-            *slot = Some(handle);
-        }
-        Ok(())
-    }
-
-    #[wasm_export(js_name = "stopLocalDbScheduler", unchecked_return_type = "void")]
-    pub async fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
-        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
-        let handle = {
-            let mut slot = scheduler_cell.borrow_mut();
-            slot.take()
-        };
-
-        if let Some(handle) = handle {
-            handle.stop().await;
-        }
-
+        let mut slot = self.local_db.borrow_mut();
+        *slot = Some(LocalDb::from_js_callback(callback));
         Ok(())
     }
 
@@ -273,8 +225,8 @@ impl RaindexClient {
         Ok(orderbooks)
     }
 
-    fn local_db_callback(&self) -> Option<js_sys::Function> {
-        self.local_db_callback.borrow().as_ref().cloned()
+    fn local_db(&self) -> Option<LocalDb> {
+        self.local_db.borrow().as_ref().cloned()
     }
 }
 
@@ -343,6 +295,10 @@ pub enum RaindexError {
     DepositArgsError(#[from] DepositError),
     #[error("Orderbook not found for address: {0} on chain ID: {1}")]
     OrderbookNotFound(String, u32),
+    #[error("Order not found for address: {0} on chain ID: {1} with hash: {2}")]
+    OrderNotFound(String, u32, B256),
+    #[error("Vault not found for address: {0} on chain ID: {1} with id: {2}")]
+    VaultNotFound(String, u32, String),
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
     #[error(transparent)]
@@ -467,6 +423,16 @@ impl RaindexError {
                     address, chain_id
                 )
             }
+            RaindexError::OrderNotFound(address, chain_id, order_hash) => {
+                format!(
+                    "Order not found for address: {} on chain ID: {} with hash: {}",
+                    address, chain_id, order_hash
+                )
+            }
+            RaindexError::VaultNotFound(address, chain_id, vault_id) => format!(
+                "Vault not found for address: {} on chain ID: {} with id: {}",
+                address, chain_id, vault_id
+            ),
             RaindexError::OrderDetailError(err) => {
                 format!("Failed to decode order detail: {}", err)
             }

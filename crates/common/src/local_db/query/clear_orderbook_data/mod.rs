@@ -5,21 +5,16 @@ use crate::local_db::OrderbookIdentifier;
 pub const CLEAR_ORDERBOOK_DATA_SQL: &str = include_str!("query.sql");
 
 pub fn clear_orderbook_data_batch(ob_id: &OrderbookIdentifier) -> SqlStatementBatch {
-    let chain_val = SqlValue::from(ob_id.chain_id as u64);
-    let address_val = SqlValue::from(ob_id.orderbook_address.to_string());
-
     let statements: Vec<SqlStatement> = REQUIRED_TABLES
         .iter()
         .copied()
         .filter(|table| *table != "db_metadata")
         .map(|table| {
             SqlStatement::new_with_params(
-                format!(
-                    "DELETE FROM {table}\nWHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2)"
-                ),
+                format!("DELETE FROM {table}\nWHERE chain_id = ?1 AND orderbook_address = ?2"),
                 [
-                    chain_val.clone(),
-                    address_val.clone(),
+                    SqlValue::from(ob_id.chain_id),
+                    SqlValue::from(ob_id.orderbook_address),
                 ],
             )
         })
@@ -70,15 +65,14 @@ mod tests {
 
         for (idx, table) in expected_tables.iter().enumerate() {
             let stmt = &statements[idx + 1];
-            let expected_sql = format!(
-                "DELETE FROM {table}\nWHERE chain_id = ?1 AND lower(orderbook_address) = lower(?2)"
-            );
+            let expected_sql =
+                format!("DELETE FROM {table}\nWHERE chain_id = ?1 AND orderbook_address = ?2");
             assert_eq!(stmt.sql(), expected_sql);
             assert_eq!(
                 stmt.params(),
                 &[
                     SqlValue::U64(chain_id as u64),
-                    SqlValue::Text(addr.to_string())
+                    SqlValue::Text("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string())
                 ]
             );
         }
@@ -112,7 +106,7 @@ mod tests {
                 });
                 let stmt = &stmt_rest[..stmt_end];
                 let has_chain_guard = stmt.contains("where chain_id = ?1");
-                let has_address_guard = stmt.contains("lower(orderbook_address) = lower(?2)");
+                let has_address_guard = stmt.contains("orderbook_address = ?2");
                 if !(has_chain_guard && has_address_guard) {
                     tables_missing_scope.push(table_name.clone());
                 }
