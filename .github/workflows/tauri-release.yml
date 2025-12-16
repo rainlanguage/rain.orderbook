@@ -151,3 +151,12 @@ jobs:
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: "App v__VERSION__-${{ github.sha }}"
           releaseBody: "See the assets to download this version and install."
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always() 
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}

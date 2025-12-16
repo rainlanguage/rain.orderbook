@@ -21,8 +21,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - run: exit 1
-
       - uses: nixbuild/nix-quick-install-action@v30
         with:
           nix_conf: |
@@ -50,9 +48,11 @@ jobs:
       # Check if the repo is clean after generating pointers and formatting.
       - run: git diff --exit-code
 
-      - name: Send Telegram notification
-        if: always()  # This ensures it runs regardless of previous step outcomes
-        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@2025-12-15-tg-ci-status-reporter
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always() # This ensures it runs regardless of previous step outcomes
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
         with:
           status: ${{ job.status }}
-          message: "some extra msgggggg"
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
