@@ -13,11 +13,13 @@
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
+	import CheckboxInactiveOrdersVault from './CheckboxInactiveOrdersVault.svelte';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let hideInactiveOrdersVaults: AppStoresInterface['hideInactiveOrdersVaults'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
@@ -57,6 +59,9 @@
 		{#if isVaultsPage}
 			<div class="mt-4 w-full lg:w-auto">
 				<CheckboxZeroBalanceVault {hideZeroBalanceVaults} />
+			</div>
+			<div class="mt-4 w-full lg:w-auto">
+				<CheckboxInactiveOrdersVault {hideInactiveOrdersVaults} />
 			</div>
 		{/if}
 
