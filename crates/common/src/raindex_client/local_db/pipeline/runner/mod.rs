@@ -213,6 +213,7 @@ mod tests {
     };
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
     use rain_orderbook_app_settings::remote::manifest::ManifestMap;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use serde::Serialize;
     use serde_json::{json, Value};
     use std::collections::{HashMap, VecDeque};
@@ -857,7 +858,9 @@ mod tests {
     }
 
     fn two_orderbooks_settings_yaml() -> String {
-        r#"
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -890,12 +893,15 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-b
     deployment-block: 456
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn single_orderbook_settings_yaml() -> String {
-        r#"
+        format!(
+            r#"
+version: {version}
 networks:
   anvil:
     rpcs:
@@ -921,8 +927,9 @@ orderbooks:
     subgraph: anvil
     local-db-remote: remote-a
     deployment-block: 123
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn prepare_db_baseline(db: &RecordingDb) {

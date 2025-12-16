@@ -86,6 +86,7 @@ mod tests {
     use rain_orderbook_app_settings::local_db_remotes::LocalDbRemoteCfg;
     use rain_orderbook_app_settings::orderbook::OrderbookCfg;
     use rain_orderbook_app_settings::remote::manifest::{FetchManifestError, ManifestMap};
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::default_document;
     use std::collections::{HashMap, HashSet};
     use std::io::Write;
@@ -99,7 +100,9 @@ mod tests {
     use crate::local_db::LocalDbError;
 
     fn sample_settings_yaml() -> String {
-        r#"
+        format!(
+            r#"
+version: {version}
 networks:
   network-a:
     rpcs:
@@ -151,8 +154,9 @@ orderbooks:
     subgraph: network-a
     local-db-remote: remote-a
     deployment-block: 333
-"#
-        .to_string()
+"#,
+            version = SpecVersion::current()
+        )
     }
 
     fn parsed_settings() -> ParsedRunnerSettings {
