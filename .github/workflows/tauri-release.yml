@@ -1,15 +1,15 @@
 name: Tauri Publish
 
 # This will trigger the action on each push to the `release` branch.
-on: [push]
-  # push:
-  #   branches:
-  #     - main
+on:
+  push:
+    branches:
+      - main
 
 jobs:
   publish-tauri:
     # prevent releasing again on npm release commit and tag
-    # if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
+    if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     permissions:
       id-token: write
       contents: write
@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-            macos-13,
+            macos-15-intel,
             macos-14,
             ubuntu-22.04,
             # Someone who cares can make windows work.
@@ -41,7 +41,7 @@ jobs:
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Free up disk space in action runner (Macos)
-        if: matrix.platform == 'macos-13' || matrix.platform == 'macos-14'
+        if: matrix.platform == 'macos-15-intel' || matrix.platform == 'macos-14'
         run: |
           sudo rm -rf \
           "$AGENT_TOOLSDIRECTORY" \
