@@ -1385,8 +1385,8 @@ orders:
         let new_deployment = new_dotrain_yaml.get_deployment("deployment1").unwrap();
         assert_eq!(original_deployment, new_deployment);
 
-        let original_gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
-        let new_gui = new_dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let original_gui = dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
+        let new_gui = new_dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
         assert_eq!(original_gui, new_gui);
 
         let original_chart = dotrain_yaml.get_chart("chart1").unwrap();

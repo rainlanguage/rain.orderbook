@@ -429,7 +429,7 @@ impl OrderbookYaml {
     }
 
     pub fn to_yaml_string(&self) -> Result<String, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         let mut yaml_hash = Hash::new();
 
         if let Some(spec_version) = to_yaml_string_missing_check(self.get_spec_version())? {
