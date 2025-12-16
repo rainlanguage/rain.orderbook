@@ -28,7 +28,6 @@ pub async fn check_settings_errors(text: Vec<String>) -> CommandResult<()> {
     OrderbookYaml::new(
         text.clone(),
         OrderbookYamlValidation {
-            version: true,
             networks: true,
             remote_networks: false,
             tokens: false,
@@ -38,7 +37,7 @@ pub async fn check_settings_errors(text: Vec<String>) -> CommandResult<()> {
             metaboards: true,
             deployers: true,
             local_db_remotes: true,
-            local_db_sync: true
+            local_db_sync: true,
         },
     )?;
     Ok(())
@@ -52,7 +51,6 @@ pub async fn check_dotrain_with_settings_errors(
     OrderbookYaml::new(
         settings.clone(),
         OrderbookYamlValidation {
-            version: true,
             networks: true,
             remote_networks: false,
             tokens: false,
@@ -62,7 +60,7 @@ pub async fn check_dotrain_with_settings_errors(
             metaboards: true,
             deployers: true,
             local_db_remotes: true,
-            local_db_sync: true
+            local_db_sync: true,
         },
     )?;
     let mut sources = vec![RainDocument::get_front_matter(&dotrain)

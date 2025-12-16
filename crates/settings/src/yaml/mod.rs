@@ -23,7 +23,6 @@ use thiserror::Error;
 use url::ParseError as UrlParseError;
 
 pub trait ValidationConfig {
-    fn should_validate_version(&self) -> bool;
     fn should_validate_networks(&self) -> bool;
     fn should_validate_remote_networks(&self) -> bool;
     fn should_validate_tokens(&self) -> bool;

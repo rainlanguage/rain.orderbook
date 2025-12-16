@@ -24,8 +24,6 @@ use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs};
 use rain_orderbook_app_settings::blocks::BlockError;
 use rain_orderbook_app_settings::scenario::ScenarioCfg;
 use rain_orderbook_app_settings::yaml::dotrain::DotrainYamlValidation;
-use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
-use rain_orderbook_app_settings::yaml::orderbook::OrderbookYamlValidation;
 use rain_orderbook_app_settings::{
     order::OrderIOCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
@@ -134,13 +132,6 @@ impl FuzzRunnerContext {
             sources.push(settings);
         }
 
-        OrderbookYaml::new(
-            sources.clone(),
-            OrderbookYamlValidation {
-                version: true,
-                ..OrderbookYamlValidation::default()
-            },
-        )?;
         let dotrain_yaml = DotrainYaml::new(sources, DotrainYamlValidation::default())?;
 
         Ok(FuzzRunnerContext {

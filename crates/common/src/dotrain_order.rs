@@ -304,13 +304,8 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let mut orderbook_yaml = OrderbookYaml::new(
-            sources.clone(),
-            OrderbookYamlValidation {
-                version: true,
-                ..OrderbookYamlValidation::default()
-            },
-        )?;
+        let mut orderbook_yaml =
+            OrderbookYaml::new(sources.clone(), OrderbookYamlValidation::default())?;
         let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
 
         let remote_networks =
