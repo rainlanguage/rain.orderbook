@@ -20,10 +20,18 @@
 	// Selector to extract DataItem[] from each page of type InputData
 	export let dataSelector: (pageData: InputData) => DataItem[] = (pageData) =>
 		Array.isArray(pageData) ? (pageData as unknown as DataItem[]) : [];
-	// Virtualization controls
-	export let enableVirtualization = true;
-	export let estimatedRowHeight = 56;
-	export let virtualizationOverscan = 8;
+
+	type VirtualizationConfig = {
+		enabled?: boolean;
+		estimatedRowHeight?: number;
+		overscan?: number;
+	};
+	export let virtualization: VirtualizationConfig = {};
+
+	$: enableVirtualization = virtualization.enabled ?? true;
+	$: estimatedRowHeight = virtualization.estimatedRowHeight ?? 56;
+	$: virtualizationOverscan = virtualization.overscan ?? 8;
+
 	let measuredRowHeight: number | null = null;
 	$: rowHeight = measuredRowHeight ?? estimatedRowHeight;
 

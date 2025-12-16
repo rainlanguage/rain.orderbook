@@ -39,11 +39,14 @@ const createMockQuery = (pages: ReturnType<typeof createPages>, overrides = {}) 
 	});
 };
 
-// Helper function for common render props
-type TableRenderOptions = {
-	enableVirtualization?: boolean;
+type VirtualizationConfig = {
+	enabled?: boolean;
 	estimatedRowHeight?: number;
-	virtualizationOverscan?: number;
+	overscan?: number;
+};
+
+type TableRenderOptions = {
+	virtualization?: VirtualizationConfig;
 };
 
 const renderTable = (
@@ -195,7 +198,7 @@ test('virtualizes rows based on viewport height', async () => {
 	const mockQuery = createMockQuery(pages);
 	const innerHeightSpy = vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(60);
 
-	renderTable(mockQuery, { virtualizationOverscan: 0, estimatedRowHeight: 20 });
+	renderTable(mockQuery, { virtualization: { overscan: 0, estimatedRowHeight: 20 } });
 
 	await waitFor(() => {
 		const renderedRows = screen.getAllByTestId('bodyRow');
@@ -212,7 +215,7 @@ test('renders all rows when virtualization is disabled', async () => {
 	const pages = createPages(rows);
 	const mockQuery = createMockQuery(pages);
 
-	renderTable(mockQuery, { enableVirtualization: false });
+	renderTable(mockQuery, { virtualization: { enabled: false } });
 
 	await waitFor(() => {
 		expect(screen.getAllByTestId('bodyRow')).toHaveLength(rows.length);
