@@ -15,6 +15,24 @@ impl SpecVersion {
     pub fn is_current(version: &str) -> bool {
         version == CURRENT_SPEC_VERSION
     }
+
+    pub fn validate(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Result<(), YamlError> {
+        let version = Self::parse_from_yaml(documents)?;
+        if !Self::is_current(&version) {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "version".to_string(),
+                    reason: format!(
+                        "spec version mismatch: expected '{}', found '{}'",
+                        Self::current(),
+                        version
+                    ),
+                },
+                location: "root".to_string(),
+            });
+        }
+        Ok(())
+    }
 }
 
 impl YamlParsableString for SpecVersion {
@@ -172,6 +190,96 @@ version: "2"
                 kind: FieldErrorKind::InvalidValue {
                     field: "version".to_string(),
                     reason: "spec version mismatch: expected '3', found '2'".to_string()
+                },
+                location: "document 2".to_string()
+            }
+        )
+    }
+
+    #[test]
+    fn test_validate_current_version() {
+        let yaml = format!(
+            r#"
+version: {}
+"#,
+            SpecVersion::current()
+        );
+        let documents = vec![get_document(&yaml)];
+        assert!(SpecVersion::validate(documents).is_ok());
+    }
+
+    #[test]
+    fn test_validate_current_version_multiple_documents() {
+        let yaml = format!(
+            r#"
+version: {}
+"#,
+            SpecVersion::current()
+        );
+        let documents = vec![get_document(&yaml), get_document(&yaml)];
+        assert!(SpecVersion::validate(documents).is_ok());
+    }
+
+    #[test]
+    fn test_validate_missing_version() {
+        let yaml = r#"
+test: test
+"#;
+        let documents = vec![get_document(yaml)];
+        let error = SpecVersion::validate(documents).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("version".to_string()),
+                location: "root".to_string()
+            }
+        )
+    }
+
+    #[test]
+    fn test_validate_incorrect_version() {
+        let yaml = r#"
+version: "1"
+"#;
+        let documents = vec![get_document(yaml)];
+        let error = SpecVersion::validate(documents).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "version".to_string(),
+                    reason: format!(
+                        "spec version mismatch: expected '{}', found '1'",
+                        SpecVersion::current()
+                    )
+                },
+                location: "root".to_string()
+            }
+        )
+    }
+
+    #[test]
+    fn test_validate_mismatched_versions() {
+        let yaml1 = format!(
+            r#"
+version: {}
+"#,
+            SpecVersion::current()
+        );
+        let yaml2 = r#"
+version: "1"
+"#;
+        let documents = vec![get_document(&yaml1), get_document(yaml2)];
+        let error = SpecVersion::validate(documents).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "version".to_string(),
+                    reason: format!(
+                        "spec version mismatch: expected '{}', found '1'",
+                        SpecVersion::current()
+                    )
                 },
                 location: "document 2".to_string()
             }
