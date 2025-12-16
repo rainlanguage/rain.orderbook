@@ -8,6 +8,7 @@
     selectedChainIds,
     showInactiveOrders,
     hideZeroBalanceVaults,
+    hideInactiveOrdersVaults,
     activeTokens,
   } from '$lib/stores/settings';
 
@@ -23,6 +24,7 @@
   {selectedChainIds}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
+  {hideInactiveOrdersVaults}
   {handleDepositModal}
   {handleWithdrawModal}
   {activeTokens}
