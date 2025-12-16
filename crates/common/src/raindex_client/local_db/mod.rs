@@ -310,6 +310,7 @@ mod wasm_tests {
     wasm_bindgen_test_configure!(run_in_browser);
 
     const SINGLE_ORDERBOOK_SETTINGS_YAML: &str = r#"
+version: 4
 networks:
   anvil:
     rpcs:

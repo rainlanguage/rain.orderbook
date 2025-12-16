@@ -100,6 +100,7 @@ mod tests {
 
     fn sample_settings_yaml() -> String {
         r#"
+version: 4
 networks:
   network-a:
     rpcs:

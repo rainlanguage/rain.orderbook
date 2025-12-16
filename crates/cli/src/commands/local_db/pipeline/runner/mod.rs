@@ -714,6 +714,7 @@ mod tests {
 
     fn sample_settings_yaml() -> String {
         r#"
+version: 4
 networks:
   anvil:
     rpcs:
@@ -759,6 +760,7 @@ orderbooks:
 
     fn settings_yaml_ok_fail() -> String {
         r#"
+version: 4
 networks:
   anvil:
     rpcs:
@@ -797,6 +799,7 @@ orderbooks:
 
     fn settings_yaml_panic_only() -> String {
         r#"
+version: 4
 networks:
   anvil:
     rpcs:
@@ -828,6 +831,7 @@ orderbooks:
 
     fn settings_yaml_ok_only() -> String {
         r#"
+version: 4
 networks:
   anvil:
     rpcs:
@@ -859,6 +863,7 @@ orderbooks:
 
     fn settings_yaml_two_success() -> String {
         r#"
+version: 4
 networks:
   anvil:
     rpcs:

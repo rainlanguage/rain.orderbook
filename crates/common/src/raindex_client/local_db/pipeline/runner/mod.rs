@@ -858,6 +858,7 @@ mod tests {
 
     fn two_orderbooks_settings_yaml() -> String {
         r#"
+version: 4
 networks:
   anvil:
     rpcs:
@@ -896,6 +897,7 @@ orderbooks:
 
     fn single_orderbook_settings_yaml() -> String {
         r#"
+version: 4
 networks:
   anvil:
     rpcs:

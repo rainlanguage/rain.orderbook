@@ -126,6 +126,7 @@ mod tests {
 
     fn sample_settings_yaml() -> String {
         r#"
+version: 4
 networks:
   network-a:
     rpcs:
@@ -187,6 +188,7 @@ orderbooks:
 
     fn missing_sync_yaml() -> String {
         r#"
+version: 4
 networks:
   mainnet:
     rpcs:

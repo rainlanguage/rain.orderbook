@@ -634,7 +634,8 @@ tokens:
     network: base
 "#;
 
-    const MOCK_DOTRAIN_PREFIX: &str = r#"gui:
+    const MOCK_DOTRAIN_PREFIX: &str = r#"version: 4
+gui:
   name: Test gui
   description: Test description
   short-description: Test short description
@@ -982,7 +983,7 @@ _ _: 1 1;
             assert_eq!(merged1, expected1);
 
             assert!(merged1.starts_with("version: 4\nnetworks:"));
-            assert!(merged1.contains("\n\ngui:"));
+            assert!(merged1.contains("\n\nversion: 4\ngui:"));
             assert!(merged1.contains("_ _: 0 0;"));
 
             let merged2 = registry.merge_content_for_order("second-order").unwrap();
@@ -994,7 +995,7 @@ _ _: 1 1;
             assert_eq!(merged2, expected2);
 
             assert!(merged2.starts_with("version: 4\nnetworks:"));
-            assert!(merged2.contains("\n\ngui:"));
+            assert!(merged2.contains("\n\nversion: 4\ngui:"));
             assert!(merged2.contains("_ _: 1 1;"));
 
             assert_ne!(merged1, merged2);
@@ -1017,7 +1018,7 @@ _ _: 1 1;
 
             let merged = registry.merge_content_for_order("test-order").unwrap();
             assert_eq!(merged, get_first_dotrain_content());
-            assert!(merged.starts_with("gui:"));
+            assert!(merged.starts_with("version: 4\ngui:"));
         }
     }
 
