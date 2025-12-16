@@ -1,4 +1,4 @@
-use super::{cache::Cache, ValidationConfig, *};
+use super::{cache::Cache, sanitize_all_documents, ValidationConfig, *};
 use crate::{
     accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, local_db_sync::LocalDbSyncCfg,
     metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg,
@@ -117,6 +117,8 @@ impl YamlParsable for OrderbookYaml {
 
             documents.push(document);
         }
+
+        sanitize_all_documents(&documents)?;
 
         if validate.should_validate_networks() {
             NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;

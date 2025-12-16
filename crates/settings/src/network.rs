@@ -15,6 +15,8 @@ use url::{ParseError, Url};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
+const ALLOWED_NETWORK_KEYS: [&str; 5] = ["rpcs", "chain-id", "label", "network-id", "currency"];
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
@@ -255,6 +257,55 @@ impl YamlParsableHash for NetworkCfg {
         }
 
         Ok(networks)
+    }
+
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
+
+            let networks_key = StrictYaml::String("networks".to_string());
+            let Some(networks_value) = root_hash.get(&networks_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref networks_hash) = networks_value.clone() else {
+                continue;
+            };
+
+            let mut sanitized_networks: Vec<(String, StrictYaml)> = Vec::new();
+
+            for (key, value) in networks_hash {
+                let Some(key_str) = key.as_str() else {
+                    continue;
+                };
+
+                let StrictYaml::Hash(ref network_hash) = *value else {
+                    continue;
+                };
+
+                let mut sanitized = Hash::new();
+                for allowed_key in ALLOWED_NETWORK_KEYS.iter() {
+                    let key_yaml = StrictYaml::String(allowed_key.to_string());
+                    if let Some(v) = network_hash.get(&key_yaml) {
+                        sanitized.insert(key_yaml, v.clone());
+                    }
+                }
+                sanitized_networks.push((key_str.to_string(), StrictYaml::Hash(sanitized)));
+            }
+
+            sanitized_networks.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+            let mut new_networks_hash = Hash::new();
+            for (key, value) in sanitized_networks {
+                new_networks_hash.insert(StrictYaml::String(key), value);
+            }
+
+            root_hash.insert(networks_key, StrictYaml::Hash(new_networks_hash));
+        }
+
+        Ok(())
     }
 
     fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
@@ -691,5 +742,349 @@ networks:
         assert!(!goerli_hash.contains_key(&StrictYaml::String("label".to_string())));
         assert!(!goerli_hash.contains_key(&StrictYaml::String("network-id".to_string())));
         assert!(!goerli_hash.contains_key(&StrictYaml::String("currency".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_unknown_keys() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+        label: Mainnet
+        network-id: 1
+        currency: ETH
+        unknown-key: should-be-dropped
+        another-unknown: also-dropped
+"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let networks = root
+            .get(&StrictYaml::String("networks".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref networks_hash) = *networks else {
+            panic!("expected networks hash");
+        };
+        let mainnet = networks_hash
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref mainnet_hash) = *mainnet else {
+            panic!("expected mainnet hash");
+        };
+
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("rpcs".to_string())));
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("chain-id".to_string())));
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("label".to_string())));
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("network-id".to_string())));
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("currency".to_string())));
+        assert!(!mainnet_hash.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!mainnet_hash.contains_key(&StrictYaml::String("another-unknown".to_string())));
+        assert_eq!(mainnet_hash.len(), 5);
+    }
+
+    #[test]
+    fn test_sanitize_documents_preserves_allowed_key_order() {
+        let yaml = r#"
+networks:
+    mainnet:
+        currency: ETH
+        network-id: 1
+        label: Mainnet
+        chain-id: 1
+        rpcs:
+            - https://mainnet.infura.io
+        extra: dropped
+"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let networks = root
+            .get(&StrictYaml::String("networks".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref networks_hash) = *networks else {
+            panic!("expected networks hash");
+        };
+        let mainnet = networks_hash
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref mainnet_hash) = *mainnet else {
+            panic!("expected mainnet hash");
+        };
+
+        let keys: Vec<String> = mainnet_hash
+            .keys()
+            .filter_map(|k| k.as_str().map(String::from))
+            .collect();
+        assert_eq!(
+            keys,
+            vec!["rpcs", "chain-id", "label", "network-id", "currency"]
+        );
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_entries() {
+        let yaml = r#"
+networks:
+    mainnet: not-a-hash
+"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let networks = root
+            .get(&StrictYaml::String("networks".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref networks_hash) = *networks else {
+            panic!("expected networks hash");
+        };
+
+        assert!(!networks_hash.contains_key(&StrictYaml::String("mainnet".to_string())));
+        assert!(networks_hash.is_empty());
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_preserves_hash_entries() {
+        let yaml = r#"
+networks:
+    invalid-network: not-a-hash
+    valid-network:
+        rpcs:
+            - https://rpc.example.io
+        chain-id: 1
+    another-invalid: 12345
+"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let networks = root
+            .get(&StrictYaml::String("networks".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref networks_hash) = *networks else {
+            panic!("expected networks hash");
+        };
+
+        assert!(!networks_hash.contains_key(&StrictYaml::String("invalid-network".to_string())));
+        assert!(!networks_hash.contains_key(&StrictYaml::String("another-invalid".to_string())));
+        assert!(networks_hash.contains_key(&StrictYaml::String("valid-network".to_string())));
+        assert_eq!(networks_hash.len(), 1);
+
+        let valid = networks_hash
+            .get(&StrictYaml::String("valid-network".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref valid_hash) = *valid else {
+            panic!("expected valid-network hash");
+        };
+        assert!(valid_hash.contains_key(&StrictYaml::String("rpcs".to_string())));
+        assert!(valid_hash.contains_key(&StrictYaml::String("chain-id".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_missing_networks_section() {
+        let yaml = r#"
+other: value
+"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        assert!(!root.contains_key(&StrictYaml::String("networks".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_non_hash_root() {
+        let yaml = r#"just a string"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_skips_non_hash_networks() {
+        let yaml = r#"
+networks: not-a-hash
+"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let networks = root
+            .get(&StrictYaml::String("networks".to_string()))
+            .unwrap();
+        assert_eq!(networks.as_str(), Some("not-a-hash"));
+    }
+
+    #[test]
+    fn test_sanitize_documents_per_doc_no_cross_merge() {
+        let yaml_one = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+        extra-key: dropped
+"#;
+        let yaml_two = r#"
+networks:
+    testnet:
+        rpcs:
+            - https://testnet.infura.io
+        chain-id: 2
+        another-extra: also-dropped
+"#;
+        let doc_one = get_document(yaml_one);
+        let doc_two = get_document(yaml_two);
+        let documents = vec![doc_one.clone(), doc_two.clone()];
+        NetworkCfg::sanitize_documents(&documents).unwrap();
+
+        {
+            let doc_read = doc_one.read().unwrap();
+            let StrictYaml::Hash(ref root) = *doc_read else {
+                panic!("expected root hash");
+            };
+            let networks = root
+                .get(&StrictYaml::String("networks".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref networks_hash) = *networks else {
+                panic!("expected networks hash");
+            };
+
+            let keys: Vec<String> = networks_hash
+                .keys()
+                .filter_map(|k| k.as_str().map(String::from))
+                .collect();
+            assert_eq!(keys, vec!["mainnet"]);
+
+            let mainnet = networks_hash
+                .get(&StrictYaml::String("mainnet".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref mainnet_hash) = *mainnet else {
+                panic!("expected mainnet hash");
+            };
+            assert!(!mainnet_hash.contains_key(&StrictYaml::String("extra-key".to_string())));
+            assert!(mainnet_hash.contains_key(&StrictYaml::String("rpcs".to_string())));
+            assert!(mainnet_hash.contains_key(&StrictYaml::String("chain-id".to_string())));
+        }
+
+        {
+            let doc_read = doc_two.read().unwrap();
+            let StrictYaml::Hash(ref root) = *doc_read else {
+                panic!("expected root hash");
+            };
+            let networks = root
+                .get(&StrictYaml::String("networks".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref networks_hash) = *networks else {
+                panic!("expected networks hash");
+            };
+
+            let keys: Vec<String> = networks_hash
+                .keys()
+                .filter_map(|k| k.as_str().map(String::from))
+                .collect();
+            assert_eq!(keys, vec!["testnet"]);
+
+            let testnet = networks_hash
+                .get(&StrictYaml::String("testnet".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref testnet_hash) = *testnet else {
+                panic!("expected testnet hash");
+            };
+            assert!(!testnet_hash.contains_key(&StrictYaml::String("another-extra".to_string())));
+            assert!(testnet_hash.contains_key(&StrictYaml::String("rpcs".to_string())));
+            assert!(testnet_hash.contains_key(&StrictYaml::String("chain-id".to_string())));
+        }
+    }
+
+    #[test]
+    fn test_sanitize_documents_lexicographic_order() {
+        let yaml = r#"
+networks:
+    zebra:
+        rpcs:
+            - https://zebra.io
+        chain-id: 3
+    alpha:
+        rpcs:
+            - https://alpha.io
+        chain-id: 1
+    beta:
+        rpcs:
+            - https://beta.io
+        chain-id: 2
+"#;
+        let document = get_document(yaml);
+        NetworkCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let networks = root
+            .get(&StrictYaml::String("networks".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref networks_hash) = *networks else {
+            panic!("expected networks hash");
+        };
+
+        let keys: Vec<String> = networks_hash
+            .keys()
+            .filter_map(|k| k.as_str().map(String::from))
+            .collect();
+        assert_eq!(keys, vec!["alpha", "beta", "zebra"]);
+    }
+
+    #[test]
+    fn test_parsing_still_fails_for_invalid_shapes_after_sanitization() {
+        let yaml = r#"
+networks: not-a-hash
+"#;
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::Missing("networks".to_string()),
+                location: "root".to_string(),
+            }
+        );
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs: not-an-array
+        chain-id: 1
+"#;
+        let error = NetworkCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "rpcs".to_string(),
+                    expected: "a vector".to_string(),
+                },
+                location: "network 'mainnet'".to_string(),
+            }
+        );
     }
 }

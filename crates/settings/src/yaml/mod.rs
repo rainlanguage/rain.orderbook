@@ -93,6 +93,10 @@ pub trait YamlParsableHash: Sized + Clone {
 
         Ok(StrictYaml::Hash(yaml_hash))
     }
+
+    fn sanitize_documents(_documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        Ok(())
+    }
 }
 
 pub trait YamlParsableVector: Sized {
@@ -517,6 +521,11 @@ pub fn to_yaml_string_missing_check<T>(
 
 pub fn default_document() -> Arc<RwLock<StrictYaml>> {
     Arc::new(RwLock::new(StrictYaml::String("".to_string())))
+}
+
+pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+    NetworkCfg::sanitize_documents(documents)?;
+    Ok(())
 }
 
 #[cfg(test)]

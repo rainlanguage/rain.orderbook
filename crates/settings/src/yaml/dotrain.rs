@@ -1,4 +1,4 @@
-use super::{cache::Cache, orderbook::OrderbookYaml, ValidationConfig, *};
+use super::{cache::Cache, orderbook::OrderbookYaml, sanitize_all_documents, ValidationConfig, *};
 use crate::{ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
     de::{self, IgnoredAny, MapAccess, SeqAccess, Visitor},
@@ -97,6 +97,8 @@ impl YamlParsable for DotrainYaml {
 
             documents.push(document);
         }
+
+        sanitize_all_documents(&documents)?;
 
         if validate.should_validate_orders() {
             OrderCfg::parse_all_from_yaml(documents.clone(), None)?;
