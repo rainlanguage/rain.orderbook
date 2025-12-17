@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_request_zero_price_cap_is_valid() {
+    fn test_parse_request_zero_price_cap_is_invalid() {
         let req = make_request(
             "0x1111111111111111111111111111111111111111",
             "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -232,9 +232,7 @@ mod tests {
         );
         let result = parse_request_from_struct(&req);
 
-        assert!(result.is_ok());
-        let parsed = result.unwrap();
-        assert!(parsed.price_cap.eq(Float::zero().unwrap()).unwrap());
+        assert!(matches!(result, Err(RaindexError::NonPositivePriceCap)));
     }
 
     #[test]
@@ -249,6 +247,6 @@ mod tests {
         );
         let result = parse_request_from_struct(&req);
 
-        assert!(matches!(result, Err(RaindexError::NegativePriceCap)));
+        assert!(matches!(result, Err(RaindexError::NonPositivePriceCap)));
     }
 }
