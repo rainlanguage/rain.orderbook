@@ -27,6 +27,10 @@ use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, TakeOrdersConfigV4}
 use serde_json::json;
 use std::ops::Sub;
 
+fn high_price_cap() -> String {
+    "1000000".to_string()
+}
+
 #[tokio::test]
 async fn test_get_take_orders_calldata_no_orders_returns_no_liquidity() {
     let sg_server = MockServer::start_async().await;
@@ -65,6 +69,7 @@ async fn test_get_take_orders_calldata_no_orders_returns_no_liquidity() {
             "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
             "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
             "1".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await;
@@ -120,6 +125,7 @@ async fn test_get_take_orders_calldata_no_candidates_returns_no_liquidity() {
             setup.token1.to_string(),
             setup.token2.to_string(),
             "10".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await;
@@ -176,7 +182,8 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            "10".to_string(),
+            "100".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await
@@ -260,12 +267,15 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let buy_target = "50".to_string();
+    let price_cap = "5".to_string();
     let result_partial = client
         .get_take_orders_calldata(
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            "10".to_string(),
+            buy_target.clone(),
+            price_cap.clone(),
             MinReceiveMode::Partial,
         )
         .await
@@ -276,7 +286,8 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            "10".to_string(),
+            buy_target.clone(),
+            price_cap.clone(),
             MinReceiveMode::Exact,
         )
         .await
@@ -290,9 +301,16 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
         takeOrders3Call::abi_decode(&result_exact.calldata).expect("Should decode exact calldata");
     let config_exact = decoded_exact.config;
 
+    let expected_buy_target = Float::parse(buy_target).unwrap().get_inner();
+    let expected_price_cap = Float::parse(price_cap).unwrap().get_inner();
+
     assert_eq!(
-        config_partial.maximumInput, config_exact.maximumInput,
-        "maximumInput should be the same for both modes"
+        config_partial.maximumInput, expected_buy_target,
+        "maximumInput should equal buy_target"
+    );
+    assert_eq!(
+        config_exact.maximumInput, expected_buy_target,
+        "maximumInput should equal buy_target"
     );
 
     assert_eq!(
@@ -302,13 +320,17 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
     );
 
     assert_eq!(
-        config_exact.minimumInput, config_exact.maximumInput,
-        "minimumInput should equal maximumInput for Exact mode"
+        config_exact.minimumInput, expected_buy_target,
+        "minimumInput should equal buy_target for Exact mode"
     );
 
     assert_eq!(
-        config_partial.maximumIORatio, config_exact.maximumIORatio,
-        "maximumIORatio should be the same for both modes"
+        config_partial.maximumIORatio, expected_price_cap,
+        "maximumIORatio should equal price_cap"
+    );
+    assert_eq!(
+        config_exact.maximumIORatio, expected_price_cap,
+        "maximumIORatio should equal price_cap"
     );
 }
 
@@ -359,6 +381,7 @@ async fn test_get_take_orders_calldata_wrong_direction_returns_no_liquidity() {
             fake_token.to_string(),
             setup.token2.to_string(),
             "10".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await;
@@ -371,7 +394,7 @@ async fn test_get_take_orders_calldata_wrong_direction_returns_no_liquidity() {
 }
 
 #[tokio::test]
-async fn test_min_receive_mode_exact_reverts_when_simulated_buy_cannot_be_met() {
+async fn test_min_receive_mode_exact_returns_error_when_insufficient_liquidity() {
     let setup = base_setup_test().await;
     let sg_server = MockServer::start_async().await;
 
@@ -415,112 +438,41 @@ async fn test_min_receive_mode_exact_reverts_when_simulated_buy_cannot_be_met() 
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            "10".to_string(),
+            "100".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await
         .expect("Partial mode calldata build should succeed");
 
-    let result_exact = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            "10".to_string(),
-            MinReceiveMode::Exact,
-        )
-        .await
-        .expect("Exact mode calldata build should succeed");
-
     let decoded_partial = takeOrders3Call::abi_decode(&result_partial.calldata)
         .expect("Should decode partial calldata");
     let config_partial = decoded_partial.config;
-
-    let decoded_exact =
-        takeOrders3Call::abi_decode(&result_exact.calldata).expect("Should decode exact calldata");
-    let config_exact = decoded_exact.config;
 
     assert_eq!(
         config_partial.minimumInput,
         Float::zero().unwrap().get_inner(),
         "Partial mode minimumInput should be zero"
     );
-    assert_eq!(
-        config_exact.minimumInput, config_exact.maximumInput,
-        "Exact mode minimumInput should equal maximumInput"
-    );
-    assert_eq!(
-        config_partial.maximumInput, config_exact.maximumInput,
-        "Both modes should have the same maximumInput (simulated total buy)"
-    );
 
-    let withdraw_amount = Float::from_fixed_decimal(standard_deposit_amount() - U256::from(1), 18)
-        .unwrap()
-        .get_inner();
+    let result_exact = client
+        .get_take_orders_calldata(
+            123,
+            setup.token1.to_string(),
+            setup.token2.to_string(),
+            "100".to_string(),
+            high_price_cap(),
+            MinReceiveMode::Exact,
+        )
+        .await;
 
-    let withdraw_tx = setup
-        .local_evm
-        .orderbook
-        .withdraw3(setup.token2, vault_id, withdraw_amount, vec![])
-        .from(setup.owner)
-        .into_transaction_request();
-    setup
-        .local_evm
-        .send_transaction(withdraw_tx)
-        .await
-        .expect("Withdraw should succeed");
-
-    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
-    let taker_token1_balance = U256::from(10).pow(U256::from(22));
-    fund_and_approve_taker(
-        &setup,
-        setup.token1,
-        taker,
-        setup.orderbook,
-        taker_token1_balance,
-    )
-    .await;
-
-    let exact_tx = WithOtherFields::new(
-        TransactionRequest::default()
-            .with_input(result_exact.calldata.to_vec())
-            .with_to(setup.orderbook)
-            .with_from(taker),
-    );
-
-    let exact_call_result = setup.local_evm.call(exact_tx.clone()).await;
     assert!(
-        exact_call_result.is_err(),
-        "Exact mode should revert when simulated buy cannot be met, but got: {:?}",
-        exact_call_result
-    );
-
-    let error_str = format!("{:?}", exact_call_result.unwrap_err());
-    assert!(
-        error_str.contains("MinimumInput") || error_str.contains("execution reverted"),
-        "Error should indicate MinimumInput revert, got: {}",
-        error_str
-    );
-
-    let partial_tx = WithOtherFields::new(
-        TransactionRequest::default()
-            .with_input(result_partial.calldata.to_vec())
-            .with_to(setup.orderbook)
-            .with_from(taker),
-    );
-
-    let partial_call_result = setup.local_evm.call(partial_tx.clone()).await;
-    assert!(
-        partial_call_result.is_ok(),
-        "Partial mode should NOT revert (may succeed with smaller totals or be a no-op), but got: {:?}",
-        partial_call_result
-    );
-
-    let partial_tx_result = setup.local_evm.send_transaction(partial_tx).await;
-    assert!(
-        partial_tx_result.is_ok(),
-        "Partial mode transaction should succeed, but got: {:?}",
-        partial_tx_result
+        matches!(
+            result_exact,
+            Err(RaindexError::InsufficientLiquidity { .. })
+        ),
+        "Exact mode should return InsufficientLiquidity when buy_target > available, got: {:?}",
+        result_exact
     );
 }
 
@@ -586,12 +538,15 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let buy_target = "100".to_string();
+    let price_cap = "2".to_string();
     let result = client
         .get_take_orders_calldata(
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            "200".to_string(),
+            buy_target.clone(),
+            price_cap.clone(),
             MinReceiveMode::Partial,
         )
         .await
@@ -606,11 +561,11 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         "Should have 2 orders in config"
     );
 
-    let worst_ratio = Float::parse("2".to_string()).unwrap();
+    let expected_price_cap = Float::parse(price_cap.clone()).unwrap();
     assert_eq!(
         original_config.maximumIORatio,
-        worst_ratio.get_inner(),
-        "maximumIORatio should equal worst simulated price (2)"
+        expected_price_cap.get_inner(),
+        "maximumIORatio should equal price_cap (2)"
     );
 
     assert_eq!(result.prices.len(), 2, "Should have 2 prices");
@@ -788,12 +743,15 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let buy_target_2 = "100".to_string();
+    let price_cap_2 = "2".to_string();
     let result = client
         .get_take_orders_calldata(
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            "200".to_string(),
+            buy_target_2.clone(),
+            price_cap_2.clone(),
             MinReceiveMode::Partial,
         )
         .await
@@ -802,11 +760,11 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
     let decoded = takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
     let original_config = decoded.config;
 
-    let worst_ratio = Float::parse("2".to_string()).unwrap();
+    let expected_price_cap_2 = Float::parse(price_cap_2.clone()).unwrap();
     assert_eq!(
         original_config.maximumIORatio,
-        worst_ratio.get_inner(),
-        "maximumIORatio should equal worst simulated price (2)"
+        expected_price_cap_2.get_inner(),
+        "maximumIORatio should equal price_cap (2)"
     );
 
     let withdraw_amount = Float::from_fixed_decimal(amount, 18).unwrap().get_inner();
@@ -991,13 +949,14 @@ async fn test_cross_orderbook_selection_picks_best_book() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
-    let sell_budget = "100";
+    let buy_target_cross = "8".to_string();
     let result = client
         .get_take_orders_calldata(
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            sell_budget.to_string(),
+            buy_target_cross.clone(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await
@@ -1128,13 +1087,14 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
-    let sell_budget = "100";
+    let buy_target_flip = "10".to_string();
     let result = client
         .get_take_orders_calldata(
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            sell_budget.to_string(),
+            buy_target_flip.clone(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await
@@ -1255,13 +1215,14 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
-    let sell_budget = "5";
+    let buy_target_yield = "5".to_string();
     let result = client
         .get_take_orders_calldata(
             123,
             setup.token1.to_string(),
             setup.token2.to_string(),
-            sell_budget.to_string(),
+            buy_target_yield.clone(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await
@@ -1269,7 +1230,7 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
 
     assert_eq!(
         result.orderbook, setup.orderbook_a,
-        "Should select orderbook A (5 sell yields ~5 buy at ratio 1.0) over B (5 sell yields ~3.33 buy at ratio 1.5)"
+        "Should select orderbook A (can fill 5 buy at ratio 1.0) over B (can fill 5 buy but at worse price 1.5)"
     );
 
     let decoded = takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
@@ -1336,6 +1297,7 @@ async fn test_get_take_orders_calldata_invalid_address_returns_from_hex_error() 
             "not-an-address".to_string(),
             "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
             "1".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await;
@@ -1366,13 +1328,14 @@ async fn test_get_take_orders_calldata_invalid_float_returns_float_error() {
             "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
             "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
             "not-a-float".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await;
 
     assert!(
         matches!(res, Err(RaindexError::Float(_))),
-        "Expected Float error for invalid sellAmount, got: {:?}",
+        "Expected Float error for invalid buyAmount, got: {:?}",
         res
     );
 }
@@ -1445,6 +1408,7 @@ async fn test_prices_sorted_best_to_worst_matching_config_orders() {
             setup.token1.to_string(),
             setup.token2.to_string(),
             "200".to_string(),
+            high_price_cap(),
             MinReceiveMode::Partial,
         )
         .await

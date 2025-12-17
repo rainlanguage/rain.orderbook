@@ -331,6 +331,15 @@ pub enum RaindexError {
     LocalDbUnsupportedNetwork(u32),
     #[error("No liquidity available for the requested trade")]
     NoLiquidity,
+    #[error("Insufficient liquidity: requested {requested:?}, available {available:?}")]
+    InsufficientLiquidity {
+        requested: rain_math_float::Float,
+        available: rain_math_float::Float,
+    },
+    #[error("Buy amount must be greater than zero")]
+    NonPositiveBuyAmount,
+    #[error("Price cap cannot be negative")]
+    NegativePriceCap,
     #[error(transparent)]
     RpcClientError(#[from] RpcClientError),
 }
@@ -476,6 +485,18 @@ impl RaindexError {
             }
             RaindexError::NoLiquidity => {
                 "No liquidity available for the requested trade. There are no orders matching the token pair or they have insufficient capacity.".to_string()
+            }
+            RaindexError::InsufficientLiquidity { requested, available } => {
+                format!(
+                    "Insufficient liquidity: requested {:?} but only {:?} is available within the price cap. Use partial mode to accept a smaller fill.",
+                    requested, available
+                )
+            }
+            RaindexError::NonPositiveBuyAmount => {
+                "Buy amount must be greater than zero.".to_string()
+            }
+            RaindexError::NegativePriceCap => {
+                "Price cap cannot be negative.".to_string()
             }
             RaindexError::RpcClientError(err) => format!("RPC client error: {err}"),
         }

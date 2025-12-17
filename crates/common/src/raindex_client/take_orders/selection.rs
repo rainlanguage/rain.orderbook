@@ -1,8 +1,8 @@
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::RaindexError;
 use crate::take_orders::{
-    build_take_order_candidates_for_pair, cmp_float, simulate_sell_over_candidates,
-    SimulatedSellResult, TakeOrderCandidate,
+    build_take_order_candidates_for_pair, cmp_float, simulate_buy_over_candidates,
+    SimulatedBuyResult, TakeOrderCandidate,
 };
 use alloy::primitives::Address;
 use rain_math_float::Float;
@@ -23,7 +23,7 @@ pub(crate) async fn build_candidates_for_chain(
     Ok(candidates)
 }
 
-pub(crate) fn worst_price(sim: &SimulatedSellResult) -> Result<Option<Float>, RaindexError> {
+pub(crate) fn worst_price(sim: &SimulatedBuyResult) -> Result<Option<Float>, RaindexError> {
     let mut max: Option<Float> = None;
     for leg in &sim.legs {
         let ratio = leg.candidate.ratio;
@@ -41,8 +41,9 @@ pub(crate) fn worst_price(sim: &SimulatedSellResult) -> Result<Option<Float>, Ra
 
 pub(crate) fn select_best_orderbook_simulation(
     candidates: Vec<TakeOrderCandidate>,
-    sell_budget: Float,
-) -> Result<(Address, SimulatedSellResult), RaindexError> {
+    buy_target: Float,
+    price_cap: Float,
+) -> Result<(Address, SimulatedBuyResult), RaindexError> {
     let mut orderbook_candidates: HashMap<Address, Vec<TakeOrderCandidate>> = HashMap::new();
     for candidate in candidates {
         orderbook_candidates
@@ -51,10 +52,10 @@ pub(crate) fn select_best_orderbook_simulation(
             .push(candidate);
     }
 
-    let mut best_result: Option<(Address, SimulatedSellResult)> = None;
+    let mut best_result: Option<(Address, SimulatedBuyResult)> = None;
 
     for (orderbook, candidates) in orderbook_candidates {
-        let sim = simulate_sell_over_candidates(candidates, sell_budget)?;
+        let sim = simulate_buy_over_candidates(candidates, buy_target, price_cap)?;
 
         if sim.legs.is_empty() {
             continue;
@@ -95,6 +96,10 @@ mod tests {
     use super::*;
     use crate::test_helpers::candidates::make_candidate;
 
+    fn high_price_cap() -> Float {
+        Float::parse("1000000".to_string()).unwrap()
+    }
+
     #[test]
     fn test_select_best_orderbook_single_orderbook() {
         let ob1 = Address::from([0x11u8; 20]);
@@ -102,9 +107,9 @@ mod tests {
         let ratio = Float::parse("2".to_string()).unwrap();
         let candidate = make_candidate(ob1, max_output, ratio);
         let candidates = vec![candidate];
-        let sell_budget = Float::parse("100".to_string()).unwrap();
+        let buy_target = Float::parse("10".to_string()).unwrap();
 
-        let result = select_best_orderbook_simulation(candidates, sell_budget);
+        let result = select_best_orderbook_simulation(candidates, buy_target, high_price_cap());
 
         assert!(result.is_ok());
         let (addr, sim) = result.unwrap();
@@ -128,9 +133,9 @@ mod tests {
         let ob2_candidate = make_candidate(ob2, ob2_max_output, ob2_ratio);
 
         let candidates = vec![ob1_candidate, ob2_candidate];
-        let sell_budget = Float::parse("100".to_string()).unwrap();
+        let buy_target = Float::parse("100".to_string()).unwrap();
 
-        let result = select_best_orderbook_simulation(candidates, sell_budget);
+        let result = select_best_orderbook_simulation(candidates, buy_target, high_price_cap());
 
         assert!(result.is_ok());
         let (winner, sim) = result.unwrap();
@@ -153,9 +158,9 @@ mod tests {
         let ob2_candidate = make_candidate(ob2, ob2_max_output, ob2_ratio);
 
         let candidates = vec![ob1_candidate, ob2_candidate];
-        let sell_budget = Float::zero().unwrap();
+        let buy_target = Float::zero().unwrap();
 
-        let result = select_best_orderbook_simulation(candidates, sell_budget);
+        let result = select_best_orderbook_simulation(candidates, buy_target, high_price_cap());
 
         assert!(matches!(result, Err(RaindexError::NoLiquidity)));
     }
@@ -174,37 +179,42 @@ mod tests {
         let ob2_candidate = make_candidate(ob2, ob2_max_output, ob2_ratio);
 
         let candidates = vec![ob1_candidate, ob2_candidate];
-        let sell_budget = Float::zero().unwrap();
+        let buy_target = Float::zero().unwrap();
 
-        let result = select_best_orderbook_simulation(candidates, sell_budget);
+        let result = select_best_orderbook_simulation(candidates, buy_target, high_price_cap());
 
         assert!(result.is_err());
         assert!(matches!(result, Err(RaindexError::NoLiquidity)));
     }
 
     #[test]
-    fn test_select_best_orderbook_skips_empty_picks_valid() {
-        let ob_empty = Address::from([0x11u8; 20]);
-        let ob_valid = Address::from([0x22u8; 20]);
+    fn test_select_best_orderbook_price_cap_filters_expensive() {
+        let ob_expensive = Address::from([0x11u8; 20]);
+        let ob_cheap = Address::from([0x22u8; 20]);
 
-        let empty_max_output = Float::parse("10".to_string()).unwrap();
-        let empty_ratio = Float::parse("1000000".to_string()).unwrap();
-        let empty_candidate = make_candidate(ob_empty, empty_max_output, empty_ratio);
+        let expensive_max_output = Float::parse("100".to_string()).unwrap();
+        let expensive_ratio = Float::parse("5".to_string()).unwrap();
+        let expensive_candidate =
+            make_candidate(ob_expensive, expensive_max_output, expensive_ratio);
 
-        let valid_max_output = Float::parse("5".to_string()).unwrap();
-        let valid_ratio = Float::parse("1".to_string()).unwrap();
-        let valid_candidate = make_candidate(ob_valid, valid_max_output, valid_ratio);
+        let cheap_max_output = Float::parse("50".to_string()).unwrap();
+        let cheap_ratio = Float::parse("1".to_string()).unwrap();
+        let cheap_candidate = make_candidate(ob_cheap, cheap_max_output, cheap_ratio);
 
-        let candidates = vec![empty_candidate, valid_candidate];
-        let sell_budget = Float::parse("10".to_string()).unwrap();
+        let candidates = vec![expensive_candidate, cheap_candidate];
+        let buy_target = Float::parse("100".to_string()).unwrap();
+        let price_cap = Float::parse("2".to_string()).unwrap();
 
-        let result = select_best_orderbook_simulation(candidates, sell_budget);
+        let result = select_best_orderbook_simulation(candidates, buy_target, price_cap);
 
         assert!(result.is_ok());
         let (winner, sim) = result.unwrap();
-        assert_eq!(winner, ob_valid);
-        assert!(!sim.legs.is_empty());
-        assert!(sim.total_buy_amount.gt(Float::zero().unwrap()).unwrap());
+        assert_eq!(
+            winner, ob_cheap,
+            "Should pick the cheap orderbook since expensive is filtered by price cap"
+        );
+        let expected_buy = Float::parse("50".to_string()).unwrap();
+        assert!(sim.total_buy_amount.eq(expected_buy).unwrap());
     }
 
     #[test]
@@ -218,11 +228,11 @@ mod tests {
         let higher_candidate = make_candidate(ob_higher, max_output, ratio);
         let lower_candidate = make_candidate(ob_lower, max_output, ratio);
 
-        let sell_budget = Float::parse("100".to_string()).unwrap();
+        let buy_target = Float::parse("10".to_string()).unwrap();
 
         for _ in 0..20 {
             let candidates = vec![higher_candidate.clone(), lower_candidate.clone()];
-            let result = select_best_orderbook_simulation(candidates, sell_budget);
+            let result = select_best_orderbook_simulation(candidates, buy_target, high_price_cap());
             assert!(result.is_ok());
             let (winner, sim) = result.unwrap();
 
@@ -249,11 +259,11 @@ mod tests {
         let better_candidate = make_candidate(ob_better_price, max_output, better_ratio);
         let worse_candidate = make_candidate(ob_worse_price, max_output, worse_ratio);
 
-        let sell_budget = Float::parse("100".to_string()).unwrap();
+        let buy_target = Float::parse("10".to_string()).unwrap();
 
         for _ in 0..20 {
             let candidates = vec![worse_candidate.clone(), better_candidate.clone()];
-            let result = select_best_orderbook_simulation(candidates, sell_budget);
+            let result = select_best_orderbook_simulation(candidates, buy_target, high_price_cap());
             assert!(result.is_ok());
             let (winner, sim) = result.unwrap();
 

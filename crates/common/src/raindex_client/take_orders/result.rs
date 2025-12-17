@@ -5,7 +5,7 @@ use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::takeOrders3Call;
 use serde::{Deserialize, Serialize};
-use std::ops::Div;
+use std::ops::{Div, Mul};
 use wasm_bindgen_utils::impl_wasm_traits;
 use wasm_bindgen_utils::prelude::*;
 
@@ -20,12 +20,18 @@ pub struct TakeOrdersCalldataResult {
     pub effective_price: Float,
     #[tsify(type = "Hex[]")]
     pub prices: Vec<Float>,
+    #[tsify(type = "Hex")]
+    pub expected_sell: Float,
+    #[tsify(type = "Hex")]
+    pub max_sell_cap: Float,
 }
 impl_wasm_traits!(TakeOrdersCalldataResult);
 
 pub(crate) fn build_calldata_result(
     orderbook: Address,
     built_config: BuiltTakeOrdersConfig,
+    buy_target: Float,
+    price_cap: Float,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
     let calldata_bytes = takeOrders3Call {
         config: built_config.config,
@@ -50,11 +56,16 @@ pub(crate) fn build_calldata_result(
         .map(|leg| leg.candidate.ratio)
         .collect();
 
+    let expected_sell = built_config.sim.total_sell_amount;
+    let max_sell_cap = buy_target.mul(price_cap)?;
+
     Ok(TakeOrdersCalldataResult {
         orderbook,
         calldata,
         effective_price,
         prices,
+        expected_sell,
+        max_sell_cap,
     })
 }
 
@@ -62,9 +73,13 @@ pub(crate) fn build_calldata_result(
 mod tests {
     use super::*;
     use crate::raindex_client::take_orders::selection::select_best_orderbook_simulation;
-    use crate::take_orders::{build_take_orders_config_from_sell_simulation, MinReceiveMode};
+    use crate::take_orders::{build_take_orders_config_from_buy_simulation, MinReceiveMode};
     use crate::test_helpers::candidates::make_candidate;
     use rain_orderbook_bindings::IOrderBookV5::takeOrders3Call;
+
+    fn high_price_cap() -> Float {
+        Float::parse("1000000".to_string()).unwrap()
+    }
 
     #[test]
     fn test_build_calldata_result_produces_valid_calldata() {
@@ -73,14 +88,20 @@ mod tests {
         let ratio = Float::parse("2".to_string()).unwrap();
         let candidate = make_candidate(ob, max_output, ratio);
         let candidates = vec![candidate];
-        let sell_budget = Float::parse("100".to_string()).unwrap();
+        let buy_target = Float::parse("10".to_string()).unwrap();
+        let price_cap = high_price_cap();
 
-        let (_, sim) = select_best_orderbook_simulation(candidates, sell_budget).unwrap();
-        let built = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
-            .unwrap()
-            .unwrap();
+        let (_, sim) = select_best_orderbook_simulation(candidates, buy_target, price_cap).unwrap();
+        let built = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
 
-        let result = build_calldata_result(ob, built);
+        let result = build_calldata_result(ob, built, buy_target, price_cap);
 
         assert!(result.is_ok());
         let calldata_result = result.unwrap();
@@ -100,14 +121,20 @@ mod tests {
         let ratio = Float::parse("2".to_string()).unwrap();
         let candidate = make_candidate(ob, max_output, ratio);
         let candidates = vec![candidate];
-        let sell_budget = Float::parse("100".to_string()).unwrap();
+        let buy_target = Float::parse("10".to_string()).unwrap();
+        let price_cap = high_price_cap();
 
-        let (_, sim) = select_best_orderbook_simulation(candidates, sell_budget).unwrap();
-        let built = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
-            .unwrap()
-            .unwrap();
+        let (_, sim) = select_best_orderbook_simulation(candidates, buy_target, price_cap).unwrap();
+        let built = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
 
-        let result = build_calldata_result(ob, built).unwrap();
+        let result = build_calldata_result(ob, built, buy_target, price_cap).unwrap();
 
         let zero = Float::zero().unwrap();
         assert!(
@@ -123,15 +150,21 @@ mod tests {
         let ratio = Float::parse("2".to_string()).unwrap();
         let candidate = make_candidate(ob, max_output, ratio);
         let candidates = vec![candidate];
-        let sell_budget = Float::parse("100".to_string()).unwrap();
+        let buy_target = Float::parse("10".to_string()).unwrap();
+        let price_cap = high_price_cap();
 
-        let (_, sim) = select_best_orderbook_simulation(candidates, sell_budget).unwrap();
+        let (_, sim) = select_best_orderbook_simulation(candidates, buy_target, price_cap).unwrap();
         let leg_count = sim.legs.len();
-        let built = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
-            .unwrap()
-            .unwrap();
+        let built = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
 
-        let result = build_calldata_result(ob, built).unwrap();
+        let result = build_calldata_result(ob, built, buy_target, price_cap).unwrap();
 
         assert_eq!(
             result.prices.len(),
@@ -141,6 +174,41 @@ mod tests {
         assert!(
             result.prices[0].eq(ratio).unwrap(),
             "Price should match the candidate ratio"
+        );
+    }
+
+    #[test]
+    fn test_build_calldata_result_expected_sell_and_max_sell_cap() {
+        let ob = Address::from([0x11u8; 20]);
+        let max_output = Float::parse("10".to_string()).unwrap();
+        let ratio = Float::parse("2".to_string()).unwrap();
+        let candidate = make_candidate(ob, max_output, ratio);
+        let candidates = vec![candidate];
+        let buy_target = Float::parse("10".to_string()).unwrap();
+        let price_cap = Float::parse("3".to_string()).unwrap();
+
+        let (_, sim) = select_best_orderbook_simulation(candidates, buy_target, price_cap).unwrap();
+        let built = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
+
+        let result = build_calldata_result(ob, built, buy_target, price_cap).unwrap();
+
+        let expected_sell = Float::parse("20".to_string()).unwrap();
+        let expected_max_sell_cap = Float::parse("30".to_string()).unwrap();
+
+        assert!(
+            result.expected_sell.eq(expected_sell).unwrap(),
+            "expected_sell should be buy_amount * ratio = 10 * 2 = 20"
+        );
+        assert!(
+            result.max_sell_cap.eq(expected_max_sell_cap).unwrap(),
+            "max_sell_cap should be buy_target * price_cap = 10 * 3 = 30"
         );
     }
 }

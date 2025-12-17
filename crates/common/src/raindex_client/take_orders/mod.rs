@@ -10,7 +10,7 @@ pub use result::TakeOrdersCalldataResult;
 use super::orders::{GetOrdersFilters, GetOrdersTokenFilter, RaindexOrder};
 use super::{ChainIds, RaindexClient, RaindexError};
 use crate::rpc_client::RpcClient;
-use crate::take_orders::{build_take_orders_config_from_sell_simulation, MinReceiveMode};
+use crate::take_orders::{build_take_orders_config_from_buy_simulation, MinReceiveMode};
 use alloy::primitives::Address;
 use wasm_bindgen_utils::prelude::*;
 use wasm_bindgen_utils::wasm_export;
@@ -71,18 +71,30 @@ impl RaindexClient {
         )]
         buy_token: String,
         #[wasm_export(
-            js_name = "sellAmount",
-            param_description = "Exact sell amount as a Float hex string in sellToken units",
-            unchecked_param_type = "Hex"
+            js_name = "buyAmount",
+            param_description = "Target buy amount as a Float string in buyToken units",
+            unchecked_param_type = "string"
         )]
-        sell_amount: String,
+        buy_amount: String,
+        #[wasm_export(
+            js_name = "priceCap",
+            param_description = "Maximum price (sell per 1 buy) as a Float string",
+            unchecked_param_type = "string"
+        )]
+        price_cap: String,
         #[wasm_export(
             js_name = "minReceiveMode",
             param_description = "Minimum receive policy: partial or exact"
         )]
         min_receive_mode: MinReceiveMode,
     ) -> Result<TakeOrdersCalldataResult, RaindexError> {
-        let req = request::parse_request(&sell_token, &buy_token, &sell_amount, min_receive_mode)?;
+        let req = request::parse_request(
+            &sell_token,
+            &buy_token,
+            &buy_amount,
+            &price_cap,
+            min_receive_mode,
+        )?;
 
         let orders = self
             .fetch_orders_for_pair(chain_id, req.sell_token, req.buy_token)
@@ -101,12 +113,17 @@ impl RaindexClient {
         .await?;
 
         let (best_orderbook, best_sim) =
-            selection::select_best_orderbook_simulation(candidates, req.sell_amount)?;
+            selection::select_best_orderbook_simulation(candidates, req.buy_amount, req.price_cap)?;
 
-        let built = build_take_orders_config_from_sell_simulation(best_sim, req.min_receive_mode)?
-            .ok_or(RaindexError::NoLiquidity)?;
+        let built = build_take_orders_config_from_buy_simulation(
+            best_sim,
+            req.buy_amount,
+            req.price_cap,
+            req.min_receive_mode,
+        )?
+        .ok_or(RaindexError::NoLiquidity)?;
 
-        result::build_calldata_result(best_orderbook, built)
+        result::build_calldata_result(best_orderbook, built, req.buy_amount, req.price_cap)
     }
 }
 

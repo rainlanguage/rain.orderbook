@@ -1,4 +1,4 @@
-use super::simulation::SimulatedSellResult;
+use super::simulation::SimulatedBuyResult;
 use crate::raindex_client::RaindexError;
 use alloy::primitives::{Bytes, U256};
 use rain_math_float::Float;
@@ -19,15 +19,24 @@ impl_wasm_traits!(MinReceiveMode);
 #[derive(Clone, Debug)]
 pub struct BuiltTakeOrdersConfig {
     pub config: TakeOrdersConfigV4,
-    pub sim: SimulatedSellResult,
+    pub sim: SimulatedBuyResult,
 }
 
-pub fn build_take_orders_config_from_sell_simulation(
-    sim: SimulatedSellResult,
+pub fn build_take_orders_config_from_buy_simulation(
+    sim: SimulatedBuyResult,
+    buy_target: Float,
+    price_cap: Float,
     min_receive_mode: MinReceiveMode,
 ) -> Result<Option<BuiltTakeOrdersConfig>, RaindexError> {
     if sim.legs.is_empty() {
         return Ok(None);
+    }
+
+    if min_receive_mode == MinReceiveMode::Exact && sim.total_buy_amount.lt(buy_target)? {
+        return Err(RaindexError::InsufficientLiquidity {
+            requested: buy_target,
+            available: sim.total_buy_amount,
+        });
     }
 
     let zero = Float::zero()?;
@@ -43,20 +52,14 @@ pub fn build_take_orders_config_from_sell_simulation(
         })
         .collect();
 
-    let maximum_input = sim.total_buy_amount.get_inner();
+    let maximum_input = buy_target.get_inner();
 
     let minimum_input = match min_receive_mode {
         MinReceiveMode::Partial => zero.get_inner(),
-        MinReceiveMode::Exact => sim.total_buy_amount.get_inner(),
+        MinReceiveMode::Exact => buy_target.get_inner(),
     };
 
-    let mut worst_price = zero;
-    for leg in &sim.legs {
-        if leg.candidate.ratio.gt(worst_price)? {
-            worst_price = leg.candidate.ratio;
-        }
-    }
-    let maximum_io_ratio = worst_price.get_inner();
+    let maximum_io_ratio = price_cap.get_inner();
 
     let config = TakeOrdersConfigV4 {
         minimumInput: minimum_input,
@@ -73,20 +76,31 @@ pub fn build_take_orders_config_from_sell_simulation(
 #[cfg(not(target_family = "wasm"))]
 mod tests {
     use super::*;
-    use crate::take_orders::simulation::{simulate_sell_over_candidates, SelectedTakeOrderLeg};
+    use crate::take_orders::simulation::{simulate_buy_over_candidates, SelectedTakeOrderLeg};
     use crate::test_helpers::candidates::make_simulation_candidate;
     use rain_math_float::Float;
 
+    fn high_price_cap() -> Float {
+        Float::parse("1000000".to_string()).unwrap()
+    }
+
     #[test]
     fn test_build_config_empty_simulation() {
-        let sim = SimulatedSellResult {
+        let sim = SimulatedBuyResult {
             legs: vec![],
             total_buy_amount: Float::zero().unwrap(),
             total_sell_amount: Float::zero().unwrap(),
         };
+        let buy_target = Float::parse("100".to_string()).unwrap();
+        let price_cap = high_price_cap();
 
-        let result =
-            build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial).unwrap();
+        let result = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap();
 
         assert!(result.is_none());
     }
@@ -96,7 +110,7 @@ mod tests {
         let f1_75 = Float::parse("1.75".to_string()).unwrap();
         let f2_5 = Float::parse("2.5".to_string()).unwrap();
         let candidate = make_simulation_candidate(f2_5, f1_75);
-        let sim = SimulatedSellResult {
+        let sim = SimulatedBuyResult {
             legs: vec![SelectedTakeOrderLeg {
                 candidate,
                 buy_amount: f2_5,
@@ -105,17 +119,24 @@ mod tests {
             total_buy_amount: f2_5,
             total_sell_amount: f2_5,
         };
+        let buy_target = f2_5;
+        let price_cap = Float::parse("3".to_string()).unwrap();
 
-        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
-            .unwrap()
-            .unwrap();
+        let result = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
 
         assert_eq!(
             result.config.minimumInput,
             Float::zero().unwrap().get_inner()
         );
-        assert_eq!(result.config.maximumInput, f2_5.get_inner());
-        assert_eq!(result.config.maximumIORatio, f1_75.get_inner());
+        assert_eq!(result.config.maximumInput, buy_target.get_inner());
+        assert_eq!(result.config.maximumIORatio, price_cap.get_inner());
         assert_eq!(result.config.orders.len(), 1);
     }
 
@@ -124,7 +145,7 @@ mod tests {
         let f1_25 = Float::parse("1.25".to_string()).unwrap();
         let f2_75 = Float::parse("2.75".to_string()).unwrap();
         let candidate = make_simulation_candidate(f2_75, f1_25);
-        let sim = SimulatedSellResult {
+        let sim = SimulatedBuyResult {
             legs: vec![SelectedTakeOrderLeg {
                 candidate,
                 buy_amount: f2_75,
@@ -133,24 +154,94 @@ mod tests {
             total_buy_amount: f2_75,
             total_sell_amount: f2_75,
         };
+        let buy_target = f2_75;
+        let price_cap = Float::parse("2".to_string()).unwrap();
 
-        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Exact)
-            .unwrap()
-            .unwrap();
+        let result = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Exact,
+        )
+        .unwrap()
+        .unwrap();
 
-        assert_eq!(result.config.minimumInput, f2_75.get_inner());
-        assert_eq!(result.config.maximumInput, f2_75.get_inner());
-        assert_eq!(result.config.maximumIORatio, f1_25.get_inner());
+        assert_eq!(result.config.minimumInput, buy_target.get_inner());
+        assert_eq!(result.config.maximumInput, buy_target.get_inner());
+        assert_eq!(result.config.maximumIORatio, price_cap.get_inner());
     }
 
     #[test]
-    fn test_build_config_worst_price_from_multiple_legs() {
+    fn test_build_config_exact_mode_insufficient_liquidity() {
+        let ratio = Float::parse("1".to_string()).unwrap();
+        let available = Float::parse("50".to_string()).unwrap();
+        let candidate = make_simulation_candidate(available, ratio);
+        let sim = SimulatedBuyResult {
+            legs: vec![SelectedTakeOrderLeg {
+                candidate,
+                buy_amount: available,
+                sell_amount: available,
+            }],
+            total_buy_amount: available,
+            total_sell_amount: available,
+        };
+        let buy_target = Float::parse("100".to_string()).unwrap();
+        let price_cap = high_price_cap();
+
+        let result = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Exact,
+        );
+
+        assert!(matches!(
+            result,
+            Err(RaindexError::InsufficientLiquidity { .. })
+        ));
+    }
+
+    #[test]
+    fn test_build_config_partial_mode_allows_underfill() {
+        let ratio = Float::parse("1".to_string()).unwrap();
+        let available = Float::parse("50".to_string()).unwrap();
+        let candidate = make_simulation_candidate(available, ratio);
+        let sim = SimulatedBuyResult {
+            legs: vec![SelectedTakeOrderLeg {
+                candidate,
+                buy_amount: available,
+                sell_amount: available,
+            }],
+            total_buy_amount: available,
+            total_sell_amount: available,
+        };
+        let buy_target = Float::parse("100".to_string()).unwrap();
+        let price_cap = high_price_cap();
+
+        let result = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(result.config.maximumInput, buy_target.get_inner());
+        assert_eq!(
+            result.config.minimumInput,
+            Float::zero().unwrap().get_inner()
+        );
+    }
+
+    #[test]
+    fn test_build_config_uses_price_cap_not_worst_price() {
         let f1_5 = Float::parse("1.5".to_string()).unwrap();
         let f2_75 = Float::parse("2.75".to_string()).unwrap();
         let f3_25 = Float::parse("3.25".to_string()).unwrap();
         let cheap_candidate = make_simulation_candidate(f1_5, f1_5);
         let expensive_candidate = make_simulation_candidate(f1_5, f2_75);
-        let sim = SimulatedSellResult {
+        let sim = SimulatedBuyResult {
             legs: vec![
                 SelectedTakeOrderLeg {
                     candidate: cheap_candidate,
@@ -166,15 +257,22 @@ mod tests {
             total_buy_amount: f3_25,
             total_sell_amount: Float::parse("4.25".to_string()).unwrap(),
         };
+        let buy_target = f3_25;
+        let price_cap = Float::parse("5".to_string()).unwrap();
 
-        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
-            .unwrap()
-            .unwrap();
+        let result = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
 
         assert_eq!(
             result.config.maximumIORatio,
-            f2_75.get_inner(),
-            "Should use worst (highest) price"
+            price_cap.get_inner(),
+            "Should use price_cap, not worst price from simulation"
         );
         assert_eq!(result.config.orders.len(), 2);
     }
@@ -186,7 +284,7 @@ mod tests {
         let f3_75 = Float::parse("3.75".to_string()).unwrap();
         let candidate1 = make_simulation_candidate(f1_25, f1_25);
         let candidate2 = make_simulation_candidate(f1_25, f2_5);
-        let sim = SimulatedSellResult {
+        let sim = SimulatedBuyResult {
             legs: vec![
                 SelectedTakeOrderLeg {
                     candidate: candidate1.clone(),
@@ -202,10 +300,17 @@ mod tests {
             total_buy_amount: f2_5,
             total_sell_amount: f3_75,
         };
+        let buy_target = f2_5;
+        let price_cap = high_price_cap();
 
-        let result = build_take_orders_config_from_sell_simulation(sim, MinReceiveMode::Partial)
-            .unwrap()
-            .unwrap();
+        let result = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
 
         assert_eq!(result.config.orders.len(), 2);
         assert_eq!(
@@ -219,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn test_simulate_multi_leg_partial_fill_second_leg_with_config() {
+    fn test_simulate_and_build_config_integration() {
         let ratio_1 = Float::parse("1".to_string()).unwrap();
         let ratio_2 = Float::parse("2".to_string()).unwrap();
         let ratio_3 = Float::parse("3".to_string()).unwrap();
@@ -230,20 +335,24 @@ mod tests {
         let candidate_expensive = make_simulation_candidate(max_output, ratio_3);
 
         let candidates = vec![candidate_expensive, candidate_mid, candidate_cheap];
-        let sell_budget = Float::parse("150".to_string()).unwrap();
+        let buy_target = Float::parse("125".to_string()).unwrap();
+        let price_cap = Float::parse("3".to_string()).unwrap();
 
-        let result = simulate_sell_over_candidates(candidates, sell_budget).unwrap();
+        let sim = simulate_buy_over_candidates(candidates, buy_target, price_cap).unwrap();
 
-        let expected_total_buy = Float::parse("125".to_string()).unwrap();
-
-        let built = build_take_orders_config_from_sell_simulation(result, MinReceiveMode::Partial)
-            .unwrap()
-            .unwrap();
+        let built = build_take_orders_config_from_buy_simulation(
+            sim,
+            buy_target,
+            price_cap,
+            MinReceiveMode::Partial,
+        )
+        .unwrap()
+        .unwrap();
 
         assert_eq!(
             built.config.maximumIORatio,
-            ratio_2.get_inner(),
-            "maximumIORatio should be ratio_2 (worst among used legs)"
+            price_cap.get_inner(),
+            "maximumIORatio should be price_cap"
         );
         assert_eq!(
             built.config.orders.len(),
@@ -252,9 +361,9 @@ mod tests {
         );
         assert!(
             Float::from_raw(built.config.maximumInput)
-                .eq(expected_total_buy)
+                .eq(buy_target)
                 .unwrap(),
-            "maximumInput should equal total_buy_amount"
+            "maximumInput should equal buy_target"
         );
     }
 }
