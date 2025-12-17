@@ -7,7 +7,7 @@ use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
+use strict_yaml_rust::StrictYaml;
 use url::{ParseError, Url};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -87,46 +87,6 @@ impl YamlParsableHash for LocalDbRemoteCfg {
 
     fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
         Ok(StrictYaml::String(self.url.to_string()))
-    }
-
-    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
-        for document in documents {
-            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
-            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
-                continue;
-            };
-
-            let remotes_key = StrictYaml::String("local-db-remotes".to_string());
-            let Some(remotes_value) = root_hash.get(&remotes_key) else {
-                continue;
-            };
-            let StrictYaml::Hash(ref remotes_hash) = *remotes_value else {
-                continue;
-            };
-
-            let mut sanitized: Vec<(String, StrictYaml)> = remotes_hash
-                .iter()
-                .filter_map(|(k, v)| {
-                    let key_str = k.as_str()?;
-                    if v.as_str().is_some() {
-                        Some((key_str.to_string(), v.clone()))
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-
-            sanitized.sort_by(|(a, _), (b, _)| a.cmp(b));
-
-            let mut new_hash = Hash::new();
-            for (key, value) in sanitized {
-                new_hash.insert(StrictYaml::String(key), value);
-            }
-
-            root_hash.insert(remotes_key, StrictYaml::Hash(new_hash));
-        }
-
-        Ok(())
     }
 }
 
@@ -284,98 +244,5 @@ local-db-remotes:
                 "https://example.com/localdb/polygon".to_string()
             ))
         );
-    }
-
-    #[test]
-    fn test_sanitize_documents_drops_non_string_values() {
-        let yaml = r#"
-local-db-remotes:
-    mainnet: https://example.com/localdb/mainnet
-    polygon:
-        - https://example.com/localdb/polygon
-    arbitrum:
-        url: https://example.com/localdb/arbitrum
-"#;
-        let document = get_document(yaml);
-        LocalDbRemoteCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
-
-        let remotes = LocalDbRemoteCfg::parse_all_from_yaml(vec![document], None).unwrap();
-        assert_eq!(remotes.len(), 1);
-        assert!(remotes.contains_key("mainnet"));
-        assert!(!remotes.contains_key("polygon"));
-        assert!(!remotes.contains_key("arbitrum"));
-    }
-
-    #[test]
-    fn test_sanitize_documents_lexicographic_order() {
-        let yaml = r#"
-local-db-remotes:
-    zebra: https://example.com/localdb/zebra
-    alpha: https://example.com/localdb/alpha
-    middle: https://example.com/localdb/middle
-"#;
-        let document = get_document(yaml);
-        LocalDbRemoteCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
-
-        let doc_read = document.read().unwrap();
-        let root_hash = doc_read.as_hash().unwrap();
-        let remotes_hash = root_hash
-            .get(&StrictYaml::String("local-db-remotes".to_string()))
-            .unwrap()
-            .as_hash()
-            .unwrap();
-
-        let keys: Vec<&str> = remotes_hash
-            .iter()
-            .filter_map(|(k, _)| k.as_str())
-            .collect();
-        assert_eq!(keys, vec!["alpha", "middle", "zebra"]);
-    }
-
-    #[test]
-    fn test_sanitize_documents_handles_missing_section() {
-        let yaml = r#"
-other-section: value
-"#;
-        let document = get_document(yaml);
-        LocalDbRemoteCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
-    }
-
-    #[test]
-    fn test_sanitize_documents_handles_non_hash_root() {
-        let yaml = "just a string";
-        let document = get_document(yaml);
-        LocalDbRemoteCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
-    }
-
-    #[test]
-    fn test_sanitize_documents_skips_non_hash_section() {
-        let yaml = r#"
-local-db-remotes: not_a_hash
-"#;
-        let document = get_document(yaml);
-        LocalDbRemoteCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
-    }
-
-    #[test]
-    fn test_sanitize_documents_per_document_isolation() {
-        let yaml_one = r#"
-local-db-remotes:
-    mainnet: https://example.com/localdb/mainnet
-    invalid:
-        - array
-"#;
-        let yaml_two = r#"
-local-db-remotes:
-    polygon: https://example.com/localdb/polygon
-"#;
-        let doc_one = get_document(yaml_one);
-        let doc_two = get_document(yaml_two);
-        LocalDbRemoteCfg::sanitize_documents(&[doc_one.clone(), doc_two.clone()]).unwrap();
-
-        let remotes = LocalDbRemoteCfg::parse_all_from_yaml(vec![doc_one, doc_two], None).unwrap();
-        assert_eq!(remotes.len(), 2);
-        assert!(remotes.contains_key("mainnet"));
-        assert!(remotes.contains_key("polygon"));
     }
 }

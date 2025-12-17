@@ -525,11 +525,9 @@ pub fn default_document() -> Arc<RwLock<StrictYaml>> {
 
 pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
     crate::NetworkCfg::sanitize_documents(documents)?;
-    crate::AccountCfg::sanitize_documents(documents)?;
     crate::DeployerCfg::sanitize_documents(documents)?;
     crate::DeploymentCfg::sanitize_documents(documents)?;
     crate::GuiCfg::sanitize_documents(documents)?;
-    crate::LocalDbRemoteCfg::sanitize_documents(documents)?;
     crate::LocalDbSyncCfg::sanitize_documents(documents)?;
     Ok(())
 }
