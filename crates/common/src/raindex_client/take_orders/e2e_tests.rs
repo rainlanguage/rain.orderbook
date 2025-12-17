@@ -193,11 +193,12 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
         .expect("Should succeed with funded vault and valid order");
 
     assert_eq!(
-        result.orderbook, setup.orderbook,
+        result.orderbook(),
+        setup.orderbook,
         "Orderbook address should match"
     );
 
-    let decoded = takeOrders3Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders3Call::abi_decode(&result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -212,20 +213,20 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
     );
 
     assert!(
-        !result.prices.is_empty(),
+        !result.prices().is_empty(),
         "Should have at least one price in result"
     );
 
     let expected_ratio = Float::parse("2".to_string()).unwrap();
     assert!(
-        result.prices[0].eq(expected_ratio).unwrap(),
+        result.prices()[0].eq(expected_ratio).unwrap(),
         "Price should match expected ratio of 2, got: {:?}",
-        result.prices[0].format()
+        result.prices()[0].format()
     );
 
     let zero = Float::zero().unwrap();
     assert!(
-        result.effective_price.gt(zero).unwrap(),
+        result.effective_price().gt(zero).unwrap(),
         "Effective price should be > 0"
     );
 }

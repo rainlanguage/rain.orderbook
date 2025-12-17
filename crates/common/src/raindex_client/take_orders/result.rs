@@ -49,7 +49,7 @@ impl TakeOrdersCalldataResult {
         self.effective_price
     }
     pub fn prices(&self) -> Vec<Float> {
-        self.prices
+        self.prices.clone()
     }
 }
 
