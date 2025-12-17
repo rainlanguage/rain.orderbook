@@ -1,5 +1,6 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
 use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
+use crate::rpc_client::RpcClientError;
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -38,6 +39,7 @@ pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
 pub mod remove_orders;
+pub mod take_orders;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
@@ -327,6 +329,21 @@ pub enum RaindexError {
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
     LocalDbUnsupportedNetwork(u32),
+    #[error("No liquidity available for the requested trade")]
+    NoLiquidity,
+    #[error("Insufficient liquidity: requested {requested}, available {available}")]
+    InsufficientLiquidity {
+        requested: String,
+        available: String,
+    },
+    #[error("Buy amount must be greater than zero")]
+    NonPositiveBuyAmount,
+    #[error("Price cap cannot be negative")]
+    NegativePriceCap,
+    #[error("Sell token and buy token cannot be the same")]
+    SameTokenPair,
+    #[error(transparent)]
+    RpcClientError(#[from] RpcClientError),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -468,6 +485,25 @@ impl RaindexError {
             RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
                 format!("The chain ID: {chain_id} is not supported for local database operations.")
             }
+            RaindexError::NoLiquidity => {
+                "No liquidity available for the requested trade. There are no orders matching the token pair or they have insufficient capacity.".to_string()
+            }
+            RaindexError::InsufficientLiquidity { requested, available } => {
+                format!(
+                    "Insufficient liquidity: requested {:?} but only {:?} is available within the price cap. Use partial mode to accept a smaller fill.",
+                    requested, available
+                )
+            }
+            RaindexError::NonPositiveBuyAmount => {
+                "Buy amount must be greater than zero.".to_string()
+            }
+            RaindexError::NegativePriceCap => {
+                "Price cap cannot be negative.".to_string()
+            }
+            RaindexError::SameTokenPair => {
+                "Sell token and buy token cannot be the same.".to_string()
+            }
+            RaindexError::RpcClientError(err) => format!("RPC client error: {err}"),
         }
     }
 }
