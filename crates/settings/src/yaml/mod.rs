@@ -528,6 +528,7 @@ pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(
     NetworkCfg::sanitize_documents(documents)?;
     AccountCfg::sanitize_documents(documents)?;
     DeployerCfg::sanitize_documents(documents)?;
+    crate::DeploymentCfg::sanitize_documents(documents)?;
     Ok(())
 }
 
