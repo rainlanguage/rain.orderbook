@@ -46,6 +46,37 @@ impl RaindexClient {
 
 #[wasm_export]
 impl RaindexClient {
+    /// Generates calldata for `IOrderBookV5.takeOrders3` using a buy-target + price-cap policy.
+    ///
+    /// - `buyAmount`: human-readable decimal string in buy-token units; parsed with `Float::parse`.
+    /// - `priceCap`: human-readable decimal string for max sell per 1 buy; parsed with `Float::parse`.
+    /// - `minReceiveMode`:
+    ///   - `Partial` → `minimumInput = 0` (may underfill).
+    ///   - `Exact`   → `minimumInput = buyAmount` (error if liquidity < buyAmount).
+    ///
+    /// Returns calldata plus pricing info:
+    /// - `calldata`: ABI-encoded bytes for `takeOrders3`.
+    /// - `effectivePrice`: expected blended sell per 1 buy from the simulation.
+    /// - `prices`: per-leg ratios, best→worst.
+    /// - `expectedSell`: simulated sell at current quotes.
+    /// - `maxSellCap`: `buyAmount * priceCap` (worst-case on-chain spend cap).
+    ///
+    /// ## Example (JS)
+    /// ```javascript
+    /// const res = await client.getTakeOrdersCalldata(
+    ///   137,
+    ///   "0xSELL...", // sellToken
+    ///   "0xBUY...",  // buyToken
+    ///   "10",        // buyAmount (decimal string)
+    ///   "1.2",       // priceCap (decimal string, sell per 1 buy)
+    ///   "partial"    // or "exact"
+    /// );
+    /// if (res.error) {
+    ///   console.error(res.error.readableMsg);
+    /// } else {
+    ///   const { calldata, effectivePrice, expectedSell, maxSellCap, prices, orderbook } = res.value;
+    /// }
+    /// ```
     #[wasm_export(
         js_name = "getTakeOrdersCalldata",
         return_description = "Encoded takeOrders3 calldata and price information",
@@ -72,13 +103,13 @@ impl RaindexClient {
         buy_token: String,
         #[wasm_export(
             js_name = "buyAmount",
-            param_description = "Target buy amount as a Float string in buyToken units",
+            param_description = "Human-readable amount in buyToken units (e.g., \"10.5\")",
             unchecked_param_type = "string"
         )]
         buy_amount: String,
         #[wasm_export(
             js_name = "priceCap",
-            param_description = "Maximum price (sell per 1 buy) as a Float string",
+            param_description = "Human-readable max price (sell per 1 buy), e.g., \"1.2\"",
             unchecked_param_type = "string"
         )]
         price_cap: String,
