@@ -101,7 +101,8 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getTakeOrdersCalldata",
         return_description = "Encoded takeOrders3 calldata and price information",
-        unchecked_return_type = "TakeOrdersCalldataResult"
+        unchecked_return_type = "TakeOrdersCalldataResult",
+        preserve_js_class
     )]
     pub async fn get_take_orders_calldata(
         &self,

@@ -6,22 +6,52 @@ use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::takeOrders3Call;
 use serde::{Deserialize, Serialize};
 use std::ops::Div;
-use wasm_bindgen_utils::impl_wasm_traits;
 use wasm_bindgen_utils::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
 pub struct TakeOrdersCalldataResult {
-    #[tsify(type = "Address")]
-    pub orderbook: Address,
-    #[tsify(type = "Hex")]
-    pub calldata: Bytes,
-    #[tsify(type = "Hex")]
-    pub effective_price: Float,
-    #[tsify(type = "Hex[]")]
-    pub prices: Vec<Float>,
+    orderbook: Address,
+    calldata: Bytes,
+    effective_price: Float,
+    prices: Vec<Float>,
 }
-impl_wasm_traits!(TakeOrdersCalldataResult);
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl TakeOrdersCalldataResult {
+    #[wasm_bindgen(getter, unchecked_return_type = "Address")]
+    pub fn orderbook(&self) -> String {
+        self.orderbook.to_string()
+    }
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
+    pub fn calldata(&self) -> String {
+        self.calldata.to_string()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn effective_price(&self) -> Float {
+        self.effective_price
+    }
+    #[wasm_bindgen(getter)]
+    pub fn prices(&self) -> Vec<Float> {
+        self.prices.clone()
+    }
+}
+#[cfg(not(target_family = "wasm"))]
+impl TakeOrdersCalldataResult {
+    pub fn orderbook(&self) -> Address {
+        self.orderbook
+    }
+    pub fn calldata(&self) -> Bytes {
+        self.calldata.clone()
+    }
+    pub fn effective_price(&self) -> Float {
+        self.effective_price
+    }
+    pub fn prices(&self) -> Vec<Float> {
+        self.prices
+    }
+}
 
 pub(crate) fn build_calldata_result(
     orderbook: Address,

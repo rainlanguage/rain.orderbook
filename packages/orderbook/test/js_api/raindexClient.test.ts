@@ -2211,8 +2211,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.ok(result.error, 'Expected error');
 			assert.ok(
-				result.error.msg.includes('No liquidity') ||
-					result.error.readableMsg.includes('liquidity'),
+				result.error.msg.includes('No liquidity') || result.error.readableMsg.includes('liquidity'),
 				`Expected NoLiquidity error but got: ${result.error.msg}`
 			);
 		});
@@ -2463,10 +2462,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		it('should filter out expensive leg and only use cheap leg when price exceeds cap', async function () {
 			await mockServer
 				.forPost('/sg1')
-				.thenReply(
-					200,
-					JSON.stringify({ data: { orders: [takeOrdersOrder, takeOrdersOrder2] } })
-				);
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder, takeOrdersOrder2] } }));
 
 			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
 			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_RESPONSE);
@@ -2522,8 +2518,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			assert.ok(result.error, 'Expected error');
 			assert.ok(
-				result.error.msg.includes('No liquidity') ||
-					result.error.readableMsg.includes('liquidity'),
+				result.error.msg.includes('No liquidity') || result.error.readableMsg.includes('liquidity'),
 				`Expected NoLiquidity error but got: ${result.error.msg}`
 			);
 		});
@@ -2582,14 +2577,17 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.once()
 				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
 
-			await mockServer.forPost('/rpc1').once().thenReply(
-				200,
-				JSON.stringify({
-					jsonrpc: '2.0',
-					id: 1,
-					error: { code: 3, message: 'execution reverted', data: '0x' }
-				})
-			);
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenReply(
+					200,
+					JSON.stringify({
+						jsonrpc: '2.0',
+						id: 1,
+						error: { code: 3, message: 'execution reverted', data: '0x' }
+					})
+				);
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = await raindexClient.getTakeOrdersCalldata({
