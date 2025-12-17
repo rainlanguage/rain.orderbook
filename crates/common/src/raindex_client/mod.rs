@@ -331,10 +331,10 @@ pub enum RaindexError {
     LocalDbUnsupportedNetwork(u32),
     #[error("No liquidity available for the requested trade")]
     NoLiquidity,
-    #[error("Insufficient liquidity: requested {requested:?}, available {available:?}")]
+    #[error("Insufficient liquidity: requested {requested}, available {available}")]
     InsufficientLiquidity {
-        requested: rain_math_float::Float,
-        available: rain_math_float::Float,
+        requested: String,
+        available: String,
     },
     #[error("Buy amount must be greater than zero")]
     NonPositiveBuyAmount,
@@ -342,6 +342,8 @@ pub enum RaindexError {
     NonPositivePriceCap,
     #[error("Price cap cannot be negative")]
     NegativePriceCap,
+    #[error("Sell token and buy token cannot be the same")]
+    SameTokenPair,
     #[error(transparent)]
     RpcClientError(#[from] RpcClientError),
     #[error("Preflight check failed: {0}")]
@@ -504,6 +506,9 @@ impl RaindexError {
             }
             RaindexError::NegativePriceCap => {
                 "Price cap cannot be negative.".to_string()
+            }
+            RaindexError::SameTokenPair => {
+                "Sell token and buy token cannot be the same.".to_string()
             }
             RaindexError::RpcClientError(err) => format!("RPC client error: {err}"),
             RaindexError::PreflightError(err) => {

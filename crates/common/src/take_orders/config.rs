@@ -34,8 +34,8 @@ pub fn build_take_orders_config_from_buy_simulation(
 
     if min_receive_mode == MinReceiveMode::Exact && sim.total_buy_amount.lt(buy_target)? {
         return Err(RaindexError::InsufficientLiquidity {
-            requested: buy_target,
-            available: sim.total_buy_amount,
+            requested: buy_target.format()?,
+            available: sim.total_buy_amount.format()?,
         });
     }
 

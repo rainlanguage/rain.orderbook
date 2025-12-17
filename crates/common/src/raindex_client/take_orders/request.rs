@@ -35,6 +35,9 @@ pub(crate) fn parse_request_from_struct(
     let taker = Address::from_str(&req.taker)?;
     let sell_token = Address::from_str(&req.sell_token)?;
     let buy_token = Address::from_str(&req.buy_token)?;
+    if sell_token == buy_token {
+        return Err(RaindexError::SameTokenPair);
+    }
     let buy_amount = Float::parse(req.buy_amount.clone())?;
     let price_cap = Float::parse(req.price_cap.clone())?;
 
@@ -248,5 +251,20 @@ mod tests {
         let result = parse_request_from_struct(&req);
 
         assert!(matches!(result, Err(RaindexError::NonPositivePriceCap)));
+    }
+
+    #[test]
+    fn test_parse_request_same_token_pair() {
+        let req = make_request(
+            "0x1111111111111111111111111111111111111111",
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "100",
+            "2",
+            MinReceiveMode::Partial,
+        );
+        let result = parse_request_from_struct(&req);
+
+        assert!(matches!(result, Err(RaindexError::SameTokenPair)));
     }
 }

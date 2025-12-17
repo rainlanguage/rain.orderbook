@@ -87,13 +87,18 @@ fn filter_candidates_by_price_cap(
     candidates: Vec<TakeOrderCandidate>,
     price_cap: Float,
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
-    let mut filtered = Vec::new();
-    for candidate in candidates {
-        if candidate.ratio.lte(price_cap)? {
-            filtered.push(candidate);
-        }
-    }
-    Ok(filtered)
+    Ok(candidates
+        .into_iter()
+        .map(|candidate| {
+            candidate
+                .ratio
+                .lte(price_cap)
+                .map(|is_below_cap| if is_below_cap { Some(candidate) } else { None })
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
+        .collect())
 }
 
 pub fn simulate_buy_over_candidates(
