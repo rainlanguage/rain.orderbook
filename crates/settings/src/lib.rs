@@ -29,6 +29,7 @@ pub(crate) use chart::*;
 pub(crate) use deployer::*;
 pub(crate) use deployment::*;
 pub(crate) use gui::*;
+pub(crate) use local_db_remotes::*;
 pub(crate) use network::*;
 pub(crate) use order::*;
 pub(crate) use orderbook::*;
