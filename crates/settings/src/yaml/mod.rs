@@ -4,9 +4,10 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    AccountCfg, NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
-    ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
-    ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
+    AccountCfg, DeployerCfg, NetworkCfg, ParseDeployerConfigSourceError,
+    ParseDeploymentConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
+    ParseOrderbookConfigSourceError, ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
+    TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError, ContextProfile};
@@ -526,6 +527,7 @@ pub fn default_document() -> Arc<RwLock<StrictYaml>> {
 pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
     NetworkCfg::sanitize_documents(documents)?;
     AccountCfg::sanitize_documents(documents)?;
+    DeployerCfg::sanitize_documents(documents)?;
     Ok(())
 }
 
