@@ -14,6 +14,16 @@ use std::{
     sync::{Arc, RwLock},
 };
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
+
+const ALLOWED_GUI_KEYS: [&str; 4] = ["name", "description", "short-description", "deployments"];
+const ALLOWED_GUI_DEPLOYMENT_KEYS: [&str; 6] = [
+    "name",
+    "description",
+    "short-description",
+    "deposits",
+    "fields",
+    "select-tokens",
+];
 use thiserror::Error;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, serialize_hashmap_as_object};
@@ -610,6 +620,75 @@ impl GuiCfg {
             }
         }
         Ok(None)
+    }
+
+    pub fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
+
+            let gui_key = StrictYaml::String("gui".to_string());
+            let Some(gui_value) = root_hash.get(&gui_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref gui_hash) = gui_value.clone() else {
+                continue;
+            };
+
+            let mut sanitized_gui = Hash::new();
+            for allowed_key in ALLOWED_GUI_KEYS.iter() {
+                let key_yaml = StrictYaml::String(allowed_key.to_string());
+                if let Some(v) = gui_hash.get(&key_yaml) {
+                    if *allowed_key == "deployments" {
+                        if let StrictYaml::Hash(ref deployments_hash) = *v {
+                            let mut sanitized_deployments: Vec<(String, StrictYaml)> = Vec::new();
+
+                            for (dep_key, dep_value) in deployments_hash {
+                                let Some(dep_key_str) = dep_key.as_str() else {
+                                    continue;
+                                };
+
+                                let StrictYaml::Hash(ref deployment_hash) = *dep_value else {
+                                    continue;
+                                };
+
+                                let mut sanitized_deployment = Hash::new();
+                                for allowed_dep_key in ALLOWED_GUI_DEPLOYMENT_KEYS.iter() {
+                                    let dep_key_yaml =
+                                        StrictYaml::String(allowed_dep_key.to_string());
+                                    if let Some(dep_v) = deployment_hash.get(&dep_key_yaml) {
+                                        sanitized_deployment.insert(dep_key_yaml, dep_v.clone());
+                                    }
+                                }
+                                sanitized_deployments.push((
+                                    dep_key_str.to_string(),
+                                    StrictYaml::Hash(sanitized_deployment),
+                                ));
+                            }
+
+                            sanitized_deployments.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+                            let mut new_deployments_hash = Hash::new();
+                            for (key, value) in sanitized_deployments {
+                                new_deployments_hash.insert(StrictYaml::String(key), value);
+                            }
+
+                            sanitized_gui.insert(key_yaml, StrictYaml::Hash(new_deployments_hash));
+                        } else {
+                            sanitized_gui.insert(key_yaml, v.clone());
+                        }
+                    } else {
+                        sanitized_gui.insert(key_yaml, v.clone());
+                    }
+                }
+            }
+
+            root_hash.insert(gui_key, StrictYaml::Hash(sanitized_gui));
+        }
+
+        Ok(())
     }
 }
 
@@ -3340,5 +3419,238 @@ gui:
             select_token_hash.get(&StrictYaml::String("key".to_string())),
             Some(&StrictYaml::String("allowed-token".to_string()))
         );
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_unknown_gui_keys() {
+        let yaml = r#"
+gui:
+    name: test-gui
+    description: test description
+    short-description: short desc
+    unknown-key: should-be-dropped
+    deployments:
+        deployment1:
+            name: test
+            description: test desc
+            deposits: []
+            fields: []
+            unknown-deployment-key: also-dropped
+"#;
+        let document = get_document(yaml);
+        GuiCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let gui = root.get(&StrictYaml::String("gui".to_string())).unwrap();
+        let StrictYaml::Hash(ref gui_hash) = *gui else {
+            panic!("expected gui hash");
+        };
+
+        assert!(gui_hash.contains_key(&StrictYaml::String("name".to_string())));
+        assert!(gui_hash.contains_key(&StrictYaml::String("description".to_string())));
+        assert!(gui_hash.contains_key(&StrictYaml::String("short-description".to_string())));
+        assert!(gui_hash.contains_key(&StrictYaml::String("deployments".to_string())));
+        assert!(!gui_hash.contains_key(&StrictYaml::String("unknown-key".to_string())));
+
+        let deployments = gui_hash
+            .get(&StrictYaml::String("deployments".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployments_hash) = *deployments else {
+            panic!("expected deployments hash");
+        };
+        let deployment1 = deployments_hash
+            .get(&StrictYaml::String("deployment1".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployment1_hash) = *deployment1 else {
+            panic!("expected deployment1 hash");
+        };
+
+        assert!(deployment1_hash.contains_key(&StrictYaml::String("name".to_string())));
+        assert!(deployment1_hash.contains_key(&StrictYaml::String("description".to_string())));
+        assert!(deployment1_hash.contains_key(&StrictYaml::String("deposits".to_string())));
+        assert!(deployment1_hash.contains_key(&StrictYaml::String("fields".to_string())));
+        assert!(!deployment1_hash
+            .contains_key(&StrictYaml::String("unknown-deployment-key".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_preserves_allowed_gui_key_order() {
+        let yaml = r#"
+gui:
+    deployments:
+        deployment1:
+            fields: []
+            deposits: []
+            description: desc
+            name: name
+    short-description: short
+    description: desc
+    name: name
+"#;
+        let document = get_document(yaml);
+        GuiCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let gui = root.get(&StrictYaml::String("gui".to_string())).unwrap();
+        let StrictYaml::Hash(ref gui_hash) = *gui else {
+            panic!("expected gui hash");
+        };
+
+        let keys: Vec<String> = gui_hash
+            .keys()
+            .filter_map(|k| k.as_str().map(String::from))
+            .collect();
+        assert_eq!(
+            keys,
+            vec!["name", "description", "short-description", "deployments"]
+        );
+
+        let deployments = gui_hash
+            .get(&StrictYaml::String("deployments".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployments_hash) = *deployments else {
+            panic!("expected deployments hash");
+        };
+        let deployment1 = deployments_hash
+            .get(&StrictYaml::String("deployment1".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployment1_hash) = *deployment1 else {
+            panic!("expected deployment1 hash");
+        };
+
+        let dep_keys: Vec<String> = deployment1_hash
+            .keys()
+            .filter_map(|k| k.as_str().map(String::from))
+            .collect();
+        assert_eq!(dep_keys, vec!["name", "description", "deposits", "fields"]);
+    }
+
+    #[test]
+    fn test_sanitize_documents_deployments_lexicographic_order() {
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        zebra:
+            name: z
+            description: z
+            deposits: []
+            fields: []
+        alpha:
+            name: a
+            description: a
+            deposits: []
+            fields: []
+        beta:
+            name: b
+            description: b
+            deposits: []
+            fields: []
+"#;
+        let document = get_document(yaml);
+        GuiCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let gui = root.get(&StrictYaml::String("gui".to_string())).unwrap();
+        let StrictYaml::Hash(ref gui_hash) = *gui else {
+            panic!("expected gui hash");
+        };
+        let deployments = gui_hash
+            .get(&StrictYaml::String("deployments".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployments_hash) = *deployments else {
+            panic!("expected deployments hash");
+        };
+
+        let keys: Vec<String> = deployments_hash
+            .keys()
+            .filter_map(|k| k.as_str().map(String::from))
+            .collect();
+        assert_eq!(keys, vec!["alpha", "beta", "zebra"]);
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_missing_gui_section() {
+        let yaml = r#"
+other: value
+"#;
+        let document = get_document(yaml);
+        GuiCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        assert!(!root.contains_key(&StrictYaml::String("gui".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_non_hash_root() {
+        let yaml = r#"just a string"#;
+        let document = get_document(yaml);
+        GuiCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_skips_non_hash_gui() {
+        let yaml = r#"
+gui: not-a-hash
+"#;
+        let document = get_document(yaml);
+        GuiCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let gui = root.get(&StrictYaml::String("gui".to_string())).unwrap();
+        assert_eq!(gui.as_str(), Some("not-a-hash"));
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_deployments() {
+        let yaml = r#"
+gui:
+    name: test
+    description: test
+    deployments:
+        valid:
+            name: valid
+            description: valid desc
+            deposits: []
+            fields: []
+        invalid: not-a-hash
+"#;
+        let document = get_document(yaml);
+        GuiCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let gui = root.get(&StrictYaml::String("gui".to_string())).unwrap();
+        let StrictYaml::Hash(ref gui_hash) = *gui else {
+            panic!("expected gui hash");
+        };
+        let deployments = gui_hash
+            .get(&StrictYaml::String("deployments".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployments_hash) = *deployments else {
+            panic!("expected deployments hash");
+        };
+
+        assert!(deployments_hash.contains_key(&StrictYaml::String("valid".to_string())));
+        assert!(!deployments_hash.contains_key(&StrictYaml::String("invalid".to_string())));
+        assert_eq!(deployments_hash.len(), 1);
     }
 }

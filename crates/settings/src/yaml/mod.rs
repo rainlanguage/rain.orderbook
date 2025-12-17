@@ -4,10 +4,9 @@ pub mod dotrain;
 pub mod orderbook;
 
 use crate::{
-    AccountCfg, DeployerCfg, NetworkCfg, ParseDeployerConfigSourceError,
-    ParseDeploymentConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
-    ParseOrderbookConfigSourceError, ParseScenarioConfigSourceError, ParseTokenConfigSourceError,
-    TokenCfg,
+    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
+    ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError, ContextProfile};
@@ -145,7 +144,7 @@ pub trait ContextProvider {
     fn expand_context_with_remote_tokens(&self, context: &mut Context) {
         context.set_remote_tokens(self.get_remote_tokens_from_cache());
     }
-    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg>;
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, crate::TokenCfg>;
 
     fn expand_context_with_current_deployment(&self, context: &mut Context, deployment: &str) {
         context.add_current_deployment(deployment.to_string());
@@ -525,10 +524,11 @@ pub fn default_document() -> Arc<RwLock<StrictYaml>> {
 }
 
 pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
-    NetworkCfg::sanitize_documents(documents)?;
-    AccountCfg::sanitize_documents(documents)?;
-    DeployerCfg::sanitize_documents(documents)?;
+    crate::NetworkCfg::sanitize_documents(documents)?;
+    crate::AccountCfg::sanitize_documents(documents)?;
+    crate::DeployerCfg::sanitize_documents(documents)?;
     crate::DeploymentCfg::sanitize_documents(documents)?;
+    crate::GuiCfg::sanitize_documents(documents)?;
     Ok(())
 }
 
