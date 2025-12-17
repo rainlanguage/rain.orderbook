@@ -1,11 +1,12 @@
 use alloy::network::TransactionBuilder;
-use alloy::primitives::{Address, Bytes};
+use alloy::primitives::{Address, Bytes, U256};
 use alloy::providers::Provider;
 use alloy::rpc::types::TransactionRequest;
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::provider::ReadProvider;
 use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, TakeOrdersConfigV4};
+use rain_orderbook_bindings::IERC20::approveCall;
 use thiserror::Error;
 
 const DEFAULT_GAS_CAP: u64 = 30_000_000;
@@ -20,18 +21,20 @@ pub enum PreflightError {
     Erc20(#[from] crate::erc20::Error),
     #[error("Insufficient balance: taker has {balance} but needs {required}")]
     InsufficientBalance { balance: String, required: String },
-    #[error("Insufficient allowance: taker approved {allowance} but needs {required}")]
-    InsufficientAllowance { allowance: String, required: String },
     #[error("Simulation failed: {0}")]
     SimulationFailed(String),
 }
 
-pub async fn check_taker_balance_and_allowance(
+pub struct AllowanceCheckResult {
+    pub needs_approval: bool,
+    pub required_raw: U256,
+}
+
+pub async fn check_taker_balance(
     erc20: &crate::erc20::ERC20,
     taker: Address,
-    orderbook: Address,
     max_sell: Float,
-) -> Result<(), PreflightError> {
+) -> Result<U256, PreflightError> {
     let decimals = erc20.decimals().await?;
     let (max_sell_raw, _) = max_sell.to_fixed_decimal_lossy(decimals)?;
 
@@ -43,15 +46,35 @@ pub async fn check_taker_balance_and_allowance(
         });
     }
 
-    let allowance = erc20.allowance(taker, orderbook).await?;
-    if allowance < max_sell_raw {
-        return Err(PreflightError::InsufficientAllowance {
-            allowance: allowance.to_string(),
-            required: max_sell_raw.to_string(),
-        });
-    }
+    Ok(max_sell_raw)
+}
 
-    Ok(())
+pub async fn check_taker_allowance(
+    erc20: &crate::erc20::ERC20,
+    taker: Address,
+    orderbook: Address,
+    required_raw: U256,
+) -> Result<AllowanceCheckResult, PreflightError> {
+    let allowance = erc20.allowance(taker, orderbook).await?;
+    Ok(AllowanceCheckResult {
+        needs_approval: allowance < required_raw,
+        required_raw,
+    })
+}
+
+pub fn build_approval_calldata(spender: Address, amount: U256) -> Bytes {
+    let calldata = approveCall { spender, amount }.abi_encode();
+    Bytes::copy_from_slice(&calldata)
+}
+
+pub async fn check_taker_balance_and_allowance(
+    erc20: &crate::erc20::ERC20,
+    taker: Address,
+    orderbook: Address,
+    max_sell: Float,
+) -> Result<AllowanceCheckResult, PreflightError> {
+    let required_raw = check_taker_balance(erc20, taker, max_sell).await?;
+    check_taker_allowance(erc20, taker, orderbook, required_raw).await
 }
 
 pub async fn simulate_take_orders(
@@ -148,6 +171,7 @@ fn format_rpc_error(
 #[cfg(not(target_family = "wasm"))]
 mod tests {
     use super::*;
+    use rain_orderbook_bindings::IERC20::approveCall;
 
     #[test]
     fn test_preflight_error_display() {
@@ -157,12 +181,36 @@ mod tests {
         };
         assert!(err.to_string().contains("100"));
         assert!(err.to_string().contains("200"));
+    }
 
-        let err = PreflightError::InsufficientAllowance {
-            allowance: "50".to_string(),
-            required: "100".to_string(),
+    #[test]
+    fn test_build_approval_calldata() {
+        let spender = Address::from([0x11u8; 20]);
+        let amount = U256::from(1000u64);
+
+        let calldata = build_approval_calldata(spender, amount);
+
+        let decoded = approveCall::abi_decode(&calldata).expect("Should decode approval calldata");
+        assert_eq!(decoded.spender, spender);
+        assert_eq!(decoded.amount, amount);
+    }
+
+    #[test]
+    fn test_allowance_check_result_needs_approval_when_insufficient() {
+        let result = AllowanceCheckResult {
+            needs_approval: true,
+            required_raw: U256::from(1000u64),
         };
-        assert!(err.to_string().contains("50"));
-        assert!(err.to_string().contains("100"));
+        assert!(result.needs_approval);
+        assert_eq!(result.required_raw, U256::from(1000u64));
+    }
+
+    #[test]
+    fn test_allowance_check_result_no_approval_when_sufficient() {
+        let result = AllowanceCheckResult {
+            needs_approval: false,
+            required_raw: U256::from(500u64),
+        };
+        assert!(!result.needs_approval);
     }
 }

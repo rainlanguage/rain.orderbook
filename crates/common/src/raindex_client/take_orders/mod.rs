@@ -57,11 +57,12 @@ impl RaindexClient {
     ///
     /// This function:
     /// 1. Fetches orders matching the token pair
-    /// 2. Checks taker has sufficient balance and allowance for worst-case spend
-    /// 3. Builds the optimal order config via simulation
-    /// 4. Runs preflight `eth_call` to validate the transaction
-    /// 5. If preflight fails, identifies and removes failing orders, then retries
-    /// 6. Returns the final validated calldata
+    /// 2. Checks taker has sufficient balance for worst-case spend (hard stop on insufficient)
+    /// 3. Checks taker has sufficient allowance (errors if insufficient)
+    /// 4. Builds the optimal order config via simulation
+    /// 5. Runs preflight `eth_call` to validate the transaction
+    /// 6. If preflight fails, identifies and removes failing orders, then retries
+    /// 7. Returns the final validated calldata
     ///
     /// ## Parameters
     /// - `request`: A `TakeOrdersRequest` object containing:
@@ -74,11 +75,10 @@ impl RaindexClient {
     ///   - `minReceiveMode`: `partial` (may underfill) or `exact` (error if insufficient)
     ///
     /// ## Returns
-    /// - `calldata`: ABI-encoded bytes for `takeOrders3`
+    /// - `orderbook`: Address of the orderbook
+    /// - `calldata`: ABI-encoded data for `takeOrders3`
     /// - `effectivePrice`: expected blended sell per 1 buy
     /// - `prices`: per-leg ratios, best→worst
-    /// - `expectedSell`: simulated sell at current quotes
-    /// - `maxSellCap`: `buyAmount * priceCap` (worst-case spend cap)
     ///
     /// ## Example (JS)
     /// ```javascript
@@ -94,7 +94,8 @@ impl RaindexClient {
     /// if (res.error) {
     ///   console.error(res.error.readableMsg);
     /// } else {
-    ///   const { calldata, effectivePrice, expectedSell, maxSellCap, prices, orderbook } = res.value;
+    ///   const { orderbook, calldata, effectivePrice, prices } = res.value;
+    ///   await wallet.sendTransaction({ to: orderbook, data: calldata });
     /// }
     /// ```
     #[wasm_export(
@@ -134,7 +135,7 @@ impl RaindexClient {
         let provider =
             mk_read_provider(&rpc_urls).map_err(|e| RaindexError::PreflightError(e.to_string()))?;
 
-        let mut balance_checked_for_orderbook: Option<Address> = None;
+        let mut checked_for_orderbook: Option<Address> = None;
 
         loop {
             let (best_orderbook, best_sim) = selection::select_best_orderbook_simulation(
@@ -143,11 +144,18 @@ impl RaindexClient {
                 req.price_cap,
             )?;
 
-            if balance_checked_for_orderbook != Some(best_orderbook) {
-                check_taker_balance_and_allowance(&erc20, req.taker, best_orderbook, max_sell)
-                    .await
-                    .map_err(|e| RaindexError::PreflightError(e.to_string()))?;
-                balance_checked_for_orderbook = Some(best_orderbook);
+            if checked_for_orderbook != Some(best_orderbook) {
+                let allowance_check =
+                    check_taker_balance_and_allowance(&erc20, req.taker, best_orderbook, max_sell)
+                        .await
+                        .map_err(|e| RaindexError::PreflightError(e.to_string()))?;
+
+                if allowance_check.needs_approval {
+                    return Err(RaindexError::PreflightError(
+                        "Insufficient allowance for required spend".to_string(),
+                    ));
+                }
+                checked_for_orderbook = Some(best_orderbook);
             }
 
             let built = build_take_orders_config_from_buy_simulation(
@@ -168,12 +176,7 @@ impl RaindexClient {
             .await;
 
             if simulation_result.is_ok() {
-                return result::build_calldata_result(
-                    best_orderbook,
-                    built,
-                    req.buy_amount,
-                    req.price_cap,
-                );
+                return result::build_calldata_result(best_orderbook, built);
             }
 
             let failing_index = find_failing_order_index(

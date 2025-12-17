@@ -9,8 +9,8 @@ pub use config::{
     build_take_orders_config_from_buy_simulation, BuiltTakeOrdersConfig, MinReceiveMode,
 };
 pub use preflight::{
-    check_taker_balance_and_allowance, find_failing_order_index, simulate_take_orders,
-    PreflightError,
+    build_approval_calldata, check_taker_balance, check_taker_balance_and_allowance,
+    find_failing_order_index, simulate_take_orders, AllowanceCheckResult, PreflightError,
 };
 pub use price::cmp_float;
 pub use simulation::{simulate_buy_over_candidates, SelectedTakeOrderLeg, SimulatedBuyResult};
