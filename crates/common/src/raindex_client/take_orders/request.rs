@@ -22,6 +22,9 @@ pub(crate) fn parse_request(
 ) -> Result<ParsedTakeOrdersRequest, RaindexError> {
     let sell_token = Address::from_str(sell_token)?;
     let buy_token = Address::from_str(buy_token)?;
+    if sell_token == buy_token {
+        return Err(RaindexError::SameTokenPair);
+    }
     let buy_amount = Float::parse(buy_amount.to_string())?;
     let price_cap = Float::parse(price_cap.to_string())?;
 
@@ -197,5 +200,18 @@ mod tests {
         );
 
         assert!(matches!(result, Err(RaindexError::NegativePriceCap)));
+    }
+
+    #[test]
+    fn test_parse_request_same_token_pair() {
+        let result = parse_request(
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "100",
+            "2",
+            MinReceiveMode::Partial,
+        );
+
+        assert!(matches!(result, Err(RaindexError::SameTokenPair)));
     }
 }
