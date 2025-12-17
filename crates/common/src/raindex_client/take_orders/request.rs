@@ -42,8 +42,8 @@ pub(crate) fn parse_request_from_struct(
     if buy_amount.lte(zero)? {
         return Err(RaindexError::NonPositiveBuyAmount);
     }
-    if price_cap.lt(zero)? {
-        return Err(RaindexError::NegativePriceCap);
+    if price_cap.lte(zero)? {
+        return Err(RaindexError::NonPositivePriceCap);
     }
 
     Ok(ParsedTakeOrdersRequest {

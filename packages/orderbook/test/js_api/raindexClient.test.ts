@@ -2051,4 +2051,566 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 		});
 	});
+
+	describe('TakeOrders', async function () {
+		const TAKER_ADDRESS = '0x1111111111111111111111111111111111111111';
+		const SELL_TOKEN = '0x1d80c49bbbcd1c0911346656b529df9e5c2f783d';
+		const BUY_TOKEN = '0x12e605bc104e93b45e1ad99f9e555f659051c2bb';
+
+		const takeOrdersOrder: SgOrder = {
+			id: '0x0000000000000000000000000000000000000000000000000000000000001111',
+			orderBytes:
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
+			orderHash: '0x0000000000000000000000000000000000000000000000000000000000001111',
+			owner: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8',
+			outputs: [
+				{
+					id: '0x0000000000000000000000000000000000000001',
+					token: {
+						id: BUY_TOKEN,
+						address: BUY_TOKEN,
+						name: 'Staked FLR',
+						symbol: 'sFLR',
+						decimals: '18'
+					},
+					balance: '0x00000000000000000000000000000000000000000000d3c21bcecceda1000000',
+					vaultId: '0x0123',
+					owner: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+				}
+			],
+			inputs: [
+				{
+					id: '0x0000000000000000000000000000000000000002',
+					token: {
+						id: SELL_TOKEN,
+						address: SELL_TOKEN,
+						name: 'Wrapped FLR',
+						symbol: 'WFLR',
+						decimals: '18'
+					},
+					balance: '0x0000000000000000000000000000000000000000000000000000000000000000',
+					vaultId: '0x0234',
+					owner: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+				}
+			],
+			active: true,
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '100',
+						timestamp: '1700000000',
+						id: '0x0000000000000000000000000000000000000000000000000000000000001111',
+						from: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8'
+					}
+				}
+			],
+			meta: null,
+			timestampAdded: '1700000000',
+			orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+			trades: [],
+			removeEvents: []
+		} as unknown as SgOrder;
+
+		const QUOTE_MULTICALL_RESPONSE =
+			'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000640000000000000000000000000000000000000000000000000000000000000001';
+
+		const QUOTE_MULTICALL_SMALL_OUTPUT =
+			'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000050000000000000000000000000000000000000000000000000000000000000001';
+
+		const QUOTE_MULTICALL_EXPENSIVE =
+			'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000064000000000000000000000000000000000000000000000000000000000000000a';
+
+		const takeOrdersOrder2: SgOrder = {
+			id: '0x0000000000000000000000000000000000000000000000000000000000002222',
+			orderBytes:
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
+			orderHash: '0x0000000000000000000000000000000000000000000000000000000000002222',
+			owner: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8',
+			outputs: [
+				{
+					id: '0x0000000000000000000000000000000000000003',
+					token: {
+						id: BUY_TOKEN,
+						address: BUY_TOKEN,
+						name: 'Staked FLR',
+						symbol: 'sFLR',
+						decimals: '18'
+					},
+					balance: '0x00000000000000000000000000000000000000000000d3c21bcecceda1000000',
+					vaultId: '0x0456',
+					owner: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+				}
+			],
+			inputs: [
+				{
+					id: '0x0000000000000000000000000000000000000004',
+					token: {
+						id: SELL_TOKEN,
+						address: SELL_TOKEN,
+						name: 'Wrapped FLR',
+						symbol: 'WFLR',
+						decimals: '18'
+					},
+					balance: '0x0000000000000000000000000000000000000000000000000000000000000000',
+					vaultId: '0x0567',
+					owner: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+				}
+			],
+			active: true,
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '100',
+						timestamp: '1700000000',
+						id: '0x0000000000000000000000000000000000000000000000000000000000002222',
+						from: '0x05f6c104ca9812ef91fe2e26a2e7187b92d3b0e8'
+					}
+				}
+			],
+			meta: null,
+			timestampAdded: '1700000000',
+			orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+			trades: [],
+			removeEvents: []
+		} as unknown as SgOrder;
+
+		const encodeUint256 = (value: string): string => {
+			const hex = BigInt(value).toString(16).padStart(64, '0');
+			return `0x${hex}`;
+		};
+
+		it('should return NoLiquidity error when subgraph returns no orders', async function () {
+			await mockServer.forPost('/sg1').thenReply(200, JSON.stringify({ data: { orders: [] } }));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('No liquidity') ||
+					result.error.readableMsg.includes('liquidity'),
+				`Expected NoLiquidity error but got: ${result.error.msg}`
+			);
+		});
+
+		it('should return NonPositivePriceCap error when priceCap is negative', async function () {
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '-1',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('negative') ||
+					result.error.msg.includes('Price cap') ||
+					result.error.readableMsg.includes('negative') ||
+					result.error.readableMsg.includes('price cap'),
+				`Expected NonPositivePriceCap or NegativePriceCap error but got: ${result.error.msg}`
+			);
+		});
+
+		it('should return NonPositiveBuyAmount error when buyAmount is zero', async function () {
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '0',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('Buy amount') ||
+					result.error.msg.includes('zero') ||
+					result.error.readableMsg.includes('Buy amount') ||
+					result.error.readableMsg.includes('zero'),
+				`Expected NonPositiveBuyAmount error but got: ${result.error.msg}`
+			);
+		});
+
+		it('should return calldata in partial mode with full fill available', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_RESPONSE);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x');
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			if (result.error) {
+				assert.fail(`Expected success but got error: ${result.error.msg}`);
+			}
+			assert.ok(result.value.calldata);
+			assert.ok(result.value.orderbook);
+			assert.ok(result.value.prices.length >= 1);
+		});
+
+		it('should return calldata in exact mode with full fill available', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_RESPONSE);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x');
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'exact'
+			});
+
+			if (result.error) {
+				assert.fail(`Expected success but got error: ${result.error.msg}`);
+			}
+			assert.ok(result.value.calldata);
+			assert.ok(result.value.orderbook);
+		});
+
+		it('should return InsufficientLiquidity error in exact mode when liquidity is below buyAmount', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_SMALL_OUTPUT);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '100',
+				priceCap: '2',
+				minReceiveMode: 'exact'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('Insufficient liquidity') ||
+					result.error.readableMsg.includes('Insufficient liquidity'),
+				`Expected InsufficientLiquidity error but got: ${result.error.msg}`
+			);
+		});
+
+		it('should return PreflightError when allowance is insufficient', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_RESPONSE);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('0'));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('allowance') ||
+					result.error.msg.includes('Preflight') ||
+					result.error.readableMsg.includes('allowance') ||
+					result.error.readableMsg.includes('approval'),
+				`Expected PreflightError mentioning allowance but got: ${result.error.msg}`
+			);
+		});
+
+		it('should return NonPositivePriceCap error when priceCap is zero', async function () {
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '0',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('Price cap') ||
+					result.error.msg.includes('zero') ||
+					result.error.msg.includes('greater than zero') ||
+					result.error.readableMsg.includes('Price cap') ||
+					result.error.readableMsg.includes('greater than zero'),
+				`Expected NonPositivePriceCap error but got: ${result.error.msg}`
+			);
+		});
+
+		it('should return PreflightError when balance is insufficient', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_RESPONSE);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('0'));
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('balance') ||
+					result.error.msg.includes('Insufficient') ||
+					result.error.msg.includes('Preflight') ||
+					result.error.readableMsg.includes('balance') ||
+					result.error.readableMsg.includes('Insufficient'),
+				`Expected PreflightError mentioning balance but got: ${result.error.msg}`
+			);
+		});
+
+		it('should filter out expensive leg and only use cheap leg when price exceeds cap', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(
+					200,
+					JSON.stringify({ data: { orders: [takeOrdersOrder, takeOrdersOrder2] } })
+				);
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_RESPONSE);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_EXPENSIVE);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x');
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			if (result.error) {
+				assert.fail(`Expected success but got error: ${result.error.msg}`);
+			}
+			assert.ok(result.value.calldata);
+			assert.ok(result.value.orderbook);
+			assert.equal(result.value.prices.length, 1, 'Should only use the cheap leg');
+		});
+
+		it('should return NoLiquidity when all legs exceed price cap', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_EXPENSIVE);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error');
+			assert.ok(
+				result.error.msg.includes('No liquidity') ||
+					result.error.readableMsg.includes('liquidity'),
+				`Expected NoLiquidity error but got: ${result.error.msg}`
+			);
+		});
+
+		it('should succeed in partial mode when quote is less than buyAmount (underfill)', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_SMALL_OUTPUT);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x');
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '100',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			if (result.error) {
+				assert.fail(`Expected success but got error: ${result.error.msg}`);
+			}
+			assert.ok(result.value.calldata, 'Should return calldata for partial fill');
+			assert.ok(result.value.orderbook, 'Should return orderbook address');
+			assert.ok(result.value.prices.length >= 1, 'Should have at least one price');
+		});
+
+		it('should return error when preflight reverts for single order', async function () {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [takeOrdersOrder] } }));
+
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x64');
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(QUOTE_MULTICALL_RESPONSE);
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult(encodeUint256('18'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+			await mockServer
+				.forPost('/rpc1')
+				.once()
+				.thenSendJsonRpcResult(encodeUint256('1000000000000000000000'));
+
+			await mockServer.forPost('/rpc1').once().thenReply(
+				200,
+				JSON.stringify({
+					jsonrpc: '2.0',
+					id: 1,
+					error: { code: 3, message: 'execution reverted', data: '0x' }
+				})
+			);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const result = await raindexClient.getTakeOrdersCalldata({
+				taker: TAKER_ADDRESS,
+				chainId: 1,
+				sellToken: SELL_TOKEN,
+				buyToken: BUY_TOKEN,
+				buyAmount: '10',
+				priceCap: '2',
+				minReceiveMode: 'partial'
+			});
+
+			assert.ok(result.error, 'Expected error when preflight reverts');
+			assert.ok(
+				result.error.msg.includes('Preflight') ||
+					result.error.msg.includes('revert') ||
+					result.error.msg.includes('No liquidity') ||
+					result.error.readableMsg.includes('Preflight') ||
+					result.error.readableMsg.includes('simulation'),
+				`Expected preflight error but got: ${result.error.msg}`
+			);
+		});
+	});
 });

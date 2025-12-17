@@ -338,6 +338,8 @@ pub enum RaindexError {
     },
     #[error("Buy amount must be greater than zero")]
     NonPositiveBuyAmount,
+    #[error("Price cap must be greater than zero")]
+    NonPositivePriceCap,
     #[error("Price cap cannot be negative")]
     NegativePriceCap,
     #[error(transparent)]
@@ -496,6 +498,9 @@ impl RaindexError {
             }
             RaindexError::NonPositiveBuyAmount => {
                 "Buy amount must be greater than zero.".to_string()
+            }
+            RaindexError::NonPositivePriceCap => {
+                "Price cap must be greater than zero.".to_string()
             }
             RaindexError::NegativePriceCap => {
                 "Price cap cannot be negative.".to_string()

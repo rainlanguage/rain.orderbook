@@ -121,7 +121,7 @@ pub async fn find_failing_order_index(
         return Some(0);
     }
 
-    let zero = Float::zero().ok()?.get_inner();
+    let min_input = config.minimumInput;
 
     let mut low: usize = 0;
     let mut high: usize = num_orders;
@@ -131,7 +131,7 @@ pub async fn find_failing_order_index(
         let mid = (low + high) / 2;
 
         let prefix_config = TakeOrdersConfigV4 {
-            minimumInput: zero,
+            minimumInput: min_input,
             maximumInput: config.maximumInput,
             maximumIORatio: config.maximumIORatio,
             orders: config.orders[..=mid].to_vec(),
