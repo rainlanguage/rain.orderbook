@@ -1,0 +1,25 @@
+[package]
+name = "rain_orderbook_rest_api"
+description = "REST API server for rain orderbook"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+publish = false
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+rain_orderbook_common = { workspace = true }
+rocket = { version = "0.5.1", features = ["json"] }
+rocket_cors = "0.6"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
+tokio = { workspace = true, features = ["full"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full", "macros"] }
