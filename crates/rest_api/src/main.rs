@@ -21,8 +21,8 @@ fn create_app() -> Rocket<Build> {
 }
 
 #[rocket::main]
-async fn main() -> Result<(), rocket::Error> {
-    create_app().launch().await?;
+async fn main() -> Result<(), Box<rocket::Error>> {
+    create_app().launch().await.map_err(Box::new)?;
     Ok(())
 }
 
