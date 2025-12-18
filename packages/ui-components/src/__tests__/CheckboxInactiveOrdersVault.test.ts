@@ -16,7 +16,7 @@ describe('CheckboxInactiveOrdersVault', () => {
 				hideInactiveOrdersVaults
 			}
 		});
-		expect(screen.getByText('Hide inactive orders vaults')).toBeInTheDocument();
+		expect(screen.getByText('Hide vaults without active orders')).toBeInTheDocument();
 	});
 
 	test('checkbox defaults to unchecked', () => {
