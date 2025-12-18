@@ -1,23 +1,29 @@
-pub mod error;
-pub mod routes;
-
-pub use error::{ApiError, ApiErrorResponse};
-pub use routes::take_orders::{TakeOrdersApiRequest, TakeOrdersApiResponse};
+mod error;
+mod routes;
 
 use rocket::{Build, Rocket};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
 
-pub fn create_app() -> Rocket<Build> {
+fn create_app() -> Rocket<Build> {
     let cors = CorsOptions::default()
         .allowed_origins(AllowedOrigins::all())
         .allowed_headers(AllowedHeaders::all())
         .allow_credentials(true)
-        .to_cors()
-        .expect("CORS configuration should be valid");
+        .to_cors();
 
-    rocket::build()
-        .attach(cors)
-        .mount("/", routes::take_orders::routes())
+    let mut app = rocket::build().mount("/", routes::take_orders::routes());
+
+    if let Ok(cors) = cors {
+        app = app.attach(cors);
+    }
+
+    app
+}
+
+#[rocket::main]
+async fn main() -> Result<(), rocket::Error> {
+    create_app().launch().await?;
+    Ok(())
 }
 
 #[cfg(test)]

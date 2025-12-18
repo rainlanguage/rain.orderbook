@@ -56,7 +56,7 @@ async fn execute_take_orders(
     })
 }
 
-#[post("/take-orders", format = "json", data = "<request>")]
+#[post("/take-orders", data = "<request>")]
 pub async fn take_orders(
     request: Json<TakeOrdersApiRequest>,
 ) -> Result<Json<TakeOrdersApiResponse>, ApiError> {

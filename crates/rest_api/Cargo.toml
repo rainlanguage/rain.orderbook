@@ -7,8 +7,9 @@ license.workspace = true
 homepage.workspace = true
 publish = false
 
-[lib]
-crate-type = ["rlib"]
+[[bin]]
+name = "rain-orderbook-api"
+path = "src/main.rs"
 
 [dependencies]
 rain_orderbook_common = { workspace = true }
