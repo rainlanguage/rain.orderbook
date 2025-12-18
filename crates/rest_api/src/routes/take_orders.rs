@@ -67,23 +67,12 @@ pub async fn take_orders(
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
-            .map_err(|e| {
-                ApiError::Raindex(
-                    rain_orderbook_common::raindex_client::RaindexError::JsError(format!(
-                        "Failed to create runtime: {}",
-                        e
-                    )),
-                )
-            })?;
+            .map_err(|e| ApiError::Internal(format!("Failed to create runtime: {}", e)))?;
 
         rt.block_on(execute_take_orders(yaml_content, take_request))
     })
     .await
-    .map_err(|e| {
-        ApiError::Raindex(
-            rain_orderbook_common::raindex_client::RaindexError::JsError(e.to_string()),
-        )
-    })??;
+    .map_err(|e| ApiError::Internal(format!("Task execution failed: {}", e)))??;
 
     Ok(Json(response))
 }

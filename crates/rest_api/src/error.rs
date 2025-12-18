@@ -17,6 +17,9 @@ pub struct ApiErrorResponse {
 pub enum ApiError {
     #[error(transparent)]
     Raindex(#[from] RaindexError),
+
+    #[error("Internal server error: {0}")]
+    Internal(String),
 }
 
 impl ApiError {
@@ -51,6 +54,7 @@ impl ApiError {
 
                 _ => Status::InternalServerError,
             },
+            ApiError::Internal(_) => Status::InternalServerError,
         }
     }
 
@@ -59,6 +63,10 @@ impl ApiError {
             ApiError::Raindex(e) => ApiErrorResponse {
                 error: e.to_string(),
                 readable_message: e.to_readable_msg(),
+            },
+            ApiError::Internal(msg) => ApiErrorResponse {
+                error: msg.clone(),
+                readable_message: format!("An internal server error occurred: {}", msg),
             },
         }
     }
