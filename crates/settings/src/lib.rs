@@ -33,6 +33,7 @@ pub(crate) use network::*;
 pub(crate) use order::*;
 pub(crate) use orderbook::*;
 pub(crate) use plot_source::*;
+pub(crate) use remote_networks::*;
 pub(crate) use scenario::*;
 pub(crate) use token::*;
 #[cfg(test)]

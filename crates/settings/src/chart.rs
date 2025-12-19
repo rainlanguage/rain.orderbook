@@ -6,6 +6,56 @@ use crate::{
     },
     *,
 };
+
+const ALLOWED_CHART_KEYS: [&str; 3] = ["metrics", "plots", "scenario"];
+
+const ALLOWED_PLOT_KEYS: [&str; 11] = [
+    "inset",
+    "margin",
+    "margin-bottom",
+    "margin-left",
+    "margin-right",
+    "margin-top",
+    "marks",
+    "subtitle",
+    "title",
+    "x",
+    "y",
+];
+
+const ALLOWED_MARK_KEYS: [&str; 2] = ["options", "type"];
+
+const ALLOWED_MARK_OPTIONS_KEYS: [&str; 10] = [
+    "fill",
+    "r",
+    "stroke",
+    "transform",
+    "x",
+    "x0",
+    "x1",
+    "y",
+    "y0",
+    "y1",
+];
+
+const ALLOWED_TRANSFORM_KEYS: [&str; 2] = ["content", "type"];
+
+const ALLOWED_TRANSFORM_CONTENT_KEYS: [&str; 2] = ["options", "outputs"];
+
+const ALLOWED_TRANSFORM_OUTPUTS_KEYS: [&str; 6] = ["fill", "r", "stroke", "x", "y", "z"];
+
+const ALLOWED_TRANSFORM_OPTIONS_KEYS: [&str; 4] = ["bin-width", "thresholds", "x", "y"];
+
+const ALLOWED_AXIS_KEYS: [&str; 4] = ["anchor", "label", "label-anchor", "label-arrow"];
+
+const ALLOWED_METRIC_KEYS: [&str; 6] = [
+    "description",
+    "label",
+    "precision",
+    "unit-prefix",
+    "unit-suffix",
+    "value",
+];
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -59,6 +109,229 @@ impl ChartCfg {
             },
             location: location.clone(),
         })
+    }
+
+    fn sanitize_hash_with_keys(hash: &Hash, allowed_keys: &[&str]) -> Hash {
+        let mut sanitized = Hash::new();
+        for allowed_key in allowed_keys.iter() {
+            let key_yaml = StrictYaml::String(allowed_key.to_string());
+            if let Some(v) = hash.get(&key_yaml) {
+                sanitized.insert(key_yaml, v.clone());
+            }
+        }
+        sanitized
+    }
+
+    fn sanitize_transform_hash(transform_hash: &Hash) -> Hash {
+        let mut sanitized = Self::sanitize_hash_with_keys(transform_hash, &ALLOWED_TRANSFORM_KEYS);
+
+        if let Some(StrictYaml::Hash(content_hash)) =
+            sanitized.get(&StrictYaml::String("content".to_string()))
+        {
+            let mut sanitized_content =
+                Self::sanitize_hash_with_keys(content_hash, &ALLOWED_TRANSFORM_CONTENT_KEYS);
+
+            if let Some(StrictYaml::Hash(outputs_hash)) =
+                sanitized_content.get(&StrictYaml::String("outputs".to_string()))
+            {
+                let sanitized_outputs =
+                    Self::sanitize_hash_with_keys(outputs_hash, &ALLOWED_TRANSFORM_OUTPUTS_KEYS);
+                sanitized_content.insert(
+                    StrictYaml::String("outputs".to_string()),
+                    StrictYaml::Hash(sanitized_outputs),
+                );
+            }
+
+            if let Some(StrictYaml::Hash(options_hash)) =
+                sanitized_content.get(&StrictYaml::String("options".to_string()))
+            {
+                let sanitized_options =
+                    Self::sanitize_hash_with_keys(options_hash, &ALLOWED_TRANSFORM_OPTIONS_KEYS);
+                sanitized_content.insert(
+                    StrictYaml::String("options".to_string()),
+                    StrictYaml::Hash(sanitized_options),
+                );
+            }
+
+            sanitized.insert(
+                StrictYaml::String("content".to_string()),
+                StrictYaml::Hash(sanitized_content),
+            );
+        }
+
+        sanitized
+    }
+
+    fn sanitize_mark_options_hash(options_hash: &Hash) -> Hash {
+        let mut sanitized = Self::sanitize_hash_with_keys(options_hash, &ALLOWED_MARK_OPTIONS_KEYS);
+
+        if let Some(StrictYaml::Hash(transform_hash)) =
+            sanitized.get(&StrictYaml::String("transform".to_string()))
+        {
+            let sanitized_transform = Self::sanitize_transform_hash(transform_hash);
+            sanitized.insert(
+                StrictYaml::String("transform".to_string()),
+                StrictYaml::Hash(sanitized_transform),
+            );
+        }
+
+        sanitized
+    }
+
+    fn sanitize_mark_hash(mark_hash: &Hash) -> Hash {
+        let mut sanitized = Self::sanitize_hash_with_keys(mark_hash, &ALLOWED_MARK_KEYS);
+
+        if let Some(StrictYaml::Hash(options_hash)) =
+            sanitized.get(&StrictYaml::String("options".to_string()))
+        {
+            let sanitized_options = Self::sanitize_mark_options_hash(options_hash);
+            sanitized.insert(
+                StrictYaml::String("options".to_string()),
+                StrictYaml::Hash(sanitized_options),
+            );
+        }
+
+        sanitized
+    }
+
+    fn sanitize_marks_array(marks_array: &[StrictYaml]) -> Vec<StrictYaml> {
+        marks_array
+            .iter()
+            .filter_map(|mark| {
+                if let StrictYaml::Hash(mark_hash) = mark {
+                    Some(StrictYaml::Hash(Self::sanitize_mark_hash(mark_hash)))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn sanitize_axis_hash(axis_hash: &Hash) -> Hash {
+        Self::sanitize_hash_with_keys(axis_hash, &ALLOWED_AXIS_KEYS)
+    }
+
+    fn sanitize_plot_hash(plot_hash: &Hash) -> Hash {
+        let mut sanitized = Self::sanitize_hash_with_keys(plot_hash, &ALLOWED_PLOT_KEYS);
+
+        if let Some(StrictYaml::Array(marks_array)) =
+            sanitized.get(&StrictYaml::String("marks".to_string()))
+        {
+            let sanitized_marks = Self::sanitize_marks_array(marks_array);
+            sanitized.insert(
+                StrictYaml::String("marks".to_string()),
+                StrictYaml::Array(sanitized_marks),
+            );
+        }
+
+        if let Some(StrictYaml::Hash(x_hash)) = sanitized.get(&StrictYaml::String("x".to_string()))
+        {
+            let sanitized_x = Self::sanitize_axis_hash(x_hash);
+            sanitized.insert(
+                StrictYaml::String("x".to_string()),
+                StrictYaml::Hash(sanitized_x),
+            );
+        }
+
+        if let Some(StrictYaml::Hash(y_hash)) = sanitized.get(&StrictYaml::String("y".to_string()))
+        {
+            let sanitized_y = Self::sanitize_axis_hash(y_hash);
+            sanitized.insert(
+                StrictYaml::String("y".to_string()),
+                StrictYaml::Hash(sanitized_y),
+            );
+        }
+
+        sanitized
+    }
+
+    fn sanitize_plots_hash(plots_hash: &Hash) -> Hash {
+        let mut sanitized_plots: Vec<(String, StrictYaml)> = Vec::new();
+
+        for (plot_key, plot_value) in plots_hash {
+            let Some(plot_key_str) = plot_key.as_str() else {
+                continue;
+            };
+            let StrictYaml::Hash(ref plot_hash) = *plot_value else {
+                continue;
+            };
+
+            let sanitized_plot = Self::sanitize_plot_hash(plot_hash);
+            sanitized_plots.push((plot_key_str.to_string(), StrictYaml::Hash(sanitized_plot)));
+        }
+        sanitized_plots.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        let mut new_plots_hash = Hash::new();
+        for (key, value) in sanitized_plots {
+            new_plots_hash.insert(StrictYaml::String(key), value);
+        }
+        new_plots_hash
+    }
+
+    fn sanitize_metric_hash(metric_hash: &Hash) -> Hash {
+        Self::sanitize_hash_with_keys(metric_hash, &ALLOWED_METRIC_KEYS)
+    }
+
+    fn sanitize_metrics_array(metrics_array: &[StrictYaml]) -> Vec<StrictYaml> {
+        metrics_array
+            .iter()
+            .filter_map(|metric| {
+                if let StrictYaml::Hash(metric_hash) = metric {
+                    Some(StrictYaml::Hash(Self::sanitize_metric_hash(metric_hash)))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn sanitize_chart_hash(chart_hash: &Hash) -> Hash {
+        let mut sanitized = Self::sanitize_hash_with_keys(chart_hash, &ALLOWED_CHART_KEYS);
+
+        if let Some(StrictYaml::Hash(plots_hash)) =
+            sanitized.get(&StrictYaml::String("plots".to_string()))
+        {
+            let sanitized_plots = Self::sanitize_plots_hash(plots_hash);
+            sanitized.insert(
+                StrictYaml::String("plots".to_string()),
+                StrictYaml::Hash(sanitized_plots),
+            );
+        }
+
+        if let Some(StrictYaml::Array(metrics_array)) =
+            sanitized.get(&StrictYaml::String("metrics".to_string()))
+        {
+            let sanitized_metrics = Self::sanitize_metrics_array(metrics_array);
+            sanitized.insert(
+                StrictYaml::String("metrics".to_string()),
+                StrictYaml::Array(sanitized_metrics),
+            );
+        }
+
+        sanitized
+    }
+
+    fn sanitize_charts_hash(charts_hash: &Hash) -> Hash {
+        let mut sanitized_charts: Vec<(String, StrictYaml)> = Vec::new();
+
+        for (chart_key, chart_value) in charts_hash {
+            let Some(chart_key_str) = chart_key.as_str() else {
+                continue;
+            };
+            let StrictYaml::Hash(ref chart_hash) = *chart_value else {
+                continue;
+            };
+
+            let sanitized_chart = Self::sanitize_chart_hash(chart_hash);
+            sanitized_charts.push((chart_key_str.to_string(), StrictYaml::Hash(sanitized_chart)));
+        }
+        sanitized_charts.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        let mut new_charts_hash = Hash::new();
+        for (key, value) in sanitized_charts {
+            new_charts_hash.insert(StrictYaml::String(key), value);
+        }
+        new_charts_hash
     }
 }
 
@@ -918,6 +1191,27 @@ impl YamlParsableHash for ChartCfg {
 
         Ok(StrictYaml::Hash(chart_yaml))
     }
+
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
+
+            let charts_key = StrictYaml::String("charts".to_string());
+            let Some(charts_value) = root_hash.get(&charts_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref charts_hash) = *charts_value else {
+                continue;
+            };
+
+            let sanitized = ChartCfg::sanitize_charts_hash(charts_hash);
+            root_hash.insert(charts_key, StrictYaml::Hash(sanitized));
+        }
+        Ok(())
+    }
 }
 
 impl Default for ChartCfg {
@@ -1754,5 +2048,409 @@ charts:
         expected.insert(sy("chart-with-options"), StrictYaml::Hash(chart_one));
 
         assert_eq!(yaml, StrictYaml::Hash(expected));
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_chart_keys() {
+        let yaml = r#"
+charts:
+    test-chart:
+        scenario: test
+        plots: {}
+        metrics: []
+        unknown-key: should-be-dropped
+        another-unknown: also-dropped
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let charts_section = root_hash
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let chart = charts_section
+            .get(&StrictYaml::String("test-chart".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(chart.len(), 3);
+        assert!(chart
+            .get(&StrictYaml::String("scenario".to_string()))
+            .is_some());
+        assert!(chart
+            .get(&StrictYaml::String("plots".to_string()))
+            .is_some());
+        assert!(chart
+            .get(&StrictYaml::String("metrics".to_string()))
+            .is_some());
+        assert!(chart
+            .get(&StrictYaml::String("unknown-key".to_string()))
+            .is_none());
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_plot_keys() {
+        let yaml = r#"
+charts:
+    test-chart:
+        scenario: test
+        plots:
+            plot1:
+                title: Test Plot
+                marks: []
+                unknown-key: should-drop
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let plot = doc_read
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("test-chart".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plots".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plot1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(plot.len(), 2);
+        assert!(plot.get(&StrictYaml::String("title".to_string())).is_some());
+        assert!(plot.get(&StrictYaml::String("marks".to_string())).is_some());
+        assert!(plot
+            .get(&StrictYaml::String("unknown-key".to_string()))
+            .is_none());
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_mark_keys() {
+        let yaml = r#"
+charts:
+    test-chart:
+        scenario: test
+        plots:
+            plot1:
+                marks:
+                    - type: dot
+                      options:
+                          x: val
+                      unknown-key: should-drop
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let marks = doc_read
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("test-chart".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plots".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plot1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("marks".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+
+        assert_eq!(marks.len(), 1);
+        let mark = marks[0].as_hash().unwrap();
+        assert_eq!(mark.len(), 2);
+        assert!(mark.get(&StrictYaml::String("type".to_string())).is_some());
+        assert!(mark
+            .get(&StrictYaml::String("options".to_string()))
+            .is_some());
+        assert!(mark
+            .get(&StrictYaml::String("unknown-key".to_string()))
+            .is_none());
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_transform_keys() {
+        let yaml = r#"
+charts:
+    test-chart:
+        scenario: test
+        plots:
+            plot1:
+                marks:
+                    - type: dot
+                      options:
+                          transform:
+                              type: hexbin
+                              content:
+                                  outputs:
+                                      x: val
+                                  options:
+                                      x: val
+                              unknown-key: should-drop
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let transform = doc_read
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("test-chart".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plots".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plot1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("marks".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap()[0]
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("options".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("transform".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(transform.len(), 2);
+        assert!(transform
+            .get(&StrictYaml::String("type".to_string()))
+            .is_some());
+        assert!(transform
+            .get(&StrictYaml::String("content".to_string()))
+            .is_some());
+        assert!(transform
+            .get(&StrictYaml::String("unknown-key".to_string()))
+            .is_none());
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_metric_keys() {
+        let yaml = r#"
+charts:
+    test-chart:
+        scenario: test
+        metrics:
+            - label: test
+              value: 42
+              unknown-key: should-drop
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let metrics = doc_read
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("test-chart".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("metrics".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+
+        assert_eq!(metrics.len(), 1);
+        let metric = metrics[0].as_hash().unwrap();
+        assert_eq!(metric.len(), 2);
+        assert!(metric
+            .get(&StrictYaml::String("label".to_string()))
+            .is_some());
+        assert!(metric
+            .get(&StrictYaml::String("value".to_string()))
+            .is_some());
+        assert!(metric
+            .get(&StrictYaml::String("unknown-key".to_string()))
+            .is_none());
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_axis_keys() {
+        let yaml = r#"
+charts:
+    test-chart:
+        scenario: test
+        plots:
+            plot1:
+                marks: []
+                x:
+                    label: X Axis
+                    anchor: bottom
+                    unknown-key: should-drop
+                y:
+                    label: Y Axis
+                    unknown-key: should-drop
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let plot = doc_read
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("test-chart".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plots".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("plot1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let x_axis = plot
+            .get(&StrictYaml::String("x".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert_eq!(x_axis.len(), 2);
+        assert!(x_axis
+            .get(&StrictYaml::String("label".to_string()))
+            .is_some());
+        assert!(x_axis
+            .get(&StrictYaml::String("anchor".to_string()))
+            .is_some());
+
+        let y_axis = plot
+            .get(&StrictYaml::String("y".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert_eq!(y_axis.len(), 1);
+        assert!(y_axis
+            .get(&StrictYaml::String("label".to_string()))
+            .is_some());
+    }
+
+    #[test]
+    fn test_sanitize_lexicographic_ordering() {
+        let yaml = r#"
+charts:
+    zebra:
+        scenario: test
+    alpha:
+        scenario: test
+    middle:
+        scenario: test
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let charts = doc_read
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let keys: Vec<&str> = charts.iter().map(|(k, _)| k.as_str().unwrap()).collect();
+        assert_eq!(keys, vec!["alpha", "middle", "zebra"]);
+    }
+
+    #[test]
+    fn test_sanitize_handles_missing_charts_section() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://rpc.com
+"#;
+        let doc = get_document(yaml);
+        let result = ChartCfg::sanitize_documents(std::slice::from_ref(&doc));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_sanitize_handles_non_hash_root() {
+        let yaml = "just-a-string";
+        let doc = get_document(yaml);
+        let result = ChartCfg::sanitize_documents(std::slice::from_ref(&doc));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_sanitize_skips_non_hash_charts_section() {
+        let yaml = r#"
+charts: just-a-string
+"#;
+        let doc = get_document(yaml);
+        let result = ChartCfg::sanitize_documents(std::slice::from_ref(&doc));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_sanitize_drops_non_hash_chart_entries() {
+        let yaml = r#"
+charts:
+    valid-chart:
+        scenario: test
+    invalid-chart: just-a-string
+"#;
+        let doc = get_document(yaml);
+        ChartCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let charts = doc_read
+            .as_hash()
+            .unwrap()
+            .get(&StrictYaml::String("charts".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(charts.len(), 1);
+        assert!(charts
+            .get(&StrictYaml::String("valid-chart".to_string()))
+            .is_some());
     }
 }
