@@ -494,7 +494,17 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                             takerOutput = orderIOCalculation.IORatio.mul(takerInput);
 
                             remainingTakerIO = remainingTakerIO.sub(takerInput);
-                        } else {}
+                        } else {
+                            // Taker is "market selling" up to the order output max.
+                            Float orderMaxInput = orderIOCalculation.IORatio.mul(orderIOCalculation.outputMax);
+                            takerOutput = orderMaxInput.min(
+                                remainingTakerIO
+                            );
+                            // This rounds down which favours the order/dex.
+                            takerInput = takerOutput.div(orderIOCalculation.IORatio);
+
+                            remainingTakerIO = remainingTakerIO.sub(takerOutput);
+                        }
 
                         totalTakerOutput = totalTakerOutput.add(takerOutput);
                         totalTakerInput = totalTakerInput.add(takerInput);
