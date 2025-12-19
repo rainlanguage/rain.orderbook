@@ -530,6 +530,7 @@ pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(
     crate::GuiCfg::sanitize_documents(documents)?;
     crate::LocalDbSyncCfg::sanitize_documents(documents)?;
     crate::OrderCfg::sanitize_documents(documents)?;
+    crate::OrderbookCfg::sanitize_documents(documents)?;
     Ok(())
 }
 
