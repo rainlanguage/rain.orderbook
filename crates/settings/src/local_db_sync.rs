@@ -146,41 +146,6 @@ impl YamlParsableHash for LocalDbSyncCfg {
         Ok(syncs)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut sync_hash = Hash::new();
-
-        sync_hash.insert(
-            StrictYaml::String("batch-size".to_string()),
-            StrictYaml::String(self.batch_size.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("max-concurrent-batches".to_string()),
-            StrictYaml::String(self.max_concurrent_batches.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("retry-attempts".to_string()),
-            StrictYaml::String(self.retry_attempts.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("retry-delay-ms".to_string()),
-            StrictYaml::String(self.retry_delay_ms.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("rate-limit-delay-ms".to_string()),
-            StrictYaml::String(self.rate_limit_delay_ms.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("finality-depth".to_string()),
-            StrictYaml::String(self.finality_depth.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("bootstrap-block-threshold".to_string()),
-            StrictYaml::String(self.bootstrap_block_threshold.to_string()),
-        );
-
-        Ok(StrictYaml::Hash(sync_hash))
-    }
-
     fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
         for document in documents {
             let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
@@ -268,7 +233,7 @@ impl PartialEq for LocalDbSyncCfg {
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
-    use std::collections::HashMap;
+
     use strict_yaml_rust::StrictYaml;
 
     struct FullSyncArgs<'a> {
@@ -562,117 +527,6 @@ local-db-sync:
                 location: "local-db-sync".to_string(),
             }
         );
-    }
-
-    #[test]
-    fn test_to_yaml_hash_serializes_all_fields() {
-        let mut syncs = HashMap::new();
-        syncs.insert(
-            "mainnet".to_string(),
-            LocalDbSyncCfg {
-                document: default_document(),
-                key: "mainnet".to_string(),
-                batch_size: 50,
-                max_concurrent_batches: 2,
-                retry_attempts: 3,
-                retry_delay_ms: 25,
-                rate_limit_delay_ms: 5,
-                finality_depth: 64,
-                bootstrap_block_threshold: 10,
-            },
-        );
-        syncs.insert(
-            "arbitrum".to_string(),
-            LocalDbSyncCfg {
-                document: default_document(),
-                key: "arbitrum".to_string(),
-                batch_size: 75,
-                max_concurrent_batches: 4,
-                retry_attempts: 5,
-                retry_delay_ms: 50,
-                rate_limit_delay_ms: 8,
-                finality_depth: 128,
-                bootstrap_block_threshold: 20,
-            },
-        );
-
-        let yaml = LocalDbSyncCfg::to_yaml_hash(&syncs).unwrap();
-
-        let StrictYaml::Hash(sync_hash) = yaml else {
-            panic!("local-db-sync was not serialized to a YAML hash");
-        };
-
-        let Some(StrictYaml::Hash(mainnet_hash)) =
-            sync_hash.get(&StrictYaml::String("mainnet".to_string()))
-        else {
-            panic!("mainnet sync missing from serialized YAML");
-        };
-        let Some(StrictYaml::Hash(arbitrum_hash)) =
-            sync_hash.get(&StrictYaml::String("arbitrum".to_string()))
-        else {
-            panic!("arbitrum sync missing from serialized YAML");
-        };
-
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("batch-size".to_string())),
-            Some(&StrictYaml::String("50".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("max-concurrent-batches".to_string())),
-            Some(&StrictYaml::String("2".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("retry-attempts".to_string())),
-            Some(&StrictYaml::String("3".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("retry-delay-ms".to_string())),
-            Some(&StrictYaml::String("25".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("rate-limit-delay-ms".to_string())),
-            Some(&StrictYaml::String("5".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("finality-depth".to_string())),
-            Some(&StrictYaml::String("64".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("bootstrap-block-threshold".to_string())),
-            Some(&StrictYaml::String("10".to_string()))
-        );
-
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("batch-size".to_string())),
-            Some(&StrictYaml::String("75".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("max-concurrent-batches".to_string())),
-            Some(&StrictYaml::String("4".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("retry-attempts".to_string())),
-            Some(&StrictYaml::String("5".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("retry-delay-ms".to_string())),
-            Some(&StrictYaml::String("50".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("rate-limit-delay-ms".to_string())),
-            Some(&StrictYaml::String("8".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("finality-depth".to_string())),
-            Some(&StrictYaml::String("128".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("bootstrap-block-threshold".to_string())),
-            Some(&StrictYaml::String("20".to_string()))
-        );
-
-        assert!(!mainnet_hash.contains_key(&StrictYaml::String("key".to_string())));
-        assert!(!arbitrum_hash.contains_key(&StrictYaml::String("key".to_string())));
     }
 
     #[test]

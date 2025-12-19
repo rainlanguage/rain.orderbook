@@ -358,42 +358,6 @@ impl YamlParsableHash for TokenCfg {
         Ok(tokens)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut token_yaml = Hash::new();
-
-        token_yaml.insert(
-            StrictYaml::String("network".to_string()),
-            StrictYaml::String(self.network.key.clone()),
-        );
-        token_yaml.insert(
-            StrictYaml::String("address".to_string()),
-            StrictYaml::String(alloy::hex::encode_prefixed(self.address)),
-        );
-
-        if let Some(decimals) = self.decimals {
-            token_yaml.insert(
-                StrictYaml::String("decimals".to_string()),
-                StrictYaml::String(decimals.to_string()),
-            );
-        }
-
-        if let Some(label) = &self.label {
-            token_yaml.insert(
-                StrictYaml::String("label".to_string()),
-                StrictYaml::String(label.clone()),
-            );
-        }
-
-        if let Some(symbol) = &self.symbol {
-            token_yaml.insert(
-                StrictYaml::String("symbol".to_string()),
-                StrictYaml::String(symbol.clone()),
-            );
-        }
-
-        Ok(StrictYaml::Hash(token_yaml))
-    }
-
     fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
         for document in documents {
             let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
@@ -762,92 +726,6 @@ tokens:
             error.to_readable_msg(),
             "The key 'dai' is defined multiple times in your YAML configuration at tokens"
         );
-    }
-
-    #[test]
-    fn test_to_yaml_hash_serializes_tokens() {
-        let mut mainnet = NetworkCfg::dummy();
-        mainnet.key = "mainnet".to_string();
-        let mut optimism = NetworkCfg::dummy();
-        optimism.key = "optimism".to_string();
-
-        let mut tokens = HashMap::new();
-        tokens.insert(
-            "dai".to_string(),
-            TokenCfg {
-                document: Arc::new(RwLock::new(StrictYaml::Hash(Hash::new()))),
-                key: "dai".to_string(),
-                network: Arc::new(mainnet),
-                address: Address::from_str("0x6b175474e89094c44da98b954eedeac495271d0f").unwrap(),
-                decimals: Some(18),
-                label: Some("Dai Stablecoin".to_string()),
-                symbol: Some("DAI".to_string()),
-            },
-        );
-        tokens.insert(
-            "weth".to_string(),
-            TokenCfg {
-                document: Arc::new(RwLock::new(StrictYaml::Hash(Hash::new()))),
-                key: "weth".to_string(),
-                network: Arc::new(optimism),
-                address: Address::from_str("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2").unwrap(),
-                decimals: None,
-                label: None,
-                symbol: None,
-            },
-        );
-
-        let yaml = TokenCfg::to_yaml_hash(&tokens).unwrap();
-
-        let StrictYaml::Hash(tokens_hash) = yaml else {
-            panic!("tokens were not serialized to a YAML hash");
-        };
-        let Some(StrictYaml::Hash(dai_hash)) =
-            tokens_hash.get(&StrictYaml::String("dai".to_string()))
-        else {
-            panic!("dai token missing from serialized YAML");
-        };
-        let Some(StrictYaml::Hash(weth_hash)) =
-            tokens_hash.get(&StrictYaml::String("weth".to_string()))
-        else {
-            panic!("weth token missing from serialized YAML");
-        };
-
-        assert_eq!(
-            dai_hash.get(&StrictYaml::String("network".to_string())),
-            Some(&StrictYaml::String("mainnet".to_string()))
-        );
-        assert_eq!(
-            dai_hash.get(&StrictYaml::String("address".to_string())),
-            Some(&StrictYaml::String(
-                "0x6b175474e89094c44da98b954eedeac495271d0f".to_string()
-            ))
-        );
-        assert_eq!(
-            dai_hash.get(&StrictYaml::String("decimals".to_string())),
-            Some(&StrictYaml::String("18".to_string()))
-        );
-        assert_eq!(
-            dai_hash.get(&StrictYaml::String("label".to_string())),
-            Some(&StrictYaml::String("Dai Stablecoin".to_string()))
-        );
-        assert_eq!(
-            dai_hash.get(&StrictYaml::String("symbol".to_string())),
-            Some(&StrictYaml::String("DAI".to_string()))
-        );
-        assert_eq!(
-            weth_hash.get(&StrictYaml::String("network".to_string())),
-            Some(&StrictYaml::String("optimism".to_string()))
-        );
-        assert_eq!(
-            weth_hash.get(&StrictYaml::String("address".to_string())),
-            Some(&StrictYaml::String(
-                "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string()
-            ))
-        );
-        assert!(!weth_hash.contains_key(&StrictYaml::String("decimals".to_string())));
-        assert!(!weth_hash.contains_key(&StrictYaml::String("label".to_string())));
-        assert!(!weth_hash.contains_key(&StrictYaml::String("symbol".to_string())));
     }
 
     #[test]

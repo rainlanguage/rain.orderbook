@@ -138,22 +138,6 @@ impl YamlParsableHash for DeploymentCfg {
         Ok(deployments)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut deployment_yaml = Hash::new();
-
-        deployment_yaml.insert(
-            StrictYaml::String("scenario".to_string()),
-            StrictYaml::String(self.scenario.key.clone()),
-        );
-
-        deployment_yaml.insert(
-            StrictYaml::String("order".to_string()),
-            StrictYaml::String(self.order.key.clone()),
-        );
-
-        Ok(StrictYaml::Hash(deployment_yaml))
-    }
-
     fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
         for document in documents {
             let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
@@ -247,7 +231,7 @@ impl ParseDeploymentConfigSourceError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test::{mock_deployer, mock_network, mock_orderbook};
+
     use yaml::tests::get_document;
 
     #[test]
@@ -586,102 +570,6 @@ deployments:
 "#;
         let res = DeploymentCfg::parse_order_key(vec![get_document(yaml)], "deployment1").unwrap();
         assert_eq!(res, "order1");
-    }
-
-    #[test]
-    fn test_to_yaml_hash_serializes_deployments() {
-        let deployer = mock_deployer();
-        let network = mock_network();
-
-        let deployment_with_optionals = DeploymentCfg {
-            document: default_document(),
-            key: "with-optionals".to_string(),
-            scenario: Arc::new(ScenarioCfg {
-                document: default_document(),
-                key: "scenario-with-runs".to_string(),
-                bindings: HashMap::new(),
-                runs: Some(3),
-                blocks: None,
-                deployer: deployer.clone(),
-            }),
-            order: Arc::new(OrderCfg {
-                document: default_document(),
-                key: "order-with-orderbook".to_string(),
-                inputs: vec![],
-                outputs: vec![],
-                network: network.clone(),
-                deployer: Some(deployer.clone()),
-                orderbook: Some(mock_orderbook()),
-            }),
-        };
-
-        let deployment_without_optionals = DeploymentCfg {
-            document: default_document(),
-            key: "without-optionals".to_string(),
-            scenario: Arc::new(ScenarioCfg {
-                document: default_document(),
-                key: "scenario-no-optionals".to_string(),
-                bindings: HashMap::new(),
-                runs: None,
-                blocks: None,
-                deployer: deployer.clone(),
-            }),
-            order: Arc::new(OrderCfg {
-                document: default_document(),
-                key: "order-no-optionals".to_string(),
-                inputs: vec![],
-                outputs: vec![],
-                network: network.clone(),
-                deployer: None,
-                orderbook: None,
-            }),
-        };
-
-        let deployments = HashMap::from([
-            (
-                deployment_with_optionals.key.clone(),
-                deployment_with_optionals,
-            ),
-            (
-                deployment_without_optionals.key.clone(),
-                deployment_without_optionals,
-            ),
-        ]);
-
-        let yaml = DeploymentCfg::to_yaml_hash(&deployments).unwrap();
-
-        let StrictYaml::Hash(deployments_hash) = yaml else {
-            panic!("deployments were not serialized to a YAML hash");
-        };
-
-        let with_optionals_hash = deployments_hash
-            .get(&StrictYaml::String("with-optionals".to_string()))
-            .and_then(|value| value.as_hash())
-            .expect("with-optionals deployment missing or not a map");
-        let without_optionals_hash = deployments_hash
-            .get(&StrictYaml::String("without-optionals".to_string()))
-            .and_then(|value| value.as_hash())
-            .expect("without-optionals deployment missing or not a map");
-
-        assert_eq!(
-            with_optionals_hash.get(&StrictYaml::String("scenario".to_string())),
-            Some(&StrictYaml::String("scenario-with-runs".to_string()))
-        );
-        assert_eq!(
-            with_optionals_hash.get(&StrictYaml::String("order".to_string())),
-            Some(&StrictYaml::String("order-with-orderbook".to_string()))
-        );
-        assert_eq!(
-            without_optionals_hash.get(&StrictYaml::String("scenario".to_string())),
-            Some(&StrictYaml::String("scenario-no-optionals".to_string()))
-        );
-        assert_eq!(
-            without_optionals_hash.get(&StrictYaml::String("order".to_string())),
-            Some(&StrictYaml::String("order-no-optionals".to_string()))
-        );
-
-        assert_eq!(with_optionals_hash.len(), 2);
-        assert_eq!(without_optionals_hash.len(), 2);
     }
 
     #[test]

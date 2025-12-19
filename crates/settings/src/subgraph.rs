@@ -140,10 +140,6 @@ impl YamlParsableHash for SubgraphCfg {
 
         Ok(subgraphs)
     }
-
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        Ok(StrictYaml::String(self.url.to_string()))
-    }
 }
 
 impl Default for SubgraphCfg {
@@ -298,46 +294,5 @@ subgraphs:
             error,
             YamlError::KeyShadowing("mainnet".to_string(), "subgraphs".to_string())
         );
-    }
-
-    #[test]
-    fn test_to_yaml_hash_serializes_urls() {
-        let mut subgraphs = HashMap::new();
-        subgraphs.insert(
-            "primary".to_string(),
-            SubgraphCfg {
-                document: Arc::new(RwLock::new(StrictYaml::Hash(Default::default()))),
-                key: "primary".to_string(),
-                url: Url::parse("https://primary.example/subgraph").unwrap(),
-            },
-        );
-        subgraphs.insert(
-            "secondary".to_string(),
-            SubgraphCfg {
-                document: Arc::new(RwLock::new(StrictYaml::Hash(Default::default()))),
-                key: "secondary".to_string(),
-                url: Url::parse("https://secondary.example/subgraph").unwrap(),
-            },
-        );
-
-        let yaml = SubgraphCfg::to_yaml_hash(&subgraphs).unwrap();
-
-        let StrictYaml::Hash(subgraphs_hash) = yaml else {
-            panic!("subgraphs were not serialized to a YAML hash");
-        };
-
-        assert_eq!(
-            subgraphs_hash.get(&StrictYaml::String("primary".to_string())),
-            Some(&StrictYaml::String(
-                "https://primary.example/subgraph".to_string()
-            ))
-        );
-        assert_eq!(
-            subgraphs_hash.get(&StrictYaml::String("secondary".to_string())),
-            Some(&StrictYaml::String(
-                "https://secondary.example/subgraph".to_string()
-            ))
-        );
-        assert_eq!(subgraphs_hash.len(), 2);
     }
 }

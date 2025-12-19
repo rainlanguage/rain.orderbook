@@ -1,6 +1,7 @@
 pub mod cache;
 pub mod context;
 pub mod dotrain;
+pub mod emitter;
 pub mod orderbook;
 
 use crate::{
@@ -79,21 +80,6 @@ pub trait YamlParsableHash: Sized + Clone {
             .cloned()
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError>;
-
-    fn to_yaml_hash(map: &HashMap<String, Self>) -> Result<StrictYaml, YamlError> {
-        let mut yaml_hash = Hash::new();
-
-        let mut entries: Vec<_> = map.iter().collect();
-        entries.sort_by(|(a, _), (b, _)| a.cmp(b));
-
-        for (key, value) in entries {
-            yaml_hash.insert(StrictYaml::String(key.clone()), value.to_yaml_value()?);
-        }
-
-        Ok(StrictYaml::Hash(yaml_hash))
-    }
-
     fn sanitize_documents(_documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
         Ok(())
     }
@@ -121,14 +107,6 @@ pub trait YamlParseableValue: Sized {
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         context: Option<&Context>,
     ) -> Result<Option<Self>, YamlError>;
-
-    fn to_yaml_array(&self) -> Result<StrictYaml, YamlError> {
-        Err(YamlError::TraitFnNotImplemented)
-    }
-
-    fn to_yaml_hash(&self) -> Result<StrictYaml, YamlError> {
-        Err(YamlError::TraitFnNotImplemented)
-    }
 }
 
 pub trait ContextProvider {
@@ -209,8 +187,6 @@ pub enum YamlError {
     #[error("Error while converting to YAML string")]
     ConvertError,
 
-    #[error("Trait function not implemented")]
-    TraitFnNotImplemented,
     #[error("Invalid trait function")]
     InvalidTraitFunction,
 
@@ -347,7 +323,6 @@ impl YamlError {
             YamlError::ConvertError => {
                 "Failed to convert your configuration to YAML format".to_string()
             }
-            YamlError::TraitFnNotImplemented => "The trait function is not implemented".to_string(),
             YamlError::InvalidTraitFunction => {
                 "There is an internal error in the YAML processing".to_string()
             }
@@ -506,19 +481,6 @@ pub fn optional_vec<'a>(value: &'a StrictYaml, field: &str) -> Option<&'a Array>
     value[field].as_vec()
 }
 
-pub fn to_yaml_string_missing_check<T>(
-    result: Result<T, YamlError>,
-) -> Result<Option<T>, YamlError> {
-    match result {
-        Ok(value) => Ok(Some(value)),
-        Err(YamlError::Field {
-            kind: FieldErrorKind::Missing(_),
-            ..
-        }) => Ok(None),
-        Err(err) => Err(err),
-    }
-}
-
 pub fn default_document() -> Arc<RwLock<StrictYaml>> {
     Arc::new(RwLock::new(StrictYaml::String("".to_string())))
 }
@@ -545,46 +507,5 @@ pub mod tests {
     pub fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
         let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
         Arc::new(RwLock::new(document))
-    }
-
-    #[test]
-    fn test_to_yaml_string_missing_check_ok() {
-        let res: Result<u32, YamlError> = Ok(5);
-        let handled = to_yaml_string_missing_check(res).unwrap();
-        assert_eq!(handled, Some(5));
-    }
-
-    #[test]
-    fn test_to_yaml_string_missing_check_missing() {
-        let err = YamlError::Field {
-            kind: FieldErrorKind::Missing("field".to_string()),
-            location: "loc".to_string(),
-        };
-        let handled: Option<u32> = to_yaml_string_missing_check(Err(err)).unwrap();
-        assert!(handled.is_none());
-    }
-
-    #[test]
-    fn test_to_yaml_string_missing_check_other_error() {
-        let err = YamlError::Field {
-            kind: FieldErrorKind::InvalidType {
-                field: "field".to_string(),
-                expected: "a string".to_string(),
-            },
-            location: "loc".to_string(),
-        };
-        match to_yaml_string_missing_check::<u32>(Err(err)) {
-            Err(returned) => assert_eq!(
-                returned,
-                YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "field".to_string(),
-                        expected: "a string".to_string(),
-                    },
-                    location: "loc".to_string(),
-                }
-            ),
-            Ok(_) => panic!("expected error"),
-        }
     }
 }

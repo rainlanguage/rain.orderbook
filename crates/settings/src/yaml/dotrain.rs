@@ -9,7 +9,7 @@ use std::{
     fmt,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
+use strict_yaml_rust::StrictYaml;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -260,67 +260,6 @@ impl DotrainYaml {
     pub fn get_chart(&self, key: &str) -> Result<ChartCfg, YamlError> {
         let context = self.build_context(&self.profile)?;
         ChartCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
-    }
-
-    pub fn to_yaml_string(&self) -> Result<String, YamlError> {
-        let context = self.build_context(&self.profile)?;
-        let mut yaml_hash = Hash::new();
-
-        let orders = to_yaml_string_missing_check(OrderCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(orders) = orders {
-            if !orders.is_empty() {
-                let orders_yaml = OrderCfg::to_yaml_hash(&orders)?;
-                yaml_hash.insert(StrictYaml::String("orders".to_string()), orders_yaml);
-            }
-        }
-
-        let scenarios = to_yaml_string_missing_check(ScenarioCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(scenarios) = scenarios {
-            if !scenarios.is_empty() {
-                let scenarios_yaml = ScenarioCfg::to_yaml_hash(&scenarios)?;
-                yaml_hash.insert(StrictYaml::String("scenarios".to_string()), scenarios_yaml);
-            }
-        }
-
-        let deployments = to_yaml_string_missing_check(DeploymentCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(deployments) = deployments {
-            if !deployments.is_empty() {
-                let deployments_yaml = DeploymentCfg::to_yaml_hash(&deployments)?;
-                yaml_hash.insert(
-                    StrictYaml::String("deployments".to_string()),
-                    deployments_yaml,
-                );
-            }
-        }
-
-        if let Some(gui) = GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
-        {
-            let gui_yaml = gui.to_yaml_hash()?;
-            yaml_hash.insert(StrictYaml::String("gui".to_string()), gui_yaml);
-        }
-
-        let charts = to_yaml_string_missing_check(ChartCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(charts) = charts {
-            if !charts.is_empty() {
-                let charts_yaml = ChartCfg::to_yaml_hash(&charts)?;
-                yaml_hash.insert(StrictYaml::String("charts".to_string()), charts_yaml);
-            }
-        }
-
-        let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
-        Self::get_yaml_string(document)
     }
 }
 
@@ -583,38 +522,6 @@ mod tests {
                     margin-top: 40
                     margin-bottom: 50
                     inset: 60
-    "#;
-
-    const ORDERBOOK_CONTEXT_YAML: &str = r#"
-    networks:
-        mainnet:
-            rpcs:
-                - https://mainnet.infura.io
-            chain-id: 1
-        testnet:
-            rpcs:
-                - https://testnet.infura.io
-            chain-id: 1337
-    tokens:
-        token1:
-            network: mainnet
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            decimals: 18
-            label: Wrapped Ether
-            symbol: WETH
-        token2:
-            network: mainnet
-            address: 0x0000000000000000000000000000000000000002
-            decimals: 6
-            label: USD Coin
-            symbol: USDC
-    deployers:
-        scenario1:
-            address: 0x0000000000000000000000000000000000000002
-            network: mainnet
-        deployer2:
-            address: 0x0000000000000000000000000000000000000003
-            network: testnet
     "#;
 
     const HANDLEBARS_YAML: &str = r#"
@@ -1283,117 +1190,6 @@ mod tests {
         let order = dotrain_yaml.get_order("order1").unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(3)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(33)));
-    }
-
-    #[test]
-    fn test_to_yaml_string_skips_missing_sections() {
-        let yaml = r#"
-networks:
-  mainnet:
-    rpcs:
-      - https://mainnet.infura.io
-    chain-id: 1
-tokens:
-  token1:
-    network: mainnet
-    address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-orders:
-  order1:
-    inputs:
-      - token: token1
-    outputs:
-      - token: token1
-"#;
-
-        let dotrain_yaml =
-            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
-        let yaml_string = dotrain_yaml.to_yaml_string().unwrap();
-
-        assert!(yaml_string.contains("orders"));
-        assert!(!yaml_string.contains("scenarios"));
-        assert!(!yaml_string.contains("deployments"));
-        assert!(!yaml_string.contains("networks"));
-        assert!(!yaml_string.contains("tokens"));
-        assert!(!yaml_string.contains("deployers"));
-        assert!(!yaml_string.contains("orderbooks"));
-        assert!(!yaml_string.contains("gui"));
-        assert!(!yaml_string.contains("charts"));
-    }
-
-    #[test]
-    fn test_to_yaml_string_propagates_non_missing_errors() {
-        let yaml = r#"
-networks:
-  mainnet:
-    rpcs:
-      - https://mainnet.infura.io
-    chain-id: 1
-tokens:
-  token1:
-    network: mainnet
-    address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-orders:
-  order1:
-    inputs:
-      - token: token1
-        vault-id: not-a-number
-    outputs:
-      - token: token1
-"#;
-
-        let dotrain_yaml =
-            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
-
-        let err = dotrain_yaml.to_yaml_string().unwrap_err();
-        assert!(matches!(
-            err,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidValue { .. },
-                location
-            } if location == "input index '0' in order 'order1'"
-        ));
-    }
-
-    #[test]
-    fn test_to_yaml_string_round_trip_all_sections() {
-        let dotrain_yaml = DotrainYaml::new(
-            vec![FULL_YAML.to_string()],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
-
-        let yaml_string = dotrain_yaml.to_yaml_string().unwrap();
-        let new_dotrain_yaml = DotrainYaml::new(
-            vec![ORDERBOOK_CONTEXT_YAML.to_string(), yaml_string],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
-
-        let original_order = dotrain_yaml.get_order("order1").unwrap();
-        let new_order = new_dotrain_yaml.get_order("order1").unwrap();
-        assert_eq!(original_order, new_order);
-
-        let original_scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
-        let new_scenario = new_dotrain_yaml.get_scenario("scenario1").unwrap();
-        assert_eq!(original_scenario, new_scenario);
-
-        let original_child_scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
-        let new_child_scenario = new_dotrain_yaml
-            .get_scenario("scenario1.scenario2")
-            .unwrap();
-        assert_eq!(original_child_scenario, new_child_scenario);
-
-        let original_deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
-        let new_deployment = new_dotrain_yaml.get_deployment("deployment1").unwrap();
-        assert_eq!(original_deployment, new_deployment);
-
-        let original_gui = dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
-        let new_gui = new_dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
-        assert_eq!(original_gui, new_gui);
-
-        let original_chart = dotrain_yaml.get_chart("chart1").unwrap();
-        let new_chart = new_dotrain_yaml.get_chart("chart1").unwrap();
-        assert_eq!(original_chart, new_chart);
     }
 
     #[test]

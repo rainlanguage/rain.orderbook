@@ -208,44 +208,6 @@ impl YamlParsableHash for OrderbookCfg {
         Ok(orderbooks)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut orderbook_yaml = Hash::new();
-
-        orderbook_yaml.insert(
-            StrictYaml::String("address".to_string()),
-            StrictYaml::String(alloy::hex::encode_prefixed(self.address)),
-        );
-        orderbook_yaml.insert(
-            StrictYaml::String("network".to_string()),
-            StrictYaml::String(self.network.key.clone()),
-        );
-        orderbook_yaml.insert(
-            StrictYaml::String("subgraph".to_string()),
-            StrictYaml::String(self.subgraph.key.clone()),
-        );
-
-        if let Some(local_db_remote) = &self.local_db_remote {
-            orderbook_yaml.insert(
-                StrictYaml::String("local-db-remote".to_string()),
-                StrictYaml::String(local_db_remote.key.clone()),
-            );
-        }
-
-        if let Some(label) = &self.label {
-            orderbook_yaml.insert(
-                StrictYaml::String("label".to_string()),
-                StrictYaml::String(label.clone()),
-            );
-        }
-
-        orderbook_yaml.insert(
-            StrictYaml::String("deployment-block".to_string()),
-            StrictYaml::String(self.deployment_block.to_string()),
-        );
-
-        Ok(StrictYaml::Hash(orderbook_yaml))
-    }
-
     fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
         for document in documents {
             let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
@@ -358,8 +320,6 @@ impl ParseOrderbookConfigSourceError {
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
-    use std::str::FromStr;
-    use url::Url;
 
     #[test]
     fn test_parse_orderbooks_from_yaml() {
@@ -998,121 +958,6 @@ orderbooks:
         let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         let ob = orderbooks.get("TestOrderbook").unwrap();
         assert!(ob.local_db_remote.is_none());
-    }
-
-    #[test]
-    fn test_to_yaml_hash_serializes_all_fields() {
-        let network = Arc::new(NetworkCfg {
-            document: default_document(),
-            key: "mainnet".to_string(),
-            rpcs: vec![Url::parse("https://rpc.mainnet.example").unwrap()],
-            chain_id: 1,
-            label: None,
-            network_id: None,
-            currency: None,
-        });
-        let subgraph = Arc::new(SubgraphCfg {
-            document: default_document(),
-            key: "mainnet".to_string(),
-            url: Url::parse("https://subgraph.example/mainnet").unwrap(),
-        });
-        let local_db_remote = Arc::new(LocalDbRemoteCfg {
-            document: default_document(),
-            key: "mainnet-remote".to_string(),
-            url: Url::parse("https://example.com/localdb/mainnet").unwrap(),
-        });
-
-        let mut orderbooks = HashMap::new();
-        orderbooks.insert(
-            "primary".to_string(),
-            OrderbookCfg {
-                document: default_document(),
-                key: "primary".to_string(),
-                address: Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
-                network: Arc::clone(&network),
-                subgraph: Arc::clone(&subgraph),
-                local_db_remote: Some(Arc::clone(&local_db_remote)),
-                label: Some("Primary Orderbook".to_string()),
-                deployment_block: 12345,
-            },
-        );
-        orderbooks.insert(
-            "secondary".to_string(),
-            OrderbookCfg {
-                document: default_document(),
-                key: "secondary".to_string(),
-                address: Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
-                network,
-                subgraph,
-                local_db_remote: None,
-                label: None,
-                deployment_block: 67890,
-            },
-        );
-
-        let yaml = OrderbookCfg::to_yaml_hash(&orderbooks).unwrap();
-
-        let StrictYaml::Hash(orderbooks_hash) = yaml else {
-            panic!("orderbooks were not serialized to a YAML hash");
-        };
-        let Some(StrictYaml::Hash(primary_hash)) =
-            orderbooks_hash.get(&StrictYaml::String("primary".to_string()))
-        else {
-            panic!("primary orderbook missing from serialized YAML");
-        };
-        let Some(StrictYaml::Hash(secondary_hash)) =
-            orderbooks_hash.get(&StrictYaml::String("secondary".to_string()))
-        else {
-            panic!("secondary orderbook missing from serialized YAML");
-        };
-
-        assert_eq!(
-            primary_hash.get(&StrictYaml::String("address".to_string())),
-            Some(&StrictYaml::String(
-                "0x0000000000000000000000000000000000000001".to_string()
-            ))
-        );
-        assert_eq!(
-            primary_hash.get(&StrictYaml::String("network".to_string())),
-            Some(&StrictYaml::String("mainnet".to_string()))
-        );
-        assert_eq!(
-            primary_hash.get(&StrictYaml::String("subgraph".to_string())),
-            Some(&StrictYaml::String("mainnet".to_string()))
-        );
-        assert_eq!(
-            primary_hash.get(&StrictYaml::String("local-db-remote".to_string())),
-            Some(&StrictYaml::String("mainnet-remote".to_string()))
-        );
-        assert_eq!(
-            primary_hash.get(&StrictYaml::String("label".to_string())),
-            Some(&StrictYaml::String("Primary Orderbook".to_string()))
-        );
-        assert_eq!(
-            primary_hash.get(&StrictYaml::String("deployment-block".to_string())),
-            Some(&StrictYaml::String("12345".to_string()))
-        );
-
-        assert_eq!(
-            secondary_hash.get(&StrictYaml::String("address".to_string())),
-            Some(&StrictYaml::String(
-                "0x0000000000000000000000000000000000000002".to_string()
-            ))
-        );
-        assert_eq!(
-            secondary_hash.get(&StrictYaml::String("network".to_string())),
-            Some(&StrictYaml::String("mainnet".to_string()))
-        );
-        assert_eq!(
-            secondary_hash.get(&StrictYaml::String("subgraph".to_string())),
-            Some(&StrictYaml::String("mainnet".to_string()))
-        );
-        assert_eq!(
-            secondary_hash.get(&StrictYaml::String("deployment-block".to_string())),
-            Some(&StrictYaml::String("67890".to_string()))
-        );
-        assert!(!secondary_hash.contains_key(&StrictYaml::String("label".to_string())));
-        assert!(!secondary_hash.contains_key(&StrictYaml::String("local-db-remote".to_string())));
     }
 
     #[test]
