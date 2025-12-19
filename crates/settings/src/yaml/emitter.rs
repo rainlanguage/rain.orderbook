@@ -104,3 +104,359 @@ fn emit_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<String, YamlE
 
     Ok(out_str)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::yaml::tests::get_document;
+
+    #[test]
+    fn test_emit_single_document() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("networks:"));
+        assert!(output.contains("mainnet:"));
+    }
+
+    #[test]
+    fn test_emit_multiple_documents_merges() {
+        let yaml1 = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let yaml2 = r#"
+tokens:
+    weth:
+        network: mainnet
+        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+        decimals: 18
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml1), get_document(yaml2)], None);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("networks:"));
+        assert!(output.contains("tokens:"));
+    }
+
+    #[test]
+    fn test_emit_duplicate_key_causes_error() {
+        let yaml1 = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://old-rpc.com
+        chain-id: 1
+"#;
+        let yaml2 = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://new-rpc.com
+        chain-id: 1
+"#;
+        let error = validate_and_emit_documents(&[get_document(yaml1), get_document(yaml2)], None)
+            .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::KeyShadowing("mainnet".to_string(), "networks".to_string())
+        );
+    }
+
+    #[test]
+    fn test_emit_strips_yaml_prefix() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(!output.starts_with("---"));
+    }
+
+    #[test]
+    fn test_emit_empty_documents() {
+        let result = validate_and_emit_documents(&[], None);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.trim().is_empty() || output.trim() == "{}");
+    }
+
+    #[test]
+    fn test_emit_non_hash_document_skipped() {
+        let yaml = r#"
+- item1
+- item2
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_complete_yaml() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    weth:
+        network: mainnet
+        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+        decimals: 18
+deployers:
+    deployer1:
+        network: mainnet
+        address: 0x0000000000000000000000000000000000000001
+subgraphs:
+    sg1: https://api.thegraph.com/subgraphs
+orderbooks:
+    ob1:
+        network: mainnet
+        address: 0x0000000000000000000000000000000000000002
+        subgraph: sg1
+        deployment-block: 1
+orders:
+    order1:
+        deployer: deployer1
+        orderbook: ob1
+        inputs:
+            - token: weth
+        outputs:
+            - token: weth
+scenarios:
+    scenario1:
+        deployer: deployer1
+        bindings:
+            key: value
+deployments:
+    deploy1:
+        order: order1
+        scenario: scenario1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("networks:"));
+        assert!(output.contains("tokens:"));
+        assert!(output.contains("deployers:"));
+        assert!(output.contains("orders:"));
+        assert!(output.contains("scenarios:"));
+        assert!(output.contains("deployments:"));
+    }
+
+    #[test]
+    fn test_validate_minimal_yaml() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_empty_yaml() {
+        let yaml = r#"
+test: value
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_invalid_network_chain_id() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: not-a-number
+"#;
+        let error = validate_and_emit_documents(&[get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "chain-id".to_string(),
+                    reason: "invalid digit found in string".to_string()
+                },
+                location: "network 'mainnet'".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn test_validate_invalid_network_rpc_url() {
+        use crate::network::ParseNetworkConfigSourceError;
+
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - not-a-valid-url
+        chain-id: 1
+"#;
+        let error = validate_and_emit_documents(&[get_document(yaml)], None).unwrap_err();
+        assert!(matches!(
+            error,
+            YamlError::ParseNetworkConfigSourceError(ParseNetworkConfigSourceError::RpcParseError(
+                _
+            ))
+        ));
+    }
+
+    #[test]
+    fn test_validate_invalid_token_address() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+tokens:
+    weth:
+        network: mainnet
+        address: invalid-address
+        decimals: 18
+"#;
+        let error = validate_and_emit_documents(&[get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "address".to_string(),
+                    reason: "Failed to parse address".to_string()
+                },
+                location: "token 'weth'".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn test_validate_invalid_deployer_address() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        network: mainnet
+        address: invalid-address
+"#;
+        let error = validate_and_emit_documents(&[get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "address".to_string(),
+                    reason: "Failed to parse address".to_string()
+                },
+                location: "deployer 'deployer1'".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn test_validate_invalid_order_missing_deployer() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+orders:
+    order1:
+        deployer: nonexistent
+        inputs:
+            - token: weth
+        outputs:
+            - token: weth
+"#;
+        let error = validate_and_emit_documents(&[get_document(yaml)], None).unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "deployers".to_string(),
+                    reason: "Missing required field 'deployers' in root".to_string()
+                },
+                location: "root".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_validate_spec_version_valid() {
+        let yaml = r#"
+version: 4
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_spec_version_missing_ok() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_sentry_valid() {
+        let yaml = r#"
+sentry: https://sentry.example.com/123
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_validate_sentry_missing_ok() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+    }
+}
