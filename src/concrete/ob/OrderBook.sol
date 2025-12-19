@@ -444,13 +444,13 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
 
         {
-            Float remainingTakerInput = config.maximumInput;
-            if (!remainingTakerInput.gt(Float.wrap(0))) {
+            Float remainingTakerIO = config.maximumIO;
+            if (!remainingTakerIO.gt(Float.wrap(0))) {
                 revert ZeroMaximumInput();
             }
 
             uint256 i = 0;
-            while (i < config.orders.length && remainingTakerInput.gt(Float.wrap(0))) {
+            while (i < config.orders.length && remainingTakerIO.gt(Float.wrap(0))) {
                 takeOrderConfig = config.orders[i];
                 order = takeOrderConfig.order;
                 // Every order needs the same input token.
@@ -485,13 +485,16 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     } else if (orderIOCalculation.outputMax.isZero()) {
                         emit OrderZeroAmount(msg.sender, order.owner, orderHash);
                     } else {
-                        // Taker is just "market buying" the order output max.
-                        // Can't exceed the remaining taker input.
-                        Float takerInput = orderIOCalculation.outputMax.min(remainingTakerInput);
+                        Float takerInput;
+                        Float takerOutput;
+                        if (config.IOIsInput) {
+                            // Taker is just "market buying" the order output max.
+                            // Can't exceed the remaining taker input.
+                            takerInput = orderIOCalculation.outputMax.min(remainingTakerIO);
+                            takerOutput = orderIOCalculation.IORatio.mul(takerInput);
 
-                        Float takerOutput = orderIOCalculation.IORatio.mul(takerInput);
-
-                        remainingTakerInput = remainingTakerInput.sub(takerInput);
+                            remainingTakerIO = remainingTakerIO.sub(takerInput);
+                        } else {}
 
                         totalTakerOutput = totalTakerOutput.add(takerOutput);
                         totalTakerInput = totalTakerInput.add(takerInput);
@@ -519,8 +522,11 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             }
         }
 
-        if (totalTakerInput.lt(config.minimumInput)) {
-            revert MinimumInput(config.minimumInput, totalTakerInput);
+        {
+            Float actualRelevantTakerIO = config.IOIsInput ? totalTakerInput : totalTakerOutput;
+            if (actualRelevantTakerIO.lt(config.minimumIO)) {
+                revert MinimumInput(config.minimumIO, actualRelevantTakerIO);
+            }
         }
 
         // We send the tokens to `msg.sender` first adopting a similar pattern to
