@@ -117,9 +117,6 @@ pub async fn find_failing_order_index(
     if num_orders == 0 {
         return None;
     }
-    if num_orders == 1 {
-        return Some(0);
-    }
 
     let min_input = config.minimumInput;
 
