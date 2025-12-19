@@ -11,6 +11,27 @@ use crate::{
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml, StrictYamlEmitter};
 
+const CANONICAL_ROOT_KEYS: &[&str] = &[
+    "version",
+    "sentry",
+    "networks",
+    "subgraphs",
+    "metaboards",
+    "tokens",
+    "deployers",
+    "orderbooks",
+    "orders",
+    "scenarios",
+    "deployments",
+    "charts",
+    "gui",
+    "accounts",
+    "remote-networks",
+    "remote-tokens",
+    "local-db-remotes",
+    "local-db-syncs",
+];
+
 pub fn validate_and_emit_documents(
     documents: &[Arc<RwLock<StrictYaml>>],
     context: Option<&Context>,
@@ -91,7 +112,15 @@ fn emit_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<String, YamlE
         }
     }
 
-    let merged_doc = StrictYaml::Hash(merged_hash);
+    let mut ordered_hash = Hash::new();
+    for key_str in CANONICAL_ROOT_KEYS {
+        let key = StrictYaml::String((*key_str).to_string());
+        if let Some(value) = merged_hash.remove(&key) {
+            ordered_hash.insert(key, value);
+        }
+    }
+
+    let merged_doc = StrictYaml::Hash(ordered_hash);
     let mut out_str = String::new();
     let mut emitter = StrictYamlEmitter::new(&mut out_str);
     emitter.dump(&merged_doc)?;
@@ -275,11 +304,10 @@ networks:
 
     #[test]
     fn test_validate_empty_yaml() {
-        let yaml = r#"
-test: value
-"#;
-        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        let result = validate_and_emit_documents(&[], None);
         assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.trim().is_empty() || output.trim() == "{}");
     }
 
     #[test]
@@ -458,5 +486,56 @@ networks:
 "#;
         let result = validate_and_emit_documents(&[get_document(yaml)], None);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_unknown_root_key_dropped() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+unknown-key: some-value
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("networks:"));
+        assert!(!output.contains("unknown-key"));
+    }
+
+    #[test]
+    fn test_emit_canonical_order() {
+        let yaml = r#"
+tokens:
+    weth:
+        network: mainnet
+        address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+        decimals: 18
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        network: mainnet
+        address: 0x0000000000000000000000000000000000000001
+"#;
+        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        let networks_pos = output.find("networks:").unwrap();
+        let tokens_pos = output.find("tokens:").unwrap();
+        let deployers_pos = output.find("deployers:").unwrap();
+        assert!(
+            networks_pos < tokens_pos,
+            "networks should come before tokens"
+        );
+        assert!(
+            tokens_pos < deployers_pos,
+            "tokens should come before deployers"
+        );
     }
 }
