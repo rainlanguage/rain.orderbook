@@ -16,8 +16,7 @@ import {
 	TokenInfo,
 	AllGuiConfig,
 	WasmEncodedResult,
-	FieldValue,
-	Float
+	FieldValue
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
@@ -137,7 +136,7 @@ gui:
 `;
 
 const dotrain = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -216,7 +215,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -288,7 +287,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 3
+version: 4
 networks:
     some-network:
         rpcs:
@@ -345,7 +344,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 3
+version: 4
 gui:
   name: Test
   description: Fixed limit order
@@ -397,11 +396,13 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
+        local-db-remote: remote
         deployment-block: 12345
     other-orderbook:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
+        local-db-remote: remote
         deployment-block: 12345
 using-tokens-from:
   - http://localhost:8085/remote-tokens
@@ -968,7 +969,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QsU7DMBDNBQQSYkCIFQmJFRPHUqpSlYUKEamMiUjHNjWkqmsbxy2lfAQjKz9Q8QWsbHwPYkMRZ0oEN_id772z3x1437GNaHlpyWAkhyN5A1ij3tZvdtYXU-5jZcMxasxl6LlYR4zocaMmYT-SNcSQUvjvMVa_OYOlmnAiub1TZuz69hELa3UrCITK-6JQpW01aTMKjM7J1IiHSgHVCe7r8yTew_Sx_bE8fG8vX5-il8_MZydvzznswibSSeXhgIEbO2G-t4r6EsDZCuHPTCvuCBNCzUUcLrpJNu-Fl0pfDW67nc4s42zRI6WaX8eFznXjLE3T0x3sUbbghgy5Fup-wqX9AlyGsB3FAQAA';
+			'H4sIAAAAAAAA_21Qy0rEMBTtraIgLkTcCoJba9MwteMwrnxQRHBTZXQjM53YlKZJaZMO4ke4dOsPDH6BW3d-j7iTYuJMmbmLnOSec5NzAtZfbWqUpJLOKOXjlCege8jamGfrIVPE1p01w4iMcM8ytarRR4dHLQn-l6xo9BCCZZfh9skYrEROHE7kRJSZmdvVSKUseq7LRDxkVFSy10Vd3y2L2FEle24U0Kxgnj6Pwh29fel_T_e_-tOPV__9Z2Dj48-3GLZhXdNR42EPg4kdYduaVfsTwNjyYCHTjDsweVKlqLx3itMsGdCL64R3gqBWQZJ3rkY30e2kvgv9h_Dx8kycbOkZISkpnTEpmHjKCZe_KJd7OsUBAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1217,7 +1218,7 @@ ${dotrain}`;
 			assert.equal(
 				// @ts-expect-error - result is valid
 				result.Calldatas[0].calldata,
-				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
 			);
 
 			// Test no deposits case
@@ -1229,20 +1230,54 @@ ${dotrain}`;
 			assert.equal(emptyResult, 'NoDeposits');
 		});
 
+		it('overwrites approvals when allowance is higher than deposit', async () => {
+			// decimal call
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			// allowance - 5000 * 10^18
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000010f0cf064dd59200000'
+				);
+
+			gui.unsetDeposit('token1');
+			await gui.setDeposit('token2', '2000');
+
+			const result = extractWasmEncodedData<ApprovalCalldataResult>(
+				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
+			);
+
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 1);
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas[0].token, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
+			assert.equal(
+				// @ts-expect-error - result is valid
+				result.Calldatas[0].calldata,
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000006c6b935b8bbd400000'
+			);
+		});
+
 		it('generates deposit calldatas', async () => {
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xf0cfdd37')
+				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
-			// iStore() call
+			// I_STORE()() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xc19423bc')
+				.withBodyIncluding('0x251ac32e')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
-			// iParser() call
+			// I_PARSER() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0x24376855')
+				.withBodyIncluding('0xf79693f4')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
 			// parse2() call
 			await mockServer
@@ -1280,17 +1315,17 @@ ${dotrain}`;
 		it('generates add order calldata', async () => {
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xf0cfdd37')
+				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
-			// iStore() call
+			// I_STORE()() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xc19423bc')
+				.withBodyIncluding('0x251ac32e')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
-			// iParser() call
+			// I_PARSER() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0x24376855')
+				.withBodyIncluding('0xf79693f4')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
 			// parse2() call
 			await mockServer
@@ -1317,17 +1352,17 @@ ${dotrain}`;
 		it('generates add order calldata without entering field value', async () => {
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xf0cfdd37')
+				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
-			// iStore() call
+			// I_STORE()() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xc19423bc')
+				.withBodyIncluding('0x251ac32e')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
-			// iParser() call
+			// I_PARSER() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0x24376855')
+				.withBodyIncluding('0xf79693f4')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
 			// parse2() call
 			await mockServer
@@ -1352,17 +1387,17 @@ ${dotrain}`;
 		it('should generate multicalldata for deposit and add order with existing vault ids', async () => {
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xf0cfdd37')
+				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
-			// iStore() call
+			// I_STORE()() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xc19423bc')
+				.withBodyIncluding('0x251ac32e')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
-			// iParser() call
+			// I_PARSER() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0x24376855')
+				.withBodyIncluding('0xf79693f4')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
 			// parse2() call
 			await mockServer
@@ -1394,17 +1429,17 @@ ${dotrain}`;
 		it('should generate multicalldata for deposit and add order with missing field value', async () => {
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xf0cfdd37')
+				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
-			// iStore() call
+			// I_STORE()() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xc19423bc')
+				.withBodyIncluding('0x251ac32e')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
-			// iParser() call
+			// I_PARSER() call
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0x24376855')
+				.withBodyIncluding('0xf79693f4')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
 			// parse2() call
 			await mockServer
@@ -1458,15 +1493,15 @@ ${dotrainWithoutVaultIds}`;
 
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xf0cfdd37')
+				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xc19423bc')
+				.withBodyIncluding('0x251ac32e')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0x24376855')
+				.withBodyIncluding('0xf79693f4')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
 			await mockServer
 				.forPost('/rpc-url')
@@ -1742,15 +1777,15 @@ ${dotrainWithoutVaultIds}`;
 				);
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xf0cfdd37')
+				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0xc19423bc')
+				.withBodyIncluding('0x251ac32e')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '2'.repeat(40)}`);
 			await mockServer
 				.forPost('/rpc-url')
-				.withBodyIncluding('0x24376855')
+				.withBodyIncluding('0xf79693f4')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '3'.repeat(40)}`);
 			await mockServer
 				.forPost('/rpc-url')
@@ -1769,7 +1804,7 @@ ${dotrainWithoutVaultIds}`;
 			assert.equal(result.approvals.length, 1);
 			assert.equal(
 				result.approvals[0].calldata,
-				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a60000000000000000000000000000000000000000000000d8d726b7177a800000'
+				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
 			assert.equal(result.deploymentCalldata.length, 3018);
@@ -2048,7 +2083,7 @@ ${dotrainWithoutVaultIds}`;
 				)
 			);
 			assert.equal(result.balance.toFixedDecimal(18).value, BigInt(1000));
-			assert.equal(result.formattedBalance, '0.000000000000001');
+			assert.equal(result.formattedBalance, '1e-15');
 		});
 	});
 

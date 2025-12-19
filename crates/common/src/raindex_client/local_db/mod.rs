@@ -1,159 +1,113 @@
-pub mod decode;
-pub mod fetch;
-pub mod insert;
-pub mod query;
-pub mod sync;
-pub mod token_fetch;
-pub mod tokens;
-
-use super::*;
-use crate::rpc_client::{LogEntryResponse, RpcClient, RpcClientError};
-use alloy::primitives::ruint::ParseError;
-use alloy::primitives::{hex::FromHexError, Address};
-use decode::{decode_events as decode_events_impl, DecodedEvent, DecodedEventData};
-pub use fetch::FetchConfig;
-use insert::{
-    decoded_events_to_sql as decoded_events_to_sql_impl,
-    raw_events_to_sql as raw_events_to_sql_impl,
+use super::{RaindexClient, RaindexError};
+use crate::local_db::query::{
+    FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
 };
-use query::LocalDbQueryError;
-use std::collections::HashMap;
-use url::Url;
+use crate::local_db::LocalDbError;
+use executor::JsCallbackExecutor;
+use pipeline::runner::scheduler;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{fmt, future::Future, pin::Pin, rc::Rc};
+use tsify::Tsify;
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
+pub mod executor;
+pub mod orders;
+pub mod pipeline;
+pub mod query;
+pub mod vaults;
 
-#[derive(Debug, Clone)]
-#[wasm_bindgen]
-pub struct LocalDb {
-    rpc_client: RpcClient,
+type ExecuteBatchFn =
+    dyn Fn(
+        &SqlStatementBatch,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
+
+type QueryTextFn =
+    dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<String, LocalDbQueryError>> + 'static>>;
+
+type QueryJsonFn =
+    dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<Value, LocalDbQueryError>> + 'static>>;
+
+#[derive(Clone)]
+pub(crate) struct LocalDb {
+    execute_batch_fn: Rc<ExecuteBatchFn>,
+    query_text_fn: Rc<QueryTextFn>,
+    query_json_fn: Rc<QueryJsonFn>,
 }
 
-impl Default for LocalDb {
-    fn default() -> Self {
-        let url = Url::parse("foo://example.com").unwrap();
-        let rpc_client = RpcClient::new_with_urls(vec![url]).unwrap();
-        Self { rpc_client }
+impl LocalDb {
+    pub(crate) fn new<E>(executor: E) -> Self
+    where
+        E: LocalDbQueryExecutor + Sync + 'static,
+    {
+        let exec = Rc::new(executor);
+
+        let execute_batch_fn: Rc<ExecuteBatchFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |batch: &SqlStatementBatch| {
+                let exec = Rc::clone(&exec);
+                let batch = batch.clone();
+                Box::pin(async move { exec.execute_batch(&batch).await })
+            })
+        };
+
+        let query_text_fn: Rc<QueryTextFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |stmt: &SqlStatement| {
+                let exec = Rc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_text(&stmt).await })
+            })
+        };
+
+        let query_json_fn: Rc<QueryJsonFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move |stmt: &SqlStatement| {
+                let exec = Rc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_json::<Value>(&stmt).await })
+            })
+        };
+
+        Self {
+            execute_batch_fn,
+            query_text_fn,
+            query_json_fn,
+        }
+    }
+
+    pub(crate) fn from_js_callback(callback: js_sys::Function) -> Self {
+        Self::new(JsCallbackExecutor::new(callback))
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum LocalDbError {
-    #[error("{0}")]
-    CustomError(String),
-
-    #[error("HTTP request failed")]
-    Http(#[from] reqwest::Error),
-
-    #[error("RPC error")]
-    Rpc(#[from] RpcClientError),
-
-    #[error("JSON parsing failed")]
-    JsonParse(#[from] serde_json::Error),
-
-    #[error("Missing field: {field}")]
-    MissingField { field: String },
-
-    #[error("Invalid block number '{value}'")]
-    InvalidBlockNumber {
-        value: String,
-        #[source]
-        source: ParseError,
-    },
-
-    #[error("Events is not in expected array format")]
-    InvalidEventsFormat,
-
-    #[error("Network request timed out")]
-    Timeout,
-
-    #[error("Configuration error: {message}")]
-    Config { message: String },
-
-    #[error("Event decoding error: {message}")]
-    DecodeError { message: String },
-
-    #[error("Database insertion error: {message}")]
-    InsertError { message: String },
-
-    #[error("Failed to check required tables")]
-    TableCheckFailed(#[source] LocalDbQueryError),
-
-    #[error("Failed to read sync status")]
-    SyncStatusReadFailed(#[source] LocalDbQueryError),
-
-    #[error("Failed to load orderbook configuration")]
-    OrderbookConfigNotFound(#[source] Box<RaindexError>),
-
-    #[error("Failed to fetch events")]
-    FetchEventsFailed(#[source] Box<LocalDbError>),
-
-    #[error("Failed to decode events")]
-    DecodeEventsFailed(#[source] Box<LocalDbError>),
-
-    #[error("Failed to generate SQL from events")]
-    SqlGenerationFailed(#[source] Box<LocalDbError>),
-
-    #[error("HTTP request failed with status: {status}")]
-    HttpStatus { status: u16 },
-
-    #[error(transparent)]
-    LocalDbQueryError(#[from] LocalDbQueryError),
-
-    #[error(transparent)]
-    IoError(#[from] std::io::Error),
-
-    #[error(transparent)]
-    FromHexError(#[from] FromHexError),
+impl fmt::Debug for LocalDb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LocalDb").finish()
+    }
 }
 
-impl LocalDbError {
-    pub fn to_readable_msg(&self) -> String {
-        match self {
-            LocalDbError::CustomError(msg) => msg.clone(),
-            LocalDbError::Http(err) => format!("HTTP request failed: {}", err),
-            LocalDbError::Rpc(err) => format!("RPC error: {}", err),
-            LocalDbError::JsonParse(err) => format!("Failed to parse JSON response: {}", err),
-            LocalDbError::MissingField { field } => format!("Missing expected field: {}", field),
-            LocalDbError::InvalidBlockNumber { value, .. } => {
-                format!("Invalid block number provided: {}", value)
-            }
-            LocalDbError::InvalidEventsFormat => {
-                "Events data is not in the expected array format".to_string()
-            }
-            LocalDbError::Timeout => "Network request timed out".to_string(),
-            LocalDbError::Config { message } => format!("Configuration error: {}", message),
-            LocalDbError::DecodeError { message } => format!("Event decoding error: {}", message),
-            LocalDbError::InsertError { message } => {
-                format!("Database insertion error: {}", message)
-            }
-            LocalDbError::TableCheckFailed(err) => {
-                format!("Failed to check required tables: {}", err)
-            }
-            LocalDbError::SyncStatusReadFailed(err) => {
-                format!("Failed to read sync status: {}", err)
-            }
-            LocalDbError::OrderbookConfigNotFound(err) => {
-                format!("Failed to load orderbook configuration: {}", err)
-            }
-            LocalDbError::FetchEventsFailed(err) => {
-                format!("Failed to fetch events: {}", err.to_readable_msg())
-            }
-            LocalDbError::DecodeEventsFailed(err) => {
-                format!("Failed to decode events: {}", err.to_readable_msg())
-            }
-            LocalDbError::SqlGenerationFailed(err) => {
-                format!(
-                    "Failed to generate SQL from events: {}",
-                    err.to_readable_msg()
-                )
-            }
-            LocalDbError::HttpStatus { status } => {
-                format!("HTTP request failed with status code: {}", status)
-            }
-            LocalDbError::LocalDbQueryError(err) => format!("Database query error: {}", err),
-            LocalDbError::IoError(err) => format!("I/O error: {}", err),
-            LocalDbError::FromHexError(err) => format!("Hex decoding error: {}", err),
-        }
+#[async_trait::async_trait(?Send)]
+impl LocalDbQueryExecutor for LocalDb {
+    async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+        (self.execute_batch_fn)(batch).await
+    }
+
+    async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+    where
+        T: FromDbJson,
+    {
+        let value = (self.query_json_fn)(stmt).await?;
+        serde_json::from_value(value)
+            .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
+    }
+
+    async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+        (self.query_text_fn)(stmt).await
     }
 }
 
@@ -166,310 +120,427 @@ impl From<LocalDbError> for WasmEncodedError {
     }
 }
 
-impl LocalDbError {
-    pub fn invalid_block_number(value: impl Into<String>, source: ParseError) -> Self {
-        LocalDbError::InvalidBlockNumber {
-            value: value.into(),
-            source,
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "lowercase")]
+pub enum LocalDbStatus {
+    Active,
+    Syncing,
+    Failure,
 }
+impl_wasm_traits!(LocalDbStatus);
 
-impl LocalDb {
-    pub fn new_with_regular_rpc(url: Url) -> Result<Self, LocalDbError> {
-        Self::new_with_regular_rpcs(vec![url])
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalDbStatusSnapshot {
+    pub status: LocalDbStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+impl_wasm_traits!(LocalDbStatusSnapshot);
+
+impl LocalDbStatusSnapshot {
+    pub fn new(status: LocalDbStatus, error: Option<String>) -> Self {
+        Self { status, error }
     }
 
-    pub fn new_with_regular_rpcs(urls: Vec<Url>) -> Result<Self, LocalDbError> {
-        let rpc_client = RpcClient::new_with_urls(urls)?;
-        Ok(Self { rpc_client })
+    pub fn active() -> Self {
+        Self::new(LocalDbStatus::Active, None)
     }
 
-    pub fn new_with_hyper_rpc(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
-        let rpc_client = RpcClient::new_with_hyper_rpc(chain_id, &api_token)?;
-        Ok(Self { rpc_client })
+    pub fn syncing() -> Self {
+        Self::new(LocalDbStatus::Syncing, None)
     }
 
-    pub fn new(chain_id: u32, api_token: String) -> Result<Self, LocalDbError> {
-        Self::new_with_hyper_rpc(chain_id, api_token)
-    }
-
-    pub fn rpc_client(&self) -> &RpcClient {
-        &self.rpc_client
-    }
-
-    pub fn check_support(chain_id: u32) -> bool {
-        SUPPORTED_LOCAL_DB_CHAINS.contains(&chain_id)
-    }
-
-    #[cfg(test)]
-    pub fn new_with_url(url: Url) -> Self {
-        let rpc_client = RpcClient::new_with_urls(vec![url]).expect("create RPC client");
-        Self { rpc_client }
-    }
-
-    #[cfg(all(test, not(target_family = "wasm")))]
-    pub fn update_rpc_urls(&mut self, urls: Vec<Url>) {
-        self.rpc_client.update_rpc_urls(urls);
-    }
-
-    pub fn decode_events(
-        &self,
-        events: &[LogEntryResponse],
-    ) -> Result<Vec<DecodedEventData<DecodedEvent>>, LocalDbError> {
-        decode_events_impl(events).map_err(|err| LocalDbError::DecodeError {
-            message: err.to_string(),
-        })
-    }
-
-    pub fn decoded_events_to_sql(
-        &self,
-        events: &[DecodedEventData<DecodedEvent>],
-        end_block: u64,
-        decimals_by_token: &HashMap<Address, u8>,
-        prefix_sql: Option<&str>,
-    ) -> Result<String, LocalDbError> {
-        decoded_events_to_sql_impl(events, end_block, decimals_by_token, prefix_sql).map_err(
-            |err| LocalDbError::InsertError {
-                message: err.to_string(),
-            },
-        )
-    }
-
-    pub fn raw_events_to_sql(
-        &self,
-        raw_events: &[LogEntryResponse],
-    ) -> Result<String, LocalDbError> {
-        raw_events_to_sql_impl(raw_events).map_err(|err| LocalDbError::InsertError {
-            message: err.to_string(),
-        })
+    pub fn failure(error: String) -> Self {
+        Self::new(LocalDbStatus::Failure, Some(error))
     }
 }
 
 #[wasm_export]
 impl RaindexClient {
-    #[wasm_export(js_name = "getLocalDbClient", preserve_js_class)]
-    pub fn get_local_db_client(&self, chain_id: u32) -> Result<LocalDb, RaindexError> {
-        let rpcs = self.get_rpc_urls_for_chain(chain_id)?;
-        LocalDb::new_with_regular_rpcs(rpcs).map_err(RaindexError::LocalDbError)
-    }
-}
-
-#[cfg(test)]
-mod bool_deserialize_tests {
-    use super::*;
-    use alloy::primitives::{Address, U256};
-    use alloy::sol_types::SolEvent;
-    use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, DepositV2};
-    use std::collections::HashMap;
-
-    fn make_local_db() -> LocalDb {
-        LocalDb::new(8453, "test_token".to_string()).expect("create LocalDb")
-    }
-
-    fn sample_log_entry_with_invalid_data() -> LogEntryResponse {
-        LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".to_string(),
-            topics: vec![AddOrderV3::SIGNATURE_HASH.to_string()],
-            data: "0xnothex".to_string(),
-            block_number: "0x1".to_string(),
-            block_timestamp: Some("0x2".to_string()),
-            transaction_hash: "0x3".to_string(),
-            transaction_index: "0x0".to_string(),
-            block_hash: "0x4".to_string(),
-            log_index: "0x0".to_string(),
-            removed: false,
-        }
-    }
-
-    #[test]
-    fn decode_events_maps_decode_errors() {
-        let db = make_local_db();
-        let event = sample_log_entry_with_invalid_data();
-
-        let err = db.decode_events(&[event]).unwrap_err();
-        match err {
-            LocalDbError::DecodeError { message } => {
-                assert!(
-                    message.to_lowercase().contains("hex"),
-                    "unexpected message: {}",
-                    message
-                );
-            }
-            other => panic!("expected LocalDbError::DecodeError, got {other:?}"),
-        }
-    }
-
-    fn deposit_event_with_invalid_block() -> DecodedEventData<DecodedEvent> {
-        let deposit = DepositV2 {
-            sender: Address::from([0u8; 20]),
-            token: Address::from([1u8; 20]),
-            vaultId: U256::from(1u64).into(),
-            depositAmountUint256: U256::from(10u64),
+    #[wasm_export(js_name = "startLocalDbScheduler", unchecked_return_type = "void")]
+    pub async fn start_local_db_scheduler(
+        &self,
+        #[wasm_export(
+            js_name = "settingsYaml",
+            param_description = "Full settings YAML string used by the client runner"
+        )]
+        settings_yaml: String,
+        #[wasm_export(
+            js_name = "statusCallback",
+            param_description = "Optional callback invoked with the current local DB status"
+        )]
+        status_callback: Option<js_sys::Function>,
+    ) -> Result<(), RaindexError> {
+        let local_db = {
+            let slot = self.local_db.borrow();
+            slot.clone()
+                .ok_or_else(|| RaindexError::JsError("Local DB not set".to_string()))?
         };
 
-        DecodedEventData {
-            event_type: decode::EventType::DepositV2,
-            block_number: "not-hex".to_string(),
-            block_timestamp: "0x0".to_string(),
-            transaction_hash: "0x5".to_string(),
-            log_index: "0x0".to_string(),
-            decoded_data: DecodedEvent::DepositV2(Box::new(deposit)),
-        }
-    }
+        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
+        let existing = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
 
-    #[test]
-    fn decoded_events_to_sql_maps_insert_errors() {
-        let db = make_local_db();
-        let event = deposit_event_with_invalid_block();
-        let mut decimals = HashMap::new();
-        if let DecodedEvent::DepositV2(deposit) = &event.decoded_data {
-            decimals.insert(deposit.token, 18);
+        if let Some(handle) = existing {
+            handle.stop().await;
         }
 
-        let err = db
-            .decoded_events_to_sql(&[event], 42, &decimals, None)
-            .unwrap_err();
-        match err {
-            LocalDbError::InsertError { message } => {
-                assert!(
-                    message.to_lowercase().contains("hex"),
-                    "unexpected message: {}",
-                    message
-                );
-            }
-            other => panic!("expected LocalDbError::InsertError, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn invalid_block_number_helper_preserves_source() {
-        let source = ParseError::InvalidDigit('x');
-        let err = LocalDbError::invalid_block_number("0xzz", source);
-
-        match err {
-            LocalDbError::InvalidBlockNumber {
-                value,
-                source: parse,
-            } => {
-                assert_eq!(value, "0xzz");
-                assert_eq!(parse, source);
-            }
-            other => panic!("expected LocalDbError::InvalidBlockNumber, got {other:?}"),
-        }
-    }
-}
-
-// Shared serde helper: accept 0/1 integers, booleans, or strings for booleans.
-// Useful for SQLite queries that emit 0/1 rather than true/false.
-pub fn bool_from_int_or_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use serde::de::{Error, Unexpected};
-    struct BoolOrIntVisitor;
-
-    impl<'de> serde::de::Visitor<'de> for BoolOrIntVisitor {
-        type Value = bool;
-
-        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-            formatter.write_str("a boolean or 0/1 integer")
-        }
-
-        fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E> {
-            Ok(v)
-        }
-
-        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-        where
-            E: Error,
+        let handle = scheduler::start(settings_yaml, local_db, status_callback)?;
         {
-            match v {
-                0 => Ok(false),
-                1 => Ok(true),
-                _ => Err(E::invalid_value(
-                    Unexpected::Unsigned(v),
-                    &"0 or 1 for boolean",
-                )),
-            }
+            let mut slot = scheduler_cell.borrow_mut();
+            *slot = Some(handle);
         }
-
-        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-        where
-            E: Error,
-        {
-            match v {
-                0 => Ok(false),
-                1 => Ok(true),
-                _ => Err(E::invalid_value(
-                    Unexpected::Signed(v),
-                    &"0 or 1 for boolean",
-                )),
-            }
-        }
-
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: Error,
-        {
-            match v.to_ascii_lowercase().as_str() {
-                "true" | "1" => Ok(true),
-                "false" | "0" => Ok(false),
-                _ => Err(E::invalid_value(
-                    Unexpected::Str(v),
-                    &"'true'/'false' or '1'/'0'",
-                )),
-            }
-        }
+        Ok(())
     }
 
-    deserializer.deserialize_any(BoolOrIntVisitor)
+    #[wasm_export(js_name = "stopLocalDbScheduler", unchecked_return_type = "void")]
+    pub async fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
+        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
+        let handle = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
+
+        if let Some(handle) = handle {
+            handle.stop().await;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::bool_from_int_or_bool;
+    use super::*;
+    use crate::local_db::query::{
+        FromDbJson, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
+    };
     use serde::Deserialize;
+    use std::sync::{Arc, Mutex};
 
-    #[derive(Deserialize, Debug)]
-    struct Wrap {
-        #[serde(deserialize_with = "bool_from_int_or_bool")]
-        b: bool,
+    #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+    struct TestRow {
+        id: u32,
+    }
+
+    #[derive(Clone)]
+    struct RecordingExec {
+        calls: Arc<Mutex<Vec<&'static str>>>,
+        json: String,
+        text: String,
+    }
+
+    impl RecordingExec {
+        fn new(json: impl Into<String>, text: impl Into<String>) -> Self {
+            Self {
+                calls: Arc::new(Mutex::new(Vec::new())),
+                json: json.into(),
+                text: text.into(),
+            }
+        }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl LocalDbQueryExecutor for RecordingExec {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            self.calls.lock().unwrap().push("batch");
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            self.calls.lock().unwrap().push("json");
+            serde_json::from_str(&self.json)
+                .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            self.calls.lock().unwrap().push("text");
+            Ok(self.text.clone())
+        }
+    }
+
+    #[tokio::test]
+    async fn local_db_delegates_to_executor() {
+        let exec = RecordingExec::new(r#"[{"id":1}]"#, "ok");
+        let db = LocalDb::new(exec.clone());
+
+        db.execute_batch(&SqlStatementBatch::new()).await.unwrap();
+        let rows: Vec<TestRow> = db.query_json(&SqlStatement::new("SELECT 1")).await.unwrap();
+        let text = db.query_text(&SqlStatement::new("SELECT 2")).await.unwrap();
+
+        assert_eq!(rows, vec![TestRow { id: 1 }]);
+        assert_eq!(text, "ok");
+
+        let calls = exec.calls.lock().unwrap().clone();
+        assert_eq!(calls, vec!["batch", "json", "text"]);
     }
 
     #[test]
-    fn deserializes_bool_values() {
-        let t: Wrap = serde_json::from_str("{\"b\": true}").unwrap();
-        assert!(t.b);
-        let f: Wrap = serde_json::from_str("{\"b\": false}").unwrap();
-        assert!(!f.b);
+    fn debug_impl_is_stable() {
+        let exec = RecordingExec::new("[]", "ok");
+        let db = LocalDb::new(exec);
+        assert!(format!("{:?}", db).contains("LocalDb"));
+    }
+}
+
+#[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
+mod wasm_tests {
+    use super::*;
+    use gloo_timers::future::TimeoutFuture;
+    use rain_orderbook_app_settings::yaml::{
+        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        YamlParsable,
+    };
+    use std::cell::RefCell;
+    use std::rc::Rc;
+    use wasm_bindgen::prelude::Closure;
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_test::*;
+    use wasm_bindgen_utils::{
+        prelude::{serde_wasm_bindgen, JsValue},
+        result::{WasmEncodedError, WasmEncodedResult},
+    };
+
+    wasm_bindgen_test_configure!(run_in_browser);
+
+    const SINGLE_ORDERBOOK_SETTINGS_YAML: &str = r#"
+networks:
+  anvil:
+    rpcs:
+      - https://rpc.example/anvil
+    chain-id: 42161
+subgraphs:
+  anvil: https://subgraph.example/anvil
+local-db-remotes:
+  remote-a: https://manifests.example/a.yaml
+local-db-sync:
+  anvil:
+    batch-size: 10
+    max-concurrent-batches: 2
+    retry-attempts: 3
+    retry-delay-ms: 100
+    rate-limit-delay-ms: 1
+    finality-depth: 12
+    bootstrap-block-threshold: 1000
+orderbooks:
+  ob-a:
+    address: 0x00000000000000000000000000000000000000a1
+    network: anvil
+    subgraph: anvil
+    local-db-remote: remote-a
+    deployment-block: 123
+"#;
+
+    fn build_client() -> RaindexClient {
+        let orderbook_yaml = OrderbookYaml::new(
+            vec![SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned()],
+            OrderbookYamlValidation::default(),
+        )
+        .expect("valid orderbook yaml");
+
+        RaindexClient {
+            orderbook_yaml,
+            local_db: Rc::new(RefCell::new(None)),
+            local_db_scheduler: Rc::new(RefCell::new(None)),
+        }
     }
 
-    #[test]
-    fn deserializes_int_values() {
-        let t: Wrap = serde_json::from_str("{\"b\": 1}").unwrap();
-        assert!(t.b);
-        let f: Wrap = serde_json::from_str("{\"b\": 0}").unwrap();
-        assert!(!f.b);
+    fn success_callback() -> js_sys::Function {
+        let result = WasmEncodedResult::Success::<String> {
+            value: "[]".to_string(),
+            error: None,
+        };
+        let js_value = serde_wasm_bindgen::to_value(&result).unwrap();
+        js_sys::Function::new_no_args(&format!(
+            "return Promise.resolve({})",
+            js_sys::JSON::stringify(&js_value)
+                .unwrap()
+                .as_string()
+                .unwrap()
+        ))
     }
 
-    #[test]
-    fn deserializes_string_values() {
-        let t1: Wrap = serde_json::from_str("{\"b\": \"true\"}").unwrap();
-        assert!(t1.b);
-        let t2: Wrap = serde_json::from_str("{\"b\": \"1\"}").unwrap();
-        assert!(t2.b);
-        let f1: Wrap = serde_json::from_str("{\"b\": \"false\"}").unwrap();
-        assert!(!f1.b);
-        let f2: Wrap = serde_json::from_str("{\"b\": \"0\"}").unwrap();
-        assert!(!f2.b);
+    fn recording_status_callback(
+        store: Rc<RefCell<Vec<LocalDbStatusSnapshot>>>,
+    ) -> js_sys::Function {
+        let closure = Closure::wrap(Box::new(move |value: JsValue| {
+            if let Ok(snapshot) = serde_wasm_bindgen::from_value::<LocalDbStatusSnapshot>(value) {
+                store.borrow_mut().push(snapshot);
+            }
+        }) as Box<dyn FnMut(JsValue)>);
+
+        let function: js_sys::Function = closure.as_ref().clone().unchecked_into();
+        closure.forget();
+        function
     }
 
-    #[test]
-    fn rejects_invalid_values() {
-        assert!(serde_json::from_str::<Wrap>("{\"b\": 2}").is_err());
-        assert!(serde_json::from_str::<Wrap>("{\"b\": -1}").is_err());
-        assert!(serde_json::from_str::<Wrap>("{\"b\": \"yes\"}").is_err());
-        assert!(serde_json::from_str::<Wrap>("{\"b\": \"maybe\"}").is_err());
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_executes_queries() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+        let db = client.local_db().expect("local db set");
+
+        let stmt = SqlStatement::new("SELECT 1");
+        let rows: Vec<String> = db.query_json(&stmt).await.unwrap();
+        assert!(rows.is_empty());
+
+        let text = db.query_text(&stmt).await.unwrap();
+        assert_eq!(text, "[]");
+    }
+
+    #[wasm_bindgen_test]
+    async fn local_db_from_js_callback_surfaces_errors() {
+        let error = WasmEncodedResult::Err::<String> {
+            value: None,
+            error: WasmEncodedError {
+                msg: "boom".to_string(),
+                readable_msg: "boom readable".to_string(),
+            },
+        };
+        let js_value = serde_wasm_bindgen::to_value(&error).unwrap();
+        let callback = js_sys::Function::new_no_args(&format!(
+            "return Promise.resolve({})",
+            js_sys::JSON::stringify(&js_value)
+                .unwrap()
+                .as_string()
+                .unwrap()
+        ));
+
+        let db = LocalDb::from_js_callback(callback);
+        let stmt = SqlStatement::new("SELECT 1");
+        let err = db.query_text(&stmt).await.unwrap_err();
+        assert!(matches!(err, LocalDbQueryError::Database { .. }));
+    }
+
+    #[wasm_bindgen_test]
+    async fn start_scheduler_without_callback_returns_error() {
+        let client = build_client();
+        let result = client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await;
+        assert!(matches!(result, Err(RaindexError::JsError(_))));
+        assert!(client.local_db_scheduler.borrow().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    async fn start_and_stop_scheduler_updates_handle_state() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await
+            .expect("scheduler starts");
+        assert!(client.local_db_scheduler.borrow().is_some());
+
+        TimeoutFuture::new(0).await;
+
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("scheduler stops");
+        assert!(client.local_db_scheduler.borrow().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    async fn restarting_scheduler_replaces_handle() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await
+            .expect("first scheduler starts");
+
+        TimeoutFuture::new(0).await;
+
+        let first_handle_ptr = client
+            .local_db_scheduler
+            .borrow()
+            .as_ref()
+            .map(|handle| handle.stop_flag_ptr())
+            .expect("first handle exists");
+
+        let statuses = Rc::new(RefCell::new(Vec::new()));
+        let status_callback = recording_status_callback(Rc::clone(&statuses));
+
+        client
+            .start_local_db_scheduler(
+                SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(),
+                Some(status_callback),
+            )
+            .await
+            .expect("second scheduler starts");
+
+        TimeoutFuture::new(0).await;
+
+        let second_handle_ptr = client
+            .local_db_scheduler
+            .borrow()
+            .as_ref()
+            .map(|handle| handle.stop_flag_ptr())
+            .expect("second handle exists");
+
+        assert_ne!(first_handle_ptr, second_handle_ptr);
+        let recorded = statuses.borrow();
+        assert!(recorded
+            .iter()
+            .any(|snapshot| snapshot.status == LocalDbStatus::Active));
+
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("scheduler stops");
+    }
+
+    #[wasm_bindgen_test]
+    async fn start_scheduler_propagates_errors_and_leaves_handle_empty() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        let result = client
+            .start_local_db_scheduler("not yaml".to_owned(), None)
+            .await;
+        assert!(matches!(result, Err(RaindexError::LocalDbError(_))));
+        assert!(client.local_db_scheduler.borrow().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    async fn stop_scheduler_is_idempotent() {
+        let client = build_client();
+        client
+            .set_local_db_callback(success_callback())
+            .expect("callback set");
+
+        client
+            .start_local_db_scheduler(SINGLE_ORDERBOOK_SETTINGS_YAML.to_owned(), None)
+            .await
+            .expect("scheduler starts");
+
+        TimeoutFuture::new(0).await;
+
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("first stop succeeds");
+        client
+            .stop_local_db_scheduler()
+            .await
+            .expect("second stop succeeds");
+        assert!(client.local_db_scheduler.borrow().is_none());
     }
 }

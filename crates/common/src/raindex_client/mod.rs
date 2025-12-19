@@ -1,3 +1,5 @@
+use crate::local_db::{query::LocalDbQueryError, LocalDbError};
+use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -7,10 +9,9 @@ use alloy::{
     hex::FromHexError,
     primitives::{
         ruint::{FromUintError, ParseError},
-        Address, ParseSignedError,
+        Address, ParseSignedError, B256,
     },
 };
-use local_db::{query::LocalDbQueryError, LocalDbError};
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
@@ -24,6 +25,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
+use std::{cell::RefCell, rc::Rc};
 use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
@@ -82,7 +84,9 @@ impl_wasm_traits!(ChainIds);
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
     #[serde(skip_serializing, skip_deserializing)]
-    local_db_callback: Option<js_sys::Function>,
+    local_db: Rc<RefCell<Option<LocalDb>>>,
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
 }
 
 #[wasm_export]
@@ -127,20 +131,22 @@ impl RaindexClient {
         )?;
         Ok(RaindexClient {
             orderbook_yaml,
-            local_db_callback: None,
+            local_db: Rc::new(RefCell::new(None)),
+            local_db_scheduler: Rc::new(RefCell::new(None)),
         })
     }
 
     #[wasm_export(js_name = "setDbCallback", unchecked_return_type = "void")]
     pub fn set_local_db_callback(
-        &mut self,
+        &self,
         #[wasm_export(
             js_name = "callback",
             param_description = "JavaScript function to execute local database queries"
         )]
         callback: js_sys::Function,
     ) -> Result<(), RaindexError> {
-        self.local_db_callback = Some(callback);
+        let mut slot = self.local_db.borrow_mut();
+        *slot = Some(LocalDb::from_js_callback(callback));
         Ok(())
     }
 
@@ -211,13 +217,16 @@ impl RaindexClient {
         Ok(network.rpcs.clone())
     }
 
-    fn get_orderbooks_by_chain_id(&self, chain_id: u32) -> Result<Vec<OrderbookCfg>, RaindexError> {
+    pub(crate) fn get_orderbooks_by_chain_id(
+        &self,
+        chain_id: u32,
+    ) -> Result<Vec<OrderbookCfg>, RaindexError> {
         let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
         Ok(orderbooks)
     }
 
-    fn local_db_callback(&self) -> Option<js_sys::Function> {
-        self.local_db_callback.clone()
+    fn local_db(&self) -> Option<LocalDb> {
+        self.local_db.borrow().as_ref().cloned()
     }
 }
 
@@ -286,6 +295,10 @@ pub enum RaindexError {
     DepositArgsError(#[from] DepositError),
     #[error("Orderbook not found for address: {0} on chain ID: {1}")]
     OrderbookNotFound(String, u32),
+    #[error("Order not found for address: {0} on chain ID: {1} with hash: {2}")]
+    OrderNotFound(String, u32, B256),
+    #[error("Vault not found for address: {0} on chain ID: {1} with id: {2}")]
+    VaultNotFound(String, u32, String),
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
     #[error(transparent)]
@@ -309,7 +322,7 @@ pub enum RaindexError {
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
     #[error(transparent)]
-    LocalDbError(#[from] LocalDbError),
+    LocalDbError(#[from] Box<LocalDbError>),
     #[error(transparent)]
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
@@ -319,6 +332,12 @@ pub enum RaindexError {
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<LocalDbError> for RaindexError {
+    fn from(err: LocalDbError) -> Self {
+        Self::LocalDbError(Box::new(err))
     }
 }
 
@@ -404,6 +423,16 @@ impl RaindexError {
                     address, chain_id
                 )
             }
+            RaindexError::OrderNotFound(address, chain_id, order_hash) => {
+                format!(
+                    "Order not found for address: {} on chain ID: {} with hash: {}",
+                    address, chain_id, order_hash
+                )
+            }
+            RaindexError::VaultNotFound(address, chain_id, vault_id) => format!(
+                "Vault not found for address: {} on chain ID: {} with id: {}",
+                address, chain_id, vault_id
+            ),
             RaindexError::OrderDetailError(err) => {
                 format!("Failed to decode order detail: {}", err)
             }
@@ -496,12 +525,14 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
         subgraph: mainnet
+        local-db-remote: remote
         label: Primary Orderbook
         deployment-block: 12345
     polygon-orderbook:
         address: 0x0987654321098765432109876543210987654321
         network: polygon
         subgraph: polygon
+        local-db-remote: remote
         deployment-block: 12345
         label: Polygon Orderbook
 tokens:
@@ -535,7 +566,7 @@ accounts:
         yamls: Vec<String>,
         callback: js_sys::Function,
     ) -> RaindexClient {
-        let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        let client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
         client.set_local_db_callback(callback).unwrap();
         client
     }
@@ -562,6 +593,7 @@ orderbooks:
         address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
         network: arbitrum
         subgraph: arbitrum
+        local-db-remote: remote
         deployment-block: 1
 tokens:
     tokena:
@@ -782,6 +814,7 @@ accounts:
             address: 0x1111111111111111111111111111111111111111
             network: some-network
             subgraph: test
+            local-db-remote: remote
             label: Test Orderbook
             deployment-block: 12345
     "#,

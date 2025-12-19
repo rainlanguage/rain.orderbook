@@ -44,17 +44,20 @@ deployers:
 accounts:
     alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
     bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
+
 orderbooks:
     some-orderbook:
         address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}
         network: some-network
         subgraph: some-sg
+        local-db-remote: remote
         deployment-block: 12345
     other-orderbook:
         address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
         deployment-block: 12345
         network: other-network
         subgraph: other-sg
+        local-db-remote: remote
 tokens:
     token1:
         network: some-network
@@ -96,6 +99,10 @@ deployments:
         order: some-order
 `;
 
+const BYTES32_ZERO = `0x${'0'.repeat(64)}`;
+const BYTES32_0123 = `0x${'0'.repeat(60)}0123`;
+const BYTES32_0234 = `0x${'0'.repeat(60)}0234`;
+
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
 	if (result.error) {
 		assert.fail(errorMessage ?? result.error.msg);
@@ -125,10 +132,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 	describe('Orders', async function () {
 		const order1: SgOrder = {
-			id: '0x0123',
+			id: BYTES32_0123,
 			orderBytes:
 				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
-			orderHash: '0x0123',
+			orderHash: BYTES32_0123,
 			owner: '0x0000000000000000000000000000000000000000',
 			outputs: [
 				{
@@ -216,7 +223,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					transaction: {
 						blockNumber: '0',
 						timestamp: '0',
-						id: '0x0000000000000000000000000000000000000000',
+						id: BYTES32_ZERO,
 						from: '0x0000000000000000000000000000000000000000'
 					}
 				}
@@ -231,10 +238,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		} as unknown as SgOrder;
 
 		const order2 = {
-			id: '0x0234',
+			id: BYTES32_0234,
 			orderBytes:
 				'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000',
-			orderHash: '0x0234',
+			orderHash: BYTES32_0234,
 			owner: '0x0000000000000000000000000000000000000000',
 			outputs: [
 				{
@@ -284,7 +291,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					transaction: {
 						blockNumber: '0',
 						timestamp: '0',
-						id: '0x0000000000000000000000000000000000000000',
+						id: BYTES32_ZERO,
 						from: '0x0000000000000000000000000000000000000000'
 					}
 				}
@@ -374,7 +381,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				tradeEvent: {
 					sender: '0x0000000000000000000000000000000000000000',
 					transaction: {
-						id: '0x0000000000000000000000000000000000000000',
+						id: BYTES32_ZERO,
 						from: '0x0000000000000000000000000000000000000000',
 						timestamp: '1632000000',
 						blockNumber: '0'
@@ -399,7 +406,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					oldVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000003',
 					timestamp: '1632000000',
 					transaction: {
-						id: '0x0000000000000000000000000000000000000000',
+						id: BYTES32_ZERO,
 						from: '0x0000000000000000000000000000000000000000',
 						timestamp: '1632000000',
 						blockNumber: '0'
@@ -429,7 +436,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					oldVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000005',
 					timestamp: '1632000000',
 					transaction: {
-						id: '0x0000000000000000000000000000000000000000',
+						id: BYTES32_ZERO,
 						from: '0x0000000000000000000000000000000000000000',
 						timestamp: '1632000000',
 						blockNumber: '0'
@@ -443,15 +450,15 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		] as unknown as SgTrade[];
 
 		const mockTrade: SgTrade = {
-			id: '0x0123',
+			id: BYTES32_0123,
 			order: {
-				id: '0x0123',
-				orderHash: '0x0123'
+				id: BYTES32_0123,
+				orderHash: BYTES32_0123
 			},
 			tradeEvent: {
 				sender: '0x0000000000000000000000000000000000000000',
 				transaction: {
-					id: '0x0123',
+					id: BYTES32_0123,
 					from: '0x0000000000000000000000000000000000000000',
 					blockNumber: '0',
 					timestamp: '0'
@@ -480,7 +487,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				timestamp: '0',
 				transaction: {
-					id: '0x0123',
+					id: BYTES32_0123,
 					from: '0x0000000000000000000000000000000000000000',
 					blockNumber: '0',
 					timestamp: '0'
@@ -508,7 +515,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				timestamp: '0',
 				transaction: {
-					id: '0x0234',
+					id: BYTES32_0234,
 					from: '0x0000000000000000000000000000000000000000',
 					blockNumber: '0',
 					timestamp: '0'
@@ -546,7 +553,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 			);
 			assert.equal(typeof order, 'object');
 			assert.equal(order.id, order1.id);
@@ -792,7 +799,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 			);
 
 			const calldata = extractWasmEncodedData(order.getRemoveCalldata());
@@ -815,7 +822,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 			);
 
 			const result = extractWasmEncodedData(await order.getQuotes());
@@ -859,7 +866,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 				const order = extractWasmEncodedData(
-					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 				);
 				const result = extractWasmEncodedData(await order.getTradesList());
 				assert.equal(result.length, 1);
@@ -949,7 +956,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 				const order = extractWasmEncodedData(
-					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 				);
 				const result = extractWasmEncodedData(await order.getTradeDetail(mockTrade.id as Hex));
 				assert.equal(result.id, mockTrade.id);
@@ -1047,7 +1054,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 				const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 				const order = extractWasmEncodedData(
-					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 				);
 				const result = extractWasmEncodedData(await order.getTradeCount());
 				assert.equal(result, 1);
@@ -1429,7 +1436,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getAddOrdersForTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getAddOrdersForTransaction(
+					1,
+					CHAIN_ID_1_ORDERBOOK_ADDRESS,
+					mockOrder.transaction.id
+				)
 			);
 			assert.equal(result[0].id, mockAddOrder.order.id);
 			assert.equal(result[0].chainId, BigInt(1));
@@ -1444,7 +1455,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getRemoveOrdersForTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getRemoveOrdersForTransaction(
+					1,
+					CHAIN_ID_1_ORDERBOOK_ADDRESS,
+					mockOrder.transaction.id
+				)
 			);
 			assert.equal(result[0].id, mockRemoveOrder.order.id);
 			assert.equal(result[0].chainId, BigInt(1));
@@ -1951,13 +1966,13 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const res = extractWasmEncodedData(await vault.getOwnerBalance());
 			assert.equal(res.balance.toFixedDecimal(18).value, BigInt(1000));
-			assert.equal(res.formattedBalance, '0.000000000000001');
+			assert.equal(res.formattedBalance, '1e-15');
 		});
 	});
 
 	describe('Transactions', () => {
 		const transaction = {
-			id: '0x0123',
+			id: BYTES32_0123,
 			from: '0x1000000000000000000000000000000000000000',
 			blockNumber: '2356',
 			timestamp: '1734054063'
@@ -1968,7 +1983,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 			);
 			assert.equal(result.id, transaction.id);
 			assert.equal(result.from, transaction.from);

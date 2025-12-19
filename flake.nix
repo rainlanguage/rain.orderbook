@@ -9,7 +9,9 @@
 
   outputs = { self, flake-utils, rainix, rain }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = rainix.pkgs.${system};
+      let
+        pkgs = rainix.pkgs.${system};
+        old-pkgs = rainix.old-pkgs.${system};
       in rec {
         packages = rec {
 
@@ -45,7 +47,9 @@
             name = "tauri-rs-test";
             body = ''
               set -euxo pipefail
-              cd tauri-app/src-tauri
+              cd tauri-app
+              ob-tauri-before-build
+              cd src-tauri
               cargo test
             '';
           };
@@ -57,6 +61,7 @@
 
               # Fix linting of generated types
               cd tauri-app && npm i && npm run lint
+              ob-tauri-dylibs
             '';
             additionalBuildInputs = [
               pkgs.wasm-bindgen-cli
@@ -133,7 +138,7 @@
               echo COMMIT_SHA=''${COMMIT_SHA} >> .env
               echo VITE_WALLETCONNECT_PROJECT_ID=''${VITE_WALLETCONNECT_PROJECT_ID} >> .env
             '';
-            additionalBuildInputs = [ pkgs.sentry-cli ];
+            additionalBuildInputs = [ old-pkgs.sentry-cli ];
           };
 
           ob-tauri-before-build-ci = rainix.mkTask.${system} {
@@ -178,6 +183,15 @@
 
 
               npm i && npm run build
+              ob-tauri-dylibs
+            '';
+          };
+
+          ob-tauri-dylibs = rainix.mkTask.${system} {
+            name = "ob-tauri-dylibs";
+            body = ''
+              set -euxo pipefail
+
               rm -rf lib
               mkdir -p lib
 
@@ -204,7 +218,7 @@
                 install_name_tool -id @executable_path/../Frameworks/libusb-1.0.0.dylib lib/libusb-1.0.0.dylib
                 otool -L lib/libusb-1.0.0.dylib
 
-                cp ${pkgs.bzip2.out}/lib/libbz2.1.dylib lib/libbz2.1.dylib
+                cp ${old-pkgs.bzip2.out}/lib/libbz2.1.dylib lib/libbz2.1.dylib
                 chmod +w lib/libbz2.1.dylib
                 install_name_tool -id @executable_path/../Frameworks/libbz2.1.dylib lib/libbz2.1.dylib
                 otool -L lib/libbz2.1.dylib
@@ -223,7 +237,7 @@
                 install_name_tool -change ${pkgs.libiconv}/lib/libiconv.2.dylib @executable_path/../Frameworks/libiconv.2.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.gettext}/lib/libintl.8.dylib @executable_path/../Frameworks/libintl.8.dylib src-tauri/target/release/Raindex
                 install_name_tool -change ${pkgs.libusb1}/lib/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib src-tauri/target/release/Raindex
-                install_name_tool -change ${pkgs.bzip2.out}/lib/libbz2.1.dylib @executable_path/../Frameworks/libbz2.1.dylib src-tauri/target/release/Raindex
+                install_name_tool -change ${old-pkgs.bzip2.out}/lib/libbz2.1.dylib @executable_path/../Frameworks/libbz2.1.dylib src-tauri/target/release/Raindex
 
                 otool -L src-tauri/target/release/Raindex
                 grep_exit_code=0
@@ -240,7 +254,7 @@
             body = ''
               set -euxo pipefail
 
-              cargo build -r --target wasm32-unknown-unknown --lib --workspace --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
+              cargo build --profile release-wasm --target wasm32-unknown-unknown --lib -p rain_orderbook_js_api
             '';
           };
 
@@ -251,6 +265,22 @@
 
               CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner' cargo test --target wasm32-unknown-unknown --lib -p rain_orderbook_quote -p rain_orderbook_bindings -p rain_orderbook_js_api -p rain_orderbook_common
             '';
+          };
+
+          rainix-wasm-browser-test = rainix.mkTask.${system} {
+            name = "rainix-wasm-browser-test";
+            body = ''
+              set -euxo pipefail
+
+              cd crates/common
+              wasm-pack test --headless --chrome --features browser-tests -- leadership::wasm_tests
+              wasm-pack test --headless --chrome --features browser-tests -- scheduler::wasm_tests
+              wasm-pack test --headless --chrome --features browser-tests -- retry::wasm_tests
+              wasm-pack test --headless --chrome --features browser-tests -- raindex_client::local_db::wasm_tests
+            '';
+            additionalBuildInputs = [
+              pkgs.wasm-pack
+            ];
           };
 
           js-install = rainix.mkTask.${system} {
@@ -290,6 +320,7 @@
             packages.ob-rs-test
             packages.rainix-wasm-artifacts
             packages.rainix-wasm-test
+            packages.rainix-wasm-browser-test
             packages.js-install
             packages.build-js-bindings
             packages.test-js-bindings
@@ -314,6 +345,7 @@
             packages.ob-tauri-before-bundle
             packages.ob-tauri-before-release
             packages.tauri-rs-test
+            packages.ob-tauri-dylibs
           ];
           shellHook = rainix.devShells.${system}.tauri-shell.shellHook;
           buildInputs = rainix.devShells.${system}.tauri-shell.buildInputs

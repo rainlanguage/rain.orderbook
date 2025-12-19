@@ -18,10 +18,11 @@
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
-	import { startLocalDbSync } from '$lib/services/startLocalDbSync';
 	import { onDestroy, onMount } from 'svelte';
+	import { localDbStatus } from '$lib/stores/localDbStatus';
+	import type { RaindexClient } from '@rainlanguage/orderbook';
 
-	const { errorMessage, localDb, raindexClient } = $page.data;
+	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -33,21 +34,30 @@
 	});
 
 	let walletInitError: string | null = null;
-	let stopDbSync: (() => void) | undefined;
 
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb) return;
-
-		stopDbSync = startLocalDbSync({
-			raindexClient,
-			localDb,
-			chainId: 42161,
-			intervalMs: 5_000
-		});
+		let client = raindexClient as RaindexClient;
+		client
+			.startLocalDbScheduler(settingsYamlText, localDbStatus.set)
+			.then((result) => {
+				if (result.error) {
+					localDbStatus.set({
+						status: 'failure',
+						error: result.error.readableMsg ?? result.error.msg
+					});
+				}
+			})
+			.catch((error) => {
+				localDbStatus.set({
+					status: 'failure',
+					error: error instanceof Error ? error.message : 'Local DB scheduler failed to start'
+				});
+			});
 	});
-
 	onDestroy(() => {
-		stopDbSync?.();
+		if (!raindexClient) return;
+		raindexClient.stopLocalDbScheduler();
 	});
 
 	$: if (browser && window.navigator) {

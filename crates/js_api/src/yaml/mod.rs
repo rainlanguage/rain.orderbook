@@ -173,6 +173,7 @@ mod tests {
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
             subgraph: mainnet
+            local-db-remote: remote
             label: Primary Orderbook
             deployment-block: 12345
     tokens:
