@@ -5,33 +5,57 @@ use alloy::sol_types::SolCall;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV5::takeOrders3Call;
 use serde::{Deserialize, Serialize};
-use std::ops::{Div, Mul};
-use wasm_bindgen_utils::impl_wasm_traits;
+use std::ops::Div;
 use wasm_bindgen_utils::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
 pub struct TakeOrdersCalldataResult {
-    #[tsify(type = "Address")]
-    pub orderbook: Address,
-    #[tsify(type = "Hex")]
-    pub calldata: Bytes,
-    #[tsify(type = "Hex")]
-    pub effective_price: Float,
-    #[tsify(type = "Hex[]")]
-    pub prices: Vec<Float>,
-    #[tsify(type = "Hex")]
-    pub expected_sell: Float,
-    #[tsify(type = "Hex")]
-    pub max_sell_cap: Float,
+    orderbook: Address,
+    calldata: Bytes,
+    effective_price: Float,
+    prices: Vec<Float>,
 }
-impl_wasm_traits!(TakeOrdersCalldataResult);
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl TakeOrdersCalldataResult {
+    #[wasm_bindgen(getter, unchecked_return_type = "Address")]
+    pub fn orderbook(&self) -> String {
+        self.orderbook.to_string()
+    }
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
+    pub fn calldata(&self) -> String {
+        self.calldata.to_string()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn effective_price(&self) -> Float {
+        self.effective_price
+    }
+    #[wasm_bindgen(getter)]
+    pub fn prices(&self) -> Vec<Float> {
+        self.prices.clone()
+    }
+}
+#[cfg(not(target_family = "wasm"))]
+impl TakeOrdersCalldataResult {
+    pub fn orderbook(&self) -> Address {
+        self.orderbook
+    }
+    pub fn calldata(&self) -> Bytes {
+        self.calldata.clone()
+    }
+    pub fn effective_price(&self) -> Float {
+        self.effective_price
+    }
+    pub fn prices(&self) -> Vec<Float> {
+        self.prices.clone()
+    }
+}
 
 pub(crate) fn build_calldata_result(
     orderbook: Address,
     built_config: BuiltTakeOrdersConfig,
-    buy_target: Float,
-    price_cap: Float,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
     let calldata_bytes = takeOrders3Call {
         config: built_config.config,
@@ -56,16 +80,11 @@ pub(crate) fn build_calldata_result(
         .map(|leg| leg.candidate.ratio)
         .collect();
 
-    let expected_sell = built_config.sim.total_sell_amount;
-    let max_sell_cap = buy_target.mul(price_cap)?;
-
     Ok(TakeOrdersCalldataResult {
         orderbook,
         calldata,
         effective_price,
         prices,
-        expected_sell,
-        max_sell_cap,
     })
 }
 
@@ -101,7 +120,7 @@ mod tests {
         .unwrap()
         .unwrap();
 
-        let result = build_calldata_result(ob, built, buy_target, price_cap);
+        let result = build_calldata_result(ob, built);
 
         assert!(result.is_ok());
         let calldata_result = result.unwrap();
@@ -134,7 +153,7 @@ mod tests {
         .unwrap()
         .unwrap();
 
-        let result = build_calldata_result(ob, built, buy_target, price_cap).unwrap();
+        let result = build_calldata_result(ob, built).unwrap();
 
         let zero = Float::zero().unwrap();
         assert!(
@@ -164,7 +183,7 @@ mod tests {
         .unwrap()
         .unwrap();
 
-        let result = build_calldata_result(ob, built, buy_target, price_cap).unwrap();
+        let result = build_calldata_result(ob, built).unwrap();
 
         assert_eq!(
             result.prices.len(),
@@ -174,41 +193,6 @@ mod tests {
         assert!(
             result.prices[0].eq(ratio).unwrap(),
             "Price should match the candidate ratio"
-        );
-    }
-
-    #[test]
-    fn test_build_calldata_result_expected_sell_and_max_sell_cap() {
-        let ob = Address::from([0x11u8; 20]);
-        let max_output = Float::parse("10".to_string()).unwrap();
-        let ratio = Float::parse("2".to_string()).unwrap();
-        let candidate = make_candidate(ob, max_output, ratio);
-        let candidates = vec![candidate];
-        let buy_target = Float::parse("10".to_string()).unwrap();
-        let price_cap = Float::parse("3".to_string()).unwrap();
-
-        let (_, sim) = select_best_orderbook_simulation(candidates, buy_target, price_cap).unwrap();
-        let built = build_take_orders_config_from_buy_simulation(
-            sim,
-            buy_target,
-            price_cap,
-            MinReceiveMode::Partial,
-        )
-        .unwrap()
-        .unwrap();
-
-        let result = build_calldata_result(ob, built, buy_target, price_cap).unwrap();
-
-        let expected_sell = Float::parse("20".to_string()).unwrap();
-        let expected_max_sell_cap = Float::parse("30".to_string()).unwrap();
-
-        assert!(
-            result.expected_sell.eq(expected_sell).unwrap(),
-            "expected_sell should be buy_amount * ratio = 10 * 2 = 20"
-        );
-        assert!(
-            result.max_sell_cap.eq(expected_max_sell_cap).unwrap(),
-            "max_sell_cap should be buy_target * price_cap = 10 * 3 = 30"
         );
     }
 }

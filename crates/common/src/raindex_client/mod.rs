@@ -338,12 +338,16 @@ pub enum RaindexError {
     },
     #[error("Buy amount must be greater than zero")]
     NonPositiveBuyAmount,
+    #[error("Price cap must be greater than zero")]
+    NonPositivePriceCap,
     #[error("Price cap cannot be negative")]
     NegativePriceCap,
     #[error("Sell token and buy token cannot be the same")]
     SameTokenPair,
     #[error(transparent)]
     RpcClientError(#[from] RpcClientError),
+    #[error("Preflight check failed: {0}")]
+    PreflightError(String),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -497,6 +501,9 @@ impl RaindexError {
             RaindexError::NonPositiveBuyAmount => {
                 "Buy amount must be greater than zero.".to_string()
             }
+            RaindexError::NonPositivePriceCap => {
+                "Price cap must be greater than zero.".to_string()
+            }
             RaindexError::NegativePriceCap => {
                 "Price cap cannot be negative.".to_string()
             }
@@ -504,6 +511,9 @@ impl RaindexError {
                 "Sell token and buy token cannot be the same.".to_string()
             }
             RaindexError::RpcClientError(err) => format!("RPC client error: {err}"),
+            RaindexError::PreflightError(err) => {
+                format!("Preflight check failed: {err}")
+            }
         }
     }
 }
