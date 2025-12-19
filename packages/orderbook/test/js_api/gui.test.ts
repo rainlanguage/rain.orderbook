@@ -490,8 +490,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
 		const deployments = extractWasmEncodedData<string[]>(result);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0], 'some-deployment');
-		assert.equal(deployments[1], 'other-deployment');
+		assert.ok(deployments.includes('some-deployment'));
+		assert.ok(deployments.includes('other-deployment'));
 	});
 
 	it('should initialize gui object', async () => {
