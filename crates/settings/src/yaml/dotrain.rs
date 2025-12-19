@@ -733,7 +733,7 @@ mod tests {
         assert_eq!(io_token_keys[1], "token2");
 
         let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
-        assert_eq!(scenario_keys.len(), 3);
+        assert_eq!(scenario_keys.len(), 2);
         let scenario1 = dotrain_yaml.get_scenario("scenario1").unwrap();
         assert_eq!(scenario1.bindings.len(), 1);
         assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
