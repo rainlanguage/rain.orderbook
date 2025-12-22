@@ -100,7 +100,7 @@ fn validate_optional_string_field<T: YamlParsableString>(
     Ok(())
 }
 
-fn emit_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<String, YamlError> {
+pub fn emit_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<String, YamlError> {
     let mut merged_hash = Hash::new();
 
     for document in documents {
