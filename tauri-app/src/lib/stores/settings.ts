@@ -36,6 +36,18 @@ export const selectedChainIds = cachedWritableStore<number[]>(
   (str) => JSON.parse(str),
 );
 
+export const validChainIds = writable<number[]>([]);
+
+validChainIds.subscribe((valid) => {
+  if (valid.length > 0) {
+    const current = get(selectedChainIds);
+    const filtered = current.filter((id) => valid.includes(id));
+    if (filtered.length !== current.length) {
+      selectedChainIds.set(filtered);
+    }
+  }
+});
+
 // accounts
 export const activeAccountsItems = cachedWritableStore<Record<string, Address>>(
   'settings.activeAccountsItems',
