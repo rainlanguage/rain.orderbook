@@ -26,7 +26,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res = super::fetch_all_tables(&exec).await;
         assert!(res.is_ok());
@@ -53,7 +53,7 @@ mod wasm_tests {
         let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
 
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::fetch_all_tables(&exec).await;
         assert!(matches!(res, Err(LocalDbQueryError::InvalidResponse)));
     }

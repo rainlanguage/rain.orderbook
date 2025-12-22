@@ -79,6 +79,7 @@ pub fn build_runner_targets(
             },
             dump_str: None,
             block_number_threshold: sync_cfg.bootstrap_block_threshold,
+            manifest_end_block: 0,
         };
 
         let remote = orderbook.local_db_remote.as_ref().ok_or_else(|| {

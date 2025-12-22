@@ -229,14 +229,10 @@ impl DotrainOrderGui {
         decoder.read_to_end(&mut bytes)?;
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
 
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings.clone())?;
-
-        let order_key =
-            DeploymentCfg::parse_order_key(documents.clone(), &state.selected_deployment)?;
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             settings,
-            ContextProfile::gui(Some(order_key), Some(state.selected_deployment.clone())),
+            ContextProfile::gui(state.selected_deployment.clone()),
         )
         .await?;
 
@@ -410,13 +406,12 @@ impl DotrainOrderGui {
 }
 impl DotrainOrderGui {
     pub fn compute_state_hash(dotrain_order: &DotrainOrder) -> Result<String, GuiError> {
-        let orderbook_yaml = dotrain_order.orderbook_yaml().to_yaml_string()?;
-        let dotrain_yaml = dotrain_order.dotrain_yaml().to_yaml_string()?;
+        let yaml = emitter::emit_documents(&dotrain_order.dotrain_yaml().documents)?;
 
         let rain_document = RainDocument::create(dotrain_order.dotrain()?, None, None, None);
         let rainlang_body = rain_document.body().to_string();
 
-        let tuple = (orderbook_yaml, dotrain_yaml, rainlang_body);
+        let tuple = (yaml, rainlang_body);
         let dotrain_bytes = bincode::serialize(&tuple)?;
 
         let hash = Sha256::digest(dotrain_bytes);
@@ -436,7 +431,7 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTU_CQBDtotGYeCImnkz8AW76BYSSeEITErQRikS5QTtK0-1u044i8U_wk0lhtoSGOcx7s-_tzGQaxj6uCBexjGL5zW1DxxmhbVl1k8PowTIqpskFIaoEpHuq22nncXVNVaFS4BJwpfJE_7sjXCJmPdMUKpyLpSqw17W6bTPPQv6Ti__SwcrM9OjnyeCGaLM1_dvUEmuyS5In5Q73LjvX9dB3G8Yhjna1qwG257G66lSq43kPRCFJi6g9DvzBFL_G8dtvp_86_AyCRb818zsvT_MVztYf2QjeR4-3-hIgIES-a8ojyIRapyBxC4cEqx_IAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDN2tJS6EkKPRX6A7pkN0khK_TYNqjkIOLBi8R11ZB1N8QJfv0Jf7JEdyMG5zBv3r63M8O0nEu8GJymapaqBaaOjQeDlJCmyUPmgTh1ZYsng6Azofx73e47b9mrYWu9ElgJ2Ogis_8-DC4B8o7rSs0TudRr6IQk_HaLnOOykIfKgaqM7OjfYfRmynYw2h4bCbXRs5GH1Q6fPnq0vBf7LecaN7vSegBlDDVVr1Y9xr6sEQgnI8wCOd0NaLmHqJ-G4yQuVfcvSFQ0mauin__HJc9-3u0lhBQc8Lkpnolc6t1KKDgBkSJALcgBAAA=";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {

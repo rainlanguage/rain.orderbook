@@ -95,7 +95,7 @@ mod tests {
 
         let chain_id = 42161u32;
         let orderbook_address = address!("0x0000000000000000000000000000000000000abc");
-        let orderbook_str = orderbook_address.to_string();
+        let orderbook_str = encode_prefixed(orderbook_address);
 
         conn.execute(
             "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);",
@@ -151,7 +151,8 @@ mod tests {
                 metadata_rpcs: Vec::new(),
                 cfg: sync_config,
                 dump_str: None,
-                block_number_threshold: 0,
+                block_number_threshold: 10000,
+                manifest_end_block: 1,
             },
         };
 
@@ -239,7 +240,8 @@ mod tests {
                 metadata_rpcs: Vec::new(),
                 cfg: sync_config,
                 dump_str: None,
-                block_number_threshold: 0,
+                block_number_threshold: 10000,
+                manifest_end_block: 1,
             },
         };
 

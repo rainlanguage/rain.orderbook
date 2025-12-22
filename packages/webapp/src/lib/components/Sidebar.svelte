@@ -22,13 +22,17 @@
 		logoDark,
 		logoLight,
 		WalletConnect,
-		TransactionList
+		TransactionList,
+		LocalDbStatusCard
 	} from '@rainlanguage/ui-components';
-
 	import { onMount } from 'svelte';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
+	import { localDbStatus } from '$lib/stores/localDbStatus';
 	export let colorTheme;
 	export let page;
+
+	// TODO: hide sidebar widget until we merge all the local db PRs
+	const showLocalDbUi = import.meta.env.MODE !== 'production';
 
 	let sideBarHidden: boolean = false;
 	let breakPoint: number = 1024;
@@ -110,6 +114,11 @@
 			<SidebarGroup border ulClass="list-none">
 				<WalletConnect {appKitModal} {connected} classes="w-full" />
 			</SidebarGroup>
+			{#if showLocalDbUi}
+				<SidebarGroup border ulClass="list-none">
+					<LocalDbStatusCard status={$localDbStatus.status} error={$localDbStatus.error} />
+				</SidebarGroup>
+			{/if}
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem
 					on:click={toggleSide}

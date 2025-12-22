@@ -34,7 +34,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("OK", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res =
             super::update_last_synced_block(&exec, &OrderbookIdentifier::new(1, addr), 999).await;
@@ -61,7 +61,7 @@ mod wasm_tests {
         let callback: js_sys::Function = closure.as_ref().clone().unchecked_into();
         closure.forget();
 
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::update_last_synced_block(
             &exec,
             &OrderbookIdentifier::new(1, Address::from([0x22u8; 20])),
