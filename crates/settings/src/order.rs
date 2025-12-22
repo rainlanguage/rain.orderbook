@@ -33,6 +33,7 @@ impl_wasm_traits!(VaultType);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIOCfg {
+    pub token_key: String,
     pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(
         target_family = "wasm",
@@ -479,15 +480,17 @@ impl OrderCfg {
                         vault_ids.insert(token, vault_id);
                     }
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "orders".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
+        }
+
+        if vault_ids.is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(vault_ids)
@@ -540,11 +543,27 @@ impl YamlParsableHash for OrderCfg {
         let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), context);
         let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
-        if let Some(context) = context {
-            if context.select_tokens.is_none() && tokens.is_err() {
-                return Err(tokens.err().unwrap());
+        let tokens = if let Some(context) = context {
+            if context.select_tokens.is_some() {
+                match tokens {
+                    Ok(tokens) => Ok(tokens),
+                    Err(err) => match err {
+                        YamlError::Field {
+                            kind: FieldErrorKind::Missing(field),
+                            location,
+                        } if field == "tokens" && location == "root" => Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing(field),
+                            location,
+                        }),
+                        other => return Err(other),
+                    },
+                }
+            } else {
+                tokens
             }
-        }
+        } else {
+            tokens
+        };
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -710,6 +729,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name,
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -794,6 +814,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name,
                             token: order_token.map(Arc::new),
                             vault_id,
                         })

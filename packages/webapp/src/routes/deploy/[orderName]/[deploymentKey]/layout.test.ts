@@ -20,7 +20,7 @@ describe('Layout load function', () => {
 	});
 
 	it('should load deployment details successfully', async () => {
-		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
+		(DotrainOrderGui.getDeploymentDetail as Mock).mockReturnValue({
 			error: null,
 			value: {
 				name: 'Test Deployment',
@@ -37,6 +37,7 @@ describe('Layout load function', () => {
 		expect(mockParent).toHaveBeenCalled();
 		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(
 			mockDotrain,
+			undefined,
 			mockDeploymentKey
 		);
 
@@ -52,7 +53,7 @@ describe('Layout load function', () => {
 	});
 
 	it('should handle empty deploymentKey', async () => {
-		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
+		(DotrainOrderGui.getDeploymentDetail as Mock).mockReturnValue({
 			error: null,
 			value: {
 				name: 'Empty Deployment',
@@ -66,7 +67,7 @@ describe('Layout load function', () => {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
 
-		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(mockDotrain, '');
+		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(mockDotrain, undefined, '');
 
 		expect(result).toEqual({
 			deployment: {
@@ -80,7 +81,7 @@ describe('Layout load function', () => {
 	});
 
 	it('should throw an error when getDeploymentDetail returns an error', async () => {
-		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
+		(DotrainOrderGui.getDeploymentDetail as Mock).mockReturnValue({
 			error: { msg: 'Deployment not found' },
 			value: null
 		});

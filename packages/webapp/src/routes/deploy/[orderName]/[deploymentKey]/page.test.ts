@@ -107,6 +107,7 @@ describe('DeployPage', () => {
 		await vi.waitFor(() => {
 			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
 				mockDotrain,
+				undefined,
 				mockDeploymentKey,
 				mockStateFromUrl
 			);
@@ -214,6 +215,7 @@ describe('DeployPage', () => {
 		await waitFor(() => {
 			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
 				'https://dotrain.example.com',
+				undefined,
 				'test-deployment',
 				''
 			);
@@ -241,6 +243,7 @@ describe('DeployPage', () => {
 		await vi.waitFor(() => {
 			expect(handleGuiInitializationModule.handleGuiInitialization).toHaveBeenCalledWith(
 				'https://dotrain.example.com',
+				undefined,
 				'test-deployment',
 				stateValue
 			);

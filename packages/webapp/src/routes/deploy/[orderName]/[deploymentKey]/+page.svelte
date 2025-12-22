@@ -36,6 +36,7 @@
 		if (dotrain && deployment) {
 			const { gui: initializedGui, error } = await handleGuiInitialization(
 				dotrain,
+				undefined,
 				deployment.key,
 				stateFromUrl
 			);

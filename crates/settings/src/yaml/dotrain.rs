@@ -989,8 +989,11 @@ mod tests {
         assert_eq!(
             err,
             YamlError::Field {
-                kind: FieldErrorKind::Missing("tokens".to_string()),
-                location: "root".to_string(),
+                kind: FieldErrorKind::InvalidValue {
+                    field: "token".to_string(),
+                    reason: "missing yaml data for token 'token1'".to_string()
+                },
+                location: "input index '0' in order 'order1'".to_string(),
             }
         );
 
