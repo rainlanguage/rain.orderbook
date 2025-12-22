@@ -394,7 +394,8 @@ const registry = registryResult.value;
 
 const orderMenuResult = registry.getAllOrderDetails();
 if (orderMenuResult.error) throw new Error(orderMenuResult.error.readableMsg);
-const orderMenu = orderMenuResult.value; // Map<orderKey, { name, description, short_description }>
+const orderMenu = orderMenuResult.value.valid; // Map<orderKey, { name, description, short_description }>
+const invalidOrders = orderMenuResult.value.invalid; // Map<orderKey, WasmEncodedError>
 
 const deploymentsResult = registry.getDeploymentDetails('fixed-limit');
 if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);

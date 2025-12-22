@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use thiserror::Error;
 use url::Url;
-use wasm_bindgen_utils::{prelude::*, wasm_export};
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 /// A registry system for managing dotrain order configurations with layered content merging.
 ///
@@ -113,6 +113,17 @@ pub struct DotrainRegistry {
     orders: HashMap<String, String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct OrderDetailsResult {
+    pub valid: BTreeMap<String, NameAndDescriptionCfg>,
+    pub invalid: BTreeMap<String, WasmEncodedError>,
+}
+impl_wasm_traits!(OrderDetailsResult);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct OrderUrls(pub HashMap<String, String>);
+impl_wasm_traits!(OrderUrls);
+
 #[derive(Error, Debug)]
 pub enum DotrainRegistryError {
     #[error("Failed to fetch registry from URL: {0}")]
@@ -195,20 +206,17 @@ impl DotrainRegistry {
         self.settings.clone()
     }
     #[wasm_bindgen(getter = orderUrls)]
-    pub fn order_urls(&self) -> js_sys::Map {
-        let map = js_sys::Map::new();
-        for (key, value) in &self.order_urls {
-            map.set(&key.into(), &value.to_string().into());
-        }
-        map
+    pub fn order_urls(&self) -> OrderUrls {
+        OrderUrls(
+            self.order_urls
+                .iter()
+                .map(|(key, value)| (key.clone(), value.to_string()))
+                .collect(),
+        )
     }
     #[wasm_bindgen(getter = orders)]
-    pub fn orders(&self) -> js_sys::Map {
-        let map = js_sys::Map::new();
-        for (key, value) in &self.orders {
-            map.set(&key.into(), &value.into());
-        }
-        map
+    pub fn orders(&self) -> OrderUrls {
+        OrderUrls(self.orders.clone())
     }
 }
 
@@ -257,10 +265,34 @@ impl DotrainRegistry {
         })
     }
 
+    /// Validates a registry file without downloading settings or order content.
+    ///
+    /// Useful for lightweight format checks (e.g., user-input registry URLs) before
+    /// performing a full registry load.
+    #[wasm_export(
+        js_name = "validate",
+        return_description = "Validates the registry URL and format without fetching settings or orders",
+        unchecked_return_type = "void"
+    )]
+    pub async fn validate(
+        #[wasm_export(
+            js_name = "registryUrl",
+            param_description = "URL to the registry file containing settings and order definitions"
+        )]
+        registry_url: String,
+    ) -> Result<(), DotrainRegistryError> {
+        let registry_url = Url::parse(&registry_url)?;
+        // Only fetch and parse the registry file to verify format/URLs.
+        let _ = Self::fetch_and_parse_registry(&registry_url).await?;
+        Ok(())
+    }
+
     /// Gets details for all orders in the registry.
     ///
     /// This method extracts name and description information for each order,
-    /// useful for building the initial order selection UI.
+    /// useful for building the initial order selection UI. Any order that
+    /// fails to parse/validate will be placed in the `invalid` map with its
+    /// corresponding error.
     ///
     /// ## Examples
     ///
@@ -278,21 +310,32 @@ impl DotrainRegistry {
     /// ```
     #[wasm_export(
         js_name = "getAllOrderDetails",
-        unchecked_return_type = "Map<string, NameAndDescriptionCfg>",
-        return_description = "Map of order key to order metadata"
+        unchecked_return_type = "{ valid: Map<string, NameAndDescriptionCfg>, invalid: Map<string, WasmEncodedError> }",
+        return_description = "Valid and invalid order metadata grouped by order key"
     )]
-    pub fn get_all_order_details(
-        &self,
-    ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, DotrainRegistryError> {
-        let mut order_details = BTreeMap::new();
+    pub fn get_all_order_details(&self) -> Result<OrderDetailsResult, DotrainRegistryError> {
+        let mut valid = BTreeMap::new();
+        let mut invalid = BTreeMap::new();
         let settings = self.settings_sources();
 
         for (order_key, dotrain) in &self.orders {
-            let details = DotrainOrderGui::get_order_details(dotrain.clone(), settings.clone())?;
-            order_details.insert(order_key.clone(), details);
+            match DotrainOrderGui::get_order_details(dotrain.clone(), settings.clone()) {
+                Ok(details) => {
+                    valid.insert(order_key.clone(), details);
+                }
+                Err(err) => {
+                    invalid.insert(
+                        order_key.clone(),
+                        WasmEncodedError {
+                            msg: err.to_string(),
+                            readable_msg: err.to_readable_msg(),
+                        },
+                    );
+                }
+            }
         }
 
-        Ok(order_details)
+        Ok(OrderDetailsResult { valid, invalid })
     }
 
     /// Returns a list of all order keys available in the registry.
@@ -827,13 +870,48 @@ _ _: 1 1;
             assert!(result.is_ok());
 
             let order_details = result.unwrap();
-            assert_eq!(order_details.len(), 2);
-            assert!(order_details.contains_key("fixed-limit"));
-            assert!(order_details.contains_key("auction-dca"));
+            assert_eq!(order_details.valid.len(), 2);
+            assert!(order_details.invalid.is_empty());
+            assert!(order_details.valid.contains_key("fixed-limit"));
+            assert!(order_details.valid.contains_key("auction-dca"));
 
-            let fixed_limit_details = order_details.get("fixed-limit").unwrap();
+            let fixed_limit_details = order_details.valid.get("fixed-limit").unwrap();
             assert_eq!(fixed_limit_details.name, "Test gui");
             assert_eq!(fixed_limit_details.description, "Test description");
+        }
+
+        #[wasm_bindgen_test]
+        fn test_get_all_order_details_with_invalid_order() {
+            let registry = DotrainRegistry {
+                registry_url: Url::parse("https://example.com/test").unwrap(),
+                registry: "".to_string(),
+                settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
+                settings: MOCK_SETTINGS_CONTENT.to_string(),
+                order_urls: vec![
+                    (
+                        "valid".to_string(),
+                        Url::parse("https://example.com/valid.rain").unwrap(),
+                    ),
+                    (
+                        "invalid".to_string(),
+                        Url::parse("https://example.com/invalid.rain").unwrap(),
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+                orders: vec![
+                    ("valid".to_string(), get_first_dotrain_content()),
+                    ("invalid".to_string(), "not-a-valid-dotrain".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+            };
+
+            let result = registry.get_all_order_details().unwrap();
+            assert_eq!(result.valid.len(), 1);
+            assert_eq!(result.invalid.len(), 1);
+            assert!(result.valid.contains_key("valid"));
+            assert!(result.invalid.contains_key("invalid"));
         }
 
         #[wasm_bindgen_test]
@@ -917,10 +995,10 @@ _ _: 1 1;
             assert_eq!(registry.settings(), MOCK_SETTINGS_CONTENT);
 
             let order_urls_map = registry.order_urls();
-            assert_eq!(order_urls_map.size(), 1);
+            assert_eq!(order_urls_map.0.len(), 1);
 
             let orders_map = registry.orders();
-            assert_eq!(orders_map.size(), 1);
+            assert_eq!(orders_map.0.len(), 1);
         }
 
         #[wasm_bindgen_test]
@@ -1035,6 +1113,39 @@ _ _: 1 1;
             assert_eq!(order_urls.len(), 2);
             assert!(order_urls.contains_key("order1"));
             assert!(order_urls.contains_key("order2"));
+        }
+
+        #[tokio::test]
+        async fn test_validate_success() {
+            let server = MockServer::start_async().await;
+            let test_registry_content = format!(
+                "{}/settings.yaml\norder1 {}/order1.rain",
+                server.url(""),
+                server.url("")
+            );
+
+            server.mock(|when, then| {
+                when.method("GET").path("/registry.txt");
+                then.status(200).body(test_registry_content.clone());
+            });
+
+            let result =
+                DotrainRegistry::validate(format!("{}/registry.txt", server.url(""))).await;
+            assert!(result.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_validate_invalid_registry() {
+            let server = MockServer::start_async().await;
+
+            server.mock(|when, then| {
+                when.method("GET").path("/invalid-registry.txt");
+                then.status(200).body("invalid format");
+            });
+
+            let result =
+                DotrainRegistry::validate(format!("{}/invalid-registry.txt", server.url(""))).await;
+            assert!(result.is_err());
         }
 
         #[tokio::test]
