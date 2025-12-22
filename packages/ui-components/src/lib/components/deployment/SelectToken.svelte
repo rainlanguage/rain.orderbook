@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import type { GuiSelectTokensCfg, TokenInfo } from '@rainlanguage/orderbook';
+	import type { GuiSelectTokensCfg, TokenInfoExtended } from '@rainlanguage/orderbook';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
@@ -15,11 +15,11 @@
 	export let tokenBalances: Map<string, TokenBalance> = new Map();
 
 	let inputValue: string | null = null;
-	let tokenInfo: TokenInfo | null = null;
+	let tokenInfo: TokenInfoExtended | null = null;
 	let error = '';
 	let checking = false;
 	let selectionMode: 'dropdown' | 'custom' = 'dropdown';
-	let selectedToken: TokenInfo | null = null;
+	let selectedToken: TokenInfoExtended | null = null;
 
 	const gui = useGui();
 
@@ -56,7 +56,7 @@
 		}
 	}
 
-	function handleTokenSelect(token: TokenInfo) {
+	function handleTokenSelect(token: TokenInfoExtended) {
 		selectedToken = token;
 		inputValue = token.address;
 		saveTokenSelection(token.address);
