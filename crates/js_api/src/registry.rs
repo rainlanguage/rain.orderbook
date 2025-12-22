@@ -1,4 +1,5 @@
 use crate::gui::{DotrainOrderGui, GuiError};
+use crate::yaml::{OrderbookYaml, OrderbookYamlError};
 use rain_orderbook_app_settings::gui::NameAndDescriptionCfg;
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -133,6 +134,8 @@ pub enum DotrainRegistryError {
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     GuiError(#[from] GuiError),
+    #[error(transparent)]
+    OrderbookYamlError(#[from] OrderbookYamlError),
 }
 
 impl DotrainRegistryError {
@@ -162,7 +165,8 @@ impl DotrainRegistryError {
             DotrainRegistryError::UrlParseError(err) => {
                 format!("Invalid URL format: {}. Please ensure the URL is properly formatted.", err)
             }
-            DotrainRegistryError::GuiError(err) => err.to_readable_msg()
+            DotrainRegistryError::GuiError(err) => err.to_readable_msg(),
+            DotrainRegistryError::OrderbookYamlError(err) => err.to_readable_msg(),
         }
     }
 }
@@ -457,6 +461,32 @@ impl DotrainRegistry {
 
         let gui = gui_result.map_err(DotrainRegistryError::GuiError)?;
         Ok(gui)
+    }
+
+    /// Creates an OrderbookYaml instance from the registry's shared settings.
+    ///
+    /// This method provides access to the OrderbookYaml SDK, allowing you to query tokens,
+    /// networks, orderbooks, and other configuration from the shared settings YAML.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const yamlResult = registry.getOrderbookYaml();
+    /// if (yamlResult.error) {
+    ///   console.error("Failed to get OrderbookYaml:", yamlResult.error.readableMsg);
+    ///   return;
+    /// }
+    /// const orderbookYaml = yamlResult.value;
+    /// ```
+    #[wasm_export(
+        js_name = "getOrderbookYaml",
+        preserve_js_class,
+        unchecked_return_type = "OrderbookYaml",
+        return_description = "OrderbookYaml instance from registry settings"
+    )]
+    pub fn get_orderbook_yaml(&self) -> Result<OrderbookYaml, DotrainRegistryError> {
+        let yaml = OrderbookYaml::new(vec![self.settings.clone()], None)?;
+        Ok(yaml)
     }
 }
 
@@ -1400,6 +1430,107 @@ _ _: 1 1;
                 }
                 _ => panic!("Expected OrderKeyNotFound error"),
             }
+        }
+
+        const MOCK_SETTINGS_WITH_TOKENS: &str = r#"version: 4
+networks:
+  mainnet:
+    rpcs:
+      - https://mainnet.infura.io
+    chain-id: 1
+    currency: ETH
+tokens:
+  weth:
+    network: mainnet
+    address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+    decimals: 18
+    label: Wrapped Ether
+    symbol: WETH
+  usdc:
+    network: mainnet
+    address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+    decimals: 6
+    label: USD Coin
+    symbol: USDC
+orderbooks:
+  mainnet:
+    address: 0x1234567890123456789012345678901234567890
+    network: mainnet
+deployers:
+  mainnet:
+    address: 0x1234567890123456789012345678901234567890
+    network: mainnet
+"#;
+
+        const MOCK_DOTRAIN_SIMPLE: &str = r#"gui:
+  name: Test Order
+  description: Test description
+  deployments:
+    mainnet:
+      name: Mainnet Order
+      description: Mainnet deployment
+      deposits:
+        - token: weth
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          presets:
+            - value: "0xbeef"
+scenarios:
+  mainnet:
+    deployer: mainnet
+    runs: 1
+orders:
+  mainnet:
+    orderbook: mainnet
+    inputs:
+      - token: weth
+    outputs:
+      - token: usdc
+deployments:
+  mainnet:
+    scenario: mainnet
+    order: mainnet
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+"#;
+
+        #[tokio::test]
+        async fn test_get_orderbook_yaml_returns_valid_instance() {
+            let server = MockServer::start_async().await;
+
+            let test_registry_content = format!(
+                "{}/settings.yaml\ntest-order {}/order.rain",
+                server.url(""),
+                server.url("")
+            );
+
+            server.mock(|when, then| {
+                when.method("GET").path("/registry.txt");
+                then.status(200).body(test_registry_content.clone());
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/settings.yaml");
+                then.status(200).body(MOCK_SETTINGS_WITH_TOKENS);
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/order.rain");
+                then.status(200).body(MOCK_DOTRAIN_SIMPLE);
+            });
+
+            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+                .await
+                .unwrap();
+
+            let orderbook_yaml = registry.get_orderbook_yaml();
+            assert!(orderbook_yaml.is_ok());
         }
     }
 }

@@ -83,8 +83,8 @@ The package re‑exports the WASM‑bound API from the Rust crates. Representati
 - High‑level classes (selected)
   - `RaindexClient` — orderbook queries (orders, trades, vaults, quotes, transactions) across configured networks/subgraphs.
   - `RaindexOrder`, `RaindexVault`, `RaindexTrade`, `RaindexTransaction`, `RaindexVaultsList`, etc.
-  - `DotrainOrder`, `DotrainOrderGui`, `DotrainRegistry` — dotrain parsing, GUI orchestration, registry fetching, and deployment calldata.
-  - `OrderbookYaml` — typed access to networks, tokens, orderbooks, subgraphs, deployers, accounts, metaboards.
+  - `DotrainOrder`, `DotrainOrderGui`, `DotrainRegistry` — dotrain parsing, GUI orchestration, registry fetching (including `getOrderbookYaml()` for token queries), and deployment calldata.
+  - `OrderbookYaml` — typed access to networks, tokens (via `getTokens()`), orderbooks, subgraphs, deployers, accounts, metaboards.
   - `Float` — arbitrary‑precision float utilities used across the API.
 - Errors & results
   - Most methods return `WasmEncodedResult<T>` with either `{ value }` or `{ error: { msg, readableMsg } }` for ergonomic, user‑readable error handling in JS.
