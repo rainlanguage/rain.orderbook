@@ -163,7 +163,7 @@ describe('OrderDetail', () => {
 			removeToast: vi.fn()
 		});
 
-		(getExplorerLink as Mock).mockResolvedValue(
+		(getExplorerLink as Mock).mockReturnValue(
 			'https://etherscan.io/address/0x1234567890123456789012345678901234567890'
 		);
 	});
@@ -347,7 +347,7 @@ describe('OrderDetail', () => {
 
 	it('renders owner address as explorer link when explorer is available', async () => {
 		const explorerUrl = 'https://etherscan.io/address/0x1234567890123456789012345678901234567890';
-		(getExplorerLink as Mock).mockResolvedValue(explorerUrl);
+		(getExplorerLink as Mock).mockReturnValue(explorerUrl);
 
 		render(OrderDetail, {
 			props: defaultProps,
@@ -366,7 +366,7 @@ describe('OrderDetail', () => {
 	});
 
 	it('falls back to Hash component when no explorer link is available', async () => {
-		(getExplorerLink as Mock).mockResolvedValue('');
+		(getExplorerLink as Mock).mockReturnValue('');
 
 		render(OrderDetail, {
 			props: defaultProps,

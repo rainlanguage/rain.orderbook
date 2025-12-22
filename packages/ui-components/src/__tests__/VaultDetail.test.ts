@@ -83,7 +83,7 @@ describe('VaultDetail', () => {
 			removeToast: vi.fn()
 		});
 
-		(getExplorerLink as Mock).mockResolvedValue(
+		(getExplorerLink as Mock).mockReturnValue(
 			'https://etherscan.io/address/0x1234567890123456789012345678901234567890'
 		);
 
@@ -226,7 +226,7 @@ describe('VaultDetail', () => {
 
 	it('renders owner address as explorer link when explorer is available', async () => {
 		const explorerUrl = 'https://etherscan.io/address/0x1234567890123456789012345678901234567890';
-		(getExplorerLink as Mock).mockResolvedValue(explorerUrl);
+		(getExplorerLink as Mock).mockReturnValue(explorerUrl);
 
 		render(VaultDetail, {
 			props: defaultProps,
@@ -245,7 +245,7 @@ describe('VaultDetail', () => {
 	});
 
 	it('falls back to Hash component when no explorer link is available', async () => {
-		(getExplorerLink as Mock).mockResolvedValue('');
+		(getExplorerLink as Mock).mockReturnValue('');
 
 		render(VaultDetail, {
 			props: defaultProps,

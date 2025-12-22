@@ -157,21 +157,20 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Owner</svelte:fragment>
 				<svelte:fragment slot="value">
-					{#await getExplorerLink(data.owner, chainId, 'address') then explorerLink}
-						{#if explorerLink}
-							<a
-								href={explorerLink}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="flex items-center justify-start space-x-2 text-left text-blue-500 hover:underline"
-							>
-								<WalletOutline size="sm" />
-								<span>{data.owner}</span>
-							</a>
-						{:else}
-							<Hash type={HashType.Wallet} shorten={false} value={data.owner} />
-						{/if}
-					{/await}
+					{@const explorerLink = getExplorerLink(data.owner, chainId, 'address')}
+					{#if explorerLink}
+						<a
+							href={explorerLink}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-start space-x-2 text-left text-blue-500 hover:underline"
+						>
+							<WalletOutline size="sm" />
+							<span>{data.owner}</span>
+						</a>
+					{:else}
+						<Hash type={HashType.Wallet} shorten={false} value={data.owner} />
+					{/if}
 				</svelte:fragment>
 			</CardProperty>
 
