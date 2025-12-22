@@ -276,7 +276,7 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getAllTokens",
-        unchecked_return_type = "TokenInfo[]",
+        unchecked_return_type = "TokenInfoExtended[]",
         return_description = "Array of token information for the current network"
     )]
     pub async fn get_all_tokens(
@@ -285,7 +285,7 @@ impl DotrainOrderGui {
             param_description = "Optional search term to filter tokens by name, symbol, or address"
         )]
         search: Option<String>,
-    ) -> Result<Vec<TokenInfo>, GuiError> {
+    ) -> Result<Vec<TokenInfoExtended>, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -308,29 +308,32 @@ impl DotrainOrderGui {
             if let (Some(decimals), Some(label), Some(symbol)) =
                 (&token.decimals, &token.label, &token.symbol)
             {
-                results.push(TokenInfo {
+                results.push(TokenInfoExtended {
                     key: token.key.clone(),
                     address: token.address,
                     decimals: *decimals,
                     name: label.clone(),
                     symbol: symbol.clone(),
+                    chain_id: token.network.chain_id,
                 });
             } else {
+                let chain_id = token.network.chain_id;
                 let erc20 = ERC20::new(network.rpcs.clone(), token.address);
                 fetch_futures.push(async move {
                     let token_info = erc20.token_info(None).await?;
-                    Ok::<TokenInfo, GuiError>(TokenInfo {
+                    Ok::<TokenInfoExtended, GuiError>(TokenInfoExtended {
                         key: token.key.clone(),
                         address: token.address,
                         decimals: token.decimals.unwrap_or(token_info.decimals),
                         name: token.label.unwrap_or(token_info.name),
                         symbol: token.symbol.unwrap_or(token_info.symbol),
+                        chain_id,
                     })
                 });
             }
         }
 
-        let fetched_results: Vec<TokenInfo> = futures::stream::iter(fetch_futures)
+        let fetched_results: Vec<TokenInfoExtended> = futures::stream::iter(fetch_futures)
             .buffer_unordered(MAX_CONCURRENT_FETCHES)
             .filter_map(|res| async {
                 match res {

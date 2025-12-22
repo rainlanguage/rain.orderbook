@@ -16,6 +16,7 @@ use rain_orderbook_app_settings::{
         YamlError, YamlParsable,
     },
 };
+pub use rain_orderbook_common::erc20::TokenInfoExtended;
 use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
@@ -38,16 +39,6 @@ mod order_operations;
 mod select_tokens;
 mod state_management;
 mod validation;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct TokenInfo {
-    pub key: String,
-    #[tsify(type = "string")]
-    pub address: Address,
-    pub decimals: u8,
-    pub name: String,
-    pub symbol: String,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -278,25 +269,26 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getTokenInfo",
-        unchecked_return_type = "TokenInfo",
-        return_description = "Complete token details including address, decimals, name, and symbol"
+        unchecked_return_type = "TokenInfoExtended",
+        return_description = "Complete token details including address, decimals, name, symbol, and chain_id"
     )]
     pub async fn get_token_info(
         &self,
         #[wasm_export(param_description = "Token identifier from the YAML tokens section")]
         key: String,
-    ) -> Result<TokenInfo, GuiError> {
+    ) -> Result<TokenInfoExtended, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
         let token_info = if let (Some(decimals), Some(label), Some(symbol)) =
             (&token.decimals, &token.label, &token.symbol)
         {
-            TokenInfo {
+            TokenInfoExtended {
                 key: token.key.clone(),
                 address: token.address,
                 decimals: *decimals,
                 name: label.clone(),
                 symbol: symbol.clone(),
+                chain_id: token.network.chain_id,
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(
@@ -313,12 +305,13 @@ impl DotrainOrderGui {
             let erc20 = ERC20::new(rpcs, token.address);
             let onchain_info = erc20.token_info(None).await?;
 
-            TokenInfo {
+            TokenInfoExtended {
                 key: token.key.clone(),
                 address: token.address,
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
                 name: token.label.unwrap_or(onchain_info.name),
                 symbol: token.symbol.unwrap_or(onchain_info.symbol),
+                chain_id: token.network.chain_id,
             }
         };
 
@@ -349,10 +342,10 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getAllTokenInfos",
-        unchecked_return_type = "TokenInfo[]",
+        unchecked_return_type = "TokenInfoExtended[]",
         return_description = "Array of complete token information"
     )]
-    pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfo>, GuiError> {
+    pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfoExtended>, GuiError> {
         let select_tokens = self.get_select_tokens()?;
 
         let token_keys = match select_tokens.is_empty() {
