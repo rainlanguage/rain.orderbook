@@ -13,12 +13,13 @@ use rain_orderbook_common::local_db::pipeline::{
 use std::sync::Arc;
 
 use crate::commands::local_db::pipeline::{
-    bootstrap::ProducerBootstrapAdapter, status::ProducerStatusBus,
+    bootstrap::ProducerBootstrapAdapter,
+    status::{DebugStatus, ProducerStatusBus},
 };
 
 pub fn default_environment(
     hypersync_token: String,
-    debug_status: bool,
+    debug_status: DebugStatus,
 ) -> RunnerEnvironment<
     ProducerBootstrapAdapter,
     DefaultWindowPipeline,
@@ -92,7 +93,7 @@ mod tests {
 
     #[test]
     fn build_engine_configures_hyperrpc_for_supported_chain() {
-        let env = default_environment("super-secret-token".to_string(), false);
+        let env = default_environment("super-secret-token".to_string(), DebugStatus::Disabled);
         let target = sample_target(42161);
         let engine = env.build_engine(&target).expect("engine available");
 
@@ -109,7 +110,7 @@ mod tests {
 
     #[test]
     fn build_engine_rejects_unsupported_chain() {
-        let env = default_environment("token".to_string(), false);
+        let env = default_environment("token".to_string(), DebugStatus::Disabled);
         let target = sample_target(1);
         match env.build_engine(&target) {
             Err(LocalDbError::Rpc(RpcClientError::UnsupportedChainId { chain_id })) => {

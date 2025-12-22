@@ -4,7 +4,8 @@ pub mod manifest;
 
 use crate::commands::local_db::executor::RusqliteExecutor;
 use crate::commands::local_db::pipeline::{
-    bootstrap::ProducerBootstrapAdapter, status::ProducerStatusBus,
+    bootstrap::ProducerBootstrapAdapter,
+    status::{DebugStatus, ProducerStatusBus},
 };
 use alloy::primitives::Address;
 use environment::default_environment;
@@ -216,7 +217,7 @@ impl
         out_root: PathBuf,
         release_base_url: Url,
         hypersync_token: String,
-        debug_status: bool,
+        debug_status: DebugStatus,
     ) -> Result<Self, LocalDbError> {
         let environment = default_environment(hypersync_token, debug_status);
         Self::with_environment(settings_yaml, out_root, release_base_url, environment)
