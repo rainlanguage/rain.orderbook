@@ -73,14 +73,6 @@ impl OrderbookCfg {
                     return require_string(orderbook_yaml, Some("network"), None)
                         .or_else(|_| Ok(orderbook_key.to_string()));
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "orderbooks".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
         }
         Err(YamlError::Field {
@@ -597,16 +589,13 @@ orderbooks: test
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orderbooks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("network for orderbook 'order1'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'orderbooks' in root must be a map"
+            "Missing required field 'network for orderbook 'order1'' in root"
         );
 
         let yaml = r#"
@@ -618,16 +607,13 @@ orderbooks:
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orderbooks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("network for orderbook 'order1'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'orderbooks' in root must be a map"
+            "Missing required field 'network for orderbook 'order1'' in root"
         );
 
         let yaml = r#"
@@ -639,16 +625,13 @@ orderbooks:
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "orderbooks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("network for orderbook 'order1'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'orderbooks' in root must be a map"
+            "Missing required field 'network for orderbook 'order1'' in root"
         );
     }
 

@@ -231,7 +231,6 @@ impl ParseDeploymentConfigSourceError {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use yaml::tests::get_document;
 
     #[test]

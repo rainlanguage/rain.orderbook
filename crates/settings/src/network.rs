@@ -122,32 +122,33 @@ impl NetworkCfg {
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
 
-            let networks_hash =
-                require_hash(&document_read, Some("networks"), Some("root".to_string()))?;
-
-            if let Some(network_yaml) =
-                networks_hash.get(&StrictYaml::String(network_key.to_string()))
+            if let Ok(networks_hash) =
+                require_hash(&document_read, Some("networks"), Some("root".to_string()))
             {
-                let location = format!("network '{}'", network_key);
-                let rpcs = require_vec(network_yaml, "rpcs", Some(location.clone()))?;
+                if let Some(network_yaml) =
+                    networks_hash.get(&StrictYaml::String(network_key.to_string()))
+                {
+                    let location = format!("network '{}'", network_key);
+                    let rpcs = require_vec(network_yaml, "rpcs", Some(location.clone()))?;
 
-                for rpc_value in rpcs {
-                    let url_str = require_string(rpc_value, None, None)?;
-                    let url = NetworkCfg::validate_rpc(&url_str)?;
-                    res.push(url);
+                    for rpc_value in rpcs {
+                        let url_str = require_string(rpc_value, None, None)?;
+                        let url = NetworkCfg::validate_rpc(&url_str)?;
+                        res.push(url);
+                    }
+
+                    if res.is_empty() {
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "rpcs".to_string(),
+                                reason: "must be a non-empty array".to_string(),
+                            },
+                            location,
+                        });
+                    }
+
+                    return Ok(res);
                 }
-
-                if res.is_empty() {
-                    return Err(YamlError::Field {
-                        kind: FieldErrorKind::InvalidValue {
-                            field: "rpcs".to_string(),
-                            reason: "must be a non-empty array".to_string(),
-                        },
-                        location,
-                    });
-                }
-
-                return Ok(res);
             }
         }
 
@@ -558,16 +559,13 @@ networks: test
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "networks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("rpcs for network 'mainnet'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'networks' in root must be a map"
+            "Missing required field 'rpcs for network 'mainnet'' in root"
         );
 
         let yaml = r#"
@@ -578,16 +576,13 @@ networks:
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "networks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("rpcs for network 'mainnet'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'networks' in root must be a map"
+            "Missing required field 'rpcs for network 'mainnet'' in root"
         );
 
         let yaml = r#"
@@ -598,16 +593,13 @@ networks:
         assert_eq!(
             error,
             YamlError::Field {
-                kind: FieldErrorKind::InvalidType {
-                    field: "networks".to_string(),
-                    expected: "a map".to_string(),
-                },
+                kind: FieldErrorKind::Missing("rpcs for network 'mainnet'".to_string()),
                 location: "root".to_string(),
             }
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Field 'networks' in root must be a map"
+            "Missing required field 'rpcs for network 'mainnet'' in root"
         );
 
         let yaml = r#"

@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
 import { loadRegistryUrl } from '../lib/services/loadRegistryUrl';
-import { fetchRegistryDotrains } from '../lib/services/registry';
 import { RegistryManager } from '../lib/providers/registry/RegistryManager';
 import { initialRegistry } from '../__fixtures__/RegistryManager';
+import { DotrainRegistry } from '@rainlanguage/orderbook';
 
 // Mock dependencies
-vi.mock('../lib/services/registry', () => ({
-	fetchRegistryDotrains: vi.fn(),
-	validateStrategies: vi.fn()
+vi.mock('@rainlanguage/orderbook', () => ({
+	DotrainRegistry: {
+		validate: vi.fn()
+	}
 }));
 
 describe('loadRegistryUrl', () => {
@@ -37,21 +38,21 @@ describe('loadRegistryUrl', () => {
 		const testUrl = 'https://example.com/registry';
 		const mockRegistryManager = initialRegistry as RegistryManager;
 
-		(fetchRegistryDotrains as Mock).mockResolvedValueOnce(undefined);
+		(DotrainRegistry.validate as Mock).mockResolvedValueOnce({ value: {} });
 		await loadRegistryUrl(testUrl, mockRegistryManager);
-		expect(fetchRegistryDotrains).toHaveBeenCalledWith(testUrl);
+		expect(DotrainRegistry.validate).toHaveBeenCalledWith(testUrl);
 		expect(mockRegistryManager.setRegistry).toHaveBeenCalledWith(testUrl);
 		expect(window.location.reload).toHaveBeenCalled();
 	});
 
-	it('should throw an error if fetching registry dotrains fails', async () => {
+	it('should throw an error if fetching registry fails', async () => {
 		const testUrl = 'https://example.com/registry';
 		const errorMessage = 'Fetch failed';
 		const mockRegistryManager = {
 			setRegistry: vi.fn()
 		} as unknown as RegistryManager;
 
-		(fetchRegistryDotrains as Mock).mockRejectedValueOnce(new Error(errorMessage));
+		(DotrainRegistry.validate as Mock).mockRejectedValueOnce(new Error(errorMessage));
 
 		await expect(loadRegistryUrl(testUrl, mockRegistryManager)).rejects.toThrow(errorMessage);
 
@@ -65,7 +66,7 @@ describe('loadRegistryUrl', () => {
 			setRegistry: vi.fn()
 		} as unknown as RegistryManager;
 
-		(fetchRegistryDotrains as Mock).mockRejectedValueOnce('String error');
+		(DotrainRegistry.validate as Mock).mockRejectedValueOnce('String error');
 
 		await expect(loadRegistryUrl(testUrl, mockRegistryManager)).rejects.toThrow(
 			'Failed to update registry URL'

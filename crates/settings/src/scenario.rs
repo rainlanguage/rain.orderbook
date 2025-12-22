@@ -1,4 +1,7 @@
-use crate::{yaml::get_hash_value, *};
+use crate::{
+    yaml::{default_documents, get_hash_value},
+    *,
+};
 use blocks::BlocksCfg;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -23,6 +26,8 @@ const ALLOWED_SCENARIO_KEYS: [&str; 5] = ["bindings", "blocks", "deployer", "run
 pub struct ScenarioCfg {
     #[serde(skip, default = "default_document")]
     pub document: Arc<RwLock<StrictYaml>>,
+    #[serde(skip, default = "default_documents")]
+    pub documents: Arc<Vec<Arc<RwLock<StrictYaml>>>>,
     pub key: String,
     #[cfg_attr(
         target_family = "wasm",
@@ -182,6 +187,7 @@ impl ScenarioCfg {
             key.clone(),
             ScenarioCfg {
                 document: current_document.clone(),
+                documents: Arc::new(documents.clone()),
                 key: key.clone(),
                 bindings: bindings.clone(),
                 runs,
@@ -346,7 +352,7 @@ impl ScenarioCfg {
             }
         }
 
-        Self::parse_from_yaml(vec![self.document.clone()], &self.key, None)
+        Self::parse_from_yaml(self.documents.as_ref().clone(), &self.key, None)
     }
 
     fn sanitize_scenario_hash(scenario_hash: &Hash) -> Hash {
@@ -480,7 +486,8 @@ impl YamlParsableHash for ScenarioCfg {
 impl Default for ScenarioCfg {
     fn default() -> Self {
         Self {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            document: default_document(),
+            documents: default_documents(),
             key: String::new(),
             bindings: HashMap::new(),
             runs: None,
