@@ -66,7 +66,7 @@ impl RunPipeline {
             out_root,
             release_base_url,
             api_token,
-            debug_status,
+            debug_status.into(),
         )?;
         let report = runner.run().await?;
 
