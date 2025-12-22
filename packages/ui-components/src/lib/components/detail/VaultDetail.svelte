@@ -23,7 +23,12 @@
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { Button } from 'flowbite-svelte';
-	import { ArrowDownToBracketOutline, ArrowUpFromBracketOutline } from 'flowbite-svelte-icons';
+	import {
+		ArrowDownToBracketOutline,
+		ArrowUpFromBracketOutline,
+		WalletOutline
+	} from 'flowbite-svelte-icons';
+	import { getExplorerLink } from '$lib/services/getExplorerLink';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
@@ -128,7 +133,21 @@
 		<CardProperty data-testid="vaultDetailOwnerAddress">
 			<svelte:fragment slot="key">Owner address</svelte:fragment>
 			<svelte:fragment slot="value">
-				<Hash type={HashType.Wallet} value={data.owner} />
+				{#await getExplorerLink(data.owner, chainId, 'address') then explorerLink}
+					{#if explorerLink}
+						<a
+							href={explorerLink}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-start space-x-2 text-left text-blue-500 hover:underline"
+						>
+							<WalletOutline size="sm" />
+							<span>{data.owner}</span>
+						</a>
+					{:else}
+						<Hash type={HashType.Wallet} value={data.owner} />
+					{/if}
+				{/await}
 			</svelte:fragment>
 		</CardProperty>
 
