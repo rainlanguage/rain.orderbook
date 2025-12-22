@@ -30,17 +30,12 @@
 
 	let value: Record<string, string> = {};
 	$: {
-		const networks = raindexClient.getAllNetworks();
-		if (networks.error) {
-			value = {};
-		} else {
-			value = Object.fromEntries(
-				$selectedChainIds.map((chainId) => [
-					String(chainId),
-					getNetworkName(chainId) ?? `Chain ${chainId}`
-				])
-			);
-		}
+		value = Object.fromEntries(
+			$selectedChainIds.map((chainId) => [
+				String(chainId),
+				getNetworkName(chainId) ?? `Chain ${chainId}`
+			])
+		);
 	}
 </script>
 
