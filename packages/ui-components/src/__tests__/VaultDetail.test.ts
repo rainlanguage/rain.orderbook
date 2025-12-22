@@ -12,6 +12,7 @@ import { useAccount } from '../lib/providers/wallet/useAccount';
 import { QKEY_VAULT } from '$lib/queries/keys';
 import { useToasts } from '../lib/providers/toasts/useToasts';
 import { invalidateTanstackQueries } from '$lib/queries/queryClient';
+import { getExplorerLink } from '$lib/services/getExplorerLink';
 
 type VaultDetailProps = ComponentProps<VaultDetail>;
 
@@ -42,6 +43,10 @@ vi.mock('$lib/queries/queryClient', () => ({
 
 vi.mock('$lib/providers/toasts/useToasts', () => ({
 	useToasts: vi.fn()
+}));
+
+vi.mock('$lib/services/getExplorerLink', () => ({
+	getExplorerLink: vi.fn()
 }));
 
 const mockErrToast = vi.fn();
@@ -77,6 +82,10 @@ describe('VaultDetail', () => {
 			toasts: writable([]),
 			removeToast: vi.fn()
 		});
+
+		(getExplorerLink as Mock).mockResolvedValue(
+			'https://etherscan.io/address/0x1234567890123456789012345678901234567890'
+		);
 
 		mockRaindexClient = {
 			getVault: vi.fn()
@@ -212,6 +221,42 @@ describe('VaultDetail', () => {
 			const refreshButton = screen.getByTestId('top-refresh');
 			await userEvent.click(refreshButton);
 			expect(mockErrToast).toHaveBeenCalledWith('Failed to refresh');
+		});
+	});
+
+	it('renders owner address as explorer link when explorer is available', async () => {
+		const explorerUrl = 'https://etherscan.io/address/0x1234567890123456789012345678901234567890';
+		(getExplorerLink as Mock).mockResolvedValue(explorerUrl);
+
+		render(VaultDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			const ownerLink = screen.getByRole('link', {
+				name: /0x1234567890123456789012345678901234567890/i
+			});
+			expect(ownerLink).toBeInTheDocument();
+			expect(ownerLink).toHaveAttribute('href', explorerUrl);
+			expect(ownerLink).toHaveAttribute('target', '_blank');
+			expect(ownerLink).toHaveAttribute('rel', 'noopener noreferrer');
+		});
+	});
+
+	it('falls back to Hash component when no explorer link is available', async () => {
+		(getExplorerLink as Mock).mockResolvedValue('');
+
+		render(VaultDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByTestId('vaultDetailOwnerAddress')).toHaveTextContent('0x123');
+			expect(
+				screen.queryByRole('link', { name: /0x1234567890123456789012345678901234567890/i })
+			).not.toBeInTheDocument();
 		});
 	});
 });
