@@ -15,6 +15,8 @@ use yaml::{
     require_string, FieldErrorKind, YamlError, YamlParsableHash,
 };
 
+const ALLOWED_SCENARIO_KEYS: [&str; 5] = ["bindings", "blocks", "deployer", "runs", "scenarios"];
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
@@ -346,6 +348,57 @@ impl ScenarioCfg {
 
         Self::parse_from_yaml(vec![self.document.clone()], &self.key, None)
     }
+
+    fn sanitize_scenario_hash(scenario_hash: &Hash) -> Hash {
+        let mut sanitized = Hash::new();
+
+        for allowed_key in ALLOWED_SCENARIO_KEYS.iter() {
+            let key_yaml = StrictYaml::String(allowed_key.to_string());
+            if let Some(v) = scenario_hash.get(&key_yaml) {
+                if *allowed_key == "scenarios" {
+                    if let StrictYaml::Hash(ref nested_scenarios) = *v {
+                        let sanitized_nested = Self::sanitize_scenarios_hash(nested_scenarios);
+                        sanitized.insert(key_yaml, StrictYaml::Hash(sanitized_nested));
+                    } else {
+                        sanitized.insert(key_yaml, v.clone());
+                    }
+                } else {
+                    sanitized.insert(key_yaml, v.clone());
+                }
+            }
+        }
+
+        sanitized
+    }
+
+    fn sanitize_scenarios_hash(scenarios_hash: &Hash) -> Hash {
+        let mut sanitized_scenarios: Vec<(String, StrictYaml)> = Vec::new();
+
+        for (scenario_key, scenario_value) in scenarios_hash {
+            let Some(scenario_key_str) = scenario_key.as_str() else {
+                continue;
+            };
+
+            let StrictYaml::Hash(ref scenario_hash) = *scenario_value else {
+                continue;
+            };
+
+            let sanitized_scenario = Self::sanitize_scenario_hash(scenario_hash);
+            sanitized_scenarios.push((
+                scenario_key_str.to_string(),
+                StrictYaml::Hash(sanitized_scenario),
+            ));
+        }
+
+        sanitized_scenarios.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        let mut new_scenarios_hash = Hash::new();
+        for (key, value) in sanitized_scenarios {
+            new_scenarios_hash.insert(StrictYaml::String(key), value);
+        }
+
+        new_scenarios_hash
+    }
 }
 
 impl YamlParsableHash for ScenarioCfg {
@@ -401,42 +454,26 @@ impl YamlParsableHash for ScenarioCfg {
         Ok(scenarios)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut scenario_yaml = Hash::new();
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
 
-        let mut bindings_entries: Vec<_> = self.bindings.iter().collect();
-        bindings_entries.sort_by(|(a, _), (b, _)| a.cmp(b));
-        let bindings_yaml = bindings_entries
-            .into_iter()
-            .map(|(k, v)| (StrictYaml::String(k.clone()), StrictYaml::String(v.clone())))
-            .collect();
-        scenario_yaml.insert(
-            StrictYaml::String("bindings".to_string()),
-            StrictYaml::Hash(bindings_yaml),
-        );
+            let scenarios_key = StrictYaml::String("scenarios".to_string());
+            let Some(scenarios_value) = root_hash.get(&scenarios_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref scenarios_hash) = *scenarios_value else {
+                continue;
+            };
 
-        if let Some(runs) = self.runs {
-            scenario_yaml.insert(
-                StrictYaml::String("runs".to_string()),
-                StrictYaml::String(runs.to_string()),
-            );
+            let sanitized = Self::sanitize_scenarios_hash(scenarios_hash);
+            root_hash.insert(scenarios_key, StrictYaml::Hash(sanitized));
         }
 
-        if let Some(blocks) = &self.blocks {
-            let blocks_yaml = serde_yaml::to_string(blocks)
-                .map_err(|err| YamlError::ParseError(err.to_string()))?;
-            scenario_yaml.insert(
-                StrictYaml::String("blocks".to_string()),
-                StrictYaml::String(blocks_yaml.trim().to_string()),
-            );
-        }
-
-        scenario_yaml.insert(
-            StrictYaml::String("deployer".to_string()),
-            StrictYaml::String(self.deployer.key.clone()),
-        );
-
-        Ok(StrictYaml::Hash(scenario_yaml))
+        Ok(())
     }
 }
 
@@ -794,110 +831,6 @@ scenarios:
     }
 
     #[test]
-    fn to_yaml_value_serializes_strings_and_optionals() {
-        use crate::test::mock_deployer;
-
-        let document = Arc::new(RwLock::new(StrictYaml::Hash(Hash::new())));
-        let deployer = mock_deployer();
-        let deployer_key = deployer.key.clone();
-        let blocks = BlocksCfg::RangeWithInterval {
-            range: BlockRangeCfg {
-                start: BlockCfg::Number(1),
-                end: BlockCfg::Number(10),
-            },
-            interval: 5,
-        };
-
-        let mut scenarios = HashMap::new();
-        scenarios.insert(
-            "with-optional".to_string(),
-            ScenarioCfg {
-                document: document.clone(),
-                key: "with-optional".to_string(),
-                bindings: HashMap::from([("binding-1".to_string(), "value-1".to_string())]),
-                runs: Some(3),
-                blocks: Some(blocks.clone()),
-                deployer: deployer.clone(),
-            },
-        );
-        scenarios.insert(
-            "without-optional".to_string(),
-            ScenarioCfg {
-                document,
-                key: "without-optional".to_string(),
-                bindings: HashMap::from([("binding-2".to_string(), "value-2".to_string())]),
-                runs: None,
-                blocks: None,
-                deployer,
-            },
-        );
-
-        let yaml = ScenarioCfg::to_yaml_hash(&scenarios).unwrap();
-        let yaml_hash = match yaml {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected scenarios hash"),
-        };
-
-        let with_optional = match yaml_hash
-            .get(&StrictYaml::String("with-optional".to_string()))
-            .expect("missing with-optional scenario")
-        {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected with-optional scenario hash"),
-        };
-        let with_bindings = match with_optional
-            .get(&StrictYaml::String("bindings".to_string()))
-            .expect("missing bindings for with-optional scenario")
-        {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected bindings hash"),
-        };
-        assert_eq!(
-            with_bindings.get(&StrictYaml::String("binding-1".to_string())),
-            Some(&StrictYaml::String("value-1".to_string()))
-        );
-        assert_eq!(
-            with_optional.get(&StrictYaml::String("runs".to_string())),
-            Some(&StrictYaml::String("3".to_string()))
-        );
-        assert_eq!(
-            with_optional.get(&StrictYaml::String("blocks".to_string())),
-            Some(&StrictYaml::String(
-                serde_yaml::to_string(&blocks).unwrap().trim().to_string()
-            ))
-        );
-        assert_eq!(
-            with_optional.get(&StrictYaml::String("deployer".to_string())),
-            Some(&StrictYaml::String(deployer_key.clone()))
-        );
-
-        let without_optional = match yaml_hash
-            .get(&StrictYaml::String("without-optional".to_string()))
-            .expect("missing without-optional scenario")
-        {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected without-optional scenario hash"),
-        };
-        let without_bindings = match without_optional
-            .get(&StrictYaml::String("bindings".to_string()))
-            .expect("missing bindings for without-optional scenario")
-        {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected bindings hash"),
-        };
-        assert_eq!(
-            without_bindings.get(&StrictYaml::String("binding-2".to_string())),
-            Some(&StrictYaml::String("value-2".to_string()))
-        );
-        assert!(!without_optional.contains_key(&StrictYaml::String("runs".to_string())));
-        assert!(!without_optional.contains_key(&StrictYaml::String("blocks".to_string())));
-        assert_eq!(
-            without_optional.get(&StrictYaml::String("deployer".to_string())),
-            Some(&StrictYaml::String(deployer_key))
-        );
-    }
-
-    #[test]
     fn test_parse_scenario_blocks() {
         let prefix = r#"
 networks:
@@ -1057,5 +990,286 @@ scenarios:
                 interval: 10,
             })
         );
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_keys() {
+        let yaml = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        bindings:
+            key1: value1
+        runs: 10
+        unknown-key: should-be-removed
+        another-unknown: also-removed
+"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let scenarios = root
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let mainnet = scenarios
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(mainnet.contains_key(&StrictYaml::String("deployer".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("bindings".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("runs".to_string())));
+        assert!(!mainnet.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!mainnet.contains_key(&StrictYaml::String("another-unknown".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_preserves_all_allowed_keys() {
+        let yaml = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        bindings:
+            key1: value1
+        runs: 10
+        blocks: [1..2]
+        scenarios:
+            nested:
+                bindings:
+                    key2: value2
+"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let scenarios = root
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let mainnet = scenarios
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(mainnet.contains_key(&StrictYaml::String("deployer".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("bindings".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("runs".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("blocks".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("scenarios".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_nested_scenarios_drops_unknown_keys() {
+        let yaml = r#"
+scenarios:
+    parent:
+        deployer: mainnet
+        bindings:
+            key1: value1
+        scenarios:
+            child:
+                bindings:
+                    key2: value2
+                unknown-nested: should-be-removed
+                scenarios:
+                    grandchild:
+                        bindings:
+                            key3: value3
+                        deep-unknown: also-removed
+"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let scenarios = root
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let parent = scenarios
+            .get(&StrictYaml::String("parent".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let nested = parent
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let child = nested
+            .get(&StrictYaml::String("child".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(child.contains_key(&StrictYaml::String("bindings".to_string())));
+        assert!(child.contains_key(&StrictYaml::String("scenarios".to_string())));
+        assert!(!child.contains_key(&StrictYaml::String("unknown-nested".to_string())));
+
+        let grandchild_nested = child
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let grandchild = grandchild_nested
+            .get(&StrictYaml::String("grandchild".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(grandchild.contains_key(&StrictYaml::String("bindings".to_string())));
+        assert!(!grandchild.contains_key(&StrictYaml::String("deep-unknown".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_drops_non_hash_scenario_entries() {
+        let yaml = r#"
+scenarios:
+    mainnet:
+        deployer: mainnet
+        bindings:
+            key1: value1
+    invalid-string: just-a-string
+"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let scenarios = root
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(scenarios.contains_key(&StrictYaml::String("mainnet".to_string())));
+        assert!(!scenarios.contains_key(&StrictYaml::String("invalid-string".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_sorts_scenarios_lexicographically() {
+        let yaml = r#"
+scenarios:
+    zebra:
+        deployer: mainnet
+    alpha:
+        deployer: mainnet
+    mainnet:
+        deployer: mainnet
+"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let scenarios = root
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let keys: Vec<_> = scenarios.keys().map(|k| k.as_str().unwrap()).collect();
+        assert_eq!(keys, vec!["alpha", "mainnet", "zebra"]);
+    }
+
+    #[test]
+    fn test_sanitize_handles_missing_scenarios_section() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        assert!(!root.contains_key(&StrictYaml::String("scenarios".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_handles_non_hash_root() {
+        let yaml = r#"just-a-string"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        assert!(doc_read.as_str().is_some());
+    }
+
+    #[test]
+    fn test_sanitize_skips_non_hash_scenarios_section() {
+        let yaml = r#"
+scenarios: not-a-hash
+"#;
+        let doc = get_document(yaml);
+        ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let scenarios = root
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap();
+        assert_eq!(scenarios.as_str(), Some("not-a-hash"));
+    }
+
+    #[test]
+    fn test_sanitize_per_document_isolation() {
+        let yaml1 = r#"
+scenarios:
+    from-doc1:
+        deployer: mainnet
+        extra-key: removed
+"#;
+        let yaml2 = r#"
+scenarios:
+    from-doc2:
+        deployer: testnet
+        another-extra: also-removed
+"#;
+        let doc1 = get_document(yaml1);
+        let doc2 = get_document(yaml2);
+
+        ScenarioCfg::sanitize_documents(&[doc1.clone(), doc2.clone()]).unwrap();
+
+        let doc1_read = doc1.read().unwrap();
+        let root1 = doc1_read.as_hash().unwrap();
+        let scenarios1 = root1
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let from_doc1 = scenarios1
+            .get(&StrictYaml::String("from-doc1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert!(!from_doc1.contains_key(&StrictYaml::String("extra-key".to_string())));
+        assert!(!scenarios1.contains_key(&StrictYaml::String("from-doc2".to_string())));
+
+        let doc2_read = doc2.read().unwrap();
+        let root2 = doc2_read.as_hash().unwrap();
+        let scenarios2 = root2
+            .get(&StrictYaml::String("scenarios".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let from_doc2 = scenarios2
+            .get(&StrictYaml::String("from-doc2".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert!(!from_doc2.contains_key(&StrictYaml::String("another-extra".to_string())));
+        assert!(!scenarios2.contains_key(&StrictYaml::String("from-doc1".to_string())));
     }
 }

@@ -1,4 +1,4 @@
-use super::{cache::Cache, ValidationConfig, *};
+use super::{cache::Cache, sanitize_all_documents, ValidationConfig, *};
 use crate::{
     accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, local_db_sync::LocalDbSyncCfg,
     metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg,
@@ -12,11 +12,10 @@ use serde::{
     Deserialize,
 };
 use std::{
-    collections::BTreeMap,
     fmt,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::{strict_yaml::Hash, StrictYaml, StrictYamlLoader};
+use strict_yaml_rust::{StrictYaml, StrictYamlLoader};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -119,6 +118,8 @@ impl YamlParsable for OrderbookYaml {
             documents.push(document);
         }
 
+        sanitize_all_documents(&documents)?;
+
         if validate.should_validate_networks() {
             NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
@@ -208,16 +209,10 @@ impl OrderbookYaml {
         self
     }
 
-    pub fn build_context(&self, profile: &ContextProfile) -> Context {
+    pub fn build_context(&self) -> Context {
         let mut context = self.create_context();
-
-        match profile {
-            ContextProfile::Strict | ContextProfile::Gui { .. } => {
-                self.expand_context_with_remote_networks(&mut context);
-                self.expand_context_with_remote_tokens(&mut context);
-            }
-        }
-
+        self.expand_context_with_remote_networks(&mut context);
+        self.expand_context_with_remote_tokens(&mut context);
         context
     }
 
@@ -225,11 +220,11 @@ impl OrderbookYaml {
         Ok(self.get_networks()?.keys().cloned().collect())
     }
     pub fn get_networks(&self) -> Result<HashMap<String, NetworkCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         NetworkCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_network(&self, key: &str) -> Result<NetworkCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         NetworkCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn get_network_by_chain_id(&self, chain_id: u32) -> Result<NetworkCfg, YamlError> {
@@ -246,7 +241,7 @@ impl OrderbookYaml {
     }
 
     pub fn get_remote_networks(&self) -> Result<HashMap<String, RemoteNetworksCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         RemoteNetworksCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
 
@@ -254,16 +249,16 @@ impl OrderbookYaml {
         Ok(self.get_tokens()?.keys().cloned().collect())
     }
     pub fn get_tokens(&self) -> Result<HashMap<String, TokenCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         TokenCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_token(&self, key: &str) -> Result<TokenCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         TokenCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_remote_tokens(&self) -> Result<Option<RemoteTokensCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 
@@ -271,11 +266,11 @@ impl OrderbookYaml {
         Ok(self.get_subgraphs()?.keys().cloned().collect())
     }
     pub fn get_subgraphs(&self) -> Result<HashMap<String, SubgraphCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         SubgraphCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_subgraph(&self, key: &str) -> Result<SubgraphCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         SubgraphCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -283,11 +278,11 @@ impl OrderbookYaml {
         Ok(self.get_local_db_remotes()?.keys().cloned().collect())
     }
     pub fn get_local_db_remotes(&self) -> Result<HashMap<String, LocalDbRemoteCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_local_db_remote(&self, key: &str) -> Result<LocalDbRemoteCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         LocalDbRemoteCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -295,11 +290,11 @@ impl OrderbookYaml {
         Ok(self.get_local_db_syncs()?.keys().cloned().collect())
     }
     pub fn get_local_db_syncs(&self) -> Result<HashMap<String, LocalDbSyncCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         LocalDbSyncCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_local_db_sync(&self, key: &str) -> Result<LocalDbSyncCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         LocalDbSyncCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -307,15 +302,15 @@ impl OrderbookYaml {
         Ok(self.get_orderbooks()?.keys().cloned().collect())
     }
     pub fn get_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         OrderbookCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
         for (_, orderbook) in orderbooks {
             if orderbook.address == address {
@@ -374,11 +369,11 @@ impl OrderbookYaml {
         Ok(self.get_metaboards()?.keys().cloned().collect())
     }
     pub fn get_metaboards(&self) -> Result<HashMap<String, MetaboardCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         MetaboardCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_metaboard(&self, key: &str) -> Result<MetaboardCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         MetaboardCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
     pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
@@ -389,11 +384,11 @@ impl OrderbookYaml {
         Ok(self.get_deployers()?.keys().cloned().collect())
     }
     pub fn get_deployers(&self) -> Result<HashMap<String, DeployerCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         DeployerCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_deployer(&self, key: &str) -> Result<DeployerCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         DeployerCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
@@ -427,145 +422,12 @@ impl OrderbookYaml {
         Ok(accounts.keys().cloned().collect())
     }
     pub fn get_accounts(&self) -> Result<HashMap<String, AccountCfg>, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         AccountCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
     pub fn get_account(&self, key: &str) -> Result<AccountCfg, YamlError> {
-        let context = self.build_context(&self.profile);
+        let context = self.build_context();
         AccountCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
-    }
-
-    pub fn to_yaml_string(&self) -> Result<String, YamlError> {
-        let context = self.build_context(&self.profile);
-        let mut sections: BTreeMap<String, StrictYaml> = BTreeMap::new();
-
-        if let Some(spec_version) = to_yaml_string_missing_check(self.get_spec_version())? {
-            sections.insert("version".to_string(), StrictYaml::String(spec_version));
-        }
-
-        let networks = to_yaml_string_missing_check(NetworkCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(networks) = networks {
-            if !networks.is_empty() {
-                sections.insert("networks".to_string(), NetworkCfg::to_yaml_hash(&networks)?);
-            }
-        }
-
-        let remote_networks =
-            RemoteNetworksCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        if !remote_networks.is_empty() {
-            sections.insert(
-                "using-networks-from".to_string(),
-                RemoteNetworksCfg::to_yaml_hash(&remote_networks)?,
-            );
-        }
-
-        let subgraphs = to_yaml_string_missing_check(SubgraphCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(subgraphs) = subgraphs {
-            if !subgraphs.is_empty() {
-                sections.insert(
-                    "subgraphs".to_string(),
-                    SubgraphCfg::to_yaml_hash(&subgraphs)?,
-                );
-            }
-        }
-
-        let metaboards = to_yaml_string_missing_check(MetaboardCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(metaboards) = metaboards {
-            if !metaboards.is_empty() {
-                sections.insert(
-                    "metaboards".to_string(),
-                    MetaboardCfg::to_yaml_hash(&metaboards)?,
-                );
-            }
-        }
-
-        let tokens = to_yaml_string_missing_check(TokenCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(tokens) = tokens {
-            if !tokens.is_empty() {
-                sections.insert("tokens".to_string(), TokenCfg::to_yaml_hash(&tokens)?);
-            }
-        }
-
-        if let Some(remote_tokens) =
-            RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
-        {
-            if !remote_tokens.urls.is_empty() {
-                sections.insert("remote-tokens".to_string(), remote_tokens.to_yaml_array()?);
-            }
-        }
-
-        let orderbooks = to_yaml_string_missing_check(OrderbookCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(orderbooks) = orderbooks {
-            if !orderbooks.is_empty() {
-                sections.insert(
-                    "orderbooks".to_string(),
-                    OrderbookCfg::to_yaml_hash(&orderbooks)?,
-                );
-            }
-        }
-
-        let deployers = to_yaml_string_missing_check(DeployerCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(deployers) = deployers {
-            if !deployers.is_empty() {
-                sections.insert(
-                    "deployers".to_string(),
-                    DeployerCfg::to_yaml_hash(&deployers)?,
-                );
-            }
-        }
-
-        let accounts = AccountCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        if !accounts.is_empty() {
-            sections.insert("accounts".to_string(), AccountCfg::to_yaml_hash(&accounts)?);
-        }
-
-        let sentry = self.get_sentry()?;
-        if let Some(sentry) = sentry {
-            sections.insert("sentry".to_string(), StrictYaml::String(sentry.to_string()));
-        }
-
-        let local_db_remotes =
-            LocalDbRemoteCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        if !local_db_remotes.is_empty() {
-            sections.insert(
-                "local-db-remotes".to_string(),
-                LocalDbRemoteCfg::to_yaml_hash(&local_db_remotes)?,
-            );
-        }
-
-        let local_db_syncs =
-            LocalDbSyncCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        if !local_db_syncs.is_empty() {
-            sections.insert(
-                "local-db-sync".to_string(),
-                LocalDbSyncCfg::to_yaml_hash(&local_db_syncs)?,
-            );
-        }
-
-        let mut yaml_hash = Hash::new();
-        for (key, value) in sections {
-            yaml_hash.insert(StrictYaml::String(key), value);
-        }
-        let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
-        Self::get_yaml_string(document)
     }
 }
 
@@ -677,7 +539,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
 mod tests {
     use super::*;
     use alloy::primitives::Address;
-    use httpmock::MockServer;
+
     use std::str::FromStr;
     use url::Url;
 
@@ -688,8 +550,7 @@ mod tests {
             sources.clone(),
             OrderbookYamlValidation::default(),
             ContextProfile::Gui {
-                current_order: None,
-                current_deployment: None,
+                current_deployment: "deployment1".to_string(),
             },
         )
         .unwrap();
@@ -708,8 +569,7 @@ mod tests {
             vec![FULL_YAML.to_string()],
             OrderbookYamlValidation::default(),
             ContextProfile::Gui {
-                current_order: Some("order1".to_string()),
-                current_deployment: None,
+                current_deployment: "deployment1".to_string(),
             },
         )
         .unwrap();
@@ -717,12 +577,8 @@ mod tests {
         let serialized = serde_json::to_string(&ob).unwrap();
         let round_tripped: OrderbookYaml = serde_json::from_str(&serialized).unwrap();
         match round_tripped.profile {
-            ContextProfile::Gui {
-                current_order,
-                current_deployment,
-            } => {
-                assert_eq!(current_order.as_deref(), Some("order1"));
-                assert!(current_deployment.is_none());
+            ContextProfile::Gui { current_deployment } => {
+                assert_eq!(current_deployment, "deployment1");
             }
             _ => panic!("expected gui profile"),
         }
@@ -1460,231 +1316,5 @@ local-db-sync:
 
         let syncs = ob_yaml.get_local_db_syncs().unwrap();
         assert!(syncs.is_empty());
-    }
-
-    #[test]
-    fn test_to_yaml_string_skips_missing_sections() {
-        let yaml = format!(
-            r#"
-version: {}
-"#,
-            SpecVersion::current()
-        );
-
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
-
-        let yaml_string = ob_yaml.to_yaml_string().unwrap();
-        assert!(yaml_string.contains("version"));
-        assert!(!yaml_string.contains("networks"));
-        assert!(!yaml_string.contains("tokens"));
-    }
-
-    #[test]
-    fn test_to_yaml_string_propagates_non_missing_errors() {
-        let yaml = r#"
-version: 4
-networks:
-    mainnet:
-        rpcs:
-            - https://mainnet.infura.io
-        chain-id: 1
-tokens:
-    token1:
-        network: mainnet
-        address: not-an-address
-"#;
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
-
-        let err = ob_yaml.to_yaml_string().unwrap_err();
-        assert!(matches!(
-            err,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidValue { .. },
-                location
-            } if location == "token 'token1'"
-        ));
-    }
-
-    #[tokio::test]
-    async fn test_to_yaml_string_round_trip_all_sections() {
-        let server = MockServer::start_async().await;
-        let chainid_body = r#"
-[
-    {
-        "name": "Remote",
-        "chain": "remote-network",
-        "chainId": 123,
-        "rpc": ["http://localhost:8085/rpc-url"],
-        "networkId": 123,
-        "nativeCurrency": {
-            "name": "Remote",
-            "symbol": "RN",
-            "decimals": 18
-        },
-        "infoURL": "http://localhost:8085/info-url",
-        "shortName": "remote-network"
-    }
-]
-        "#;
-        server
-            .mock_async(|when, then| {
-                when.method("GET").path("/chainid");
-                then.status(200)
-                    .header("content-type", "application/json")
-                    .body(chainid_body);
-            })
-            .await;
-
-        let tokens_body = r#"
-{
-    "name": "RemoteTokens",
-    "timestamp": "2021-01-01T00:00:00.000Z",
-    "keywords": [],
-    "version": { "major": 1, "minor": 0, "patch": 0 },
-    "tokens": [
-        {
-            "chainId": 123,
-            "address": "0x00000000000000000000000000000000000000aa",
-            "name": "RemoteToken",
-            "symbol": "RT",
-            "decimals": 18
-        }
-    ],
-    "logoURI": "http://localhost.com"
-}
-        "#;
-        server
-            .mock_async(|when, then| {
-                when.method("GET").path("/tokens");
-                then.status(200)
-                    .header("content-type", "application/json")
-                    .body(tokens_body);
-            })
-            .await;
-
-        let yaml = r#"
-        version: "4"
-        networks:
-            mainnet:
-                rpcs:
-                    - https://mainnet.infura.io
-                chain-id: 1
-        using-networks-from:
-            chainid:
-                url: REPLACEME_CHAINID
-                format: chainid
-        using-tokens-from:
-            - REPLACEME_TOKENS
-        subgraphs:
-            mainnet: https://api.thegraph.com/subgraphs/name/xyz
-        local-db-remotes:
-            mainnet: https://example.com/localdb/mainnet
-        local-db-sync:
-            mainnet:
-                batch-size: 1
-                max-concurrent-batches: 2
-                retry-attempts: 3
-                retry-delay-ms: 4
-                rate-limit-delay-ms: 5
-                finality-depth: 6
-                bootstrap-block-threshold: 7
-        orderbooks:
-            ob1:
-                address: 0x0000000000000000000000000000000000000001
-                network: mainnet
-                subgraph: mainnet
-                local-db-remote: mainnet
-                deployment-block: 12345
-        tokens:
-            token1:
-                network: mainnet
-                address: 0x0000000000000000000000000000000000000002
-                decimals: 18
-        deployers:
-            deployer1:
-                address: 0x0000000000000000000000000000000000000003
-                network: mainnet
-        metaboards:
-            board1: https://meta.example.com/board1
-        accounts:
-            admin: 0x0000000000000000000000000000000000000004
-        sentry: false
-        "#;
-        let yaml = yaml
-            .replace("REPLACEME_CHAINID", &(server.base_url() + "/chainid"))
-            .replace("REPLACEME_TOKENS", &(server.base_url() + "/tokens"));
-
-        let ob_yaml =
-            OrderbookYaml::new(vec![yaml.to_string()], OrderbookYamlValidation::default()).unwrap();
-        let remote_network_cfgs = ob_yaml.get_remote_networks().unwrap();
-        let remote_networks = RemoteNetworksCfg::fetch_networks(remote_network_cfgs)
-            .await
-            .unwrap();
-        let remote_tokens_cfg = ob_yaml.get_remote_tokens().unwrap().unwrap();
-        let remote_tokens = RemoteTokensCfg::fetch_tokens(&remote_networks, remote_tokens_cfg)
-            .await
-            .unwrap();
-        let mut ob_yaml = ob_yaml;
-        ob_yaml
-            .cache
-            .update_remote_networks(remote_networks.clone());
-        ob_yaml.cache.update_remote_tokens(remote_tokens.clone());
-
-        let yaml_string = ob_yaml.to_yaml_string().unwrap();
-        let new_ob_yaml =
-            OrderbookYaml::new(vec![yaml_string], OrderbookYamlValidation::default()).unwrap();
-
-        let original_network = ob_yaml.get_network("mainnet").unwrap();
-        let new_network = new_ob_yaml.get_network("mainnet").unwrap();
-        assert_eq!(original_network, new_network);
-
-        let original_subgraph = ob_yaml.get_subgraph("mainnet").unwrap();
-        let new_subgraph = new_ob_yaml.get_subgraph("mainnet").unwrap();
-        assert_eq!(original_subgraph, new_subgraph);
-
-        let original_networks = ob_yaml.get_networks().unwrap();
-        let new_networks = new_ob_yaml.get_networks().unwrap();
-        assert_eq!(original_networks, new_networks);
-
-        let original_orderbook = ob_yaml.get_orderbook("ob1").unwrap();
-        let new_orderbook = new_ob_yaml.get_orderbook("ob1").unwrap();
-        assert_eq!(original_orderbook, new_orderbook);
-
-        let original_token = ob_yaml.get_token("token1").unwrap();
-        let new_token = new_ob_yaml.get_token("token1").unwrap();
-        assert_eq!(original_token, new_token);
-        let remote_token_key = remote_tokens.keys().next().unwrap();
-        let original_remote_token = ob_yaml.get_token(remote_token_key).unwrap();
-        let new_remote_token = new_ob_yaml.get_token(remote_token_key).unwrap();
-        assert_eq!(original_remote_token, new_remote_token);
-
-        let original_deployer = ob_yaml.get_deployer("deployer1").unwrap();
-        let new_deployer = new_ob_yaml.get_deployer("deployer1").unwrap();
-        assert_eq!(original_deployer, new_deployer);
-
-        let original_metaboard = ob_yaml.get_metaboard("board1").unwrap();
-        let new_metaboard = new_ob_yaml.get_metaboard("board1").unwrap();
-        assert_eq!(original_metaboard, new_metaboard);
-
-        let original_remote = ob_yaml.get_local_db_remote("mainnet").unwrap();
-        let new_remote = new_ob_yaml.get_local_db_remote("mainnet").unwrap();
-        assert_eq!(original_remote, new_remote);
-
-        let original_sync = ob_yaml.get_local_db_sync("mainnet").unwrap();
-        let new_sync = new_ob_yaml.get_local_db_sync("mainnet").unwrap();
-        assert_eq!(original_sync, new_sync);
-
-        let original_account = ob_yaml.get_account("admin").unwrap();
-        let new_account = new_ob_yaml.get_account("admin").unwrap();
-        assert_eq!(original_account, new_account);
-
-        let original_sentry = ob_yaml.get_sentry().unwrap();
-        let new_sentry = new_ob_yaml.get_sentry().unwrap();
-        assert_eq!(original_sentry, new_sentry);
-
-        let original_version = ob_yaml.get_spec_version().unwrap();
-        let new_version = new_ob_yaml.get_spec_version().unwrap();
-        assert_eq!(original_version, new_version);
     }
 }

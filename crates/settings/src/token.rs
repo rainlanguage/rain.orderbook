@@ -15,6 +15,8 @@ use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::context::Context;
 
+const ALLOWED_TOKEN_KEYS: [&str; 5] = ["address", "decimals", "label", "network", "symbol"];
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "kebab-case")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -228,6 +230,39 @@ impl TokenCfg {
             location: "root".to_string(),
         })
     }
+
+    fn sanitize_tokens_hash(tokens_hash: &Hash) -> Hash {
+        let mut sanitized_tokens: Vec<(String, StrictYaml)> = Vec::new();
+
+        for (token_key, token_value) in tokens_hash {
+            let Some(token_key_str) = token_key.as_str() else {
+                continue;
+            };
+
+            let StrictYaml::Hash(ref token_hash) = *token_value else {
+                continue;
+            };
+
+            let mut sanitized_token = Hash::new();
+            for allowed_key in ALLOWED_TOKEN_KEYS.iter() {
+                let key_yaml = StrictYaml::String(allowed_key.to_string());
+                if let Some(v) = token_hash.get(&key_yaml) {
+                    sanitized_token.insert(key_yaml, v.clone());
+                }
+            }
+
+            sanitized_tokens.push((token_key_str.to_string(), StrictYaml::Hash(sanitized_token)));
+        }
+
+        sanitized_tokens.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        let mut new_tokens_hash = Hash::new();
+        for (key, value) in sanitized_tokens {
+            new_tokens_hash.insert(StrictYaml::String(key), value);
+        }
+
+        new_tokens_hash
+    }
 }
 
 impl YamlParsableHash for TokenCfg {
@@ -323,40 +358,26 @@ impl YamlParsableHash for TokenCfg {
         Ok(tokens)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut token_yaml = Hash::new();
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
 
-        token_yaml.insert(
-            StrictYaml::String("network".to_string()),
-            StrictYaml::String(self.network.key.clone()),
-        );
-        token_yaml.insert(
-            StrictYaml::String("address".to_string()),
-            StrictYaml::String(alloy::hex::encode_prefixed(self.address)),
-        );
+            let tokens_key = StrictYaml::String("tokens".to_string());
+            let Some(tokens_value) = root_hash.get(&tokens_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref tokens_hash) = *tokens_value else {
+                continue;
+            };
 
-        if let Some(decimals) = self.decimals {
-            token_yaml.insert(
-                StrictYaml::String("decimals".to_string()),
-                StrictYaml::String(decimals.to_string()),
-            );
+            let sanitized = Self::sanitize_tokens_hash(tokens_hash);
+            root_hash.insert(tokens_key, StrictYaml::Hash(sanitized));
         }
 
-        if let Some(label) = &self.label {
-            token_yaml.insert(
-                StrictYaml::String("label".to_string()),
-                StrictYaml::String(label.clone()),
-            );
-        }
-
-        if let Some(symbol) = &self.symbol {
-            token_yaml.insert(
-                StrictYaml::String("symbol".to_string()),
-                StrictYaml::String(symbol.clone()),
-            );
-        }
-
-        Ok(StrictYaml::Hash(token_yaml))
+        Ok(())
     }
 }
 
@@ -708,88 +729,233 @@ tokens:
     }
 
     #[test]
-    fn test_to_yaml_hash_serializes_tokens() {
-        let mut mainnet = NetworkCfg::dummy();
-        mainnet.key = "mainnet".to_string();
-        let mut optimism = NetworkCfg::dummy();
-        optimism.key = "optimism".to_string();
+    fn test_sanitize_drops_unknown_keys() {
+        let yaml = r#"
+tokens:
+    dai:
+        network: mainnet
+        address: 0x6b175474e89094c44da98b954eedeac495271d0f
+        decimals: 18
+        unknown-key: should-be-removed
+        another-unknown: also-removed
+"#;
+        let doc = get_document(yaml);
+        TokenCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
 
-        let mut tokens = HashMap::new();
-        tokens.insert(
-            "dai".to_string(),
-            TokenCfg {
-                document: Arc::new(RwLock::new(StrictYaml::Hash(Hash::new()))),
-                key: "dai".to_string(),
-                network: Arc::new(mainnet),
-                address: Address::from_str("0x6b175474e89094c44da98b954eedeac495271d0f").unwrap(),
-                decimals: Some(18),
-                label: Some("Dai Stablecoin".to_string()),
-                symbol: Some("DAI".to_string()),
-            },
-        );
-        tokens.insert(
-            "weth".to_string(),
-            TokenCfg {
-                document: Arc::new(RwLock::new(StrictYaml::Hash(Hash::new()))),
-                key: "weth".to_string(),
-                network: Arc::new(optimism),
-                address: Address::from_str("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2").unwrap(),
-                decimals: None,
-                label: None,
-                symbol: None,
-            },
-        );
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let tokens = root
+            .get(&StrictYaml::String("tokens".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let dai = tokens
+            .get(&StrictYaml::String("dai".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
 
-        let yaml = TokenCfg::to_yaml_hash(&tokens).unwrap();
+        assert!(dai.contains_key(&StrictYaml::String("network".to_string())));
+        assert!(dai.contains_key(&StrictYaml::String("address".to_string())));
+        assert!(dai.contains_key(&StrictYaml::String("decimals".to_string())));
+        assert!(!dai.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!dai.contains_key(&StrictYaml::String("another-unknown".to_string())));
+    }
 
-        let StrictYaml::Hash(tokens_hash) = yaml else {
-            panic!("tokens were not serialized to a YAML hash");
-        };
-        let Some(StrictYaml::Hash(dai_hash)) =
-            tokens_hash.get(&StrictYaml::String("dai".to_string()))
-        else {
-            panic!("dai token missing from serialized YAML");
-        };
-        let Some(StrictYaml::Hash(weth_hash)) =
-            tokens_hash.get(&StrictYaml::String("weth".to_string()))
-        else {
-            panic!("weth token missing from serialized YAML");
-        };
+    #[test]
+    fn test_sanitize_preserves_all_allowed_keys() {
+        let yaml = r#"
+tokens:
+    dai:
+        network: mainnet
+        address: 0x6b175474e89094c44da98b954eedeac495271d0f
+        decimals: 18
+        label: Dai Stablecoin
+        symbol: DAI
+"#;
+        let doc = get_document(yaml);
+        TokenCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let tokens = root
+            .get(&StrictYaml::String("tokens".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let dai = tokens
+            .get(&StrictYaml::String("dai".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
 
         assert_eq!(
-            dai_hash.get(&StrictYaml::String("network".to_string())),
+            dai.get(&StrictYaml::String("network".to_string())),
             Some(&StrictYaml::String("mainnet".to_string()))
         );
         assert_eq!(
-            dai_hash.get(&StrictYaml::String("address".to_string())),
+            dai.get(&StrictYaml::String("address".to_string())),
             Some(&StrictYaml::String(
                 "0x6b175474e89094c44da98b954eedeac495271d0f".to_string()
             ))
         );
         assert_eq!(
-            dai_hash.get(&StrictYaml::String("decimals".to_string())),
+            dai.get(&StrictYaml::String("decimals".to_string())),
             Some(&StrictYaml::String("18".to_string()))
         );
         assert_eq!(
-            dai_hash.get(&StrictYaml::String("label".to_string())),
+            dai.get(&StrictYaml::String("label".to_string())),
             Some(&StrictYaml::String("Dai Stablecoin".to_string()))
         );
         assert_eq!(
-            dai_hash.get(&StrictYaml::String("symbol".to_string())),
+            dai.get(&StrictYaml::String("symbol".to_string())),
             Some(&StrictYaml::String("DAI".to_string()))
         );
-        assert_eq!(
-            weth_hash.get(&StrictYaml::String("network".to_string())),
-            Some(&StrictYaml::String("optimism".to_string()))
-        );
-        assert_eq!(
-            weth_hash.get(&StrictYaml::String("address".to_string())),
-            Some(&StrictYaml::String(
-                "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string()
-            ))
-        );
-        assert!(!weth_hash.contains_key(&StrictYaml::String("decimals".to_string())));
-        assert!(!weth_hash.contains_key(&StrictYaml::String("label".to_string())));
-        assert!(!weth_hash.contains_key(&StrictYaml::String("symbol".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_drops_non_hash_token_entries() {
+        let yaml = r#"
+tokens:
+    dai:
+        network: mainnet
+        address: 0x6b175474e89094c44da98b954eedeac495271d0f
+    invalid-string: just-a-string
+"#;
+        let doc = get_document(yaml);
+        TokenCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let tokens = root
+            .get(&StrictYaml::String("tokens".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(tokens.contains_key(&StrictYaml::String("dai".to_string())));
+        assert!(!tokens.contains_key(&StrictYaml::String("invalid-string".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_sorts_tokens_lexicographically() {
+        let yaml = r#"
+tokens:
+    zebra:
+        network: mainnet
+        address: 0x1111111111111111111111111111111111111111
+    alpha:
+        network: mainnet
+        address: 0x2222222222222222222222222222222222222222
+    dai:
+        network: mainnet
+        address: 0x3333333333333333333333333333333333333333
+"#;
+        let doc = get_document(yaml);
+        TokenCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let tokens = root
+            .get(&StrictYaml::String("tokens".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let keys: Vec<_> = tokens.keys().map(|k| k.as_str().unwrap()).collect();
+        assert_eq!(keys, vec!["alpha", "dai", "zebra"]);
+    }
+
+    #[test]
+    fn test_sanitize_handles_missing_tokens_section() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+"#;
+        let doc = get_document(yaml);
+        TokenCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        assert!(!root.contains_key(&StrictYaml::String("tokens".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_handles_non_hash_root() {
+        let yaml = r#"just-a-string"#;
+        let doc = get_document(yaml);
+        TokenCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        assert!(doc_read.as_str().is_some());
+    }
+
+    #[test]
+    fn test_sanitize_skips_non_hash_tokens_section() {
+        let yaml = r#"
+tokens: not-a-hash
+"#;
+        let doc = get_document(yaml);
+        TokenCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let tokens = root.get(&StrictYaml::String("tokens".to_string())).unwrap();
+        assert_eq!(tokens.as_str(), Some("not-a-hash"));
+    }
+
+    #[test]
+    fn test_sanitize_per_document_isolation() {
+        let yaml1 = r#"
+tokens:
+    from-doc1:
+        network: mainnet
+        address: 0x1111111111111111111111111111111111111111
+        extra-key: removed
+"#;
+        let yaml2 = r#"
+tokens:
+    from-doc2:
+        network: mainnet
+        address: 0x2222222222222222222222222222222222222222
+        another-extra: also-removed
+"#;
+        let doc1 = get_document(yaml1);
+        let doc2 = get_document(yaml2);
+
+        TokenCfg::sanitize_documents(&[doc1.clone(), doc2.clone()]).unwrap();
+
+        let doc1_read = doc1.read().unwrap();
+        let root1 = doc1_read.as_hash().unwrap();
+        let tokens1 = root1
+            .get(&StrictYaml::String("tokens".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let from_doc1 = tokens1
+            .get(&StrictYaml::String("from-doc1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert!(!from_doc1.contains_key(&StrictYaml::String("extra-key".to_string())));
+        assert!(!tokens1.contains_key(&StrictYaml::String("from-doc2".to_string())));
+
+        let doc2_read = doc2.read().unwrap();
+        let root2 = doc2_read.as_hash().unwrap();
+        let tokens2 = root2
+            .get(&StrictYaml::String("tokens".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let from_doc2 = tokens2
+            .get(&StrictYaml::String("from-doc2".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert!(!from_doc2.contains_key(&StrictYaml::String("another-extra".to_string())));
+        assert!(!tokens2.contains_key(&StrictYaml::String("from-doc1".to_string())));
     }
 }

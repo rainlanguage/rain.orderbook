@@ -134,7 +134,8 @@ mod tests {
                     window_overrides: WindowOverrides::default(),
                 },
                 dump_str: None,
-                block_number_threshold: 0,
+                block_number_threshold: 10000,
+                manifest_end_block: 1,
             },
         }
     }
@@ -243,7 +244,7 @@ mod tests {
             build_manifest(&successes, &lookup, &base_url).expect("manifest build succeeds");
 
         assert_eq!(manifest.manifest_version, 1);
-        assert_eq!(manifest.db_schema_version, 1);
+        assert_eq!(manifest.db_schema_version, 2);
         assert_eq!(manifest.networks.len(), 2);
 
         let anvil = manifest.networks.get("anvil").expect("anvil network");
@@ -413,7 +414,7 @@ mod tests {
 
         assert!(manifest.networks.is_empty());
         assert_eq!(manifest.manifest_version, 1);
-        assert_eq!(manifest.db_schema_version, 1);
+        assert_eq!(manifest.db_schema_version, 2);
     }
 
     #[test]

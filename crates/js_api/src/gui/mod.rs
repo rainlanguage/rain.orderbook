@@ -14,7 +14,7 @@ use rain_orderbook_app_settings::{
     yaml::{
         context::ContextProfile,
         dotrain::{DotrainYaml, DotrainYamlValidation},
-        YamlError, YamlParsable,
+        emitter, YamlError, YamlParsable,
     },
 };
 use rain_orderbook_common::{
@@ -183,11 +183,10 @@ impl DotrainOrderGui {
             return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
         }
 
-        let order_key = DeploymentCfg::parse_order_key(documents.clone(), &selected_deployment)?;
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             settings,
-            ContextProfile::gui(Some(order_key), Some(selected_deployment.clone())),
+            ContextProfile::gui(selected_deployment.clone()),
         )
         .await?;
 
@@ -231,7 +230,7 @@ impl DotrainOrderGui {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui(Some(self.selected_deployment.clone()))?
+            .get_gui(&self.selected_deployment)?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
@@ -587,9 +586,8 @@ impl DotrainOrderGui {
     pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain()?, None, None, None);
         let dotrain = format!(
-            "{}\n{}\n{}\n{}",
-            self.dotrain_order.orderbook_yaml().to_yaml_string()?,
-            self.dotrain_order.dotrain_yaml().to_yaml_string()?,
+            "{}\n{}\n{}",
+            emitter::emit_documents(&self.dotrain_order.dotrain_yaml().documents)?,
             FRONTMATTER_SEPARATOR,
             rain_document.body()
         );
@@ -628,10 +626,7 @@ impl DotrainOrderGui {
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             None,
-            ContextProfile::gui(
-                Some(deployment.deployment.order.key.clone()),
-                Some(deployment.deployment.key.clone()),
-            ),
+            ContextProfile::gui(deployment.deployment.key.clone()),
         )
         .await?;
         let rainlang = dotrain_order
@@ -1319,9 +1314,9 @@ _ _: 0 0;
         assert_eq!(
             deployment_keys,
             vec![
-                "some-deployment",
                 "other-deployment",
-                "select-token-deployment"
+                "select-token-deployment",
+                "some-deployment"
             ]
         );
     }
@@ -1832,6 +1827,26 @@ version: {spec_version}
 gui:
     deployments:
         test: test
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            spec_version = SpecVersion::current()
+        );
+        let details = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap();
+        assert_eq!(details.len(), 0);
+
+        let yaml = format!(
+            r#"
+version: {spec_version}
+gui:
+    deployments:
+        test:
+            unknown-field: value
 ---
 #calculate-io
 _ _: 0 0;

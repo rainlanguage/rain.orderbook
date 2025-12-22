@@ -15,6 +15,8 @@ use yaml::{
     FieldErrorKind, YamlError, YamlParsableHash,
 };
 
+const ALLOWED_DEPLOYER_KEYS: [&str; 2] = ["address", "network"];
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
@@ -176,22 +178,53 @@ impl YamlParsableHash for DeployerCfg {
         Ok(deployers)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut deployer_yaml = Hash::new();
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
 
-        deployer_yaml.insert(
-            StrictYaml::String("address".to_string()),
-            StrictYaml::String(alloy::hex::encode_prefixed(self.address)),
-        );
+            let deployers_key = StrictYaml::String("deployers".to_string());
+            let Some(deployers_value) = root_hash.get(&deployers_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref deployers_hash) = deployers_value.clone() else {
+                continue;
+            };
 
-        if self.network.key != self.key {
-            deployer_yaml.insert(
-                StrictYaml::String("network".to_string()),
-                StrictYaml::String(self.network.key.clone()),
-            );
+            let mut sanitized_deployers: Vec<(String, StrictYaml)> = Vec::new();
+
+            for (key, value) in deployers_hash {
+                let Some(key_str) = key.as_str() else {
+                    continue;
+                };
+
+                let StrictYaml::Hash(ref deployer_hash) = *value else {
+                    continue;
+                };
+
+                let mut sanitized = Hash::new();
+                for allowed_key in ALLOWED_DEPLOYER_KEYS.iter() {
+                    let key_yaml = StrictYaml::String(allowed_key.to_string());
+                    if let Some(v) = deployer_hash.get(&key_yaml) {
+                        sanitized.insert(key_yaml, v.clone());
+                    }
+                }
+                sanitized_deployers.push((key_str.to_string(), StrictYaml::Hash(sanitized)));
+            }
+
+            sanitized_deployers.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+            let mut new_deployers_hash = Hash::new();
+            for (key, value) in sanitized_deployers {
+                new_deployers_hash.insert(StrictYaml::String(key), value);
+            }
+
+            root_hash.insert(deployers_key, StrictYaml::Hash(new_deployers_hash));
         }
 
-        Ok(StrictYaml::Hash(deployer_yaml))
+        Ok(())
     }
 }
 
@@ -199,7 +232,6 @@ impl YamlParsableHash for DeployerCfg {
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
-    use url::Url;
 
     #[test]
     fn test_parse_deployers_from_yaml_multiple_files() {
@@ -396,83 +428,250 @@ deployers:
     }
 
     #[test]
-    fn test_to_yaml_hash_serializes_deployers() {
-        let network_one = NetworkCfg {
-            document: default_document(),
-            key: "network-one".to_string(),
-            rpcs: vec![Url::parse("https://one.example").unwrap()],
-            chain_id: 1,
-            label: Some("One".to_string()),
-            network_id: Some(10),
-            currency: None,
+    fn test_sanitize_documents_drops_unknown_keys() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+deployers:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+        unknown-key: should-be-dropped
+        another-unknown: also-dropped
+"#;
+        let document = get_document(yaml);
+        DeployerCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let deployers = root
+            .get(&StrictYaml::String("deployers".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployers_hash) = *deployers else {
+            panic!("expected deployers hash");
+        };
+        let mainnet = deployers_hash
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref mainnet_hash) = *mainnet else {
+            panic!("expected mainnet hash");
         };
 
-        let network_two = NetworkCfg {
-            document: default_document(),
-            key: "deployer-two".to_string(),
-            rpcs: vec![Url::parse("https://two.example").unwrap()],
-            chain_id: 2,
-            label: None,
-            network_id: None,
-            currency: None,
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("address".to_string())));
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("network".to_string())));
+        assert!(!mainnet_hash.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!mainnet_hash.contains_key(&StrictYaml::String("another-unknown".to_string())));
+        assert_eq!(mainnet_hash.len(), 2);
+    }
+
+    #[test]
+    fn test_sanitize_documents_preserves_allowed_key_order() {
+        let yaml = r#"
+deployers:
+    mainnet:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+        extra: dropped
+"#;
+        let document = get_document(yaml);
+        DeployerCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let deployers = root
+            .get(&StrictYaml::String("deployers".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployers_hash) = *deployers else {
+            panic!("expected deployers hash");
+        };
+        let mainnet = deployers_hash
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref mainnet_hash) = *mainnet else {
+            panic!("expected mainnet hash");
         };
 
-        let deployer_one = DeployerCfg {
-            document: default_document(),
-            key: "deployer-one".to_string(),
-            address: Address::from_str("0x0000000000000000000000000000000000000001").unwrap(),
-            network: Arc::new(network_one),
+        let keys: Vec<String> = mainnet_hash
+            .keys()
+            .filter_map(|k| k.as_str().map(String::from))
+            .collect();
+        assert_eq!(keys, vec!["address", "network"]);
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_entries() {
+        let yaml = r#"
+deployers:
+    mainnet: not-a-hash
+"#;
+        let document = get_document(yaml);
+        DeployerCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
         };
-        let deployer_two = DeployerCfg {
-            document: default_document(),
-            key: "deployer-two".to_string(),
-            address: Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
-            network: Arc::new(network_two),
+        let deployers = root
+            .get(&StrictYaml::String("deployers".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployers_hash) = *deployers else {
+            panic!("expected deployers hash");
         };
 
-        let mut deployers = HashMap::new();
-        deployers.insert(deployer_one.key.clone(), deployer_one);
-        deployers.insert(deployer_two.key.clone(), deployer_two);
+        assert!(!deployers_hash.contains_key(&StrictYaml::String("mainnet".to_string())));
+        assert!(deployers_hash.is_empty());
+    }
 
-        let yaml = DeployerCfg::to_yaml_hash(&deployers).unwrap();
-        let deployers_hash = match yaml {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected deployers hash"),
+    #[test]
+    fn test_sanitize_documents_lexicographic_order() {
+        let yaml = r#"
+deployers:
+    zebra:
+        address: 0x0000000000000000000000000000000000000003
+    alpha:
+        address: 0x0000000000000000000000000000000000000001
+    beta:
+        address: 0x0000000000000000000000000000000000000002
+"#;
+        let document = get_document(yaml);
+        DeployerCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let deployers = root
+            .get(&StrictYaml::String("deployers".to_string()))
+            .unwrap();
+        let StrictYaml::Hash(ref deployers_hash) = *deployers else {
+            panic!("expected deployers hash");
         };
 
-        let deployer_one_yaml = deployers_hash
-            .get(&StrictYaml::String("deployer-one".to_string()))
-            .expect("missing deployer-one");
-        let deployer_one_hash = deployer_one_yaml
-            .as_hash()
-            .expect("deployer-one should be a map");
-        assert_eq!(
-            deployer_one_hash
-                .get(&StrictYaml::String("address".to_string()))
-                .expect("missing address"),
-            &StrictYaml::String("0x0000000000000000000000000000000000000001".to_string())
-        );
-        assert_eq!(
-            deployer_one_hash
-                .get(&StrictYaml::String("network".to_string()))
-                .expect("missing network"),
-            &StrictYaml::String("network-one".to_string())
-        );
+        let keys: Vec<String> = deployers_hash
+            .keys()
+            .filter_map(|k| k.as_str().map(String::from))
+            .collect();
+        assert_eq!(keys, vec!["alpha", "beta", "zebra"]);
+    }
 
-        let deployer_two_yaml = deployers_hash
-            .get(&StrictYaml::String("deployer-two".to_string()))
-            .expect("missing deployer-two");
-        let deployer_two_hash = deployer_two_yaml
-            .as_hash()
-            .expect("deployer-two should be a map");
-        assert_eq!(
-            deployer_two_hash
-                .get(&StrictYaml::String("address".to_string()))
-                .expect("missing address"),
-            &StrictYaml::String("0x0000000000000000000000000000000000000002".to_string())
-        );
-        assert!(deployer_two_hash
-            .get(&StrictYaml::String("network".to_string()))
-            .is_none());
+    #[test]
+    fn test_sanitize_documents_handles_missing_deployers_section() {
+        let yaml = r#"
+other: value
+"#;
+        let document = get_document(yaml);
+        DeployerCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        assert!(!root.contains_key(&StrictYaml::String("deployers".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_non_hash_root() {
+        let yaml = r#"just a string"#;
+        let document = get_document(yaml);
+        DeployerCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_skips_non_hash_deployers() {
+        let yaml = r#"
+deployers: not-a-hash
+"#;
+        let document = get_document(yaml);
+        DeployerCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let StrictYaml::Hash(ref root) = *doc_read else {
+            panic!("expected root hash");
+        };
+        let deployers = root
+            .get(&StrictYaml::String("deployers".to_string()))
+            .unwrap();
+        assert_eq!(deployers.as_str(), Some("not-a-hash"));
+    }
+
+    #[test]
+    fn test_sanitize_documents_per_doc_no_cross_merge() {
+        let yaml_one = r#"
+deployers:
+    deployer-one:
+        address: 0x0000000000000000000000000000000000000001
+        extra-key: dropped
+"#;
+        let yaml_two = r#"
+deployers:
+    deployer-two:
+        address: 0x0000000000000000000000000000000000000002
+        another-extra: also-dropped
+"#;
+        let doc_one = get_document(yaml_one);
+        let doc_two = get_document(yaml_two);
+        let documents = vec![doc_one.clone(), doc_two.clone()];
+        DeployerCfg::sanitize_documents(&documents).unwrap();
+
+        {
+            let doc_read = doc_one.read().unwrap();
+            let StrictYaml::Hash(ref root) = *doc_read else {
+                panic!("expected root hash");
+            };
+            let deployers = root
+                .get(&StrictYaml::String("deployers".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref deployers_hash) = *deployers else {
+                panic!("expected deployers hash");
+            };
+
+            let keys: Vec<String> = deployers_hash
+                .keys()
+                .filter_map(|k| k.as_str().map(String::from))
+                .collect();
+            assert_eq!(keys, vec!["deployer-one"]);
+
+            let deployer = deployers_hash
+                .get(&StrictYaml::String("deployer-one".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref deployer_hash) = *deployer else {
+                panic!("expected deployer hash");
+            };
+            assert!(!deployer_hash.contains_key(&StrictYaml::String("extra-key".to_string())));
+        }
+
+        {
+            let doc_read = doc_two.read().unwrap();
+            let StrictYaml::Hash(ref root) = *doc_read else {
+                panic!("expected root hash");
+            };
+            let deployers = root
+                .get(&StrictYaml::String("deployers".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref deployers_hash) = *deployers else {
+                panic!("expected deployers hash");
+            };
+
+            let keys: Vec<String> = deployers_hash
+                .keys()
+                .filter_map(|k| k.as_str().map(String::from))
+                .collect();
+            assert_eq!(keys, vec!["deployer-two"]);
+
+            let deployer = deployers_hash
+                .get(&StrictYaml::String("deployer-two".to_string()))
+                .unwrap();
+            let StrictYaml::Hash(ref deployer_hash) = *deployer else {
+                panic!("expected deployer hash");
+            };
+            assert!(!deployer_hash.contains_key(&StrictYaml::String("another-extra".to_string())));
+        }
     }
 }

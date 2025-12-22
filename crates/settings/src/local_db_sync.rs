@@ -3,6 +3,16 @@ use crate::yaml::{
     context::Context, default_document, optional_hash, require_string, FieldErrorKind, YamlError,
     YamlParsableHash,
 };
+
+const ALLOWED_LOCAL_DB_SYNC_KEYS: [&str; 7] = [
+    "batch-size",
+    "bootstrap-block-threshold",
+    "finality-depth",
+    "max-concurrent-batches",
+    "rate-limit-delay-ms",
+    "retry-attempts",
+    "retry-delay-ms",
+];
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -136,39 +146,57 @@ impl YamlParsableHash for LocalDbSyncCfg {
         Ok(syncs)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let mut sync_hash = Hash::new();
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
 
-        sync_hash.insert(
-            StrictYaml::String("batch-size".to_string()),
-            StrictYaml::String(self.batch_size.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("max-concurrent-batches".to_string()),
-            StrictYaml::String(self.max_concurrent_batches.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("retry-attempts".to_string()),
-            StrictYaml::String(self.retry_attempts.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("retry-delay-ms".to_string()),
-            StrictYaml::String(self.retry_delay_ms.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("rate-limit-delay-ms".to_string()),
-            StrictYaml::String(self.rate_limit_delay_ms.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("finality-depth".to_string()),
-            StrictYaml::String(self.finality_depth.to_string()),
-        );
-        sync_hash.insert(
-            StrictYaml::String("bootstrap-block-threshold".to_string()),
-            StrictYaml::String(self.bootstrap_block_threshold.to_string()),
-        );
+            let sync_key = StrictYaml::String("local-db-sync".to_string());
+            let Some(sync_value) = root_hash.get(&sync_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref sync_hash) = *sync_value else {
+                continue;
+            };
 
-        Ok(StrictYaml::Hash(sync_hash))
+            let mut sanitized_syncs: Vec<(String, StrictYaml)> = Vec::new();
+
+            for (network_key, network_value) in sync_hash {
+                let Some(network_key_str) = network_key.as_str() else {
+                    continue;
+                };
+
+                let StrictYaml::Hash(ref network_hash) = *network_value else {
+                    continue;
+                };
+
+                let mut sanitized_network = Hash::new();
+                for allowed_key in ALLOWED_LOCAL_DB_SYNC_KEYS.iter() {
+                    let key_yaml = StrictYaml::String(allowed_key.to_string());
+                    if let Some(v) = network_hash.get(&key_yaml) {
+                        sanitized_network.insert(key_yaml, v.clone());
+                    }
+                }
+
+                sanitized_syncs.push((
+                    network_key_str.to_string(),
+                    StrictYaml::Hash(sanitized_network),
+                ));
+            }
+
+            sanitized_syncs.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+            let mut new_sync_hash = Hash::new();
+            for (key, value) in sanitized_syncs {
+                new_sync_hash.insert(StrictYaml::String(key), value);
+            }
+
+            root_hash.insert(sync_key, StrictYaml::Hash(new_sync_hash));
+        }
+
+        Ok(())
     }
 }
 
@@ -205,7 +233,7 @@ impl PartialEq for LocalDbSyncCfg {
 mod tests {
     use super::*;
     use crate::yaml::tests::get_document;
-    use std::collections::HashMap;
+
     use strict_yaml_rust::StrictYaml;
 
     struct FullSyncArgs<'a> {
@@ -502,113 +530,165 @@ local-db-sync:
     }
 
     #[test]
-    fn test_to_yaml_hash_serializes_all_fields() {
-        let mut syncs = HashMap::new();
-        syncs.insert(
-            "mainnet".to_string(),
-            LocalDbSyncCfg {
-                document: default_document(),
-                key: "mainnet".to_string(),
-                batch_size: 50,
-                max_concurrent_batches: 2,
-                retry_attempts: 3,
-                retry_delay_ms: 25,
-                rate_limit_delay_ms: 5,
-                finality_depth: 64,
-                bootstrap_block_threshold: 10,
-            },
-        );
-        syncs.insert(
-            "arbitrum".to_string(),
-            LocalDbSyncCfg {
-                document: default_document(),
-                key: "arbitrum".to_string(),
-                batch_size: 75,
-                max_concurrent_batches: 4,
-                retry_attempts: 5,
-                retry_delay_ms: 50,
-                rate_limit_delay_ms: 8,
-                finality_depth: 128,
-                bootstrap_block_threshold: 20,
-            },
-        );
+    fn test_sanitize_documents_drops_unknown_keys() {
+        let yaml = r#"
+local-db-sync:
+    mainnet:
+        batch-size: 100
+        max-concurrent-batches: 5
+        retry-attempts: 3
+        retry-delay-ms: 50
+        rate-limit-delay-ms: 10
+        finality-depth: 64
+        bootstrap-block-threshold: 25
+        unknown-key: should-be-dropped
+        another-unknown: also-dropped
+"#;
+        let document = get_document(yaml);
+        LocalDbSyncCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
 
-        let yaml = LocalDbSyncCfg::to_yaml_hash(&syncs).unwrap();
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let sync_hash = root_hash
+            .get(&StrictYaml::String("local-db-sync".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let mainnet_hash = sync_hash
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
 
-        let StrictYaml::Hash(sync_hash) = yaml else {
-            panic!("local-db-sync was not serialized to a YAML hash");
-        };
+        assert_eq!(mainnet_hash.len(), 7);
+        assert!(mainnet_hash.contains_key(&StrictYaml::String("batch-size".to_string())));
+        assert!(!mainnet_hash.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!mainnet_hash.contains_key(&StrictYaml::String("another-unknown".to_string())));
+    }
 
-        let Some(StrictYaml::Hash(mainnet_hash)) =
-            sync_hash.get(&StrictYaml::String("mainnet".to_string()))
-        else {
-            panic!("mainnet sync missing from serialized YAML");
-        };
-        let Some(StrictYaml::Hash(arbitrum_hash)) =
-            sync_hash.get(&StrictYaml::String("arbitrum".to_string()))
-        else {
-            panic!("arbitrum sync missing from serialized YAML");
-        };
+    #[test]
+    fn test_sanitize_documents_lexicographic_order() {
+        let yaml = r#"
+local-db-sync:
+    zebra:
+        batch-size: 1
+        max-concurrent-batches: 1
+        retry-attempts: 1
+        retry-delay-ms: 1
+        rate-limit-delay-ms: 1
+        finality-depth: 1
+        bootstrap-block-threshold: 1
+    alpha:
+        batch-size: 2
+        max-concurrent-batches: 2
+        retry-attempts: 2
+        retry-delay-ms: 2
+        rate-limit-delay-ms: 2
+        finality-depth: 2
+        bootstrap-block-threshold: 2
+"#;
+        let document = get_document(yaml);
+        LocalDbSyncCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
 
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("batch-size".to_string())),
-            Some(&StrictYaml::String("50".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("max-concurrent-batches".to_string())),
-            Some(&StrictYaml::String("2".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("retry-attempts".to_string())),
-            Some(&StrictYaml::String("3".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("retry-delay-ms".to_string())),
-            Some(&StrictYaml::String("25".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("rate-limit-delay-ms".to_string())),
-            Some(&StrictYaml::String("5".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("finality-depth".to_string())),
-            Some(&StrictYaml::String("64".to_string()))
-        );
-        assert_eq!(
-            mainnet_hash.get(&StrictYaml::String("bootstrap-block-threshold".to_string())),
-            Some(&StrictYaml::String("10".to_string()))
-        );
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let sync_hash = root_hash
+            .get(&StrictYaml::String("local-db-sync".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
 
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("batch-size".to_string())),
-            Some(&StrictYaml::String("75".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("max-concurrent-batches".to_string())),
-            Some(&StrictYaml::String("4".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("retry-attempts".to_string())),
-            Some(&StrictYaml::String("5".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("retry-delay-ms".to_string())),
-            Some(&StrictYaml::String("50".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("rate-limit-delay-ms".to_string())),
-            Some(&StrictYaml::String("8".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("finality-depth".to_string())),
-            Some(&StrictYaml::String("128".to_string()))
-        );
-        assert_eq!(
-            arbitrum_hash.get(&StrictYaml::String("bootstrap-block-threshold".to_string())),
-            Some(&StrictYaml::String("20".to_string()))
-        );
+        let keys: Vec<&str> = sync_hash.iter().filter_map(|(k, _)| k.as_str()).collect();
+        assert_eq!(keys, vec!["alpha", "zebra"]);
+    }
 
-        assert!(!mainnet_hash.contains_key(&StrictYaml::String("key".to_string())));
-        assert!(!arbitrum_hash.contains_key(&StrictYaml::String("key".to_string())));
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_entries() {
+        let yaml = r#"
+local-db-sync:
+    mainnet:
+        batch-size: 100
+        max-concurrent-batches: 5
+        retry-attempts: 3
+        retry-delay-ms: 50
+        rate-limit-delay-ms: 10
+        finality-depth: 64
+        bootstrap-block-threshold: 25
+    invalid: not_a_hash
+"#;
+        let document = get_document(yaml);
+        LocalDbSyncCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let sync_hash = root_hash
+            .get(&StrictYaml::String("local-db-sync".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(sync_hash.len(), 1);
+        assert!(sync_hash.contains_key(&StrictYaml::String("mainnet".to_string())));
+        assert!(!sync_hash.contains_key(&StrictYaml::String("invalid".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_missing_section() {
+        let yaml = r#"
+other-section: value
+"#;
+        let document = get_document(yaml);
+        LocalDbSyncCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_non_hash_root() {
+        let yaml = "just a string";
+        let document = get_document(yaml);
+        LocalDbSyncCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_skips_non_hash_section() {
+        let yaml = r#"
+local-db-sync: not_a_hash
+"#;
+        let document = get_document(yaml);
+        LocalDbSyncCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_per_document_isolation() {
+        let yaml_one = r#"
+local-db-sync:
+    mainnet:
+        batch-size: 100
+        max-concurrent-batches: 5
+        retry-attempts: 3
+        retry-delay-ms: 50
+        rate-limit-delay-ms: 10
+        finality-depth: 64
+        bootstrap-block-threshold: 25
+        unknown: dropped
+"#;
+        let yaml_two = r#"
+local-db-sync:
+    polygon:
+        batch-size: 200
+        max-concurrent-batches: 10
+        retry-attempts: 5
+        retry-delay-ms: 100
+        rate-limit-delay-ms: 20
+        finality-depth: 128
+        bootstrap-block-threshold: 30
+"#;
+        let doc_one = get_document(yaml_one);
+        let doc_two = get_document(yaml_two);
+        LocalDbSyncCfg::sanitize_documents(&[doc_one.clone(), doc_two.clone()]).unwrap();
+
+        let syncs = LocalDbSyncCfg::parse_all_from_yaml(vec![doc_one, doc_two], None).unwrap();
+        assert_eq!(syncs.len(), 2);
+        assert!(syncs.contains_key("mainnet"));
+        assert!(syncs.contains_key("polygon"));
     }
 }

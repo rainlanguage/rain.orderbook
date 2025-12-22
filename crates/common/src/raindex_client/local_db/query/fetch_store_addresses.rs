@@ -29,7 +29,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res =
             super::fetch_store_addresses(&exec, &OrderbookIdentifier::new(1, orderbook)).await;
         assert!(res.is_ok());

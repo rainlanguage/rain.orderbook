@@ -1,4 +1,4 @@
-use super::{cache::Cache, orderbook::OrderbookYaml, ValidationConfig, *};
+use super::{cache::Cache, orderbook::OrderbookYaml, sanitize_all_documents, ValidationConfig, *};
 use crate::{ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
     de::{self, IgnoredAny, MapAccess, SeqAccess, Visitor},
@@ -6,11 +6,10 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 use std::{
-    collections::BTreeMap,
     fmt,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
+use strict_yaml_rust::StrictYaml;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -99,6 +98,8 @@ impl YamlParsable for DotrainYaml {
             documents.push(document);
         }
 
+        sanitize_all_documents(&documents)?;
+
         if validate.should_validate_orders() {
             OrderCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
@@ -175,35 +176,24 @@ impl DotrainYaml {
                 self.expand_context_with_remote_networks(&mut context);
                 self.expand_context_with_remote_tokens(&mut context);
             }
-            ContextProfile::Gui {
-                current_order,
-                current_deployment,
-            } => {
-                self.expand_context_with_current_order(&mut context, current_order.clone());
-                self.expand_context_with_current_deployment(
-                    &mut context,
-                    current_deployment.clone(),
-                );
+            ContextProfile::Gui { current_deployment } => {
+                self.expand_context_with_current_deployment(&mut context, current_deployment);
                 self.expand_context_with_remote_networks(&mut context);
                 self.expand_context_with_remote_tokens(&mut context);
 
-                if let Some(deployment_key) = current_deployment {
-                    if let Some(select_tokens) =
-                        GuiCfg::parse_select_tokens(self.documents.clone(), deployment_key)?
-                    {
-                        context.add_select_tokens(
-                            select_tokens.iter().map(|st| st.key.clone()).collect(),
-                        );
-                    }
+                if let Some(select_tokens) =
+                    GuiCfg::parse_select_tokens(self.documents.clone(), current_deployment)?
+                {
+                    context
+                        .add_select_tokens(select_tokens.iter().map(|st| st.key.clone()).collect());
                 }
-                if let Some(order_key) = current_order {
-                    let order = OrderCfg::parse_from_yaml(
-                        self.documents.clone(),
-                        order_key,
-                        Some(&context),
-                    )?;
-                    context.add_order(Arc::new(order));
-                }
+
+                let order_key =
+                    DeploymentCfg::parse_order_key(self.documents.clone(), current_deployment)?;
+                context.add_current_order(order_key.clone());
+                let order =
+                    OrderCfg::parse_from_yaml(self.documents.clone(), &order_key, Some(&context))?;
+                context.add_order(Arc::new(order));
             }
         }
 
@@ -227,10 +217,7 @@ impl DotrainYaml {
         order_key: &str,
         deployment_key: &str,
     ) -> Result<OrderCfg, YamlError> {
-        let context = self.build_context(&ContextProfile::gui(
-            Some(order_key.to_string()),
-            Some(deployment_key.to_string()),
-        ))?;
+        let context = self.build_context(&ContextProfile::gui(deployment_key.to_string()))?;
         OrderCfg::parse_from_yaml(self.documents.clone(), order_key, Some(&context))
     }
 
@@ -258,8 +245,8 @@ impl DotrainYaml {
         DeploymentCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_gui(&self, current_deployment: Option<String>) -> Result<Option<GuiCfg>, YamlError> {
-        let context = self.build_context(&ContextProfile::gui(None, current_deployment))?;
+    pub fn get_gui(&self, current_deployment: &str) -> Result<Option<GuiCfg>, YamlError> {
+        let context = self.build_context(&ContextProfile::gui(current_deployment.to_string()))?;
         GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
     }
 
@@ -273,69 +260,6 @@ impl DotrainYaml {
     pub fn get_chart(&self, key: &str) -> Result<ChartCfg, YamlError> {
         let context = self.build_context(&self.profile)?;
         ChartCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
-    }
-
-    pub fn to_yaml_string(&self) -> Result<String, YamlError> {
-        let context = self.build_context(&self.profile)?;
-        let mut sections: BTreeMap<String, StrictYaml> = BTreeMap::new();
-
-        let orders = to_yaml_string_missing_check(OrderCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(orders) = orders {
-            if !orders.is_empty() {
-                sections.insert("orders".to_string(), OrderCfg::to_yaml_hash(&orders)?);
-            }
-        }
-
-        let scenarios = to_yaml_string_missing_check(ScenarioCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(scenarios) = scenarios {
-            if !scenarios.is_empty() {
-                sections.insert(
-                    "scenarios".to_string(),
-                    ScenarioCfg::to_yaml_hash(&scenarios)?,
-                );
-            }
-        }
-
-        let deployments = to_yaml_string_missing_check(DeploymentCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(deployments) = deployments {
-            if !deployments.is_empty() {
-                sections.insert(
-                    "deployments".to_string(),
-                    DeploymentCfg::to_yaml_hash(&deployments)?,
-                );
-            }
-        }
-
-        if let Some(gui) = GuiCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))?
-        {
-            sections.insert("gui".to_string(), gui.to_yaml_hash()?);
-        }
-
-        let charts = to_yaml_string_missing_check(ChartCfg::parse_all_from_yaml(
-            self.documents.clone(),
-            Some(&context),
-        ))?;
-        if let Some(charts) = charts {
-            if !charts.is_empty() {
-                sections.insert("charts".to_string(), ChartCfg::to_yaml_hash(&charts)?);
-            }
-        }
-
-        let mut yaml_hash = Hash::new();
-        for (key, value) in sections {
-            yaml_hash.insert(StrictYaml::String(key), value);
-        }
-        let document = Arc::new(RwLock::new(StrictYaml::Hash(yaml_hash)));
-        Self::get_yaml_string(document)
     }
 }
 
@@ -600,38 +524,6 @@ mod tests {
                     inset: 60
     "#;
 
-    const ORDERBOOK_CONTEXT_YAML: &str = r#"
-    networks:
-        mainnet:
-            rpcs:
-                - https://mainnet.infura.io
-            chain-id: 1
-        testnet:
-            rpcs:
-                - https://testnet.infura.io
-            chain-id: 1337
-    tokens:
-        token1:
-            network: mainnet
-            address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-            decimals: 18
-            label: Wrapped Ether
-            symbol: WETH
-        token2:
-            network: mainnet
-            address: 0x0000000000000000000000000000000000000002
-            decimals: 6
-            label: USD Coin
-            symbol: USDC
-    deployers:
-        scenario1:
-            address: 0x0000000000000000000000000000000000000002
-            network: mainnet
-        deployer2:
-            address: 0x0000000000000000000000000000000000000003
-            network: testnet
-    "#;
-
     const HANDLEBARS_YAML: &str = r#"
     networks:
         mainnet:
@@ -748,7 +640,7 @@ mod tests {
         assert_eq!(io_token_keys[1], "token2");
 
         let scenario_keys = dotrain_yaml.get_scenario_keys().unwrap();
-        assert_eq!(scenario_keys.len(), 3);
+        assert_eq!(scenario_keys.len(), 2);
         let scenario1 = dotrain_yaml.get_scenario("scenario1").unwrap();
         assert_eq!(scenario1.bindings.len(), 1);
         assert_eq!(scenario1.bindings.get("key1").unwrap(), "value1");
@@ -797,7 +689,7 @@ mod tests {
             "order1"
         );
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
         assert_eq!(gui.name, "Test gui");
         assert_eq!(gui.description, "Test description");
         assert_eq!(gui.deployments.len(), 1);
@@ -865,7 +757,7 @@ mod tests {
         assert!(select_tokens.is_none());
 
         let gui_context = dotrain_yaml
-            .build_context(&ContextProfile::gui(None, Some("deployment1".to_string())))
+            .build_context(&ContextProfile::gui("deployment1".to_string()))
             .unwrap();
         assert_eq!(
             gui_context
@@ -989,6 +881,13 @@ mod tests {
                     - token: token1
                 outputs:
                     - token: token2
+        scenarios:
+            scenario1:
+                deployer: deployer1
+        deployments:
+            deployment1:
+                order: order1
+                scenario: scenario1
         "#;
 
         let mut dotrain_yaml =
@@ -1010,10 +909,7 @@ mod tests {
         assert!(strict_ctx.order.is_none());
 
         let gui_ctx = dotrain_yaml
-            .build_context(&ContextProfile::gui(
-                Some("order1".to_string()),
-                Some("deployment1".to_string()),
-            ))
+            .build_context(&ContextProfile::gui("deployment1".to_string()))
             .unwrap();
         assert!(gui_ctx.get_remote_network("remote-net").is_some());
         assert!(gui_ctx.get_remote_token("remote-token").is_some());
@@ -1038,10 +934,7 @@ mod tests {
 
         let propagated = DotrainYaml::from_dotrain_yaml(dotrain_yaml);
         let propagated_ctx = propagated
-            .build_context(&ContextProfile::gui(
-                Some("order1".to_string()),
-                Some("deployment1".to_string()),
-            ))
+            .build_context(&ContextProfile::gui("deployment1".to_string()))
             .unwrap();
         assert_eq!(
             propagated_ctx
@@ -1107,7 +1000,7 @@ mod tests {
         let gui_yaml = DotrainYaml::new_with_profile(
             vec![yaml.to_string()],
             DotrainYamlValidation::default(),
-            ContextProfile::gui(Some("order1".to_string()), Some("deployment1".to_string())),
+            ContextProfile::gui("deployment1".to_string()),
         )
         .unwrap();
         let order = gui_yaml.get_order("order1").unwrap();
@@ -1121,19 +1014,15 @@ mod tests {
         let dotrain_yaml = DotrainYaml::new_with_profile(
             vec![yaml.clone()],
             DotrainYamlValidation::default(),
-            ContextProfile::gui(Some("order1".to_string()), Some("deployment1".to_string())),
+            ContextProfile::gui("deployment1".to_string()),
         )
         .unwrap();
 
         let serialized = serde_json::to_string(&dotrain_yaml).unwrap();
         let round_tripped: DotrainYaml = serde_json::from_str(&serialized).unwrap();
         match round_tripped.profile {
-            ContextProfile::Gui {
-                current_order,
-                current_deployment,
-            } => {
-                assert_eq!(current_order.as_deref(), Some("order1"));
-                assert_eq!(current_deployment.as_deref(), Some("deployment1"));
+            ContextProfile::Gui { current_deployment } => {
+                assert_eq!(current_deployment, "deployment1");
             }
             _ => panic!("expected gui profile"),
         }
@@ -1307,117 +1196,6 @@ mod tests {
     }
 
     #[test]
-    fn test_to_yaml_string_skips_missing_sections() {
-        let yaml = r#"
-networks:
-  mainnet:
-    rpcs:
-      - https://mainnet.infura.io
-    chain-id: 1
-tokens:
-  token1:
-    network: mainnet
-    address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-orders:
-  order1:
-    inputs:
-      - token: token1
-    outputs:
-      - token: token1
-"#;
-
-        let dotrain_yaml =
-            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
-        let yaml_string = dotrain_yaml.to_yaml_string().unwrap();
-
-        assert!(yaml_string.contains("orders"));
-        assert!(!yaml_string.contains("scenarios"));
-        assert!(!yaml_string.contains("deployments"));
-        assert!(!yaml_string.contains("networks"));
-        assert!(!yaml_string.contains("tokens"));
-        assert!(!yaml_string.contains("deployers"));
-        assert!(!yaml_string.contains("orderbooks"));
-        assert!(!yaml_string.contains("gui"));
-        assert!(!yaml_string.contains("charts"));
-    }
-
-    #[test]
-    fn test_to_yaml_string_propagates_non_missing_errors() {
-        let yaml = r#"
-networks:
-  mainnet:
-    rpcs:
-      - https://mainnet.infura.io
-    chain-id: 1
-tokens:
-  token1:
-    network: mainnet
-    address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-orders:
-  order1:
-    inputs:
-      - token: token1
-        vault-id: not-a-number
-    outputs:
-      - token: token1
-"#;
-
-        let dotrain_yaml =
-            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
-
-        let err = dotrain_yaml.to_yaml_string().unwrap_err();
-        assert!(matches!(
-            err,
-            YamlError::Field {
-                kind: FieldErrorKind::InvalidValue { .. },
-                location
-            } if location == "input index '0' in order 'order1'"
-        ));
-    }
-
-    #[test]
-    fn test_to_yaml_string_round_trip_all_sections() {
-        let dotrain_yaml = DotrainYaml::new(
-            vec![FULL_YAML.to_string()],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
-
-        let yaml_string = dotrain_yaml.to_yaml_string().unwrap();
-        let new_dotrain_yaml = DotrainYaml::new(
-            vec![ORDERBOOK_CONTEXT_YAML.to_string(), yaml_string],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
-
-        let original_order = dotrain_yaml.get_order("order1").unwrap();
-        let new_order = new_dotrain_yaml.get_order("order1").unwrap();
-        assert_eq!(original_order, new_order);
-
-        let original_scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
-        let new_scenario = new_dotrain_yaml.get_scenario("scenario1").unwrap();
-        assert_eq!(original_scenario, new_scenario);
-
-        let original_child_scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
-        let new_child_scenario = new_dotrain_yaml
-            .get_scenario("scenario1.scenario2")
-            .unwrap();
-        assert_eq!(original_child_scenario, new_child_scenario);
-
-        let original_deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
-        let new_deployment = new_dotrain_yaml.get_deployment("deployment1").unwrap();
-        assert_eq!(original_deployment, new_deployment);
-
-        let original_gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
-        let new_gui = new_dotrain_yaml.get_gui(None).unwrap().unwrap();
-        assert_eq!(original_gui, new_gui);
-
-        let original_chart = dotrain_yaml.get_chart("chart1").unwrap();
-        let new_chart = new_dotrain_yaml.get_chart("chart1").unwrap();
-        assert_eq!(original_chart, new_chart);
-    }
-
-    #[test]
     fn test_update_bindings() {
         // Parent scenario
         {
@@ -1505,7 +1283,7 @@ orders:
         )
         .unwrap();
 
-        let gui = dotrain_yaml.get_gui(None).unwrap().unwrap();
+        let gui = dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
         let deployment = gui.deployments.get("deployment1").unwrap();
 
         assert_eq!(
@@ -1601,7 +1379,7 @@ orders:
             DotrainYamlValidation::default(),
         )
         .unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let error = dotrain_yaml.get_gui("deployment1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -1622,7 +1400,7 @@ orders:
             DotrainYamlValidation::default(),
         )
         .unwrap();
-        let error = dotrain_yaml.get_gui(None).unwrap_err();
+        let error = dotrain_yaml.get_gui("deployment1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
