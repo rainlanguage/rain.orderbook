@@ -1,6 +1,3 @@
-import type { AppStoresInterface } from '@rainlanguage/ui-components';
-import { writable } from 'svelte/store';
-import type { LayoutLoad } from './$types';
 import {
 	DotrainRegistry,
 	RaindexClient,
@@ -9,7 +6,10 @@ import {
 	type Hex
 } from '@rainlanguage/orderbook';
 import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
+import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { REGISTRY_URL } from '$lib/constants';
+import { writable } from 'svelte/store';
+import type { LayoutLoad } from './$types';
 
 export interface LayoutData {
 	errorMessage?: string;
@@ -76,7 +76,7 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	if (!errorMessage) {
 		try {
 			await init();
-			const localDbRes = SQLiteWasmDatabase.new('worker.db');
+			const localDbRes = await SQLiteWasmDatabase.new('worker.db');
 			if (localDbRes.error) {
 				errorMessage = 'Error initializing local database: ' + localDbRes.error.readableMsg;
 			} else {
@@ -102,7 +102,6 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			selectedChainIds: writable<number[]>([]),
 			accounts: writable<Record<string, AccountCfg>>({}),
 			activeAccountsItems: writable<Record<string, Address>>({}),
-			// Instantiate with false to show only active orders
 			showInactiveOrders: writable<boolean>(false),
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
@@ -151,7 +150,6 @@ if (import.meta.vitest) {
 	describe('Layout load function', () => {
 		beforeEach(() => {
 			vi.clearAllMocks();
-			// basic localStorage stub for load()
 			// @ts-expect-error mock storage
 			global.localStorage = {
 				data: {} as Record<string, string>,

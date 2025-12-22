@@ -71,6 +71,13 @@ mod tests {
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
         }
+
+        fn with_views(self) -> Self {
+            rain_orderbook_common::local_db::query::create_views::create_views_batch()
+                .statements()
+                .iter()
+                .fold(self, |db, stmt| db.with_text(stmt, "ok"))
+        }
     }
 
     #[async_trait(?Send)]
@@ -109,13 +116,15 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -137,6 +146,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn engine_run_executes_view_creation() {
+        let adapter = ProducerBootstrapAdapter::new();
+        let db = MockDb::default()
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_text(&create_tables_stmt(), "ok")
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
+
+        let cfg = BootstrapConfig {
+            ob_id: sample_ob_id(),
+            dump_stmt: None,
+            latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
+        };
+
+        adapter.engine_run(&db, &cfg).await.unwrap();
+
+        let calls = db.calls();
+        let expected_views: Vec<String> =
+            rain_orderbook_common::local_db::query::create_views::create_views_batch()
+                .statements()
+                .iter()
+                .map(|s| s.sql().to_string())
+                .collect();
+
+        for view_stmt in expected_views {
+            assert!(calls.contains(&view_stmt), "missing view creation call");
+        }
+    }
+
+    #[tokio::test]
     async fn engine_run_resets_and_imports_dump_when_present() {
         let adapter = ProducerBootstrapAdapter::new();
         let dump_stmt = SqlStatement::new("--dump-sql");
@@ -144,13 +185,15 @@ mod tests {
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
             .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
-            .with_text(&dump_stmt, "ok");
+            .with_text(&dump_stmt, "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -181,13 +224,15 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
             dump_stmt: Some(dump_stmt.clone()),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         // Expect error due to missing dump mapping, after successful reset
@@ -215,13 +260,16 @@ mod tests {
     #[tokio::test]
     async fn engine_run_propagates_reset_error() {
         let adapter = ProducerBootstrapAdapter::new();
-        let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
+        let db = MockDb::default()
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 1,
+            deployment_block: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();

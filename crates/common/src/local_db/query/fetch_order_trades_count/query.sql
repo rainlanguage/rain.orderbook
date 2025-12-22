@@ -4,8 +4,9 @@ FROM (
   FROM take_orders t
   JOIN order_events oe
     ON oe.chain_id = ?1
-   AND lower(oe.orderbook_address) = lower(?2)
-   AND lower(oe.order_hash) = lower(?3)
+   AND oe.orderbook_address = ?2
+   AND oe.order_hash = ?3
+   AND oe.event_type = 'AddOrderV3'
    AND oe.order_owner = t.order_owner
    AND oe.order_nonce = t.order_nonce
    AND (
@@ -15,11 +16,12 @@ FROM (
    AND NOT EXISTS (
      SELECT 1
      FROM order_events oe2
-     WHERE oe2.chain_id = ?1
-       AND lower(oe2.orderbook_address) = lower(?2)
-       AND lower(oe2.order_hash) = lower(?3)
-       AND oe2.order_owner = t.order_owner
-       AND oe2.order_nonce = t.order_nonce
+    WHERE oe2.chain_id = ?1
+      AND oe2.orderbook_address = ?2
+      AND oe2.order_hash = ?3
+      AND oe2.event_type = 'AddOrderV3'
+      AND oe2.order_owner = t.order_owner
+      AND oe2.order_nonce = t.order_nonce
        AND (
             oe2.block_number < t.block_number
          OR (oe2.block_number = t.block_number AND oe2.log_index <= t.log_index)
@@ -30,7 +32,7 @@ FROM (
        )
    )
   WHERE t.chain_id = ?1
-    AND lower(t.orderbook_address) = lower(?2)
+    AND t.orderbook_address = ?2
 
   UNION ALL
 
@@ -38,8 +40,9 @@ FROM (
   FROM clear_v3_events c
   JOIN order_events oe
     ON oe.chain_id = ?1
-   AND lower(oe.orderbook_address) = lower(?2)
-   AND lower(oe.order_hash) = lower(c.alice_order_hash)
+   AND oe.orderbook_address = ?2
+   AND oe.order_hash = c.alice_order_hash
+   AND oe.event_type = 'AddOrderV3'
    AND (
         oe.block_number < c.block_number
      OR (oe.block_number = c.block_number AND oe.log_index <= c.log_index)
@@ -47,9 +50,10 @@ FROM (
    AND NOT EXISTS (
      SELECT 1
      FROM order_events oe2
-     WHERE oe2.chain_id = ?1
-       AND lower(oe2.orderbook_address) = lower(?2)
-       AND lower(oe2.order_hash) = lower(c.alice_order_hash)
+    WHERE oe2.chain_id = ?1
+      AND oe2.orderbook_address = ?2
+      AND oe2.order_hash = c.alice_order_hash
+      AND oe2.event_type = 'AddOrderV3'
        AND (
             oe2.block_number < c.block_number
          OR (oe2.block_number = c.block_number AND oe2.log_index <= c.log_index)
@@ -60,8 +64,8 @@ FROM (
        )
    )
   WHERE c.chain_id = ?1
-    AND lower(c.orderbook_address) = lower(?2)
-    AND lower(c.alice_order_hash) = lower(?3)
+    AND c.orderbook_address = ?2
+    AND c.alice_order_hash = ?3
 
   UNION ALL
 
@@ -69,8 +73,9 @@ FROM (
   FROM clear_v3_events c
   JOIN order_events oe
     ON oe.chain_id = ?1
-   AND lower(oe.orderbook_address) = lower(?2)
-   AND lower(oe.order_hash) = lower(c.bob_order_hash)
+   AND oe.orderbook_address = ?2
+   AND oe.order_hash = c.bob_order_hash
+   AND oe.event_type = 'AddOrderV3'
    AND (
         oe.block_number < c.block_number
      OR (oe.block_number = c.block_number AND oe.log_index <= c.log_index)
@@ -78,9 +83,10 @@ FROM (
    AND NOT EXISTS (
      SELECT 1
      FROM order_events oe2
-     WHERE oe2.chain_id = ?1
-       AND lower(oe2.orderbook_address) = lower(?2)
-       AND lower(oe2.order_hash) = lower(c.bob_order_hash)
+    WHERE oe2.chain_id = ?1
+      AND oe2.orderbook_address = ?2
+      AND oe2.order_hash = c.bob_order_hash
+      AND oe2.event_type = 'AddOrderV3'
        AND (
             oe2.block_number < c.block_number
          OR (oe2.block_number = c.block_number AND oe2.log_index <= c.log_index)
@@ -91,8 +97,8 @@ FROM (
        )
    )
   WHERE c.chain_id = ?1
-    AND lower(c.orderbook_address) = lower(?2)
-    AND lower(c.bob_order_hash) = lower(?3)
+    AND c.orderbook_address = ?2
+    AND c.bob_order_hash = ?3
 ) AS combined_trades
 WHERE 1=1
 /*START_TS_CLAUSE*/

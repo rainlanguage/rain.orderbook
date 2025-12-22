@@ -78,7 +78,7 @@ impl QuoteTarget {
         multicall_address: Option<Address>,
     ) -> Result<QuoteResult, Error> {
         Ok(batch_quote(
-            &[self.clone()],
+            std::slice::from_ref(self),
             rpcs,
             block_number,
             gas,

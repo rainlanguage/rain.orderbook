@@ -5,7 +5,6 @@ pub mod fetch;
 pub mod insert;
 pub mod pipeline;
 pub mod query;
-pub mod sync;
 pub mod token_fetch;
 
 use crate::erc20::Error as TokenError;
@@ -24,7 +23,7 @@ use std::num::ParseIntError;
 use strict_yaml_rust::ScanError;
 use tokio::task::JoinError;
 
-const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[42161];
+const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[137, 8453, 42161];
 
 #[derive(Debug, thiserror::Error)]
 pub enum LocalDbError {

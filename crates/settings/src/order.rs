@@ -8,6 +8,9 @@ use std::{
 };
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
+
+const ALLOWED_ORDER_KEYS: [&str; 4] = ["deployer", "inputs", "orderbook", "outputs"];
+const ALLOWED_ORDER_IO_KEYS: [&str; 2] = ["token", "vault-id"];
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
@@ -840,75 +843,82 @@ impl YamlParsableHash for OrderCfg {
         Ok(orders)
     }
 
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        let inputs = self
-            .inputs
-            .iter()
-            .map(|input| {
-                let mut input_yaml = Hash::new();
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
 
-                input_yaml.insert(
-                    StrictYaml::String("token".to_string()),
-                    StrictYaml::String(input.token_key.clone()),
-                );
-                if let Some(vault_id) = input.vault_id {
-                    input_yaml.insert(
-                        StrictYaml::String("vault-id".to_string()),
-                        StrictYaml::String(vault_id.to_string()),
-                    );
+            let orders_key = StrictYaml::String("orders".to_string());
+            let Some(orders_value) = root_hash.get(&orders_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref orders_hash) = *orders_value else {
+                continue;
+            };
+
+            let mut sanitized_orders: Vec<(String, StrictYaml)> = Vec::new();
+
+            for (order_key, order_value) in orders_hash {
+                let Some(order_key_str) = order_key.as_str() else {
+                    continue;
+                };
+
+                let StrictYaml::Hash(ref order_hash) = *order_value else {
+                    continue;
+                };
+
+                let mut sanitized_order = Hash::new();
+
+                for allowed_key in ALLOWED_ORDER_KEYS.iter() {
+                    let key_yaml = StrictYaml::String(allowed_key.to_string());
+                    if let Some(v) = order_hash.get(&key_yaml) {
+                        if *allowed_key == "inputs" || *allowed_key == "outputs" {
+                            if let StrictYaml::Array(ref io_array) = *v {
+                                let sanitized_io: Vec<StrictYaml> = io_array
+                                    .iter()
+                                    .filter_map(|io_item| {
+                                        let StrictYaml::Hash(ref io_hash) = *io_item else {
+                                            return None;
+                                        };
+
+                                        let mut sanitized_io_item = Hash::new();
+                                        for allowed_io_key in ALLOWED_ORDER_IO_KEYS.iter() {
+                                            let io_key_yaml =
+                                                StrictYaml::String(allowed_io_key.to_string());
+                                            if let Some(io_v) = io_hash.get(&io_key_yaml) {
+                                                sanitized_io_item.insert(io_key_yaml, io_v.clone());
+                                            }
+                                        }
+                                        Some(StrictYaml::Hash(sanitized_io_item))
+                                    })
+                                    .collect();
+                                sanitized_order.insert(key_yaml, StrictYaml::Array(sanitized_io));
+                            } else {
+                                sanitized_order.insert(key_yaml, v.clone());
+                            }
+                        } else {
+                            sanitized_order.insert(key_yaml, v.clone());
+                        }
+                    }
                 }
 
-                StrictYaml::Hash(input_yaml)
-            })
-            .collect();
+                sanitized_orders
+                    .push((order_key_str.to_string(), StrictYaml::Hash(sanitized_order)));
+            }
 
-        let outputs = self
-            .outputs
-            .iter()
-            .map(|output| {
-                let mut output_yaml = Hash::new();
+            sanitized_orders.sort_by(|(a, _), (b, _)| a.cmp(b));
 
-                output_yaml.insert(
-                    StrictYaml::String("token".to_string()),
-                    StrictYaml::String(output.token_key.clone()),
-                );
-                if let Some(vault_id) = output.vault_id {
-                    output_yaml.insert(
-                        StrictYaml::String("vault-id".to_string()),
-                        StrictYaml::String(vault_id.to_string()),
-                    );
-                }
+            let mut new_orders_hash = Hash::new();
+            for (key, value) in sanitized_orders {
+                new_orders_hash.insert(StrictYaml::String(key), value);
+            }
 
-                StrictYaml::Hash(output_yaml)
-            })
-            .collect();
-
-        let mut order_yaml = Hash::new();
-
-        order_yaml.insert(
-            StrictYaml::String("inputs".to_string()),
-            StrictYaml::Array(inputs),
-        );
-        order_yaml.insert(
-            StrictYaml::String("outputs".to_string()),
-            StrictYaml::Array(outputs),
-        );
-
-        if let Some(deployer) = &self.deployer {
-            order_yaml.insert(
-                StrictYaml::String("deployer".to_string()),
-                StrictYaml::String(deployer.key.clone()),
-            );
+            root_hash.insert(orders_key, StrictYaml::Hash(new_orders_hash));
         }
 
-        if let Some(orderbook) = &self.orderbook {
-            order_yaml.insert(
-                StrictYaml::String("orderbook".to_string()),
-                StrictYaml::String(orderbook.key.clone()),
-            );
-        }
-
-        Ok(StrictYaml::Hash(order_yaml))
+        Ok(())
     }
 }
 
@@ -1214,177 +1224,6 @@ orders:
     }
 
     #[test]
-    fn to_yaml_value_serializes_strings_and_optionals() {
-        use crate::test::{mock_deployer, mock_network, mock_orderbook, mock_token};
-
-        let document = Arc::new(RwLock::new(StrictYaml::Hash(Hash::new())));
-        let network = mock_network();
-        let deployer = mock_deployer();
-        let orderbook = Arc::new(OrderbookCfg {
-            key: "orderbook-1".to_string(),
-            network: network.clone(),
-            ..mock_orderbook().as_ref().clone()
-        });
-        let input_token = Arc::new(TokenCfg {
-            key: "input-token".to_string(),
-            network: network.clone(),
-            ..mock_token("InputToken").as_ref().clone()
-        });
-        let output_token = Arc::new(TokenCfg {
-            key: "output-token".to_string(),
-            network: network.clone(),
-            ..mock_token("OutputToken").as_ref().clone()
-        });
-
-        let mut orders = HashMap::new();
-        orders.insert(
-            "with-optional".to_string(),
-            OrderCfg {
-                document: document.clone(),
-                key: "with-optional".to_string(),
-                inputs: vec![OrderIOCfg {
-                    token_key: input_token.key.clone(),
-                    token: Some(input_token.clone()),
-                    vault_id: Some(U256::from(1u8)),
-                }],
-                outputs: vec![OrderIOCfg {
-                    token_key: output_token.key.clone(),
-                    token: Some(output_token.clone()),
-                    vault_id: Some(U256::from(2u8)),
-                }],
-                network: network.clone(),
-                deployer: Some(deployer.clone()),
-                orderbook: Some(orderbook.clone()),
-            },
-        );
-        orders.insert(
-            "without-optional".to_string(),
-            OrderCfg {
-                document,
-                key: "without-optional".to_string(),
-                inputs: vec![OrderIOCfg {
-                    token_key: input_token.key.clone(),
-                    token: Some(input_token.clone()),
-                    vault_id: None,
-                }],
-                outputs: vec![OrderIOCfg {
-                    token_key: output_token.key.clone(),
-                    token: Some(output_token.clone()),
-                    vault_id: None,
-                }],
-                network,
-                deployer: None,
-                orderbook: None,
-            },
-        );
-
-        let yaml = OrderCfg::to_yaml_hash(&orders).unwrap();
-        let yaml_hash = match yaml {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected order map"),
-        };
-
-        let with_optional = match yaml_hash
-            .get(&StrictYaml::String("with-optional".to_string()))
-            .expect("missing with-optional order")
-        {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected order hash"),
-        };
-        let without_optional = match yaml_hash
-            .get(&StrictYaml::String("without-optional".to_string()))
-            .expect("missing without-optional order")
-        {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected order hash"),
-        };
-
-        let with_optional_inputs = match with_optional
-            .get(&StrictYaml::String("inputs".to_string()))
-            .expect("missing inputs for with-optional")
-        {
-            StrictYaml::Array(arr) => arr,
-            _ => panic!("expected inputs array"),
-        };
-        let with_optional_input = match &with_optional_inputs[0] {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected input hash"),
-        };
-        assert_eq!(
-            with_optional_input.get(&StrictYaml::String("token".to_string())),
-            Some(&StrictYaml::String("input-token".to_string()))
-        );
-        assert_eq!(
-            with_optional_input.get(&StrictYaml::String("vault-id".to_string())),
-            Some(&StrictYaml::String(U256::from(1u8).to_string()))
-        );
-
-        let with_optional_outputs = match with_optional
-            .get(&StrictYaml::String("outputs".to_string()))
-            .expect("missing outputs for with-optional")
-        {
-            StrictYaml::Array(arr) => arr,
-            _ => panic!("expected outputs array"),
-        };
-        let with_optional_output = match &with_optional_outputs[0] {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected output hash"),
-        };
-        assert_eq!(
-            with_optional_output.get(&StrictYaml::String("token".to_string())),
-            Some(&StrictYaml::String("output-token".to_string()))
-        );
-        assert_eq!(
-            with_optional_output.get(&StrictYaml::String("vault-id".to_string())),
-            Some(&StrictYaml::String(U256::from(2u8).to_string()))
-        );
-        assert_eq!(
-            with_optional.get(&StrictYaml::String("deployer".to_string())),
-            Some(&StrictYaml::String(deployer.key.clone()))
-        );
-        assert_eq!(
-            with_optional.get(&StrictYaml::String("orderbook".to_string())),
-            Some(&StrictYaml::String(orderbook.key.clone()))
-        );
-
-        let without_optional_inputs = match without_optional
-            .get(&StrictYaml::String("inputs".to_string()))
-            .expect("missing inputs for without-optional")
-        {
-            StrictYaml::Array(arr) => arr,
-            _ => panic!("expected inputs array"),
-        };
-        let without_optional_input = match &without_optional_inputs[0] {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected input hash"),
-        };
-        assert_eq!(
-            without_optional_input.get(&StrictYaml::String("token".to_string())),
-            Some(&StrictYaml::String("input-token".to_string()))
-        );
-        assert!(!without_optional_input.contains_key(&StrictYaml::String("vault-id".to_string())));
-
-        let without_optional_outputs = match without_optional
-            .get(&StrictYaml::String("outputs".to_string()))
-            .expect("missing outputs for without-optional")
-        {
-            StrictYaml::Array(arr) => arr,
-            _ => panic!("expected outputs array"),
-        };
-        let without_optional_output = match &without_optional_outputs[0] {
-            StrictYaml::Hash(hash) => hash,
-            _ => panic!("expected output hash"),
-        };
-        assert_eq!(
-            without_optional_output.get(&StrictYaml::String("token".to_string())),
-            Some(&StrictYaml::String("output-token".to_string()))
-        );
-        assert!(!without_optional_output.contains_key(&StrictYaml::String("vault-id".to_string())));
-        assert!(!without_optional.contains_key(&StrictYaml::String("deployer".to_string())));
-        assert!(!without_optional.contains_key(&StrictYaml::String("orderbook".to_string())));
-    }
-
-    #[test]
     fn parse_network_key() {
         let yaml = r#"
 orders: test
@@ -1432,5 +1271,212 @@ orders:
             error.to_readable_msg(),
             "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."
         );
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_unknown_order_keys() {
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - token: eth
+        outputs:
+            - token: usdc
+        deployer: mainnet
+        orderbook: mainnet
+        unknown-key: should-be-dropped
+        another-unknown: also-dropped
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let order_hash = orders_hash
+            .get(&StrictYaml::String("order1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(order_hash.len(), 4);
+        assert!(order_hash.contains_key(&StrictYaml::String("inputs".to_string())));
+        assert!(order_hash.contains_key(&StrictYaml::String("outputs".to_string())));
+        assert!(order_hash.contains_key(&StrictYaml::String("deployer".to_string())));
+        assert!(order_hash.contains_key(&StrictYaml::String("orderbook".to_string())));
+        assert!(!order_hash.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!order_hash.contains_key(&StrictYaml::String("another-unknown".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_unknown_io_keys() {
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vault-id: 123
+              unknown: dropped
+        outputs:
+            - token: usdc
+              extra-field: removed
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let order_hash = orders_hash
+            .get(&StrictYaml::String("order1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let inputs = order_hash
+            .get(&StrictYaml::String("inputs".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+        let input_hash = inputs[0].as_hash().unwrap();
+        assert_eq!(input_hash.len(), 2);
+        assert!(input_hash.contains_key(&StrictYaml::String("token".to_string())));
+        assert!(input_hash.contains_key(&StrictYaml::String("vault-id".to_string())));
+        assert!(!input_hash.contains_key(&StrictYaml::String("unknown".to_string())));
+
+        let outputs = order_hash
+            .get(&StrictYaml::String("outputs".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+        let output_hash = outputs[0].as_hash().unwrap();
+        assert_eq!(output_hash.len(), 1);
+        assert!(output_hash.contains_key(&StrictYaml::String("token".to_string())));
+        assert!(!output_hash.contains_key(&StrictYaml::String("extra-field".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_lexicographic_order() {
+        let yaml = r#"
+orders:
+    zebra:
+        inputs:
+            - token: a
+        outputs:
+            - token: b
+    alpha:
+        inputs:
+            - token: c
+        outputs:
+            - token: d
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let keys: Vec<&str> = orders_hash.iter().filter_map(|(k, _)| k.as_str()).collect();
+        assert_eq!(keys, vec!["alpha", "zebra"]);
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_orders() {
+        let yaml = r#"
+orders:
+    valid-order:
+        inputs:
+            - token: eth
+        outputs:
+            - token: usdc
+    invalid-order: not_a_hash
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(orders_hash.len(), 1);
+        assert!(orders_hash.contains_key(&StrictYaml::String("valid-order".to_string())));
+        assert!(!orders_hash.contains_key(&StrictYaml::String("invalid-order".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_missing_section() {
+        let yaml = r#"
+other-section: value
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_non_hash_root() {
+        let yaml = "just a string";
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_skips_non_hash_section() {
+        let yaml = r#"
+orders: not_a_hash
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_io_items() {
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - token: eth
+            - not_a_hash
+        outputs:
+            - token: usdc
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let order_hash = orders_hash
+            .get(&StrictYaml::String("order1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let inputs = order_hash
+            .get(&StrictYaml::String("inputs".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+        assert_eq!(inputs.len(), 1);
     }
 }

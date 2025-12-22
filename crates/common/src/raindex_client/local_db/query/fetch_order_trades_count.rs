@@ -1,3 +1,5 @@
+use alloy::primitives::B256;
+
 use crate::local_db::query::fetch_order_trades_count::{
     build_fetch_trade_count_stmt, extract_trade_count, LocalDbTradeCountRow,
 };
@@ -7,7 +9,7 @@ use crate::local_db::OrderbookIdentifier;
 pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     ob_id: &OrderbookIdentifier,
-    order_hash: &str,
+    order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<u64, LocalDbQueryError> {
@@ -21,7 +23,7 @@ mod wasm_tests {
     use super::*;
     use crate::raindex_client::local_db::executor::tests::create_sql_capturing_callback;
     use crate::raindex_client::local_db::executor::JsCallbackExecutor;
-    use alloy::primitives::Address;
+    use alloy::primitives::{b256, Address};
     use std::cell::RefCell;
     use std::rc::Rc;
     use wasm_bindgen_test::*;
@@ -29,14 +31,15 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_and_extracts_count() {
-        let order_hash = " 0xAbC ' ";
+        let order_hash =
+            b256!("0x000000000000000000000000000000000000000000000000000000000000abcd");
         let start = Some(10);
         let end = Some(20);
 
         let orderbook = Address::from([0x88; 20]);
         let expected_stmt = build_fetch_trade_count_stmt(
             &OrderbookIdentifier::new(1, orderbook),
-            order_hash,
+            order_hash.clone(),
             start,
             end,
         )
@@ -49,7 +52,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback(response, store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
 
         let res = super::fetch_order_trades_count(
             &exec,
@@ -73,11 +76,11 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("[]", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::fetch_order_trades_count(
             &exec,
             &OrderbookIdentifier::new(1, Address::ZERO),
-            "hash",
+            b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef"),
             None,
             None,
         )

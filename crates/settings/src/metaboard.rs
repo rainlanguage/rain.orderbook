@@ -132,10 +132,6 @@ impl YamlParsableHash for MetaboardCfg {
 
         Ok(metaboards)
     }
-
-    fn to_yaml_value(&self) -> Result<StrictYaml, YamlError> {
-        Ok(StrictYaml::String(self.url.to_string()))
-    }
 }
 
 impl Default for MetaboardCfg {
@@ -204,47 +200,6 @@ metaboards:
         assert_eq!(
             error,
             YamlError::KeyShadowing("DuplicateMetaboard".to_string(), "metaboards".to_string())
-        );
-    }
-
-    #[test]
-    fn test_to_yaml_hash_serializes_urls_as_strings() {
-        let mut metaboards = HashMap::new();
-        metaboards.insert(
-            "primary".to_string(),
-            MetaboardCfg {
-                document: default_document(),
-                key: "primary".to_string(),
-                url: Url::parse("https://metaboard-primary.example").unwrap(),
-            },
-        );
-        metaboards.insert(
-            "backup".to_string(),
-            MetaboardCfg {
-                document: default_document(),
-                key: "backup".to_string(),
-                url: Url::parse("https://metaboard-backup.example").unwrap(),
-            },
-        );
-
-        let yaml = MetaboardCfg::to_yaml_hash(&metaboards).unwrap();
-
-        let StrictYaml::Hash(metaboards_hash) = yaml else {
-            panic!("metaboards were not serialized to a YAML hash");
-        };
-
-        assert_eq!(metaboards_hash.len(), 2);
-        assert_eq!(
-            metaboards_hash.get(&StrictYaml::String("primary".to_string())),
-            Some(&StrictYaml::String(
-                "https://metaboard-primary.example/".to_string()
-            ))
-        );
-        assert_eq!(
-            metaboards_hash.get(&StrictYaml::String("backup".to_string())),
-            Some(&StrictYaml::String(
-                "https://metaboard-backup.example/".to_string()
-            ))
         );
     }
 }

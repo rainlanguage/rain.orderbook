@@ -21,11 +21,13 @@
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 	import { REGISTRY_URL } from '$lib/constants';
+	import { onDestroy, onMount } from 'svelte';
+	import { localDbStatus } from '$lib/stores/localDbStatus';
+	import type { RaindexClient } from '@rainlanguage/orderbook';
 
 	const { errorMessage, localDb, raindexClient, registry } = $page.data;
 	const registryManager = new RegistryManager(REGISTRY_URL);
 
-	// Query client for caching
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -35,6 +37,31 @@
 	});
 
 	let walletInitError: string | null = null;
+
+	onMount(() => {
+		if (!browser || !raindexClient || !localDb || !registry) return;
+		let client = raindexClient as RaindexClient;
+		client
+			.startLocalDbScheduler(registry.settings as string, localDbStatus.set)
+			.then((result) => {
+				if (result.error) {
+					localDbStatus.set({
+						status: 'failure',
+						error: result.error.readableMsg ?? result.error.msg
+					});
+				}
+			})
+			.catch((error) => {
+				localDbStatus.set({
+					status: 'failure',
+					error: error instanceof Error ? error.message : 'Local DB scheduler failed to start'
+				});
+			});
+	});
+	onDestroy(() => {
+		if (!raindexClient) return;
+		raindexClient.stopLocalDbScheduler();
+	});
 
 	$: if (browser && window.navigator) {
 		initWallet().then((error) => {
