@@ -107,3 +107,38 @@ test('it shows the correct data in the table', async () => {
 		expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent('withdrawal');
 	});
 });
+
+test('renders the filter dropdown', async () => {
+	const queryClient = new QueryClient();
+	const mockVault: RaindexVault = {
+		id: 'vault1',
+		getBalanceChanges: vi.fn().mockResolvedValue({ value: [] })
+	} as unknown as RaindexVault;
+
+	render(VaultBalanceChangesTable, {
+		props: { vault: mockVault },
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	expect(screen.getByText('Vault balance changes')).toBeInTheDocument();
+	expect(screen.getByText('Trade Type')).toBeInTheDocument();
+	expect(screen.getByTestId('dropdown-checkbox-button')).toBeInTheDocument();
+});
+
+test('calls getBalanceChanges with undefined initially', async () => {
+	const queryClient = new QueryClient();
+	const mockGetBalanceChanges = vi.fn().mockResolvedValue({ value: [] });
+	const mockVault: RaindexVault = {
+		id: 'vault1',
+		getBalanceChanges: mockGetBalanceChanges
+	} as unknown as RaindexVault;
+
+	render(VaultBalanceChangesTable, {
+		props: { vault: mockVault },
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	await waitFor(() => {
+		expect(mockGetBalanceChanges).toHaveBeenCalledWith(1, undefined);
+	});
+});

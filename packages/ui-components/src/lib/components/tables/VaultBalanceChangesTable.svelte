@@ -1,19 +1,26 @@
 <script lang="ts">
 	import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { RaindexVault, type RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
+	import {
+		RaindexVault,
+		type RaindexVaultBalanceChange,
+		type VaultBalanceChangeFilter
+	} from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
+	import VaultBalanceChangeTypeFilter from '../VaultBalanceChangeTypeFilter.svelte';
 
 	export let vault: RaindexVault;
 
+	let filterTypes: VaultBalanceChangeFilter[] | undefined = undefined;
+
 	$: balanceChangesQuery = createInfiniteQuery({
-		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id],
+		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id, filterTypes],
 		queryFn: async ({ pageParam }) => {
-			const result = await vault.getBalanceChanges(pageParam + 1);
+			const result = await vault.getBalanceChanges(pageParam + 1, filterTypes);
 			if (result.error) throw new Error(result.error.msg);
 			return result.value;
 		},
@@ -26,10 +33,14 @@
 	const AppTable = TanstackAppTable<RaindexVaultBalanceChange>;
 </script>
 
+<div class="flex w-full justify-end">
+	<VaultBalanceChangeTypeFilter bind:value={filterTypes} />
+</div>
+
 <AppTable
 	query={balanceChangesQuery}
 	queryKey={vault.id}
-	emptyMessage="No deposits or withdrawals found"
+	emptyMessage="No balance changes found"
 	rowHoverable={false}
 >
 	<svelte:fragment slot="title">
@@ -41,7 +52,7 @@
 		<TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
 		<TableHeadCell padding="p-0">Balance Change</TableHeadCell>
 		<TableHeadCell padding="p-0">Balance</TableHeadCell>
-		<TableHeadCell padding="p--">Type</TableHeadCell>
+		<TableHeadCell padding="p-0">Type</TableHeadCell>
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
