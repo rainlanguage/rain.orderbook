@@ -26,7 +26,7 @@
 <DropdownCheckbox
 	options={filterOptions}
 	bind:value={typeFilter}
-	label="Trade Type"
+	label="Change Type"
 	allLabel="All types"
 	onlyTitle={true}
 />

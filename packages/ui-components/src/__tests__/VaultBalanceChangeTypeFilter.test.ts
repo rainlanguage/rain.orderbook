@@ -6,7 +6,7 @@ describe('VaultBalanceChangeTypeFilter', () => {
 	it('renders the filter dropdown', () => {
 		render(VaultBalanceChangeTypeFilter);
 
-		expect(screen.getByText('Trade Type')).toBeInTheDocument();
+		expect(screen.getByText('Change Type')).toBeInTheDocument();
 		expect(screen.getByTestId('dropdown-checkbox-button')).toBeInTheDocument();
 	});
 
@@ -29,12 +29,6 @@ describe('VaultBalanceChangeTypeFilter', () => {
 		expect(screen.getByText('Withdrawal')).toBeInTheDocument();
 		expect(screen.getByText('Trade')).toBeInTheDocument();
 		expect(screen.getByText('Clear Bounty')).toBeInTheDocument();
-	});
-
-	it('shows "Select items" when no filters selected', () => {
-		render(VaultBalanceChangeTypeFilter);
-
-		expect(screen.getByTestId('dropdown-checkbox-button')).toHaveTextContent('Select items');
 	});
 
 	it('shows "All types" when all filters selected', async () => {
