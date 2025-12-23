@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {
     OrderConfigV4,
@@ -13,11 +13,11 @@ import {
     TakeOrdersConfigV5,
     TakeOrderConfigV4
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
-import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
+import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBookV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
+contract OrderBookV6TakeOrderBadStackTest is OrderBookV6ExternalRealTest {
     function checkBadStack(
         address alice,
         address bob,

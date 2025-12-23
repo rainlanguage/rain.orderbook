@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     OrderV4,
     IOV2,
@@ -11,13 +11,13 @@ import {
     EvaluableV4,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
-import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
+import {TokenMismatch} from "src/concrete/ob/OrderBookV6.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-/// @title OrderBookTakeOrderTokenMismatchTest
-/// @notice A test harness for testing the OrderBook takeOrder function.
+/// @title OrderBookV6TakeOrderTokenMismatchTest
+/// @notice A test harness for testing the OrderBookV6 takeOrder function.
 /// Focuses on the token mismatch case.
-contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
+contract OrderBookV6TakeOrderTokenMismatchTest is OrderBookV6ExternalRealTest {
     /// It is only possible to get a token mismatch when there are at least two
     /// orders. This is because `takeOrders` is interactive so we assume that
     /// the caller's desired input and output tokens match the first order they

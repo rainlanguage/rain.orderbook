@@ -2,12 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
+import {OrderBookV6ExternalMockTest} from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-/// @title OrderBookVaultBalanceTest
+/// @title OrderBookV6VaultBalanceTest
 /// Tests the basic functionality of reading from the vault balance.
-contract OrderBookVaultBalanceTest is OrderBookExternalMockTest {
+contract OrderBookV6VaultBalanceTest is OrderBookV6ExternalMockTest {
     using LibDecimalFloat for Float;
     /// Test that reading the vault balance without deposits is always zero.
 

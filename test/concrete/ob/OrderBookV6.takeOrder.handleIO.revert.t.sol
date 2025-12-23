@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Vm} from "forge-std/Vm.sol";
-import {OrderBookExternalRealTest, IERC20} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest, IERC20} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     ClearConfigV2,
     OrderV4,
@@ -19,10 +19,10 @@ import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrByteco
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-/// @title OrderBookTakeOrderHandleIORevertTest
+/// @title OrderBookV6TakeOrderHandleIORevertTest
 /// @notice A test harness for testing the OrderBook takeOrder function will run
 /// handle IO and revert if it fails.
-contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
+contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
     using LibDecimalFloat for Float;
 
     function checkTakeOrderHandleIO(bytes[] memory configs, bytes memory err, Float maxInput) internal {

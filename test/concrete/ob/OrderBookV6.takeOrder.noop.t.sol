@@ -5,8 +5,8 @@ pragma solidity =0.8.25;
 import {Vm} from "forge-std/Test.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {NoOrders} from "src/concrete/ob/OrderBook.sol";
+import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
+import {NoOrders} from "src/concrete/ob/OrderBookV6.sol";
 import {
     OrderV4,
     TakeOrdersConfigV5,
@@ -17,10 +17,10 @@ import {
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-/// @title OrderBookTakeOrderNoopTest
+/// @title OrderBookV6TakeOrderNoopTest
 /// @notice A test harness for testing the OrderBook takeOrder function. Focuses
 /// on the no-op case.
-contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
+contract OrderBookV6TakeOrderNoopTest is OrderBookV6ExternalRealTest {
     using LibOrder for OrderV4;
     using LibDecimalFloat for Float;
 

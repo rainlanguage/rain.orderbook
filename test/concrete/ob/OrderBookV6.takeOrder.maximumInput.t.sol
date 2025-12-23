@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest, Vm} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     OrderV4,
     TakeOrderConfigV4,
@@ -19,7 +19,7 @@ import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/I
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
-contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
+contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
     using LibDecimalFloat for Float;
     using LibFormatDecimalFloat for Float;
 

@@ -2,15 +2,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     OrderConfigV4, OrderV4, EvaluableV4, TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
+import {NotOrderOwner} from "src/concrete/ob/OrderBookV6.sol";
 
-contract OrderBookRemoveOrderOwnerTest is OrderBookExternalRealTest {
+contract OrderBookV6RemoveOrderOwnerTest is OrderBookV6ExternalRealTest {
     using LibOrder for OrderV4;
 
     /// forge-config: default.fuzz.runs = 100

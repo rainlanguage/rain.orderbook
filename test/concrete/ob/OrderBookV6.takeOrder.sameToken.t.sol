@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     OrderConfigV4,
     OrderV4,
@@ -12,10 +12,10 @@ import {
     TakeOrdersConfigV5
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
+import {TokenSelfTrade} from "src/concrete/ob/OrderBookV6.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
+contract OrderBookV6TakeOrderSameTokenTest is OrderBookV6ExternalRealTest {
     /// forge-config: default.fuzz.runs = 10
     function testTakeOrderSameToken(address alice, OrderConfigV4 memory configAlice) external {
         LibTestAddOrder.conformConfig(configAlice, iInterpreter, iStore);

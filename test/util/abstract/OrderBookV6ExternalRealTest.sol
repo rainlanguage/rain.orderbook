@@ -21,19 +21,19 @@ import {
     EvaluableV4,
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
-import {OrderBook, IERC20} from "src/concrete/ob/OrderBook.sol";
+import {OrderBookV6, IERC20} from "src/concrete/ob/OrderBookV6.sol";
 import {RainterpreterParser} from "rain.interpreter/concrete/RainterpreterParser.sol";
 import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
 
-abstract contract OrderBookExternalRealTest is Test, IOrderBookV5Stub {
+abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
     IInterpreterV4 internal immutable iInterpreter;
     IInterpreterStoreV3 internal immutable iStore;
     RainterpreterParser internal immutable iParser;
     IParserV2 internal immutable iParserV2;
-    IOrderBookV5 internal immutable iOrderbook;
+    IOrderBookV6 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
     OrderBookSubParser internal immutable iSubParser;

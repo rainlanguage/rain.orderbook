@@ -6,7 +6,9 @@ import {Test} from "forge-std/Test.sol";
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
+import {
+    OrderBookV6ExternalMockTest, REVERTING_MOCK_BYTECODE
+} from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -14,9 +16,9 @@ import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/exten
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibDecimalFloatImplementation} from "rain.math.float/lib/implementation/LibDecimalFloatImplementation.sol";
 
-/// @title OrderBookWithdrawTest
+/// @title OrderBookV6WithdrawTest
 /// Tests withdrawing from the order book.
-contract OrderBookWithdrawTest is OrderBookExternalMockTest {
+contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
     using Math for uint256;
 
     using LibDecimalFloat for Float;

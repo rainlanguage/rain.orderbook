@@ -16,12 +16,12 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderBook} from "src/concrete/ob/OrderBook.sol";
+import {OrderBookV6} from "src/concrete/ob/OrderBookV6.sol";
 import {EvaluableV4} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
 
-/// @title OrderBookExternalTest
+/// @title OrderBookV6ExternalTest
 /// Abstract contract that performs common setup needed for testing an orderbook
 /// from its external interface.
 ///
@@ -31,11 +31,11 @@ import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/
 /// - Deploys a mockable deployer contract for a DISpair.
 ///
 /// Inherits from Test so that it can be used as a base contract for other tests.
-/// Implements IOrderBookV5 so that it has access to all the relevant events.
-abstract contract OrderBookExternalMockTest is Test, IMetaV1_2, IOrderBookV5Stub {
+/// Implements IOrderBookV6 so that it has access to all the relevant events.
+abstract contract OrderBookV6ExternalMockTest is Test, IMetaV1_2, IOrderBookV6Stub {
     IInterpreterV4 immutable iInterpreter;
     IInterpreterStoreV3 immutable iStore;
-    IOrderBookV5 immutable iOrderbook;
+    IOrderBookV6 immutable iOrderbook;
     IERC20 immutable iToken0;
     IERC20 immutable iToken1;
 

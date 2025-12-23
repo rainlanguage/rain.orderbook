@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     OrderConfigV4,
     EvaluableV4,
@@ -18,7 +18,7 @@ import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimal
 
 import {console2} from "forge-std/Test.sol";
 
-contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
+contract OrderBookV6WithdrawEvalTest is OrderBookV6ExternalRealTest {
     using Strings for address;
     using Strings for uint256;
     using LibDecimalFloat for Float;

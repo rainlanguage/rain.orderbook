@@ -2,16 +2,16 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookExternalMockTest} from "test/util/abstract/OrderBookExternalMockTest.sol";
+import {OrderBookV6ExternalMockTest} from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
 import {
     OrderConfigV4, OrderV4, EvaluableV4, TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";
+import {NotOrderOwner} from "src/concrete/ob/OrderBookV6.sol";
 
-/// @title OrderBookRemoveOrderMockTest
+/// @title OrderBookV6RemoveOrderMockTest
 /// @notice A contract to test the OrderBook removeOrder function.
-contract OrderBookRemoveOrderMockTest is OrderBookExternalMockTest {
+contract OrderBookV6RemoveOrderMockTest is OrderBookV6ExternalMockTest {
     /// An order MUST ONLY be removable by its owner.
     /// forge-config: default.fuzz.runs = 100
     function testRemoveOrderOnlyOwner(address alice, address bob, OrderConfigV4 memory config, bytes memory expression)
