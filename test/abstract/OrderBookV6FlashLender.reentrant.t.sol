@@ -6,14 +6,14 @@ import {Vm} from "forge-std/Vm.sol";
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {
-    IOrderBookV5,
+    IOrderBookV6,
     OrderConfigV4,
     OrderV4,
     TakeOrderConfigV4,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     ClearConfigV2,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/IParserV2.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -22,10 +22,10 @@ import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-/// @title OrderBookV4FlashLenderReentrant
+/// @title OrderBookV6FlashLenderReentrant
 /// Test that flash borrowers can reenter the orderbook, which is necessary for
 /// trading etc. against it while the loan is active.
-contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
+contract OrderBookV6FlashLenderReentrant is OrderBookExternalRealTest {
     function checkFlashLoanNotRevert(Reenteroor borrower, bytes memory encodedCall, uint256 loanAmount) internal {
         borrower.reenterWith(encodedCall);
         vm.mockCall(
@@ -151,7 +151,7 @@ contract OrderBookV4FlashLenderReentrant is OrderBookExternalRealTest {
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
+        TakeOrdersConfigV5 memory takeOrdersConfig = TakeOrdersConfigV5(
             LibDecimalFloat.packLossless(0, 0),
             LibDecimalFloat.packLossless(type(int224).max, 0),
             LibDecimalFloat.packLossless(type(int224).max, 0),

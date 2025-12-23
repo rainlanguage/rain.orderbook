@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
 import {
     OrderConfigV4, OrderV4, EvaluableV4, TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {NotOrderOwner} from "src/concrete/ob/OrderBook.sol";

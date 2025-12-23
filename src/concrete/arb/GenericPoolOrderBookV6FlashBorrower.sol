@@ -6,16 +6,16 @@ import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/I
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 import {
-    OrderBookV5FlashBorrower,
+    OrderBookV6FlashBorrower,
     SafeERC20,
     IERC20,
     Address,
-    TakeOrdersConfigV4,
-    OrderBookV5ArbConfig
-} from "../../abstract/OrderBookV5FlashBorrower.sol";
+    TakeOrdersConfigV5,
+    OrderBookV6ArbConfig
+} from "../../abstract/OrderBookV6FlashBorrower.sol";
 
-/// @title GenericPoolOrderBookV5FlashBorrower
-/// Implements the OrderBookV5FlashBorrower interface for an external liquidity
+/// @title GenericPoolOrderBookV6FlashBorrower
+/// Implements the OrderBookV6FlashBorrower interface for an external liquidity
 /// source that behaves vaguely like a standard AMM. The `exchangeData` from
 /// `arb` is decoded into a spender, pool and callData. The `callData` is
 /// literally the encoded function call to the pool. This allows the `arb`
@@ -24,14 +24,14 @@ import {
 /// The `spender` is the address that will be approved to spend the input token
 /// on `takeOrders`, which is almost always going to be the pool itself. If you
 /// are unsure, simply set it to the pool address.
-contract GenericPoolOrderBookV5FlashBorrower is OrderBookV5FlashBorrower {
+contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(OrderBookV5ArbConfig memory config) OrderBookV5FlashBorrower(config) {}
+    constructor(OrderBookV6ArbConfig memory config) OrderBookV6FlashBorrower(config) {}
 
-    /// @inheritdoc OrderBookV5FlashBorrower
-    function _exchange(TakeOrdersConfigV4 memory takeOrders, bytes memory exchangeData) internal virtual override {
+    /// @inheritdoc OrderBookV6FlashBorrower
+    function _exchange(TakeOrdersConfigV5 memory takeOrders, bytes memory exchangeData) internal virtual override {
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(exchangeData, (address, address, bytes));
 

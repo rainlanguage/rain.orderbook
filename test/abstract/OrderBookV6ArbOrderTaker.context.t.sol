@@ -3,31 +3,30 @@
 pragma solidity =0.8.25;
 
 import {
-    ChildOrderBookV5ArbOrderTaker,
+    ChildOrderBookV6ArbOrderTaker,
     TaskV2,
     SignedContextV1,
     EvaluableV4
-} from "../util/concrete/ChildOrderBookV5ArbOrderTaker.sol";
+} from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";
 import {OrderBookExternalRealTest} from "../util/abstract/OrderBookExternalRealTest.sol";
 import {
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     TakeOrderConfigV4,
     IOV2,
     OrderConfigV4,
     OrderV4,
     IInterpreterV4
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBook.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
-    function testOrderBookV5ArbOrderTakerContext() external {
+contract OrderBookV6ArbOrderTakerContextTest is OrderBookExternalRealTest {
+    function testOrderBookV6ArbOrderTakerContext() external {
         address alice = address(999999);
         address bob = address(999998);
-        ChildOrderBookV5ArbOrderTaker arbOrderTaker = new ChildOrderBookV5ArbOrderTaker();
-
+        ChildOrderBookV6ArbOrderTaker arbOrderTaker = new ChildOrderBookV6ArbOrderTaker();
         OrderConfigV4 memory aliceOrderConfig;
         {
             IOV2[] memory aliceValidInputs = new IOV2[](1);
@@ -63,10 +62,11 @@ contract OrderBookV5ArbOrderTakerContextTest is OrderBookExternalRealTest {
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = aliceTakeOrderConfig;
-        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4({
-            minimumInput: LibDecimalFloat.packLossless(0, 0),
-            maximumInput: LibDecimalFloat.packLossless(type(int224).max, 0),
+        TakeOrdersConfigV5 memory takeOrdersConfig = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
             maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
             orders: orders,
             data: ""
         });

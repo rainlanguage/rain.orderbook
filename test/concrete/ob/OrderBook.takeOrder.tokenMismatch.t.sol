@@ -7,10 +7,10 @@ import {
     OrderV4,
     IOV2,
     TakeOrderConfigV4,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     EvaluableV4,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {TokenMismatch} from "src/concrete/ob/OrderBook.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
@@ -55,13 +55,14 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
         orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            Float.wrap(0),
-            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
-            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio, 18),
-            orders,
-            ""
-        );
+        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
+            minimumIO: Float.wrap(0),
+            maximumIO: LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
+            maximumIORatio: LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio, 18),
+            IOIsInput: true,
+            orders: orders,
+            data: ""
+        });
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
@@ -100,13 +101,14 @@ contract OrderBookTakeOrderTokenMismatchTest is OrderBookExternalRealTest {
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](2);
         orders[0] = TakeOrderConfigV4(a, aInputIOIndex, aOutputIOIndex, new SignedContextV1[](0));
         orders[1] = TakeOrderConfigV4(b, bInputIOIndex, bOutputIOIndex, new SignedContextV1[](0));
-        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            Float.wrap(0),
-            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
-            LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio18, 18),
-            orders,
-            ""
-        );
+        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
+            minimumIO: Float.wrap(0),
+            maximumIO: LibDecimalFloat.fromFixedDecimalLosslessPacked(maxTakerInput18, 18),
+            maximumIORatio: LibDecimalFloat.fromFixedDecimalLosslessPacked(maxIORatio18, 18),
+            IOIsInput: true,
+            orders: orders,
+            data: ""
+        });
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);

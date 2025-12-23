@@ -9,7 +9,7 @@ import {
     IOV2,
     EvaluableV4,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotRainMetaV1, META_MAGIC_NUMBER_V1} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";

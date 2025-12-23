@@ -7,13 +7,13 @@ import {OrderBookExternalRealTest, Vm} from "test/util/abstract/OrderBookExterna
 import {
     OrderV4,
     TakeOrderConfigV4,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     ZeroMaximumInput,
     IOV2,
     EvaluableV4,
     OrderConfigV4,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
 
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
@@ -34,13 +34,14 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         SignedContextV1[] memory signedContexts = new SignedContextV1[](1);
         signedContexts[0] = signedContext;
         orders[0] = TakeOrderConfigV4(order, 0, 0, signedContexts);
-        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            LibDecimalFloat.packLossless(0, 0),
-            LibDecimalFloat.packLossless(0, 0),
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            orders,
-            ""
-        );
+        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
+            orders: orders,
+            data: ""
+        });
         vm.expectRevert(ZeroMaximumInput.selector);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
@@ -126,13 +127,14 @@ contract OrderBookTakeOrderMaximumInputTest is OrderBookExternalRealTest {
         for (uint256 i = 0; i < orders.length; i++) {
             takeOrders[i] = TakeOrderConfigV4(orders[i], 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            LibDecimalFloat.packLossless(0, 0),
-            maximumTakerInput,
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            takeOrders,
-            ""
-        );
+        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: maximumTakerInput,
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
+            orders: takeOrders,
+            data: ""
+        });
 
         {
             uint256 expectedTakerInput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerInput, 18);

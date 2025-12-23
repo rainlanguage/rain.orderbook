@@ -3,21 +3,21 @@
 pragma solidity =0.8.25;
 
 import {
-    IOrderBookV5,
+    IOrderBookV6,
     OrderConfigV4,
     OrderV4,
     ClearConfigV2,
     SignedContextV1,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     EvaluableV4,
     TaskV2,
     QuoteV2,
     Float
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
-abstract contract IOrderBookV5Stub is IOrderBookV5 {
+abstract contract IOrderBookV6Stub is IOrderBookV6 {
     /// @inheritdoc IOrderBookV5
     function entask2(TaskV2[] calldata) external pure {
         revert("eval");
@@ -59,8 +59,8 @@ abstract contract IOrderBookV5Stub is IOrderBookV5 {
         revert("deposit");
     }
 
-    /// @inheritdoc IOrderBookV5
-    function takeOrders3(TakeOrdersConfigV4 calldata) external pure returns (Float, Float) {
+    /// @inheritdoc IOrderBookV6
+    function takeOrders4(TakeOrdersConfigV5 calldata) external pure returns (Float, Float) {
         revert("takeOrders");
     }
 

@@ -5,45 +5,46 @@ pragma solidity =0.8.25;
 import {ArbTest} from "test/util/abstract/ArbTest.sol";
 
 import {
-    GenericPoolOrderBookV5FlashBorrower,
-    OrderBookV5ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV5FlashBorrower.sol";
+    GenericPoolOrderBookV6FlashBorrower,
+    OrderBookV6ArbConfig
+} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 import {
     OrderV4,
     TakeOrderConfigV4,
     EvaluableV4,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     IInterpreterV4,
     IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-contract GenericPoolOrderBookV5FlashBorrowerTest is ArbTest {
-    function buildArb(OrderBookV5ArbConfig memory config) internal override returns (address) {
-        return address(new GenericPoolOrderBookV5FlashBorrower(config));
+contract GenericPoolOrderBookV6FlashBorrowerTest is ArbTest {
+    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address) {
+        return address(new GenericPoolOrderBookV6FlashBorrower(config));
     }
 
     constructor() ArbTest() {}
 
     /// forge-config: default.fuzz.runs = 10
-    function testGenericPoolOrderBookV5FlashBorrowerTakeOrdersSender(
+    function testGenericPoolOrderBookV6FlashBorrowerTakeOrdersSender(
         OrderV4 memory order,
         uint256 inputIOIndex,
         uint256 outputIOIndex
     ) public {
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        GenericPoolOrderBookV5FlashBorrower(iArb).arb3(
+        GenericPoolOrderBookV6FlashBorrower(iArb).arb4(
             iOrderBook,
-            TakeOrdersConfigV4(
-                LibDecimalFloat.packLossless(0, 0),
-                LibDecimalFloat.packLossless(type(int224).max, 0),
-                LibDecimalFloat.packLossless(type(int224).max, 0),
-                orders,
-                ""
-            ),
+            TakeOrdersConfigV5({
+                minimumIO: LibDecimalFloat.packLossless(0, 0),
+                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+                IOIsInput: true,
+                orders: orders,
+                data: ""
+            }),
             abi.encode(iRefundoor, iRefundoor, ""),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),

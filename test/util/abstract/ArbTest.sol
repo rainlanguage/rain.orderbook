@@ -17,8 +17,8 @@ import {
     SignedContextV1,
     EvaluableV4
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
-import {OrderBookV5ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {OrderBookV6ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
@@ -41,7 +41,7 @@ abstract contract ArbTest is Test {
     FlashLendingMockOrderBook immutable iOrderBook;
     address immutable iArb;
 
-    /// Mimics the `Construct` event from `OrderBookV5ArbCommon`.
+    /// Mimics the `Construct` event from `OrderBookV6ArbCommon`.
     event Construct(address sender, OrderBookV5ArbConfig config);
 
     function expression() internal virtual returns (bytes memory) {

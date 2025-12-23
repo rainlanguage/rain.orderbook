@@ -10,9 +10,9 @@ import {
     OrderV4,
     EvaluableV4,
     TaskV2,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     TakeOrderConfigV4
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBook.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -33,13 +33,14 @@ contract OrderBookTakeOrderBadStackTest is OrderBookExternalRealTest {
 
         TakeOrderConfigV4[] memory takeOrderConfigs = new TakeOrderConfigV4[](1);
         takeOrderConfigs[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
-            LibDecimalFloat.packLossless(0, 0),
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            takeOrderConfigs,
-            ""
-        );
+        TakeOrdersConfigV5 memory takeOrdersConfig = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
+            orders: takeOrderConfigs,
+            data: ""
+        });
         config.validInputs[0].token = address(iToken0);
         config.validOutputs[0].token = address(iToken1);
 

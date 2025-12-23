@@ -14,15 +14,15 @@ import {
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {
-    IOrderBookV5,
-    TakeOrdersConfigV4,
+    IOrderBookV6,
+    TakeOrdersConfigV5,
     NoOrders,
     TaskV2,
     Float
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
-import {OrderBookV5ArbConfig, OrderBookV5ArbCommon} from "./OrderBookV5ArbCommon.sol";
+import {OrderBookV6ArbConfig, OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
@@ -69,11 +69,11 @@ error SwapFailed();
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV5ArbCommon {
+abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV6ArbCommon {
     using Address for address;
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
+    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -89,7 +89,7 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// @param takeOrders As per `arb`.
     /// @param exchangeData As per `arb`.
     //slither-disable-next-line dead-code
-    function _exchange(TakeOrdersConfigV4 memory takeOrders, bytes memory exchangeData) internal virtual {}
+    function _exchange(TakeOrdersConfigV5 memory takeOrders, bytes memory exchangeData) internal virtual {}
 
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data)
@@ -101,8 +101,8 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
             revert BadInitiator(initiator);
         }
 
-        (TakeOrdersConfigV4 memory takeOrders, bytes memory exchangeData) =
-            abi.decode(data, (TakeOrdersConfigV4, bytes));
+        (TakeOrdersConfigV5 memory takeOrders, bytes memory exchangeData) =
+            abi.decode(data, (TakeOrdersConfigV5, bytes));
 
         // Dispatch the `_exchange` hook to ensure we have the correct asset
         // type and amount to fill the orders.
@@ -113,7 +113,7 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (Float totalInput, Float totalOutput) = IOrderBookV5(msg.sender).takeOrders3(takeOrders);
+        (Float totalInput, Float totalOutput) = IOrderBookV6(msg.sender).takeOrders3(takeOrders);
         (totalInput, totalOutput);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;
@@ -140,9 +140,9 @@ abstract contract OrderBookV5FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// for decoding this data and defining how it controls interactions with
     /// the external liquidity. For example, `GenericPoolOrderBookV5FlashBorrower`
     /// uses this data as a literal encoded external call.
-    function arb3(
-        IOrderBookV5 orderBook,
-        TakeOrdersConfigV4 calldata takeOrders,
+    function arb4(
+        IOrderBookV6 orderBook,
+        TakeOrdersConfigV5 calldata takeOrders,
         bytes calldata exchangeData,
         TaskV2 calldata task
     ) external payable nonReentrant onlyValidTask(task) {

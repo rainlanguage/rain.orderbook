@@ -5,19 +5,19 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
 import {
-    OrderBookV5ArbOrderTaker,
-    IOrderBookV5ArbOrderTaker,
+    OrderBookV6ArbOrderTaker,
+    IOrderBookV6ArbOrderTaker,
     EvaluableV4,
-    OrderBookV5ArbConfig,
-    IOrderBookV5OrderTaker,
+    OrderBookV6ArbConfig,
+    IOrderBookV6OrderTaker,
     TaskV2,
     SignedContextV1
-} from "src/abstract/OrderBookV5ArbOrderTaker.sol";
+} from "src/abstract/OrderBookV6ArbOrderTaker.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
-import {ChildOrderBookV5ArbOrderTaker} from "../util/concrete/ChildOrderBookV5ArbOrderTaker.sol";
+import {ChildOrderBookV6ArbOrderTaker} from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";
 
-contract OrderBookV5ArbOrderTakerIERC165Test is Test {
+contract OrderBookV6ArbOrderTakerIERC165Test is Test {
     /// Test that ERC165 and IOrderBookV5ArbOrderTaker are supported interfaces
     /// as per ERC165.
     function testOrderBookV5ArbOrderTakerIERC165(bytes4 badInterfaceId) external {

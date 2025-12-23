@@ -43,7 +43,7 @@ import {
     OrderV4,
     OrderConfigV4,
     TakeOrderConfigV4,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     ClearConfigV2,
     ClearStateChangeV2,
     ZeroMaximumInput,
@@ -200,9 +200,9 @@ type Output18Amount is uint256;
 
 type Input18Amount is uint256;
 
-/// @title OrderBook
-/// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
+/// @title OrderBookV6
+/// See `IOrderBookV6` for more documentation.
+contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV6FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV4;
@@ -229,22 +229,22 @@ contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
     mapping(address owner => mapping(address token => mapping(bytes32 vaultId => Float balance))) internal
         sVaultBalances;
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function vaultBalance2(address owner, address token, bytes32 vaultId) external view override returns (Float) {
         return sVaultBalances[owner][token][vaultId];
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function orderExists(bytes32 orderHash) external view override returns (bool) {
         return sOrders[orderHash] == ORDER_LIVE;
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function entask2(TaskV2[] calldata post) external nonReentrant {
         LibOrderBook.doPost(new bytes32[][](0), post);
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function deposit3(address token, bytes32 vaultId, Float depositAmount, TaskV2[] calldata post)
         external
         nonReentrant
@@ -278,7 +278,7 @@ contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function withdraw3(address token, bytes32 vaultId, Float targetAmount, TaskV2[] calldata post)
         external
         nonReentrant
@@ -313,8 +313,8 @@ contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// @inheritdoc IOrderBookV5
-    function addOrder3(OrderConfigV4 calldata orderConfig, TaskV2[] calldata post)
+    /// @inheritdoc IOrderBookV6
+    function addOrder4(OrderConfigV4 calldata orderConfig, TaskV2[] calldata post)
         external
         nonReentrant
         returns (bool)
@@ -361,8 +361,8 @@ contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return stateChange;
     }
 
-    /// @inheritdoc IOrderBookV5
-    function removeOrder3(OrderV4 calldata order, TaskV2[] calldata post)
+    /// @inheritdoc IOrderBookV6
+    function removeOrder4(OrderV4 calldata order, TaskV2[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)
@@ -389,7 +389,7 @@ contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function quote2(QuoteV2 calldata quoteConfig) external view returns (bool, Float, Float) {
         bytes32 orderHash = quoteConfig.order.hash();
 
@@ -409,11 +409,11 @@ contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return (true, orderIOCalculation.outputMax, orderIOCalculation.IORatio);
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     // Most of the cyclomatic complexity here is due to the error handling within
     // the loop. The actual logic is fairly linear.
     //slither-disable-next-line cyclomatic-complexity
-    function takeOrders3(TakeOrdersConfigV4 calldata config)
+    function takeOrders4(TakeOrdersConfigV5 calldata config)
         external
         nonReentrant
         returns (Float totalTakerInput, Float totalTakerOutput)
@@ -497,9 +497,7 @@ contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
                         } else {
                             // Taker is "market selling" up to the order output max.
                             Float orderMaxInput = orderIOCalculation.IORatio.mul(orderIOCalculation.outputMax);
-                            takerOutput = orderMaxInput.min(
-                                remainingTakerIO
-                            );
+                            takerOutput = orderMaxInput.min(remainingTakerIO);
                             // This rounds down which favours the order/dex.
                             takerInput = takerOutput.div(orderIOCalculation.IORatio);
 

@@ -9,7 +9,7 @@ import {
     TaskV2,
     SignedContextV1,
     ClearConfigV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {ClearZeroAmount} from "src/concrete/ob/OrderBook.sol";
 

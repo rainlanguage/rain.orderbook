@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRealTest.sol";
-import {QuoteV2, OrderConfigV4, TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {QuoteV2, OrderConfigV4, TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 import {Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 

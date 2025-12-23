@@ -7,13 +7,13 @@ import {Test} from "forge-std/Test.sol";
 import {IMetaV1_2} from "rain.metadata/lib/LibMeta.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {IOrderBookV5Stub} from "test/util/abstract/IOrderBookV5Stub.sol";
+import {IOrderBookV6Stub} from "test/util/abstract/IOrderBookV6Stub.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {
-    IOrderBookV5, OrderConfigV4, OrderV4, TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+    IOrderBookV6, OrderConfigV4, OrderV4, TaskV2
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {OrderBook} from "src/concrete/ob/OrderBook.sol";

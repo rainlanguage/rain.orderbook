@@ -9,11 +9,11 @@ import {OrderBookExternalRealTest} from "test/util/abstract/OrderBookExternalRea
 import {NoOrders} from "src/concrete/ob/OrderBook.sol";
 import {
     OrderV4,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     TakeOrderConfigV4,
     SignedContextV1,
     EvaluableV4
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -27,13 +27,14 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
     /// Take orders makes no sense without any orders in the input array and the
     /// caller has full control over this so we error.
     function testTakeOrderNoopZeroOrders() external {
-        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            LibDecimalFloat.packLossless(0, 0),
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            new TakeOrderConfigV4[](0),
-            ""
-        );
+        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
+            orders: new TakeOrderConfigV4[](0),
+            data: ""
+        });
         vm.expectRevert(NoOrders.selector);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
         (totalTakerInput, totalTakerOutput);
@@ -66,13 +67,14 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         TakeOrderConfigV4 memory orderConfig = TakeOrderConfigV4(order, inputIOIndex, outputIOIndex, signedContexts);
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = orderConfig;
-        TakeOrdersConfigV4 memory config = TakeOrdersConfigV4(
-            LibDecimalFloat.packLossless(0, 0),
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            LibDecimalFloat.packLossless(type(int224).max, 0),
-            orders,
-            ""
-        );
+        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
+            orders: orders,
+            data: ""
+        });
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
@@ -115,7 +117,7 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
         order1.validInputs[inputIOIndex1].token = order2.validInputs[inputIOIndex2].token;
         order1.validOutputs[outputIOIndex1].token = order2.validOutputs[outputIOIndex2].token;
 
-        TakeOrdersConfigV4 memory config;
+        TakeOrdersConfigV5 memory config;
         {
             TakeOrderConfigV4[] memory orders;
             {
@@ -134,13 +136,14 @@ contract OrderBookTakeOrderNoopTest is OrderBookExternalRealTest {
                 orders[1] = orderConfig2;
             }
 
-            config = TakeOrdersConfigV4(
-                LibDecimalFloat.packLossless(0, 0),
-                LibDecimalFloat.packLossless(type(int224).max, 0),
-                LibDecimalFloat.packLossless(type(int224).max, 0),
-                orders,
-                ""
-            );
+            config = TakeOrdersConfigV5({
+                minimumIO: LibDecimalFloat.packLossless(0, 0),
+                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+                IOIsInput: true,
+                orders: orders,
+                data: ""
+            });
         }
 
         vm.recordLogs();

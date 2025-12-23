@@ -10,11 +10,11 @@ import {
     TakeOrderConfigV4,
     IOV2,
     OrderConfigV4,
-    TakeOrdersConfigV4,
+    TakeOrdersConfigV5,
     EvaluableV4,
     SignedContextV1,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -74,9 +74,14 @@ contract OrderBookTakeOrderHandleIORevertTest is OrderBookExternalRealTest {
 
             orders[i] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
         }
-        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4(
-            LibDecimalFloat.packLossless(0, 0), maxInput, LibDecimalFloat.packLossless(type(int224).max, 0), orders, ""
-        );
+        TakeOrdersConfigV5 memory takeOrdersConfig = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: maxInput,
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
+            orders: orders,
+            data: ""
+        });
 
         if (err.length > 0) {
             vm.expectRevert(err);

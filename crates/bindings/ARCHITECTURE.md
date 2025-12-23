@@ -70,7 +70,7 @@ WASM and JS Interop
   - `EvaluableV4`: `{ interpreter: string; store: string; bytecode: string; }`
   - `SignedContextV1`: `{ signer: string; context: string[]; signature: string; }`
   - `TakeOrderConfigV4`: `{ order: OrderV4; inputIOIndex: string; outputIOIndex: string; signedContext: SignedContextV1[]; }`
-  - `TakeOrdersConfigV4`: `{ minimumInput: string; maximumInput: string; maximumIORatio: string; orders: TakeOrderConfigV4[]; data: string; }`
+  - `TakeOrdersConfigV5`: `{ minimumInput: string; maximumInput: string; maximumIORatio: string; orders: TakeOrderConfigV4[]; data: string; }`
 
 - Why many fields are `string` in TS
   - Large numeric values (e.g., `U256`) are represented as strings to avoid precision issues and to keep interop predictable across JS runtimes. Hex strings are used for byte data. This matches how the rest of the workspace serializes on the boundary.

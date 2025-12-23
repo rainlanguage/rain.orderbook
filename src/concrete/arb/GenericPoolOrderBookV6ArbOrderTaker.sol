@@ -6,15 +6,15 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
-import {OrderBookV5ArbOrderTaker, OrderBookV5ArbConfig, Float} from "../../abstract/OrderBookV5ArbOrderTaker.sol";
+import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
 
-contract GenericPoolOrderBookV5ArbOrderTaker is OrderBookV5ArbOrderTaker {
+contract GenericPoolOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
-    constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbOrderTaker(config) {}
+    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbOrderTaker(config) {}
 
-    /// @inheritdoc OrderBookV5ArbOrderTaker
+    /// @inheritdoc OrderBookV6ArbOrderTaker
     function onTakeOrders2(
         address inputToken,
         address outputToken,

@@ -13,22 +13,22 @@ import {
     LibEncodedDispatch
 } from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
-import {IOrderBookV5, NoOrders} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {IOrderBookV6, NoOrders} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {
-    IOrderBookV5ArbOrderTaker,
+    IOrderBookV6ArbOrderTaker,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5ArbOrderTaker.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6ArbOrderTaker.sol";
 import {
     IInterpreterV4, DEFAULT_STATE_NAMESPACE
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
-import {TakeOrdersConfigV4, Float} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
-import {OrderBookV5ArbConfig, EvaluableV4, OrderBookV5ArbCommon, SignedContextV1} from "./OrderBookV5ArbCommon.sol";
+import {TakeOrdersConfigV5, Float} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {OrderBookV6ArbConfig, EvaluableV4, OrderBookV6ArbCommon, SignedContextV1} from "./OrderBookV6ArbCommon.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
-import {IOrderBookV5OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV5OrderTaker.sol";
+import {IOrderBookV6OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV6OrderTaker.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
 /// Thrown when "before arb" wants inputs that we don't have.
@@ -38,25 +38,25 @@ error NonZeroBeforeArbInputs(uint256 inputs);
 /// is to allow for access control to the arb, the return values are ignored.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
-abstract contract OrderBookV5ArbOrderTaker is
-    IOrderBookV5OrderTaker,
-    IOrderBookV5ArbOrderTaker,
+abstract contract OrderBookV6ArbOrderTaker is
+    IOrderBookV6OrderTaker,
+    IOrderBookV6ArbOrderTaker,
     ReentrancyGuard,
     ERC165,
-    OrderBookV5ArbCommon
+    OrderBookV6ArbCommon
 {
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbCommon(config) {}
+    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbCommon(config) {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
-        return (interfaceId == type(IOrderBookV5OrderTaker).interfaceId)
-            || (interfaceId == type(IOrderBookV5ArbOrderTaker).interfaceId) || super.supportsInterface(interfaceId);
+        return (interfaceId == type(IOrderBookV6OrderTaker).interfaceId)
+            || (interfaceId == type(IOrderBookV6ArbOrderTaker).interfaceId) || super.supportsInterface(interfaceId);
     }
 
-    /// @inheritdoc IOrderBookV5ArbOrderTaker
-    function arb4(IOrderBookV5 orderBook, TakeOrdersConfigV4 calldata takeOrders, TaskV2 calldata task)
+    /// @inheritdoc IOrderBookV6ArbOrderTaker
+    function arb4(IOrderBookV5 orderBook, TakeOrdersConfigV5 calldata takeOrders, TaskV2 calldata task)
         external
         payable
         nonReentrant

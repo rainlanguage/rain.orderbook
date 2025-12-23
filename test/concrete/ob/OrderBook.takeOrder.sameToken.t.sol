@@ -9,8 +9,8 @@ import {
     TaskV2,
     TakeOrderConfigV4,
     SignedContextV1,
-    TakeOrdersConfigV4
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+    TakeOrdersConfigV5
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBook.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
@@ -36,10 +36,11 @@ contract OrderBookTakeOrderSameTokenTest is OrderBookExternalRealTest {
             signedContext: new SignedContextV1[](0)
         });
 
-        TakeOrdersConfigV4 memory takeOrdersConfig = TakeOrdersConfigV4({
-            minimumInput: LibDecimalFloat.packLossless(0, 0),
-            maximumInput: LibDecimalFloat.packLossless(type(int224).max, 0),
+        TakeOrdersConfigV5 memory takeOrdersConfig = TakeOrdersConfigV5({
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
             maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: true,
             orders: takeOrders,
             data: ""
         });

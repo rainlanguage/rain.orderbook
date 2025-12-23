@@ -8,7 +8,7 @@ import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
 import {OrderBookExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
