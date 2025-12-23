@@ -121,7 +121,7 @@ test('renders the filter dropdown', async () => {
 	});
 
 	expect(screen.getByText('Vault balance changes')).toBeInTheDocument();
-	expect(screen.getByText('Trade Type')).toBeInTheDocument();
+	expect(screen.getByText('Change Type')).toBeInTheDocument();
 	expect(screen.getByTestId('dropdown-checkbox-button')).toBeInTheDocument();
 });
 
