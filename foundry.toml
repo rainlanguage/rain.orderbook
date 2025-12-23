@@ -6,7 +6,7 @@ libs = ['lib']
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
 solc = "0.8.25"
-evm_version = "paris"
+evm_version = "cancun"
 
 # optimizer settings for debugging
 # via_ir = false

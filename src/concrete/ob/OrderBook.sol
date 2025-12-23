@@ -38,7 +38,7 @@ import {
 } from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
 import {
-    IOrderBookV5,
+    IOrderBookV6,
     NoOrders,
     OrderV4,
     OrderConfigV4,
@@ -52,8 +52,8 @@ import {
     TaskV2,
     QuoteV2,
     Float
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
-import {IOrderBookV5OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV5OrderTaker.sol";
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {IOrderBookV6OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV6OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,
@@ -202,7 +202,7 @@ type Input18Amount is uint256;
 
 /// @title OrderBook
 /// See `IOrderBookV1` for more documentation.
-contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
+contract OrderBook is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV4FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV4;
