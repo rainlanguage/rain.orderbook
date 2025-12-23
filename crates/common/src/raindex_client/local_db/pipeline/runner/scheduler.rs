@@ -4,6 +4,7 @@ use crate::local_db::pipeline::adapters::{
     apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
     window::DefaultWindowPipeline,
 };
+use crate::local_db::pipeline::runner::RunReport;
 use crate::local_db::LocalDbError;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
@@ -34,15 +35,15 @@ trait SchedulerRunner {
     fn run_once<'a>(
         &'a mut self,
         db_executor: &'a LocalDb,
-    ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbError>> + 'a>>;
+    ) -> Pin<Box<dyn Future<Output = Result<RunReport, LocalDbError>> + 'a>>;
 }
 
 impl SchedulerRunner for DefaultClientRunner {
     fn run_once<'a>(
         &'a mut self,
         db_executor: &'a LocalDb,
-    ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbError>> + 'a>> {
-        Box::pin(async move { self.run(db_executor).await.map(|_| ()) })
+    ) -> Pin<Box<dyn Future<Output = Result<RunReport, LocalDbError>> + 'a>> {
+        Box::pin(async move { self.run(db_executor).await })
     }
 }
 
@@ -100,7 +101,24 @@ where
 
             emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::syncing());
             match runner.run_once(&db).await {
-                Ok(_) => emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::active()),
+                Ok(report) => {
+                    if report.failures.is_empty() {
+                        emit_status(status_callback.as_deref(), LocalDbStatusSnapshot::active());
+                    } else {
+                        let first = &report.failures[0];
+                        let msg = format!(
+                            "ob {:#x} ({}) failed at {:?}: {}",
+                            first.ob_id.orderbook_address,
+                            first.ob_id.chain_id,
+                            first.stage,
+                            first.error.to_readable_msg()
+                        );
+                        emit_status(
+                            status_callback.as_deref(),
+                            LocalDbStatusSnapshot::failure(msg),
+                        );
+                    }
+                }
                 Err(err) => emit_status(
                     status_callback.as_deref(),
                     LocalDbStatusSnapshot::failure(err.to_readable_msg()),
@@ -134,7 +152,10 @@ fn emit_status(callback: Option<&Function>, status: LocalDbStatusSnapshot) {
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
+    use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
+    use crate::local_db::OrderbookIdentifier;
     use crate::raindex_client::local_db::LocalDbStatus;
+    use alloy::primitives::Address;
     use gloo_timers::future::TimeoutFuture;
     use std::cell::{Cell, RefCell};
     use std::collections::VecDeque;
@@ -177,7 +198,7 @@ mod wasm_tests {
         fn run_once<'a>(
             &'a mut self,
             _db_executor: &'a LocalDb,
-        ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbError>> + 'a>> {
+        ) -> Pin<Box<dyn Future<Output = Result<RunReport, LocalDbError>> + 'a>> {
             let calls = Rc::clone(&self.calls);
             let failures = Rc::clone(&self.failures);
             let outcomes = Rc::clone(&self.outcomes);
@@ -187,9 +208,21 @@ mod wasm_tests {
                 let should_fail = outcomes.borrow_mut().pop_front().unwrap_or(false);
                 if should_fail {
                     failures.set(failures.get() + 1);
-                    Err(LocalDbError::CustomError("runner failure".to_string()))
+                    let failure = TargetFailure {
+                        ob_id: OrderbookIdentifier::new(1, Address::ZERO),
+                        orderbook_key: None,
+                        stage: TargetStage::EngineRun,
+                        error: LocalDbError::CustomError("runner failure".to_string()),
+                    };
+                    Ok(RunReport {
+                        successes: vec![],
+                        failures: vec![failure],
+                    })
                 } else {
-                    Ok(())
+                    Ok(RunReport {
+                        successes: vec![],
+                        failures: vec![],
+                    })
                 }
             })
         }
