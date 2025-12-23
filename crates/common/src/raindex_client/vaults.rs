@@ -311,18 +311,21 @@ impl RaindexVault {
     /// Fetches balance change history for a vault
     ///
     /// Retrieves chronological list of deposits, withdrawals, and trades affecting
-    /// a vault's balance.
+    /// a vault's balance. Optionally filter by balance change type.
     ///
     /// ## Examples
     ///
     /// ```javascript
+    /// // Fetch all balance changes
     /// const result = await vault.getBalanceChanges();
     /// if (result.error) {
     ///   console.error("Error fetching history:", result.error.readableMsg);
     ///   return;
     /// }
     /// const changes = result.value;
-    /// // Do something with the changes
+    ///
+    /// // Fetch only deposits and withdrawals
+    /// const filteredResult = await vault.getBalanceChanges(1, ["deposit", "withdrawal"]);
     /// ```
     #[wasm_export(
         js_name = "getBalanceChanges",
@@ -333,6 +336,10 @@ impl RaindexVault {
     pub async fn get_balance_changes(
         &self,
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
+        #[wasm_export(
+            param_description = "Optional filter types array (deposit, withdrawal, trade, clearBounty)"
+        )]
+        filter_types: Option<Vec<VaultBalanceChangeFilter>>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         if is_chain_supported_local_db(self.chain_id) {
             if let Some(local_db) = self.raindex_client.local_db() {
@@ -342,6 +349,7 @@ impl RaindexVault {
                     self.vault_id,
                     self.token.address,
                     self.owner,
+                    filter_types.as_deref(),
                 )
                 .await?;
 
@@ -354,6 +362,13 @@ impl RaindexVault {
             }
         }
 
+        let subgraph_typenames: Option<Vec<String>> = filter_types.as_ref().map(|filters| {
+            filters
+                .iter()
+                .map(|f| f.to_subgraph_typename().to_string())
+                .collect()
+        });
+
         let client = self.get_orderbook_client()?;
         let balance_changes = client
             .vault_balance_changes_list(
@@ -362,6 +377,7 @@ impl RaindexVault {
                     page: page.unwrap_or(1),
                     page_size: 1000,
                 },
+                subgraph_typenames.as_deref(),
             )
             .await?;
 
@@ -609,24 +625,64 @@ impl_wasm_traits!(RaindexVaultBalanceChangeType);
 impl TryFrom<String> for RaindexVaultBalanceChangeType {
     type Error = RaindexError;
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.starts_with("CLEAR_") {
-            return Ok(RaindexVaultBalanceChangeType::ClearBounty);
-        }
         match value.as_str() {
             "Deposit" | "DEPOSIT" => Ok(RaindexVaultBalanceChangeType::Deposit),
             "Withdrawal" | "WITHDRAWAL" | "WITHDRAW" => {
                 Ok(RaindexVaultBalanceChangeType::Withdrawal)
             }
-            "TradeVaultBalanceChange" | "TAKE_INPUT" | "TAKE_OUTPUT" => {
-                Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange)
+            "TradeVaultBalanceChange"
+            | "TAKE_INPUT"
+            | "TAKE_OUTPUT"
+            | "CLEAR_ALICE_INPUT"
+            | "CLEAR_ALICE_OUTPUT"
+            | "CLEAR_BOB_INPUT"
+            | "CLEAR_BOB_OUTPUT" => Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange),
+            "ClearBounty" | "CLEAR_ALICE_BOUNTY" | "CLEAR_BOB_BOUNTY" => {
+                Ok(RaindexVaultBalanceChangeType::ClearBounty)
             }
-            "ClearBounty" | "CLEARBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
             "Unknown" | "UNKNOWN" => Ok(RaindexVaultBalanceChangeType::Unknown),
             _ => Err(RaindexError::InvalidVaultBalanceChangeType(value)),
         }
     }
 }
 impl RaindexVaultBalanceChangeType {}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum VaultBalanceChangeFilter {
+    Deposit,
+    Withdrawal,
+    Trade,
+    ClearBounty,
+}
+impl_wasm_traits!(VaultBalanceChangeFilter);
+
+impl VaultBalanceChangeFilter {
+    pub fn to_local_db_types(&self) -> Vec<&'static str> {
+        match self {
+            Self::Deposit => vec!["DEPOSIT"],
+            Self::Withdrawal => vec!["WITHDRAW"],
+            Self::Trade => vec![
+                "TAKE_INPUT",
+                "TAKE_OUTPUT",
+                "CLEAR_ALICE_INPUT",
+                "CLEAR_ALICE_OUTPUT",
+                "CLEAR_BOB_INPUT",
+                "CLEAR_BOB_OUTPUT",
+            ],
+            Self::ClearBounty => vec!["CLEAR_ALICE_BOUNTY", "CLEAR_BOB_BOUNTY"],
+        }
+    }
+
+    pub fn to_subgraph_typename(&self) -> &'static str {
+        match self {
+            Self::Deposit => "Deposit",
+            Self::Withdrawal => "Withdrawal",
+            Self::Trade => "TradeVaultBalanceChange",
+            Self::ClearBounty => "ClearBounty",
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1795,7 +1851,7 @@ mod tests {
                 .expect("local vault retrieval should succeed");
 
             let changes = vault
-                .get_balance_changes(None)
+                .get_balance_changes(None, None)
                 .await
                 .expect("balance changes should load from local db");
 
@@ -2406,7 +2462,7 @@ mod tests {
                 )
                 .await
                 .unwrap();
-            let result = vault.get_balance_changes(None).await.unwrap();
+            let result = vault.get_balance_changes(None, None).await.unwrap();
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Deposit);
             assert_eq!(result[0].vault_id, U256::from_str("1").unwrap());
@@ -2580,7 +2636,7 @@ mod tests {
                 )
                 .await
                 .unwrap();
-            let result = vault.get_balance_changes(None).await.unwrap();
+            let result = vault.get_balance_changes(None, None).await.unwrap();
 
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Withdrawal);
@@ -2687,7 +2743,7 @@ mod tests {
                 )
                 .await
                 .unwrap();
-            let err = vault.get_balance_changes(None).await.unwrap_err();
+            let err = vault.get_balance_changes(None, None).await.unwrap_err();
             assert!(matches!(
                 err,
                 RaindexError::MissingErc20Decimals(token)

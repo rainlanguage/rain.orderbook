@@ -82,10 +82,14 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all vault deposits + withdrawals merged paginated, for a single vault
+    /// Optionally filter by typename (e.g., "Deposit", "Withdrawal", "TradeVaultBalanceChange", "ClearBounty")
+    /// Note: Subgraph filtering happens client-side after fetching, which is less efficient
+    /// than local DB filtering. For large datasets, prefer using the local DB path.
     pub async fn vault_balance_changes_list(
         &self,
         id: cynic::Id,
         pagination_args: SgPaginationArgs,
+        filter_typenames: Option<&[String]>,
     ) -> Result<Vec<SgVaultBalanceChangeUnwrapped>, OrderbookSubgraphClientError> {
         let pagination_vars = Self::parse_pagination_args(pagination_args);
         let res = self
@@ -101,6 +105,15 @@ impl OrderbookSubgraphClient {
             )
             .await?;
 
+        if let Some(typenames) = filter_typenames {
+            if !typenames.is_empty() {
+                return Ok(res
+                    .into_iter()
+                    .filter(|item| typenames.contains(&item.__typename))
+                    .collect());
+            }
+        }
+
         Ok(res)
     }
 
@@ -108,6 +121,7 @@ impl OrderbookSubgraphClient {
     pub async fn vault_balance_changes_list_all(
         &self,
         id: cynic::Id,
+        filter_typenames: Option<&[String]>,
     ) -> Result<Vec<SgVaultBalanceChangeUnwrapped>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
@@ -120,6 +134,7 @@ impl OrderbookSubgraphClient {
                         page,
                         page_size: ALL_PAGES_QUERY_PAGE_SIZE,
                     },
+                    filter_typenames,
                 )
                 .await?;
             if page_data.is_empty() {
@@ -628,7 +643,7 @@ mod tests {
         });
 
         let result = client
-            .vault_balance_changes_list(vault_id.clone(), pagination_args)
+            .vault_balance_changes_list(vault_id.clone(), pagination_args, None)
             .await;
         assert!(result.is_ok(), "Result was: {:?}", result.err());
         let changes = result.unwrap();
@@ -655,7 +670,7 @@ mod tests {
         });
 
         let result = client
-            .vault_balance_changes_list(vault_id, pagination_args)
+            .vault_balance_changes_list(vault_id, pagination_args, None)
             .await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
@@ -677,12 +692,58 @@ mod tests {
         });
 
         let result = client
-            .vault_balance_changes_list(vault_id, pagination_args)
+            .vault_balance_changes_list(vault_id, pagination_args, None)
             .await;
         assert!(matches!(
             result,
             Err(OrderbookSubgraphClientError::PaginationClientError(_))
         ));
+    }
+
+    #[tokio::test]
+    async fn test_vault_balance_changes_list_with_type_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let vault_id_str = "0xVaultForBalanceChanges";
+        let vault_id = Id::new(vault_id_str);
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+
+        let deposit_change = SgVaultBalanceChangeUnwrapped {
+            __typename: "Deposit".to_string(),
+            ..default_sg_vault_balance_change_unwrapped()
+        };
+        let withdrawal_change = SgVaultBalanceChangeUnwrapped {
+            __typename: "Withdrawal".to_string(),
+            ..default_sg_vault_balance_change_unwrapped()
+        };
+        let trade_change = SgVaultBalanceChangeUnwrapped {
+            __typename: "TradeVaultBalanceChange".to_string(),
+            ..default_sg_vault_balance_change_unwrapped()
+        };
+        let all_changes = vec![deposit_change, withdrawal_change, trade_change];
+
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("\"skip\":0");
+            then.status(200)
+                .json_body(json!({"data": {"vaultBalanceChanges": all_changes}}));
+        });
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("\"skip\":200");
+            then.status(200)
+                .json_body(json!({"data": {"vaultBalanceChanges": []}}));
+        });
+
+        let filter_typenames = vec!["Deposit".to_string()];
+        let result = client
+            .vault_balance_changes_list(vault_id.clone(), pagination_args, Some(&filter_typenames))
+            .await;
+        assert!(result.is_ok(), "Result was: {:?}", result.err());
+        let changes = result.unwrap();
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].__typename, "Deposit");
     }
 
     #[tokio::test]
@@ -728,7 +789,7 @@ mod tests {
         });
 
         let result = client
-            .vault_balance_changes_list_all(vault_id.clone())
+            .vault_balance_changes_list_all(vault_id.clone(), None)
             .await;
         assert!(result.is_ok(), "Result was: {:?}", result.err());
         let changes = result.unwrap();
@@ -747,7 +808,7 @@ mod tests {
                 .json_body(json!({"data": {"vaultBalanceChanges": []}}));
         });
 
-        let result = client.vault_balance_changes_list_all(vault_id).await;
+        let result = client.vault_balance_changes_list_all(vault_id, None).await;
         assert!(result.is_ok());
         assert!(result.unwrap().is_empty());
     }

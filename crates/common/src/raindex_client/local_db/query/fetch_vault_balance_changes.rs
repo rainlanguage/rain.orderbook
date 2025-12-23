@@ -3,6 +3,7 @@ use crate::local_db::query::fetch_vault_balance_changes::{
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::OrderbookIdentifier;
+use crate::raindex_client::vaults::VaultBalanceChangeFilter;
 use alloy::primitives::{Address, U256};
 
 pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
@@ -11,8 +12,9 @@ pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
     vault_id: U256,
     token: Address,
     owner: Address,
+    filter_types: Option<&[VaultBalanceChangeFilter]>,
 ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
-    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner);
+    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner, filter_types)?;
     exec.query_json(&stmt).await
 }
 
@@ -38,7 +40,9 @@ mod wasm_tests {
             vault_id,
             token,
             owner,
-        );
+            None,
+        )
+        .unwrap();
 
         let store = Rc::new(RefCell::new((
             String::new(),
@@ -53,6 +57,7 @@ mod wasm_tests {
             vault_id,
             token,
             owner,
+            None,
         )
         .await;
         assert!(res.is_ok());
@@ -70,7 +75,9 @@ mod wasm_tests {
             vault_id,
             token,
             owner,
-        );
+            None,
+        )
+        .unwrap();
 
         let row_json = r#"[{
             "transactionHash":"0x0000000000000000000000000000000000000000000000000000000000000abc",
@@ -98,11 +105,52 @@ mod wasm_tests {
             vault_id,
             token,
             owner,
+            None,
         )
         .await;
         assert!(res.is_ok());
         let rows = res.unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(store.borrow().clone().0, expected_stmt.sql);
+    }
+
+    #[wasm_bindgen_test]
+    async fn wrapper_uses_builder_sql_with_filter_types() {
+        let vault_id = U256::from(1);
+        let token = address!("0x00000000000000000000000000000000000000aa");
+        let orderbook = Address::from([0x51; 20]);
+        let owner = address!("0x00000000000000000000000000000000000000f1");
+        let filter_types = vec![
+            VaultBalanceChangeFilter::Deposit,
+            VaultBalanceChangeFilter::Withdrawal,
+        ];
+        let expected_stmt = build_fetch_balance_changes_stmt(
+            &OrderbookIdentifier::new(1, orderbook),
+            vault_id,
+            token,
+            owner,
+            Some(&filter_types),
+        )
+        .unwrap();
+
+        let store = Rc::new(RefCell::new((
+            String::new(),
+            wasm_bindgen::JsValue::UNDEFINED,
+        )));
+        let callback = create_sql_capturing_callback("[]", store.clone());
+        let exec = JsCallbackExecutor::from_ref(&callback);
+
+        let res = super::fetch_vault_balance_changes(
+            &exec,
+            &OrderbookIdentifier::new(1, orderbook),
+            vault_id,
+            token,
+            owner,
+            Some(&filter_types),
+        )
+        .await;
+        assert!(res.is_ok());
+        assert_eq!(store.borrow().clone().0, expected_stmt.sql);
+        assert!(expected_stmt.sql.contains("change_type IN"));
     }
 }

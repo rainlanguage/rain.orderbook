@@ -31,7 +31,7 @@ impl Execute for CliVaultBalanceChangesList {
         if self.pagination_args.csv {
             let csv_text = subgraph_args
                 .to_subgraph_client()?
-                .vault_balance_changes_list_all(self.vault_id.clone().into())
+                .vault_balance_changes_list_all(self.vault_id.clone().into(), None)
                 .await?
                 .into_iter()
                 .map(|o| o.try_into())
@@ -46,6 +46,7 @@ impl Execute for CliVaultBalanceChangesList {
                     .vault_balance_changes_list(
                         self.vault_id.clone().into(),
                         self.pagination_args.clone().into(),
+                        None,
                     )
                     .await?
                     .into_iter()
