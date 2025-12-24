@@ -117,6 +117,29 @@ impl OrderbookSubgraphClient {
         Ok(res)
     }
 
+    /// Fetch vault balance changes with full type information (including trade event details).
+    /// This uses inline fragments to distinguish between TakeOrder and Clear trade types.
+    pub async fn vault_balance_changes_list_with_trade(
+        &self,
+        id: cynic::Id,
+        pagination_args: SgPaginationArgs,
+    ) -> Result<Vec<SgVaultBalanceChangeType>, OrderbookSubgraphClientError> {
+        let pagination_vars = Self::parse_pagination_args(pagination_args);
+        let variables = SgPaginationWithIdQueryVariables {
+            id: SgBytes(id.inner().to_string()),
+            skip: pagination_vars.skip,
+            first: pagination_vars.first,
+        };
+
+        let data = self
+            .query::<SgVaultBalanceChangesListWithTradeQuery, SgPaginationWithIdQueryVariables>(
+                variables,
+            )
+            .await?;
+
+        Ok(data.vault_balance_changes)
+    }
+
     /// Fetch all pages of vault_balance_changes_list query
     pub async fn vault_balance_changes_list_all(
         &self,

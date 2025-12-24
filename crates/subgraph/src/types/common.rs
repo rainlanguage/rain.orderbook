@@ -287,6 +287,7 @@ pub struct SgTradeVaultBalanceChange {
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
     pub orderbook: SgOrderbook,
+    pub trade: SgTradeRef,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
@@ -311,6 +312,21 @@ pub struct SgClearBounty {
 pub struct SgTradeEvent {
     pub transaction: SgTransaction,
     pub sender: SgBytes,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[cynic(graphql_type = "TradeEvent")]
+pub struct SgTradeEventTypename {
+    #[serde(rename = "__typename")]
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[cynic(graphql_type = "Trade")]
+pub struct SgTradeRef {
+    pub trade_event: SgTradeEventTypename,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
@@ -716,4 +732,6 @@ mod impls {
     impl_wasm_traits!(SgTrade);
     impl_wasm_traits!(SgTradeStructPartialOrder);
     impl_wasm_traits!(SgTradeEvent);
+    impl_wasm_traits!(SgTradeEventTypename);
+    impl_wasm_traits!(SgTradeRef);
 }
