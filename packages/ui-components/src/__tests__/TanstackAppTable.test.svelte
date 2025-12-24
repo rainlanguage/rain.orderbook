@@ -5,9 +5,14 @@
 	export let title: string;
 	export let head: string;
 	export let queryKey: string;
+	export let virtualization: {
+		enabled?: boolean;
+		estimatedRowHeight?: number;
+		overscan?: number;
+	} = {};
 </script>
 
-<TanstackAppTable {query} {emptyMessage} rowHoverable {queryKey}>
+<TanstackAppTable {query} {emptyMessage} rowHoverable {queryKey} {virtualization}>
 	<svelte:fragment slot="title">
 		<h2>{title}</h2>
 	</svelte:fragment>
