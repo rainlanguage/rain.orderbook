@@ -363,12 +363,13 @@ impl RaindexVault {
 
         let client = self.get_orderbook_client()?;
         let balance_changes = client
-            .vault_balance_changes_list_with_trade(
+            .vault_balance_changes_list(
                 Id::new(self.id.to_string()),
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
                     page_size: 1000,
                 },
+                None,
             )
             .await?;
 
@@ -2493,7 +2494,8 @@ mod tests {
             });
             sg_server.mock(|when, then| {
                 when.path("/sg1")
-                    .body_contains("SgVaultBalanceChangesListWithTradeQuery");
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":0");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
@@ -2526,6 +2528,16 @@ mod tests {
                                 }
                             }
                         ]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":200");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaultBalanceChanges": []
                     }
                 }));
             });
@@ -2660,7 +2672,8 @@ mod tests {
             });
             sg_server.mock(|when, then| {
                 when.path("/sg1")
-                    .body_contains("SgVaultBalanceChangesListWithTradeQuery");
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":0");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
@@ -2693,6 +2706,16 @@ mod tests {
                                 }
                             }
                         ]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":200");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaultBalanceChanges": []
                     }
                 }));
             });
@@ -2745,7 +2768,8 @@ mod tests {
             });
             sg_server.mock(|when, then| {
                 when.path("/sg1")
-                    .body_contains("SgVaultBalanceChangesListWithTradeQuery");
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":0");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
@@ -2778,6 +2802,16 @@ mod tests {
                                 }
                             }
                         ]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":200");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vaultBalanceChanges": []
                     }
                 }));
             });

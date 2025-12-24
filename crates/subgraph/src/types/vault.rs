@@ -27,14 +27,5 @@ pub struct SgVaultDetailQuery {
 #[serde(rename_all = "camelCase")]
 pub struct SgVaultBalanceChangesListQuery {
     #[arguments(orderDirection: "desc", orderBy: "timestamp", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
-    pub vault_balance_changes: Vec<SgVaultBalanceChangeUnwrapped>,
-}
-
-#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
-#[cynic(graphql_type = "Query", variables = "SgPaginationWithIdQueryVariables")]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
-#[serde(rename_all = "camelCase")]
-pub struct SgVaultBalanceChangesListWithTradeQuery {
-    #[arguments(orderDirection: "desc", orderBy: "timestamp", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
     pub vault_balance_changes: Vec<SgVaultBalanceChangeType>,
 }

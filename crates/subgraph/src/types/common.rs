@@ -241,6 +241,58 @@ pub enum SgVaultBalanceChangeType {
     Unknown,
 }
 
+impl SgVaultBalanceChangeType {
+    pub fn typename(&self) -> &str {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => &w.__typename,
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => &t.__typename,
+            SgVaultBalanceChangeType::Deposit(d) => &d.__typename,
+            SgVaultBalanceChangeType::ClearBounty(c) => &c.__typename,
+            SgVaultBalanceChangeType::Unknown => "Unknown",
+        }
+    }
+
+    pub fn timestamp(&self) -> Option<&SgBigInt> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.timestamp),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.timestamp),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.timestamp),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.timestamp),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+
+    pub fn amount(&self) -> Option<&SgBytes> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.amount),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.amount),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.amount),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.amount),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+
+    pub fn new_vault_balance(&self) -> Option<&SgBytes> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.new_vault_balance),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.new_vault_balance),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.new_vault_balance),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.new_vault_balance),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+
+    pub fn transaction(&self) -> Option<&SgTransaction> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.transaction),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.transaction),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.transaction),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.transaction),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+}
+
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Deposit")]

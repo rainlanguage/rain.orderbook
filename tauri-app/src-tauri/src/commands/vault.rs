@@ -46,7 +46,7 @@ pub async fn vault_balance_changes_list_write_csv(
 ) -> CommandResult<()> {
     let data = subgraph_args
         .to_subgraph_client()?
-        .vault_balance_changes_list_all(id.into())
+        .vault_balance_changes_list_all(id.into(), None)
         .await?;
     let data_flattened: Vec<VaultBalanceChangeFlattened> =
         data.into_iter()

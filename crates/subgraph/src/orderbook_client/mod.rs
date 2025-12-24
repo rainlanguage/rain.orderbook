@@ -13,9 +13,7 @@ use crate::types::remove_order::{
     SgTransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables,
 };
 use crate::types::transaction::SgTransactionDetailQuery;
-use crate::types::vault::{
-    SgVaultBalanceChangesListWithTradeQuery, SgVaultDetailQuery, SgVaultsListQuery,
-};
+use crate::types::vault::{SgVaultDetailQuery, SgVaultsListQuery};
 use crate::vault_balance_changes_query::VaultBalanceChangesListPageQueryClient;
 use cynic::Id;
 use reqwest::Url;
