@@ -7,7 +7,8 @@
 	const filterOptions: Record<VaultBalanceChangeFilter, string> = {
 		deposit: 'Deposit',
 		withdrawal: 'Withdrawal',
-		trade: 'Trade',
+		takeOrder: 'Take order',
+		clear: 'Clear',
 		clearBounty: 'Clear Bounty'
 	};
 
