@@ -8,7 +8,7 @@ use crate::local_db::insert::{
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
 use crate::local_db::query::upsert_vault_balances::upsert_vault_balances_batch;
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement, SqlStatementBatch};
 use crate::local_db::OrderbookIdentifier;
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
@@ -95,6 +95,10 @@ pub trait ApplyPipeline {
             target_info.target_block,
             target_info.hash.into(),
         ));
+
+        // Ensure SQLite planner stats are up to date so reads don't suffer from
+        // poor query plans.
+        batch.add(SqlStatement::new("ANALYZE"));
 
         Ok(batch)
     }
@@ -347,9 +351,9 @@ mod tests {
             .build_batch(&build_target_info(&ob_id, 1, 42), &[], &[], &[], &[])
             .expect("batch ok");
 
-        // Expect vault balance refresh plus the watermark when there is no work.
+        // Expect vault balance refresh plus the watermark and ANALYZE when there is no work.
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql().trim()).collect();
-        assert_eq!(texts.len(), 3);
+        assert_eq!(texts.len(), 4);
         assert!(texts.iter().any(|s| s.contains("vault_balance_changes")));
         assert!(texts
             .iter()
@@ -357,6 +361,7 @@ mod tests {
         assert!(texts
             .iter()
             .any(|s| s.contains("INSERT INTO target_watermarks")));
+        assert!(texts.contains(&"ANALYZE"));
     }
 
     #[test]
@@ -884,6 +889,50 @@ mod tests {
             .filter(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .count();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn analyze_emitted_exactly_once_and_is_last() {
+        let pipeline = DefaultApplyPipeline::new();
+        let ob_id = sample_ob_id();
+        let token = Address::from([3u8; 20]);
+
+        let existing = vec![Erc20TokenRow {
+            chain_id: ob_id.chain_id as u32,
+            orderbook_address: ob_id.orderbook_address,
+            token_address: token,
+            name: "Token".into(),
+            symbol: "TKN".into(),
+            decimals: 18,
+        }];
+        let decoded = vec![deposit_event(token)];
+
+        let batch = pipeline
+            .build_batch(
+                &build_target_info(&ob_id, 1, 100),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
+            .expect("batch ok");
+
+        let analyze_count = batch
+            .statements()
+            .iter()
+            .filter(|s| s.sql().trim() == "ANALYZE")
+            .count();
+        assert_eq!(analyze_count, 1, "ANALYZE should appear exactly once");
+
+        let last_stmt = batch
+            .statements()
+            .last()
+            .expect("batch should not be empty");
+        assert_eq!(
+            last_stmt.sql().trim(),
+            "ANALYZE",
+            "ANALYZE should be the last statement in the batch"
+        );
     }
 
     #[test]
