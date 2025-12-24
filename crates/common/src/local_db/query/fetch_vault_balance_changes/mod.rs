@@ -98,20 +98,33 @@ mod tests {
     }
 
     #[test]
-    fn builds_with_trade_filter_expands_to_multiple_types() {
+    fn builds_with_take_order_filter_expands_to_two_types() {
         let stmt = build_fetch_balance_changes_stmt(
             &OrderbookIdentifier::new(1, Address::ZERO),
             U256::from(1),
             Address::ZERO,
             Address::ZERO,
-            Some(&[VaultBalanceChangeFilter::Trade]),
+            Some(&[VaultBalanceChangeFilter::TakeOrder]),
         )
         .unwrap();
         assert!(stmt.sql.contains("params AS"));
-        assert!(stmt
-            .sql
-            .contains("change_type IN (?6, ?7, ?8, ?9, ?10, ?11)"));
-        assert_eq!(stmt.params.len(), 11);
+        assert!(stmt.sql.contains("change_type IN (?6, ?7)"));
+        assert_eq!(stmt.params.len(), 7);
+    }
+
+    #[test]
+    fn builds_with_clear_filter_expands_to_four_types() {
+        let stmt = build_fetch_balance_changes_stmt(
+            &OrderbookIdentifier::new(1, Address::ZERO),
+            U256::from(1),
+            Address::ZERO,
+            Address::ZERO,
+            Some(&[VaultBalanceChangeFilter::Clear]),
+        )
+        .unwrap();
+        assert!(stmt.sql.contains("params AS"));
+        assert!(stmt.sql.contains("change_type IN (?6, ?7, ?8, ?9)"));
+        assert_eq!(stmt.params.len(), 9);
     }
 
     #[test]
