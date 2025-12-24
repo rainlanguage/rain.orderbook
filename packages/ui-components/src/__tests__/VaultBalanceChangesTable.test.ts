@@ -5,6 +5,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
 import type { RaindexVault, RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
 import { formatTimestampSecondsAsLocal } from '../lib/services/time';
+import { VAULT_BALANCE_CHANGE_LABELS } from '../lib/utils/vaultBalanceChangeLabels';
 
 test('renders the vault list table with correct data', async () => {
 	const queryClient = new QueryClient();
@@ -104,7 +105,9 @@ test('it shows the correct data in the table', async () => {
 			'0.1 TKN1'
 		);
 		expect(screen.getByTestId('vaultBalanceChangesTableBalance')).toHaveTextContent('0.4 TKN1');
-		expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent('withdrawal');
+		expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent(
+			VAULT_BALANCE_CHANGE_LABELS.withdrawal
+		);
 	});
 });
 

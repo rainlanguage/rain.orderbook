@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import VaultBalanceChangeTypeFilter from '../lib/components/VaultBalanceChangeTypeFilter.svelte';
+import { VAULT_BALANCE_CHANGE_FILTER_LABELS } from '../lib/utils/vaultBalanceChangeLabels';
 
 describe('VaultBalanceChangeTypeFilter', () => {
 	it('renders the filter dropdown', () => {
@@ -23,12 +24,13 @@ describe('VaultBalanceChangeTypeFilter', () => {
 		await fireEvent.click(button);
 
 		const options = screen.getAllByTestId('dropdown-checkbox-option');
-		expect(options.length).toBeGreaterThanOrEqual(4);
+		expect(options.length).toBeGreaterThanOrEqual(5);
 
-		expect(screen.getByText('Deposit')).toBeInTheDocument();
-		expect(screen.getByText('Withdrawal')).toBeInTheDocument();
-		expect(screen.getByText('Trade')).toBeInTheDocument();
-		expect(screen.getByText('Clear Bounty')).toBeInTheDocument();
+		expect(screen.getByText(VAULT_BALANCE_CHANGE_FILTER_LABELS.deposit)).toBeInTheDocument();
+		expect(screen.getByText(VAULT_BALANCE_CHANGE_FILTER_LABELS.withdrawal)).toBeInTheDocument();
+		expect(screen.getByText(VAULT_BALANCE_CHANGE_FILTER_LABELS.takeOrder)).toBeInTheDocument();
+		expect(screen.getByText(VAULT_BALANCE_CHANGE_FILTER_LABELS.clear)).toBeInTheDocument();
+		expect(screen.getByText(VAULT_BALANCE_CHANGE_FILTER_LABELS.clearBounty)).toBeInTheDocument();
 	});
 
 	it('shows "All types" when all filters selected', async () => {
@@ -51,8 +53,12 @@ describe('VaultBalanceChangeTypeFilter', () => {
 		const button = screen.getByTestId('dropdown-checkbox-button');
 		await fireEvent.click(button);
 
-		const withdrawalLabel = screen.getByText('Withdrawal').closest('label');
-		const depositLabel = screen.getByText('Deposit').closest('label');
+		const withdrawalLabel = screen
+			.getByText(VAULT_BALANCE_CHANGE_FILTER_LABELS.withdrawal)
+			.closest('label');
+		const depositLabel = screen
+			.getByText(VAULT_BALANCE_CHANGE_FILTER_LABELS.deposit)
+			.closest('label');
 
 		if (withdrawalLabel) await fireEvent.click(withdrawalLabel);
 		if (depositLabel) await fireEvent.click(depositLabel);

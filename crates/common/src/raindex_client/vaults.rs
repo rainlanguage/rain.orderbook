@@ -6,6 +6,7 @@ use crate::local_db::{
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::vaults::LocalDbVaults;
+use crate::types::VaultBalanceChangeKind;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -629,27 +630,34 @@ pub enum RaindexVaultBalanceChangeType {
     Unknown,
 }
 impl_wasm_traits!(RaindexVaultBalanceChangeType);
-impl TryFrom<String> for RaindexVaultBalanceChangeType {
-    type Error = RaindexError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.as_str() {
-            "Deposit" | "DEPOSIT" => Ok(RaindexVaultBalanceChangeType::Deposit),
-            "Withdrawal" | "WITHDRAWAL" | "WITHDRAW" => {
-                Ok(RaindexVaultBalanceChangeType::Withdrawal)
-            }
-            "TAKE_INPUT" | "TAKE_OUTPUT" => Ok(RaindexVaultBalanceChangeType::TakeOrder),
-            "CLEAR_ALICE_INPUT" | "CLEAR_ALICE_OUTPUT" | "CLEAR_BOB_INPUT" | "CLEAR_BOB_OUTPUT" => {
-                Ok(RaindexVaultBalanceChangeType::Clear)
-            }
-            "ClearBounty" | "CLEAR_ALICE_BOUNTY" | "CLEAR_BOB_BOUNTY" => {
-                Ok(RaindexVaultBalanceChangeType::ClearBounty)
-            }
-            "Unknown" | "UNKNOWN" => Ok(RaindexVaultBalanceChangeType::Unknown),
-            _ => Err(RaindexError::InvalidVaultBalanceChangeType(value)),
+
+impl From<VaultBalanceChangeKind> for RaindexVaultBalanceChangeType {
+    fn from(kind: VaultBalanceChangeKind) -> Self {
+        match kind {
+            VaultBalanceChangeKind::Deposit => Self::Deposit,
+            VaultBalanceChangeKind::Withdrawal => Self::Withdrawal,
+            VaultBalanceChangeKind::TakeOrder => Self::TakeOrder,
+            VaultBalanceChangeKind::Clear => Self::Clear,
+            VaultBalanceChangeKind::ClearBounty => Self::ClearBounty,
+            VaultBalanceChangeKind::Unknown => Self::Unknown,
         }
     }
 }
-impl RaindexVaultBalanceChangeType {}
+
+impl TryFrom<String> for RaindexVaultBalanceChangeType {
+    type Error = RaindexError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let kind = VaultBalanceChangeKind::from_local_db_change_type(&value);
+        if matches!(kind, VaultBalanceChangeKind::Unknown) {
+            let kind_from_sg = VaultBalanceChangeKind::from_subgraph_typename(&value);
+            if matches!(kind_from_sg, VaultBalanceChangeKind::Unknown) && value != "Unknown" {
+                return Err(RaindexError::InvalidVaultBalanceChangeType(value));
+            }
+            return Ok(kind_from_sg.into());
+        }
+        Ok(kind.into())
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -663,19 +671,18 @@ pub enum VaultBalanceChangeFilter {
 impl_wasm_traits!(VaultBalanceChangeFilter);
 
 impl VaultBalanceChangeFilter {
-    pub fn to_local_db_types(&self) -> Vec<&'static str> {
+    pub fn to_kind(&self) -> VaultBalanceChangeKind {
         match self {
-            Self::Deposit => vec!["DEPOSIT"],
-            Self::Withdrawal => vec!["WITHDRAW"],
-            Self::TakeOrder => vec!["TAKE_INPUT", "TAKE_OUTPUT"],
-            Self::Clear => vec![
-                "CLEAR_ALICE_INPUT",
-                "CLEAR_ALICE_OUTPUT",
-                "CLEAR_BOB_INPUT",
-                "CLEAR_BOB_OUTPUT",
-            ],
-            Self::ClearBounty => vec!["CLEAR_ALICE_BOUNTY", "CLEAR_BOB_BOUNTY"],
+            Self::Deposit => VaultBalanceChangeKind::Deposit,
+            Self::Withdrawal => VaultBalanceChangeKind::Withdrawal,
+            Self::TakeOrder => VaultBalanceChangeKind::TakeOrder,
+            Self::Clear => VaultBalanceChangeKind::Clear,
+            Self::ClearBounty => VaultBalanceChangeKind::ClearBounty,
         }
+    }
+
+    pub fn to_local_db_types(&self) -> &'static [&'static str] {
+        self.to_kind().to_local_db_change_types()
     }
 
     pub fn to_raindex_type(&self) -> RaindexVaultBalanceChangeType {
@@ -866,11 +873,11 @@ impl RaindexVaultBalanceChange {
         let formatted_new_balance = new_balance.format()?;
         let formatted_old_balance = old_balance.format()?;
 
-        let change_type = match balance_change.trade.trade_event.__typename.as_str() {
-            "TakeOrder" => RaindexVaultBalanceChangeType::TakeOrder,
-            "Clear" => RaindexVaultBalanceChangeType::Clear,
-            _ => RaindexVaultBalanceChangeType::Unknown,
-        };
+        let change_type: RaindexVaultBalanceChangeType =
+            VaultBalanceChangeKind::from_subgraph_typename(
+                &balance_change.trade.trade_event.__typename,
+            )
+            .into();
 
         Ok(Self {
             r#type: change_type,
@@ -1042,11 +1049,8 @@ impl RaindexVaultBalanceChange {
             decimals,
         };
 
-        let change_type = match balance.trade_kind.as_str() {
-            "take" => RaindexVaultBalanceChangeType::TakeOrder,
-            "clear" => RaindexVaultBalanceChangeType::Clear,
-            _ => RaindexVaultBalanceChangeType::Unknown,
-        };
+        let change_type: RaindexVaultBalanceChangeType =
+            VaultBalanceChangeKind::from_local_db_trade_kind(&balance.trade_kind).into();
 
         Ok(Self {
             r#type: change_type,

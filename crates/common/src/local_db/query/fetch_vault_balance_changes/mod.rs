@@ -2,7 +2,7 @@ use crate::local_db::{
     query::{SqlBuildError, SqlStatement, SqlValue},
     OrderbookIdentifier,
 };
-use crate::raindex_client::vaults::VaultBalanceChangeFilter;
+use crate::types::VaultBalanceChangeKind;
 use alloy::primitives::{Address, B256, U256};
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +30,7 @@ pub fn build_fetch_balance_changes_stmt(
     vault_id: U256,
     token: Address,
     owner: Address,
-    filter_types: Option<&[VaultBalanceChangeFilter]>,
+    filter_kinds: Option<&[VaultBalanceChangeKind]>,
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
 
@@ -40,12 +40,11 @@ pub fn build_fetch_balance_changes_stmt(
     stmt.push(SqlValue::from(token));
     stmt.push(SqlValue::from(owner));
 
-    let change_type_strings: Vec<String> = filter_types
-        .map(|filters| {
-            filters
+    let change_type_strings: Vec<&'static str> = filter_kinds
+        .map(|kinds| {
+            kinds
                 .iter()
-                .flat_map(|f| f.to_local_db_types())
-                .map(String::from)
+                .flat_map(|k| k.to_local_db_change_types().iter().copied())
                 .collect()
         })
         .unwrap_or_default();
@@ -88,7 +87,7 @@ mod tests {
             U256::from(1),
             Address::ZERO,
             Address::ZERO,
-            Some(&[VaultBalanceChangeFilter::Deposit]),
+            Some(&[VaultBalanceChangeKind::Deposit]),
         )
         .unwrap();
         assert!(stmt.sql.contains("params AS"));
@@ -104,7 +103,7 @@ mod tests {
             U256::from(1),
             Address::ZERO,
             Address::ZERO,
-            Some(&[VaultBalanceChangeFilter::TakeOrder]),
+            Some(&[VaultBalanceChangeKind::TakeOrder]),
         )
         .unwrap();
         assert!(stmt.sql.contains("params AS"));
@@ -119,7 +118,7 @@ mod tests {
             U256::from(1),
             Address::ZERO,
             Address::ZERO,
-            Some(&[VaultBalanceChangeFilter::Clear]),
+            Some(&[VaultBalanceChangeKind::Clear]),
         )
         .unwrap();
         assert!(stmt.sql.contains("params AS"));
@@ -135,8 +134,8 @@ mod tests {
             Address::ZERO,
             Address::ZERO,
             Some(&[
-                VaultBalanceChangeFilter::Deposit,
-                VaultBalanceChangeFilter::Withdrawal,
+                VaultBalanceChangeKind::Deposit,
+                VaultBalanceChangeKind::Withdrawal,
             ]),
         )
         .unwrap();

@@ -4,6 +4,7 @@ use crate::local_db::query::fetch_vault_balance_changes::{
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::vaults::VaultBalanceChangeFilter;
+use crate::types::VaultBalanceChangeKind;
 use alloy::primitives::{Address, U256};
 
 pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
@@ -14,7 +15,10 @@ pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
     owner: Address,
     filter_types: Option<&[VaultBalanceChangeFilter]>,
 ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
-    let stmt = build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner, filter_types)?;
+    let filter_kinds: Option<Vec<VaultBalanceChangeKind>> =
+        filter_types.map(|filters| filters.iter().map(|f| f.to_kind()).collect());
+    let stmt =
+        build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner, filter_kinds.as_deref())?;
     exec.query_json(&stmt).await
 }
 

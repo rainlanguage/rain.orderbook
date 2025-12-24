@@ -43,7 +43,7 @@
 	}
 </script>
 
-<div class="flex-col items-center gap-2">
+<div class="flex flex-col items-center gap-2">
 	<Label>{label}</Label>
 	<Button
 		color="alternative"

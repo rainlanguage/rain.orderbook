@@ -4,8 +4,7 @@
 	import {
 		RaindexVault,
 		type RaindexVaultBalanceChange,
-		type VaultBalanceChangeFilter,
-		type RaindexVaultBalanceChangeType
+		type VaultBalanceChangeFilter
 	} from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
@@ -13,19 +12,11 @@
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import VaultBalanceChangeTypeFilter from '../VaultBalanceChangeTypeFilter.svelte';
+	import { labelForVaultBalanceChangeType } from '../../utils/vaultBalanceChangeLabels';
 
 	export let vault: RaindexVault;
 
 	let filterTypes: VaultBalanceChangeFilter[] | undefined = undefined;
-
-	const typeLabels: Record<RaindexVaultBalanceChangeType, string> = {
-		deposit: 'Deposit',
-		withdrawal: 'Withdrawal',
-		takeOrder: 'Take order',
-		clear: 'Clear',
-		clearBounty: 'Clear Bounty',
-		unknown: 'Unknown'
-	};
 
 	$: balanceChangesQuery = createInfiniteQuery({
 		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id, filterTypes],
@@ -85,7 +76,7 @@
 			{`${item.formattedNewBalance} ${item.token.symbol}`}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
-			{typeLabels[item.type] ?? item.type}
+			{labelForVaultBalanceChangeType(item.type)}
 		</TableBodyCell>
 	</svelte:fragment>
 </AppTable>

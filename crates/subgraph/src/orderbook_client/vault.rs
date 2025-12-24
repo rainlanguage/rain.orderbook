@@ -89,7 +89,7 @@ impl OrderbookSubgraphClient {
         &self,
         id: cynic::Id,
         pagination_args: SgPaginationArgs,
-        filter_typenames: Option<&[String]>,
+        filter_typenames: Option<&[&str]>,
     ) -> Result<Vec<SgVaultBalanceChangeType>, OrderbookSubgraphClientError> {
         let pagination_vars = Self::parse_pagination_args(pagination_args);
         let res = self
@@ -109,7 +109,7 @@ impl OrderbookSubgraphClient {
             if !typenames.is_empty() {
                 return Ok(res
                     .into_iter()
-                    .filter(|item| typenames.contains(&item.typename().to_string()))
+                    .filter(|item| typenames.iter().any(|t| *t == item.typename()))
                     .collect());
             }
         }
@@ -121,7 +121,7 @@ impl OrderbookSubgraphClient {
     pub async fn vault_balance_changes_list_all(
         &self,
         id: cynic::Id,
-        filter_typenames: Option<&[String]>,
+        filter_typenames: Option<&[&str]>,
     ) -> Result<Vec<SgVaultBalanceChangeType>, OrderbookSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
@@ -711,9 +711,9 @@ mod tests {
                 .json_body(json!({"data": {"vaultBalanceChanges": []}}));
         });
 
-        let filter_typenames = vec!["Deposit".to_string()];
+        let filter_typenames: &[&str] = &["Deposit"];
         let result = client
-            .vault_balance_changes_list(vault_id.clone(), pagination_args, Some(&filter_typenames))
+            .vault_balance_changes_list(vault_id.clone(), pagination_args, Some(filter_typenames))
             .await;
         assert!(result.is_ok(), "Result was: {:?}", result.err());
         let changes = result.unwrap();

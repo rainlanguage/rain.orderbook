@@ -1,16 +1,11 @@
 <script lang="ts">
 	import { type VaultBalanceChangeFilter } from '@rainlanguage/orderbook';
 	import DropdownCheckbox from './dropdown/DropdownCheckbox.svelte';
+	import { VAULT_BALANCE_CHANGE_FILTER_LABELS } from '../utils/vaultBalanceChangeLabels';
 
 	export let value: VaultBalanceChangeFilter[] | undefined = undefined;
 
-	const filterOptions: Record<VaultBalanceChangeFilter, string> = {
-		deposit: 'Deposit',
-		withdrawal: 'Withdrawal',
-		takeOrder: 'Take order',
-		clear: 'Clear',
-		clearBounty: 'Clear Bounty'
-	};
+	const filterOptions = VAULT_BALANCE_CHANGE_FILTER_LABELS;
 
 	let typeFilter: Partial<Record<VaultBalanceChangeFilter, string>> = {};
 

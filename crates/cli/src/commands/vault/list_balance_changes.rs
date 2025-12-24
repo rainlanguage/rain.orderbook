@@ -166,11 +166,11 @@ mod tests {
         assert!(cli_vault_balance_changes_list_args.execute().await.is_err());
     }
 
-    // helper function that returns mocked sg response in json
     fn get_sg_response() -> Value {
         json!({
             "data": {
                 "vaultBalanceChanges": [{
+                    "id": encode_prefixed(B256::random()),
                     "__typename": "Deposit",
                     "amount": F0,
                     "newVaultBalance": F0,
