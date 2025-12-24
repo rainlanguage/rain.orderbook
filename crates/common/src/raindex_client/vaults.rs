@@ -354,12 +354,10 @@ impl RaindexVault {
                 )
                 .await?;
 
-                if !local_changes.is_empty() {
-                    return local_changes
-                        .into_iter()
-                        .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
-                        .collect::<Result<Vec<_>, _>>();
-                }
+                return local_changes
+                    .into_iter()
+                    .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
+                    .collect::<Result<Vec<_>, _>>();
             }
         }
 
