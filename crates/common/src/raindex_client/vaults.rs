@@ -29,7 +29,8 @@ use rain_orderbook_subgraph_client::{
     types::{
         common::{
             SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
-            SgVault, SgVaultBalanceChangeUnwrapped, SgVaultsListFilterArgs,
+            SgVault, SgVaultBalanceChangeType, SgVaultBalanceChangeUnwrapped,
+            SgVaultsListFilterArgs,
         },
         Id,
     },
@@ -337,7 +338,7 @@ impl RaindexVault {
         &self,
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
         #[wasm_export(
-            param_description = "Optional filter types array (deposit, withdrawal, trade, clearBounty)"
+            param_description = "Optional filter types array (deposit, withdrawal, takeOrder, clear, clearBounty)"
         )]
         filter_types: Option<Vec<VaultBalanceChangeFilter>>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
@@ -362,31 +363,37 @@ impl RaindexVault {
             }
         }
 
-        let subgraph_typenames: Option<Vec<String>> = filter_types.as_ref().map(|filters| {
-            filters
-                .iter()
-                .map(|f| f.to_subgraph_typename().to_string())
-                .collect()
-        });
-
         let client = self.get_orderbook_client()?;
         let balance_changes = client
-            .vault_balance_changes_list(
+            .vault_balance_changes_list_with_trade(
                 Id::new(self.id.to_string()),
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
                     page_size: 1000,
                 },
-                subgraph_typenames.as_deref(),
             )
             .await?;
 
         let balance_changes = balance_changes
             .into_iter()
             .map(|balance_change| {
-                RaindexVaultBalanceChange::try_from_sg_balance_change(self.chain_id, balance_change)
+                RaindexVaultBalanceChange::try_from_sg_balance_change_type(
+                    self.chain_id,
+                    balance_change,
+                )
             })
             .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
+
+        let balance_changes = if let Some(ref filters) = filter_types {
+            let filter_types: Vec<_> = filters.iter().map(|f| f.to_raindex_type()).collect();
+            balance_changes
+                .into_iter()
+                .filter(|change| filter_types.contains(&change.r#type))
+                .collect()
+        } else {
+            balance_changes
+        };
+
         Ok(balance_changes)
     }
 
@@ -617,7 +624,8 @@ impl RaindexVault {
 pub enum RaindexVaultBalanceChangeType {
     Deposit,
     Withdrawal,
-    TradeVaultBalanceChange,
+    TakeOrder,
+    Clear,
     ClearBounty,
     Unknown,
 }
@@ -630,13 +638,10 @@ impl TryFrom<String> for RaindexVaultBalanceChangeType {
             "Withdrawal" | "WITHDRAWAL" | "WITHDRAW" => {
                 Ok(RaindexVaultBalanceChangeType::Withdrawal)
             }
-            "TradeVaultBalanceChange"
-            | "TAKE_INPUT"
-            | "TAKE_OUTPUT"
-            | "CLEAR_ALICE_INPUT"
-            | "CLEAR_ALICE_OUTPUT"
-            | "CLEAR_BOB_INPUT"
-            | "CLEAR_BOB_OUTPUT" => Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange),
+            "TAKE_INPUT" | "TAKE_OUTPUT" => Ok(RaindexVaultBalanceChangeType::TakeOrder),
+            "CLEAR_ALICE_INPUT" | "CLEAR_ALICE_OUTPUT" | "CLEAR_BOB_INPUT" | "CLEAR_BOB_OUTPUT" => {
+                Ok(RaindexVaultBalanceChangeType::Clear)
+            }
             "ClearBounty" | "CLEAR_ALICE_BOUNTY" | "CLEAR_BOB_BOUNTY" => {
                 Ok(RaindexVaultBalanceChangeType::ClearBounty)
             }
@@ -652,7 +657,8 @@ impl RaindexVaultBalanceChangeType {}
 pub enum VaultBalanceChangeFilter {
     Deposit,
     Withdrawal,
-    Trade,
+    TakeOrder,
+    Clear,
     ClearBounty,
 }
 impl_wasm_traits!(VaultBalanceChangeFilter);
@@ -662,9 +668,8 @@ impl VaultBalanceChangeFilter {
         match self {
             Self::Deposit => vec!["DEPOSIT"],
             Self::Withdrawal => vec!["WITHDRAW"],
-            Self::Trade => vec![
-                "TAKE_INPUT",
-                "TAKE_OUTPUT",
+            Self::TakeOrder => vec!["TAKE_INPUT", "TAKE_OUTPUT"],
+            Self::Clear => vec![
                 "CLEAR_ALICE_INPUT",
                 "CLEAR_ALICE_OUTPUT",
                 "CLEAR_BOB_INPUT",
@@ -674,12 +679,13 @@ impl VaultBalanceChangeFilter {
         }
     }
 
-    pub fn to_subgraph_typename(&self) -> &'static str {
+    pub fn to_raindex_type(&self) -> RaindexVaultBalanceChangeType {
         match self {
-            Self::Deposit => "Deposit",
-            Self::Withdrawal => "Withdrawal",
-            Self::Trade => "TradeVaultBalanceChange",
-            Self::ClearBounty => "ClearBounty",
+            Self::Deposit => RaindexVaultBalanceChangeType::Deposit,
+            Self::Withdrawal => RaindexVaultBalanceChangeType::Withdrawal,
+            Self::TakeOrder => RaindexVaultBalanceChangeType::TakeOrder,
+            Self::Clear => RaindexVaultBalanceChangeType::Clear,
+            Self::ClearBounty => RaindexVaultBalanceChangeType::ClearBounty,
         }
     }
 }
@@ -807,6 +813,7 @@ pub(crate) struct LocalTradeTokenInfo {
 pub(crate) struct LocalTradeBalanceInfo {
     pub delta: String,
     pub running_balance: Option<String>,
+    pub trade_kind: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -860,8 +867,14 @@ impl RaindexVaultBalanceChange {
         let formatted_new_balance = new_balance.format()?;
         let formatted_old_balance = old_balance.format()?;
 
+        let change_type = match balance_change.trade.trade_event.__typename.as_str() {
+            "TakeOrder" => RaindexVaultBalanceChangeType::TakeOrder,
+            "Clear" => RaindexVaultBalanceChangeType::Clear,
+            _ => RaindexVaultBalanceChangeType::Unknown,
+        };
+
         Ok(Self {
-            r#type: balance_change.__typename.try_into()?,
+            r#type: change_type,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
             token,
             amount,
@@ -874,6 +887,85 @@ impl RaindexVaultBalanceChange {
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
         })
+    }
+}
+
+impl RaindexVaultBalanceChange {
+    pub fn try_from_sg_balance_change_type(
+        chain_id: u32,
+        balance_change: SgVaultBalanceChangeType,
+    ) -> Result<Self, RaindexError> {
+        match balance_change {
+            SgVaultBalanceChangeType::Deposit(deposit) => {
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, deposit.vault.token)?;
+                let amount = Float::from_hex(&deposit.amount.0)?;
+                let new_balance = Float::from_hex(&deposit.new_vault_balance.0)?;
+                let old_balance = Float::from_hex(&deposit.old_vault_balance.0)?;
+
+                Ok(Self {
+                    r#type: RaindexVaultBalanceChangeType::Deposit,
+                    vault_id: U256::from_str(&deposit.vault.vault_id.0)?,
+                    token,
+                    amount,
+                    formatted_amount: amount.format()?,
+                    new_balance,
+                    formatted_new_balance: new_balance.format()?,
+                    old_balance,
+                    formatted_old_balance: old_balance.format()?,
+                    timestamp: U256::from_str(&deposit.timestamp.0)?,
+                    transaction: RaindexTransaction::try_from(deposit.transaction)?,
+                    orderbook: Address::from_str(&deposit.orderbook.id.0)?,
+                })
+            }
+            SgVaultBalanceChangeType::Withdrawal(withdrawal) => {
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, withdrawal.vault.token)?;
+                let amount = Float::from_hex(&withdrawal.amount.0)?;
+                let new_balance = Float::from_hex(&withdrawal.new_vault_balance.0)?;
+                let old_balance = Float::from_hex(&withdrawal.old_vault_balance.0)?;
+
+                Ok(Self {
+                    r#type: RaindexVaultBalanceChangeType::Withdrawal,
+                    vault_id: U256::from_str(&withdrawal.vault.vault_id.0)?,
+                    token,
+                    amount,
+                    formatted_amount: amount.format()?,
+                    new_balance,
+                    formatted_new_balance: new_balance.format()?,
+                    old_balance,
+                    formatted_old_balance: old_balance.format()?,
+                    timestamp: U256::from_str(&withdrawal.timestamp.0)?,
+                    transaction: RaindexTransaction::try_from(withdrawal.transaction)?,
+                    orderbook: Address::from_str(&withdrawal.orderbook.id.0)?,
+                })
+            }
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(trade_change) => {
+                Self::try_from_sg_trade_balance_change(chain_id, trade_change)
+            }
+            SgVaultBalanceChangeType::ClearBounty(bounty) => {
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, bounty.vault.token)?;
+                let amount = Float::from_hex(&bounty.amount.0)?;
+                let new_balance = Float::from_hex(&bounty.new_vault_balance.0)?;
+                let old_balance = Float::from_hex(&bounty.old_vault_balance.0)?;
+
+                Ok(Self {
+                    r#type: RaindexVaultBalanceChangeType::ClearBounty,
+                    vault_id: U256::from_str(&bounty.vault.vault_id.0)?,
+                    token,
+                    amount,
+                    formatted_amount: amount.format()?,
+                    new_balance,
+                    formatted_new_balance: new_balance.format()?,
+                    old_balance,
+                    formatted_old_balance: old_balance.format()?,
+                    timestamp: U256::from_str(&bounty.timestamp.0)?,
+                    transaction: RaindexTransaction::try_from(bounty.transaction)?,
+                    orderbook: Address::from_str(&bounty.orderbook.id.0)?,
+                })
+            }
+            SgVaultBalanceChangeType::Unknown => Err(RaindexError::InvalidVaultBalanceChangeType(
+                "Unknown".to_string(),
+            )),
+        }
     }
 }
 
@@ -951,8 +1043,14 @@ impl RaindexVaultBalanceChange {
             decimals,
         };
 
+        let change_type = match balance.trade_kind.as_str() {
+            "take" => RaindexVaultBalanceChangeType::TakeOrder,
+            "clear" => RaindexVaultBalanceChangeType::Clear,
+            _ => RaindexVaultBalanceChangeType::Unknown,
+        };
+
         Ok(Self {
-            r#type: RaindexVaultBalanceChangeType::TradeVaultBalanceChange,
+            r#type: change_type,
             vault_id,
             token,
             amount,
@@ -2002,15 +2100,13 @@ mod tests {
                 LocalTradeBalanceInfo {
                     delta: amount_hex.clone(),
                     running_balance: Some(new_balance_hex.clone()),
+                    trade_kind: "take".to_string(),
                 },
                 789,
             )
             .unwrap();
 
-            assert_eq!(
-                change.r#type(),
-                RaindexVaultBalanceChangeType::TradeVaultBalanceChange
-            );
+            assert_eq!(change.r#type(), RaindexVaultBalanceChangeType::TakeOrder);
             assert_eq!(change.vault_id(), U256::from_str("0x10").unwrap());
             assert!(change.amount().eq(amount).unwrap());
             assert!(change.new_balance().eq(new_balance).unwrap());
@@ -2072,10 +2168,13 @@ mod tests {
                 LocalTradeBalanceInfo {
                     delta: amount_hex.clone(),
                     running_balance: None,
+                    trade_kind: "clear".to_string(),
                 },
                 333,
             )
             .unwrap();
+
+            assert_eq!(change.r#type(), RaindexVaultBalanceChangeType::Clear);
 
             assert!(change.amount().eq(amount).unwrap());
             assert!(change.new_balance().eq(amount).unwrap());
@@ -2387,13 +2486,21 @@ mod tests {
         async fn test_get_vault_balance_changes() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("SgVaultDetailQuery");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
                 when.path("/sg1")
-                .body_contains("\"first\":200")
-                .body_contains("\"skip\":0");
+                    .body_contains("SgVaultBalanceChangesListWithTradeQuery");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
                             {
+                                "id": "0xdeposit001",
                                 "__typename": "Deposit",
                                 "amount": F5,
                                 "newVaultBalance": F5,
@@ -2421,22 +2528,6 @@ mod tests {
                                 }
                             }
                         ]
-                    }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1")
-                    .body_contains("\"first\":200")
-                    .body_contains("\"skip\":200");
-                then.status(200).json_body_obj(&json!({
-                    "data": { "vaultBalanceChanges": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "vault": get_vault1_json()
                     }
                 }));
             });
@@ -2562,13 +2653,21 @@ mod tests {
         async fn test_formatted_balance_change_with_negative_amount() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("SgVaultDetailQuery");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
                 when.path("/sg1")
-                .body_contains("\"first\":200")
-                .body_contains("\"skip\":0");
+                    .body_contains("SgVaultBalanceChangesListWithTradeQuery");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
                             {
+                                "id": "0xwithdrawal001",
                                 "__typename": "Withdrawal",
                                 "amount": NEG2,
                                 "newVaultBalance": F3,
@@ -2596,22 +2695,6 @@ mod tests {
                                 }
                             }
                         ]
-                    }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1")
-                    .body_contains("\"first\":200")
-                    .body_contains("\"skip\":200");
-                then.status(200).json_body_obj(&json!({
-                    "data": { "vaultBalanceChanges": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "vault": get_vault1_json()
                     }
                 }));
             });
@@ -2655,13 +2738,21 @@ mod tests {
         async fn test_missing_decimals_formatted_balance() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("SgVaultDetailQuery");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
                 when.path("/sg1")
-                .body_contains("\"first\":200")
-                .body_contains("\"skip\":0");
+                    .body_contains("SgVaultBalanceChangesListWithTradeQuery");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
                             {
+                                "id": "0xwithdrawal002",
                                 "__typename": "Withdrawal",
                                 "amount": "-25354",
                                 "newVaultBalance": "3378982",
@@ -2674,7 +2765,7 @@ mod tests {
                                         "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                         "name": "Wrapped Ether",
                                         "symbol": "WETH",
-                                        "decimals": null // Missing decimals
+                                        "decimals": null
                                     }
                                 },
                                 "timestamp": "1734054063",
@@ -2689,22 +2780,6 @@ mod tests {
                                 }
                             }
                         ]
-                    }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1")
-                    .body_contains("\"first\":200")
-                    .body_contains("\"skip\":200");
-                then.status(200).json_body_obj(&json!({
-                    "data": { "vaultBalanceChanges": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1").body_contains("SgVaultDetailQuery");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "vault": get_vault1_json()
                     }
                 }));
             });
