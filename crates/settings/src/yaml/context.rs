@@ -318,6 +318,7 @@ mod tests {
             decimals: Some(18),
             label: Some("Test Token".to_string()),
             symbol: Some("TST".to_string()),
+            logo_uri: None,
         };
 
         Arc::new(OrderCfg {

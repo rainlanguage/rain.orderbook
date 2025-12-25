@@ -56,5 +56,6 @@ pub fn mock_token(name: &str) -> Arc<TokenCfg> {
         symbol: Some("TKN".into()),
         decimals: Some(18),
         network: mock_network(),
+        logo_uri: None,
     })
 }

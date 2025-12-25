@@ -8,6 +8,7 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
+use url::Url;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +26,8 @@ pub struct Token {
     pub name: String,
     pub symbol: String,
     pub decimals: u64,
+    #[serde(default, rename = "logoURI")]
+    pub logo_uri: Option<Url>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -64,6 +67,7 @@ impl Token {
                     decimals: Some(self.decimals as u8),
                     label: Some(self.name.clone()),
                     symbol: Some(self.symbol),
+                    logo_uri: self.logo_uri,
                 };
                 Ok(Some(token_cfg))
             }

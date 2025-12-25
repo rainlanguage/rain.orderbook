@@ -232,7 +232,8 @@ using-tokens-from:
             "address": "0x0000000000000000000000000000000000000001",
             "name": "Token1",
             "symbol": "T1",
-            "decimals": 18
+            "decimals": 18,
+            "logoURI": "https://example.com/token1-logo.png"
         },
         {
             "chainId": 234,
@@ -295,6 +296,10 @@ using-tokens-from:
         );
         assert_eq!(token.network.key, "remote-network");
         assert_eq!(token.network.chain_id, 123);
+        assert_eq!(
+            token.logo_uri,
+            Some(Url::parse("https://example.com/token1-logo.png").unwrap())
+        );
 
         let token2_key = "remote2-network-Token2-0x0000000000000000000000000000000000000002";
         let token = tokens.get(token2_key).unwrap();
@@ -305,6 +310,7 @@ using-tokens-from:
         );
         assert_eq!(token.network.key, "remote2-network");
         assert_eq!(token.network.chain_id, 234);
+        assert_eq!(token.logo_uri, None);
     }
 
     #[tokio::test]
@@ -342,14 +348,16 @@ using-tokens-from:
             "address": "0x0000000000000000000000000000000000000001",
             "name": "Token1",
             "symbol": "T1",
-            "decimals": 18
+            "decimals": 18,
+            "logoURI": "https://example.com/t1.png"
         },
         {
             "chainId": 234,
             "address": "0x0000000000000000000000000000000000000002",
             "name": "Token2",
             "symbol": "T2",
-            "decimals": 18
+            "decimals": 18,
+            "logoURI": "https://example.com/t2.png"
         }
     ],
     "logoURI": "http://localhost.com"
@@ -372,7 +380,8 @@ using-tokens-from:
             "address": "0x0000000000000000000000000000000000000003",
             "name": "Token3",
             "symbol": "T3",
-            "decimals": 18
+            "decimals": 18,
+            "logoURI": "https://example.com/t3.png"
         },
         {
             "chainId": 456,
@@ -470,6 +479,10 @@ using-tokens-from:
         );
         assert_eq!(token.network.key, "remote3-network");
         assert_eq!(token.network.chain_id, 345);
+        assert_eq!(
+            token.logo_uri,
+            Some(Url::parse("https://example.com/t3.png").unwrap())
+        );
 
         let token4_key = "remote4-network-Token4-0x0000000000000000000000000000000000000004";
         let token = tokens.get(token4_key).unwrap();
@@ -480,5 +493,6 @@ using-tokens-from:
         );
         assert_eq!(token.network.key, "remote4-network");
         assert_eq!(token.network.chain_id, 456);
+        assert_eq!(token.logo_uri, None);
     }
 }
