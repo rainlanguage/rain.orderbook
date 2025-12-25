@@ -128,12 +128,13 @@ mod wasm_tests {
             VaultBalanceChangeFilter::Deposit,
             VaultBalanceChangeFilter::Withdrawal,
         ];
+        let filter_kinds: Vec<_> = filter_types.iter().map(|f| f.to_kind()).collect();
         let expected_stmt = build_fetch_balance_changes_stmt(
             &OrderbookIdentifier::new(1, orderbook),
             vault_id,
             token,
             owner,
-            Some(&filter_types),
+            Some(&filter_kinds),
         )
         .unwrap();
 
