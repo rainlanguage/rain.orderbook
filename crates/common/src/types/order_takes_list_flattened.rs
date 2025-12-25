@@ -110,6 +110,11 @@ mod tests {
                 orderbook: SgOrderbook {
                     id: SgBytes("orderbookVBCIn001".to_string()),
                 },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TakeOrder".to_string(),
+                    },
+                },
             },
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("outputVBC001".to_string()),
@@ -137,6 +142,11 @@ mod tests {
                 },
                 orderbook: SgOrderbook {
                     id: SgBytes("orderbookVBCOut001".to_string()),
+                },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TakeOrder".to_string(),
+                    },
                 },
             },
             orderbook: SgOrderbook {

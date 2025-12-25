@@ -123,6 +123,11 @@ mod tests {
                         "orderbook": {
                             "id": encode_prefixed(B256::random()),
                         },
+                        "trade": {
+                            "tradeEvent": {
+                                "__typename": "TakeOrder"
+                            }
+                        },
                     },
                     "inputVaultBalanceChange": {
                         "id": encode_prefixed(B256::random()),
@@ -150,6 +155,11 @@ mod tests {
                         },
                         "orderbook": {
                             "id": encode_prefixed(B256::random()),
+                        },
+                        "trade": {
+                            "tradeEvent": {
+                                "__typename": "TakeOrder"
+                            }
                         },
                     },
                     "timestamp": "0",

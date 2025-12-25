@@ -22,4 +22,6 @@ pub enum FlattenError {
     MissingAddEvent,
     #[error("Float error: {0}")]
     FloatError(#[from] rain_math_float::FloatError),
+    #[error("Missing field: {0}")]
+    MissingField(String),
 }

@@ -345,6 +345,7 @@ impl RaindexTrade {
             LocalTradeBalanceInfo {
                 delta: trade.input_delta.clone(),
                 running_balance: trade.input_running_balance.clone(),
+                trade_kind: trade.trade_kind.clone(),
             },
             trade.block_timestamp,
         )?;
@@ -363,6 +364,7 @@ impl RaindexTrade {
             LocalTradeBalanceInfo {
                 delta: trade.output_delta.clone(),
                 running_balance: trade.output_running_balance.clone(),
+                trade_kind: trade.trade_kind.clone(),
             },
             trade.block_timestamp,
         )?;
@@ -951,6 +953,11 @@ mod test_helpers {
                 },
                 "orderbook": {
                   "id": "0x1234567890abcdef1234567890abcdef12345678"
+                },
+                "trade": {
+                  "tradeEvent": {
+                    "__typename": "TakeOrder"
+                  }
                 }
               },
               "order": {
@@ -983,6 +990,11 @@ mod test_helpers {
                 },
                 "orderbook": {
                   "id": "0x1234567890abcdef1234567890abcdef12345678"
+                },
+                "trade": {
+                  "tradeEvent": {
+                    "__typename": "TakeOrder"
+                  }
                 }
               },
               "timestamp": "0",
@@ -1031,6 +1043,11 @@ mod test_helpers {
                   },
                   "orderbook": {
                     "id": "0x1234567890abcdef1234567890abcdef12345679"
+                  },
+                  "trade": {
+                    "tradeEvent": {
+                      "__typename": "TakeOrder"
+                    }
                   }
                 },
                 "order": {
@@ -1063,6 +1080,11 @@ mod test_helpers {
                   },
                   "orderbook": {
                     "id": "0x1234567890abcdef1234567890abcdef12345679"
+                  },
+                  "trade": {
+                    "tradeEvent": {
+                      "__typename": "TakeOrder"
+                    }
                   }
                 },
                 "timestamp": "1700086400",

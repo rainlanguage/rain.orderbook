@@ -24,4 +24,5 @@ JOIN params p
  AND p.vault_id = vbc.vault_id
  AND p.token = vbc.token
  AND p.owner = vbc.owner
+/*CHANGE_TYPES_CLAUSE*/
 ORDER BY vbc.block_timestamp DESC, vbc.block_number DESC, vbc.log_index DESC;

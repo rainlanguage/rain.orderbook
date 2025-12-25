@@ -188,6 +188,11 @@ mod tests {
             orderbook: SgOrderbook {
                 id: SgBytes("".to_string()),
             },
+            trade: SgTradeRef {
+                trade_event: SgTradeEventTypename {
+                    __typename: "TakeOrder".to_string(),
+                },
+            },
         };
 
         let output_trade_vault_balance_change = SgTradeVaultBalanceChange {
@@ -210,6 +215,11 @@ mod tests {
             },
             orderbook: SgOrderbook {
                 id: SgBytes("".to_string()),
+            },
+            trade: SgTradeRef {
+                trade_event: SgTradeEventTypename {
+                    __typename: "TakeOrder".to_string(),
+                },
             },
         };
 

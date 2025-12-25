@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/batch_order_test.rs
+assertion_line: 16
 expression: request_body.query
 ---
 query SgBatchOrderDetailQuery($id_list: Order_filter!) {
@@ -89,6 +90,11 @@ query SgBatchOrderDetailQuery($id_list: Order_filter!) {
           }
           orderbook {
             id
+          }
+          trade {
+            tradeEvent {
+              __typename
+            }
           }
         }
         ... on Deposit {
@@ -231,6 +237,11 @@ query SgBatchOrderDetailQuery($id_list: Order_filter!) {
           }
           orderbook {
             id
+          }
+          trade {
+            tradeEvent {
+              __typename
+            }
           }
         }
         ... on Deposit {

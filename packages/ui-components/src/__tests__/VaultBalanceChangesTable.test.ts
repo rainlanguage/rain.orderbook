@@ -5,6 +5,7 @@ import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
 import type { RaindexVault, RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
 import { formatTimestampSecondsAsLocal } from '../lib/services/time';
+import { VAULT_BALANCE_CHANGE_LABELS } from '../lib/utils/vaultBalanceChangeLabels';
 
 test('renders the vault list table with correct data', async () => {
 	const queryClient = new QueryClient();
@@ -104,6 +105,43 @@ test('it shows the correct data in the table', async () => {
 			'0.1 TKN1'
 		);
 		expect(screen.getByTestId('vaultBalanceChangesTableBalance')).toHaveTextContent('0.4 TKN1');
-		expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent('withdrawal');
+		expect(screen.getByTestId('vaultBalanceChangesTableType')).toHaveTextContent(
+			VAULT_BALANCE_CHANGE_LABELS.withdrawal
+		);
+	});
+});
+
+test('renders the filter dropdown', async () => {
+	const queryClient = new QueryClient();
+	const mockVault: RaindexVault = {
+		id: 'vault1',
+		getBalanceChanges: vi.fn().mockResolvedValue({ value: [] })
+	} as unknown as RaindexVault;
+
+	render(VaultBalanceChangesTable, {
+		props: { vault: mockVault },
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	expect(screen.getByText('Vault balance changes')).toBeInTheDocument();
+	expect(screen.getByText('Change Type')).toBeInTheDocument();
+	expect(screen.getByTestId('dropdown-checkbox-button')).toBeInTheDocument();
+});
+
+test('calls getBalanceChanges with undefined initially', async () => {
+	const queryClient = new QueryClient();
+	const mockGetBalanceChanges = vi.fn().mockResolvedValue({ value: [] });
+	const mockVault: RaindexVault = {
+		id: 'vault1',
+		getBalanceChanges: mockGetBalanceChanges
+	} as unknown as RaindexVault;
+
+	render(VaultBalanceChangesTable, {
+		props: { vault: mockVault },
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	await waitFor(() => {
+		expect(mockGetBalanceChanges).toHaveBeenCalledWith(1, undefined);
 	});
 });

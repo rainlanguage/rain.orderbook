@@ -1,33 +1,128 @@
 ---
 source: crates/subgraph/tests/vault_balance_changes_test.rs
+assertion_line: 17
 expression: request_body.query
 ---
 query SgVaultBalanceChangesListQuery($first: Int, $id: Bytes!, $skip: Int) {
   vaultBalanceChanges(orderDirection: desc, orderBy: timestamp, where: {vault_: {id: $id}}, skip: $skip, first: $first) {
     __typename
-    amount
-    newVaultBalance
-    oldVaultBalance
-    vault {
+    ... on Withdrawal {
       id
-      vaultId
-      token {
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
+      vault {
         id
-        address
-        name
-        symbol
-        decimals
+        vaultId
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
       }
     }
-    timestamp
-    transaction {
+    ... on TradeVaultBalanceChange {
       id
-      from
-      blockNumber
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
+      vault {
+        id
+        vaultId
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
       timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
+      }
+      trade {
+        tradeEvent {
+          __typename
+        }
+      }
     }
-    orderbook {
+    ... on Deposit {
       id
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
+      vault {
+        id
+        vaultId
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
+      }
+    }
+    ... on ClearBounty {
+      id
+      __typename
+      amount
+      newVaultBalance
+      oldVaultBalance
+      vault {
+        id
+        vaultId
+        token {
+          id
+          address
+          name
+          symbol
+          decimals
+        }
+      }
+      timestamp
+      transaction {
+        id
+        from
+        blockNumber
+        timestamp
+      }
+      orderbook {
+        id
+      }
+      sender
     }
   }
 }

@@ -50,6 +50,7 @@ export { default as DeploymentSteps } from './components/deployment/DeploymentSt
 export { default as TokenIOInput } from './components/deployment/TokenIOInput.svelte';
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
 export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
+export { default as VaultBalanceChangeTypeFilter } from './components/VaultBalanceChangeTypeFilter.svelte';
 export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';

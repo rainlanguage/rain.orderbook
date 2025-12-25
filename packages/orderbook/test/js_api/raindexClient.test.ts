@@ -411,7 +411,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				order: {
 					id: order1.id,
@@ -441,7 +442,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
@@ -494,7 +496,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
-				}
+				},
+				trade: { tradeEvent: { __typename: 'TakeOrder' } }
 			},
 			inputVaultBalanceChange: {
 				id: '0x0234',
@@ -522,7 +525,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
-				}
+				},
+				trade: { tradeEvent: { __typename: 'TakeOrder' } }
 			}
 		} as unknown as SgTrade;
 
@@ -1569,6 +1573,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		it('should fetch vault balance changes', async () => {
 			const mockVaultBalanceChanges = [
 				{
+					id: '0xdepositid0001',
 					__typename: 'Deposit',
 					amount: '0x0000000000000000000000000000000000000000000000000000000000000005',
 					newVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000005',

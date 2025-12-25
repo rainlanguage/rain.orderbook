@@ -27,5 +27,5 @@ pub struct SgVaultDetailQuery {
 #[serde(rename_all = "camelCase")]
 pub struct SgVaultBalanceChangesListQuery {
     #[arguments(orderDirection: "desc", orderBy: "timestamp", where: { vault_: { id: $id } }, skip: $skip, first: $first)]
-    pub vault_balance_changes: Vec<SgVaultBalanceChangeUnwrapped>,
+    pub vault_balance_changes: Vec<SgVaultBalanceChangeType>,
 }

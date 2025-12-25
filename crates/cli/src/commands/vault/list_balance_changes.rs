@@ -31,7 +31,7 @@ impl Execute for CliVaultBalanceChangesList {
         if self.pagination_args.csv {
             let csv_text = subgraph_args
                 .to_subgraph_client()?
-                .vault_balance_changes_list_all(self.vault_id.clone().into())
+                .vault_balance_changes_list_all(self.vault_id.clone().into(), None)
                 .await?
                 .into_iter()
                 .map(|o| o.try_into())
@@ -46,6 +46,7 @@ impl Execute for CliVaultBalanceChangesList {
                     .vault_balance_changes_list(
                         self.vault_id.clone().into(),
                         self.pagination_args.clone().into(),
+                        None,
                     )
                     .await?
                     .into_iter()
@@ -165,11 +166,11 @@ mod tests {
         assert!(cli_vault_balance_changes_list_args.execute().await.is_err());
     }
 
-    // helper function that returns mocked sg response in json
     fn get_sg_response() -> Value {
         json!({
             "data": {
                 "vaultBalanceChanges": [{
+                    "id": encode_prefixed(B256::random()),
                     "__typename": "Deposit",
                     "amount": F0,
                     "newVaultBalance": F0,
