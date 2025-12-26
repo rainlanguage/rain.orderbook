@@ -78,7 +78,7 @@ contract OrderBookV6WithdrawEvalTest is OrderBookV6ExternalRealTest {
                 vm.startPrank(owner);
 
                 if (depositAmountAbsolute > 0) {
-                    iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
+                    iOrderbook.deposit4(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
                 }
             }
 
@@ -112,7 +112,7 @@ contract OrderBookV6WithdrawEvalTest is OrderBookV6ExternalRealTest {
                 withdrawAmount18
             );
         }
-        iOrderbook.withdraw3(address(iToken0), vaultId, targetAmount, actions);
+        iOrderbook.withdraw4(address(iToken0), vaultId, targetAmount, actions);
         if (err.length == 0) {
             checkReentrancyRW(6, 3);
             (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
@@ -309,7 +309,7 @@ contract OrderBookV6WithdrawEvalTest is OrderBookV6ExternalRealTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount18),
             abi.encode(true)
         );
-        iOrderbook.deposit3(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), vaultId, depositAmount, new TaskV2[](0));
 
         vm.mockCall(
             address(iToken0),
@@ -324,7 +324,7 @@ contract OrderBookV6WithdrawEvalTest is OrderBookV6ExternalRealTest {
         assertTrue(depositAmount.eq(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId)));
 
         vm.expectRevert("revert in action");
-        iOrderbook.withdraw3(address(iToken0), vaultId, withdrawAmount, actions);
+        iOrderbook.withdraw4(address(iToken0), vaultId, withdrawAmount, actions);
 
         assertTrue(depositAmount.eq(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId)));
     }

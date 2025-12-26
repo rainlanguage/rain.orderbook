@@ -45,7 +45,7 @@ contract OrderBookV6TakeOrderBadStackTest is OrderBookV6ExternalRealTest {
         config.validOutputs[0].token = address(iToken1);
 
         vm.prank(alice);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
 
         vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));

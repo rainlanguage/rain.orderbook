@@ -245,7 +245,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     }
 
     /// @inheritdoc IOrderBookV6
-    function deposit3(address token, bytes32 vaultId, Float depositAmount, TaskV2[] calldata post)
+    function deposit4(address token, bytes32 vaultId, Float depositAmount, TaskV2[] calldata post)
         external
         nonReentrant
     {
@@ -279,7 +279,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     }
 
     /// @inheritdoc IOrderBookV6
-    function withdraw3(address token, bytes32 vaultId, Float targetAmount, TaskV2[] calldata post)
+    function withdraw4(address token, bytes32 vaultId, Float targetAmount, TaskV2[] calldata post)
         external
         nonReentrant
     {
@@ -362,7 +362,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     }
 
     /// @inheritdoc IOrderBookV6
-    function removeOrder4(OrderV4 calldata order, TaskV2[] calldata post)
+    function removeOrder3(OrderV4 calldata order, TaskV2[] calldata post)
         external
         nonReentrant
         returns (bool stateChanged)

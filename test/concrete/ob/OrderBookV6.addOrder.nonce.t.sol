@@ -18,12 +18,12 @@ contract OrderBookV6AddOrderNonceTest is OrderBookV6ExternalRealTest {
         OrderV4 memory order = OrderV4(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         vm.prank(owner);
-        bool stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        bool stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(stateChange);
         assert(iOrderbook.orderExists(order.hash()));
 
         vm.prank(owner);
-        stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(!stateChange);
         assert(iOrderbook.orderExists(order.hash()));
     }
@@ -35,7 +35,7 @@ contract OrderBookV6AddOrderNonceTest is OrderBookV6ExternalRealTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         vm.assume(config.nonce != otherNonce);
         vm.prank(owner);
-        bool stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        bool stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(
@@ -45,7 +45,7 @@ contract OrderBookV6AddOrderNonceTest is OrderBookV6ExternalRealTest {
 
         config.nonce = otherNonce;
         vm.prank(owner);
-        stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(
@@ -66,7 +66,7 @@ contract OrderBookV6AddOrderNonceTest is OrderBookV6ExternalRealTest {
         config1.nonce = config0.nonce;
         vm.assume(keccak256(abi.encode(config0)) != keccak256(abi.encode(config1)));
         vm.prank(owner);
-        bool stateChange = iOrderbook.addOrder3(config0, new TaskV2[](0));
+        bool stateChange = iOrderbook.addOrder4(config0, new TaskV2[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(
@@ -75,7 +75,7 @@ contract OrderBookV6AddOrderNonceTest is OrderBookV6ExternalRealTest {
         );
 
         vm.prank(owner);
-        stateChange = iOrderbook.addOrder3(config1, new TaskV2[](0));
+        stateChange = iOrderbook.addOrder4(config1, new TaskV2[](0));
         assert(stateChange);
         assert(
             iOrderbook.orderExists(

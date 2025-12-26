@@ -64,14 +64,14 @@ contract OrderBookV6QuoteTest is OrderBookV6ExternalRealTest {
             abi.encode(true)
         );
         vm.prank(owner);
-        iOrderbook.deposit3(
+        iOrderbook.deposit4(
             config.validOutputs[0].token, config.validOutputs[0].vaultId, depositAmount, new TaskV2[](0)
         );
 
         for (uint256 i = 0; i < rainlang.length; i++) {
             config.evaluable.bytecode = iParserV2.parse2(rainlang[i]);
             vm.prank(owner);
-            iOrderbook.addOrder3(config, new TaskV2[](0));
+            iOrderbook.addOrder4(config, new TaskV2[](0));
 
             OrderV4 memory order = OrderV4({
                 owner: owner,

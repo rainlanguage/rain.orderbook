@@ -19,12 +19,12 @@ contract OrderBookV6AddOrderOwnerTest is OrderBookV6ExternalRealTest {
         OrderV4 memory order = OrderV4(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         vm.prank(owner);
-        bool stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        bool stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(stateChange);
         assert(iOrderbook.orderExists(order.hash()));
 
         vm.prank(owner);
-        stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(!stateChange);
         assert(iOrderbook.orderExists(order.hash()));
     }
@@ -41,12 +41,12 @@ contract OrderBookV6AddOrderOwnerTest is OrderBookV6ExternalRealTest {
         OrderV4 memory orderBob = OrderV4(bob, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
 
         vm.prank(alice);
-        bool stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        bool stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(stateChange);
         assert(iOrderbook.orderExists(orderAlice.hash()));
 
         vm.prank(bob);
-        stateChange = iOrderbook.addOrder3(config, new TaskV2[](0));
+        stateChange = iOrderbook.addOrder4(config, new TaskV2[](0));
         assert(stateChange);
         assert(iOrderbook.orderExists(orderBob.hash()));
     }

@@ -85,7 +85,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
         checkFlashLoanNotRevert(
             borrower,
             abi.encodeWithSelector(
-                IOrderBookV6.deposit3.selector, address(iToken0), vaultId, depositAmount, new EvaluableV4[](0)
+                IOrderBookV6.deposit4.selector, address(iToken0), vaultId, depositAmount, new EvaluableV4[](0)
             ),
             loanAmount
         );
@@ -106,7 +106,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
         checkFlashLoanNotRevert(
             borrower,
             abi.encodeWithSelector(
-                IOrderBookV6.withdraw3.selector, address(iToken0), vaultId, withdrawAmount, new TaskV2[](0)
+                IOrderBookV6.withdraw4.selector, address(iToken0), vaultId, withdrawAmount, new TaskV2[](0)
             ),
             loanAmount
         );
@@ -121,7 +121,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         checkFlashLoanNotRevert(
-            borrower, abi.encodeWithSelector(IOrderBookV6.addOrder3.selector, config, new TaskV2[](0)), loanAmount
+            borrower, abi.encodeWithSelector(IOrderBookV6.addOrder4.selector, config, new TaskV2[](0)), loanAmount
         );
     }
 
@@ -145,7 +145,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
         config.evaluable.bytecode = iParserV2.parse2("_ _:max-positive-value() 1;:;");
 
         vm.recordLogs();
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
@@ -192,13 +192,13 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
 
         vm.recordLogs();
         vm.prank(alice);
-        iOrderbook.addOrder3(aliceConfig, new TaskV2[](0));
+        iOrderbook.addOrder4(aliceConfig, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, OrderV4 memory aliceOrder) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
         vm.recordLogs();
         vm.prank(bob);
-        iOrderbook.addOrder3(bobConfig, new TaskV2[](0));
+        iOrderbook.addOrder4(bobConfig, new TaskV2[](0));
         entries = vm.getRecordedLogs();
         (,, OrderV4 memory bobOrder) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
@@ -206,7 +206,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
 
         vm.mockCall(aliceOrder.validOutputs[0].token, bytes(""), abi.encode(true));
         vm.prank(aliceOrder.owner);
-        iOrderbook.deposit3(
+        iOrderbook.deposit4(
             aliceOrder.validOutputs[0].token,
             aliceOrder.validOutputs[0].vaultId,
             LibDecimalFloat.packLossless(type(int64).max, 0),
@@ -214,7 +214,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
         );
         vm.mockCall(bobOrder.validOutputs[0].token, bytes(""), abi.encode(true));
         vm.prank(bobOrder.owner);
-        iOrderbook.deposit3(
+        iOrderbook.deposit4(
             bobOrder.validOutputs[0].token,
             bobOrder.validOutputs[0].vaultId,
             LibDecimalFloat.packLossless(type(int64).max, 0),

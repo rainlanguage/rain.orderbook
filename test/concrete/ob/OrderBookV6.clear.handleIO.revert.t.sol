@@ -48,7 +48,7 @@ contract OrderBookV6ClearHandleIORevertTest is OrderBookV6ExternalRealTest {
         }
 
         vm.prank(owner);
-        iOrderbook.deposit3(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, 0), new TaskV2[](0));
+        iOrderbook.deposit4(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, 0), new TaskV2[](0));
         Float balance = iOrderbook.vaultBalance2(owner, outputToken, vaultId);
         assertTrue(balance.eq(LibDecimalFloat.packLossless(type(int224).max, 0)));
 
@@ -58,7 +58,7 @@ contract OrderBookV6ClearHandleIORevertTest is OrderBookV6ExternalRealTest {
 
         vm.prank(owner);
         vm.recordLogs();
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 1);
         (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));

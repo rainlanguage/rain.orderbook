@@ -26,7 +26,7 @@ contract OrderBookV6TakeOrderSameTokenTest is OrderBookV6ExternalRealTest {
             OrderV4(alice, configAlice.evaluable, configAlice.validInputs, configAlice.validOutputs, configAlice.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder3(configAlice, new TaskV2[](0));
+        iOrderbook.addOrder4(configAlice, new TaskV2[](0));
 
         TakeOrderConfigV4[] memory takeOrders = new TakeOrderConfigV4[](1);
         takeOrders[0] = TakeOrderConfigV4({

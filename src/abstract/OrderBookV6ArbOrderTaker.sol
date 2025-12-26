@@ -56,7 +56,7 @@ abstract contract OrderBookV6ArbOrderTaker is
     }
 
     /// @inheritdoc IOrderBookV6ArbOrderTaker
-    function arb4(IOrderBookV6 orderBook, TakeOrdersConfigV5 calldata takeOrders, TaskV2 calldata task)
+    function arb5(IOrderBookV6 orderBook, TakeOrdersConfigV5 calldata takeOrders, TaskV2 calldata task)
         external
         payable
         nonReentrant

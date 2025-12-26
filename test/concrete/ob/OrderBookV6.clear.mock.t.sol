@@ -54,7 +54,7 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount18),
             abi.encode(true)
         );
-        iOrderbook.deposit3(address(token), vaultId, amount, new TaskV2[](0));
+        iOrderbook.deposit4(address(token), vaultId, amount, new TaskV2[](0));
 
         Float balance = iOrderbook.vaultBalance2(depositor, token, vaultId);
 

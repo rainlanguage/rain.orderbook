@@ -50,7 +50,7 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        GenericPoolOrderBookV6ArbOrderTaker(iArb).arb4(
+        GenericPoolOrderBookV6ArbOrderTaker(iArb).arb5(
             iOrderBook,
             TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),

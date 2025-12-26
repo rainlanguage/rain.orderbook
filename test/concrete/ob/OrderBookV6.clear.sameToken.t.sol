@@ -37,10 +37,10 @@ contract OrderBookV6ClearSameTokenTest is OrderBookV6ExternalRealTest {
             OrderV4(bob, configBob.evaluable, configBob.validInputs, configBob.validOutputs, configBob.nonce);
 
         vm.prank(alice);
-        iOrderbook.addOrder3(configAlice, new TaskV2[](0));
+        iOrderbook.addOrder4(configAlice, new TaskV2[](0));
 
         vm.prank(bob);
-        iOrderbook.addOrder3(configBob, new TaskV2[](0));
+        iOrderbook.addOrder4(configBob, new TaskV2[](0));
 
         vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
         iOrderbook.clear3(

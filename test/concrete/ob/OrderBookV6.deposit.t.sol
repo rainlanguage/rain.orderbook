@@ -29,7 +29,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
 
         Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
 
-        iOrderbook.deposit3(address(iToken0), vaultId, amount, new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), vaultId, amount, new TaskV2[](0));
         assertTrue(iOrderbook.vaultBalance2(depositor, address(iToken0), vaultId).eq(amount));
     }
 
@@ -42,7 +42,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
                 IOrderBookV6.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
             )
         );
-        iOrderbook.deposit3(address(iToken0), vaultId, LibDecimalFloat.packLossless(0, 0), new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), vaultId, LibDecimalFloat.packLossless(0, 0), new TaskV2[](0));
     }
 
     /// Test a warm deposit, which is the best case scenario for gas. In this
@@ -56,14 +56,14 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
-        iOrderbook.deposit3(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit3(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
     }
 
     /// Test a cold deposit, which is the worst case scenario for gas. In this
@@ -78,7 +78,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit3(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
     }
 
     /// Any failure in the deposit should revert the entire transaction.
@@ -90,7 +90,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
         // The token contract always reverts when not mocked.
         vm.prank(depositor);
         vm.expectRevert(bytes("SafeERC20: low-level call failed"));
-        iOrderbook.deposit3(address(iToken0), vaultId, amount, new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), vaultId, amount, new TaskV2[](0));
 
         // Mocking the token to return false should also revert.
         vm.prank(depositor);
@@ -101,7 +101,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
         );
         // This error string appears when the call completes but returns false.
         vm.expectRevert(bytes("SafeERC20: ERC20 operation did not succeed"));
-        iOrderbook.deposit3(address(iToken0), vaultId, amount, new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), vaultId, amount, new TaskV2[](0));
     }
 
     /// Defines a deposit to be used in testDepositMany.
@@ -157,7 +157,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             emit DepositV2(actions[i].depositor, actions[i].token, actions[i].vaultId, actions[i].amount18);
             vm.record();
             vm.recordLogs();
-            iOrderbook.deposit3(actions[i].token, actions[i].vaultId, actions[i].amount, new TaskV2[](0));
+            iOrderbook.deposit4(actions[i].token, actions[i].vaultId, actions[i].amount, new TaskV2[](0));
             (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
             assertEq(vm.getRecordedLogs().length, 1, "logs");
             // - reentrancy guard x3
@@ -189,7 +189,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
         vm.expectEmit(false, false, false, true);
         emit DepositV2(depositor, address(iToken0), vaultId, amount18);
         Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
-        iOrderbook.deposit3(address(iToken0), vaultId, amount, new TaskV2[](0));
+        iOrderbook.deposit4(address(iToken0), vaultId, amount, new TaskV2[](0));
     }
 
     /// Depositing should NOT allow reentrancy.
@@ -213,9 +213,9 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             address(reenteroor), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18))
         );
         reenteroor.reenterWith(
-            abi.encodeWithSelector(IOrderBookV6.deposit3.selector, reToken, reVaultId, reAmount, new TaskV2[](0))
+            abi.encodeWithSelector(IOrderBookV6.deposit4.selector, reToken, reVaultId, reAmount, new TaskV2[](0))
         );
         vm.expectRevert(bytes("ReentrancyGuard: reentrant call"));
-        iOrderbook.deposit3(address(reenteroor), vaultId, amount, new TaskV2[](0));
+        iOrderbook.deposit4(address(reenteroor), vaultId, amount, new TaskV2[](0));
     }
 }

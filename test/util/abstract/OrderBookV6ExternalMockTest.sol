@@ -79,7 +79,7 @@ abstract contract OrderBookV6ExternalMockTest is Test, IMetaV1_2, IOrderBookV6St
         vm.record();
         vm.recordLogs();
         vm.prank(owner);
-        assertTrue(iOrderbook.addOrder3(config, new TaskV2[](0)));
+        assertTrue(iOrderbook.addOrder4(config, new TaskV2[](0)));
         // MetaV1 is NOT emitted if the meta is empty.
         assertEq(vm.getRecordedLogs().length, config.meta.length > 0 ? 2 : 1);
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
@@ -96,7 +96,7 @@ abstract contract OrderBookV6ExternalMockTest is Test, IMetaV1_2, IOrderBookV6St
         vm.record();
         vm.recordLogs();
         vm.prank(owner);
-        assertFalse(iOrderbook.addOrder3(config, new TaskV2[](0)));
+        assertFalse(iOrderbook.addOrder4(config, new TaskV2[](0)));
         assertEq(vm.getRecordedLogs().length, 0);
         (reads, writes) = vm.accesses(address(iOrderbook));
         // 3x for reentrancy guard, 1x for dead order check.

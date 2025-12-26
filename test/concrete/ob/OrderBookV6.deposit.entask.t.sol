@@ -59,7 +59,7 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
                 TaskV2(EvaluableV4(iInterpreter, iStore, iParserV2.parse2(evalStrings[i])), new SignedContextV1[](0));
         }
         vm.record();
-        iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
+        iOrderbook.deposit4(address(iToken0), vaultId, amount, actions);
         checkReentrancyRW();
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iStore));
         assert(reads.length == expectedReads);
@@ -259,7 +259,7 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
         assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).isZero());
 
         vm.expectRevert("revert in action");
-        iOrderbook.deposit3(address(iToken0), vaultId, amount, actions);
+        iOrderbook.deposit4(address(iToken0), vaultId, amount, actions);
 
         assertTrue(iOrderbook.vaultBalance2(alice, address(iToken0), vaultId).isZero());
     }

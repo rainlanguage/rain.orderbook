@@ -100,11 +100,11 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
 
         {
             if (expectedTakerTotalInput.gt(LibDecimalFloat.packLossless(0, 0))) {
-                iOrderbook.deposit3(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
+                iOrderbook.deposit4(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
             }
             assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(expectedTakerTotalInput));
             vm.recordLogs();
-            iOrderbook.addOrder3(config, new TaskV2[](0));
+            iOrderbook.addOrder4(config, new TaskV2[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 1);
             (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));

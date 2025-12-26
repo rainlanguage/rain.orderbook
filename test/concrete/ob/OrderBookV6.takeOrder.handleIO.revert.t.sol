@@ -52,7 +52,7 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
             vm.mockCall(outputToken, abi.encodeWithSelector(IERC20.transfer.selector, address(this)), abi.encode(true));
             vm.mockCall(inputToken, bytes(""), abi.encode(true));
         }
-        iOrderbook.deposit3(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0));
+        iOrderbook.deposit4(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0));
         assertTrue(
             iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(
                 LibDecimalFloat.packLossless(type(int224).max, -18)
@@ -67,7 +67,7 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
             config = OrderConfigV4(evaluable, validInputs, validOutputs, bytes32(i), bytes32(0), "");
 
             vm.recordLogs();
-            iOrderbook.addOrder3(config, new TaskV2[](0));
+            iOrderbook.addOrder4(config, new TaskV2[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 1);
             (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));

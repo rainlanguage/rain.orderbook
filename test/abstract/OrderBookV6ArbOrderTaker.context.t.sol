@@ -108,6 +108,6 @@ contract OrderBookV6ArbOrderTakerContextTest is OrderBookV6ExternalRealTest {
         // 5e18 is 5 eth as wei is 18 decimals.
         vm.deal(address(arbOrderTaker), 5e18);
         vm.prank(bob);
-        arbOrderTaker.arb4(iOrderbook, takeOrdersConfig, task);
+        arbOrderTaker.arb5(iOrderbook, takeOrdersConfig, task);
     }
 }

@@ -86,7 +86,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
 
                 vm.prank(testOrders[i].owner);
                 vm.recordLogs();
-                iOrderbook.addOrder3(orderConfig, new TaskV2[](0));
+                iOrderbook.addOrder4(orderConfig, new TaskV2[](0));
                 Vm.Log[] memory entries = vm.getRecordedLogs();
                 assertEq(entries.length, 1);
                 (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
@@ -114,7 +114,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
                 );
                 Float balanceBefore = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
                 vm.prank(testVaults[i].owner);
-                iOrderbook.deposit3(testVaults[i].token, vaultId, testVaults[i].deposit, new TaskV2[](0));
+                iOrderbook.deposit4(testVaults[i].token, vaultId, testVaults[i].deposit, new TaskV2[](0));
 
                 Float balanceAfter = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
                 Float expectedBalance = testVaults[i].deposit.add(balanceBefore);

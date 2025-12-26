@@ -3,7 +3,7 @@
     "rev": "d1fee1b9c4a427ebd529b9c0b0e17718c1a4a99a"
   },
   "lib/rain.orderbook.interface": {
-    "rev": "f63a086d16f563d6dc7ef84a73d8040f0ffd1c7b"
+    "rev": "ab90e74dc42808d6df4c32781a95cc2ed43bacc0"
   },
   "lib/rain.tofu.erc20-decimals": {
     "rev": "ca8e8bacf6c6cb3b9938a6961efb9f93cc1754f9"

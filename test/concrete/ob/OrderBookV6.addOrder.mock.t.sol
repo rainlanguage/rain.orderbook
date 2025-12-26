@@ -25,7 +25,7 @@ contract OrderBookV6AddOrderMockTest is OrderBookV6ExternalMockTest {
         vm.prank(owner);
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = "";
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
         (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(iOrderbook.orderExists(orderHash));
@@ -38,7 +38,7 @@ contract OrderBookV6AddOrderMockTest is OrderBookV6ExternalMockTest {
         config.evaluable.bytecode = hex"02000000040000000000000000";
         config.validInputs = new IOV2[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoInputs.selector));
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
         (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
@@ -52,7 +52,7 @@ contract OrderBookV6AddOrderMockTest is OrderBookV6ExternalMockTest {
         vm.assume(config.validInputs.length > 0);
         config.validOutputs = new IOV2[](0);
         vm.expectRevert(abi.encodeWithSelector(OrderNoOutputs.selector));
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
         (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);
         assertTrue(!iOrderbook.orderExists(orderHash));
@@ -88,7 +88,7 @@ contract OrderBookV6AddOrderMockTest is OrderBookV6ExternalMockTest {
         vm.assume(config.meta.length > 0);
 
         vm.expectRevert(abi.encodeWithSelector(NotRainMetaV1.selector, config.meta));
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
 
         (OrderV4 memory order, bytes32 orderHash) = LibTestAddOrder.expectedOrder(owner, config);
         (order);

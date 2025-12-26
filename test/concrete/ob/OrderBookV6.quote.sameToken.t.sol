@@ -18,7 +18,7 @@ contract OrderBookV6QuoteSameTokenTest is OrderBookV6ExternalRealTest {
         quoteConfig.inputIOIndex = 0;
         quoteConfig.outputIOIndex = 0;
         vm.prank(quoteConfig.order.owner);
-        iOrderbook.addOrder3(
+        iOrderbook.addOrder4(
             OrderConfigV4({
                 evaluable: quoteConfig.order.evaluable,
                 validInputs: quoteConfig.order.validInputs,

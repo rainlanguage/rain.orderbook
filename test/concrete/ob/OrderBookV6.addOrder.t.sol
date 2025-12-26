@@ -17,7 +17,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
         config.evaluable.bytecode = hex"";
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// No handle IO reverts.
@@ -28,7 +28,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2(":;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// A stack of 0 for calculate order deploys.
@@ -39,7 +39,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2(":;:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// A stack of 1 for calculate order reverts.
@@ -50,7 +50,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_:block-timestamp();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// A stack of 2 for calculate order deploys.
@@ -60,7 +60,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_ _:block-timestamp() chain-id();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// A stack of 3 for calculate order deploys.
@@ -70,7 +70,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("_ _ _:block-timestamp() chain-id() block-number();:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// Inputs for calculate order. Tests one input.
@@ -81,7 +81,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("i:;:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// Inputs for calculate order errors. Tests two inputs.
@@ -92,7 +92,7 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("i0 i1:;:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 
     /// Inputs for calculate order errors. This takes precedent over the same
@@ -104,6 +104,6 @@ contract OrderBookV6AddOrderTest is OrderBookV6ExternalRealTest {
         bytes memory bytecode = iParserV2.parse2("i:;i:;");
         config.evaluable.bytecode = bytecode;
         vm.prank(owner);
-        iOrderbook.addOrder3(config, new TaskV2[](0));
+        iOrderbook.addOrder4(config, new TaskV2[](0));
     }
 }

@@ -41,7 +41,7 @@ contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorO
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        RouteProcessorOrderBookV6ArbOrderTaker(iArb).arb4(
+        RouteProcessorOrderBookV6ArbOrderTaker(iArb).arb5(
             iOrderBook,
             TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),

@@ -54,11 +54,11 @@ contract FlashLendingMockOrderBook is IOrderBookV6 {
         SignedContextV1[] memory,
         SignedContextV1[] memory
     ) external {}
-    function deposit3(address, bytes32, Float, TaskV2[] calldata) external {}
+    function deposit4(address, bytes32, Float, TaskV2[] calldata) external {}
     function flashFee(address, uint256) external view returns (uint256) {}
     function maxFlashLoan(address) external view returns (uint256) {}
     function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external returns (bool) {}
 
     function vaultBalance2(address, address, bytes32) external view returns (Float) {}
-    function withdraw3(address, bytes32, Float, TaskV2[] calldata) external {}
+    function withdraw4(address, bytes32, Float, TaskV2[] calldata) external {}
 }
