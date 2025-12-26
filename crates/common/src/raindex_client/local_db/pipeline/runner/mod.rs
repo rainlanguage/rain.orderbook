@@ -3,6 +3,7 @@ pub mod leadership;
 pub mod scheduler;
 
 use crate::local_db::{
+    pipeline::runner::TargetStage,
     pipeline::{
         adapters::apply::{ApplyPipeline, DefaultApplyPipeline},
         adapters::{
@@ -15,16 +16,18 @@ use crate::local_db::{
             utils::{
                 build_runner_targets, parse_runner_settings, ParsedRunnerSettings, RunnerTarget,
             },
+            RunReport, TargetFailure, TargetSuccess,
         },
         EventsPipeline, StatusBus, SyncOutcome, TokensPipeline, WindowPipeline,
     },
     query::LocalDbQueryExecutor,
-    LocalDbError,
+    LocalDbError, OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
+use alloy::primitives::Address;
 use environment::default_environment;
-use futures::future::try_join_all;
+use futures::future::join_all;
 use leadership::{DefaultLeadership, Leadership, LeadershipGuard};
 use rain_orderbook_app_settings::{
     local_db_manifest::DB_SCHEMA_VERSION, remote::manifest::ManifestMap,
@@ -51,17 +54,19 @@ where
     S: StatusBus + 'static,
     L: Leadership + 'static,
 {
-    fn noop_outcomes(&self) -> Vec<SyncOutcome> {
+    fn noop_successes(&self) -> Vec<TargetSuccess> {
         self.base_targets
             .iter()
             .map(|target| {
                 let deployment_block = target.inputs.cfg.deployment_block;
-                SyncOutcome {
-                    ob_id: target.inputs.ob_id.clone(),
-                    start_block: deployment_block,
-                    target_block: deployment_block,
-                    fetched_logs: 0,
-                    decoded_events: 0,
+                TargetSuccess {
+                    outcome: SyncOutcome {
+                        ob_id: target.inputs.ob_id.clone(),
+                        start_block: deployment_block,
+                        target_block: deployment_block,
+                        fetched_logs: 0,
+                        decoded_events: 0,
+                    },
                 }
             })
             .collect()
@@ -87,22 +92,41 @@ where
         })
     }
 
-    pub async fn run<DB>(&mut self, db: &DB) -> Result<Vec<SyncOutcome>, LocalDbError>
+    pub async fn run<DB>(&mut self, db: &DB) -> Result<RunReport, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
         if self.leadership_guard.is_none() {
             match self.leadership.acquire().await? {
                 Some(guard) => self.leadership_guard = Some(guard),
-                None => return Ok(self.noop_outcomes()),
+                None => {
+                    return Ok(RunReport {
+                        successes: self.noop_successes(),
+                        failures: Vec::new(),
+                    })
+                }
             }
         }
 
         if !self.manifests_loaded {
-            self.manifest_map = self
+            self.manifest_map = match self
                 .environment
                 .fetch_manifests(&self.settings.orderbooks)
-                .await?;
+                .await
+            {
+                Ok(map) => map,
+                Err(error) => {
+                    return Ok(RunReport {
+                        successes: Vec::new(),
+                        failures: vec![TargetFailure {
+                            ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+                            orderbook_key: None,
+                            stage: TargetStage::ManifestFetch,
+                            error,
+                        }],
+                    });
+                }
+            };
             self.manifests_loaded = true;
         }
 
@@ -112,57 +136,130 @@ where
         if needs_bootstrap {
             let bootstrap = ClientBootstrapAdapter::new();
             bootstrap.runner_run(db, Some(DB_SCHEMA_VERSION)).await?;
-            targets = self.provision_dumps(targets).await?;
-            self.has_bootstrapped = true;
+            let (provisioned, mut provisioning_failures) = self.provision_dumps(targets).await;
+            let had_provisioning_failures = !provisioning_failures.is_empty();
+            targets = provisioned;
+
+            // Run remaining targets even if some dump downloads failed so we can return the full report.
+            let RunReport {
+                successes,
+                failures: mut run_failures,
+            } = self.execute_targets(db, targets).await?;
+
+            provisioning_failures.append(&mut run_failures);
+
+            if !had_provisioning_failures {
+                self.has_bootstrapped = true;
+            }
+
+            return Ok(RunReport {
+                successes,
+                failures: provisioning_failures,
+            });
         }
 
-        let outcomes = self.execute_targets(db, targets).await?;
-        Ok(outcomes)
+        let report = self.execute_targets(db, targets).await?;
+        Ok(report)
     }
 
     async fn provision_dumps(
         &self,
         targets: Vec<RunnerTarget>,
-    ) -> Result<Vec<RunnerTarget>, LocalDbError> {
+    ) -> (Vec<RunnerTarget>, Vec<TargetFailure>) {
         let manifest_map = &self.manifest_map;
         let environment = self.environment.clone();
         let futures = targets.into_iter().map(move |mut target| {
             let environment = environment.clone();
             async move {
                 if let Some(entry) = lookup_manifest_entry(manifest_map, &target) {
-                    let dump_sql = environment.download_dump(&entry.dump_url).await?;
-                    target.inputs.dump_str = Some(dump_sql);
-                    target.inputs.manifest_end_block = entry.end_block;
+                    let dump_sql = environment.download_dump(&entry.dump_url).await;
+                    return match dump_sql {
+                        Ok(sql) => {
+                            target.inputs.dump_str = Some(sql);
+                            target.inputs.manifest_end_block = entry.end_block;
+                            Ok(target)
+                        }
+                        Err(error) => Err(TargetFailure {
+                            ob_id: target.inputs.ob_id.clone(),
+                            orderbook_key: Some(target.orderbook_key.clone()),
+                            stage: TargetStage::DumpDownload,
+                            error,
+                        }),
+                    };
                 }
-                Ok::<RunnerTarget, LocalDbError>(target)
+                Ok(target)
             }
         });
 
-        try_join_all(futures).await
+        let results = join_all(futures).await;
+        let mut provisioned = Vec::new();
+        let mut failures = Vec::new();
+        for result in results {
+            match result {
+                Ok(target) => provisioned.push(target),
+                Err(failure) => failures.push(failure),
+            }
+        }
+
+        (provisioned, failures)
     }
 
     async fn execute_targets<DB>(
         &self,
         db: &DB,
         targets: Vec<RunnerTarget>,
-    ) -> Result<Vec<SyncOutcome>, LocalDbError>
+    ) -> Result<RunReport, LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
         if targets.is_empty() {
-            return Ok(vec![]);
+            return Ok(RunReport::default());
         }
 
         let environment = self.environment.clone();
         let futures = targets.into_iter().map(move |target| {
             let environment = environment.clone();
             async move {
-                let engine = environment.build_engine(&target)?.into_engine();
-                engine.run(db, &target.inputs).await
+                let ob_id = target.inputs.ob_id.clone();
+                let engine = match environment.build_engine(&target) {
+                    Ok(engine) => engine.into_engine(),
+                    Err(error) => {
+                        return Err(TargetFailure {
+                            ob_id,
+                            orderbook_key: Some(target.orderbook_key.clone()),
+                            stage: TargetStage::EngineBuild,
+                            error,
+                        })
+                    }
+                };
+
+                match engine.run(db, &target.inputs).await {
+                    Ok(outcome) => Ok(TargetSuccess { outcome }),
+                    Err(error) => Err(TargetFailure {
+                        ob_id,
+                        orderbook_key: Some(target.orderbook_key.clone()),
+                        stage: TargetStage::EngineRun,
+                        error,
+                    }),
+                }
             }
         });
 
-        try_join_all(futures).await
+        let results = join_all(futures).await;
+        let mut successes = Vec::new();
+        let mut failures = Vec::new();
+
+        for result in results {
+            match result {
+                Ok(success) => successes.push(success),
+                Err(failure) => failures.push(failure),
+            }
+        }
+
+        Ok(RunReport {
+            successes,
+            failures,
+        })
     }
 }
 
@@ -192,7 +289,7 @@ mod tests {
     use crate::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use crate::local_db::pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapState};
     use crate::local_db::pipeline::runner::environment::{
-        DumpFuture, EnginePipelines, ManifestFuture,
+        default_dump_downloader, DumpFuture, EnginePipelines, ManifestFuture,
     };
     use crate::local_db::pipeline::runner::utils::RunnerTarget;
     use crate::local_db::pipeline::{
@@ -315,6 +412,15 @@ mod tests {
         orderbook_key: String,
         dump_sql: Option<String>,
         latest_block: u64,
+    }
+
+    fn dump_sql(batch: &SqlStatementBatch) -> String {
+        batch
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     impl Telemetry {
@@ -560,7 +666,7 @@ mod tests {
         where
             DB: LocalDbQueryExecutor + ?Sized,
         {
-            let dump_sql = config.dump_stmt.as_ref().map(|stmt| stmt.sql().to_string());
+            let dump_sql = config.dump_stmt.as_ref().map(dump_sql);
             self.telemetry.record_bootstrap(
                 self.orderbook_key.clone(),
                 dump_sql,
@@ -1030,7 +1136,16 @@ orderbooks:
         RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder)
     }
 
-    fn expect_orderbooks(outcomes: &[SyncOutcome], expected: &[Address]) {
+    fn extract_outcomes(report: &RunReport) -> Vec<SyncOutcome> {
+        report
+            .successes
+            .iter()
+            .map(|success| success.outcome.clone())
+            .collect()
+    }
+
+    fn expect_orderbooks(report: &RunReport, expected: &[Address]) {
+        let outcomes = extract_outcomes(report);
         let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.ob_id.orderbook_address).collect();
         addrs.sort();
         let mut expected_sorted = expected.to_vec();
@@ -1038,7 +1153,8 @@ orderbooks:
         assert_eq!(addrs, expected_sorted);
     }
 
-    fn expect_noop_outcomes(outcomes: &[SyncOutcome], targets: &[RunnerTarget]) {
+    fn expect_noop_outcomes(report: &RunReport, targets: &[RunnerTarget]) {
+        let outcomes = extract_outcomes(report);
         assert_eq!(outcomes.len(), targets.len());
         for target in targets {
             let outcome = outcomes
@@ -1099,10 +1215,10 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
-        let outcomes = runner.run(&db).await.expect("run succeeds");
-
+        let report = runner.run(&db).await.expect("run succeeds");
+        let outcomes = extract_outcomes(&report);
         assert_eq!(outcomes.len(), 2);
-        expect_orderbooks(&outcomes, &[ORDERBOOK_A, ORDERBOOK_B]);
+        expect_orderbooks(&report, &[ORDERBOOK_A, ORDERBOOK_B]);
         assert!(runner.manifests_loaded);
         assert!(runner.has_bootstrapped);
         assert_eq!(telemetry.manifest_fetch_count(), 1);
@@ -1140,7 +1256,8 @@ orderbooks:
 
         let db_second = RecordingDb::default();
         prepare_db_for_targets(&db_second, &runner.base_targets);
-        let outcomes = runner.run(&db_second).await.expect("second run succeeds");
+        let report = runner.run(&db_second).await.expect("second run succeeds");
+        let outcomes = extract_outcomes(&report);
 
         assert_eq!(outcomes.len(), 2);
         assert_eq!(telemetry.manifest_fetch_count(), 1);
@@ -1185,8 +1302,8 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_baseline(&db);
 
-        let outcomes = runner.run(&db).await.expect("run succeeds");
-        expect_noop_outcomes(&outcomes, &runner.base_targets);
+        let report = runner.run(&db).await.expect("run succeeds");
+        expect_noop_outcomes(&report, &runner.base_targets);
         assert!(!runner.manifests_loaded);
         assert!(!runner.has_bootstrapped);
         assert_eq!(telemetry.manifest_fetch_count(), 0);
@@ -1206,15 +1323,15 @@ orderbooks:
 
         let db_skip = RecordingDb::default();
         prepare_db_baseline(&db_skip);
-        let outcomes_skip = runner.run(&db_skip).await.expect("skip run succeeds");
-        expect_noop_outcomes(&outcomes_skip, &runner.base_targets);
+        let report_skip = runner.run(&db_skip).await.expect("skip run succeeds");
+        expect_noop_outcomes(&report_skip, &runner.base_targets);
         assert!(!runner.manifests_loaded);
         assert!(!runner.has_bootstrapped);
 
         let db_grant = RecordingDb::default();
         prepare_db_for_targets(&db_grant, &runner.base_targets);
-        let outcomes = runner.run(&db_grant).await.expect("second run succeeds");
-        assert_eq!(outcomes.len(), 2);
+        let report = runner.run(&db_grant).await.expect("second run succeeds");
+        assert_eq!(report.successes.len(), 2);
         assert!(runner.manifests_loaded);
         assert!(runner.has_bootstrapped);
         assert_eq!(telemetry.manifest_fetch_count(), 1);
@@ -1259,8 +1376,8 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
-        let outcomes = runner.run(&db).await.expect("run succeeds");
-        assert_eq!(outcomes.len(), 2);
+        let report = runner.run(&db).await.expect("run succeeds");
+        assert_eq!(report.successes.len(), 2);
         let dumps = telemetry.dump_requests();
         assert_eq!(dumps.len(), 1);
         assert_eq!(dumps[0], dump_url_a());
@@ -1297,8 +1414,8 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_baseline(&db);
 
-        let outcomes = runner.run(&db).await.expect("run succeeds");
-        assert!(outcomes.is_empty());
+        let report = runner.run(&db).await.expect("run succeeds");
+        assert!(report.successes.is_empty());
         assert!(runner.has_bootstrapped);
         assert_eq!(telemetry.builder_inits(), 0);
         assert_eq!(telemetry.dump_requests().len(), 0);
@@ -1365,8 +1482,15 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_baseline(&db);
 
-        let err = runner.run(&db).await.expect_err("run should fail");
-        matches!(err, LocalDbError::CustomError(message) if message == "manifest boom");
+        let report = runner
+            .run(&db)
+            .await
+            .expect("run completes with manifest failure");
+        assert!(report.successes.is_empty());
+        assert_eq!(report.failures.len(), 1);
+        let failure = &report.failures[0];
+        assert_eq!(failure.stage, TargetStage::ManifestFetch);
+        matches!(&failure.error, LocalDbError::CustomError(message) if message == "manifest boom");
 
         assert!(!runner.manifests_loaded);
         assert!(!runner.has_bootstrapped);
@@ -1416,11 +1540,69 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
-        let err = runner.run(&db).await.expect_err("run should fail");
-        matches!(err, LocalDbError::CustomError(message) if message == "download failed");
+        let report = runner.run(&db).await.expect("run completes with failures");
+        assert_eq!(report.successes.len(), 0);
+        assert_eq!(report.failures.len(), 1);
+        let failure = &report.failures[0];
+        assert_eq!(failure.stage, TargetStage::DumpDownload);
+        matches!(&failure.error, LocalDbError::CustomError(message) if message == "download failed");
         assert!(!runner.has_bootstrapped);
         assert!(runner.manifests_loaded);
         assert_eq!(telemetry.dump_requests().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn dump_failure_on_one_target_still_allows_other_success() {
+        let telemetry = Telemetry::default();
+        let manifest = manifest_for_both();
+        let manifest_fetcher = {
+            let telemetry = telemetry.clone();
+            let manifest_arc = Arc::new(manifest);
+            Arc::new(move |_orderbooks: &HashMap<String, OrderbookCfg>| {
+                let telemetry = telemetry.clone();
+                let manifest_arc = Arc::clone(&manifest_arc);
+                Box::pin(async move {
+                    telemetry.record_manifest_fetch();
+                    Ok((*manifest_arc).clone())
+                }) as ManifestFuture
+            })
+        };
+
+        let dump_downloader = Arc::new(|url: &Url| {
+            let url = url.clone();
+            Box::pin(async move {
+                if url == dump_url_a() {
+                    Err(LocalDbError::CustomError("dump failed".into()))
+                } else {
+                    Ok(format!("-- dump for {}", url))
+                }
+            }) as DumpFuture
+        });
+
+        let engine_builder = engine_builder_for_behaviors(telemetry.clone(), HashMap::new());
+        let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
+
+        let settings = two_orderbooks_settings_yaml();
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
+        let db = RecordingDb::default();
+        prepare_db_for_targets(&db, &runner.base_targets);
+
+        let report = runner
+            .run(&db)
+            .await
+            .expect("run completes with mixed results");
+        assert_eq!(report.successes.len() + report.failures.len(), 2);
+        assert!(report
+            .failures
+            .iter()
+            .any(|failure| failure.stage == TargetStage::DumpDownload
+                && failure.ob_id.orderbook_address == ORDERBOOK_A));
+        assert!(report
+            .successes
+            .iter()
+            .any(|success| success.outcome.ob_id.orderbook_address == ORDERBOOK_B));
+        assert!(!runner.has_bootstrapped);
     }
 
     #[tokio::test]
@@ -1497,8 +1679,12 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
-        let err = runner.run(&db).await.expect_err("run should fail");
-        matches!(err, LocalDbError::CustomError(message) if message == "builder failed");
+        let report = runner.run(&db).await.expect("run completes with failures");
+        assert_eq!(report.failures.len(), 1);
+        assert_eq!(report.successes.len(), 1);
+        let failure = &report.failures[0];
+        assert_eq!(failure.stage, TargetStage::EngineBuild);
+        matches!(&failure.error, LocalDbError::CustomError(message) if message == "builder failed");
         assert!(runner.has_bootstrapped);
         assert_eq!(telemetry.dump_requests().len(), 2);
         let engine_runs = telemetry.engine_runs();
@@ -1522,8 +1708,12 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
-        let err = runner.run(&db).await.expect_err("run should fail");
-        matches!(err, LocalDbError::CustomError(message) if message.starts_with("apply failed"));
+        let report = runner.run(&db).await.expect("run completes with failures");
+        assert_eq!(report.failures.len(), 1);
+        assert_eq!(report.successes.len(), 1);
+        let failure = &report.failures[0];
+        assert_eq!(failure.stage, TargetStage::EngineRun);
+        matches!(&failure.error, LocalDbError::CustomError(message) if message.starts_with("apply failed"));
         assert!(runner.has_bootstrapped);
         assert!(runner.manifests_loaded);
         assert_eq!(telemetry.dump_requests().len(), 2);
@@ -1532,6 +1722,65 @@ orderbooks:
             .engine_runs()
             .iter()
             .any(|key| key == ORDERBOOK_KEY_A));
+    }
+
+    #[tokio::test]
+    async fn engine_build_and_run_failures_are_both_reported() {
+        let telemetry = Telemetry::default();
+        let manifest = manifest_for_both();
+        let settings = two_orderbooks_settings_yaml();
+
+        let manifest_arc = Arc::new(manifest);
+        let manifest_fetcher = {
+            let telemetry = telemetry.clone();
+            let manifest_arc = Arc::clone(&manifest_arc);
+            Arc::new(move |_orderbooks: &HashMap<String, OrderbookCfg>| {
+                let telemetry = telemetry.clone();
+                let manifest_arc = Arc::clone(&manifest_arc);
+                Box::pin(async move {
+                    telemetry.record_manifest_fetch();
+                    Ok((*manifest_arc).clone())
+                }) as ManifestFuture
+            })
+        };
+
+        let dump_downloader = default_dump_downloader();
+        let engine_builder: TestEngineBuilder = {
+            let telemetry = telemetry.clone();
+            Arc::new(move |target: &RunnerTarget| {
+                if target.orderbook_key == ORDERBOOK_KEY_A {
+                    return Err(LocalDbError::CustomError("build boom".into()));
+                }
+                telemetry.record_builder_init();
+                let bootstrap = StubBootstrap::new(telemetry.clone(), target.orderbook_key.clone());
+                let window = StubWindow::new(0, target.inputs.cfg.deployment_block);
+                let events = StubEvents::new(target.inputs.cfg.deployment_block);
+                let apply = StubApply::new(telemetry.clone(), target.orderbook_key.clone(), true); // force engine run failure
+                let status = StubStatusBus::new(telemetry.clone(), target.orderbook_key.clone());
+                Ok(EnginePipelines::new(
+                    bootstrap, window, events, StubTokens, apply, status,
+                ))
+            })
+        };
+
+        let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
+        let mut runner =
+            ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
+
+        let db = RecordingDb::default();
+        prepare_db_for_targets(&db, &runner.base_targets);
+
+        let report = runner.run(&db).await.expect("run completes with failures");
+        assert_eq!(report.successes.len(), 0);
+        assert_eq!(report.failures.len(), 2);
+        assert!(report
+            .failures
+            .iter()
+            .any(|f| f.ob_id.orderbook_address == ORDERBOOK_A));
+        assert!(report
+            .failures
+            .iter()
+            .any(|f| f.ob_id.orderbook_address == ORDERBOOK_B));
     }
 
     #[tokio::test]
@@ -1549,8 +1798,8 @@ orderbooks:
         let db = RecordingDb::default();
         prepare_db_for_targets(&db, &runner.base_targets);
 
-        let outcomes = runner.run(&db).await.expect("run succeeds");
-        assert_eq!(outcomes.len(), 1);
+        let report = runner.run(&db).await.expect("run succeeds");
+        assert_eq!(report.successes.len(), 1);
         assert!(telemetry.dump_requests().is_empty());
         let records = telemetry.bootstrap_records();
         assert_eq!(records.len(), 1);

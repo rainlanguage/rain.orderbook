@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-            macos-13,
+            macos-15-intel,
             macos-14,
             ubuntu-22.04,
             # Someone who cares can make windows work.
@@ -41,7 +41,7 @@ jobs:
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Free up disk space in action runner (Macos)
-        if: matrix.platform == 'macos-13' || matrix.platform == 'macos-14'
+        if: matrix.platform == 'macos-15-intel' || matrix.platform == 'macos-14'
         run: |
           sudo rm -rf \
           "$AGENT_TOOLSDIRECTORY" \
@@ -108,6 +108,7 @@ jobs:
       - run: |
           rm -rf target
           rm -rf tauri-app/src-tauri/target
+          rm -rf tauri-app/.env
 
       - run: nix develop .#tauri-shell --command ob-tauri-before-release
         working-directory: ./tauri-app
@@ -150,3 +151,12 @@ jobs:
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: "App v__VERSION__-${{ github.sha }}"
           releaseBody: "See the assets to download this version and install."
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always() 
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
