@@ -86,7 +86,7 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
         if (err.length > 0) {
             vm.expectRevert(err);
         }
-        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(takeOrdersConfig);
         // We don't really care about the outputs as the tests are basically just
         // trying to show that the IO handler is running or not running by simple
         // reverts.

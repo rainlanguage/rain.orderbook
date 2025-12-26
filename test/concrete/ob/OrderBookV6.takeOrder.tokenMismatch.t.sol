@@ -64,7 +64,7 @@ contract OrderBookV6TakeOrderTokenMismatchTest is OrderBookV6ExternalRealTest {
             data: ""
         });
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
-        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -110,7 +110,7 @@ contract OrderBookV6TakeOrderTokenMismatchTest is OrderBookV6ExternalRealTest {
             data: ""
         });
         vm.expectRevert(abi.encodeWithSelector(TokenMismatch.selector));
-        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         (totalTakerInput, totalTakerOutput);
     }
 }

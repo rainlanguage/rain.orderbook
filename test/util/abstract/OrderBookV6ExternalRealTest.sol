@@ -23,7 +23,7 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {OrderBookV6, IERC20} from "src/concrete/ob/OrderBookV6.sol";
 import {RainterpreterParser} from "rain.interpreter/concrete/RainterpreterParser.sol";
-import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
+import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
@@ -36,7 +36,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
     IOrderBookV6 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
-    OrderBookSubParser internal immutable iSubParser;
+    OrderBookV6SubParser internal immutable iSubParser;
 
     constructor() {
         // Put the TOFU decimals contract in place so that any calls to it
@@ -54,7 +54,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
             })
         );
 
-        iOrderbook = IOrderBookV5(address(new OrderBook()));
+        iOrderbook = IOrderBookV6(address(new OrderBookV6()));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
@@ -64,7 +64,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
         vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18));
 
-        iSubParser = new OrderBookSubParser();
+        iSubParser = new OrderBookV6SubParser();
     }
 
     function assumeEtchable(address account) internal view {

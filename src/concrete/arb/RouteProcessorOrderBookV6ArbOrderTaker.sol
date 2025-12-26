@@ -17,12 +17,12 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
 
     IRouteProcessor public immutable iRouteProcessor;
 
-    constructor(OrderBookV5ArbConfig memory config) OrderBookV5ArbOrderTaker(config) {
+    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbOrderTaker(config) {
         (address routeProcessor) = abi.decode(config.implementationData, (address));
         iRouteProcessor = IRouteProcessor(routeProcessor);
     }
 
-    /// @inheritdoc OrderBookV5ArbOrderTaker
+    /// @inheritdoc OrderBookV6ArbOrderTaker
     function onTakeOrders2(
         address inputToken,
         address outputToken,

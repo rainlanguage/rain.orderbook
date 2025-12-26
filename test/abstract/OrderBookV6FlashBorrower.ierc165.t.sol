@@ -39,7 +39,7 @@ contract OrderBookV5FlashBorrowerIERC165Test is Test {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
         vm.assume(badInterfaceId != type(IERC3156FlashBorrower).interfaceId);
 
-        ChildOrderBookV5FlashBorrower flashBorrower = new ChildOrderBookV5FlashBorrower();
+        ChildOrderBookV6FlashBorrower flashBorrower = new ChildOrderBookV6FlashBorrower();
         assertTrue(flashBorrower.supportsInterface(type(IERC165).interfaceId));
         assertTrue(flashBorrower.supportsInterface(type(IERC3156FlashBorrower).interfaceId));
         assertFalse(flashBorrower.supportsInterface(badInterfaceId));

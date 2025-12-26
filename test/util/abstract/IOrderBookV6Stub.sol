@@ -18,32 +18,32 @@ import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/I
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 abstract contract IOrderBookV6Stub is IOrderBookV6 {
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function entask2(TaskV2[] calldata) external pure {
         revert("eval");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function quote2(QuoteV2 calldata) external pure returns (bool, Float, Float) {
         revert("quote");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function addOrder3(OrderConfigV4 calldata, TaskV2[] calldata) external pure returns (bool) {
         revert("addOrder");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function orderExists(bytes32) external pure returns (bool) {
         revert("orderExists");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external pure returns (bool) {
         revert("removeOrder");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function clear3(
         OrderV4 memory,
         OrderV4 memory,
@@ -54,7 +54,7 @@ abstract contract IOrderBookV6Stub is IOrderBookV6 {
         revert("clear");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function deposit3(address, bytes32, Float, TaskV2[] calldata) external pure {
         revert("deposit");
     }
@@ -64,12 +64,12 @@ abstract contract IOrderBookV6Stub is IOrderBookV6 {
         revert("takeOrders");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function vaultBalance2(address, address, bytes32) external pure returns (Float) {
         revert("vaultBalance");
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function withdraw3(address, bytes32, Float, TaskV2[] calldata) external pure {
         revert("withdraw");
     }

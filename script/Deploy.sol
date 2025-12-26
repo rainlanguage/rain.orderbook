@@ -3,8 +3,8 @@
 pragma solidity =0.8.25;
 
 import {Script} from "forge-std/Script.sol";
-import {OrderBook, EvaluableV4, TaskV2, SignedContextV1} from "src/concrete/ob/OrderBook.sol";
-import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
+import {OrderBookV6, EvaluableV4, TaskV2, SignedContextV1} from "src/concrete/ob/OrderBookV6.sol";
+import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {RouteProcessorOrderBookV6ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 import {GenericPoolOrderBookV6FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
@@ -40,13 +40,13 @@ error BadRouteProcessor(bytes32 expected, bytes32 actual);
 /// @notice A script that deploys all contracts. This is intended to be run on
 /// every commit by CI to a testnet such as mumbai.
 contract Deploy is Script {
-    function deployRaindex() internal returns (OrderBook) {
-        return new OrderBook();
+    function deployRaindex() internal returns (OrderBookV6) {
+        return new OrderBookV6();
     }
 
     function deploySubParser(IMetaBoardV1_2 metaboard) internal {
-        OrderBookSubParser subParser = new OrderBookSubParser();
-        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookSubParser.rain.meta");
+        OrderBookV6SubParser subParser = new OrderBookV6SubParser();
+        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookV6SubParser.rain.meta");
         LibDescribedByMeta.emitForDescribedAddress(metaboard, subParser, subParserDescribedByMeta);
     }
 
@@ -97,8 +97,8 @@ contract Deploy is Script {
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
             // Order takers.
-            new GenericPoolOrderBookV5ArbOrderTaker(
-                OrderBookV5ArbConfig(
+            new GenericPoolOrderBookV6ArbOrderTaker(
+                OrderBookV6ArbConfig(
                     address(raindex),
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
@@ -108,8 +108,8 @@ contract Deploy is Script {
                 )
             );
 
-            new RouteProcessorOrderBookV5ArbOrderTaker(
-                OrderBookV5ArbConfig(
+            new RouteProcessorOrderBookV6ArbOrderTaker(
+                OrderBookV6ArbConfig(
                     address(raindex),
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
@@ -120,8 +120,8 @@ contract Deploy is Script {
             );
 
             // Flash borrowers.
-            new GenericPoolOrderBookV5FlashBorrower(
-                OrderBookV5ArbConfig(
+            new GenericPoolOrderBookV6FlashBorrower(
+                OrderBookV6ArbConfig(
                     raindex,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),

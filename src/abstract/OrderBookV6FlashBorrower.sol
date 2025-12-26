@@ -113,7 +113,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (Float totalInput, Float totalOutput) = IOrderBookV6(msg.sender).takeOrders3(takeOrders);
+        (Float totalInput, Float totalOutput) = IOrderBookV6(msg.sender).takeOrders4(takeOrders);
         (totalInput, totalOutput);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;
@@ -163,7 +163,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
 
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.
-        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(takeOrders.minimumInput, inputDecimals);
+        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(takeOrders.minimumIO, inputDecimals);
 
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the

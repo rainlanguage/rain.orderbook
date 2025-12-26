@@ -49,7 +49,7 @@ contract OrderBookV6TakeOrderBadStackTest is OrderBookV6ExternalRealTest {
 
         vm.prank(bob);
         vm.expectRevert(abi.encodeWithSelector(UnsupportedCalculateOutputs.selector, badStackHeight));
-        iOrderbook.takeOrders3(takeOrdersConfig);
+        iOrderbook.takeOrders4(takeOrdersConfig);
     }
 
     /// forge-config: default.fuzz.runs = 100

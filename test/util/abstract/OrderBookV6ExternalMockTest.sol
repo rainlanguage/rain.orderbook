@@ -50,7 +50,7 @@ abstract contract OrderBookV6ExternalMockTest is Test, IMetaV1_2, IOrderBookV6St
         vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
         iStore = IInterpreterStoreV3(address(uint160(uint256(keccak256("store.rain.test")))));
         vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
-        iOrderbook = IOrderBookV5(address(new OrderBook()));
+        iOrderbook = IOrderBookV6(address(new OrderBookV6()));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);

@@ -8,7 +8,7 @@ import {
     SignedContextV1,
     EvaluableV4
 } from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";
-import {OrderBookExternalRealTest} from "../util/abstract/OrderBookExternalRealTest.sol";
+import {OrderBookV6ExternalRealTest} from "../util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     TakeOrdersConfigV5,
     TakeOrderConfigV4,
@@ -19,10 +19,10 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBook.sol";
+import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBookV6.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-contract OrderBookV6ArbOrderTakerContextTest is OrderBookExternalRealTest {
+contract OrderBookV6ArbOrderTakerContextTest is OrderBookV6ExternalRealTest {
     function testOrderBookV6ArbOrderTakerContext() external {
         address alice = address(999999);
         address bob = address(999998);

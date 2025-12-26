@@ -119,7 +119,7 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
                 orders: orders,
                 data: ""
             });
-            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(takeOrdersConfig);
+            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(takeOrdersConfig);
             assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
             assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
         }

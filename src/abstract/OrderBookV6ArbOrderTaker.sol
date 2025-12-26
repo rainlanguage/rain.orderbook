@@ -56,7 +56,7 @@ abstract contract OrderBookV6ArbOrderTaker is
     }
 
     /// @inheritdoc IOrderBookV6ArbOrderTaker
-    function arb4(IOrderBookV5 orderBook, TakeOrdersConfigV5 calldata takeOrders, TaskV2 calldata task)
+    function arb4(IOrderBookV6 orderBook, TakeOrdersConfigV5 calldata takeOrders, TaskV2 calldata task)
         external
         payable
         nonReentrant
@@ -72,7 +72,7 @@ abstract contract OrderBookV6ArbOrderTaker is
 
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
         IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
-        (Float totalTakerInput, Float totalTakerOutput) = orderBook.takeOrders3(takeOrders);
+        (Float totalTakerInput, Float totalTakerOutput) = orderBook.takeOrders4(takeOrders);
         (totalTakerInput, totalTakerOutput);
         IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
 
@@ -85,6 +85,6 @@ abstract contract OrderBookV6ArbOrderTaker is
         );
     }
 
-    /// @inheritdoc IOrderBookV5OrderTaker
+    /// @inheritdoc IOrderBookV6OrderTaker
     function onTakeOrders2(address, address, Float, Float, bytes calldata) public virtual override {}
 }

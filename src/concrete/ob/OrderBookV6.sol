@@ -66,7 +66,7 @@ import {
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_IO_VAULT_ID
 } from "../../lib/LibOrderBook.sol";
-import {OrderBookV4FlashLender} from "../../abstract/OrderBookV4FlashLender.sol";
+import {OrderBookV6FlashLender} from "../../abstract/OrderBookV6FlashLender.sol";
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
@@ -551,7 +551,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         pushTokens(orderOutputToken, totalTakerInput);
 
         if (config.data.length > 0) {
-            IOrderBookV5OrderTaker(msg.sender).onTakeOrders2(
+            IOrderBookV6OrderTaker(msg.sender).onTakeOrders2(
                 orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data
             );
         }
@@ -565,7 +565,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function clear3(
         OrderV4 memory aliceOrder,
         OrderV4 memory bobOrder,

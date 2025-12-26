@@ -20,15 +20,15 @@ import {ChildOrderBookV6ArbOrderTaker} from "../util/concrete/ChildOrderBookV6Ar
 contract OrderBookV6ArbOrderTakerIERC165Test is Test {
     /// Test that ERC165 and IOrderBookV5ArbOrderTaker are supported interfaces
     /// as per ERC165.
-    function testOrderBookV5ArbOrderTakerIERC165(bytes4 badInterfaceId) external {
+    function testOrderBookV6ArbOrderTakerIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
-        vm.assume(badInterfaceId != type(IOrderBookV5ArbOrderTaker).interfaceId);
-        vm.assume(badInterfaceId != type(IOrderBookV5OrderTaker).interfaceId);
+        vm.assume(badInterfaceId != type(IOrderBookV6ArbOrderTaker).interfaceId);
+        vm.assume(badInterfaceId != type(IOrderBookV6OrderTaker).interfaceId);
 
-        ChildOrderBookV5ArbOrderTaker arbOrderTaker = new ChildOrderBookV5ArbOrderTaker();
+        ChildOrderBookV6ArbOrderTaker arbOrderTaker = new ChildOrderBookV6ArbOrderTaker();
         assertTrue(arbOrderTaker.supportsInterface(type(IERC165).interfaceId));
-        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV5ArbOrderTaker).interfaceId));
-        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV5OrderTaker).interfaceId));
+        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV6ArbOrderTaker).interfaceId));
+        assertTrue(arbOrderTaker.supportsInterface(type(IOrderBookV6OrderTaker).interfaceId));
         assertFalse(arbOrderTaker.supportsInterface(badInterfaceId));
     }
 }

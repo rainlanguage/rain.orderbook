@@ -46,6 +46,6 @@ contract OrderBookV6TakeOrderSameTokenTest is OrderBookV6ExternalRealTest {
         });
 
         vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
-        iOrderbook.takeOrders3(takeOrdersConfig);
+        iOrderbook.takeOrders4(takeOrdersConfig);
     }
 }

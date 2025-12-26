@@ -36,7 +36,7 @@ contract OrderBookV6TakeOrderNoopTest is OrderBookV6ExternalRealTest {
             data: ""
         });
         vm.expectRevert(NoOrders.selector);
-        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -78,7 +78,7 @@ contract OrderBookV6TakeOrderNoopTest is OrderBookV6ExternalRealTest {
         vm.expectEmit(address(iOrderbook));
         emit OrderNotFound(address(this), order.owner, order.hash());
         vm.recordLogs();
-        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         assertTrue(totalTakerInput.isZero());
         assertTrue(totalTakerOutput.isZero());
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -148,7 +148,7 @@ contract OrderBookV6TakeOrderNoopTest is OrderBookV6ExternalRealTest {
 
         vm.recordLogs();
         {
-            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
             assertTrue(totalTakerInput.isZero());
             assertTrue(totalTakerOutput.isZero());
         }

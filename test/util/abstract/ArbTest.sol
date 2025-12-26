@@ -42,13 +42,13 @@ abstract contract ArbTest is Test {
     address immutable iArb;
 
     /// Mimics the `Construct` event from `OrderBookV6ArbCommon`.
-    event Construct(address sender, OrderBookV5ArbConfig config);
+    event Construct(address sender, OrderBookV6ArbConfig config);
 
     function expression() internal virtual returns (bytes memory) {
         return "";
     }
 
-    function buildArb(OrderBookV5ArbConfig memory config) internal virtual returns (address);
+    function buildArb(OrderBookV6ArbConfig memory config) internal virtual returns (address);
 
     constructor() {
         // Put the TOFU decimals contract in place so that any calls to it
@@ -69,7 +69,7 @@ abstract contract ArbTest is Test {
         iOrderBook = new FlashLendingMockOrderBook();
         vm.label(address(iOrderBook), "iOrderBook");
 
-        OrderBookV5ArbConfig memory config = OrderBookV5ArbConfig(
+        OrderBookV6ArbConfig memory config = OrderBookV6ArbConfig(
             address(iOrderBook),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),

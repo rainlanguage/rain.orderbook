@@ -43,7 +43,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
             data: ""
         });
         vm.expectRevert(ZeroMaximumInput.selector);
-        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+        (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         (totalTakerInput, totalTakerOutput);
     }
 
@@ -163,7 +163,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         }
         {
             vm.prank(bob);
-            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders3(config);
+            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
             assertTrue(totalTakerInput.eq(expectedTakerInput), "totalTakerInput");
             assertTrue(totalTakerOutput.eq(expectedTakerOutput), "totalTakerOutput");
         }

@@ -29,7 +29,7 @@ contract FlashLendingMockOrderBook is IOrderBookV6 {
 
     function entask2(TaskV2[] calldata) external pure {}
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function quote2(QuoteV2 calldata) external pure returns (bool, Float, Float) {
         revert("quote");
     }
@@ -46,7 +46,7 @@ contract FlashLendingMockOrderBook is IOrderBookV6 {
         return false;
     }
 
-    /// @inheritdoc IOrderBookV5
+    /// @inheritdoc IOrderBookV6
     function clear3(
         OrderV4 memory,
         OrderV4 memory,

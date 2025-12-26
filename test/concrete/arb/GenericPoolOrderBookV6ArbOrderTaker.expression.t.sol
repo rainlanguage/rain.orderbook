@@ -24,7 +24,7 @@ import {
     BEFORE_ARB_SOURCE_INDEX,
     WrongTask
 } from "src/abstract/OrderBookV6ArbCommon.sol";
-import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBook.sol";
+import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBookV6.sol";
 import {
     StateNamespace, FullyQualifiedNamespace
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
@@ -50,7 +50,7 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        GenericPoolOrderBookV5ArbOrderTaker(iArb).arb4(
+        GenericPoolOrderBookV6ArbOrderTaker(iArb).arb4(
             iOrderBook,
             TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
