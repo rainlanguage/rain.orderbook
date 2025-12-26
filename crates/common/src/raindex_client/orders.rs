@@ -1,4 +1,5 @@
 use super::local_db::orders::LocalDbOrders;
+use super::local_db::query::fetch_order_vaults_volume::fetch_order_vaults_volume;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
@@ -342,17 +343,44 @@ impl RaindexOrder {
         )]
         end_timestamp: Option<u64>,
     ) -> Result<Vec<RaindexVaultVolume>, RaindexError> {
-        let client = self.get_orderbook_client()?;
+        let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
 
-        let mut result_volumes = Vec::new();
+        if is_chain_supported_local_db(chain_id) {
+            let raindex_client = self.get_raindex_client();
+            if let Some(local_db) = raindex_client.local_db() {
+                #[cfg(target_family = "wasm")]
+                let order_hash = B256::from_str(&self.order_hash())?;
+                #[cfg(not(target_family = "wasm"))]
+                let order_hash = B256::from_str(&self.order_hash().to_string())?;
+
+                let volumes = fetch_order_vaults_volume(
+                    &local_db,
+                    &OrderbookIdentifier::new(chain_id, orderbook),
+                    order_hash,
+                    start_timestamp,
+                    end_timestamp,
+                )
+                .await?;
+
+                return volumes
+                    .into_iter()
+                    .map(|v| RaindexVaultVolume::try_from_local_db_vault_volume(chain_id, v))
+                    .collect();
+            }
+        }
+
+        let client = self.get_orderbook_client()?;
         let volumes = client
             .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
             .await?;
-        for volume in volumes {
-            let volume = RaindexVaultVolume::try_from_vault_volume(self.chain_id, volume)?;
-            result_volumes.push(volume);
-        }
-        Ok(result_volumes)
+        volumes
+            .into_iter()
+            .map(|v| RaindexVaultVolume::try_from_vault_volume(self.chain_id, v))
+            .collect()
     }
 
     // /// Gets comprehensive performance metrics and analytics for this order over a specified time period
