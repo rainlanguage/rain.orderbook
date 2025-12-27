@@ -18,7 +18,7 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable
 import {ChildOrderBookV6ArbOrderTaker} from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";
 
 contract OrderBookV6ArbOrderTakerIERC165Test is Test {
-    /// Test that ERC165 and IOrderBookV5ArbOrderTaker are supported interfaces
+    /// Test that ERC165 and IOrderBookV6ArbOrderTaker are supported interfaces
     /// as per ERC165.
     function testOrderBookV6ArbOrderTakerIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
