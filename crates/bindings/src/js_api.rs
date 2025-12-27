@@ -1,5 +1,5 @@
 use crate::IOrderBookV5::{
-    EvaluableV4, OrderV4, QuoteV2, SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV4, IOV2,
+    EvaluableV4, OrderV4, QuoteV2, SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV5, IOV2,
 };
 use wasm_bindgen_utils::{impl_custom_tsify, impl_wasm_traits, prelude::*};
 
@@ -9,7 +9,7 @@ impl_wasm_traits!(OrderV4);
 impl_wasm_traits!(EvaluableV4);
 impl_wasm_traits!(SignedContextV1);
 impl_wasm_traits!(TakeOrderConfigV4);
-impl_wasm_traits!(TakeOrdersConfigV4);
+impl_wasm_traits!(TakeOrdersConfigV5);
 
 impl_custom_tsify!(
     IOV2,
@@ -63,11 +63,12 @@ impl_custom_tsify!(
 }"
 );
 impl_custom_tsify!(
-    TakeOrdersConfigV4,
-    "export interface TakeOrdersConfigV4 {
-    minimumInput: string;
-    maximumInput: string;
+    TakeOrdersConfigV5,
+    "export interface TakeOrdersConfigV5 {
+    minimumIO: string;
+    maximumIO: string;
     maximumIORatio: string;
+    IOIsInput: string;
     orders: TakeOrderConfigV4[];
     data: string;
 }"
@@ -159,15 +160,18 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_take_orders_config_v4_tsify() {
-        let js_take_orders_config = to_js_value(&TakeOrdersConfigV4::default()).unwrap();
+        let js_take_orders_config = to_js_value(&TakeOrdersConfigV5::default()).unwrap();
         // validate serialized props match the tsify definition
-        assert!(JsString::from_str("minimumInput")
+        assert!(JsString::from_str("minimumIO")
             .unwrap()
             .js_in(&js_take_orders_config));
-        assert!(JsString::from_str("maximumInput")
+        assert!(JsString::from_str("maximumIO")
             .unwrap()
             .js_in(&js_take_orders_config));
         assert!(JsString::from_str("maximumIORatio")
+            .unwrap()
+            .js_in(&js_take_orders_config));
+        assert!(JsString::from_str("IOIsInput")
             .unwrap()
             .js_in(&js_take_orders_config));
         assert!(JsString::from_str("orders")

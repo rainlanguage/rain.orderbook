@@ -8,7 +8,7 @@ import {
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_COLUMN
 } from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {
     SourceIndexV2,
     StateNamespace,

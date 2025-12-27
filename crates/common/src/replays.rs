@@ -214,7 +214,7 @@ amount price: 2 1;
         .unwrap()
         .get_inner();
         let one_float = Float::parse("1".to_string()).unwrap().get_inner();
-        let config = Orderbook::TakeOrdersConfigV4 {
+        let config = Orderbook::TakeOrdersConfigV5 {
             orders: vec![Orderbook::TakeOrderConfigV4 {
                 order,
                 inputIOIndex: U256::from(0),
@@ -222,8 +222,9 @@ amount price: 2 1;
                 signedContext: vec![],
             }],
             maximumIORatio: max_float,
-            maximumInput: max_float,
-            minimumInput: one_float,
+            maximumIO: max_float,
+            minimumIO: one_float,
+            IOIsInput: U256::from(1),
             data: Bytes::new(),
         };
 
