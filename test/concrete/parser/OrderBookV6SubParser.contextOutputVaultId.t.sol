@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {OrderBookV6SubParserContextTest} from "test/util/abstract/OrderBookV6SubParserContextTest.sol";
 
-contract OrderBookV6SubParserContextOrderBookTest is OrderBookV6SubParserContextTest {
+contract OrderBookV6SubParserContextOutputVaultIdTest is OrderBookV6SubParserContextTest {
     function word() internal pure override returns (string memory) {
         return "output-vault-id";
     }
