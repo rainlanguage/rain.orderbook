@@ -90,9 +90,9 @@ error TokenSelfTrade();
 error TokenDecimalsMismatch();
 
 /// Thrown when the minimum input is not met.
-/// @param minimumInput The minimum input required.
-/// @param input The input that was achieved.
-error MinimumInput(Float minimumInput, Float input);
+/// @param minimumIO The minimum io required.
+/// @param actualIO The io that was achieved.
+error MinimumIO(Float minimumIO, Float actualIO);
 
 /// Thrown when two orders have the same owner during clear.
 error SameOwner();
@@ -533,7 +533,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         {
             Float actualRelevantTakerIO = config.IOIsInput ? totalTakerInput : totalTakerOutput;
             if (actualRelevantTakerIO.lt(config.minimumIO)) {
-                revert MinimumInput(config.minimumIO, actualRelevantTakerIO);
+                revert MinimumIO(config.minimumIO, actualRelevantTakerIO);
             }
         }
 
