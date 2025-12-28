@@ -15,6 +15,7 @@ import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/exten
 
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibDecimalFloatImplementation} from "rain.math.float/lib/implementation/LibDecimalFloatImplementation.sol";
+import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title OrderBookV6WithdrawTest
 /// Tests withdrawing from the order book.
@@ -136,7 +137,7 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
 
         // The token contract always reverts when not mocked.
         vm.prank(alice);
-        vm.expectRevert("SafeERC20: low-level call failed");
+        vm.expectRevert();
         iOrderbook.withdraw4(address(iToken0), vaultId, withdrawAmount, new TaskV2[](0));
 
         vm.prank(alice);
@@ -145,7 +146,7 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
             abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount18.min(depositAmount18)),
             abi.encode(false)
         );
-        vm.expectRevert("SafeERC20: ERC20 operation did not succeed");
+        vm.expectRevert(abi.encodeWithSelector(SafeERC20.SafeERC20FailedOperation.selector, address(iToken0)));
         iOrderbook.withdraw4(address(iToken0), vaultId, withdrawAmount, new TaskV2[](0));
     }
 

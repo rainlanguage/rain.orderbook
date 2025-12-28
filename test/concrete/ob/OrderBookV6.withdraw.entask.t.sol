@@ -15,6 +15,7 @@ import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/exten
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
 import {console2} from "forge-std/Test.sol";
 
@@ -24,19 +25,21 @@ contract OrderBookV6WithdrawEvalTest is OrderBookV6ExternalRealTest {
     using LibDecimalFloat for Float;
     using LibFormatDecimalFloat for Float;
 
-    function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal {
+    function checkReentrancyRW(uint256 expectedReads, uint256 expectedWrites) internal view {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
         // 2 reads for deposit.
         assertEq(reads.length, expectedReads, "reads length");
-        assertEq(reads[0], bytes32(uint256(0)), "reads[0]");
-        assertEq(reads[1], bytes32(uint256(0)), "reads[1]");
-        assertEq(reads[reads.length - 1], bytes32(uint256(0)), "reads[reads.length - 1]");
+        // ReentrancyGuard.REENTRANCY_GUARD_STORAGE
+        bytes32 reentrancyGuardStorage = 0x9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00;
+        assertEq(reads[0], reentrancyGuardStorage, "reads[0]");
+        assertEq(reads[1], reentrancyGuardStorage, "reads[1]");
+        assertEq(reads[reads.length - 1], reentrancyGuardStorage, "reads[reads.length - 1]");
         // 2 writes for reentrancy guard.
         // 1 write for deposit.
         assertEq(writes.length, expectedWrites, "writes length");
-        assertEq(writes[0], bytes32(uint256(0)), "writes[0]");
-        assertEq(writes[writes.length - 1], bytes32(uint256(0)), "writes[writes.length - 1]");
+        assertEq(writes[0], reentrancyGuardStorage, "writes[0]");
+        assertEq(writes[writes.length - 1], reentrancyGuardStorage, "writes[writes.length - 1]");
     }
 
     function checkWithdraw(

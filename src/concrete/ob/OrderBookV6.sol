@@ -25,7 +25,6 @@ import {
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
@@ -48,6 +47,7 @@ import {
     ClearStateChangeV2,
     ZeroMaximumInput,
     SignedContextV1,
+    //forge-lint: disable-next-line(unused-import)
     EvaluableV4,
     TaskV2,
     QuoteV2,
@@ -60,7 +60,6 @@ import {
     CONTEXT_CALLING_CONTEXT_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
     CONTEXT_VAULT_IO_BALANCE_DIFF,
-    CONTEXT_VAULT_IO_TOKEN_DECIMALS,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_VAULT_IO_TOKEN,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
