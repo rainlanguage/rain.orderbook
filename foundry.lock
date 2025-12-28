@@ -6,7 +6,7 @@
     "rev": "ab90e74dc42808d6df4c32781a95cc2ed43bacc0"
   },
   "lib/rain.tofu.erc20-decimals": {
-    "rev": "ca8e8bacf6c6cb3b9938a6961efb9f93cc1754f9"
+    "rev": "cfd6fb8c4a0062a53746396923a6ff8ff76cde17"
   },
   "lib/sushixswap-v2": {
     "rev": "ca38c64cf7c3042f6427414d7bff61c54293da51"
