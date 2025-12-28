@@ -1,6 +1,6 @@
 {
   "lib/rain.interpreter": {
-    "rev": "d1fee1b9c4a427ebd529b9c0b0e17718c1a4a99a"
+    "rev": "7bf57b61331ff3000fde74c0437ce6489f0e1667"
   },
   "lib/rain.orderbook.interface": {
     "rev": "ab90e74dc42808d6df4c32781a95cc2ed43bacc0"
