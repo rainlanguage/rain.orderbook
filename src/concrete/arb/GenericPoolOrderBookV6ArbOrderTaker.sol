@@ -26,13 +26,13 @@ contract GenericPoolOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(takeOrdersData, (address, address, bytes));
 
-        IERC20(inputToken).safeApprove(spender, 0);
-        IERC20(inputToken).safeApprove(spender, type(uint256).max);
+        IERC20(inputToken).forceApprove(spender, 0);
+        IERC20(inputToken).forceApprove(spender, type(uint256).max);
         bytes memory returnData = pool.functionCallWithValue(encodedFunctionCall, address(this).balance);
         // Nothing can be done with returnData as `takeOrders` does not support
         // it.
         (returnData);
-        IERC20(inputToken).safeApprove(spender, 0);
+        IERC20(inputToken).forceApprove(spender, 0);
     }
 
     /// Allow receiving gas.

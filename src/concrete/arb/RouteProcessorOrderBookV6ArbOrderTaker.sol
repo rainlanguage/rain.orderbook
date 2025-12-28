@@ -31,8 +31,8 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         bytes calldata takeOrdersData
     ) public virtual override {
         super.onTakeOrders2(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
-        IERC20(inputToken).safeApprove(address(iRouteProcessor), 0);
-        IERC20(inputToken).safeApprove(address(iRouteProcessor), type(uint256).max);
+        IERC20(inputToken).forceApprove(address(iRouteProcessor), 0);
+        IERC20(inputToken).forceApprove(address(iRouteProcessor), type(uint256).max);
         bytes memory route = abi.decode(takeOrdersData, (bytes));
         (uint256 inputTokenAmount, bool losslessInputAmount) =
             LibDecimalFloat.toFixedDecimalLossy(inputAmountSent, IERC20Metadata(inputToken).decimals());
@@ -45,7 +45,7 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         (uint256 amountOut) = iRouteProcessor.processRoute(
             inputToken, inputTokenAmount, outputToken, outputTokenAmount, address(this), route
         );
-        IERC20(inputToken).safeApprove(address(iRouteProcessor), 0);
+        IERC20(inputToken).forceApprove(address(iRouteProcessor), 0);
         (amountOut);
     }
 

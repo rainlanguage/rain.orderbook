@@ -10,10 +10,10 @@ pragma solidity ^0.8.25;
 // file needs the contract to exist so that it can be compiled.
 
 /// @dev Hash of the known bytecode.
-bytes32 constant BYTECODE_HASH = bytes32(0x7c8b8c827e772690a58491ad0b064e4eadf31c95511023abfea56990fef5d847);
+bytes32 constant BYTECODE_HASH = bytes32(0x86c10b0c55361e62efd05ca3cc787f4a0ca7b46451d1d98c2377ca810a7d0aed);
 
 /// @dev The hash of the meta that describes the contract.
-bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0x3457291434660c589b0e6c287e12b513e5194a5129c75fa47d01ce03fbc52178);
+bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0x1b55be9a759c95379acb8b07be84d19f8c598a3365e0a0f4522238cc44d387cd);
 
 /// @dev The parse meta that is used to lookup word definitions.
 /// The structure of the parse meta is:
@@ -44,13 +44,13 @@ uint8 constant PARSE_META_BUILD_DEPTH = 1;
 /// to things that happen entirely on the interpreter such as well known
 /// constants and references to the context grid.
 bytes constant SUB_PARSER_WORD_PARSERS =
-    hex"166a1689169a16ab16bb16cc16dd16ee16ff17101721173117421753176417751786179617a6166a169a16ab16bb17dc166a169a16ab16bb17dc17ed";
+    hex"162e164b165a166916781688169716a716b616c616d616e516f5170417141724173417431752162e165a166916781787162e165a1669167817871797";
 
 /// @dev Every two bytes is a function pointer for an operand handler.
 /// These positional indexes all map to the same indexes looked up in the parse
 /// meta.
 bytes constant OPERAND_HANDLER_FUNCTION_POINTERS =
-    hex"1c191c191c191c191c191c191c191c191c191c191c191c191c191c191c191c191c191c5e1d161c191c191c191c191c191c191c191c191c191c191c19";
+    hex"1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1bd11c861b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f1b8f";
 
 /// @dev Every two bytes is a function pointer for a literal parser.
 /// Literal dispatches are determined by the first byte(s) of the literal

@@ -297,7 +297,7 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
     ) external {
         // 0 tested separately.
         aliceIORatio18 = bound(aliceIORatio18, 1, 1e18);
-        bobIORatio18 = bound(bobIORatio18, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio18, Math.Rounding.Down));
+        bobIORatio18 = bound(bobIORatio18, 1e18, uint256(1e18).fixedPointDiv(aliceIORatio18, Math.Rounding.Floor));
 
         Float aliceIORatio = LibDecimalFloat.fromFixedDecimalLosslessPacked(aliceIORatio18, 18);
         Float bobIORatio = LibDecimalFloat.fromFixedDecimalLosslessPacked(bobIORatio18, 18);

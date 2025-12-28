@@ -6,7 +6,7 @@ import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspect
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {
     LibEncodedDispatch,
     EncodedDispatch
@@ -168,12 +168,12 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the
         // flash loan, cover the orders and remain in profit.
-        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
-        IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
+        IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
+        IERC20(ordersInputToken).forceApprove(address(orderBook), type(uint256).max);
         if (!orderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
             revert FlashLoanFailed();
         }
-        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
+        IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
 
         LibOrderBookArb.finalizeArb(task, ordersInputToken, inputDecimals, ordersOutputToken, outputDecimals);
     }

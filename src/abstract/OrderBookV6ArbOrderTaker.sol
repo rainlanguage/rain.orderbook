@@ -3,9 +3,9 @@
 pragma solidity ^0.8.19;
 
 import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
-import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+// import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20, SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {
@@ -70,11 +70,11 @@ abstract contract OrderBookV6ArbOrderTaker is
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
-        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
-        IERC20(ordersInputToken).safeApprove(address(orderBook), type(uint256).max);
+        IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
+        IERC20(ordersInputToken).forceApprove(address(orderBook), type(uint256).max);
         (Float totalTakerInput, Float totalTakerOutput) = orderBook.takeOrders4(takeOrders);
         (totalTakerInput, totalTakerOutput);
-        IERC20(ordersInputToken).safeApprove(address(orderBook), 0);
+        IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
 
         LibOrderBookArb.finalizeArb(
             task,

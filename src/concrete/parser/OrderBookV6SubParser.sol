@@ -65,7 +65,7 @@ import {
     PARSE_META as SUB_PARSER_PARSE_META,
     SUB_PARSER_WORD_PARSERS,
     OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
-} from "../../generated/OrderBookSubParser.pointers.sol";
+} from "../../generated/OrderBookV6SubParser.pointers.sol";
 import {IDescribedByMetaV1} from "rain.metadata/interface/IDescribedByMetaV1.sol";
 
 contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
