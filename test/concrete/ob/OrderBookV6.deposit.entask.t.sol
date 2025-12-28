@@ -23,17 +23,19 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
 
     function checkReentrancyRW() internal view {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
+        // ReentrancyGuard.REENTRANCY_GUARD_STORAGE
+        bytes32 reentrancyGuardStorage = 0x9b779b17422d0df92223018b32b4d1fa46e071723d6817e2486d003becc55f00;
         // 3 reads for reentrancy guard.
         // 5 reads for deposit.
         assertEq(reads.length, 5);
-        assertEq(reads[0], bytes32(uint256(0)));
-        assertEq(reads[1], bytes32(uint256(0)));
-        assertEq(reads[reads.length - 1], bytes32(uint256(0)));
+        assertEq(reads[0], reentrancyGuardStorage);
+        assertEq(reads[1], reentrancyGuardStorage);
+        assertEq(reads[reads.length - 1], reentrancyGuardStorage);
         // 2 writes for reentrancy guard.
         // 2 write for deposit.
         assertEq(writes.length, 3);
-        assertEq(writes[0], bytes32(uint256(0)));
-        assertEq(writes[writes.length - 1], bytes32(uint256(0)));
+        assertEq(writes[0], reentrancyGuardStorage);
+        assertEq(writes[writes.length - 1], reentrancyGuardStorage);
     }
 
     function checkDeposit(

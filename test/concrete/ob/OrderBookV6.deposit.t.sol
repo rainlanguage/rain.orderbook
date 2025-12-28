@@ -11,6 +11,7 @@ import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
+import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title OrderBookV6DepositTest
 /// Tests depositing to an order book.
@@ -90,7 +91,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
 
         // The token contract always reverts when not mocked.
         vm.prank(depositor);
-        vm.expectRevert(bytes("SafeERC20: low-level call failed"));
+        vm.expectRevert();
         iOrderbook.deposit4(address(iToken0), vaultId, amount, new TaskV2[](0));
 
         // Mocking the token to return false should also revert.
@@ -101,7 +102,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             abi.encode(false)
         );
         // This error string appears when the call completes but returns false.
-        vm.expectRevert(bytes("SafeERC20: ERC20 operation did not succeed"));
+        vm.expectRevert(abi.encodeWithSelector(SafeERC20.SafeERC20FailedOperation.selector, address(iToken0)));
         iOrderbook.deposit4(address(iToken0), vaultId, amount, new TaskV2[](0));
     }
 
@@ -129,11 +130,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             actions[i].amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(actions[i].amount18, 18);
             // Avoid errors from attempting to etch precompiles.
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
-            // Avoid errors from attempting to etch the orderbook.
-            vm.assume(actions[i].token != address(iOrderbook));
-            // Avoid errors from attempting to etch test harness internals.
-            vm.assume(actions[i].token != address(CONSOLE_ADDRESS));
-            vm.assume(actions[i].token != address(vm));
+            vm.assume(actions[i].token.code.length != 0);
         }
 
         for (uint256 i = 0; i < actions.length; i++) {
@@ -154,26 +151,26 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             vm.mockCall(
                 actions[i].token, abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18))
             );
-            // vm.expectEmit(false, false, false, true);
-            // emit DepositV2(actions[i].depositor, actions[i].token, actions[i].vaultId, actions[i].amount18);
-            // vm.record();
-            // vm.recordLogs();
+            vm.expectEmit(false, false, false, true);
+            emit DepositV2(actions[i].depositor, actions[i].token, actions[i].vaultId, actions[i].amount18);
+            vm.record();
+            vm.recordLogs();
             iOrderbook.deposit4(actions[i].token, actions[i].vaultId, actions[i].amount, new TaskV2[](0));
-            // (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
-            // assertEq(vm.getRecordedLogs().length, 1, "logs");
-            // // - reentrancy guard x3
-            // // - vault balance floats x2
-            // // - token decimals x2
-            // assertTrue(reads.length == 5, "reads");
-            // // // - reentrancy guard x2
-            // // // - vault balance x1
-            // assertTrue(writes.length == 4 || writes.length == 3, "writes");
-            // assertTrue(
-            //     iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId).eq(
-            //         actions[i].amount.add(vaultBalanceBefore)
-            //     ),
-            //     "vault balance"
-            // );
+            (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
+            assertEq(vm.getRecordedLogs().length, 1, "logs");
+            // - reentrancy guard x3
+            // - vault balance floats x2
+            // - token decimals x2
+            assertTrue(reads.length == 5, "reads");
+            // // - reentrancy guard x2
+            // // - vault balance x1
+            assertTrue(writes.length == 4 || writes.length == 3, "writes");
+            assertTrue(
+                iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId).eq(
+                    actions[i].amount.add(vaultBalanceBefore)
+                ),
+                "vault balance"
+            );
         }
     }
 

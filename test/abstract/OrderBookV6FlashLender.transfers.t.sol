@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {stdError} from "forge-std/Test.sol";
 import {OrderBookV6ExternalMockTest} from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
-import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {ERC20, IERC20Errors} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -100,8 +100,8 @@ contract OrderBookV6FlashLenderTransferTest is OrderBookV6ExternalMockTest {
         }
     }
 
-    /// Alice can send tokens to Carol, who will return all but one of them and
-    /// then the loan will fail.
+    /// Alice can send tokens to Carol, who will return not all of them and then
+    /// the loan will fail.
     /// forge-config: default.fuzz.runs = 100
     function testFlashLoanTransferFail(uint256 amount, uint256 amountWithheld, bool success) public {
         amount = bound(amount, 1, type(uint256).max);
@@ -114,7 +114,11 @@ contract OrderBookV6FlashLenderTransferTest is OrderBookV6ExternalMockTest {
         if (!success) {
             vm.expectRevert(abi.encodeWithSelector(FlashLenderCallbackFailed.selector, bytes32(0)));
         } else {
-            vm.expectRevert("ERC20: transfer amount exceeds balance");
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    IERC20Errors.ERC20InsufficientBalance.selector, address(alice), amount - amountWithheld, amount
+                )
+            );
         }
         iOrderbook.flashLoan(IERC3156FlashBorrower(address(alice)), address(tkn), amount, "");
     }
