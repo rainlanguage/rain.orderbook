@@ -804,7 +804,7 @@ orderbooks:
         let recorded = statuses.borrow();
         assert!(recorded
             .iter()
-            .any(|snapshot| snapshot.status == LocalDbStatus::Active));
+            .any(|snapshot| snapshot.status == LocalDbStatus::Syncing));
 
         client.stop_local_db_scheduler().expect("scheduler stops");
     }

@@ -201,6 +201,8 @@ async fn run_network_loop<R>(
     let chain_id = runner.chain_id().unwrap_or(0);
     let mut was_leader_last_cycle = false;
 
+    emit_network_status(callback.as_deref(), NetworkSyncStatus::syncing(chain_id));
+
     loop {
         if stop_flag.get() {
             break;
@@ -528,11 +530,66 @@ mod wasm_tests {
             recorded
                 .iter()
                 .any(|s| s.status == LocalDbStatus::Syncing && s.chain_id == 42),
-            "expected syncing status for chain 42 on second cycle"
+            "expected syncing status for chain 42"
         );
         assert!(
             recorded.iter().all(|s| s.chain_id == 42),
             "expected all statuses to have chain_id 42"
+        );
+    }
+
+    #[wasm_bindgen_test]
+    async fn network_loop_emits_syncing_immediately_on_start() {
+        let calls = Rc::new(Cell::new(0));
+        let failures = Rc::new(Cell::new(0));
+        let runner = RecordingRunner::new(
+            99,
+            Rc::clone(&calls),
+            Rc::clone(&failures),
+            vec![Some(false)],
+        );
+        let stop_flag = Rc::new(Cell::new(false));
+
+        let statuses = Rc::new(RefCell::new(Vec::new()));
+        let status_callback = {
+            let statuses = Rc::clone(&statuses);
+            let closure = Closure::wrap(Box::new(move |value: JsValue| {
+                let snapshot: NetworkSyncStatus =
+                    serde_wasm_bindgen::from_value(value).expect("valid status value");
+                statuses.borrow_mut().push(snapshot);
+            }) as Box<dyn FnMut(JsValue)>);
+            let function: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+            function
+        };
+
+        spawn_network_loop(
+            runner,
+            noop_local_db(),
+            Some(Rc::new(status_callback)),
+            Rc::clone(&stop_flag),
+            1,
+        );
+
+        TimeoutFuture::new(0).await;
+        TimeoutFuture::new(5).await;
+
+        stop_flag.set(true);
+        TimeoutFuture::new(5).await;
+
+        let recorded = statuses.borrow();
+        assert!(
+            !recorded.is_empty(),
+            "expected at least one status to be emitted"
+        );
+        assert_eq!(
+            recorded[0].status,
+            LocalDbStatus::Syncing,
+            "first status should be Syncing"
+        );
+        assert_eq!(
+            recorded[0].chain_id, 99,
+            "first status should have correct chain_id"
         );
     }
 
