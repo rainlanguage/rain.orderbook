@@ -16,7 +16,6 @@ import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface
 import {
     IOrderBookV6,
     TakeOrdersConfigV5,
-    NoOrders,
     TaskV2,
     Float
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
@@ -148,7 +147,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
-            revert NoOrders();
+            revert IOrderBookV6.NoOrders();
         }
 
         // Encode everything that will be used by the flash loan callback.

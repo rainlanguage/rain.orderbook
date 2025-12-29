@@ -8,11 +8,11 @@ import {
     OrderV4,
     TakeOrderConfigV4,
     TakeOrdersConfigV5,
-    ZeroMaximumInput,
     IOV2,
     EvaluableV4,
     OrderConfigV4,
-    TaskV2
+    TaskV2,
+    IOrderBookV6
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/IInterpreterCallerV2.sol";
 
@@ -42,7 +42,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
             orders: orders,
             data: ""
         });
-        vm.expectRevert(ZeroMaximumInput.selector);
+        vm.expectRevert(IOrderBookV6.ZeroMaximumIO.selector);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         (totalTakerInput, totalTakerOutput);
     }

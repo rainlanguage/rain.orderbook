@@ -13,7 +13,7 @@ import {
     LibEncodedDispatch
 } from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
-import {IOrderBookV6, NoOrders} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {IOrderBookV6} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {
     IOrderBookV6ArbOrderTaker,
     TaskV2
@@ -64,7 +64,7 @@ abstract contract OrderBookV6ArbOrderTaker is
     {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
-            revert NoOrders();
+            revert IOrderBookV6.NoOrders();
         }
 
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;

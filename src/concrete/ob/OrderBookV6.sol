@@ -38,14 +38,12 @@ import {
 
 import {
     IOrderBookV6,
-    NoOrders,
     OrderV4,
     OrderConfigV4,
     TakeOrderConfigV4,
     TakeOrdersConfigV5,
     ClearConfigV2,
     ClearStateChangeV2,
-    ZeroMaximumInput,
     SignedContextV1,
     //forge-lint: disable-next-line(unused-import)
     EvaluableV4,
@@ -445,7 +443,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         {
             Float remainingTakerIO = config.maximumIO;
             if (!remainingTakerIO.gt(Float.wrap(0))) {
-                revert ZeroMaximumInput();
+                revert ZeroMaximumIO();
             }
 
             uint256 i = 0;

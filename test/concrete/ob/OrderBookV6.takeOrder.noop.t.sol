@@ -6,7 +6,6 @@ import {Vm} from "forge-std/Test.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 
 import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
-import {NoOrders} from "src/concrete/ob/OrderBookV6.sol";
 import {
     OrderV4,
     TakeOrdersConfigV5,
