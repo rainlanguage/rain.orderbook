@@ -291,6 +291,7 @@ mod wasm_tests {
     use super::*;
     use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
     use crate::local_db::OrderbookIdentifier;
+    use crate::raindex_client::local_db::LocalDbStatus;
     use alloy::primitives::Address;
     use gloo_timers::future::TimeoutFuture;
     use std::cell::{Cell, RefCell};
