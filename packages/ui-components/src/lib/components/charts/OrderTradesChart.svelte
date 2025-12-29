@@ -129,8 +129,24 @@
 			priceScaleId: 'left'
 		});
 
+		buyVolumeSeries.createPriceLine({
+			price: 0,
+			color: '#888888',
+			lineWidth: 1,
+			lineStyle: 0,
+			axisLabelVisible: false
+		});
+
+		sellVolumeSeries.createPriceLine({
+			price: 0,
+			color: '#888888',
+			lineWidth: 1,
+			lineStyle: 0,
+			axisLabelVisible: false
+		});
+
 		priceSeries = chart.addLineSeries({
-			color: '#666666',
+			color: '#5c6bc0',
 			lineWidth: 2,
 			priceScaleId: 'right',
 			priceFormat: {
