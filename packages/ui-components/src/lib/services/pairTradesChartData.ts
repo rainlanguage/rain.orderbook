@@ -1,16 +1,28 @@
 import type { RaindexTrade, RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { sortBy } from 'lodash';
+import {
+	TIME_DELTA_24_HOURS,
+	TIME_DELTA_7_DAYS,
+	TIME_DELTA_30_DAYS,
+	TIME_DELTA_1_YEAR
+} from './time';
 
-export const TIME_DELTA_24_HOURS = 60 * 60 * 24;
-export const TIME_DELTA_7_DAYS = TIME_DELTA_24_HOURS * 7;
-export const TIME_DELTA_30_DAYS = TIME_DELTA_24_HOURS * 30;
-export const TIME_DELTA_1_YEAR = TIME_DELTA_24_HOURS * 365;
+export { TIME_DELTA_24_HOURS, TIME_DELTA_7_DAYS, TIME_DELTA_30_DAYS, TIME_DELTA_1_YEAR };
 
 export const BUCKET_SECONDS_24_HOURS = 900;
 export const BUCKET_SECONDS_7_DAYS = 3600;
 export const BUCKET_SECONDS_30_DAYS = 14400;
 export const BUCKET_SECONDS_1_YEAR = 86400;
+
+export const CHART_COLORS = {
+	BUY_VOLUME: '#26a69a',
+	BUY_VOLUME_TRANSPARENT: 'rgba(38, 166, 154, 0.5)',
+	SELL_VOLUME: '#ef5350',
+	SELL_VOLUME_TRANSPARENT: 'rgba(239, 83, 80, 0.5)',
+	PRICE_LINE: '#5c6bc0',
+	ZERO_LINE: '#888888'
+} as const;
 
 export function getBucketSecondsForTimeDelta(timeDeltaSeconds: number): number {
 	if (timeDeltaSeconds <= TIME_DELTA_24_HOURS) return BUCKET_SECONDS_24_HOURS;
@@ -149,11 +161,7 @@ export type TransformPairTradesInput = {
 	timeDeltaSeconds: number;
 };
 
-export type TransformPairTradesResult =
-	| { success: true; data: PairTradesChartData }
-	| { success: false; error: string };
-
-export function transformPairTrades(input: TransformPairTradesInput): TransformPairTradesResult {
+export function transformPairTrades(input: TransformPairTradesInput): PairTradesChartData {
 	const { trades, baseTokenAddress, quoteTokenAddress, timeDeltaSeconds } = input;
 	const bucketSeconds = getBucketSecondsForTimeDelta(timeDeltaSeconds);
 
@@ -209,7 +217,7 @@ export function transformPairTrades(input: TransformPairTradesInput): TransformP
 		buyVolumePoints.push({
 			time: bucketTime as UTCTimestamp,
 			value: vol,
-			color: '#26a69a'
+			color: CHART_COLORS.BUY_VOLUME
 		});
 	}
 
@@ -218,16 +226,13 @@ export function transformPairTrades(input: TransformPairTradesInput): TransformP
 		sellVolumePoints.push({
 			time: bucketTime as UTCTimestamp,
 			value: -vol,
-			color: '#ef5350'
+			color: CHART_COLORS.SELL_VOLUME
 		});
 	}
 
 	return {
-		success: true,
-		data: {
-			pricePoints: sortBy(pricePoints, (p) => p.time),
-			buyVolumePoints: sortBy(buyVolumePoints, (p) => p.time),
-			sellVolumePoints: sortBy(sellVolumePoints, (p) => p.time)
-		}
+		pricePoints: sortBy(pricePoints, (p) => p.time),
+		buyVolumePoints: sortBy(buyVolumePoints, (p) => p.time),
+		sellVolumePoints: sortBy(sellVolumePoints, (p) => p.time)
 	};
 }

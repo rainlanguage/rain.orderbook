@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { RaindexTrade, RaindexVaultToken } from '@rainlanguage/orderbook';
 import {
 	extractPairsFromTrades,
@@ -160,6 +160,10 @@ describe('transformPairTrades', () => {
 		vi.setSystemTime(new Date(1700000000 * 1000));
 	});
 
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	it('returns empty data when no trades match the pair', () => {
 		const trades = [createMockTrade('1', 1699990000, '0xAAA', '0xBBB', 100, 200)];
 
@@ -170,12 +174,9 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.pricePoints).toHaveLength(0);
-			expect(result.data.buyVolumePoints).toHaveLength(0);
-			expect(result.data.sellVolumePoints).toHaveLength(0);
-		}
+		expect(result.pricePoints).toHaveLength(0);
+		expect(result.buyVolumePoints).toHaveLength(0);
+		expect(result.sellVolumePoints).toHaveLength(0);
 	});
 
 	it('filters trades outside time window', () => {
@@ -191,10 +192,7 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.pricePoints).toHaveLength(1);
-		}
+		expect(result.pricePoints).toHaveLength(1);
 	});
 
 	it('correctly identifies BUY trades (order received base)', () => {
@@ -207,11 +205,8 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.buyVolumePoints).toHaveLength(1);
-			expect(result.data.sellVolumePoints).toHaveLength(0);
-		}
+		expect(result.buyVolumePoints).toHaveLength(1);
+		expect(result.sellVolumePoints).toHaveLength(0);
 	});
 
 	it('correctly identifies SELL trades (order gave base)', () => {
@@ -224,11 +219,8 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.buyVolumePoints).toHaveLength(0);
-			expect(result.data.sellVolumePoints).toHaveLength(1);
-		}
+		expect(result.buyVolumePoints).toHaveLength(0);
+		expect(result.sellVolumePoints).toHaveLength(1);
 	});
 
 	it('calculates price as quote/base', () => {
@@ -241,11 +233,8 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.pricePoints).toHaveLength(1);
-			expect(result.data.pricePoints[0].value).toBe(2);
-		}
+		expect(result.pricePoints).toHaveLength(1);
+		expect(result.pricePoints[0].value).toBe(2);
 	});
 
 	it('merges trades with same timestamp', () => {
@@ -261,10 +250,7 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.pricePoints).toHaveLength(1);
-		}
+		expect(result.pricePoints).toHaveLength(1);
 	});
 
 	it('aggregates volume into buckets', () => {
@@ -283,11 +269,8 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.buyVolumePoints).toHaveLength(1);
-			expect(result.data.buyVolumePoints[0].value).toBe(150);
-		}
+		expect(result.buyVolumePoints).toHaveLength(1);
+		expect(result.buyVolumePoints[0].value).toBe(150);
 	});
 
 	it('sell volume is negative (bars go down)', () => {
@@ -300,11 +283,8 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.sellVolumePoints).toHaveLength(1);
-			expect(result.data.sellVolumePoints[0].value).toBeLessThan(0);
-		}
+		expect(result.sellVolumePoints).toHaveLength(1);
+		expect(result.sellVolumePoints[0].value).toBeLessThan(0);
 	});
 
 	it('sorts price points by time', () => {
@@ -320,9 +300,6 @@ describe('transformPairTrades', () => {
 			timeDeltaSeconds: TIME_DELTA_24_HOURS
 		});
 
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.pricePoints[0].time).toBeLessThan(result.data.pricePoints[1].time);
-		}
+		expect(result.pricePoints[0].time).toBeLessThan(result.pricePoints[1].time);
 	});
 });
