@@ -4,6 +4,7 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
 	import {
+		CHART_COLORS,
 		extractPairsFromTrades,
 		getDefaultPair,
 		getTokenLabel,
@@ -16,7 +17,12 @@
 	} from '../../services/pairTradesChartData';
 	import { Button, ButtonGroup, Dropdown, DropdownItem, Spinner } from 'flowbite-svelte';
 	import { ChevronDownSolid } from 'flowbite-svelte-icons';
-	import { createChart, type IChartApi, type UTCTimestamp } from 'lightweight-charts';
+	import {
+		createChart,
+		CrosshairMode,
+		type IChartApi,
+		type UTCTimestamp
+	} from 'lightweight-charts';
 	import { onDestroy, onMount } from 'svelte';
 
 	export let order: RaindexOrder;
@@ -47,16 +53,31 @@
 	$: trades = $query?.data ?? [];
 
 	$: {
-		if (trades.length > 0 && pairs.length === 0) {
-			pairs = extractPairsFromTrades(trades);
-			const defaultPair = getDefaultPair(trades);
-			if (defaultPair) {
-				const idx = pairs.findIndex(
+		if (trades.length > 0) {
+			const extractedPairs = extractPairsFromTrades(trades);
+			const isFirstLoad = pairs.length === 0;
+
+			for (const newPair of extractedPairs) {
+				const exists = pairs.some(
 					(p) =>
-						p.baseToken.address.toLowerCase() === defaultPair.baseToken.address.toLowerCase() &&
-						p.quoteToken.address.toLowerCase() === defaultPair.quoteToken.address.toLowerCase()
+						p.baseToken.address.toLowerCase() === newPair.baseToken.address.toLowerCase() &&
+						p.quoteToken.address.toLowerCase() === newPair.quoteToken.address.toLowerCase()
 				);
-				if (idx >= 0) selectedPairIndex = idx;
+				if (!exists) {
+					pairs = [...pairs, newPair];
+				}
+			}
+
+			if (isFirstLoad && pairs.length > 0) {
+				const defaultPair = getDefaultPair(trades);
+				if (defaultPair) {
+					const idx = pairs.findIndex(
+						(p) =>
+							p.baseToken.address.toLowerCase() === defaultPair.baseToken.address.toLowerCase() &&
+							p.quoteToken.address.toLowerCase() === defaultPair.quoteToken.address.toLowerCase()
+					);
+					if (idx >= 0) selectedPairIndex = idx;
+				}
 			}
 		}
 	}
@@ -99,6 +120,22 @@
 		dropdownOpen = false;
 	}
 
+	function formatTime(timestamp: number): string {
+		const date = new Date(timestamp * 1000);
+		const day = date.getDate();
+		const month = date.toLocaleString('en-US', { month: 'short' });
+		const hours = date.getHours().toString().padStart(2, '0');
+		const minutes = date.getMinutes().toString().padStart(2, '0');
+
+		if (timeDelta <= TIME_DELTA_24_HOURS) {
+			return `${month} ${day} ${hours}:${minutes}`;
+		} else if (timeDelta <= TIME_DELTA_7_DAYS) {
+			return `${month} ${day} ${hours}:00`;
+		} else {
+			return `${month} ${day}`;
+		}
+	}
+
 	function setupChart() {
 		if (!chartElement) return;
 
@@ -113,25 +150,28 @@
 				borderVisible: false
 			},
 			crosshair: {
-				mode: 0
+				mode: CrosshairMode.Normal
+			},
+			timeScale: {
+				tickMarkFormatter: (time: number) => formatTime(time)
 			}
 		});
 
 		buyVolumeSeries = chart.addHistogramSeries({
-			color: 'rgba(38, 166, 154, 0.5)',
+			color: CHART_COLORS.BUY_VOLUME_TRANSPARENT,
 			priceFormat: { type: 'volume' },
 			priceScaleId: 'left'
 		});
 
 		sellVolumeSeries = chart.addHistogramSeries({
-			color: 'rgba(239, 83, 80, 0.5)',
+			color: CHART_COLORS.SELL_VOLUME_TRANSPARENT,
 			priceFormat: { type: 'volume' },
 			priceScaleId: 'left'
 		});
 
 		buyVolumeSeries.createPriceLine({
 			price: 0,
-			color: '#888888',
+			color: CHART_COLORS.ZERO_LINE,
 			lineWidth: 1,
 			lineStyle: 0,
 			axisLabelVisible: false
@@ -139,14 +179,14 @@
 
 		sellVolumeSeries.createPriceLine({
 			price: 0,
-			color: '#888888',
+			color: CHART_COLORS.ZERO_LINE,
 			lineWidth: 1,
 			lineStyle: 0,
 			axisLabelVisible: false
 		});
 
 		priceSeries = chart.addLineSeries({
-			color: '#5c6bc0',
+			color: CHART_COLORS.PRICE_LINE,
 			lineWidth: 2,
 			priceScaleId: 'right',
 			priceFormat: {
@@ -179,10 +219,10 @@
 	function updateChartData() {
 		if (!chart || !priceSeries || !buyVolumeSeries || !sellVolumeSeries) return;
 
-		if (chartData?.success && chartData.data) {
-			priceSeries.setData(chartData.data.pricePoints);
-			buyVolumeSeries.setData(chartData.data.buyVolumePoints);
-			sellVolumeSeries.setData(chartData.data.sellVolumePoints);
+		if (chartData) {
+			priceSeries.setData(chartData.pricePoints);
+			buyVolumeSeries.setData(chartData.buyVolumePoints);
+			sellVolumeSeries.setData(chartData.sellVolumePoints);
 		} else {
 			priceSeries.setData([]);
 			buyVolumeSeries.setData([]);
@@ -194,9 +234,18 @@
 
 	function setTimeScale() {
 		if (!chart) return;
-		const now = Math.floor(Date.now() / 1000) as UTCTimestamp;
-		const from = (now - timeDelta) as UTCTimestamp;
-		chart.timeScale().setVisibleRange({ from, to: now });
+
+		chart.timeScale().applyOptions({
+			tickMarkFormatter: (time: number) => formatTime(time)
+		});
+
+		if (chartData && chartData.pricePoints.length > 0) {
+			const now = Math.floor(Date.now() / 1000) as UTCTimestamp;
+			const from = (now - timeDelta) as UTCTimestamp;
+			chart.timeScale().setVisibleRange({ from, to: now });
+		} else {
+			chart.timeScale().fitContent();
+		}
 	}
 
 	function destroyChart() {
@@ -318,22 +367,24 @@
 			<div class="text-red-500" data-testid="chart-error">
 				Error: {$query?.error?.message ?? 'Failed to load trades'}
 			</div>
-		{:else if chartData && !chartData.success}
-			<div class="text-red-500" data-testid="chart-transform-error">
-				Error: {chartData.error}
-			</div>
 		{:else if trades.length === 0 || !selectedPair}
 			<div class="text-gray-800 dark:text-gray-400" data-testid="chart-empty">No trades found</div>
-		{:else if chartData?.success && chartData.data.pricePoints.length === 0}
-			<div class="text-gray-800 dark:text-gray-400" data-testid="chart-no-data">
-				No trades found for selected pair and time range
-			</div>
 		{:else}
 			<div
 				bind:this={chartElement}
 				class="h-full w-full overflow-hidden"
 				data-testid="chart-element"
 			></div>
+			{#if chartData && chartData.pricePoints.length === 0}
+				<div
+					class="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80"
+					data-testid="chart-no-data"
+				>
+					<span class="text-gray-800 dark:text-gray-400"
+						>No trades found for selected pair and time range</span
+					>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>
