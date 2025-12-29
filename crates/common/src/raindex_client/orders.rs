@@ -2,7 +2,7 @@ use super::local_db::orders::LocalDbOrders;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
-use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
+use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -585,56 +585,15 @@ impl RaindexClient {
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
+        let ids = chain_ids.map(|ChainIds(ids)| ids);
+
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+            return local_source.list(ids, &filters, None).await;
+        }
+
         let subgraph_source = SubgraphOrders::new(self);
-
-        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
-            return subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await;
-        };
-
-        if ids.is_empty() {
-            return subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await;
-        }
-
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-
-        for id in ids.drain(..) {
-            if is_chain_supported_local_db(id) {
-                local_ids.push(id);
-            } else {
-                sg_ids.push(id);
-            }
-        }
-
-        let mut orders: Vec<RaindexOrder> = Vec::new();
-
-        match self.local_db() {
-            Some(local_db) => {
-                if !local_ids.is_empty() {
-                    let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-                    let local_orders = local_source
-                        .list(Some(local_ids.clone()), &filters, None)
-                        .await?;
-                    orders.extend(local_orders);
-                }
-            }
-            None => {
-                sg_ids.append(&mut local_ids);
-            }
-        }
-
-        if !sg_ids.is_empty() {
-            let sg = subgraph_source
-                .list(Some(sg_ids), &filters, Some(page_number))
-                .await?;
-            orders.extend(sg);
-        }
-
-        Ok(orders)
+        subgraph_source.list(ids, &filters, Some(page_number)).await
     }
 
     /// Retrieves a specific order by its hash from a particular blockchain network
@@ -774,12 +733,10 @@ impl RaindexClient {
             ));
         }
 
-        if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(local_db) = self.local_db() {
-                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-                if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
-                    return Ok(order);
-                }
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+            if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
+                return Ok(order);
             }
         }
 
