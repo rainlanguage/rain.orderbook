@@ -300,7 +300,8 @@ mod tests {
     };
     use crate::local_db::pipeline::runner::utils::RunnerTarget;
     use crate::local_db::pipeline::{
-        EventsPipeline, StatusBus, SyncConfig, SyncOutcome, TokensPipeline, WindowPipeline,
+        EventsPipeline, StatusBus, SyncConfig, SyncOutcome, SyncPhase, TokensPipeline,
+        WindowPipeline,
     };
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
@@ -878,8 +879,9 @@ mod tests {
 
     #[async_trait(?Send)]
     impl StatusBus for StubStatusBus {
-        async fn send(&self, message: &str) -> Result<(), LocalDbError> {
-            self.telemetry.record_status(&self.orderbook_key, message);
+        async fn send(&self, phase: SyncPhase) -> Result<(), LocalDbError> {
+            self.telemetry
+                .record_status(&self.orderbook_key, phase.to_message());
             Ok(())
         }
     }
