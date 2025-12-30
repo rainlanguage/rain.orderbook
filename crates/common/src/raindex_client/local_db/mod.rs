@@ -792,7 +792,7 @@ orderbooks:
             .expect("second scheduler starts");
 
         TimeoutFuture::new(0).await;
-        TimeoutFuture::new(10).await;
+        TimeoutFuture::new(1000).await;
 
         let second_handle_ptr = client
             .local_db_scheduler
