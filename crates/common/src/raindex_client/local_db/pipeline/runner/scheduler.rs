@@ -11,20 +11,23 @@ use crate::local_db::pipeline::runner::utils::parse_runner_settings;
 use crate::local_db::pipeline::runner::RunOutcome;
 use crate::local_db::LocalDbError;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
-use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
+use crate::raindex_client::local_db::pipeline::status::{
+    set_scheduler_state, set_status_callback, ClientStatusBus,
+};
 use crate::raindex_client::local_db::{LocalDb, NetworkSyncStatus, SchedulerState};
 use gloo_timers::future::TimeoutFuture;
 use js_sys::Function;
 use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
+use rain_orderbook_app_settings::network::NetworkCfg;
 use std::cell::Cell;
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::spawn_local;
 use wasm_bindgen_utils::prelude::*;
 
-const DEFAULT_INTERVAL_MS: u32 = 10_000;
+const DEFAULT_INTERVAL_MS: u32 = 5_000;
 
 type DefaultClientRunner = ClientRunner<
     ClientBootstrapAdapter,
@@ -42,7 +45,6 @@ trait SchedulerRunner {
         db_executor: &'a LocalDb,
     ) -> Pin<Box<dyn Future<Output = Result<RunOutcome, LocalDbError>> + 'a>>;
 
-    fn network_key(&self) -> Option<&str>;
     fn chain_id(&self) -> Option<u32>;
 }
 
@@ -54,10 +56,6 @@ impl SchedulerRunner for DefaultClientRunner {
         Box::pin(async move { self.run(db_executor).await })
     }
 
-    fn network_key(&self) -> Option<&str> {
-        self.network_key()
-    }
-
     fn chain_id(&self) -> Option<u32> {
         self.chain_id()
     }
@@ -66,7 +64,7 @@ impl SchedulerRunner for DefaultClientRunner {
 #[derive(Debug)]
 pub struct SchedulerHandle {
     stop_flag: Rc<Cell<bool>>,
-    network_keys: Vec<String>,
+    networks: Vec<NetworkCfg>,
 }
 
 impl SchedulerHandle {
@@ -74,8 +72,12 @@ impl SchedulerHandle {
         self.stop_flag.set(true);
     }
 
-    pub fn network_keys(&self) -> &[String] {
-        &self.network_keys
+    pub fn networks(&self) -> &[NetworkCfg] {
+        &self.networks
+    }
+
+    pub fn network_keys(&self) -> Vec<String> {
+        self.networks.iter().map(|n| n.key.clone()).collect()
     }
 }
 
@@ -86,16 +88,16 @@ pub(crate) fn start(
 ) -> Result<SchedulerHandle, LocalDbError> {
     let settings = parse_runner_settings(&settings_yaml)?;
 
-    let mut network_keys: Vec<String> = settings
-        .orderbooks
-        .values()
-        .map(|ob| ob.network.key.clone())
-        .collect::<HashSet<_>>()
-        .into_iter()
-        .collect();
-    network_keys.sort();
+    let mut networks_map: HashMap<String, NetworkCfg> = HashMap::new();
+    for ob in settings.orderbooks.values() {
+        networks_map
+            .entry(ob.network.key.clone())
+            .or_insert_with(|| (*ob.network).clone());
+    }
+    let mut networks: Vec<NetworkCfg> = networks_map.into_values().collect();
+    networks.sort_by(|a, b| a.key.cmp(&b.key));
 
-    if network_keys.is_empty() {
+    if networks.is_empty() {
         return Err(LocalDbError::CustomError(
             "no networks found in settings".to_string(),
         ));
@@ -107,7 +109,7 @@ pub(crate) fn start(
     let bootstrap = ClientBootstrapAdapter::new();
     let db_clone = db.clone();
     let stop_flag_init = Rc::clone(&stop_flag);
-    let network_keys_for_spawn = network_keys.clone();
+    let networks_for_spawn = networks.clone();
     let settings_clone = settings.clone();
 
     spawn_local(async move {
@@ -119,33 +121,31 @@ pub(crate) fn start(
             .runner_run(&db_clone, Some(DB_SCHEMA_VERSION))
             .await
         {
-            for network_key in &network_keys_for_spawn {
+            for network in &networks_for_spawn {
                 emit_network_status(
                     callback.as_deref(),
-                    NetworkSyncStatus::failure(network_key.clone(), 0, err.to_readable_msg()),
+                    NetworkSyncStatus::failure(network.chain_id, err.to_readable_msg()),
                 );
             }
             return;
         }
 
-        for network_key in &network_keys_for_spawn {
+        set_status_callback(callback.clone());
+
+        for network in &networks_for_spawn {
             let config =
-                match NetworkRunnerConfig::from_global_settings(&settings_clone, network_key) {
+                match NetworkRunnerConfig::from_global_settings(&settings_clone, &network.key) {
                     Ok(config) => config,
                     Err(err) => {
                         emit_network_status(
                             callback.as_deref(),
-                            NetworkSyncStatus::failure(
-                                network_key.clone(),
-                                0,
-                                err.to_readable_msg(),
-                            ),
+                            NetworkSyncStatus::failure(network.chain_id, err.to_readable_msg()),
                         );
                         continue;
                     }
                 };
 
-            let leadership = DefaultLeadership::with_network_key(network_key.clone());
+            let leadership = DefaultLeadership::with_network_key(network.key.clone());
             let environment = default_environment();
 
             let runner = match ClientRunner::from_config(config.clone(), environment, leadership) {
@@ -153,11 +153,7 @@ pub(crate) fn start(
                 Err(err) => {
                     emit_network_status(
                         callback.as_deref(),
-                        NetworkSyncStatus::failure(
-                            network_key.clone(),
-                            config.chain_id,
-                            err.to_readable_msg(),
-                        ),
+                        NetworkSyncStatus::failure(network.chain_id, err.to_readable_msg()),
                     );
                     continue;
                 }
@@ -175,7 +171,7 @@ pub(crate) fn start(
 
     Ok(SchedulerHandle {
         stop_flag,
-        network_keys,
+        networks,
     })
 }
 
@@ -202,9 +198,10 @@ async fn run_network_loop<R>(
 ) where
     R: SchedulerRunner + 'static,
 {
-    let network_key = runner.network_key().unwrap_or("unknown").to_string();
     let chain_id = runner.chain_id().unwrap_or(0);
     let mut was_leader_last_cycle = false;
+
+    emit_network_status(callback.as_deref(), NetworkSyncStatus::syncing(chain_id));
 
     loop {
         if stop_flag.get() {
@@ -212,24 +209,19 @@ async fn run_network_loop<R>(
         }
 
         if was_leader_last_cycle {
-            emit_network_status(
-                callback.as_deref(),
-                NetworkSyncStatus::syncing(network_key.clone(), chain_id),
-            );
+            emit_network_status(callback.as_deref(), NetworkSyncStatus::syncing(chain_id));
         }
 
         match runner.run_once(&db).await {
             Ok(outcome) => match outcome {
                 RunOutcome::Report(report) => {
                     was_leader_last_cycle = true;
+                    set_scheduler_state(SchedulerState::Leader);
+
                     if report.failures.is_empty() {
                         emit_network_status(
                             callback.as_deref(),
-                            NetworkSyncStatus::active(
-                                network_key.clone(),
-                                chain_id,
-                                SchedulerState::Leader,
-                            ),
+                            NetworkSyncStatus::active(chain_id, SchedulerState::Leader),
                         );
                     } else {
                         let first = &report.failures[0];
@@ -241,19 +233,16 @@ async fn run_network_loop<R>(
                         );
                         emit_network_status(
                             callback.as_deref(),
-                            NetworkSyncStatus::failure(network_key.clone(), chain_id, msg),
+                            NetworkSyncStatus::failure(chain_id, msg),
                         );
                     }
                 }
                 RunOutcome::NotLeader => {
                     was_leader_last_cycle = false;
+                    set_scheduler_state(SchedulerState::NotLeader);
                     emit_network_status(
                         callback.as_deref(),
-                        NetworkSyncStatus::active(
-                            network_key.clone(),
-                            chain_id,
-                            SchedulerState::NotLeader,
-                        ),
+                        NetworkSyncStatus::active(chain_id, SchedulerState::NotLeader),
                     );
                 }
             },
@@ -261,11 +250,7 @@ async fn run_network_loop<R>(
                 was_leader_last_cycle = true;
                 emit_network_status(
                     callback.as_deref(),
-                    NetworkSyncStatus::failure(
-                        network_key.clone(),
-                        chain_id,
-                        err.to_readable_msg(),
-                    ),
+                    NetworkSyncStatus::failure(chain_id, err.to_readable_msg()),
                 );
             }
         }
@@ -291,6 +276,7 @@ mod wasm_tests {
     use super::*;
     use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
     use crate::local_db::OrderbookIdentifier;
+    use crate::raindex_client::local_db::pipeline::status::get_scheduler_state;
     use crate::raindex_client::local_db::LocalDbStatus;
     use alloy::primitives::Address;
     use gloo_timers::future::TimeoutFuture;
@@ -316,7 +302,6 @@ mod wasm_tests {
     }
 
     struct RecordingRunner {
-        network_key: String,
         chain_id: u32,
         calls: Rc<Cell<usize>>,
         failures: Rc<Cell<usize>>,
@@ -325,14 +310,12 @@ mod wasm_tests {
 
     impl RecordingRunner {
         fn new(
-            network_key: &str,
             chain_id: u32,
             calls: Rc<Cell<usize>>,
             failures: Rc<Cell<usize>>,
             outcomes: Vec<Option<bool>>,
         ) -> Self {
             Self {
-                network_key: network_key.to_string(),
                 chain_id,
                 calls,
                 failures,
@@ -379,10 +362,6 @@ mod wasm_tests {
             })
         }
 
-        fn network_key(&self) -> Option<&str> {
-            Some(&self.network_key)
-        }
-
         fn chain_id(&self) -> Option<u32> {
             Some(self.chain_id)
         }
@@ -399,7 +378,6 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(
-            "test-network",
             1,
             Rc::clone(&calls),
             Rc::clone(&failures),
@@ -424,7 +402,6 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(
-            "test-network",
             1,
             Rc::clone(&calls),
             Rc::clone(&failures),
@@ -449,7 +426,6 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(
-            "test-network",
             1,
             Rc::clone(&calls),
             Rc::clone(&failures),
@@ -491,6 +467,11 @@ mod wasm_tests {
                 .any(|s| s.scheduler_state == SchedulerState::NotLeader),
             "expected NotLeader status"
         );
+        assert_eq!(
+            get_scheduler_state(),
+            SchedulerState::Leader,
+            "scheduler state should be Leader after recovering"
+        );
     }
 
     #[wasm_bindgen_test]
@@ -498,7 +479,6 @@ mod wasm_tests {
         let calls = Rc::new(Cell::new(0));
         let failures = Rc::new(Cell::new(0));
         let runner = RecordingRunner::new(
-            "test-network",
             42,
             Rc::clone(&calls),
             Rc::clone(&failures),
@@ -537,20 +517,20 @@ mod wasm_tests {
         assert!(
             recorded
                 .iter()
-                .any(|s| s.status == LocalDbStatus::Failure && s.network_key == "test-network"),
-            "expected failure status for test-network"
+                .any(|s| s.status == LocalDbStatus::Failure && s.chain_id == 42),
+            "expected failure status for chain 42"
         );
         assert!(
             recorded
                 .iter()
-                .any(|s| s.status == LocalDbStatus::Active && s.network_key == "test-network"),
-            "expected active status for test-network"
+                .any(|s| s.status == LocalDbStatus::Active && s.chain_id == 42),
+            "expected active status for chain 42"
         );
         assert!(
             recorded
                 .iter()
-                .any(|s| s.status == LocalDbStatus::Syncing && s.network_key == "test-network"),
-            "expected syncing status for test-network on second cycle"
+                .any(|s| s.status == LocalDbStatus::Syncing && s.chain_id == 42),
+            "expected syncing status for chain 42"
         );
         assert!(
             recorded.iter().all(|s| s.chain_id == 42),
@@ -558,17 +538,70 @@ mod wasm_tests {
         );
     }
 
+    #[wasm_bindgen_test]
+    async fn network_loop_emits_syncing_immediately_on_start() {
+        let calls = Rc::new(Cell::new(0));
+        let failures = Rc::new(Cell::new(0));
+        let runner = RecordingRunner::new(
+            99,
+            Rc::clone(&calls),
+            Rc::clone(&failures),
+            vec![Some(false)],
+        );
+        let stop_flag = Rc::new(Cell::new(false));
+
+        let statuses = Rc::new(RefCell::new(Vec::new()));
+        let status_callback = {
+            let statuses = Rc::clone(&statuses);
+            let closure = Closure::wrap(Box::new(move |value: JsValue| {
+                let snapshot: NetworkSyncStatus =
+                    serde_wasm_bindgen::from_value(value).expect("valid status value");
+                statuses.borrow_mut().push(snapshot);
+            }) as Box<dyn FnMut(JsValue)>);
+            let function: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+            function
+        };
+
+        spawn_network_loop(
+            runner,
+            noop_local_db(),
+            Some(Rc::new(status_callback)),
+            Rc::clone(&stop_flag),
+            1,
+        );
+
+        TimeoutFuture::new(0).await;
+        TimeoutFuture::new(5).await;
+
+        stop_flag.set(true);
+        TimeoutFuture::new(5).await;
+
+        let recorded = statuses.borrow();
+        assert!(
+            !recorded.is_empty(),
+            "expected at least one status to be emitted"
+        );
+        assert_eq!(
+            recorded[0].status,
+            LocalDbStatus::Syncing,
+            "first status should be Syncing"
+        );
+        assert_eq!(
+            recorded[0].chain_id, 99,
+            "first status should have correct chain_id"
+        );
+    }
+
     struct DelayedRunner {
-        network_key: String,
         chain_id: u32,
         calls: Rc<Cell<usize>>,
         delay_ms: u32,
     }
 
     impl DelayedRunner {
-        fn new(network_key: &str, chain_id: u32, calls: Rc<Cell<usize>>, delay_ms: u32) -> Self {
+        fn new(chain_id: u32, calls: Rc<Cell<usize>>, delay_ms: u32) -> Self {
             Self {
-                network_key: network_key.to_string(),
                 chain_id,
                 calls,
                 delay_ms,
@@ -596,13 +629,27 @@ mod wasm_tests {
             })
         }
 
-        fn network_key(&self) -> Option<&str> {
-            Some(&self.network_key)
-        }
-
         fn chain_id(&self) -> Option<u32> {
             Some(self.chain_id)
         }
+    }
+
+    #[wasm_bindgen_test]
+    fn scheduler_handle_networks_returns_correct_network_configs() {
+        use crate::raindex_client::tests::get_local_db_test_yaml;
+
+        let yaml = get_local_db_test_yaml();
+        let handle = start(yaml, noop_local_db(), None).expect("should start with valid yaml");
+
+        handle.stop();
+
+        let networks = handle.networks();
+        assert_eq!(networks.len(), 1, "expected exactly one network");
+        assert_eq!(networks[0].key, "arbitrum");
+        assert_eq!(networks[0].chain_id, 42161);
+
+        let network_keys = handle.network_keys();
+        assert_eq!(network_keys, vec!["arbitrum".to_string()]);
     }
 
     #[wasm_bindgen_test]
@@ -610,8 +657,8 @@ mod wasm_tests {
         let slow_calls = Rc::new(Cell::new(0));
         let fast_calls = Rc::new(Cell::new(0));
 
-        let slow_runner = DelayedRunner::new("slow-network", 1, Rc::clone(&slow_calls), 100);
-        let fast_runner = DelayedRunner::new("fast-network", 2, Rc::clone(&fast_calls), 0);
+        let slow_runner = DelayedRunner::new(1, Rc::clone(&slow_calls), 100);
+        let fast_runner = DelayedRunner::new(2, Rc::clone(&fast_calls), 0);
 
         let stop_flag = Rc::new(Cell::new(false));
 

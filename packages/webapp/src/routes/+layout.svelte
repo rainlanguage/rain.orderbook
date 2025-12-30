@@ -19,7 +19,7 @@
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 	import { onDestroy, onMount } from 'svelte';
-	import { updateNetworkStatus } from '$lib/stores/localDbStatus';
+	import { updateStatus } from '$lib/stores/localDbStatus';
 	import type { RaindexClient } from '@rainlanguage/orderbook';
 
 	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data;
@@ -38,28 +38,7 @@
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb) return;
 		let client = raindexClient as RaindexClient;
-		client
-			.startLocalDbScheduler(settingsYamlText, updateNetworkStatus)
-			.then((result) => {
-				if (result.error) {
-					updateNetworkStatus({
-						networkKey: 'unknown',
-						chainId: 0,
-						status: 'failure',
-						schedulerState: 'leader',
-						error: result.error.readableMsg ?? result.error.msg
-					});
-				}
-			})
-			.catch((error) => {
-				updateNetworkStatus({
-					networkKey: 'unknown',
-					chainId: 0,
-					status: 'failure',
-					schedulerState: 'leader',
-					error: error instanceof Error ? error.message : 'Local DB scheduler failed to start'
-				});
-			});
+		client.startLocalDbScheduler(settingsYamlText, updateStatus);
 	});
 	onDestroy(() => {
 		if (!raindexClient) return;
