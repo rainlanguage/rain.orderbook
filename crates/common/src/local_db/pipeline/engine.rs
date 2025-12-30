@@ -407,7 +407,7 @@ mod tests {
         token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IOrderBookV5::DepositV2;
+        use rain_orderbook_bindings::IOrderBookV6::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
             block_number: U256::from(block),
@@ -431,7 +431,7 @@ mod tests {
         output_token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
+        use rain_orderbook_bindings::IOrderBookV6::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
         DecodedEventData {
             event_type: EventType::AddOrderV3,
             block_number: U256::from(block),

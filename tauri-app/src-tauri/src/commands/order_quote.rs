@@ -1,6 +1,6 @@
 use crate::error::CommandResult;
 use alloy::primitives::{Address, U256};
-use rain_orderbook_bindings::IOrderBookV5::QuoteV2;
+use rain_orderbook_bindings::IOrderBookV6::QuoteV2;
 use rain_orderbook_common::fuzz::{RainEvalResults, RainEvalResultsTable};
 use rain_orderbook_quote::{NewQuoteDebugger, QuoteDebugger, QuoteDebuggerError, QuoteTarget};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
