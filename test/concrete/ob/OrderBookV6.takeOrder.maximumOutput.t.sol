@@ -8,11 +8,17 @@ import {
     TakeOrderConfigV4,
     TakeOrdersConfigV5,
     SignedContextV1,
-    IOrderBookV6
+    IOrderBookV6,
+    OrderConfigV4,
+    IOV2,
+    EvaluableV4,
+    TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
+    using LibDecimalFloat for Float;
+
     /// It should be possible to take an order with zero maximum output.
     function testTakeOrderMaximumOutputZero(OrderV4 memory order, SignedContextV1 memory signedContext) external {
         vm.assume(order.validInputs.length > 0);
@@ -34,5 +40,179 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         vm.expectRevert(IOrderBookV6.ZeroMaximumIO.selector);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         (totalTakerInput, totalTakerOutput);
+    }
+
+    struct TestOrder {
+        address owner;
+        bytes orderString;
+    }
+
+    struct TestVault {
+        address owner;
+        address token;
+        Float deposit;
+        Float expect;
+    }
+
+    function checkTakeOrderMaximumOutput(
+        TestOrder[] memory testOrders,
+        TestVault[] memory testVaults,
+        Float maximumTakerOutput,
+        Float expectedTakerInput,
+        Float expectedTakerOutput
+    ) internal {
+        address bob = address(uint160(uint256(keccak256("bob.rain.test"))));
+        bytes32 vaultId = 0;
+
+        OrderV4[] memory orders = new OrderV4[](testOrders.length);
+
+        for (uint256 i = 0; i < testOrders.length; i++) {
+            {
+                OrderConfigV4 memory orderConfig;
+                {
+                    bytes memory bytecode = iParserV2.parse2(testOrders[i].orderString);
+                    IOV2[] memory inputs = new IOV2[](1);
+                    inputs[0] = IOV2({token: address(iToken0), vaultId: vaultId});
+                    IOV2[] memory outputs = new IOV2[](1);
+                    outputs[0] = IOV2({token: address(iToken1), vaultId: vaultId});
+                    EvaluableV4 memory evaluable = EvaluableV4({interpreter: iInterpreter, store: iStore, bytecode: bytecode});
+                    orderConfig = OrderConfigV4({
+                        evaluable: evaluable,
+                        validInputs: inputs,
+                        validOutputs: outputs,
+                        nonce: bytes32(0),
+                        secret: bytes32(0),
+                        meta: ""
+                    });
+                }
+
+                vm.prank(testOrders[i].owner);
+                vm.recordLogs();
+                iOrderbook.addOrder4(orderConfig, new TaskV2[](0));
+                Vm.Log[] memory logs = vm.getRecordedLogs();
+                assertEq(logs.length, 1);
+                (,, OrderV4 memory order) = abi.decode(logs[0].data, (address, bytes32, OrderV4));
+                orders[i] = order;
+            }
+        }
+
+        for (uint256 i = 0; i < testVaults.length; i++) {
+            if (testVaults[i].deposit.gt(Float.wrap(0))) {
+                uint256 depositAmount18 = LibDecimalFloat.toFixedDecimalLossless(testVaults[i].deposit, 18);
+
+                // Deposit the amount of tokens required to take the order.
+                vm.mockCall(
+                    address(iToken1),
+                    abi.encodeWithSelector(iToken1.transferFrom.selector, testVaults[i].owner, address(iOrderbook), depositAmount18),
+                    abi.encode(true)
+                );
+                vm.expectCall(
+                    address(iToken1),
+                    abi.encodeWithSelector(iToken1.transferFrom.selector, testVaults[i].owner, address(iOrderbook), depositAmount18),
+                    1
+                );
+                Float balanceBefore = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
+                vm.prank(testVaults[i].owner);
+                iOrderbook.deposit4(testVaults[i].token, vaultId, testVaults[i].deposit, new TaskV2[](0));
+
+                Float balanceAfter = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
+                Float expectedBalance = testVaults[i].deposit.add(balanceBefore);
+
+                assertTrue(balanceAfter.eq(expectedBalance), "deposit");
+            }
+        }
+
+        TakeOrderConfigV4[] memory takeOrders = new TakeOrderConfigV4[](orders.length);
+        for (uint256 i = 0; i < orders.length; i++) {
+            takeOrders[i] = TakeOrderConfigV4({
+                order: orders[i],
+                inputIOIndex: 0,
+                outputIOIndex: 0,
+                signedContext: new SignedContextV1[](0)
+            });
+        }
+
+        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
+            orders: takeOrders,
+            minimumIO: LibDecimalFloat.packLossless(0, 0),
+            maximumIO: maximumTakerOutput,
+            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+            IOIsInput: false,
+            data: ""
+        });
+
+        {
+            uint256 expectedTakerInput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerInput, 18);
+            uint256 expectedTakerOutput18 = LibDecimalFloat.toFixedDecimalLossless(expectedTakerOutput, 18);
+            // Mock and expect the token transfers.
+            vm.mockCall(
+                address(iToken0),
+                abi.encodeWithSelector(iToken0.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput18),
+                abi.encode(true)
+            );
+            vm.expectCall(
+                address(iToken0),
+                abi.encodeWithSelector(iToken0.transferFrom.selector, bob, address(iOrderbook), expectedTakerOutput18),
+                expectedTakerOutput18 > 0 ? 1 : 0
+            );
+            vm.mockCall(
+                address(iToken1),
+                abi.encodeWithSelector(iToken1.transfer.selector, bob, expectedTakerInput18),
+                abi.encode(true)
+            );
+            vm.expectCall(
+                address(iToken1),
+                abi.encodeWithSelector(iToken1.transfer.selector, bob, expectedTakerInput18),
+                expectedTakerInput18 > 0 ? 1 : 0
+            );
+        }
+        {
+            vm.prank(bob);
+            (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
+
+            assertTrue(totalTakerInput.eq(expectedTakerInput), "taker input");
+            assertTrue(totalTakerOutput.eq(expectedTakerOutput), "taker output");
+        }
+
+        for (uint256 i = 0; i < testVaults.length; i++) {
+            Float finalBalance = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
+            Float expectedFinalBalance = testVaults[i].expect;
+            assertTrue(finalBalance.eq(expectedFinalBalance), "final balance");
+        }
+    }
+
+    /// Add an order with unlimited maximum output and take it with a maximum
+    /// taker output. Only the maximum taker output should be used.
+    /// forge-config: default.fuzz.runs = 100
+    function testTakeOrderMaximumOutputSingleOrderUnlimitedMax(uint256 expectedTakerOutput18) external {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
+
+        expectedTakerOutput18 = bound(expectedTakerOutput18, 1, type(uint128).max);
+        uint256 expectedTakerInput18 = expectedTakerOutput18 * 2;
+
+        Float expectedTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(expectedTakerInput18, 18);
+        Float expectedTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(expectedTakerOutput18, 18);
+
+        TestOrder[] memory testOrders = new TestOrder[](1);
+        testOrders[0] = TestOrder({
+            owner: owner,
+            orderString: "_ _: max-positive-value() 0.5;:;"
+        });
+
+        TestVault[] memory testVaults = new TestVault[](2);
+        testVaults[0] = TestVault({
+            owner: owner,
+            token: address(iToken1),
+            deposit: expectedTakerInput,
+            expect: Float.wrap(0)
+        });
+        testVaults[1] = TestVault({
+            owner: owner,
+            token: address(iToken0),
+            deposit: Float.wrap(0),
+            expect: expectedTakerOutput
+        });
+
+        checkTakeOrderMaximumOutput(testOrders, testVaults, expectedTakerInput, expectedTakerInput, expectedTakerOutput);
     }
 }

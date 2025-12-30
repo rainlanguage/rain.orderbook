@@ -171,9 +171,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         for (uint256 i = 0; i < testVaults.length; i++) {
             Float vaultBalance = iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, vaultId);
 
-            Float diff = vaultBalance.sub(testVaults[i].expect);
-
-            assertTrue(diff.lt(LibDecimalFloat.packLossless(11, -14)), "vaultBalance");
+            assertTrue(vaultBalance.eq(testVaults[i].expect), "vaultBalance");
         }
     }
 
