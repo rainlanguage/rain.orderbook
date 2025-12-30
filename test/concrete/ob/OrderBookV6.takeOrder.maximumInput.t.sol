@@ -229,7 +229,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         uint256 orderLimit = 1000;
         ownerDepositAmount18 = bound(ownerDepositAmount18, 0, orderLimit - 1);
-        maximumTakerInput18 = bound(maximumTakerInput18, 1000, uint256(int256(type(int224).max)));
+        maximumTakerInput18 = bound(maximumTakerInput18, orderLimit, uint256(int256(type(int224).max)));
         Float ownerDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerDepositAmount18, 18);
         Float maximumTakerInput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerInput18, 18);
         Float expectedTakerInput = ownerDepositAmount;
