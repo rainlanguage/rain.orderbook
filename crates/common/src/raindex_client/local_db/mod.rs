@@ -129,6 +129,74 @@ pub enum LocalDbStatus {
 }
 impl_wasm_traits!(LocalDbStatus);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum SchedulerState {
+    Leader,
+    NotLeader,
+}
+impl_wasm_traits!(SchedulerState);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkSyncStatus {
+    pub network_key: String,
+    pub chain_id: u32,
+    pub status: LocalDbStatus,
+    pub scheduler_state: SchedulerState,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+impl_wasm_traits!(NetworkSyncStatus);
+
+impl NetworkSyncStatus {
+    pub fn new(
+        network_key: String,
+        chain_id: u32,
+        status: LocalDbStatus,
+        scheduler_state: SchedulerState,
+        error: Option<String>,
+    ) -> Self {
+        Self {
+            network_key,
+            chain_id,
+            status,
+            scheduler_state,
+            error,
+        }
+    }
+
+    pub fn active(network_key: String, chain_id: u32, scheduler_state: SchedulerState) -> Self {
+        Self::new(
+            network_key,
+            chain_id,
+            LocalDbStatus::Active,
+            scheduler_state,
+            None,
+        )
+    }
+
+    pub fn syncing(network_key: String, chain_id: u32) -> Self {
+        Self::new(
+            network_key,
+            chain_id,
+            LocalDbStatus::Syncing,
+            SchedulerState::Leader,
+            None,
+        )
+    }
+
+    pub fn failure(network_key: String, chain_id: u32, error: String) -> Self {
+        Self::new(
+            network_key,
+            chain_id,
+            LocalDbStatus::Failure,
+            SchedulerState::Leader,
+            Some(error),
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalDbStatusSnapshot {
@@ -185,7 +253,7 @@ impl RaindexClient {
         };
 
         if let Some(handle) = existing {
-            handle.stop().await;
+            handle.stop();
         }
 
         let handle = scheduler::start(settings_yaml, local_db, status_callback)?;
@@ -197,7 +265,7 @@ impl RaindexClient {
     }
 
     #[wasm_export(js_name = "stopLocalDbScheduler", unchecked_return_type = "void")]
-    pub async fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
+    pub fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
         let scheduler_cell = Rc::clone(&self.local_db_scheduler);
         let handle = {
             let mut slot = scheduler_cell.borrow_mut();
@@ -205,7 +273,7 @@ impl RaindexClient {
         };
 
         if let Some(handle) = handle {
-            handle.stop().await;
+            handle.stop();
         }
 
         Ok(())
@@ -445,10 +513,7 @@ orderbooks:
 
         TimeoutFuture::new(0).await;
 
-        client
-            .stop_local_db_scheduler()
-            .await
-            .expect("scheduler stops");
+        client.stop_local_db_scheduler().expect("scheduler stops");
         assert!(client.local_db_scheduler.borrow().is_none());
     }
 
@@ -485,6 +550,7 @@ orderbooks:
             .expect("second scheduler starts");
 
         TimeoutFuture::new(0).await;
+        TimeoutFuture::new(1000).await;
 
         let second_handle_ptr = client
             .local_db_scheduler
@@ -499,10 +565,7 @@ orderbooks:
             .iter()
             .any(|snapshot| snapshot.status == LocalDbStatus::Active));
 
-        client
-            .stop_local_db_scheduler()
-            .await
-            .expect("scheduler stops");
+        client.stop_local_db_scheduler().expect("scheduler stops");
     }
 
     #[wasm_bindgen_test]
@@ -535,11 +598,9 @@ orderbooks:
 
         client
             .stop_local_db_scheduler()
-            .await
             .expect("first stop succeeds");
         client
             .stop_local_db_scheduler()
-            .await
             .expect("second stop succeeds");
         assert!(client.local_db_scheduler.borrow().is_none());
     }

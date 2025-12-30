@@ -2,7 +2,7 @@ import { render, cleanup, screen, fireEvent, waitFor } from '@testing-library/sv
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import { writable } from 'svelte/store';
 import Sidebar from '../lib/components/Sidebar.svelte';
-import { localDbStatus } from '../lib/stores/localDbStatus';
+import { networkStatuses, updateNetworkStatus } from '../lib/stores/localDbStatus';
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
@@ -55,7 +55,7 @@ const mockWindowSize = (width: number) => {
 describe('Sidebar', () => {
 	afterEach(() => {
 		cleanup();
-		localDbStatus.set({ status: 'active', error: undefined });
+		networkStatuses.set(new Map());
 	});
 
 	it('renders correctly with colorTheme store', async () => {
@@ -139,7 +139,13 @@ describe('Sidebar', () => {
 			url: { pathname: '/' }
 		};
 
-		localDbStatus.set({ status: 'failure', error: 'Runner error occurred' });
+		updateNetworkStatus({
+			networkKey: 'test-network',
+			chainId: 1,
+			status: 'failure',
+			schedulerState: 'leader',
+			error: 'Runner error occurred'
+		});
 
 		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
 
