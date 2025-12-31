@@ -1,8 +1,7 @@
 use super::*;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
-    is_chain_supported_local_db, query::fetch_vault_balance_changes::LocalDbVaultBalanceChange,
-    OrderbookIdentifier,
+    query::fetch_vault_balance_changes::LocalDbVaultBalanceChange, OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::vaults::LocalDbVaults;
@@ -334,23 +333,21 @@ impl RaindexVault {
         &self,
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        if is_chain_supported_local_db(self.chain_id) {
-            if let Some(local_db) = self.raindex_client.local_db() {
-                let local_changes = fetch_vault_balance_changes(
-                    &local_db,
-                    &OrderbookIdentifier::new(self.chain_id, self.orderbook),
-                    self.vault_id,
-                    self.token.address,
-                    self.owner,
-                )
-                .await?;
+        if let Some(local_db) = self.raindex_client.local_db() {
+            let local_changes = fetch_vault_balance_changes(
+                &local_db,
+                &OrderbookIdentifier::new(self.chain_id, self.orderbook),
+                self.vault_id,
+                self.token.address,
+                self.owner,
+            )
+            .await?;
 
-                if !local_changes.is_empty() {
-                    return local_changes
-                        .into_iter()
-                        .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
-                        .collect::<Result<Vec<_>, _>>();
-                }
+            if !local_changes.is_empty() {
+                return local_changes
+                    .into_iter()
+                    .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
+                    .collect::<Result<Vec<_>, _>>();
             }
         }
 
@@ -1122,56 +1119,18 @@ impl RaindexClient {
     ) -> Result<RaindexVaultsList, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
-        let subgraph_source = SubgraphVaults::new(self);
-
-        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
-            let vaults = subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await?;
-            return Ok(RaindexVaultsList::new(vaults));
-        };
-
-        if ids.is_empty() {
-            let vaults = subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await?;
-            return Ok(RaindexVaultsList::new(vaults));
-        };
-
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-
-        for id in ids.drain(..) {
-            if is_chain_supported_local_db(id) {
-                local_ids.push(id);
-            } else {
-                sg_ids.push(id);
-            }
-        }
-
-        let mut vaults: Vec<RaindexVault> = Vec::new();
-
-        if self.local_db().is_none() {
-            sg_ids.append(&mut local_ids);
-        }
+        let ids = chain_ids.map(|ChainIds(ids)| ids);
 
         if let Some(local_db) = self.local_db() {
-            if !local_ids.is_empty() {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
-                let local_vaults = local_source
-                    .list(Some(local_ids.clone()), &filters, None)
-                    .await?;
-                vaults.extend(local_vaults);
-            }
+            let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+            let vaults = local_source.list(ids, &filters, None).await?;
+            return Ok(RaindexVaultsList::new(vaults));
         }
 
-        if !sg_ids.is_empty() {
-            let sg_vaults = subgraph_source
-                .list(Some(sg_ids), &filters, Some(page_number))
-                .await?;
-            vaults.extend(sg_vaults);
-        }
-
+        let subgraph_source = SubgraphVaults::new(self);
+        let vaults = subgraph_source
+            .list(ids, &filters, Some(page_number))
+            .await?;
         Ok(RaindexVaultsList::new(vaults))
     }
 
@@ -1298,12 +1257,10 @@ impl RaindexClient {
             ));
         }
 
-        if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(local_db) = self.local_db() {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
-                if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
-                    return Ok(vault);
-                }
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+            if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
+                return Ok(vault);
             }
         }
 

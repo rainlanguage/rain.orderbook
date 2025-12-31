@@ -27,7 +27,7 @@
 	} from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
-	import { localDbStatus } from '$lib/stores/localDbStatus';
+	import { networkStatuses, orderbookStatuses } from '$lib/stores/localDbStatus';
 	export let colorTheme;
 	export let page;
 
@@ -112,7 +112,10 @@
 				<WalletConnect {appKitModal} {connected} classes="w-full" />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<LocalDbStatusCard status={$localDbStatus.status} error={$localDbStatus.error} />
+				<LocalDbStatusCard
+					networkStatuses={$networkStatuses}
+					orderbookStatuses={$orderbookStatuses}
+				/>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem
