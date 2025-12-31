@@ -150,7 +150,8 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
 
         {
             (uint256 expectedTakerInput18,) = LibDecimalFloat.toFixedDecimalLossy(expectedTakerInput, 18);
-            (uint256 expectedTakerOutput18, bool losslessOutput) = LibDecimalFloat.toFixedDecimalLossy(expectedTakerOutput, 18);
+            (uint256 expectedTakerOutput18, bool losslessOutput) =
+                LibDecimalFloat.toFixedDecimalLossy(expectedTakerOutput, 18);
             if (!losslessOutput) {
                 expectedTakerOutput18 += 1;
             }
@@ -247,7 +248,10 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
     /// If the vault balance is less than both the maximum output and the order
     /// limit, only the vault balance should be used.
     /// forge-config: default.fuzz.runs = 100
-    function testTakeOrderMaximumOutputSingleOrderLimitedByVault(uint256 ownerDepositAmount18, uint256 maximumTakerInput18) external {
+    function testTakeOrderMaximumOutputSingleOrderLimitedByVault(
+        uint256 ownerDepositAmount18,
+        uint256 maximumTakerInput18
+    ) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
 
         uint256 orderLimit = 1000;
