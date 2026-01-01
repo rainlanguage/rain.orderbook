@@ -19,7 +19,7 @@ dataSources:
         - Transaction
       abis:
         - name: OrderBook
-          file: ../out/OrderBook.sol/OrderBook.json
+          file: ../out/OrderBookV6.sol/OrderBookV6.json
         - name: ERC20
           file: ../out/ERC20.sol/ERC20.json
         - name: DecimalFloat

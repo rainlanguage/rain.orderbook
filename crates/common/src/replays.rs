@@ -188,7 +188,7 @@ amount price: 2 1;
 
         let amount = Float::parse("10".to_string()).unwrap().get_inner();
         let tx_req = orderbook
-            .deposit3(
+            .deposit4(
                 *token1.address(),
                 B256::from(U256::from(0x01)),
                 amount,
@@ -224,12 +224,12 @@ amount price: 2 1;
             maximumIORatio: max_float,
             maximumIO: max_float,
             minimumIO: one_float,
-            IOIsInput: U256::from(1),
+            IOIsInput: true,
             data: Bytes::new(),
         };
 
         let tx_req = orderbook
-            .takeOrders3(config)
+            .takeOrders4(config)
             .from(token2_holder)
             .into_transaction_request();
 

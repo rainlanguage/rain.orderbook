@@ -8,7 +8,7 @@ use alloy::{
     },
     sol_types::SolCall,
 };
-use rain_orderbook_bindings::IOrderBookV5::{takeOrders4Call, OrderV4, TakeOrdersConfigV5};
+use rain_orderbook_bindings::IOrderBookV6::{takeOrders4Call, OrderV4, TakeOrdersConfigV5};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -60,7 +60,7 @@ pub fn get_order_hash(
     unchecked_return_type = "TakeOrdersCalldata",
     return_description = "Encoded calldata ready for blockchain submission"
 )]
-pub fn get_take_orders3_calldata(
+pub fn get_take_orders4_calldata(
     #[wasm_export(
         param_description = "Complete configuration for order execution including minimumIO, maximumIO, maximumIORatio, orders array, IOIsInput, and additional data"
     )]

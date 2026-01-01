@@ -208,7 +208,7 @@ amount price: 7 4;
         let tx = local_evm
             .send_transaction(
                 orderbook
-                    .takeOrders3(config)
+                    .takeOrders4(config)
                     .from(token2_holder)
                     .into_transaction_request(),
             )
