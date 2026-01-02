@@ -10,4 +10,5 @@ export interface AppStoresInterface {
 	hideZeroBalanceVaults: Writable<boolean>;
 	activeTokens: Writable<Address[]>;
 	showMyItemsOnly: Writable<boolean>;
+	activeOrderbookAddresses: Writable<Address[]>;
 }
