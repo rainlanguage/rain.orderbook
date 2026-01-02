@@ -790,8 +790,8 @@ _ _: 0 0;
 
         assert!(matches!(
             err,
-            CommandError::DotrainOrderError(DotrainOrderError::SpecVersionMismatch(ref expected, ref actual))
-            if expected == "4" && actual == "1"
+            CommandError::DotrainOrderError(DotrainOrderError::YamlError(YamlError::Field { kind: FieldErrorKind::InvalidValue { field, .. }, location }))
+            if field == "version" && location == "root"
         ));
     }
 }

@@ -62,6 +62,69 @@ tokens:
 `;
 
 const MOCK_DOTRAIN_PREFIX = `
+version: 4
+gui:
+  name: Test gui
+  description: Test description
+  short-description: Test short description
+  deployments:
+    flare:
+      name: Flare order name
+      description: Flare order description
+      deposits:
+        - token: token1
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
+            - value: "0xbeef"
+          default: 10
+    base:
+      name: Base order name
+      description: Base order description
+      deposits:
+        - token: token2
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding description
+          presets:
+            - value: "0xbeef"
+          default: 10
+scenarios:
+  flare:
+    deployer: flare
+    runs: 1
+  base:
+    deployer: base
+    runs: 1
+orders:
+  flare:
+    orderbook: flare
+    inputs:
+      - token: token1
+    outputs:
+      - token: token1
+  base:
+    orderbook: base
+    inputs:
+      - token: token2
+    outputs:
+      - token: token2
+deployments:
+  flare:
+    scenario: flare
+    order: flare
+  base:
+    scenario: base
+    order: base`;
+
+const MOCK_DOTRAIN_BODY = `
 gui:
   name: Test gui
   description: Test description
@@ -138,6 +201,15 @@ ${MOCK_DOTRAIN_PREFIX}
 ---
 #calculate-io
 _ _: 1 1;
+#handle-io
+:;
+#handle-add-order
+:;`;
+
+const DOTRAIN_CONTENT_FOR_GUI = `${MOCK_DOTRAIN_BODY}
+---
+#calculate-io
+_ _: 0 0;
 #handle-io
 :;
 #handle-add-order
@@ -287,7 +359,7 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 
 			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
 			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_CONTENT);
-			await mockServer.forGet('/fixed-limit.rain').thenReply(200, FIRST_DOTRAIN_CONTENT);
+			await mockServer.forGet('/fixed-limit.rain').thenReply(200, DOTRAIN_CONTENT_FOR_GUI);
 
 			registry = extractWasmEncodedData(
 				await DotrainRegistry.new('http://localhost:8231/registry.txt')
