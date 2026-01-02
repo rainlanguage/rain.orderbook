@@ -27,23 +27,46 @@ impl OrderbookSubgraphClient {
             None
         };
 
+        let or = if filter_args.only_active_orders {
+            let active_order_filter = SgOrdersListQueryFilters {
+                owner_in: vec![],
+                active: Some(true),
+                order_hash: None,
+                inputs_: None,
+                outputs_: None,
+            };
+            Some(vec![
+                SgVaultsListQueryFilters {
+                    orders_as_input_: Some(Box::new(active_order_filter.clone())),
+                    ..Default::default()
+                },
+                SgVaultsListQueryFilters {
+                    orders_as_output_: Some(Box::new(active_order_filter)),
+                    ..Default::default()
+                },
+            ])
+        } else {
+            None
+        };
+
         let filters = SgVaultsListQueryFilters {
             owner_in: filter_args.owners.clone(),
             balance_not,
             token_in: filter_args.tokens.clone(),
+            orders_as_input_: None,
+            orders_as_output_: None,
+            or,
         };
+
+        let has_filters = !filter_args.owners.is_empty()
+            || filter_args.hide_zero_balance
+            || !filter_args.tokens.is_empty()
+            || filter_args.only_active_orders;
 
         let variables = SgVaultsListQueryVariables {
             first: pagination_variables.first,
             skip: pagination_variables.skip,
-            filters: if !filter_args.owners.is_empty()
-                || filter_args.hide_zero_balance
-                || !filter_args.tokens.is_empty()
-            {
-                Some(filters)
-            } else {
-                None
-            },
+            filters: if has_filters { Some(filters) } else { None },
         };
 
         let data = self
@@ -65,6 +88,7 @@ impl OrderbookSubgraphClient {
                         owners: vec![],
                         hide_zero_balance: true,
                         tokens: vec![],
+                        only_active_orders: false,
                     },
                     SgPaginationArgs {
                         page,
@@ -355,6 +379,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -389,6 +414,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: false,
             tokens: vec![],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -418,6 +444,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: true,
             tokens: vec![],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -446,6 +473,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 2,
@@ -474,6 +502,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -498,6 +527,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -761,6 +791,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![token_address.clone()],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -792,6 +823,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![token1.clone(), token2.clone()],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -823,6 +855,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: true,
             tokens: vec![token_address.clone()],
+            only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -843,5 +876,100 @@ mod tests {
         let result = client.vaults_list(filter_args, pagination_args).await;
         let vaults = result.unwrap();
         assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_only_active_orders_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![],
+            only_active_orders: true,
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains("\"or\":")
+                .body_contains("\"ordersAsInput_\":")
+                .body_contains("\"ordersAsOutput_\":")
+                .body_contains("\"active\":true");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_only_active_orders_and_other_filters() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let owner_address = SgBytes("0xOwnerWithActiveOrders".to_string());
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![owner_address.clone()],
+            hide_zero_balance: true,
+            tokens: vec![],
+            only_active_orders: true,
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains("\"owner_in\":[\"0xOwnerWithActiveOrders\"]")
+                .body_contains("\"balance_not\":\"0x0000000000000000000000000000000000000000000000000000000000000000\"")
+                .body_contains("\"or\":")
+                .body_contains("\"ordersAsInput_\":")
+                .body_contains("\"ordersAsOutput_\":")
+                .body_contains("\"active\":true");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_filters_some_when_only_active_orders_true() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![],
+            only_active_orders: true,
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("\"filters\":");
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
     }
 }

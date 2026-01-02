@@ -27,6 +27,7 @@ pub struct FetchVaultsArgs {
     pub owners: Vec<Address>,
     pub tokens: Vec<Address>,
     pub hide_zero_balance: bool,
+    pub only_active_orders: bool,
 }
 
 const OWNERS_CLAUSE: &str = "/*OWNERS_CLAUSE*/";
@@ -43,6 +44,16 @@ const ORDERBOOKS_BODY: &str = "AND rvb.orderbook_address IN ({list})";
 
 const HIDE_ZERO_BALANCE_CLAUSE: &str = "/*HIDE_ZERO_BALANCE*/";
 const HIDE_ZERO_BALANCE_BODY: &str = "\nAND NOT FLOAT_IS_ZERO(o.balance)\n";
+
+const ONLY_ACTIVE_ORDERS_CLAUSE: &str = "/*ONLY_ACTIVE_ORDERS_CLAUSE*/";
+const ONLY_ACTIVE_ORDERS_BODY: &str = "\nAND EXISTS (
+  SELECT 1 FROM order_io_items oii
+  WHERE oii.chain_id = o.chain_id
+    AND oii.orderbook_address = o.orderbook_address
+    AND oii.token = o.token
+    AND oii.vault_id = o.vault_id
+    AND substr(oii.item, -1) = '1'
+)\n";
 
 const INNER_CHAIN_IDS_CLAUSE: &str = "/*INNER_CHAIN_IDS_CLAUSE*/";
 const INNER_CHAIN_IDS_BODY: &str = "AND chain_id IN ({list})";
@@ -93,6 +104,13 @@ pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, S
         stmt.replace(HIDE_ZERO_BALANCE_CLAUSE, "")?;
     }
 
+    // Only active orders clause
+    if args.only_active_orders {
+        stmt.replace(ONLY_ACTIVE_ORDERS_CLAUSE, ONLY_ACTIVE_ORDERS_BODY)?;
+    } else {
+        stmt.replace(ONLY_ACTIVE_ORDERS_CLAUSE, "")?;
+    }
+
     Ok(stmt)
 }
 
@@ -114,6 +132,7 @@ mod tests {
         assert!(!stmt.sql.contains(OWNERS_CLAUSE));
         assert!(!stmt.sql.contains(TOKENS_CLAUSE));
         assert!(!stmt.sql.contains(HIDE_ZERO_BALANCE_CLAUSE));
+        assert!(!stmt.sql.contains(ONLY_ACTIVE_ORDERS_CLAUSE));
         assert!(stmt.params.is_empty());
     }
 
@@ -164,5 +183,44 @@ mod tests {
         assert!(stmt.params.is_empty());
         assert!(!stmt.sql.contains("?1"));
         assert!(!stmt.sql.contains("?2"));
+    }
+
+    #[test]
+    fn only_active_orders_clause_when_true() {
+        let mut args = mk_args();
+        args.only_active_orders = true;
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
+        assert!(!stmt.sql.contains(ONLY_ACTIVE_ORDERS_CLAUSE));
+        assert!(stmt.sql.contains("AND EXISTS ("));
+        assert!(stmt.sql.contains("order_io_items oii"));
+        assert!(stmt.sql.contains("substr(oii.item, -1) = '1'"));
+        assert!(stmt.params.is_empty());
+    }
+
+    #[test]
+    fn only_active_orders_clause_omitted_when_false() {
+        let mut args = mk_args();
+        args.only_active_orders = false;
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
+        assert!(!stmt.sql.contains(ONLY_ACTIVE_ORDERS_CLAUSE));
+        assert!(!stmt.sql.contains("order_io_items oii"));
+        assert!(!stmt.sql.contains("substr(oii.item, -1) = '1'"));
+    }
+
+    #[test]
+    fn combined_filters_with_only_active_orders() {
+        let mut args = mk_args();
+        args.owners = vec![address!("0x87d08841bdAd4aB82883a322D2c0eF557EC154fE")];
+        args.tokens = vec![address!("0x1AC6F2786A51b20d47050f3f9E4B0e831427B498")];
+        args.hide_zero_balance = true;
+        args.only_active_orders = true;
+        args.chain_ids = vec![137];
+        args.orderbook_addresses = vec![address!("0xabc0000000000000000000000000000000000000")];
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("AND NOT FLOAT_IS_ZERO("));
+        assert!(stmt.sql.contains("order_io_items oii"));
+        assert!(stmt.sql.contains("o.owner IN ("));
+        assert!(stmt.sql.contains("o.token IN ("));
+        assert!(stmt.sql.contains("rvb.chain_id IN ("));
     }
 }

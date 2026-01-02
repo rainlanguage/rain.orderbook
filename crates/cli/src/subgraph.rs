@@ -108,6 +108,7 @@ impl From<CliFilterArgs> for SgVaultsListFilterArgs {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             hide_zero_balance: val.hide_zero_balance.unwrap_or(true),
             tokens: val.tokens,
+            only_active_orders: false,
         }
     }
 }

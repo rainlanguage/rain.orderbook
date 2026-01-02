@@ -499,6 +499,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            only_active_orders: false,
         }
     }
 

@@ -123,4 +123,5 @@ WHERE 1=1
 /*OWNERS_CLAUSE*/
 /*TOKENS_CLAUSE*/
 /*HIDE_ZERO_BALANCE*/
+/*ONLY_ACTIVE_ORDERS_CLAUSE*/
 ORDER BY o.chain_id, o.orderbook_address, o.owner, o.token, o.vault_id;

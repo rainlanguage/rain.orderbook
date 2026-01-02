@@ -1353,6 +1353,8 @@ pub struct GetVaultsFilters {
     pub hide_zero_balance: bool,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[serde(default)]
+    pub only_active_orders: bool,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -1375,6 +1377,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                         .collect()
                 })
                 .unwrap_or_default(),
+            only_active_orders: filters.only_active_orders,
         })
     }
 }
@@ -1794,6 +1797,7 @@ mod tests {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                only_active_orders: false,
             };
 
             let vaults = client
@@ -2946,6 +2950,7 @@ mod tests {
                     "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 )
                 .unwrap()]),
+                only_active_orders: false,
             };
 
             let result = raindex_client
@@ -3001,6 +3006,7 @@ mod tests {
                     Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
                     Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
+                only_active_orders: false,
             };
 
             let result = raindex_client
