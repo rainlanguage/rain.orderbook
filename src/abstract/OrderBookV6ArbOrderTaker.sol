@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 
 import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-// import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20, SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
