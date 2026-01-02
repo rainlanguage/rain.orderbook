@@ -488,6 +488,14 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                             // Taker is just "market buying" the order output max.
                             // Can't exceed the remaining taker input.
                             takerInput = orderIOCalculation.outputMax.min(remainingTakerIO);
+
+                            // Slither false positive because it sees the div on
+                            // the else branch and triggers a
+                            // divide-before-multiply warning. In this case the
+                            // IOIsInput on the config is always the same for
+                            // every order in the loop so we always take the same
+                            // branch, whether this or the else.
+                            //slither-disable-next-line divide-before-multiply
                             takerOutput = orderIOCalculation.IORatio.mul(takerInput);
 
                             remainingTakerIO = remainingTakerIO.sub(takerInput);
