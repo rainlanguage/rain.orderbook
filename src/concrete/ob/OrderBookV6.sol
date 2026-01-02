@@ -67,9 +67,6 @@ import {OrderBookV6FlashLender} from "../../abstract/OrderBookV6FlashLender.sol"
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
-import {console2} from "forge-std/console2.sol";
-import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
-
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
 error ReentrancyGuardReentrantCall();
@@ -548,8 +545,6 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
 
-        console2.log("totalTakerInput:", LibFormatDecimalFloat.toDecimalString(totalTakerInput, true));
-        console2.log("totalTakerOutput:", LibFormatDecimalFloat.toDecimalString(totalTakerOutput, true));
         pushTokens(orderOutputToken, totalTakerInput);
 
         if (config.data.length > 0) {

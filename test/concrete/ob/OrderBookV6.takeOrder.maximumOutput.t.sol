@@ -15,7 +15,6 @@ import {
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
-import {console2} from "forge-std/console2.sol";
 
 contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
     using LibDecimalFloat for Float;
@@ -101,7 +100,6 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         for (uint256 i = 0; i < testVaults.length; i++) {
             if (testVaults[i].deposit.gt(Float.wrap(0))) {
                 uint256 depositAmount18 = LibDecimalFloat.toFixedDecimalLossless(testVaults[i].deposit, 18);
-                console2.log("depositAmount18", depositAmount18);
 
                 // Deposit the amount of tokens required to take the order.
                 vm.mockCall(
@@ -155,10 +153,6 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
             if (!losslessOutput) {
                 expectedTakerOutput18 += 1;
             }
-            console2.log("expectedTakerInput18", expectedTakerInput18);
-            console2.log("expectedTakerOutput18", expectedTakerOutput18);
-            console2.log(address(iToken0));
-            console2.log(address(iToken1));
             // Mock and expect the token transfers.
             vm.mockCall(
                 address(iToken0),
@@ -226,7 +220,6 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
     function testTakeOrderMaximumOutputSingleOrderLimitedMax(uint256 maximumTakerOutput18) external {
         address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
         maximumTakerOutput18 = bound(maximumTakerOutput18, 1e18, uint256(int256(type(int224).max)));
-        console2.log("maximumTakerOutput18", maximumTakerOutput18);
 
         Float maximumTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerOutput18, 18);
 
