@@ -5,7 +5,7 @@ use crate::{
 };
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::ReadableClient;
-use rain_orderbook_bindings::IOrderBookV5::{OrderV4, QuoteV2};
+use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;

@@ -157,7 +157,7 @@ mod tests {
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
-    use rain_orderbook_bindings::IOrderBookV5::{addOrder3Call, IOV2};
+    use rain_orderbook_bindings::IOrderBookV6::{addOrder4Call, IOV2};
     use rain_orderbook_common::add_order::AddOrderArgsError;
     use rain_orderbook_common::transaction::TransactionArgsError;
     use rain_orderbook_test_fixtures::LocalEvm;
@@ -454,7 +454,7 @@ _ _: 16 52;
             .await
             .unwrap();
 
-        let decoded = addOrder3Call::abi_decode(&calldata).unwrap();
+        let decoded = addOrder4Call::abi_decode(&calldata).unwrap();
 
         assert_eq!(
             decoded.config.validInputs,

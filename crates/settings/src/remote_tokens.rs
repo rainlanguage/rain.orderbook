@@ -48,9 +48,10 @@ impl RemoteTokensCfg {
             }
 
             for token in unique_tokens.values() {
-                if let Some(token_cfg) = token
+                // skip tokens that error on parse as the list might include invalid records
+                if let Ok(Some(token_cfg)) = token
                     .clone()
-                    .try_into_token_cfg(networks, remote_tokens.document.clone())?
+                    .try_into_token_cfg(networks, remote_tokens.document.clone())
                 {
                     if tokens.contains_key(&token_cfg.key) {
                         return Err(ParseRemoteTokensError::ConflictingTokens(

@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use alloy::primitives::{hex::decode, Bytes, B256};
 use alloy::sol_types::{SolCall, SolValue};
-use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
+use rain_orderbook_bindings::IOrderBookV6::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::{order_detail_traits::OrderDetailError, Id};
 use std::rc::Rc;
 
