@@ -63,9 +63,12 @@
 		}
 	}
 
-	$: sortedFilteredTokens = filteredTokens.sort(({ address }) =>
-		selectedTokens.includes(address) ? -1 : 1
-	);
+	$: sortedFilteredTokens = [...filteredTokens].sort((a, b) => {
+		const aSelected = selectedTokens.includes(a.address);
+		const bSelected = selectedTokens.includes(b.address);
+		if (aSelected === bSelected) return 0;
+		return aSelected ? -1 : 1;
+	});
 
 	function updateSelectedTokens(newSelection: Address[]) {
 		activeTokens.set(newSelection);
@@ -74,21 +77,22 @@
 	function toggleToken({ address }: RaindexVaultToken) {
 		if (!address) return;
 
-		const idx = $activeTokens.indexOf(address);
-		const newSelection =
-			idx !== -1 ? $activeTokens.filter((addr) => addr !== address) : [...$activeTokens, address];
+		const isSelected = selectedTokens.includes(address);
+		const newSelection = isSelected
+			? $activeTokens.filter((addr) => addr !== address)
+			: [...$activeTokens, address];
 
 		updateSelectedTokens(newSelection);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
-		if (!filteredTokens.length) return;
+		if (!sortedFilteredTokens.length) return;
 
 		switch (event.key) {
 			case 'Enter':
 				event.preventDefault();
-				if (filteredTokens.length > 0) {
-					const tokenToToggle = filteredTokens[selectedIndex];
+				if (sortedFilteredTokens.length > 0) {
+					const tokenToToggle = sortedFilteredTokens[selectedIndex];
 					if (tokenToToggle) {
 						toggleToken(tokenToToggle);
 					}
@@ -96,7 +100,7 @@
 				break;
 			case 'ArrowDown':
 				event.preventDefault();
-				selectedIndex = Math.min(selectedIndex + 1, filteredTokens.length - 1);
+				selectedIndex = Math.min(selectedIndex + 1, sortedFilteredTokens.length - 1);
 				break;
 			case 'ArrowUp':
 				event.preventDefault();
@@ -164,7 +168,7 @@
 								? 'bg-blue-100 dark:bg-blue-900'
 								: ''}"
 							on:click={() => toggleToken(token)}
-							checked={!!(token.address && $activeTokens.includes(token.address))}
+							checked={!!(token.address && selectedTokens.includes(token.address))}
 						>
 							<div class="ml-2 flex w-full">
 								<div class="flex-1 text-sm font-medium">{getTokenDisplayName(token)}</div>

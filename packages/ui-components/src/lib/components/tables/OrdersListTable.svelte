@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
-	import { RaindexOrder } from '@rainlanguage/orderbook';
+	import { RaindexOrder, type OrderbookCfg } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
@@ -37,6 +37,7 @@
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
+	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
 
 	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -63,6 +64,21 @@
 			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
 		) ?? [];
 
+	$: orderbooksMap = raindexClient.getAllOrderbooks()?.value ?? new Map<string, OrderbookCfg>();
+	$: availableOrderbookAddresses = (() => {
+		const addrs: string[] = [];
+		orderbooksMap.forEach((cfg) => {
+			if ($selectedChainIds.length === 0 || $selectedChainIds.includes(cfg.network.chainId)) {
+				addrs.push(cfg.address.toLowerCase());
+			}
+		});
+		return addrs;
+	})();
+	$: selectedOrderbookAddresses =
+		$activeOrderbookAddresses?.filter((address) =>
+			availableOrderbookAddresses.includes(address.toLowerCase())
+		) ?? [];
+
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_ORDERS,
@@ -70,7 +86,8 @@
 			owners,
 			$showInactiveOrders,
 			$orderHash,
-			selectedTokens
+			selectedTokens,
+			selectedOrderbookAddresses
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getOrders(
@@ -79,7 +96,9 @@
 					owners,
 					active: $showInactiveOrders ? undefined : true,
 					orderHash: $orderHash || undefined,
-					tokens: selectedTokens
+					tokens: selectedTokens,
+					orderbookAddresses:
+						selectedOrderbookAddresses.length > 0 ? selectedOrderbookAddresses : undefined
 				},
 				pageParam + 1
 			);
@@ -107,6 +126,8 @@
 	{tokensQuery}
 	{activeTokens}
 	{selectedTokens}
+	{activeOrderbookAddresses}
+	{selectedOrderbookAddresses}
 />
 
 <AppTable

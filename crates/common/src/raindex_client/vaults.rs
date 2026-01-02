@@ -1353,6 +1353,8 @@ pub struct GetVaultsFilters {
     pub hide_zero_balance: bool,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -1372,6 +1374,15 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                     tokens
                         .into_iter()
                         .map(|token| token.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
+            orderbooks: filters
+                .orderbook_addresses
+                .map(|addrs| {
+                    addrs
+                        .into_iter()
+                        .map(|addr| addr.to_string().to_lowercase())
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -1794,6 +1805,7 @@ mod tests {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                orderbook_addresses: None,
             };
 
             let vaults = client
@@ -2946,6 +2958,7 @@ mod tests {
                     "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 )
                 .unwrap()]),
+                orderbook_addresses: None,
             };
 
             let result = raindex_client
@@ -3001,6 +3014,7 @@ mod tests {
                     Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
                     Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
+                orderbook_addresses: None,
             };
 
             let result = raindex_client
@@ -3156,6 +3170,71 @@ mod tests {
 
             let balance = vault.get_owner_balance(Address::random()).await.unwrap();
             assert_eq!(balance, U256::from(1000));
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_maps_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: Some(vec![
+                    address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                    address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+                ]),
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            );
+            assert_eq!(
+                sg_filter_args.orderbooks[1],
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            );
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_empty_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: None,
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert!(sg_filter_args.orderbooks.is_empty());
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: Some(vec![address!(
+                    "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
+                )]),
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            );
         }
     }
 }

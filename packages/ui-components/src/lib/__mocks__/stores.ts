@@ -41,6 +41,8 @@ const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 const mockSelectedChainIdsWritable = writable<number[]>([]);
+const mockActiveTokensWritable = writable<string[]>([]);
+const mockActiveOrderbookAddressesWritable = writable<string[]>([]);
 
 export const mockActiveAccountsItemsStore = {
 	subscribe: mockActiveAccountsItemsWritable.subscribe,
@@ -134,4 +136,16 @@ export const mockPageStore = {
 		}));
 	},
 	reset: () => mockPageWritable.set(initialPageState)
+};
+
+export const mockActiveTokensStore = {
+	subscribe: mockActiveTokensWritable.subscribe,
+	set: mockActiveTokensWritable.set,
+	mockSetSubscribeValue: (value: string[]): void => mockActiveTokensWritable.set(value)
+};
+
+export const mockActiveOrderbookAddressesStore = {
+	subscribe: mockActiveOrderbookAddressesWritable.subscribe,
+	set: mockActiveOrderbookAddressesWritable.set,
+	mockSetSubscribeValue: (value: string[]): void => mockActiveOrderbookAddressesWritable.set(value)
 };

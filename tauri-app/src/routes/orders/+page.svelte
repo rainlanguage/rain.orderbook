@@ -9,6 +9,7 @@
     orderHash,
     hideZeroBalanceVaults,
     activeTokens,
+    activeOrderbookAddresses,
   } from '$lib/stores/settings';
   import { page } from '$app/stores';
   import { writable } from 'svelte/store';
@@ -24,5 +25,6 @@
   {orderHash}
   {hideZeroBalanceVaults}
   {activeTokens}
+  {activeOrderbookAddresses}
   showMyItemsOnly={writable(false)}
 />
