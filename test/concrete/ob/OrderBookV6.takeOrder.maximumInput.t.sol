@@ -329,6 +329,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         // Avoid information free overflow.
         ownerTwoDepositAmount18 =
             bound(ownerTwoDepositAmount18, 0, uint256(int256(type(int224).max)) / 10 - ownerOneDepositAmount18);
+        maximumTakerInput18 = bound(maximumTakerInput18, 1, uint256(int256(type(int224).max)));
 
         address ownerOne = address(uint160(uint256(keccak256("ownerOne.rain.test"))));
         address ownerTwo = address(uint160(uint256(keccak256("ownerTwo.rain.test"))));
@@ -336,8 +337,6 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         TestOrder[] memory testOrders = new TestOrder[](2);
         testOrders[0] = TestOrder(ownerOne, "_ _:1e-15 2;:;");
         testOrders[1] = TestOrder(ownerTwo, "_ _:5e-16 2;:;");
-
-        maximumTakerInput18 = bound(maximumTakerInput18, 1, uint256(int256(type(int224).max)));
 
         // The first owner's deposit is fully used before the second owner's
         // deposit is used.

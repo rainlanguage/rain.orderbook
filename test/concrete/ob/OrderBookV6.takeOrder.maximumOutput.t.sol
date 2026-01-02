@@ -355,4 +355,75 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
 
         checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput);
     }
+
+    /// The taker input can be sourced from multiple orders with different
+    /// owners. Tests two orders that combined make up the maximum taker output.
+    /// forge-config: default.fuzz.runs = 100
+    function testTakeOrderMaximumOutputMultipleOrdersDifferentOwners(
+        uint256 ownerOneDepositAmount18,
+        uint256 ownerTwoDepositAmount18,
+        uint256 maximumTakerOutput18
+    ) external {
+        address ownerOne = address(uint160(uint256(keccak256("owner.one.rain.test"))));
+        address ownerTwo = address(uint160(uint256(keccak256("owner.two.rain.test"))));
+
+        ownerOneDepositAmount18 = bound(ownerOneDepositAmount18, 0, uint256(int256(type(int224).max)));
+        ownerTwoDepositAmount18 =
+            bound(ownerTwoDepositAmount18, 0, uint256(int256(type(int224).max)) - ownerOneDepositAmount18);
+        maximumTakerOutput18 = bound(maximumTakerOutput18, 1, uint256(int256(type(int224).max)));
+
+        TestOrder[] memory testOrders = new TestOrder[](2);
+        testOrders[0] = TestOrder({owner: ownerOne, orderString: "_ _: 1000e-18 2;:;"});
+        testOrders[1] = TestOrder({owner: ownerTwo, orderString: "_ _: 500e-18 2;:;"});
+
+        // The first owner's deposit is fully used before the second owner's
+        // deposit is used.
+        TestVault[] memory testVaults = new TestVault[](2);
+
+        Float ownerOneDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18, 18);
+        Float ownerTwoDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerTwoDepositAmount18, 18);
+        Float ownerTwoOrderLimit = LibDecimalFloat.fromFixedDecimalLosslessPacked(500, 18);
+        Float orderIO = LibDecimalFloat.fromFixedDecimalLosslessPacked(2, 0);
+        Float maximumTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerOutput18, 18);
+        Float maximumTakerInput = maximumTakerOutput.div(orderIO);
+
+        Float expectedTakerInput;
+        Float ownerOneTakerInput;
+        {
+            Float ownerOneOrderLimit = LibDecimalFloat.fromFixedDecimalLosslessPacked(1000, 18);
+
+            // Owner one can't pay more than either their deposit or their order
+            // limit.
+            Float ownerOneMaxPayment = ownerOneDepositAmount.min(ownerOneOrderLimit);
+            // Taker input from owner one is either the maximum taker input or
+            // what owner one can pay.
+            ownerOneTakerInput = maximumTakerInput.min(ownerOneMaxPayment);
+            expectedTakerInput = ownerOneTakerInput;
+            testVaults[0] = TestVault({
+                owner: ownerOne,
+                token: address(iToken1),
+                deposit: ownerOneDepositAmount,
+                expect: ownerOneDepositAmount.sub(ownerOneTakerInput)
+            });
+        }
+
+        {
+            // Owner two can't pay more than either their deposit or their order
+            // limit.
+            Float ownerTwoMaxPayment = ownerTwoDepositAmount.min(ownerTwoOrderLimit);
+            // Taker input from owner two is whatever is remaining after owner
+            // one, up to what owner two can pay.
+            Float remainingTakerInput = maximumTakerInput.sub(ownerOneTakerInput);
+            Float ownerTwoTakerInput = remainingTakerInput.min(ownerTwoMaxPayment);
+            expectedTakerInput = expectedTakerInput.add(ownerTwoTakerInput);
+            testVaults[1] = TestVault({
+                owner: ownerTwo,
+                token: address(iToken1),
+                deposit: ownerTwoDepositAmount,
+                expect: ownerTwoDepositAmount.sub(ownerTwoTakerInput)
+            });
+        }
+        Float expectedTakerOutput = expectedTakerInput.mul(orderIO);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput);
+    }
 }
