@@ -7,7 +7,8 @@
 		showMyItemsOnly,
 		showInactiveOrders,
 		activeTokens,
-		selectedChainIds
+		selectedChainIds,
+		activeOrderbookAddresses
 	} from '$lib/stores/settings';
 
 	const { activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface = $page.data.stores;
@@ -23,4 +24,5 @@
 	{orderHash}
 	{hideZeroBalanceVaults}
 	{activeTokens}
+	{activeOrderbookAddresses}
 />
