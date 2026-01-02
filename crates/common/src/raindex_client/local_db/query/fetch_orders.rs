@@ -17,6 +17,7 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             owners: filters.owners,
             order_hash: filters.order_hash,
             tokens: filters.tokens.unwrap_or_default(),
+            orderbook_addresses: filters.orderbook_addresses.unwrap_or_default(),
             ..FetchOrdersArgs::default()
         }
     }
@@ -40,6 +41,8 @@ mod tests {
     fn from_get_orders_filters_builds_args() {
         let owner = Address::from_str("0x0123456789ABCDEF0123456789ABCDEF01234567").unwrap();
         let token = Address::from_str("0x89ABCDEF0123456789ABCDEF0123456789ABCDEF").unwrap();
+        let orderbook1 = address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let orderbook2 = address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         let filters = GetOrdersFilters {
             owners: vec![owner],
             active: Some(true),
@@ -47,9 +50,9 @@ mod tests {
                 "0x00000000000000000000000000000000000000000000000000000000deadbeef"
             )),
             tokens: Some(vec![token]),
+            orderbook_addresses: Some(vec![orderbook1, orderbook2]),
         };
         let args: FetchOrdersArgs = filters.into();
-        // Active mapping
         assert!(matches!(args.filter, FetchOrdersActiveFilter::Active));
         assert_eq!(
             args.owners,
@@ -59,13 +62,43 @@ mod tests {
             args.tokens,
             vec![address!("0x89abcdef0123456789abcdef0123456789abcdef")]
         );
-        // Order hash string preserved
         assert_eq!(
             args.order_hash,
             Some(b256!(
                 "0x00000000000000000000000000000000000000000000000000000000deadbeef"
             ))
         );
+        assert_eq!(args.orderbook_addresses.len(), 2);
+        assert_eq!(args.orderbook_addresses[0], orderbook1);
+        assert_eq!(args.orderbook_addresses[1], orderbook2);
+    }
+
+    #[test]
+    fn from_get_orders_filters_none_orderbook_addresses_becomes_empty_vec() {
+        let filters = GetOrdersFilters {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbook_addresses: None,
+        };
+        let args: FetchOrdersArgs = filters.into();
+        assert!(args.orderbook_addresses.is_empty());
+    }
+
+    #[test]
+    fn from_get_orders_filters_single_orderbook_address() {
+        let orderbook = address!("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF");
+        let filters = GetOrdersFilters {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbook_addresses: Some(vec![orderbook]),
+        };
+        let args: FetchOrdersArgs = filters.into();
+        assert_eq!(args.orderbook_addresses.len(), 1);
+        assert_eq!(args.orderbook_addresses[0], orderbook);
     }
 
     #[cfg(target_family = "wasm")]
