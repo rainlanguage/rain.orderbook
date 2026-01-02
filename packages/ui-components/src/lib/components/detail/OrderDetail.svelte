@@ -37,8 +37,6 @@
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
-	// eslint-disable-next-line svelte/valid-compile
-	export let colorTheme = undefined;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
 	export let orderbookAddress: Address;

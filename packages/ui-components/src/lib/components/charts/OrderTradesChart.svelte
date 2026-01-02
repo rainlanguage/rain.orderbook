@@ -21,7 +21,9 @@
 		createChart,
 		CrosshairMode,
 		type IChartApi,
-		type UTCTimestamp
+		type UTCTimestamp,
+		type DeepPartial,
+		type TimeScaleOptions
 	} from 'lightweight-charts';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -237,7 +239,7 @@
 
 		chart.timeScale().applyOptions({
 			tickMarkFormatter: (time: number) => formatTime(time)
-		});
+		} as DeepPartial<TimeScaleOptions>);
 
 		if (chartData && chartData.pricePoints.length > 0) {
 			const now = Math.floor(Date.now() / 1000) as UTCTimestamp;

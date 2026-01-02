@@ -127,8 +127,6 @@ export function getDefaultPair(trades: RaindexTrade[]): TradingPair | null {
 	if (trades.length === 0) return null;
 
 	const sortedTrades = sortBy(trades, (t) => Number(t.timestamp));
-	if (sortedTrades.length === 0) return null;
-
 	const oldestTrade = sortedTrades[0];
 	const inToken = oldestTrade.inputVaultBalanceChange.token;
 	const outToken = oldestTrade.outputVaultBalanceChange.token;

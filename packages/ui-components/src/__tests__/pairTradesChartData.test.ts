@@ -22,8 +22,10 @@ function createMockToken(address: string, symbol?: string, name?: string): Raind
 		address,
 		symbol: symbol ?? '',
 		name: name ?? '',
-		decimals: BigInt(18)
-	} as RaindexVaultToken;
+		decimals: BigInt(18),
+		chainId: 1,
+		free: false
+	} as unknown as RaindexVaultToken;
 }
 
 function createMockTrade(
