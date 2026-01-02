@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
-	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
+	import { codeMirrorTheme, lightweightChartsTheme } from '$lib/darkMode';
 	import {
 		handleDepositModal,
 		handleTransactionConfirmationModal,
@@ -85,7 +85,6 @@
 	{orderbookAddress}
 	orderHash={parsedOrderHash}
 	{lightweightChartsTheme}
-	{colorTheme}
 	{codeMirrorTheme}
 	{onRemove}
 	{onDeposit}

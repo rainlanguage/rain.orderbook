@@ -6,7 +6,7 @@
   } from '@rainlanguage/ui-components';
   import { page } from '$app/stores';
   import { OrderDetail } from '@rainlanguage/ui-components';
-  import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/stores/darkMode';
+  import { codeMirrorTheme, lightweightChartsTheme } from '$lib/stores/darkMode';
   import {
     handleQuoteDebugModal,
     handleDepositModal,
@@ -80,7 +80,6 @@
     chainId={parsedChainId}
     {orderbookAddress}
     orderHash={parsedOrderHash}
-    {colorTheme}
     {codeMirrorTheme}
     {lightweightChartsTheme}
     {handleQuoteDebugModal}
