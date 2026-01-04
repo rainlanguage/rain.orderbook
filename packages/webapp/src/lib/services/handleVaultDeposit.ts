@@ -1,5 +1,5 @@
-import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
-import { formatUnits, type Hex } from 'viem';
+import type { Float, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+import { type Hex } from 'viem';
 import type {
 	TransactionManager,
 	VaultActionModalProps,
@@ -16,23 +16,18 @@ export interface VaultDepositHandlerDependencies {
 	account: Hex;
 }
 
-export type DepositArgs = VaultDepositHandlerDependencies & { amount: bigint };
+export type DepositArgs = VaultDepositHandlerDependencies & { amount: Float };
 
 async function executeDeposit(args: DepositArgs) {
 	const { raindexClient, amount, vault, handleTransactionConfirmationModal, errToast, manager } =
 		args;
-	const calldataResult = await vault.getDepositCalldata(amount.toString());
-	const displayAmount = vault.token.decimals
-		? formatUnits(amount, Number(vault.token.decimals))
-		: amount.toString();
+	const calldataResult = await vault.getDepositCalldata(amount);
 	if (calldataResult.error) {
 		return errToast(calldataResult.error.msg);
 	} else if (calldataResult.value) {
 		handleTransactionConfirmationModal({
 			open: true,
-			modalTitle: displayAmount
-				? `Depositing ${displayAmount} ${vault.token.symbol}`
-				: `Depositing ${vault.token.symbol}`,
+			modalTitle: `Depositing ${amount.format().value} ${vault.token.symbol}`,
 			closeOnConfirm: false,
 			args: {
 				entity: vault,
@@ -63,9 +58,9 @@ export async function handleVaultDeposit(deps: VaultDepositHandlerDependencies):
 			vault,
 			account
 		},
-		onSubmit: async (amount: bigint) => {
+		onSubmit: async (amount: Float) => {
 			const depositArgs = { ...deps, amount };
-			const approvalResult = await vault.getApprovalCalldata(amount.toString());
+			const approvalResult = await vault.getApprovalCalldata(amount);
 			if (approvalResult.error) {
 				// If getting approval calldata fails, immediately invoke deposit
 				await executeDeposit(depositArgs);

@@ -1,3 +1,5 @@
+use crate::local_db::{query::LocalDbQueryError, LocalDbError};
+use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -7,7 +9,7 @@ use alloy::{
     hex::FromHexError,
     primitives::{
         ruint::{FromUintError, ParseError},
-        Address, ParseSignedError,
+        Address, ParseSignedError, B256,
     },
 };
 use rain_math_float::FloatError;
@@ -20,13 +22,15 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::BTreeMap, num::ParseIntError, str::FromStr};
+use std::{cell::RefCell, rc::Rc};
+use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 pub mod add_orders;
+pub mod local_db;
 pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
@@ -34,6 +38,7 @@ pub mod remove_orders;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
+pub mod vaults_list;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
@@ -75,6 +80,10 @@ impl_wasm_traits!(ChainIds);
 #[wasm_bindgen]
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db: Rc<RefCell<Option<LocalDb>>>,
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
 }
 
 #[wasm_export]
@@ -117,7 +126,25 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
-        Ok(RaindexClient { orderbook_yaml })
+        Ok(RaindexClient {
+            orderbook_yaml,
+            local_db: Rc::new(RefCell::new(None)),
+            local_db_scheduler: Rc::new(RefCell::new(None)),
+        })
+    }
+
+    #[wasm_export(js_name = "setDbCallback", unchecked_return_type = "void")]
+    pub fn set_local_db_callback(
+        &self,
+        #[wasm_export(
+            js_name = "callback",
+            param_description = "JavaScript function to execute local database queries"
+        )]
+        callback: js_sys::Function,
+    ) -> Result<(), RaindexError> {
+        let mut slot = self.local_db.borrow_mut();
+        *slot = Some(LocalDb::from_js_callback(callback));
+        Ok(())
     }
 
     fn get_multi_subgraph_args(
@@ -186,6 +213,31 @@ impl RaindexClient {
         let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpcs.clone())
     }
+
+    fn local_db(&self) -> Option<LocalDb> {
+        self.local_db.borrow().as_ref().cloned()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SerdeWasmBindgenErrorWrapper {
+    message: String,
+}
+
+impl fmt::Display for SerdeWasmBindgenErrorWrapper {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.message)
+    }
+}
+
+impl std::error::Error for SerdeWasmBindgenErrorWrapper {}
+
+impl From<serde_wasm_bindgen::Error> for SerdeWasmBindgenErrorWrapper {
+    fn from(error: serde_wasm_bindgen::Error) -> Self {
+        Self {
+            message: error.to_string(),
+        }
+    }
 }
 
 #[derive(Error, Debug)]
@@ -201,7 +253,7 @@ pub enum RaindexError {
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
-    SerdeError(#[from] serde_wasm_bindgen::Error),
+    SerdeError(#[from] SerdeWasmBindgenErrorWrapper),
     #[error(transparent)]
     DotrainOrderError(Box<DotrainOrderError>),
     #[error(transparent)]
@@ -222,6 +274,8 @@ pub enum RaindexError {
     WriteLockError,
     #[error("Zero amount")]
     ZeroAmount,
+    #[error("Negative amount")]
+    NegativeAmount,
     #[error("Existing allowance")]
     ExistingAllowance,
     #[error(transparent)]
@@ -230,6 +284,10 @@ pub enum RaindexError {
     DepositArgsError(#[from] DepositError),
     #[error("Orderbook not found for address: {0} on chain ID: {1}")]
     OrderbookNotFound(String, u32),
+    #[error("Order not found for address: {0} on chain ID: {1} with hash: {2}")]
+    OrderNotFound(String, u32, B256),
+    #[error("Vault not found for address: {0} on chain ID: {1} with id: {2}")]
+    VaultNotFound(String, u32, String),
     #[error(transparent)]
     OrderDetailError(#[from] OrderDetailError),
     #[error(transparent)]
@@ -252,11 +310,29 @@ pub enum RaindexError {
     MissingErc20Decimals(String),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error(transparent)]
+    LocalDbError(#[from] Box<LocalDbError>),
+    #[error(transparent)]
+    LocalDbQueryError(#[from] LocalDbQueryError),
+    #[error("Chain id: {0} is not supported for local database")]
+    LocalDbUnsupportedNetwork(u32),
 }
 
 impl From<DotrainOrderError> for RaindexError {
     fn from(err: DotrainOrderError) -> Self {
         Self::DotrainOrderError(Box::new(err))
+    }
+}
+
+impl From<LocalDbError> for RaindexError {
+    fn from(err: LocalDbError) -> Self {
+        Self::LocalDbError(Box::new(err))
+    }
+}
+
+impl From<serde_wasm_bindgen::Error> for RaindexError {
+    fn from(err: serde_wasm_bindgen::Error) -> Self {
+        RaindexError::SerdeError(err.into())
     }
 }
 
@@ -320,6 +396,7 @@ impl RaindexError {
                 "Failed to modify the YAML configuration due to a lock error".to_string()
             }
             RaindexError::ZeroAmount => "Amount cannot be zero".to_string(),
+            RaindexError::NegativeAmount => "Amount cannot be negative".to_string(),
             RaindexError::WritableTransactionExecuteError(err) => {
                 format!("Failed to execute transaction: {}", err)
             }
@@ -335,6 +412,16 @@ impl RaindexError {
                     address, chain_id
                 )
             }
+            RaindexError::OrderNotFound(address, chain_id, order_hash) => {
+                format!(
+                    "Order not found for address: {} on chain ID: {} with hash: {}",
+                    address, chain_id, order_hash
+                )
+            }
+            RaindexError::VaultNotFound(address, chain_id, vault_id) => format!(
+                "Vault not found for address: {} on chain ID: {} with id: {}",
+                address, chain_id, vault_id
+            ),
             RaindexError::OrderDetailError(err) => {
                 format!("Failed to decode order detail: {}", err)
             }
@@ -361,6 +448,15 @@ impl RaindexError {
                 format!("Missing decimal information for the token address: {token}")
             }
             RaindexError::AmountFormatterError(err) => format!("Amount formatter error: {err}"),
+            RaindexError::LocalDbError(err) => {
+                format!("There was an error with the local database: {err}")
+            }
+            RaindexError::LocalDbQueryError(err) => {
+                format!("There was an error querying the local database: {err}")
+            }
+            RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
+                format!("The chain ID: {chain_id} is not supported for local database operations.")
+            }
         }
     }
 }
@@ -418,11 +514,15 @@ orderbooks:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
         subgraph: mainnet
+        local-db-remote: remote
         label: Primary Orderbook
+        deployment-block: 12345
     polygon-orderbook:
         address: 0x0987654321098765432109876543210987654321
         network: polygon
         subgraph: polygon
+        local-db-remote: remote
+        deployment-block: 12345
         label: Polygon Orderbook
 tokens:
     weth:
@@ -445,6 +545,64 @@ accounts:
     alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
     bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
     charlie: 0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn new_test_client_with_db_callback(
+        yamls: Vec<String>,
+        callback: js_sys::Function,
+    ) -> RaindexClient {
+        let client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        client.set_local_db_callback(callback).unwrap();
+        client
+    }
+
+    #[cfg(target_family = "wasm")]
+    pub fn get_local_db_test_yaml() -> String {
+        format!(
+            r#"
+version: {spec_version}
+networks:
+    arbitrum:
+        rpcs:
+            - https://arb1.example
+        chain-id: 42161
+        label: Arbitrum
+        network-id: 42161
+        currency: ETH
+subgraphs:
+    arbitrum: https://arb.subgraph
+metaboards:
+    arbitrum: https://arb.metaboard
+orderbooks:
+    arbitrum-orderbook:
+        address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
+        network: arbitrum
+        subgraph: arbitrum
+        local-db-remote: remote
+        deployment-block: 1
+tokens:
+    tokena:
+        network: arbitrum
+        address: 0x00000000000000000000000000000000000000aa
+        decimals: 18
+        label: Token A
+        symbol: TKNA
+    tokenb:
+        network: arbitrum
+        address: 0x00000000000000000000000000000000000000bb
+        decimals: 6
+        label: Token B
+        symbol: TKNB
+deployers:
+    arb-deployer:
+        address: 0x1111111111111111111111111111111111111111
+        network: arbitrum
+accounts:
+    test: 0x2222222222222222222222222222222222222222
 "#,
             spec_version = SpecVersion::current()
         )
@@ -645,7 +803,9 @@ accounts:
             address: 0x1111111111111111111111111111111111111111
             network: some-network
             subgraph: test
+            local-db-remote: remote
             label: Test Orderbook
+            deployment-block: 12345
     "#,
                 spec_version = SpecVersion::current()
             );

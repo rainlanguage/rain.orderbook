@@ -2,14 +2,14 @@ use crate::{
     error::{Error, FailedQuote},
     quote::{QuoteResult, QuoteTarget},
 };
-use alloy::providers::{MulticallError, Provider};
+use alloy::providers::{Failure, MulticallError, MulticallItem, Provider};
 use alloy::{
     eips::{BlockId, BlockNumberOrTag},
     primitives::Address,
 };
-use rain_error_decoding::AbiDecodedErrorType;
+use rain_error_decoding::{AbiDecodedErrorType, ErrorRegistry};
 use rain_orderbook_bindings::provider::mk_read_provider;
-use rain_orderbook_bindings::IOrderBookV5::IOrderBookV5Instance;
+use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return, IOrderBookV5Instance};
 use url::Url;
 
 /// Quotes array of given quote targets using the given rpc url
@@ -19,6 +19,7 @@ pub async fn batch_quote(
     block_number: Option<u64>,
     _gas: Option<u64>, // TODO: remove or use
     multicall_address: Option<Address>,
+    registry: Option<&dyn ErrorRegistry>,
 ) -> Result<Vec<QuoteResult>, Error> {
     let rpcs = rpcs
         .into_iter()
@@ -28,9 +29,9 @@ pub async fn batch_quote(
     let provider = mk_read_provider(&rpcs)?;
 
     let mut multicall = if let Some(addr) = multicall_address {
-        provider.multicall().address(addr).dynamic()
+        provider.multicall().address(addr).dynamic::<quote2Call>()
     } else {
-        provider.multicall().dynamic()
+        provider.multicall().dynamic::<quote2Call>()
     };
 
     if let Some(block_number) = block_number {
@@ -39,16 +40,19 @@ pub async fn batch_quote(
 
     for quote_target in quote_targets {
         let ob_instance = IOrderBookV5Instance::new(quote_target.orderbook, provider.clone());
-        multicall = multicall.add_dynamic(ob_instance.quote2(quote_target.quote_config.clone()));
+        let call = ob_instance
+            .quote2(quote_target.quote_config.clone())
+            .into_call(true);
+        multicall = multicall.add_call_dynamic(call);
     }
 
-    let aggregate_res = match multicall.aggregate3().await {
+    let aggregate_res: Vec<Result<quote2Return, Failure>> = match multicall.aggregate3().await {
         Ok(results) => results,
         Err(MulticallError::CallFailed(bytes)) => {
-            // Handle the case where the entire multicall failed
-            // Create a single error result for all quote targets
             let decoded_error =
-                match AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref()).await {
+                match AbiDecodedErrorType::selector_registry_abi_decode(bytes.as_ref(), registry)
+                    .await
+                {
                     Ok(err) => FailedQuote::RevertError(err),
                     Err(err) => FailedQuote::RevertErrorDecodeFailed(err),
                 };
@@ -64,7 +68,7 @@ pub async fn batch_quote(
                         "Unexpected multicall failure".to_string(),
                     )),
                 })
-                .collect());
+                .collect::<Vec<QuoteResult>>());
         }
         Err(err) => return Err(Error::MulticallError(err)),
     };
@@ -80,7 +84,11 @@ pub async fn batch_quote(
                 }
             }
             Err(failure) => {
-                match AbiDecodedErrorType::selector_registry_abi_decode(&failure.return_data).await
+                match AbiDecodedErrorType::selector_registry_abi_decode(
+                    &failure.return_data,
+                    registry,
+                )
+                .await
                 {
                     Ok(e) => results.push(Err(FailedQuote::RevertError(e))),
                     Err(e) => results.push(Err(FailedQuote::RevertErrorDecodeFailed(e))),
@@ -96,12 +104,14 @@ pub async fn batch_quote(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy::json_abi::Error as AlloyError;
     use alloy::providers::bindings::IMulticall3::Result as MulticallResult;
     use alloy::providers::MulticallError;
     use alloy::sol_types::SolCall;
     use alloy::sol_types::SolValue;
     use alloy::transports::TransportError;
     use httpmock::{Method::POST, MockServer};
+    use rain_error_decoding::ErrorRegistry;
     use rain_math_float::Float;
     use rain_orderbook_bindings::IOrderBookV5::{quote2Call, quote2Return};
     use serde_json::json;
@@ -127,8 +137,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: true,
-                    outputMax: one.0,
-                    ioRatio: two.0,
+                    outputMax: one.get_inner(),
+                    ioRatio: two.get_inner(),
                 })
                 .into(),
             },
@@ -136,8 +146,8 @@ mod tests {
                 success: true,
                 returnData: quote2Call::abi_encode_returns(&quote2Return {
                     exists: false,
-                    outputMax: zero.0,
-                    ioRatio: zero.0,
+                    outputMax: zero.get_inner(),
+                    ioRatio: zero.get_inner(),
                 })
                 .into(),
             },
@@ -161,6 +171,7 @@ mod tests {
         let result = batch_quote(
             &quote_targets,
             vec![rpc_server.url("/").to_string()],
+            None,
             None,
             None,
             None,
@@ -188,6 +199,7 @@ mod tests {
         let err = batch_quote(
             &quote_targets,
             vec!["this should break".to_string()],
+            None,
             None,
             None,
             None,
@@ -221,6 +233,7 @@ mod tests {
             None,
             None,
             None,
+            None,
         )
         .await
         .unwrap_err();
@@ -246,7 +259,7 @@ mod tests {
             },
             MulticallResult {
                 success: false,
-                returnData: alloy::hex!("deadbeef").to_vec().into(), // Unknown error selector
+                returnData: alloy::hex!("ff00ff00").to_vec().into(), // Unknown error selector
             },
         ]
         .abi_encode();
@@ -260,12 +273,30 @@ mod tests {
             }));
         });
 
+        struct FakeRegistry;
+
+        #[async_trait::async_trait]
+        impl ErrorRegistry for FakeRegistry {
+            async fn lookup(
+                &self,
+                selector: [u8; 4],
+            ) -> Result<Vec<AlloyError>, rain_error_decoding::AbiDecodeFailedErrors> {
+                // 0x734bc71c -> "TokenSelfTrade()"
+                if selector == [0x73, 0x4b, 0xc7, 0x1c] {
+                    Ok(vec!["TokenSelfTrade()".parse().unwrap()])
+                } else {
+                    Ok(vec![]) // keep 0xdeadbeef unknown
+                }
+            }
+        }
+
         let results = batch_quote(
             &quote_targets,
             vec![rpc_server.url("/rpc").to_string()],
             None,
             None,
             None,
+            Some(&FakeRegistry),
         )
         .await
         .unwrap();

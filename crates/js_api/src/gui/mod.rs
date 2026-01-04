@@ -2,6 +2,7 @@ use alloy::primitives::Address;
 use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
     gui::{
@@ -36,6 +37,7 @@ mod field_values;
 mod order_operations;
 mod select_tokens;
 mod state_management;
+mod validation;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct TokenInfo {
@@ -158,11 +160,9 @@ impl DotrainOrderGui {
             param_description = "Key of the deployment to activate (must exist in YAML)"
         )]
         selected_deployment: String,
-        #[wasm_export(
-            param_description = "Optional JavaScript function called on state changes. \
+        #[wasm_export(param_description = "Optional function called on state changes. \
             After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
-            This is useful for auto-saving the state of the GUI across sessions."
-        )]
+            This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
@@ -388,7 +388,7 @@ impl DotrainOrderGui {
     ///
     /// The YAML must contain:
     /// - `gui.name` - Order display name
-    /// - `gui.description` - Full order description  
+    /// - `gui.description` - Full order description
     /// - `gui.short-description` - Brief summary (optional but recommended)
     ///
     /// ## Examples
@@ -407,7 +407,7 @@ impl DotrainOrderGui {
         unchecked_return_type = "NameAndDescriptionCfg",
         return_description = "Order name, description, and optional short description"
     )]
-    pub async fn get_order_details(
+    pub fn get_order_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
         let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
@@ -446,7 +446,7 @@ impl DotrainOrderGui {
         unchecked_return_type = "Map<string, NameAndDescriptionCfg>",
         return_description = "Map of deployment key to metadata"
     )]
-    pub async fn get_deployment_details(
+    pub fn get_deployment_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, GuiError> {
         let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
@@ -474,11 +474,11 @@ impl DotrainOrderGui {
         unchecked_return_type = "NameAndDescriptionCfg",
         return_description = "Deployment name and description"
     )]
-    pub async fn get_deployment_detail(
+    pub fn get_deployment_detail(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
         #[wasm_export(param_description = "Deployment identifier to look up")] key: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain).await?;
+        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain)?;
         let deployment_detail = deployment_details
             .get(&key)
             .ok_or(GuiError::DeploymentNotFound(key))?;
@@ -690,9 +690,13 @@ pub enum GuiError {
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
+    ValidationError(#[from] validation::GuiValidationError),
+    #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     AmountFormatterError(#[from] AmountFormatterError),
+    #[error(transparent)]
+    FloatError(#[from] FloatError),
 }
 
 impl GuiError {
@@ -773,9 +777,13 @@ impl GuiError {
             GuiError::SerdeWasmBindgenError(err) =>
                 format!("Data serialization error: {}", err),
             GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
+            GuiError::ValidationError(err) => format!("Validation error: {}", err),
             GuiError::UrlParseError(err) => format!("URL parsing error: {err}"),
             GuiError::AmountFormatterError(err) =>
                 format!("There was a problem formatting the amount: {err}"),
+            GuiError::FloatError(err) => {
+                format!("There was a problem with the float value: {err}")
+            }
         }
     }
 }
@@ -919,6 +927,8 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        local-db-remote: remote
+        deployment-block: 12345
 tokens:
     token1:
         network: some-network
@@ -982,6 +992,241 @@ _ _: 0 0;
         )
     }
 
+    pub fn get_yaml_with_validation() -> String {
+        format!(
+            r#"
+version: {spec_version}
+gui:
+  name: Validation Test
+  description: Test deployment with various validation rules
+  deployments:
+    validation-deployment:
+      name: Validation Test Deployment
+      description: Testing all validation scenarios
+      fields:
+        # Number validation tests
+        - binding: price-field
+          name: Price Field
+          description: Field with number validation
+          validation:
+            type: number
+            decimals: 18
+            minimum: 10
+            maximum: 1000
+
+        - binding: quantity-field
+          name: Quantity Field
+          description: Field with exclusive bounds
+          validation:
+            type: number
+            decimals: 18
+            exclusive-minimum: 0
+            exclusive-maximum: 100000
+
+        - binding: percentage-field
+          name: Percentage Field
+          description: Field with all number constraints
+          validation:
+            type: number
+            decimals: 18
+            minimum: 0
+            maximum: 100
+            exclusive-maximum: 101
+
+        - binding: simple-number
+          name: Simple Number
+          description: Number field with no constraints
+          validation:
+            type: number
+            decimals: 18
+
+        # String validation tests
+        - binding: username-field
+          name: Username
+          description: Field with string length validation
+          validation:
+            type: string
+            min-length: 3
+            max-length: 20
+
+        - binding: description-field
+          name: Description
+          description: Field with only max length
+          validation:
+            type: string
+            max-length: 500
+
+        - binding: code-field
+          name: Code
+          description: Field with only min length
+          validation:
+            type: string
+            min-length: 5
+
+        - binding: any-string
+          name: Any String
+          description: String field with no constraints
+          validation:
+            type: string
+
+        # Boolean validation test
+        - binding: enabled-field
+          name: Enabled
+          description: Boolean field
+          validation:
+            type: boolean
+
+        # Fields with presets and validation
+        - binding: preset-number-field
+          name: Preset Number
+          description: Number field with presets and validation
+          presets:
+            - name: Low
+              value: 50
+            - name: Medium
+              value: 100
+            - name: High
+              value: 150
+          validation:
+            type: number
+            decimals: 18
+            minimum: 10
+            maximum: 200
+
+        - binding: preset-string-field
+          name: Preset String
+          description: String field with presets and validation
+          presets:
+            - name: Option A
+              value: alpha
+            - name: Option B
+              value: beta
+            - name: Option C
+              value: gamma
+          validation:
+            type: string
+            min-length: 4
+            max-length: 10
+
+        # Field without validation
+        - binding: no-validation-field
+          name: No Validation
+          description: Field without any validation
+
+      deposits:
+        # Deposit with minimum amount validation
+        - token: token1
+          validation:
+            minimum: 100
+
+        # Deposit with maximum amount validation
+        - token: token2
+          validation:
+            maximum: 10000
+
+        # Deposit with exclusive bounds
+        - token: token3
+          validation:
+            exclusive-minimum: 0
+            exclusive-maximum: 50000
+
+        # Deposit with all constraints
+        - token: token4
+          validation:
+            minimum: 10
+            maximum: 1000
+
+        # Deposit without validation
+        - token: token6
+networks:
+    test-network:
+        rpcs:
+            - http://localhost:8085
+        chain-id: 1
+        network-id: 1
+        currency: ETH
+subgraphs:
+    test-sg: https://test.subgraph.com
+deployers:
+    test-deployer:
+        network: test-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+    test-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: test-network
+        subgraph: test-sg
+        local-db-remote: remote
+        deployment-block: 12345
+tokens:
+    token1:
+        network: test-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: Token 1
+        symbol: T1
+    token2:
+        network: test-network
+        address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+        decimals: 6
+        label: Token 2
+        symbol: T2
+    token3:
+        network: test-network
+        address: 0xdAC17F958D2ee523a2206206994597C13D831ec7
+        decimals: 6
+        label: Token 3
+        symbol: T3
+    token4:
+        network: test-network
+        address: 0x6B175474E89094C44Da98b954EedeAC495271d0F
+        decimals: 18
+        label: Token 4
+        symbol: T4
+    token5:
+        network: test-network
+        address: 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984
+        decimals: 18
+        label: Token 5
+        symbol: T5
+    token6:
+        network: test-network
+        address: 0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39
+        decimals: 8
+        label: Token 6
+        symbol: T6
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            test: 1
+orders:
+    test-order:
+      inputs:
+        - token: token1
+          vault-id: 1
+      outputs:
+        - token: token1
+          vault-id: 1
+      deployer: test-deployer
+      orderbook: test-orderbook
+deployments:
+    validation-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#test !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            spec_version = SpecVersion::current()
+        )
+    }
+
     pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
@@ -996,6 +1241,16 @@ _ _: 0 0;
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
             "select-token-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap()
+    }
+
+    pub async fn initialize_validation_gui() -> DotrainOrderGui {
+        DotrainOrderGui::new_with_deployment(
+            get_yaml_with_validation(),
+            "validation-deployment".to_string(),
             None,
         )
         .await
@@ -1261,10 +1516,8 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_order_details() {
-        let order_details = DotrainOrderGui::get_order_details(get_yaml())
-            .await
-            .unwrap();
+    fn test_get_order_details() {
+        let order_details = DotrainOrderGui::get_order_details(get_yaml()).unwrap();
         assert_eq!(order_details.name, "Fixed limit");
         assert_eq!(order_details.description, "Fixed limit order");
         assert_eq!(
@@ -1287,9 +1540,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_order_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1318,9 +1569,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_order_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1350,9 +1599,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_order_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1368,10 +1615,8 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_deployment_details() {
-        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml())
-            .await
-            .unwrap();
+    fn test_get_deployment_details() {
+        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml()).unwrap();
         assert_eq!(deployment_details.len(), 3);
         let deployment_detail = deployment_details.get("some-deployment").unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
@@ -1409,9 +1654,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let details = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap();
+        let details = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap();
         assert_eq!(details.len(), 0);
 
         let yaml = format!(
@@ -1429,9 +1672,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1460,9 +1701,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1495,9 +1734,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1530,9 +1767,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1563,9 +1798,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string())
-            .await
-            .unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1581,10 +1814,9 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_deployment_detail() {
+    fn test_get_deployment_detail() {
         let deployment_detail =
             DotrainOrderGui::get_deployment_detail(get_yaml(), "some-deployment".to_string())
-                .await
                 .unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
         assert_eq!(
@@ -1650,8 +1882,8 @@ _ _: 0 0;
     #[cfg(not(target_family = "wasm"))]
     mod select_token_tests {
         use super::*;
-        use alloy_ethers_typecast::rpc::Response;
         use httpmock::MockServer;
+        use serde_json::json;
 
         pub const SELECT_TOKEN_YAML: &str = r#"
 gui:
@@ -1697,6 +1929,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 scenarios:
     some-scenario:
         deployer: some-deployer
@@ -1736,6 +1969,7 @@ _ _: 0 0;
             let server = MockServer::start_async().await;
             let yaml = format!(
                 r#"
+version: {spec_version}
 networks:
     some-network:
         rpcs:
@@ -1745,16 +1979,21 @@ networks:
         currency: ETH
 {yaml}
 "#,
+                spec_version = SpecVersion::current(),
                 yaml = SELECT_TOKEN_YAML,
                 rpc_url = server.url("/rpc")
             );
 
             server.mock(|when, then| {
                         when.method("POST").path("/rpc").body_contains("0x82ad56cb");
-                        then.body(Response::new_success(1, "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000").to_json_string().unwrap());
+                        then.json_body(json!({
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "result": "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000",
+                        }));
                     });
 
-            let gui = DotrainOrderGui::new_with_deployment(
+            let mut gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
                 "some-deployment".to_string(),
                 None,

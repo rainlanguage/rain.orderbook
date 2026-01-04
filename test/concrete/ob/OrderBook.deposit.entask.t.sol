@@ -21,27 +21,17 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
     using LibDecimalFloat for Float;
     using LibFormatDecimalFloat for Float;
 
-    uint256 internal runID = 0;
-    mapping(uint256 => bool) internal previouslyDeposited;
-
-    constructor() {
-        runID++;
-    }
-
-    function checkReentrancyRW() internal {
-        bool isFirstDeposit = !previouslyDeposited[runID];
-        previouslyDeposited[runID] = true;
-
+    function checkReentrancyRW() internal view {
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(address(iOrderbook));
         // 3 reads for reentrancy guard.
         // 5 reads for deposit.
-        assertEq(reads.length, isFirstDeposit ? 8 : 6);
+        assertEq(reads.length, 5);
         assertEq(reads[0], bytes32(uint256(0)));
         assertEq(reads[1], bytes32(uint256(0)));
         assertEq(reads[reads.length - 1], bytes32(uint256(0)));
         // 2 writes for reentrancy guard.
         // 2 write for deposit.
-        assertEq(writes.length, isFirstDeposit ? 4 : 3);
+        assertEq(writes.length, 3);
         assertEq(writes[0], bytes32(uint256(0)));
         assertEq(writes[writes.length - 1], bytes32(uint256(0)));
     }
@@ -232,7 +222,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-before() ",
-                preDepositAmount.toDecimalString(),
+                preDepositAmount.toDecimalString(false),
                 ") \"vault balance before\");"
             )
         );
@@ -240,7 +230,7 @@ contract OrderBookDepositEnactTest is OrderBookExternalRealTest {
             string.concat(
                 usingWordsFrom,
                 ":ensure(equal-to(deposit-vault-after() ",
-                preDepositAmount.add(depositAmount).toDecimalString(),
+                preDepositAmount.add(depositAmount).toDecimalString(false),
                 ") \"vault balance after\");"
             )
         );

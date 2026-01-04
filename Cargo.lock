@@ -301,7 +301,7 @@ dependencies = [
  "derive_builder 0.12.0",
  "getrandom 0.3.3",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=bf08b5ab305287fc49408a441d6375f35dc280db)",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -321,7 +321,7 @@ dependencies = [
  "derive_builder 0.12.0",
  "getrandom 0.3.3",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=bf08b5ab305287fc49408a441d6375f35dc280db)",
  "reqwest 0.11.27",
  "serde",
  "serde_json",
@@ -1690,7 +1690,7 @@ dependencies = [
  "futures-core",
  "futures-io",
  "futures-lite",
- "gloo-timers",
+ "gloo-timers 0.3.0",
  "kv-log-macro",
  "log",
  "memchr",
@@ -1792,6 +1792,18 @@ name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+
+[[package]]
+name = "backon"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d67782c3f868daa71d3533538e98a8e13713231969def7536e8039606fc46bf0"
+dependencies = [
+ "fastrand",
+ "futures-core",
+ "pin-project",
+ "tokio",
+]
 
 [[package]]
 name = "backtrace"
@@ -3266,6 +3278,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "fallible-iterator"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
+
+[[package]]
+name = "fallible-streaming-iterator"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
+
+[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3409,9 +3433,9 @@ dependencies = [
 
 [[package]]
 name = "form_urlencoded"
-version = "1.2.1"
+version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
+checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
 dependencies = [
  "percent-encoding",
 ]
@@ -3930,16 +3954,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fs4"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8640e34b88f7652208ce9e88b1a37a2ae95227d84abec377ccd3c5cfeb141ed4"
-dependencies = [
- "rustix 1.0.7",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "funty"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4124,6 +4138,18 @@ dependencies = [
 
 [[package]]
 name = "gloo-timers"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b995a66bb87bebce9a0f4a95aed01daca4872c050bfcb21653361c03bc35e5c"
+dependencies = [
+ "futures-channel",
+ "futures-core",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "gloo-timers"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbb143cf96099802033e0d4f4963b19fd2e0b728bcf076cd9cf7f6634f092994"
@@ -4286,6 +4312,15 @@ dependencies = [
  "equivalent",
  "foldhash",
  "serde",
+]
+
+[[package]]
+name = "hashlink"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ba4ff7128dee98c7dc9794b6a411377e1404dba1c97deb8d1a55297bd25d8af"
+dependencies = [
+ "hashbrown 0.14.5",
 ]
 
 [[package]]
@@ -4701,9 +4736,9 @@ dependencies = [
 
 [[package]]
 name = "idna"
-version = "1.0.3"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "686f825264d630750a544639377bae737628043f20d38bbc029e8f29ea968a7e"
+checksum = "3b0875f23caa03898994f6ddc501886a45c7d3d62d04d2d90788d47be1b1e4de"
 dependencies = [
  "idna_adapter",
  "smallvec",
@@ -5206,6 +5241,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3db8d6ba2cec9eacc40e6e8ccc98931840301f1006e95647ceb2dd5c3aa06f7c"
 dependencies = [
  "libsecp256k1-core",
+]
+
+[[package]]
+name = "libsqlite3-sys"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c10584274047cb335c23d3e61bcef8e323adae7c5c8c760540f73610177fc3f"
+dependencies = [
+ "pkg-config",
+ "vcpkg",
 ]
 
 [[package]]
@@ -6067,9 +6112,9 @@ dependencies = [
 
 [[package]]
 name = "percent-encoding"
-version = "2.3.1"
+version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
+checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
 name = "pest"
@@ -6543,6 +6588,22 @@ dependencies = [
 [[package]]
 name = "rain-error-decoding"
 version = "0.1.0"
+source = "git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3#3d2ed70fb2f7c6156706846e10f163d1e493a8d3"
+dependencies = [
+ "alloy",
+ "async-trait",
+ "getrandom 0.2.16",
+ "once_cell",
+ "reqwest 0.11.27",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "url",
+]
+
+[[package]]
+name = "rain-error-decoding"
+version = "0.1.0"
 source = "git+https://github.com/rainlanguage/rain.error?rev=bf08b5ab305287fc49408a441d6375f35dc280db#bf08b5ab305287fc49408a441d6375f35dc280db"
 dependencies = [
  "alloy",
@@ -6562,7 +6623,7 @@ dependencies = [
  "eyre",
  "foundry-evm",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain_interpreter_bindings",
  "reqwest 0.11.27",
  "revm 24.0.1",
@@ -6582,7 +6643,7 @@ dependencies = [
  "revm 25.0.0",
  "serde",
  "thiserror 2.0.12",
- "wasm-bindgen-utils 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -6628,7 +6689,8 @@ dependencies = [
  "tracing-subscriber 0.3.19",
  "url",
  "validator",
- "wasm-bindgen-utils 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen",
+ "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
 ]
 
 [[package]]
@@ -6720,6 +6782,7 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "derive_builder 0.20.2",
+ "futures",
  "httpmock",
  "rain_orderbook_bindings",
  "reqwest 0.12.20",
@@ -6738,6 +6801,7 @@ name = "rain_orderbook_bindings"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
+ "getrandom 0.2.16",
  "serde",
  "thiserror 1.0.69",
  "tower",
@@ -6753,11 +6817,15 @@ dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
  "anyhow",
+ "async-trait",
  "chrono",
  "clap",
  "comfy-table",
  "csv",
+ "flate2",
+ "futures",
  "httpmock",
+ "itertools 0.14.0",
  "rain-math-float",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",
@@ -6766,7 +6834,7 @@ dependencies = [
  "rain_orderbook_quote",
  "rain_orderbook_subgraph_client",
  "rain_orderbook_test_fixtures",
- "reqwest 0.12.20",
+ "rusqlite",
  "rust-bigint",
  "serde",
  "serde_bytes",
@@ -6784,16 +6852,22 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
+ "async-trait",
+ "backon",
  "chrono",
  "csv",
  "dotrain",
  "dotrain-lsp",
  "eyre",
+ "flate2",
  "futures",
+ "getrandom 0.2.16",
+ "gloo-timers 0.2.6",
  "httpmock",
+ "itertools 0.14.0",
  "once_cell",
  "proptest",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain-interpreter-eval",
  "rain-math-float",
  "rain-metaboard-subgraph",
@@ -6808,7 +6882,9 @@ dependencies = [
  "rain_orderbook_subgraph_client",
  "rain_orderbook_test_fixtures",
  "reqwest 0.12.20",
+ "rusqlite",
  "serde",
+ "serde-wasm-bindgen 0.4.5",
  "serde_bytes",
  "serde_json",
  "serde_yaml",
@@ -6818,8 +6894,10 @@ dependencies = [
  "tower",
  "tracing",
  "url",
+ "wasm-bindgen-futures",
  "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
+ "web-sys",
 ]
 
 [[package]]
@@ -6846,6 +6924,7 @@ dependencies = [
  "cynic",
  "flate2",
  "futures",
+ "getrandom 0.2.16",
  "httpmock",
  "rain-math-float",
  "rain_orderbook_app_settings",
@@ -6881,10 +6960,12 @@ dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
  "anyhow",
+ "async-trait",
  "clap",
+ "getrandom 0.2.16",
  "httpmock",
  "once_cell",
- "rain-error-decoding",
+ "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain-interpreter-eval",
  "rain-math-float",
  "rain_orderbook_app_settings",
@@ -7735,6 +7816,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusqlite"
+version = "0.31.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b838eba278d213a8beaf485bd313fd580ca4505a00d5871caeb1457c55322cae"
+dependencies = [
+ "bitflags 2.9.1",
+ "fallible-iterator",
+ "fallible-streaming-iterator",
+ "hashlink",
+ "libsqlite3-sys",
+ "smallvec",
+]
+
+[[package]]
 name = "rust-bigint"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8116,6 +8211,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f0e2c6ed6606019b4e29e69dbaba95b11854410e5347d525002456dbbb786b6"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-wasm-bindgen"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
+dependencies = [
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -8541,7 +8647,7 @@ dependencies = [
  "solar-config",
  "solar-data-structures",
  "solar-macros",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "tracing",
  "unicode-width",
 ]
@@ -8874,29 +8980,28 @@ dependencies = [
 
 [[package]]
 name = "svm-rs"
-version = "0.5.16"
+version = "0.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62d304f1b54e9c83ec8f0537c9dd40d46344bd9142cc528d5242c4b6fe11ced0"
+checksum = "909e8ff825120cd2b34ceb236ab72e2a7f74b1d3a86c247936c8ff7a80c5d408"
 dependencies = [
  "const-hex",
  "dirs",
- "fs4",
  "reqwest 0.12.20",
  "semver 1.0.26",
  "serde",
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "url",
- "zip 2.4.2",
+ "zip 4.2.0",
 ]
 
 [[package]]
 name = "svm-rs-builds"
-version = "0.5.16"
+version = "0.5.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ed5035d2abae3cd98c201b116ff22a82861589c060f3e4b687ce951cf381a6e"
+checksum = "c1ebe77b200f965e8dbec3ef1d8337e974179ca1ecaa9fc28f67288d6b438159"
 dependencies = [
  "const-hex",
  "semver 1.0.26",
@@ -9615,12 +9720,12 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "url"
-version = "2.5.4"
+version = "2.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60"
+checksum = "08bc136a29a3d1758e07a9cca267be308aeebf5cfd5a10f3f67ab2097683ef5b"
 dependencies = [
  "form_urlencoded",
- "idna 1.0.3",
+ "idna 1.1.0",
  "percent-encoding",
  "serde",
 ]

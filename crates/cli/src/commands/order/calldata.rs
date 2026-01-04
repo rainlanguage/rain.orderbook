@@ -133,25 +133,25 @@ mod tests {
             })
         };
 
-        // mock iInterpreter() call
+        // mock I_INTERPRETER() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xf0cfdd37");
+            when.path("/rpc").body_contains("0x56fb83e9");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(1));
         });
 
-        // mock iStore() call
+        // mock I_STORE() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xc19423bc");
+            when.path("/rpc").body_contains("0x251ac32e");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(2));
         });
 
-        // mock iParser() call
+        // mock I_PARSER() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x24376855");
+            when.path("/rpc").body_contains("0xf79693f4");
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(3));
@@ -199,6 +199,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -406,6 +407,7 @@ orderbooks:
     address: 0x0000000000000000000000000000000000000000
     network: some-network
     subgraph: some-subgraph
+    deployment-block: 12345
 deployers:
   some-deployer:
     network: some-network
@@ -476,6 +478,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:

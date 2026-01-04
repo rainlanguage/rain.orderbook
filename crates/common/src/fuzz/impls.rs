@@ -14,7 +14,7 @@ use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_interpreter_bindings::IInterpreterStoreV3::FullyQualifiedNamespace;
 use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_interpreter_bindings::{
-    DeployerISP::{iInterpreterCall, iStoreCall},
+    DeployerISP::{I_INTERPRETERCall, I_STORECall},
     IInterpreterV4::eval4Call,
 };
 use rain_interpreter_eval::eval::ForkParseArgs;
@@ -496,7 +496,7 @@ impl FuzzRunner {
             .map_err(|e| FuzzRunnerError::ForkCallError(Box::new(e)))?;
         let store = self
             .forker
-            .alloy_call(Address::default(), deployer.address, iStoreCall {}, true)
+            .alloy_call(Address::default(), deployer.address, I_STORECall {}, true)
             .await?
             .typed_return;
 
@@ -505,7 +505,7 @@ impl FuzzRunner {
             .alloy_call(
                 Address::default(),
                 deployer.address,
-                iInterpreterCall {},
+                I_INTERPRETERCall {},
                 true,
             )
             .await?
@@ -529,7 +529,8 @@ impl FuzzRunner {
 
         let mut error = None;
         if res.exit_reason.is_revert() {
-            error = Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result).await);
+            error =
+                Some(AbiDecodedErrorType::selector_registry_abi_decode(&res.result, None).await);
         }
         let run = res.try_into()?;
 
@@ -781,7 +782,7 @@ b: fuzzed;
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner_invalid_spec_version() {
         let dotrain = r#"
-version: 3
+version: 1
 deployers:
     some-key:
         address: 0x1111111111111111111111111111111111111111
@@ -808,7 +809,7 @@ b: fuzzed;
         assert!(matches!(
             err,
             FuzzRunnerError::SpecVersionMismatch(ref expected, ref actual)
-                if expected == "2" && actual == "3"
+                if expected == "4" && actual == "1"
         ));
     }
 
@@ -1245,7 +1246,7 @@ scenarios:
         deployer: flare
         runs: 1
         bindings:
-            orderbook-subparser: {orderbook_subparser} 
+            orderbook-subparser: {orderbook_subparser}
 orders:
     sell-wflr:
         network: flare

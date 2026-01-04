@@ -23,7 +23,7 @@ export function handleDeposit(event: DepositV2): void {
 
   const decimals = decimalsBigInt.toI32();
   const calculator = getCalculator();
-  let depositAmount = calculator.fromFixedDecimalLosslessPacked(
+  let depositAmount = calculator.fromFixedDecimalLossless(
     event.params.depositAmountUint256,
     decimals
   );

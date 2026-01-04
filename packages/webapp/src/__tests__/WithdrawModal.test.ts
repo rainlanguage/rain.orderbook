@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import type { ComponentProps } from 'svelte';
-import type { RaindexVault } from '@rainlanguage/orderbook';
+import { Float, type RaindexVault } from '@rainlanguage/orderbook';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
 
@@ -28,12 +28,12 @@ describe('WithdrawModal', () => {
 		},
 		getOwnerBalance: vi.fn().mockResolvedValue({
 			value: {
-				balance: BigInt('1000000000000000000'), // 1 token
+				balance: Float.parse('1').value, // 1 token
 				formattedBalance: '1'
 			}
 		}),
 		vaultId: '1',
-		balance: BigInt(1000000000000000000), // 1 token
+		balance: Float.parse('1').value as Float,
 		formattedBalance: '1'
 	} as unknown as RaindexVault;
 
@@ -66,24 +66,21 @@ describe('WithdrawModal', () => {
 			expect(screen.getByText('Balance of connected wallet')).toBeInTheDocument();
 		});
 
-		const inputAmount = '1';
-		const expectedAmountBigInt = BigInt(
-			parseFloat(inputAmount) * 10 ** Number(mockVault.token.decimals)
-		);
-
 		const amountInput = screen.getByRole('textbox');
-		await fireEvent.input(amountInput, { target: { value: inputAmount } });
+		await fireEvent.input(amountInput, { target: { value: '1' } });
 
 		const withdrawButton = screen.getByTestId('withdraw-button');
 		await fireEvent.click(withdrawButton);
 
-		expect(defaultProps.onSubmit).toHaveBeenCalledWith(expectedAmountBigInt);
+		expect(defaultProps.onSubmit).toHaveBeenCalledTimes(1);
+		const actualArg = mockOnSubmit.mock.calls[0][0];
+		expect(actualArg.format().value).toBe('1');
 	});
 
 	it('shows error when amount exceeds balance', async () => {
 		const mockVaultWithBalance = {
 			...mockVault,
-			balance: BigInt(500000000000000000) // 0.5 tokens
+			balance: Float.parse('0.5').value as Float
 		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {
@@ -123,7 +120,7 @@ describe('WithdrawModal', () => {
 	it('disables continue button when amount exceeds balance', async () => {
 		const mockVaultWithBalance = {
 			...mockVault,
-			balance: BigInt(500000000000000000) // 0.5 tokens
+			balance: Float.parse('0.5').value as Float
 		} as unknown as RaindexVault;
 
 		render(WithdrawModal, {
@@ -148,7 +145,7 @@ describe('WithdrawModal', () => {
 	it('handles zero vault balance correctly', async () => {
 		const mockVaultWithZeroBalance = {
 			...mockVault,
-			balance: BigInt(0),
+			balance: Float.parse('0').value as Float,
 			formattedBalance: '0'
 		} as unknown as RaindexVault;
 
@@ -178,7 +175,7 @@ describe('WithdrawModal', () => {
 	it('displays vault balance correctly', async () => {
 		const mockVaultWithBalance = {
 			...mockVault,
-			balance: BigInt('3700000000000000000'), // 3.7 tokens
+			balance: Float.parse('3.7').value as Float,
 			formattedBalance: '3.7'
 		} as unknown as RaindexVault;
 

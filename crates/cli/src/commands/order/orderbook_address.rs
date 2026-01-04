@@ -137,6 +137,8 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        local-db-remote: some-remote
+        deployment-block: 12345
 
 tokens:
     token1:

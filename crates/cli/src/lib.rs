@@ -2,6 +2,7 @@ use crate::commands::{Chart, Order, Subgraph, Trade, Vault, Words};
 use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
+use commands::local_db::LocalDbCommands;
 use rain_orderbook_quote::cli::Quoter;
 
 mod commands;
@@ -30,6 +31,9 @@ pub enum Orderbook {
     Quote(Quoter),
 
     Words(Words),
+
+    #[command(name = "local-db", subcommand)]
+    LocalDb(LocalDbCommands),
 }
 
 impl Orderbook {
@@ -42,6 +46,7 @@ impl Orderbook {
             Orderbook::Quote(quote) => quote.execute().await,
             Orderbook::Subgraph(subgraph) => subgraph.execute().await,
             Orderbook::Words(words) => words.execute().await,
+            Orderbook::LocalDb(local_db) => local_db.execute().await,
         }
     }
 }

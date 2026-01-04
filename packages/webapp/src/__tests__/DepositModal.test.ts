@@ -4,7 +4,7 @@ import DepositModal from '$lib/components/DepositModal.svelte';
 import type { ComponentProps } from 'svelte';
 import type { Hex } from 'viem';
 import truncateEthAddress from 'truncate-eth-address';
-import type { RaindexVault } from '@rainlanguage/orderbook';
+import { Float, type RaindexVault } from '@rainlanguage/orderbook';
 
 type ModalProps = ComponentProps<DepositModal>;
 
@@ -26,13 +26,13 @@ describe('DepositModal', () => {
 		},
 		getOwnerBalance: vi.fn().mockResolvedValue({
 			value: {
-				balance: BigInt('1000000000000000000'), // 1 token
+				balance: Float.parse('1').value, // 1 token
 				formattedBalance: '1'
 			}
 		}),
 		chainId: 1,
 		orderbook: '0x123',
-		balance: BigInt(1)
+		balance: Float.parse('1').value as Float
 	} as unknown as RaindexVault;
 
 	const mockOnSubmit = vi.fn();
@@ -70,13 +70,15 @@ describe('DepositModal', () => {
 		const depositButton = screen.getByTestId('deposit-button');
 		await fireEvent.click(depositButton);
 
-		expect(mockOnSubmit).toHaveBeenCalledWith(BigInt(1000000000000000000));
+		expect(mockOnSubmit).toHaveBeenCalledOnce();
+		const actualArg = mockOnSubmit.mock.calls[0][0];
+		expect(actualArg.format().value).toBe('1');
 	});
 
 	it('shows error when amount exceeds balance', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: BigInt('500000000000000000'), // 0.5 tokens
+				balance: Float.parse('0.5').value, // 0.5 tokens
 				formattedBalance: '0.5'
 			}
 		});
@@ -111,7 +113,7 @@ describe('DepositModal', () => {
 	it('disables continue button when amount exceeds balance', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: BigInt('500000000000000000'), // 0.5 tokens
+				balance: Float.parse('0.5').value, // 0.5 tokens
 				formattedBalance: '0.5'
 			}
 		});
@@ -132,7 +134,7 @@ describe('DepositModal', () => {
 	it('handles zero user balance correctly', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: BigInt('0'),
+				balance: Float.parse('0').value,
 				formattedBalance: '0'
 			}
 		});
@@ -155,10 +157,9 @@ describe('DepositModal', () => {
 	});
 
 	it('displays user balance correctly', async () => {
-		const userBalanceAmount = BigInt('2500000000000000000'); // 2.5 tokens
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: userBalanceAmount,
+				balance: Float.parse('2.5').value,
 				formattedBalance: '2.5'
 			}
 		});
@@ -190,7 +191,7 @@ describe('DepositModal', () => {
 	it('shows wallet address in truncated form', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: BigInt('1000000000000000000'), // 1 token
+				balance: Float.parse('1').value, // 1 token
 				formattedBalance: '1'
 			}
 		});

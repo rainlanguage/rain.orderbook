@@ -18,7 +18,7 @@ evm_version = "paris"
 optimizer = true
 # this is a bit low, was set to 1000000 previously but this caused deployment
 # code size cap to be hit.
-optimizer_runs = 4000
+optimizer_runs = 1000
 
 bytecode_hash = "none"
 cbor_metadata = false
@@ -45,6 +45,7 @@ remappings = [
   "rain.sol.codegen/=lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.sol.codegen/src/",
   "rain.solmem/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.solmem/src",
   "rain.math.float/=lib/rain.orderbook.interface/lib/rain.interpreter.interface/lib/rain.math.float/src/",
+  "rain.tofu.erc20-decimals/=lib/rain.tofu.erc20-decimals/src/",
 ]
 
 [fuzz]

@@ -11,14 +11,18 @@
 		ToastProvider,
 		WalletProvider,
 		FixedBottomTransaction,
-		RaindexClientProvider
+		RaindexClientProvider,
+		LocalDbProvider
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
+	import { onDestroy, onMount } from 'svelte';
+	import { updateStatus } from '$lib/stores/localDbStatus';
+	import type { RaindexClient } from '@rainlanguage/orderbook';
 
-	const { errorMessage, raindexClient } = $page.data;
+	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -30,6 +34,16 @@
 	});
 
 	let walletInitError: string | null = null;
+
+	onMount(() => {
+		if (!browser || !raindexClient || !localDb) return;
+		let client = raindexClient as RaindexClient;
+		client.startLocalDbScheduler(settingsYamlText, updateStatus);
+	});
+	onDestroy(() => {
+		if (!raindexClient) return;
+		raindexClient.stopLocalDbScheduler();
+	});
 
 	$: if (browser && window.navigator) {
 		initWallet().then((error) => {
@@ -56,17 +70,21 @@
 					{:else if errorMessage}
 						<ErrorPage />
 					{:else}
-						<RaindexClientProvider {raindexClient}>
-							<div
-								data-testid="layout-container"
-								class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-							>
-								<Sidebar {colorTheme} page={$page} />
-								<main class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8">
-									<slot />
-								</main>
-							</div>
-						</RaindexClientProvider>
+						<LocalDbProvider {localDb}>
+							<RaindexClientProvider {raindexClient}>
+								<div
+									data-testid="layout-container"
+									class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
+								>
+									<Sidebar {colorTheme} page={$page} />
+									<main
+										class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8"
+									>
+										<slot />
+									</main>
+								</div>
+							</RaindexClientProvider>
+						</LocalDbProvider>
 					{/if}
 					<FixedBottomTransaction />
 				</LoadingWrapper>

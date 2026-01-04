@@ -1,5 +1,7 @@
 import fc from 'fast-check';
 import { test } from '@fast-check/vitest';
+import { Float } from '@rainlanguage/orderbook';
+
 /**
  * Validates an amount against a balance and returns validation results
  *
@@ -9,16 +11,18 @@ import { test } from '@fast-check/vitest';
  */
 
 export function validateAmount(
-	amount: bigint,
-	balance: bigint
+	amount: Float,
+	balance: Float
 ): {
 	isValid: boolean;
 	isZero: boolean;
 	exceedsBalance: boolean;
 	errorMessage: string | null;
 } {
-	const isZero = amount <= 0n;
-	const exceedsBalance = amount > balance;
+	const zero = Float.parse('0').value as Float;
+
+	const isZero = amount.lte(zero).value;
+	const exceedsBalance = amount.gt(balance).value;
 	const isValid = !isZero && !exceedsBalance;
 
 	let errorMessage = null;
@@ -30,8 +34,8 @@ export function validateAmount(
 
 	return {
 		isValid,
-		isZero,
-		exceedsBalance,
+		isZero: !!isZero,
+		exceedsBalance: !!exceedsBalance,
 		errorMessage
 	};
 }
@@ -39,31 +43,38 @@ export function validateAmount(
 if (import.meta.vitest) {
 	const { expect, it } = import.meta.vitest;
 
-	test.prop([fc.bigInt(), fc.bigInt()])(
-		'validates amounts against balances correctly',
-		(amount, balance) => {
-			const result = validateAmount(amount, balance);
+	test.prop([
+		fc.bigInt().map((n) => Float.fromFixedDecimal(n, 18)),
+		fc.bigInt().map((n) => Float.fromFixedDecimal(n, 18))
+	])('validates amounts against balances correctly', (amountRes, balanceRes) => {
+		if (amountRes.error || balanceRes.error) return;
+		const amount = amountRes.value;
+		const balance = balanceRes.value;
 
-			expect(result.isZero).toBe(amount <= 0n);
-			expect(result.exceedsBalance).toBe(amount > balance);
-			expect(result.isValid).toBe(amount > 0n && amount <= balance);
+		const result = validateAmount(amount, balance);
+		const zero = Float.parse('0').value as Float;
 
-			if (amount <= 0n) {
-				expect(result.isValid).toBe(false);
-				expect(result.errorMessage).toContain('greater than zero');
-			} else if (amount > balance) {
-				expect(result.isValid).toBe(false);
-				expect(result.errorMessage).toContain('exceed available balance');
-			} else {
-				expect(result.isValid).toBe(true);
-				expect(result.errorMessage).toBeNull();
-			}
+		expect(result.isZero).toBe(amount.lte(zero).value);
+		expect(result.exceedsBalance).toBe(amount.gt(balance).value);
+		expect(result.isValid).toBe(amount.gt(zero).value && amount.lte(balance).value);
+
+		if (amount.lte(zero).value) {
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('greater than zero');
+		} else if (amount.gt(balance).value) {
+			expect(result.isValid).toBe(false);
+			expect(result.errorMessage).toContain('exceed available balance');
+		} else {
+			expect(result.isValid).toBe(true);
+			expect(result.errorMessage).toBeNull();
 		}
-	);
+	});
 
 	it('handles edge cases correctly', () => {
 		// Test with zero amount
-		expect(validateAmount(0n, 100n)).toEqual({
+		expect(
+			validateAmount(Float.parse('0').value as Float, Float.parse('100').value as Float)
+		).toEqual({
 			isValid: false,
 			isZero: true,
 			exceedsBalance: false,
@@ -71,7 +82,9 @@ if (import.meta.vitest) {
 		});
 
 		// Test with negative amount
-		expect(validateAmount(-1n, 100n)).toEqual({
+		expect(
+			validateAmount(Float.parse('-1').value as Float, Float.parse('100').value as Float)
+		).toEqual({
 			isValid: false,
 			isZero: true,
 			exceedsBalance: false,
@@ -79,7 +92,9 @@ if (import.meta.vitest) {
 		});
 
 		// Test with amount equal to balance
-		expect(validateAmount(100n, 100n)).toEqual({
+		expect(
+			validateAmount(Float.parse('100').value as Float, Float.parse('100').value as Float)
+		).toEqual({
 			isValid: true,
 			isZero: false,
 			exceedsBalance: false,
@@ -88,7 +103,12 @@ if (import.meta.vitest) {
 
 		// Test with very large numbers
 		const maxBigInt = BigInt(Number.MAX_SAFE_INTEGER);
-		expect(validateAmount(maxBigInt, maxBigInt)).toEqual({
+		expect(
+			validateAmount(
+				Float.fromFixedDecimal(maxBigInt, 18).value as Float,
+				Float.fromFixedDecimal(maxBigInt, 18).value as Float
+			)
+		).toEqual({
 			isValid: true,
 			isZero: false,
 			exceedsBalance: false,

@@ -4,15 +4,18 @@ version = 1
 path = [
     ".envrc",
     ".gas-snapshot",
-    ".github/workflows/**/",
+    ".github/**/",
     ".gitignore",
     ".gitmodules",
     ".vscode/**/",
     ".cargo/**/",
     "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
     "flake.lock",
     "flake.nix",
     "foundry.toml",
+    "foundry.lock",
     "slither.config.json",
     "typeshare.toml",
     "REUSE.toml",
@@ -27,10 +30,13 @@ path = [
     "tauri-app/.env.example",
     "prep-all.sh",
     "packages/**/",
+    "ai_commands/**/",
     "subgraph/**/",
     "crates/**/",
     "tauri-app/**/",
     "test-resources/**/",
+    "prep-base.sh",
+    "prep-webapp.sh",
 ]
 SPDX-FileCopyrightText = "Copyright (c) 2020 Rain Open Source Software Ltd"
 SPDX-License-Identifier = "LicenseRef-DCL-1.0"

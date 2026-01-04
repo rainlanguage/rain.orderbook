@@ -172,7 +172,7 @@ charts:
 #fixed-io-output-token !The output token that the fixed io is for. If this doesn't match the runtime output then the fixed-io will be inverted.
 #calculate-io
 using-words-from raindex-subparser
-max-output: max-value(),
+max-output: max-positive-value(),
 io: fixed-io;
 #handle-io
 :;

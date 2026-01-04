@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         platform: [
-            macos-13,
+            macos-15-intel,
             macos-14,
             ubuntu-22.04,
             # Someone who cares can make windows work.
@@ -41,7 +41,7 @@ jobs:
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Free up disk space in action runner (Macos)
-        if: matrix.platform == 'macos-13' || matrix.platform == 'macos-14'
+        if: matrix.platform == 'macos-15-intel' || matrix.platform == 'macos-14'
         run: |
           sudo rm -rf \
           "$AGENT_TOOLSDIRECTORY" \
@@ -88,6 +88,28 @@ jobs:
 
       - run: nix develop .#tauri-shell -c ob-tauri-unit-test
 
+      - run: nix develop .#tauri-shell --command ob-tauri-before-build-ci
+        working-directory: ./tauri-app
+        env:
+          WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+      - run: nix develop .#tauri-shell --command npm run svelte-lint-format-check
+        working-directory: ./tauri-app
+
+      - name: Reset workspace target before Rust tests
+        run: |
+          rm -rf target
+          rm -rf tauri-app/src-tauri/target
+
+      - name: Run Rust tests with reduced debug artifacts
+        run: nix develop .#tauri-shell --command tauri-rs-test
+        env:
+          CARGO_INCREMENTAL: 0
+
+      - run: |
+          rm -rf target
+          rm -rf tauri-app/src-tauri/target
+          rm -rf tauri-app/.env
+
       - run: nix develop .#tauri-shell --command ob-tauri-before-release
         working-directory: ./tauri-app
         env:
@@ -98,6 +120,21 @@ jobs:
           SENTRY_PROJECT: rain-orderbook
           COMMIT_SHA: ${{ github.sha }}
           SENTRY_LOG_LEVEL: debug
+
+      # check for npm package blacklists pkgs across all tauri related packages
+      - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
+
+      - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/orderbook
+
+      - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
+        with:
+          working-directory: packages/ui-components
+
+      - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
+        with:
+          working-directory: tauri-app
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -114,3 +151,12 @@ jobs:
           tagName: app-v__VERSION__-${{ github.sha }} # the action automatically replaces \_\_VERSION\_\_ with the app version
           releaseName: "App v__VERSION__-${{ github.sha }}"
           releaseBody: "See the assets to download this version and install."
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always() 
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}

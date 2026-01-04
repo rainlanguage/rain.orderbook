@@ -22,7 +22,7 @@ impl OrderbookSubgraphClient {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
         let balance_not = if filter_args.hide_zero_balance {
-            Some(SgBytes(Float::default().0.to_string()))
+            Some(SgBytes(Float::default().get_inner().to_string()))
         } else {
             None
         };

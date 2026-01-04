@@ -4,7 +4,7 @@ import { assert } from 'chai';
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
-version: 2
+version: 4
 networks:
     some-network:
         rpcs:
@@ -26,6 +26,7 @@ orderbooks:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
+        deployment-block: 12345
 
 tokens:
     token1:
@@ -79,11 +80,9 @@ _ _: 0 0;
 		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeDeploymentToRainlang('some-deployment');
 		if (!result.value) assert.fail('expected to resolve, but failed');
-		const expected = `/* 0. calculate-io */ 
-_ _: 0 0;
-
-/* 1. handle-io */ 
-:;`;
+		const expected = ['/* 0. calculate-io */ ', '_ _: 0 0;', '', '/* 1. handle-io */ ', ':;'].join(
+			'\n'
+		);
 
 		assert.equal(result.value, expected);
 	});
@@ -102,11 +101,9 @@ scenarios:
 		const dotrainOrder = res.value;
 		const result = await dotrainOrder.composeScenarioToRainlang('config-scenario');
 		if (!result.value) assert.fail('expected to resolve, but failed');
-		const expected = `/* 0. calculate-io */ 
-_ _: 0 0;
-
-/* 1. handle-io */ 
-:;`;
+		const expected = ['/* 0. calculate-io */ ', '_ _: 0 0;', '', '/* 1. handle-io */ ', ':;'].join(
+			'\n'
+		);
 
 		assert.equal(result.value, expected);
 	});

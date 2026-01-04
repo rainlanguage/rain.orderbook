@@ -413,7 +413,7 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Q22rCQBDN2tJS6JMU-lToB3TJraIr9KGFGi8o4g3xTeOSxGx2Q7JixJ_wkyU6GzE4D3PO7Dk7M0xFu8QL4Crg64B72NRUPACahlE2WQgeDK1gijwBShFSbt_rdt95W71ClYqIYk7lTiSh-vcB6EsZN3WdCXfJfJHKZsNo1PQkdvE2YYfcgfKM1Oj_SfsNaPV7lh1LCVXRM8iTfIdPGz2qujewK9o1bnY1iwEmIaisWoVqEfIF1JmT31aH1hbDcPGHk9QfeZt61MJOnw3qXe5NLTbvZYEzzryfd3UJyqgr8bkpXtOYiX1EuTwBUWAVvMgBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QUUvDMBBupiiCT0PwSfAHGJo0qywDXxyiIBOUIeJLcW1YS7OkpOd0-if8ydLt0rGye7jvu3xf7o7rBZs4QZwVJivMnPLAxwEiZ6xrigg-sKBlnhwhgi2VEfu67XfuVqdY1XahqFHwZV3p_10g5gDVKAy1TT90bmsYDdkwDl2V0k-nfxsHaTLxo--mD2dI-4PX779OIn1yjPK02eFSkENfPz6JXrCNnV15O4BLSbpq1KqRlFdIk6SauDJfPr-Ns2xVxwMnE3Y_E_HL8keNi_fbeZwAv56AsDfn_hJKqxTouinNVKXtaqEM_AOC1mMyyAEAAA==";
 
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
@@ -428,6 +428,7 @@ mod tests {
             "TKN3".to_string(),
         );
         gui.set_deposit("token3".to_string(), "100".to_string())
+            .await
             .unwrap();
         gui.set_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();
@@ -541,6 +542,7 @@ mod tests {
         assert_eq!(callback_called, JsValue::from_bool(false));
 
         gui.set_deposit("token1".to_string(), "100".to_string())
+            .await
             .unwrap();
         gui.set_field_value("binding-1".to_string(), "100".to_string())
             .unwrap();

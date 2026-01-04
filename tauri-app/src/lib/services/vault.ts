@@ -2,12 +2,12 @@ import { get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api';
 import { ledgerWalletDerivationIndex } from '$lib/stores/wallets';
 import { walletConnectNetwork } from '$lib/stores/walletconnect';
-import type { RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
+import type { Float, RaindexClient, RaindexVault } from '@rainlanguage/orderbook';
 
 export async function vaultDeposit(
   raindexClient: RaindexClient,
   vault: RaindexVault,
-  amount: bigint,
+  amount: Float,
 ) {
   const chainId = get(walletConnectNetwork);
   const network = raindexClient.getNetworkByChainId(chainId);
@@ -33,7 +33,7 @@ export async function vaultDeposit(
 export async function vaultWithdraw(
   raindexClient: RaindexClient,
   vault: RaindexVault,
-  targetAmount: bigint,
+  targetAmount: Float,
 ) {
   const chainId = get(walletConnectNetwork);
   const network = raindexClient.getNetworkByChainId(chainId);
@@ -57,12 +57,12 @@ export async function vaultWithdraw(
   });
 }
 
-export async function vaultDepositCalldata(vaultId: bigint, token: string, amount: bigint) {
+export async function vaultDepositCalldata(vaultId: bigint, token: string, amount: Float) {
   return await invoke('vault_deposit_calldata', {
     depositArgs: {
       vault_id: vaultId.toString(),
       token,
-      amount: amount.toString(),
+      amount,
     },
   });
 }

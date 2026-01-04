@@ -21,7 +21,7 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
 
     fn try_from(val: SgVaultBalanceChangeUnwrapped) -> Result<Self, Self::Error> {
         let amount = Float::from_hex(&val.amount.0)?;
-        let amount_display_signed = amount.format18()?;
+        let amount_display_signed = amount.format()?;
 
         Ok(Self {
             timestamp: val.timestamp.clone(),
@@ -156,7 +156,7 @@ mod tests {
         let result = VaultBalanceChangeFlattened::try_from(val);
         assert!(result.is_ok());
         let flattened = result.unwrap();
-        assert_eq!(flattened.amount_display_signed, "-0.5");
+        assert_eq!(flattened.amount_display_signed, "-5e-1");
     }
 
     #[test]

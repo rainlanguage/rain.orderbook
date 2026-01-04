@@ -1,4 +1,4 @@
-<script lang="ts" generics="T">
+<script lang="ts">
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { invalidateTanstackQueries } from '$lib/queries/queryClient';
 	import Refresh from '../icon/Refresh.svelte';
@@ -15,7 +15,7 @@
 		TableHead,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import { BugOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
+	import { BugOutline, ClipboardOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 	import Tooltip from '../Tooltip.svelte';
 
 	export let order: RaindexOrder;
@@ -32,13 +32,36 @@
 	let enabled = true;
 
 	const queryClient = useQueryClient();
-	const { errToast } = useToasts();
+	const { errToast, addToast } = useToasts();
 
 	const refreshQuotes = async () => {
 		try {
 			await invalidateTanstackQueries(queryClient, [order.id, QKEY_ORDER_QUOTE + order.id]);
 		} catch {
 			errToast('Failed to refresh');
+		}
+	};
+
+	const copyQuoteError = async (error?: string) => {
+		if (!error) {
+			errToast('No quote error to copy');
+			return;
+		}
+		try {
+			if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+				throw new Error('Clipboard API unavailable');
+			}
+			await navigator.clipboard.writeText(error);
+			addToast({
+				message: 'Copied quote error',
+				type: 'success',
+				color: 'green'
+			});
+		} catch (copyError) {
+			errToast(
+				'Failed to copy quote error',
+				copyError instanceof Error ? copyError.message : undefined
+			);
 		}
 	};
 
@@ -75,6 +98,7 @@
 			{/if}
 			<span></span>
 			<Refresh
+				data-testid="refresh-button"
 				class="h-8 w-5 cursor-pointer text-gray-400 dark:text-gray-400"
 				on:click={refreshQuotes}
 				spin={$orderQuoteQuery.isLoading || $orderQuoteQuery.isFetching}
@@ -107,7 +131,7 @@
 
 		<TableBody>
 			{#if $orderQuoteQuery.data && $orderQuoteQuery.data.length > 0}
-				{#each $orderQuoteQuery.data as item}
+				{#each $orderQuoteQuery.data as item, index}
 					{#if item.success && item.data}
 						<TableBodyRow data-testid="bodyRow">
 							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
@@ -138,19 +162,30 @@
 					{:else if !item.success && item.error}
 						<TableBodyRow>
 							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
-							<TableBodyCell colspan="2" class="flex flex-col justify-start text-gray-400">
-								<Tooltip triggeredBy="#quote-error">
+							<TableBodyCell colspan="3" class="text-sm text-red-500 dark:text-red-400">
+								<Tooltip
+									triggeredBy={`#quote-error-${index}`}
+									customClass="max-w-sm whitespace-pre-wrap break-words"
+								>
 									{item.error}
 								</Tooltip>
-								<div
-									id="quote-error"
-									class="overflow-x cursor-pointer self-start border-dotted border-red-500"
-								>
-									Error fetching quote
+								<div class="flex items-start gap-2">
+									<button
+										type="button"
+										class="mt-0.5 rounded border border-transparent p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
+										aria-label="Copy quote error"
+										on:click={() => copyQuoteError(item.error)}
+									>
+										<ClipboardOutline size="sm" />
+									</button>
+									<div
+										id={`quote-error-${index}`}
+										class="max-w-xl cursor-pointer self-start truncate border-dotted border-red-500 pr-2"
+									>
+										{item.error}
+									</div>
 								</div>
 							</TableBodyCell>
-							<TableBodyCell />
-							<TableBodyCell />
 							<TableBodyCell>
 								{#if handleQuoteDebugModal}
 									<button

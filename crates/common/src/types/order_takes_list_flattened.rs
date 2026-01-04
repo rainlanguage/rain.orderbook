@@ -42,11 +42,11 @@ impl TryFrom<SgTrade> for OrderTakeFlattened {
             sender: val.trade_event.sender,
             order_id: val.order.order_hash,
             input: input_vault_balance_change.amount,
-            input_display: input_amount.format18()?,
+            input_display: input_amount.format()?,
             input_token_id: input_vault_balance_change.vault.token.id,
             input_token_symbol: input_vault_balance_change.vault.token.symbol,
             output: output_vault_balance_change.amount,
-            output_display: output_amount.format18()?,
+            output_display: output_amount.format()?,
             output_token_id: output_vault_balance_change.vault.token.address,
             output_token_symbol: output_vault_balance_change.vault.token.symbol,
         })
@@ -297,7 +297,7 @@ mod tests {
         let input_display = "-1.234567890123456789".to_string();
         let input_amount = Float::parse(input_display.clone()).unwrap();
 
-        let output_display = "-0.98765432".to_string();
+        let output_display = "-9.8765432e-1".to_string();
         let output_amount = Float::parse(output_display.clone()).unwrap();
 
         trade_data.input_vault_balance_change.amount = SgBytes(input_amount.as_hex());

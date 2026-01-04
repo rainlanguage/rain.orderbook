@@ -33,10 +33,9 @@ import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {
     LibTOFUTokenDecimals,
-    TOFUTokenDecimals,
     TOFUOutcome,
     TokenDecimalsReadFailure
-} from "../../lib/LibTOFUTokenDecimals.sol";
+} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
 import {
     IOrderBookV5,
@@ -224,8 +223,6 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     //solhint-disable-next-line private-vars-leading-underscore
     mapping(bytes32 orderHash => uint256 liveness) internal sOrders;
 
-    mapping(address token => TOFUTokenDecimals tofuTokenDecimals) internal sTOFUTokenDecimals;
-
     /// @dev Vault balances are stored in a mapping of owner => token => vault ID
     /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
     /// `sFoo` naming convention for storage variables.
@@ -396,6 +393,12 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
+    function checkTokenSelfTrade(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex) internal pure {
+        if (order.validInputs[inputIOIndex].token == order.validOutputs[outputIOIndex].token) {
+            revert TokenSelfTrade();
+        }
+    }
+
     /// @inheritdoc IOrderBookV5
     function quote2(QuoteV2 calldata quoteConfig) external view returns (bool, Float, Float) {
         bytes32 orderHash = quoteConfig.order.hash();
@@ -404,12 +407,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             return (false, Float.wrap(0), Float.wrap(0));
         }
 
-        if (
-            quoteConfig.order.validInputs[quoteConfig.inputIOIndex].token
-                == quoteConfig.order.validOutputs[quoteConfig.outputIOIndex].token
-        ) {
-            revert TokenSelfTrade();
-        }
+        checkTokenSelfTrade(quoteConfig.order, quoteConfig.inputIOIndex, quoteConfig.outputIOIndex);
 
         OrderIOCalculationV4 memory orderIOCalculation = calculateOrderIO(
             quoteConfig.order,
@@ -436,6 +434,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         TakeOrderConfigV4 memory takeOrderConfig;
         OrderV4 memory order;
+        address orderInputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
+        address orderOutputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
 
         // Allocate a region of memory to hold pointers. We don't know how many
         // will run at this point, but we conservatively set aside a slot for
@@ -466,24 +466,13 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 // Every order needs the same input token.
                 // Every order needs the same output token.
                 if (
-                    (
-                        order.validInputs[takeOrderConfig.inputIOIndex].token
-                            != config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token
-                    )
-                        || (
-                            order.validOutputs[takeOrderConfig.outputIOIndex].token
-                                != config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token
-                        )
+                    (order.validInputs[takeOrderConfig.inputIOIndex].token != orderInputToken)
+                        || (order.validOutputs[takeOrderConfig.outputIOIndex].token != orderOutputToken)
                 ) {
                     revert TokenMismatch();
                 }
 
-                if (
-                    order.validInputs[takeOrderConfig.inputIOIndex].token
-                        == order.validOutputs[takeOrderConfig.outputIOIndex].token
-                ) {
-                    revert TokenSelfTrade();
-                }
+                checkTokenSelfTrade(order, takeOrderConfig.inputIOIndex, takeOrderConfig.outputIOIndex);
 
                 bytes32 orderHash = order.hash();
                 if (sOrders[orderHash] == ORDER_DEAD) {
@@ -540,10 +529,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
             }
         }
 
-        {
-            if (totalTakerInput.lt(config.minimumInput)) {
-                revert MinimumInput(config.minimumInput, totalTakerInput);
-            }
+        if (totalTakerInput.lt(config.minimumInput)) {
+            revert MinimumInput(config.minimumInput, totalTakerInput);
         }
 
         // We send the tokens to `msg.sender` first adopting a similar pattern to
@@ -557,19 +544,15 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
 
-        pushTokens(msg.sender, config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token, totalTakerInput);
+        pushTokens(msg.sender, orderOutputToken, totalTakerInput);
 
         if (config.data.length > 0) {
             IOrderBookV5OrderTaker(msg.sender).onTakeOrders2(
-                config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token,
-                config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token,
-                totalTakerInput,
-                totalTakerOutput,
-                config.data
+                orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data
             );
         }
 
-        pullTokens(msg.sender, config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token, totalTakerOutput);
+        pullTokens(msg.sender, orderInputToken, totalTakerOutput);
 
         unchecked {
             for (uint256 i = 0; i < orderIOCalculationsToHandle.length; i++) {
@@ -702,9 +685,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 );
 
                 {
-                    (TOFUOutcome inputOutcome, uint8 inputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
-                        sTOFUTokenDecimals, order.validInputs[inputIOIndex].token
-                    );
+                    (TOFUOutcome inputOutcome, uint8 inputDecimals) =
+                        LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validInputs[inputIOIndex].token);
                     if (inputOutcome != TOFUOutcome.Consistent && inputOutcome != TOFUOutcome.Initial) {
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
@@ -722,9 +704,8 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 }
 
                 {
-                    (TOFUOutcome outputOutcome, uint8 outputDecimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(
-                        sTOFUTokenDecimals, order.validOutputs[outputIOIndex].token
-                    );
+                    (TOFUOutcome outputOutcome, uint8 outputDecimals) =
+                        LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validOutputs[outputIOIndex].token);
                     if (outputOutcome != TOFUOutcome.Consistent && outputOutcome != TOFUOutcome.Initial) {
                         revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }
@@ -984,7 +965,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     function pullTokens(address account, address token, Float amount) internal returns (uint256, uint8) {
-        (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
+        (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }
@@ -1006,7 +987,7 @@ contract OrderBook is IOrderBookV5, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     function pushTokens(address account, address token, Float amountFloat) internal returns (uint256, uint8) {
-        (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(sTOFUTokenDecimals, token);
+        (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
         }

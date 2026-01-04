@@ -5,12 +5,15 @@ pub mod dotrain_add_order_lsp;
 pub mod dotrain_order;
 pub mod erc20;
 pub mod fuzz;
+pub mod local_db;
 pub mod meta;
 pub mod raindex_client;
 pub mod rainlang;
 pub mod remove_order;
 #[cfg(not(target_family = "wasm"))]
 pub mod replays;
+pub mod retry;
+pub mod rpc_client;
 pub mod subgraph;
 pub mod transaction;
 pub mod types;
