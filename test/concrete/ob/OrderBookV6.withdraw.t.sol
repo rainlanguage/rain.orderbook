@@ -195,6 +195,9 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
         Action memory action;
         for (uint256 i = 0; i < actions.length; i++) {
             action = actions[i];
+            if (action.vaultId == bytes32(0)) {
+                action.vaultId = bytes32(uint256(0x01));
+            }
             vm.etch(action.token, REVERTING_MOCK_BYTECODE);
             Float balance = iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId);
 

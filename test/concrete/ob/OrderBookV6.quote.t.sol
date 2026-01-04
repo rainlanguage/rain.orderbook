@@ -45,9 +45,6 @@ contract OrderBookV6QuoteTest is OrderBookV6ExternalRealTest {
         Float[] memory expectedMaxOutput,
         Float[] memory expectedIoRatio
     ) internal {
-        vm.assume(config.validOutputs[0].vaultId != bytes32(0));
-        vm.assume(config.validInputs[0].vaultId != bytes32(0));
-
         LibTestAddOrder.conformConfig(config, iInterpreter, iStore);
 
         uint8 depositDecimals = 12;

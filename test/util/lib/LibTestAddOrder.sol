@@ -39,16 +39,28 @@ library LibTestAddOrder {
         config.evaluable.store = store;
         if (config.validInputs.length == 0) {
             config.validInputs = new IOV2[](1);
-            config.validInputs[0] = IOV2(address(0), 0);
+            config.validInputs[0] = IOV2(address(0), bytes32(uint256(0x01)));
         }
         if (config.validOutputs.length == 0) {
             config.validOutputs = new IOV2[](1);
-            config.validOutputs[0] = IOV2(address(1), 0);
+            config.validOutputs[0] = IOV2(address(1), bytes32(uint256(0x01)));
         }
         if (config.validInputs[0].token == config.validOutputs[0].token) {
             config.validInputs[0].token = address(0);
             config.validOutputs[0].token = address(1);
         }
+
+        for (uint256 i = 0; i < config.validInputs.length; i++) {
+            if (config.validInputs[i].vaultId == bytes32(0)) {
+                config.validInputs[i].vaultId = bytes32(uint256(0x01 + i));
+            }
+        }
+        for (uint256 i = 0; i < config.validOutputs.length; i++) {
+            if (config.validOutputs[i].vaultId == bytes32(0)) {
+                config.validOutputs[i].vaultId = bytes32(uint256(0x01 + i));
+            }
+        }
+
         // Taken from parser for "_ _:1e18 1e18;:;".
         config.evaluable.bytecode = hex"020000000c02020002010000000100000000000000";
     }

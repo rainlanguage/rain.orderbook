@@ -108,6 +108,8 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         vm.assume(clear.alice != clear.bountyBot);
         vm.assume(clear.bob != clear.bountyBot);
         vm.assume(clear.aliceBountyVaultId != clear.bobBountyVaultId);
+        vm.assume(clear.aliceBountyVaultId != bytes32(0));
+        vm.assume(clear.bobBountyVaultId != bytes32(0));
 
         conformBasicConfig(clear.aliceConfig, clear.bobConfig);
         vm.assume(keccak256(clear.aliceConfig.evaluable.bytecode) != keccak256(clear.bobConfig.evaluable.bytecode));
