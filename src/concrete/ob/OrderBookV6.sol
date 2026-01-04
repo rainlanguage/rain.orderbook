@@ -127,9 +127,6 @@ error NegativeBounty();
 /// Thrown when clear output amounts are both zero.
 error ClearZeroAmount();
 
-/// Thrown when depositing or withdrawing to the zero vault ID.
-error ZeroVaultId();
-
 /// @dev Stored value for a live order. NOT a boolean because storing a boolean
 /// is more expensive than storing a uint256.
 uint256 constant ORDER_LIVE = 1;
@@ -253,7 +250,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
 
         if (vaultId == bytes32(0)) {
-            revert ZeroVaultId();
+            revert ZeroVaultId(msg.sender, token);
         }
 
         (uint256 depositAmountUint256, uint8 decimals) = pullTokens(msg.sender, token, depositAmount);
@@ -291,7 +288,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
 
         if (vaultId == bytes32(0)) {
-            revert ZeroVaultId();
+            revert ZeroVaultId(msg.sender, token);
         }
 
         Float currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
