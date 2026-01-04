@@ -28,7 +28,7 @@
   - Key types and exports:
     - `TakeOrdersCalldata(Bytes)` as an opaque JS type for encoded calldata.
     - `getOrderHash(order: OrderV4) -> string`: ABI-encodes `OrderV4` and returns `keccak256` with `0x` prefix.
-    - `getTakeOrders3Calldata(config: TakeOrdersConfigV4) -> TakeOrdersCalldata`: ABI-encodes a `takeOrders3` call for the on-chain OrderBook.
+    - `getTakeOrders4Calldata(config: TakeOrdersConfigV5) -> TakeOrdersCalldata`: ABI-encodes a `takeOrders4` call for the on-chain OrderBook.
     - `keccak256(bytes: Uint8Array) -> string` and `keccak256HexString(hex: string) -> string`.
   - Errors: `Error::FromHexError` mapped to JS with human-readable message.
 

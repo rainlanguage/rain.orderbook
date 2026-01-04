@@ -74,7 +74,7 @@ mod tests {
     use alloy::primitives::{Address, B256};
     use alloy_ethers_typecast::WriteContractParameters;
     use rain_math_float::Float;
-    use rain_orderbook_bindings::IOrderBookV5::deposit3Call;
+    use rain_orderbook_bindings::IOrderBookV6::deposit4Call;
 
     #[test]
     fn test_new() {
@@ -96,7 +96,7 @@ mod tests {
         notice.update_status_and_emit(
             &app.handle(),
             WriteTransactionStatus::PendingPrepare(Box::new(WriteContractParameters {
-                call: deposit3Call {
+                call: deposit4Call {
                     token: Address::ZERO,
                     vaultId: B256::ZERO,
                     depositAmount: zero,

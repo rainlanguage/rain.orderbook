@@ -9,7 +9,7 @@ use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use rain_math_float::{Float, FloatError};
 #[cfg(not(target_family = "wasm"))]
 use rain_orderbook_bindings::IERC20::approveCall;
-use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::allowanceCall};
+use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::allowanceCall};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -42,11 +42,11 @@ pub struct DepositArgs {
     pub decimals: u8,
 }
 
-impl TryFrom<DepositArgs> for deposit3Call {
+impl TryFrom<DepositArgs> for deposit4Call {
     type Error = FloatError;
 
     fn try_from(val: DepositArgs) -> Result<Self, Self::Error> {
-        let call = deposit3Call {
+        let call = deposit4Call {
             token: val.token,
             vaultId: val.vault_id,
             depositAmount: val.amount.get_inner(),
@@ -111,14 +111,14 @@ impl DepositArgs {
 
     /// Execute OrderbookV3 deposit call
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<deposit3Call>)>(
+    pub async fn execute_deposit<S: Fn(WriteTransactionStatus<deposit4Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), DepositError> {
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let deposit_call: deposit3Call = self.clone().try_into()?;
+        let deposit_call: deposit4Call = self.clone().try_into()?;
         let params = transaction_args
             .try_into_write_contract_parameters(deposit_call, transaction_args.orderbook_address)?;
 
@@ -147,7 +147,7 @@ mod tests {
             decimals: 6,
         };
 
-        let deposit_call: deposit3Call = args.try_into().unwrap();
+        let deposit_call: deposit4Call = args.try_into().unwrap();
 
         assert_eq!(
             deposit_call.token,
@@ -205,7 +205,7 @@ mod tests {
         };
 
         let amount = Float::parse("100".to_string()).unwrap().get_inner();
-        let deposit_call = deposit3Call {
+        let deposit_call = deposit4Call {
             token: Address::ZERO,
             vaultId: B256::from(U256::from(42)),
             depositAmount: amount,
