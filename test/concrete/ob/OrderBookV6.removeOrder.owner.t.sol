@@ -132,7 +132,7 @@ contract OrderBookV6RemoveOrderOwnerTest is OrderBookV6ExternalRealTest {
         assert(iOrderbook.orderExists(order.hash()));
 
         vm.prank(bob);
-        vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
+        vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice));
         stateChange = iOrderbook.removeOrder3(order, new TaskV2[](0));
         assert(!stateChange);
         assert(iOrderbook.orderExists(order.hash()));
