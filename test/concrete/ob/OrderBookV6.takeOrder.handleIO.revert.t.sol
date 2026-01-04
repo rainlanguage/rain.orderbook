@@ -26,7 +26,7 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
     using LibDecimalFloat for Float;
 
     function checkTakeOrderHandleIO(bytes[] memory configs, bytes memory err, Float maxInput) internal {
-        bytes32 vaultId = 0;
+        bytes32 vaultId = bytes32(uint256(0x01));
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 

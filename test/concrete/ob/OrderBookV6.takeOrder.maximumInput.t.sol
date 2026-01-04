@@ -67,7 +67,7 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         Float expectedTakerOutput
     ) internal {
         address bob = address(uint160(uint256(keccak256("bob.rain.test"))));
-        bytes32 vaultId = 0;
+        bytes32 vaultId = bytes32(uint256(0x01));
 
         OrderV4[] memory orders = new OrderV4[](testOrders.length);
 

@@ -28,7 +28,7 @@ contract OrderBookV6ClearHandleIORevertTest is OrderBookV6ExternalRealTest {
         internal
         returns (OrderV4 memory)
     {
-        bytes32 vaultId = 0;
+        bytes32 vaultId = bytes32(uint256(0x01));
 
         OrderConfigV4 memory config;
         IOV2[] memory validOutputs;
