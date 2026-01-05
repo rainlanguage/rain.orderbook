@@ -26,13 +26,15 @@ pub fn default_environment() -> RunnerEnvironment<
                 DefaultEventsPipeline::with_regular_rpcs(target.inputs.metadata_rpcs.clone())?;
             let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
 
+            let status_bus = ClientStatusBus::with_ob_id(target.inputs.ob_id.clone());
+
             Ok(EnginePipelines::new(
                 ClientBootstrapAdapter::new(),
                 DefaultWindowPipeline::new(),
                 events,
                 tokens,
                 DefaultApplyPipeline::new(),
-                ClientStatusBus::new(),
+                status_bus,
             ))
         }),
     )
@@ -52,9 +54,9 @@ mod tests {
     fn sample_target(metadata_rpcs: Vec<Url>) -> RunnerTarget {
         let fetch = FetchConfig::new(1, 1, 1, 1).expect("fetch config");
         RunnerTarget {
-            orderbook_key: "client-book".to_string(),
+            orderbook_key: "test-ob".to_string(),
+            network_key: "test-network".to_string(),
             manifest_url: Url::parse("https://manifests.example/client.yaml").unwrap(),
-            network_key: "client".to_string(),
             inputs: SyncInputs {
                 ob_id: OrderbookIdentifier {
                     chain_id: 1,

@@ -5,15 +5,15 @@ pragma solidity =0.8.25;
 import {Script} from "forge-std/Script.sol";
 import {LibCodeGen} from "rain.sol.codegen/lib/LibCodeGen.sol";
 import {LibFs} from "rain.sol.codegen/lib/LibFs.sol";
-import {OrderBookSubParser} from "src/concrete/parser/OrderBookSubParser.sol";
+import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {LibOrderBookSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "src/lib/LibOrderBookSubParser.sol";
 import {LibGenParseMeta} from "rain.interpreter.interface/lib/codegen/LibGenParseMeta.sol";
 
 contract BuildPointers is Script {
     function buildOrderBookSubParserPointers() internal {
-        OrderBookSubParser subParser = new OrderBookSubParser();
+        OrderBookV6SubParser subParser = new OrderBookV6SubParser();
 
-        string memory name = "OrderBookSubParser";
+        string memory name = "OrderBookV6SubParser";
 
         LibFs.buildFileForContract(
             vm,

@@ -1,6 +1,8 @@
 use super::adapters::apply::{ApplyPipeline, ApplyPipelineTargetInfo};
 use super::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline};
-use super::{EventsPipeline, StatusBus, SyncConfig, SyncOutcome, TokensPipeline, WindowPipeline};
+use super::{
+    EventsPipeline, StatusBus, SyncConfig, SyncOutcome, SyncPhase, TokensPipeline, WindowPipeline,
+};
 use crate::erc20::TokenInfo;
 use crate::local_db::address_collectors::{collect_store_addresses, collect_token_addresses};
 use crate::local_db::decode::{
@@ -8,7 +10,7 @@ use crate::local_db::decode::{
 };
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
 use crate::local_db::query::fetch_store_addresses::{fetch_store_addresses_stmt, StoreAddressRow};
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement, SqlStatementBatch};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::Address;
@@ -65,7 +67,7 @@ where
         let latest_block = self.bootstrap_phase(db, input).await?;
         let (start_block, target_block) = self.compute_window(db, input, latest_block).await?;
         if start_block > target_block {
-            self.status.send("No work for current window").await?;
+            self.status.send(SyncPhase::Idle).await?;
             return Ok(SyncOutcome {
                 ob_id: input.ob_id.clone(),
                 start_block,
@@ -143,16 +145,23 @@ where
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        self.status.send("Fetching latest block").await?;
+        self.status.send(SyncPhase::FetchingLatestBlock).await?;
         let latest_block = self.events.latest_block().await?;
 
-        self.status.send("Running bootstrap").await?;
+        self.status.send(SyncPhase::RunningBootstrap).await?;
         self.bootstrap
             .engine_run(
                 db,
                 &BootstrapConfig {
                     ob_id: input.ob_id.clone(),
-                    dump_stmt: input.dump_str.as_ref().map(SqlStatement::new),
+                    dump_stmt: input.dump_str.as_ref().map(|value| {
+                        let mut batch_stmt = SqlStatementBatch::new();
+                        for line in value.lines() {
+                            let stmt = SqlStatement::new(line);
+                            batch_stmt.add(stmt);
+                        }
+                        batch_stmt
+                    }),
                     block_number_threshold: input.block_number_threshold,
                     latest_block: input.manifest_end_block,
                     deployment_block: input.cfg.deployment_block,
@@ -172,7 +181,7 @@ where
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        self.status.send("Computing sync window").await?;
+        self.status.send(SyncPhase::ComputingSyncWindow).await?;
         self.window
             .compute(db, &input.ob_id, &input.cfg, latest_block)
             .await
@@ -184,7 +193,7 @@ where
         start_block: u64,
         target_block: u64,
     ) -> Result<(Vec<LogEntryResponse>, Vec<DecodedEventData<DecodedEvent>>), LocalDbError> {
-        self.status.send("Fetching orderbook logs").await?;
+        self.status.send(SyncPhase::FetchingOrderbookLogs).await?;
         let orderbook_logs = self
             .events
             .fetch_orderbook(
@@ -195,7 +204,7 @@ where
             )
             .await?;
 
-        self.status.send("Decoding orderbook logs").await?;
+        self.status.send(SyncPhase::DecodingOrderbookLogs).await?;
         let decoded_events = self.events.decode(&orderbook_logs)?;
 
         Ok((orderbook_logs, decoded_events))
@@ -243,7 +252,7 @@ where
                     Vec::new(),
                 ))
             } else {
-                self.status.send("Fetching interpreter store logs").await?;
+                self.status.send(SyncPhase::FetchingStoreLogs).await?;
                 let logs = self
                     .events
                     .fetch_stores(
@@ -253,7 +262,7 @@ where
                         &input.cfg.fetch,
                     )
                     .await?;
-                self.status.send("Decoding interpreter store logs").await?;
+                self.status.send(SyncPhase::DecodingStoreLogs).await?;
                 let decoded = self.events.decode(&logs)?;
                 Ok((logs, decoded))
             }
@@ -291,7 +300,7 @@ where
             return Ok(Vec::new());
         }
 
-        self.status.send("Fetching missing token metadata").await?;
+        self.status.send(SyncPhase::FetchingTokenMetadata).await?;
         self.tokens
             .fetch_missing(missing_tokens, &input.cfg.fetch)
             .await
@@ -301,7 +310,7 @@ where
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        self.status.send("Building SQL batch").await?;
+        self.status.send(SyncPhase::BuildingSqlBatch).await?;
         let batch = self.apply.build_batch(
             ctx.target_info,
             ctx.raw_logs,
@@ -310,10 +319,10 @@ where
             ctx.tokens_to_upsert,
         )?;
 
-        self.status.send("Persisting to database").await?;
+        self.status.send(SyncPhase::PersistingToDatabase).await?;
         self.apply.persist(db, &batch).await?;
 
-        self.status.send("Running post-sync export").await?;
+        self.status.send(SyncPhase::RunningPostSyncExport).await?;
         self.apply
             .export_dump(db, &ctx.target_info.ob_id, ctx.target_info.target_block)
             .await
@@ -349,7 +358,7 @@ mod tests {
     };
     use crate::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
     use crate::local_db::pipeline::adapters::bootstrap::BootstrapState;
-    use crate::local_db::pipeline::{FinalityConfig, WindowOverrides};
+    use crate::local_db::pipeline::{FinalityConfig, SyncPhase, WindowOverrides};
     use crate::local_db::query::{
         fetch_erc20_tokens_by_addresses::Erc20TokenRow, fetch_store_addresses::StoreAddressRow,
         LocalDbQueryError, SqlStatement, SqlStatementBatch, SqlValue,
@@ -400,7 +409,7 @@ mod tests {
         token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IOrderBookV5::DepositV2;
+        use rain_orderbook_bindings::IOrderBookV6::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
             block_number: U256::from(block),
@@ -424,7 +433,7 @@ mod tests {
         output_token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IOrderBookV5::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
+        use rain_orderbook_bindings::IOrderBookV6::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
         DecodedEventData {
             event_type: EventType::AddOrderV3,
             block_number: U256::from(block),
@@ -508,13 +517,13 @@ mod tests {
 
     #[derive(Default)]
     struct MockStatusInner {
-        messages: Mutex<Vec<String>>,
+        phases: Mutex<Vec<SyncPhase>>,
         results: Mutex<VecDeque<Result<(), LocalDbError>>>,
     }
 
     impl MockStatusBus {
-        fn messages(&self) -> Vec<String> {
-            self.inner.messages.lock().unwrap().clone()
+        fn phases(&self) -> Vec<SyncPhase> {
+            self.inner.phases.lock().unwrap().clone()
         }
 
         fn set_results(&self, results: Vec<Result<(), LocalDbError>>) {
@@ -524,8 +533,8 @@ mod tests {
 
     #[async_trait(?Send)]
     impl StatusBus for MockStatusBus {
-        async fn send(&self, message: &str) -> Result<(), LocalDbError> {
-            self.inner.messages.lock().unwrap().push(message.to_owned());
+        async fn send(&self, phase: SyncPhase) -> Result<(), LocalDbError> {
+            self.inner.phases.lock().unwrap().push(phase);
             if let Some(result) = self.inner.results.lock().unwrap().pop_front() {
                 result
             } else {
@@ -1200,21 +1209,21 @@ mod tests {
         assert_eq!(outcome.fetched_logs, 3);
         assert_eq!(outcome.decoded_events, 3);
 
-        let messages = harness.status.messages();
+        let phases = harness.status.phases();
         assert_eq!(
-            messages,
+            phases,
             vec![
-                "Fetching latest block",
-                "Running bootstrap",
-                "Computing sync window",
-                "Fetching orderbook logs",
-                "Decoding orderbook logs",
-                "Fetching interpreter store logs",
-                "Decoding interpreter store logs",
-                "Fetching missing token metadata",
-                "Building SQL batch",
-                "Persisting to database",
-                "Running post-sync export",
+                SyncPhase::FetchingLatestBlock,
+                SyncPhase::RunningBootstrap,
+                SyncPhase::ComputingSyncWindow,
+                SyncPhase::FetchingOrderbookLogs,
+                SyncPhase::DecodingOrderbookLogs,
+                SyncPhase::FetchingStoreLogs,
+                SyncPhase::DecodingStoreLogs,
+                SyncPhase::FetchingTokenMetadata,
+                SyncPhase::BuildingSqlBatch,
+                SyncPhase::PersistingToDatabase,
+                SyncPhase::RunningPostSyncExport,
             ]
         );
 
@@ -1258,14 +1267,14 @@ mod tests {
         assert_eq!(outcome.fetched_logs, 0);
         assert_eq!(outcome.decoded_events, 0);
 
-        let messages = harness.status.messages();
+        let phases = harness.status.phases();
         assert_eq!(
-            messages,
+            phases,
             vec![
-                "Fetching latest block",
-                "Running bootstrap",
-                "Computing sync window",
-                "No work for current window",
+                SyncPhase::FetchingLatestBlock,
+                SyncPhase::RunningBootstrap,
+                SyncPhase::ComputingSyncWindow,
+                SyncPhase::Idle,
             ]
         );
 
@@ -1614,13 +1623,10 @@ mod tests {
         let configs = harness.bootstrap.configs();
         assert_eq!(configs.len(), 1);
         let config = &configs[0];
-        let dump_stmt = config
-            .dump_stmt
-            .as_ref()
-            .expect("dump statement present")
-            .sql()
-            .to_owned();
-        assert_eq!(dump_stmt, "SELECT 1");
+        let dump_stmt = config.dump_stmt.as_ref().expect("dump statement present");
+        let statements = dump_stmt.statements();
+        assert_eq!(statements.len(), 1);
+        assert_eq!(statements[0].sql(), "SELECT 1");
         assert_eq!(config.deployment_block, inputs.cfg.deployment_block);
         assert_eq!(config.block_number_threshold, inputs.block_number_threshold);
         assert_eq!(config.latest_block, inputs.manifest_end_block);
@@ -1680,7 +1686,10 @@ mod tests {
             LocalDbError::CustomError(msg) => assert_eq!(msg, "status fail"),
             other => panic!("unexpected error: {other:?}"),
         }
-        assert_eq!(harness.status.messages(), vec!["Fetching latest block"]);
+        assert_eq!(
+            harness.status.phases(),
+            vec![SyncPhase::FetchingLatestBlock]
+        );
         assert!(harness.window.calls().is_empty());
     }
 
@@ -1699,8 +1708,8 @@ mod tests {
             other => panic!("unexpected error: {other:?}"),
         }
         assert_eq!(
-            harness.status.messages(),
-            vec!["Fetching latest block", "Running bootstrap"]
+            harness.status.phases(),
+            vec![SyncPhase::FetchingLatestBlock, SyncPhase::RunningBootstrap]
         );
         assert!(harness.bootstrap.configs().is_empty());
     }
@@ -1764,8 +1773,8 @@ mod tests {
             LocalDbError::CustomError(msg) => assert_eq!(msg, "store decode fail"),
             other => panic!("unexpected error: {other:?}"),
         }
-        let messages = harness.status.messages();
-        assert!(messages.contains(&"Decoding interpreter store logs".to_string()));
+        let phases = harness.status.phases();
+        assert!(phases.contains(&SyncPhase::DecodingStoreLogs));
         assert_eq!(harness.tokens.load_calls().len(), 1);
     }
 
