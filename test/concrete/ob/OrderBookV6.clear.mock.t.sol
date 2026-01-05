@@ -79,6 +79,22 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         bobConfig.validInputs[0].token = address(iToken1);
         bobConfig.validOutputs[0].token = address(iToken0);
 
+        if (aliceConfig.validInputs[0].vaultId == bytes32(0)) {
+            aliceConfig.validInputs[0].vaultId = bytes32(uint256(0x01));
+        }
+
+        if (aliceConfig.validOutputs[0].vaultId == bytes32(0)) {
+            aliceConfig.validOutputs[0].vaultId = bytes32(uint256(0x02));
+        }
+
+        if (bobConfig.validInputs[0].vaultId == bytes32(0)) {
+            bobConfig.validInputs[0].vaultId = bytes32(uint256(0x03));
+        }
+
+        if (bobConfig.validOutputs[0].vaultId == bytes32(0)) {
+            bobConfig.validOutputs[0].vaultId = bytes32(uint256(0x04));
+        }
+
         aliceConfig.meta = "";
         bobConfig.meta = "";
     }

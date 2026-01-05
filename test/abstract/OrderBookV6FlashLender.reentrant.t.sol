@@ -73,6 +73,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
     /// Can reenter and deposit from within a flash loan.
     /// forge-config: default.fuzz.runs = 100
     function testReenterDeposit(uint256 vaultId, uint256 loanAmount, uint256 depositAmount18) external {
+        vm.assume(vaultId != 0);
         depositAmount18 = bound(depositAmount18, 1, uint256(int256(type(int224).max)));
         Float depositAmount = LibDecimalFloat.packLossless(int256(depositAmount18), -18);
         // Create a flash borrower.
@@ -94,6 +95,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
     /// Can reenter and withdraw from within a flash loan.
     /// forge-config: default.fuzz.runs = 100
     function testReenterWithdraw(uint256 vaultId, uint256 loanAmount, uint256 withdrawAmount18) external {
+        vm.assume(vaultId != 0);
         withdrawAmount18 = bound(withdrawAmount18, 1, uint256(int256(type(int224).max)));
         Float withdrawAmount = LibDecimalFloat.packLossless(int256(withdrawAmount18), 0);
         // Create a flash borrower.

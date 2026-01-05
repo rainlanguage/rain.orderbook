@@ -58,7 +58,9 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
-        iOrderbook.deposit4(address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
+        iOrderbook.deposit4(
+            address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(1, -18), new TaskV2[](0)
+        );
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
@@ -139,6 +141,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             // Avoid errors from attempting to etch precompiles.
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
             vm.assume(actions[i].token.code.length == 0);
+            vm.assume(actions[i].token != CONSOLE_ADDRESS);
         }
 
         for (uint256 i = 0; i < actions.length; i++) {
