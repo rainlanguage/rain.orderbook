@@ -21,6 +21,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     /// Tests that we can deposit some amount and view the new vault balance.
     /// forge-config: default.fuzz.runs = 100
     function testDepositSimple(address depositor, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)) / 10);
         vm.prank(depositor);
         vm.mockCall(
@@ -38,6 +39,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     /// Depositing zero should revert.
     /// forge-config: default.fuzz.runs = 100
     function testDepositZero(address depositor, bytes32 vaultId) external {
+        vm.assume(vaultId != bytes32(0));
         vm.prank(depositor);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -45,6 +47,14 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             )
         );
         iOrderbook.deposit4(address(iToken0), vaultId, LibDecimalFloat.packLossless(0, 0), new TaskV2[](0));
+    }
+
+    /// Depositing vaultID of zero should revert.
+    function testDepositZeroVaultId(address depositor, address token, Float amount) external {
+        vm.assume(amount.gt(Float.wrap(0)));
+        vm.prank(depositor);
+        vm.expectRevert(abi.encodeWithSelector(IOrderBookV6.ZeroVaultId.selector, address(depositor), address(token)));
+        iOrderbook.deposit4(token, bytes32(0), amount, new TaskV2[](0));
     }
 
     /// Test a warm deposit, which is the best case scenario for gas. In this
@@ -188,6 +198,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     /// Depositing should emit an event with the sender and all deposit details.
     /// forge-config: default.fuzz.runs = 100
     function testDepositEvent(address depositor, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)) / 10);
         vm.prank(depositor);
         vm.mockCall(
@@ -211,6 +222,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
         bytes32 reVaultId,
         uint256 reAmount18
     ) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)) / 10);
         reAmount18 = bound(reAmount18, 1, uint256(int256(type(int224).max)) / 10);
         vm.prank(depositor);

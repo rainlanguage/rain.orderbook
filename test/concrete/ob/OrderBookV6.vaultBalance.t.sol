@@ -12,6 +12,7 @@ contract OrderBookV6VaultBalanceTest is OrderBookV6ExternalMockTest {
     /// Test that reading the vault balance without deposits is always zero.
 
     function testVaultBalanceNoDeposits(address token, bytes32 vaultId) external view {
+        vm.assume(vaultId != bytes32(0));
         assertTrue(iOrderbook.vaultBalance2(address(this), token, vaultId).isZero());
     }
 }

@@ -47,6 +47,7 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
         uint256 expectedReads,
         uint256 expectedWrites
     ) internal {
+        vm.assume(vaultId != bytes32(0));
         uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, decimals);
         vm.startPrank(owner);
         vm.mockCall(
@@ -178,6 +179,7 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
         uint256 preDepositAmount18,
         uint256 depositAmount18
     ) external {
+        vm.assume(vaultId != bytes32(0));
         preDepositAmount18 = bound(preDepositAmount18, 1, uint256(int256(type(int128).max)));
         depositAmount18 = bound(depositAmount18, 1, uint256(int256(type(int128).max)));
 
@@ -243,6 +245,7 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
     /// A revert in the action prevents the deposit from being enacted.
     /// forge-config: default.fuzz.runs = 10
     function testDepositRevertInAction(address alice, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
         vm.startPrank(alice);
         vm.mockCall(

@@ -34,6 +34,10 @@ contract OrderBookV6ClearOrderContextTest is OrderBookV6ExternalRealTest {
         bytes32 bobOutputVaultId
     ) external {
         vm.assume(alice != bob);
+        vm.assume(aliceInputVaultId != bytes32(0));
+        vm.assume(aliceOutputVaultId != bytes32(0));
+        vm.assume(bobInputVaultId != bytes32(0));
+        vm.assume(bobOutputVaultId != bytes32(0));
 
         string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
 

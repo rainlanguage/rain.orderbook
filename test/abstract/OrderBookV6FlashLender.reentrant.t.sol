@@ -51,6 +51,7 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
     /// Can reenter and read vault balances from within a flash loan.
     /// forge-config: default.fuzz.runs = 100
     function testReenterReadVaultBalances(uint256 vaultId, uint256 loanAmount) external {
+        vm.assume(vaultId != 0);
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
         checkFlashLoanNotRevert(

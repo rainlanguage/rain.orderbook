@@ -226,7 +226,13 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV6
-    function vaultBalance2(address owner, address token, bytes32 vaultId) external view override returns (Float) {
+    function vaultBalance2(address owner, address token, bytes32 vaultId)
+        external
+        view
+        override
+        nonZeroVaultId(owner, token, vaultId)
+        returns (Float)
+    {
         return sVaultBalances[owner][token][vaultId];
     }
 
@@ -244,13 +250,10 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     function deposit4(address token, bytes32 vaultId, Float depositAmount, TaskV2[] calldata post)
         external
         nonReentrant
+        nonZeroVaultId(msg.sender, token, vaultId)
     {
         if (!depositAmount.gt(Float.wrap(0))) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
-        }
-
-        if (vaultId == bytes32(0)) {
-            revert ZeroVaultId(msg.sender, token);
         }
 
         (uint256 depositAmountUint256, uint8 decimals) = pullTokens(msg.sender, token, depositAmount);
@@ -282,38 +285,38 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     function withdraw4(address token, bytes32 vaultId, Float targetAmount, TaskV2[] calldata post)
         external
         nonReentrant
+        nonZeroVaultId(msg.sender, token, vaultId)
     {
-        if (!targetAmount.gt(Float.wrap(0))) {
-            revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
+        Float withdrawAmount;
+        uint8 decimals;
+        Float beforeBalance;
+        Float afterBalance;
+        {
+            if (!targetAmount.gt(Float.wrap(0))) {
+                revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
+            }
+            Float currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+            withdrawAmount = targetAmount.min(currentVaultBalance);
+            (beforeBalance, afterBalance) = decreaseVaultBalance(msg.sender, token, vaultId, withdrawAmount);
+
+            uint256 withdrawAmountUint256;
+            (withdrawAmountUint256, decimals) = pushTokens(msg.sender, token, withdrawAmount);
+            emit WithdrawV2(msg.sender, token, vaultId, targetAmount, withdrawAmount, withdrawAmountUint256);
         }
 
-        if (vaultId == bytes32(0)) {
-            revert ZeroVaultId(msg.sender, token);
-        }
+        bytes32[] memory contextColumn = LibBytes32Array.arrayFrom(
+            bytes32(uint256(uint160(token))),
+            vaultId,
+            Float.unwrap(beforeBalance),
+            Float.unwrap(afterBalance),
+            Float.unwrap(targetAmount),
+            bytes32(uint256(decimals))
+        );
 
-        Float currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
-        Float withdrawAmount = targetAmount.min(currentVaultBalance);
-
-        (Float beforeBalance, Float afterBalance) = decreaseVaultBalance(msg.sender, token, vaultId, withdrawAmount);
-
-        (uint256 withdrawAmountUint256, uint8 decimals) = pushTokens(msg.sender, token, withdrawAmount);
-
-        emit WithdrawV2(msg.sender, token, vaultId, targetAmount, withdrawAmount, withdrawAmountUint256);
+        bytes32[][] memory context = LibBytes32Matrix.matrixFrom(contextColumn);
 
         if (post.length != 0) {
-            LibOrderBook.doPost(
-                LibBytes32Matrix.matrixFrom(
-                    LibBytes32Array.arrayFrom(
-                        bytes32(uint256(uint160(token))),
-                        vaultId,
-                        Float.unwrap(beforeBalance),
-                        Float.unwrap(afterBalance),
-                        Float.unwrap(targetAmount),
-                        bytes32(uint256(decimals))
-                    )
-                ),
-                post
-            );
+            LibOrderBook.doPost(context, post);
         }
     }
 
@@ -1020,5 +1023,16 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
 
         return (amount, decimals);
+    }
+
+    function _nonZeroVaultId(address vaultOwner, address token, bytes32 vaultId) internal pure {
+        if (vaultId == bytes32(0)) {
+            revert ZeroVaultId(vaultOwner, token);
+        }
+    }
+
+    modifier nonZeroVaultId(address vaultOwner, address token, bytes32 vaultId) {
+        _nonZeroVaultId(vaultOwner, token, vaultId);
+        _;
     }
 }

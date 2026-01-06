@@ -39,6 +39,7 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
     /// Withdrawing a non-zero amount from an empty vault should be a noop.
     /// forge-config: default.fuzz.runs = 100
     function testWithdrawEmptyVault(address alice, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
         vm.prank(alice);
         Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
@@ -56,6 +57,7 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
     function testWithdrawFullVault(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
+        vm.assume(vaultId != bytes32(0));
         depositAmount18 = bound(depositAmount18, 1, type(uint224).max / 10);
         withdrawAmount18 = bound(withdrawAmount18, depositAmount18, type(uint224).max / 10);
         vm.prank(alice);
@@ -86,6 +88,7 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
     function testWithdrawPartialVault(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
+        vm.assume(vaultId != bytes32(0));
         depositAmount18 = bound(depositAmount18, 2, type(uint224).max / 10);
         withdrawAmount18 = bound(withdrawAmount18, 1, depositAmount18 - 1);
         vm.prank(alice);
@@ -122,6 +125,7 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
     function testWithdrawFailure(address alice, bytes32 vaultId, uint256 depositAmount18, uint256 withdrawAmount18)
         external
     {
+        vm.assume(vaultId != bytes32(0));
         depositAmount18 = bound(depositAmount18, 1, type(uint224).max / 10);
         withdrawAmount18 = bound(withdrawAmount18, 1, type(uint224).max / 10);
         vm.prank(alice);
