@@ -332,6 +332,8 @@ pub enum RaindexError {
     NegativePriceCap,
     #[error(transparent)]
     RpcClientError(#[from] crate::rpc_client::RpcClientError),
+    #[error("Preflight check failed: {0}")]
+    PreflightError(String),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -491,6 +493,9 @@ impl RaindexError {
             RaindexError::NonPositiveAmount => "Amount must be positive".to_string(),
             RaindexError::NegativePriceCap => "Price cap cannot be negative".to_string(),
             RaindexError::RpcClientError(err) => format!("RPC client error: {}", err),
+            RaindexError::PreflightError(err) => {
+                format!("Preflight check failed: {err}")
+            }
         }
     }
 }
