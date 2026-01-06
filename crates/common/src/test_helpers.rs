@@ -272,6 +272,41 @@ pub mod local_evm {
             .unwrap();
     }
 
+    pub async fn fund_and_approve_taker_multi_orderbook(
+        setup: &MultiOrderbookTestSetup,
+        token: Address,
+        taker: Address,
+        spender: Address,
+        amount: U256,
+    ) {
+        let token_contract = setup
+            .local_evm
+            .tokens
+            .iter()
+            .find(|t| *t.address() == token)
+            .expect("Token should exist in setup.local_evm.tokens");
+
+        token_contract
+            .transfer(taker, amount)
+            .from(setup.owner)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+
+        token_contract
+            .approve(spender, amount)
+            .from(taker)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    }
+
     pub struct MultiOrderbookTestSetup {
         pub local_evm: LocalEvm,
         pub owner: Address,
