@@ -382,10 +382,10 @@ impl RaindexVault {
             .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
 
         let balance_changes = if let Some(ref filters) = filter_types {
-            let filter_types: Vec<_> = filters.iter().map(|f| f.to_raindex_type()).collect();
+            let raindex_types: Vec<_> = filters.iter().map(|f| f.to_raindex_type()).collect();
             balance_changes
                 .into_iter()
-                .filter(|change| filter_types.contains(&change.r#type))
+                .filter(|change| raindex_types.contains(&change.r#type))
                 .collect()
         } else {
             balance_changes
