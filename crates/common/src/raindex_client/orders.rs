@@ -3,7 +3,7 @@ use super::trades::RaindexTrade;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
-use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
+use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -619,56 +619,15 @@ impl RaindexClient {
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
+        let ids = chain_ids.map(|ChainIds(ids)| ids);
+
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+            return local_source.list(ids, &filters, None).await;
+        }
+
         let subgraph_source = SubgraphOrders::new(self);
-
-        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
-            return subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await;
-        };
-
-        if ids.is_empty() {
-            return subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await;
-        }
-
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-
-        for id in ids.drain(..) {
-            if is_chain_supported_local_db(id) {
-                local_ids.push(id);
-            } else {
-                sg_ids.push(id);
-            }
-        }
-
-        let mut orders: Vec<RaindexOrder> = Vec::new();
-
-        match self.local_db() {
-            Some(local_db) => {
-                if !local_ids.is_empty() {
-                    let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-                    let local_orders = local_source
-                        .list(Some(local_ids.clone()), &filters, None)
-                        .await?;
-                    orders.extend(local_orders);
-                }
-            }
-            None => {
-                sg_ids.append(&mut local_ids);
-            }
-        }
-
-        if !sg_ids.is_empty() {
-            let sg = subgraph_source
-                .list(Some(sg_ids), &filters, Some(page_number))
-                .await?;
-            orders.extend(sg);
-        }
-
-        Ok(orders)
+        subgraph_source.list(ids, &filters, Some(page_number)).await
     }
 
     /// Retrieves a specific order by its hash from a particular blockchain network
@@ -908,12 +867,10 @@ impl RaindexClient {
             ));
         }
 
-        if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(local_db) = self.local_db() {
-                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-                if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
-                    return Ok(order);
-                }
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+            if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
+                return Ok(order);
             }
         }
 
@@ -1971,82 +1928,6 @@ mod tests {
                 RaindexError::LocalDbQueryError(LocalDbQueryError::Deserialization { .. }) => {}
                 other => panic!("unexpected error: {other:?}"),
             }
-        }
-
-        #[tokio::test]
-        async fn get_orders_routes_between_local_and_subgraph() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                  "data": {
-                    "orders": [
-                      get_order1_json()
-                    ]
-                  }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg2");
-                then.status(200).json_body_obj(&json!({
-                  "data": {
-                    "orders": []
-                  }
-                }));
-            });
-
-            let local_order = LocalDbOrder {
-                chain_id: 137,
-                order_hash: b256!(
-                    "0x0000000000000000000000000000000000000000000000000000000000000abc"
-                ),
-                owner: Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
-                block_timestamp: 1,
-                block_number: 1,
-                orderbook_address: Address::from_str("0x0987654321098765432109876543210987654321")
-                    .unwrap(),
-                order_bytes: Bytes::from_str("0x01").unwrap(),
-                transaction_hash: b256!(
-                    "0x0000000000000000000000000000000000000000000000000000000000000010"
-                ),
-                inputs: None,
-                outputs: None,
-                trade_count: 0,
-                active: true,
-                meta: None,
-            };
-
-            let exec = StaticJsonExec {
-                json: serde_json::to_string(&vec![local_order]).unwrap(),
-            };
-            let local_db = LocalDb::new(exec);
-
-            let client = RaindexClient::new(
-                vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
-                )],
-                None,
-            )
-            .unwrap();
-            client.local_db.borrow_mut().replace(local_db);
-
-            let result = client
-                .get_orders(
-                    Some(ChainIds(vec![1, 137])),
-                    Some(GetOrdersFilters::default()),
-                    Some(1),
-                )
-                .await
-                .unwrap();
-
-            assert_eq!(result.len(), 2);
-            assert!(result.iter().any(|o| o.order_hash
-                == b256!("0x0000000000000000000000000000000000000000000000000000000000000abc")));
-            assert!(result.iter().any(|o| o.order_hash
-                == b256!("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4")));
         }
 
         #[tokio::test]

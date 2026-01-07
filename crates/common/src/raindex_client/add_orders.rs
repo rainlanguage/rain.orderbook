@@ -3,27 +3,17 @@ use super::*;
 use crate::local_db::is_chain_supported_local_db;
 use crate::raindex_client::local_db::orders::LocalDbOrders;
 use crate::raindex_client::orders::RaindexOrder;
+use crate::retry::{retry_with_constant_interval, RetryError};
 use alloy::primitives::B256;
-#[cfg(target_family = "wasm")]
-use gloo_timers::future::TimeoutFuture;
 use std::rc::Rc;
-#[cfg(not(target_family = "wasm"))]
-use std::time::Duration;
-#[cfg(not(target_family = "wasm"))]
-use tokio::time::sleep;
 
 const DEFAULT_ADD_ORDER_POLL_ATTEMPTS: usize = 10;
 const DEFAULT_ADD_ORDER_POLL_INTERVAL_MS: u64 = 1_000;
 
-#[cfg(target_family = "wasm")]
-async fn sleep_ms(ms: u64) {
-    let delay = ms.min(u32::MAX as u64) as u32;
-    TimeoutFuture::new(delay).await;
-}
-
-#[cfg(not(target_family = "wasm"))]
-async fn sleep_ms(ms: u64) {
-    sleep(Duration::from_millis(ms)).await;
+#[derive(Debug)]
+enum PollError {
+    Empty,
+    Inner(RaindexError),
 }
 
 #[wasm_export]
@@ -108,36 +98,69 @@ impl RaindexClient {
         if let Some(local_db) = self.local_db() {
             if is_chain_supported_local_db(chain_id) {
                 let local_source = LocalDbOrders::new(&local_db, raindex_client.clone());
-                for attempt in 1..=attempts {
-                    let local_orders = local_source
-                        .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
-                        .await?;
-                    if !local_orders.is_empty() {
-                        return Ok(local_orders);
+                let local_result = retry_with_constant_interval(
+                    || async {
+                        let orders = local_source
+                            .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
+                            .await
+                            .map_err(PollError::Inner)?;
+                        if orders.is_empty() {
+                            Err(PollError::Empty)
+                        } else {
+                            Ok(orders)
+                        }
+                    },
+                    attempts,
+                    interval_ms,
+                    |e| matches!(e, PollError::Empty),
+                )
+                .await;
+
+                match local_result {
+                    Ok(orders) => return Ok(orders),
+                    Err(RetryError::Operation(PollError::Inner(e))) => return Err(e),
+                    Err(RetryError::InvalidMaxAttempts) => {
+                        return Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
                     }
-                    if attempt < attempts {
-                        sleep_ms(interval_ms).await;
+                    Err(RetryError::Operation(PollError::Empty)) => {
+                        // Local DB exhausted, fall through to subgraph
                     }
                 }
             }
         }
 
         let subgraph_source = SubgraphOrders::new(self);
-        for attempt in 1..=attempts {
-            let orders = subgraph_source
-                .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
-                .await?;
+        let subgraph_result = retry_with_constant_interval(
+            || async {
+                let orders = match subgraph_source
+                    .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
+                    .await
+                {
+                    Ok(orders) => orders,
+                    Err(RaindexError::OrderbookSubgraphClientError(
+                        rain_orderbook_subgraph_client::OrderbookSubgraphClientError::Empty,
+                    )) => return Err(PollError::Empty),
+                    Err(e) => return Err(PollError::Inner(e)),
+                };
+                if orders.is_empty() {
+                    Err(PollError::Empty)
+                } else {
+                    Ok(orders)
+                }
+            },
+            attempts,
+            interval_ms,
+            |e| matches!(e, PollError::Empty),
+        )
+        .await;
 
-            if !orders.is_empty() {
-                return Ok(orders);
-            }
-
-            if attempt < attempts {
-                sleep_ms(interval_ms).await;
+        match subgraph_result {
+            Ok(orders) => Ok(orders),
+            Err(RetryError::Operation(PollError::Inner(e))) => Err(e),
+            Err(RetryError::Operation(PollError::Empty)) | Err(RetryError::InvalidMaxAttempts) => {
+                Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
             }
         }
-
-        Err(RaindexError::SubgraphIndexingTimeout { tx_hash, attempts })
     }
 }
 
@@ -550,7 +573,7 @@ mod tests {
                 .unwrap_err();
 
             match err {
-                RaindexError::SubgraphIndexingTimeout { attempts, .. } => {
+                RaindexError::TransactionIndexingTimeout { attempts, .. } => {
                     assert_eq!(attempts, DEFAULT_ADD_ORDER_POLL_ATTEMPTS);
                 }
                 other => panic!("expected timeout error, got {other:?}"),

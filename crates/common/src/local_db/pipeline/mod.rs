@@ -21,6 +21,9 @@ use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
 use alloy::primitives::{Address, B256};
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 /// Optional manual window overrides usually supplied by CLI/producer.
 ///
@@ -74,14 +77,54 @@ pub struct SyncOutcome {
     pub decoded_events: usize,
 }
 
+/// Typed sync phases for status reporting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "snake_case")]
+pub enum SyncPhase {
+    FetchingLatestBlock,
+    RunningBootstrap,
+    ComputingSyncWindow,
+    FetchingOrderbookLogs,
+    DecodingOrderbookLogs,
+    FetchingStoreLogs,
+    DecodingStoreLogs,
+    FetchingTokenMetadata,
+    BuildingSqlBatch,
+    PersistingToDatabase,
+    RunningPostSyncExport,
+    Idle,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(SyncPhase);
+
+impl SyncPhase {
+    pub fn to_message(&self) -> &'static str {
+        match self {
+            Self::FetchingLatestBlock => "Fetching latest block",
+            Self::RunningBootstrap => "Running bootstrap",
+            Self::ComputingSyncWindow => "Computing sync window",
+            Self::FetchingOrderbookLogs => "Fetching orderbook logs",
+            Self::DecodingOrderbookLogs => "Decoding orderbook logs",
+            Self::FetchingStoreLogs => "Fetching interpreter store logs",
+            Self::DecodingStoreLogs => "Decoding interpreter store logs",
+            Self::FetchingTokenMetadata => "Fetching missing token metadata",
+            Self::BuildingSqlBatch => "Building SQL batch",
+            Self::PersistingToDatabase => "Persisting to database",
+            Self::RunningPostSyncExport => "Running post-sync export",
+            Self::Idle => "No work for current window",
+        }
+    }
+}
+
 /// Coarse‑grained progress/status publishing.
 ///
 /// Keep messages short and stable; a richer typed snapshot can be layered on
 /// top without changing the pipeline contracts.
 #[async_trait(?Send)]
 pub trait StatusBus {
-    /// Publishes a human-readable status message.
-    async fn send(&self, message: &str) -> Result<(), LocalDbError>;
+    /// Publishes a typed sync phase.
+    async fn send(&self, phase: SyncPhase) -> Result<(), LocalDbError>;
 }
 
 /// Computes the inclusive `[start_block, target_block]` for a cycle.

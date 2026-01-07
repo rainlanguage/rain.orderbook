@@ -83,7 +83,7 @@ impl RpcClient {
 
     pub fn new_with_hyper_rpc(chain_id: u32, api_token: &str) -> Result<Self, RpcClientError> {
         let url = Self::build_hyper_url(chain_id, api_token)?;
-        let provider = Arc::new(mk_read_provider(&[url.clone()])?);
+        let provider = Arc::new(mk_read_provider(std::slice::from_ref(&url))?);
         Ok(Self {
             chain_id: Some(chain_id),
             rpc_urls: vec![url],

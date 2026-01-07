@@ -37,6 +37,9 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+
       - uses: nixbuild/nix-quick-install-action@v30
         with:
           nix_conf: |
@@ -96,3 +99,12 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           "$VERCEL_BIN" deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always()
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
