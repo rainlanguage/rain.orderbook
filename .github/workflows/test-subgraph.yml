@@ -51,3 +51,12 @@ jobs:
 
       - name: Matchstick tests
         run: nix develop -c subgraph-test
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always()
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}

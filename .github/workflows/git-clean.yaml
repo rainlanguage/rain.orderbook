@@ -50,3 +50,12 @@ jobs:
 
       # Check if the repo is clean after generating pointers and formatting.
       - run: git diff --exit-code
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always() # This ensures it runs regardless of previous step outcomes
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
