@@ -16,7 +16,7 @@ use crate::{
         RaindexClient,
     },
 };
-use alloy::primitives::Bytes;
+use alloy::primitives::{Address, Bytes};
 use async_trait::async_trait;
 use std::rc::Rc;
 
@@ -28,6 +28,18 @@ pub struct LocalDbVaults<'a> {
 impl<'a> LocalDbVaults<'a> {
     pub(crate) fn new(db: &'a LocalDb, client: Rc<RaindexClient>) -> Self {
         Self { db, client }
+    }
+
+    fn collect_orderbook_addresses(&self, chain_ids: &[u32]) -> Result<Vec<Address>, RaindexError> {
+        let addresses = chain_ids
+            .iter()
+            .map(|&chain_id| self.client.get_orderbooks_by_chain_id(chain_id))
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .map(|cfg| cfg.address)
+            .collect();
+        Ok(addresses)
     }
 
     fn convert_local_db_vaults(
@@ -65,15 +77,7 @@ impl VaultsDataSource for LocalDbVaults<'_> {
             return Ok(Vec::new());
         }
 
-        let orderbook_addresses = chain_ids
-            .iter()
-            .map(|&chain_id| self.client.get_orderbooks_by_chain_id(chain_id))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .map(|cfg| cfg.address)
-            .collect::<Vec<_>>();
-
+        let orderbook_addresses = self.collect_orderbook_addresses(&chain_ids)?;
         if orderbook_addresses.is_empty() {
             return Ok(Vec::new());
         }
@@ -142,15 +146,7 @@ impl VaultsDataSource for LocalDbVaults<'_> {
             return Ok(Vec::new());
         }
 
-        let orderbook_addresses = chain_ids
-            .iter()
-            .map(|&chain_id| self.client.get_orderbooks_by_chain_id(chain_id))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .map(|cfg| cfg.address)
-            .collect::<Vec<_>>();
-
+        let orderbook_addresses = self.collect_orderbook_addresses(&chain_ids)?;
         if orderbook_addresses.is_empty() {
             return Ok(Vec::new());
         }
