@@ -1,9 +1,32 @@
 mod error;
 mod routes;
 
+use error::ApiErrorResponse;
 use rocket::http::Method;
 use rocket::{launch, Build, Rocket};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
+use routes::take_orders::{TakeOrdersApiRequest, TakeOrdersApiResponse, TakeOrdersMode};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+
+#[derive(OpenApi)]
+#[openapi(
+    info(
+        title = "Rain Orderbook API",
+        description = "REST API for interacting with Rain Orderbook."
+    ),
+    paths(routes::take_orders::take_orders),
+    components(schemas(
+        TakeOrdersApiRequest,
+        TakeOrdersApiResponse,
+        TakeOrdersMode,
+        ApiErrorResponse
+    )),
+    tags(
+        (name = "Take Orders", description = "Endpoints for generating take orders calldata")
+    )
+)]
+struct ApiDoc;
 
 fn configure_cors() -> CorsOptions {
     CorsOptions {
@@ -27,6 +50,10 @@ fn rocket() -> Rocket<Build> {
         .attach(cors.clone())
         .mount("/", routes::take_orders::routes())
         .mount("/", rocket_cors::catch_all_options_routes())
+        .mount(
+            "/",
+            SwaggerUi::new("/swagger/<tail..>").url("/swagger/openapi.json", ApiDoc::openapi()),
+        )
         .manage(cors)
 }
 
@@ -198,5 +225,71 @@ mod tests {
             .dispatch();
 
         assert_eq!(response.status(), Status::UnprocessableEntity);
+    }
+
+    #[test]
+    fn test_swagger_ui_returns_html() {
+        let client = client();
+        let response = client.get("/swagger/").dispatch();
+
+        assert_eq!(response.status(), Status::Ok);
+        let body = response.into_string().unwrap();
+        assert!(body.contains("<!DOCTYPE html>"));
+        assert!(body.contains("swagger-ui"));
+    }
+
+    #[test]
+    fn test_openapi_json_returns_valid_spec() {
+        let client = client();
+        let response = client.get("/swagger/openapi.json").dispatch();
+
+        assert_eq!(response.status(), Status::Ok);
+        let body = response.into_string().unwrap();
+        let spec: serde_json::Value = serde_json::from_str(&body).unwrap();
+
+        assert_eq!(spec["openapi"], "3.1.0");
+        assert_eq!(spec["info"]["title"], "Rain Orderbook API");
+    }
+
+    #[test]
+    fn test_openapi_json_contains_take_orders_path() {
+        let client = client();
+        let response = client.get("/swagger/openapi.json").dispatch();
+        let body = response.into_string().unwrap();
+        let spec: serde_json::Value = serde_json::from_str(&body).unwrap();
+
+        assert!(spec["paths"]["/take-orders"]["post"].is_object());
+        assert_eq!(
+            spec["paths"]["/take-orders"]["post"]["tags"][0],
+            "Take Orders"
+        );
+    }
+
+    #[test]
+    fn test_openapi_json_contains_schemas() {
+        let client = client();
+        let response = client.get("/swagger/openapi.json").dispatch();
+        let body = response.into_string().unwrap();
+        let spec: serde_json::Value = serde_json::from_str(&body).unwrap();
+
+        let schemas = &spec["components"]["schemas"];
+        assert!(schemas["TakeOrdersApiRequest"].is_object());
+        assert!(schemas["TakeOrdersApiResponse"].is_object());
+        assert!(schemas["TakeOrdersMode"].is_object());
+        assert!(schemas["ApiErrorResponse"].is_object());
+    }
+
+    #[test]
+    fn test_openapi_json_contains_response_codes() {
+        let client = client();
+        let response = client.get("/swagger/openapi.json").dispatch();
+        let body = response.into_string().unwrap();
+        let spec: serde_json::Value = serde_json::from_str(&body).unwrap();
+
+        let responses = &spec["paths"]["/take-orders"]["post"]["responses"];
+        assert!(responses["200"].is_object());
+        assert!(responses["400"].is_object());
+        assert!(responses["404"].is_object());
+        assert!(responses["500"].is_object());
     }
 }
