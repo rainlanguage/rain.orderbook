@@ -33,27 +33,16 @@ pub fn build_fetch_all_tokens_stmt(
 ) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(FETCH_ALL_TOKENS_SQL);
 
-    // Chain IDs filter
-    if !args.chain_ids.is_empty() {
-        stmt.bind_list_clause(
-            CHAIN_IDS_CLAUSE,
-            CHAIN_IDS_CLAUSE_BODY,
-            args.chain_ids.iter().cloned().map(SqlValue::from),
-        )?;
-    } else {
-        stmt.clear_clause(CHAIN_IDS_CLAUSE);
-    }
-
-    // Orderbook addresses filter
-    if !args.orderbook_addresses.is_empty() {
-        stmt.bind_list_clause(
-            ORDERBOOKS_CLAUSE,
-            ORDERBOOKS_CLAUSE_BODY,
-            args.orderbook_addresses.iter().cloned().map(SqlValue::from),
-        )?;
-    } else {
-        stmt.clear_clause(ORDERBOOKS_CLAUSE);
-    }
+    stmt.bind_list_clause(
+        CHAIN_IDS_CLAUSE,
+        CHAIN_IDS_CLAUSE_BODY,
+        args.chain_ids.iter().cloned().map(SqlValue::from),
+    )?;
+    stmt.bind_list_clause(
+        ORDERBOOKS_CLAUSE,
+        ORDERBOOKS_CLAUSE_BODY,
+        args.orderbook_addresses.iter().cloned().map(SqlValue::from),
+    )?;
 
     Ok(stmt)
 }
