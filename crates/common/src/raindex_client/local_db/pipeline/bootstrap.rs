@@ -59,7 +59,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
 
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
             if self.is_fresh_db(db, &config.ob_id).await? {
-                db.query_text(dump_stmt).await?;
+                db.execute_batch(dump_stmt).await?;
                 return Ok(());
             }
 
@@ -71,7 +71,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
                 Ok(_) => {}
                 Err(_) => {
                     self.clear_orderbook_data(db, &config.ob_id).await?;
-                    db.query_text(dump_stmt).await?;
+                    db.execute_batch(dump_stmt).await?;
                 }
             }
         }
@@ -215,7 +215,9 @@ mod tests {
     fn cfg_with_dump(latest_block: u64) -> BootstrapConfig {
         BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(SqlStatement::new("--dump-sql")),
+            dump_stmt: Some(SqlStatementBatch::from(vec![SqlStatement::new(
+                "--dump-sql",
+            )])),
             latest_block,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
             deployment_block: 1,
@@ -430,7 +432,7 @@ mod tests {
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
+            dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 100,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
             deployment_block: 1,
@@ -455,7 +457,7 @@ mod tests {
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
+            dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
             deployment_block: 1,
@@ -561,7 +563,7 @@ mod tests {
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
+            dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
             deployment_block: 1,

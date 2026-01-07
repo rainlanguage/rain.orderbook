@@ -23,6 +23,9 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+
       - uses: nixbuild/nix-quick-install-action@v30
         with:
           nix_conf: |
@@ -38,11 +41,17 @@ jobs:
           # collect garbage until the Nix store size (in bytes) is at most this number
           # before trying to save a new cache
           # 1G = 1073741824
-          gc-max-store-size-linux: 1G
+          gc-max-store-size-linux: 10G
 
       - run: ./prep-webapp.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: ${{ secrets.WALLETCONNECT_PROJECT_ID || 'test' }}
+          COMMIT_SHA: ${{ github.sha }}
+          CARGO_HOME: ${{ github.workspace }}/.cargo
+          CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo/target
+
+      - name: Cleanup Rust artifacts after prep
+        run: rm -rf target || true
 
       - run: nix develop -c npm run svelte-lint-format-check -w @rainlanguage/webapp
         env:
@@ -66,3 +75,12 @@ jobs:
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
         with:
           working-directory: packages/webapp
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always()
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
