@@ -138,6 +138,10 @@ impl RaindexVault {
     pub fn owner(&self) -> String {
         self.owner.to_string()
     }
+    #[wasm_bindgen(skip)]
+    pub fn vault_id_hex(&self) -> String {
+        hex::encode_prefixed(self.vault_id.to_be_bytes::<32>())
+    }
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
         Self::u256_to_bigint(self.vault_id)

@@ -16,9 +16,13 @@ use crate::{
         RaindexClient,
     },
 };
-use alloy::primitives::{Address, Bytes};
+use alloy::primitives::Bytes;
+#[cfg(target_family = "wasm")]
+use alloy::primitives::{Address, U256};
 use async_trait::async_trait;
 use std::rc::Rc;
+#[cfg(target_family = "wasm")]
+use std::str::FromStr;
 
 pub struct LocalDbVaults<'a> {
     pub(crate) db: &'a LocalDb,
@@ -28,22 +32,6 @@ pub struct LocalDbVaults<'a> {
 impl<'a> LocalDbVaults<'a> {
     pub(crate) fn new(db: &'a LocalDb, client: Rc<RaindexClient>) -> Self {
         Self { db, client }
-    }
-
-    fn collect_orderbook_addresses(&self, chain_ids: &[u32]) -> Result<Vec<Address>, RaindexError> {
-        let addresses = chain_ids
-            .iter()
-            .map(|&chain_id| {
-                self.client
-                    .orderbook_yaml
-                    .get_orderbooks_by_chain_id(chain_id)
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .map(|cfg| cfg.address)
-            .collect();
-        Ok(addresses)
     }
 
     fn convert_local_db_vaults(
@@ -73,21 +61,12 @@ impl VaultsDataSource for LocalDbVaults<'_> {
         filters: &GetVaultsFilters,
         _page: Option<u16>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let Some(mut chain_ids) = chain_ids else {
-            return Ok(Vec::new());
-        };
-
-        if chain_ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let orderbook_addresses = self.collect_orderbook_addresses(&chain_ids)?;
-        if orderbook_addresses.is_empty() {
-            return Ok(Vec::new());
-        }
-
         let mut fetch_args = FetchVaultsArgs::from_filters(filters.clone());
-        fetch_args.chain_ids.append(&mut chain_ids);
+        if let Some(ids) = chain_ids {
+            if !ids.is_empty() {
+                fetch_args.chain_ids = ids;
+            }
+        }
 
         let local_vaults = fetch_vaults(self.db, fetch_args).await?;
         self.convert_local_db_vaults(local_vaults, None)
@@ -121,15 +100,30 @@ impl VaultsDataSource for LocalDbVaults<'_> {
         vault: &RaindexVault,
         _page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        let ob_id = crate::local_db::OrderbookIdentifier::new(vault.chain_id(), vault.orderbook());
-        let local_changes = fetch_vault_balance_changes(
-            self.db,
-            &ob_id,
-            vault.vault_id(),
-            vault.token().address(),
-            vault.owner(),
-        )
-        .await?;
+        #[cfg(target_family = "wasm")]
+        let orderbook_address = Address::from_str(&vault.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook_address = vault.orderbook();
+
+        #[cfg(target_family = "wasm")]
+        let vault_id = U256::from_str(&vault.vault_id_hex())?;
+        #[cfg(not(target_family = "wasm"))]
+        let vault_id = vault.vault_id();
+
+        #[cfg(target_family = "wasm")]
+        let token_address = Address::from_str(&vault.token().address())?;
+        #[cfg(not(target_family = "wasm"))]
+        let token_address = vault.token().address();
+
+        #[cfg(target_family = "wasm")]
+        let owner_address = Address::from_str(&vault.owner())?;
+        #[cfg(not(target_family = "wasm"))]
+        let owner_address = vault.owner();
+
+        let ob_id = crate::local_db::OrderbookIdentifier::new(vault.chain_id(), orderbook_address);
+        let local_changes =
+            fetch_vault_balance_changes(self.db, &ob_id, vault_id, token_address, owner_address)
+                .await?;
 
         local_changes
             .into_iter()
@@ -141,23 +135,12 @@ impl VaultsDataSource for LocalDbVaults<'_> {
         &self,
         chain_ids: Option<Vec<u32>>,
     ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
-        let Some(chain_ids) = chain_ids else {
-            return Ok(Vec::new());
-        };
-
-        if chain_ids.is_empty() {
-            return Ok(Vec::new());
+        let mut fetch_args = FetchAllTokensArgs::default();
+        if let Some(ids) = chain_ids {
+            if !ids.is_empty() {
+                fetch_args.chain_ids = ids;
+            }
         }
-
-        let orderbook_addresses = self.collect_orderbook_addresses(&chain_ids)?;
-        if orderbook_addresses.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let fetch_args = FetchAllTokensArgs {
-            chain_ids,
-            orderbook_addresses,
-        };
 
         let local_tokens = fetch_all_tokens(self.db, fetch_args).await?;
 
@@ -432,6 +415,174 @@ mod tests {
             }
             assert!(has_owner, "owner missing in params");
             assert!(has_token, "token missing in params");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_tokens_list_with_none_chain_ids_returns_all() {
+            use crate::local_db::query::fetch_all_tokens::LocalDbToken;
+
+            let token = LocalDbToken {
+                chain_id: 42161,
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
+                token_address: address!("0x00000000000000000000000000000000000000aa"),
+                name: "Test Token".to_string(),
+                symbol: "TST".to_string(),
+                decimals: 18,
+            };
+
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let json = serde_json::to_string(&vec![token]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+            let local_db = LocalDb::from_js_callback(callback);
+
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
+
+            let tokens = data_source
+                .tokens_list(None)
+                .await
+                .expect("should query tokens without chain_ids");
+
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].symbol(), Some("TST".to_string()));
+
+            let sql = captured_sql.borrow();
+            assert!(
+                !sql.0.contains("chain_id IN"),
+                "should not filter by chain_id when None: {}",
+                sql.0
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_tokens_list_with_empty_chain_ids_returns_all() {
+            use crate::local_db::query::fetch_all_tokens::LocalDbToken;
+
+            let token = LocalDbToken {
+                chain_id: 42161,
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
+                token_address: address!("0x00000000000000000000000000000000000000aa"),
+                name: "Test Token".to_string(),
+                symbol: "TST".to_string(),
+                decimals: 18,
+            };
+
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let json = serde_json::to_string(&vec![token]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+            let local_db = LocalDb::from_js_callback(callback);
+
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
+
+            let tokens = data_source
+                .tokens_list(Some(vec![]))
+                .await
+                .expect("should query tokens with empty chain_ids");
+
+            assert_eq!(tokens.len(), 1);
+
+            let sql = captured_sql.borrow();
+            assert!(
+                !sql.0.contains("chain_id IN"),
+                "should not filter by chain_id when empty: {}",
+                sql.0
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_tokens_list_with_chain_ids_filters() {
+            use crate::local_db::query::fetch_all_tokens::LocalDbToken;
+
+            let token = LocalDbToken {
+                chain_id: 42161,
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
+                token_address: address!("0x00000000000000000000000000000000000000aa"),
+                name: "Test Token".to_string(),
+                symbol: "TST".to_string(),
+                decimals: 18,
+            };
+
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let json = serde_json::to_string(&vec![token]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+            let local_db = LocalDb::from_js_callback(callback);
+
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
+
+            let tokens = data_source
+                .tokens_list(Some(vec![42161]))
+                .await
+                .expect("should query tokens with chain_ids filter");
+
+            assert_eq!(tokens.len(), 1);
+
+            let sql = captured_sql.borrow();
+            assert!(
+                sql.0.contains("chain_id IN"),
+                "should filter by chain_id: {}",
+                sql.0
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_balance_changes_list_returns_changes() {
+            use crate::local_db::query::fetch_vault_balance_changes::LocalDbVaultBalanceChange;
+            use alloy::primitives::B256;
+
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let token = address!("0x00000000000000000000000000000000000000aa");
+            let orderbook = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
+            let vault_id = U256::from(1);
+
+            let balance_change = LocalDbVaultBalanceChange {
+                transaction_hash: B256::ZERO,
+                log_index: 0,
+                block_number: 12345,
+                block_timestamp: 1700000000,
+                owner,
+                change_type: "Deposit".to_string(),
+                token,
+                vault_id,
+                delta: Float::parse("100".to_string()).unwrap().as_hex(),
+                running_balance: Float::parse("100".to_string()).unwrap().as_hex(),
+            };
+
+            let local_vault = LocalDbVault {
+                chain_id: 42161,
+                vault_id,
+                token,
+                owner,
+                orderbook_address: orderbook,
+                token_name: "Token".to_string(),
+                token_symbol: "TKN".to_string(),
+                token_decimals: 18,
+                balance: Float::parse("100".to_string()).unwrap().as_hex(),
+                input_orders: None,
+                output_orders: None,
+            };
+
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let rc_client = Rc::new(client.clone());
+            let raindex_vault =
+                RaindexVault::try_from_local_db(Rc::clone(&rc_client), local_vault, None)
+                    .expect("should convert vault");
+
+            let json = serde_json::to_string(&vec![balance_change]).unwrap();
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+            let local_db = LocalDb::from_js_callback(callback);
+
+            let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
+
+            let changes = data_source
+                .balance_changes_list(&raindex_vault, None)
+                .await
+                .expect("should get balance changes");
+
+            assert_eq!(changes.len(), 1);
+            assert_eq!(changes[0].formatted_amount(), "100");
         }
     }
 }
