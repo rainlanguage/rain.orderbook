@@ -3,6 +3,7 @@ pub mod clear_tables;
 pub mod create_tables;
 pub mod create_views;
 pub mod executor;
+pub mod fetch_all_tokens;
 pub mod fetch_db_metadata;
 pub mod fetch_erc20_tokens_by_addresses;
 pub mod fetch_last_synced_block;
