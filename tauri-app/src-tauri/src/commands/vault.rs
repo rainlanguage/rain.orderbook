@@ -347,6 +347,7 @@ vault2,0x0000000000000000000000000000000000000000,0x20,Token 2,TKN2,18,0x0000000
                     "vaultBalanceChanges": [
                         {
                             "__typename": "Deposit",
+                            "id": "0x194cf47899c99de029247c1f301c4ddb9c1a0ddabe47411d3b196fe8b02b2471",
                             "amount": F5,
                             "newVaultBalance": F5,
                             "oldVaultBalance": F0,

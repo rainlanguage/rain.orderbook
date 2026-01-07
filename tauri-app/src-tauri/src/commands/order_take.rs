@@ -76,6 +76,11 @@ mod tests {
               },
               "orderbook": {
                 "id": "ob1"
+              },
+              "trade": {
+                "tradeEvent": {
+                  "__typename": "TakeOrder"
+                }
               }
             },
             "order": {
@@ -108,6 +113,11 @@ mod tests {
               },
               "orderbook": {
                 "id": "ob1"
+              },
+              "trade": {
+                "tradeEvent": {
+                  "__typename": "TakeOrder"
+                }
               }
             },
             "timestamp": "0",
@@ -152,6 +162,11 @@ mod tests {
               },
               "orderbook": {
                 "id": "ob2"
+              },
+              "trade": {
+                "tradeEvent": {
+                  "__typename": "TakeOrder"
+                }
               }
             },
             "order": {
@@ -184,6 +199,11 @@ mod tests {
               },
               "orderbook": {
                 "id": "ob2"
+              },
+              "trade": {
+                "tradeEvent": {
+                  "__typename": "TakeOrder"
+                }
               }
             },
             "timestamp": "1700086400",
