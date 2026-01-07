@@ -766,11 +766,12 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         sg_orders
             .into_iter()
             .map(|value| {
+                let transaction = value.transaction.try_into()?;
                 RaindexOrder::try_from_sg_order(
                     raindex_client.clone(),
                     chain_id,
                     value.order,
-                    value.transaction.try_into().ok(),
+                    Some(transaction),
                 )
             })
             .collect()
@@ -790,11 +791,12 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         sg_orders
             .into_iter()
             .map(|value| {
+                let transaction = value.transaction.try_into()?;
                 RaindexOrder::try_from_sg_order(
                     raindex_client.clone(),
                     chain_id,
                     value.order,
-                    value.transaction.try_into().ok(),
+                    Some(transaction),
                 )
             })
             .collect()
