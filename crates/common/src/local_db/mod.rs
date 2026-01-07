@@ -18,10 +18,13 @@ use insert::InsertError;
 use query::{LocalDbQueryError, SqlBuildError};
 use rain_orderbook_app_settings::remote::manifest::FetchManifestError;
 use rain_orderbook_app_settings::yaml::YamlError;
+use serde::{Deserialize, Serialize};
 use std::array::TryFromSliceError;
 use std::num::ParseIntError;
 use strict_yaml_rust::ScanError;
 use tokio::task::JoinError;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[137, 8453, 42161];
 
@@ -335,11 +338,16 @@ impl LocalDbError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderbookIdentifier {
     pub chain_id: u32,
     pub orderbook_address: Address,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderbookIdentifier);
+
 impl OrderbookIdentifier {
     pub fn new(chain_id: u32, orderbook_address: Address) -> Self {
         Self {
