@@ -60,6 +60,7 @@
 	$: {
 		if (searchTerm.trim() === '') {
 			filteredOrderbooks = availableOrderbooks;
+			selectedIndex = 0;
 		} else {
 			const term = searchTerm.toLowerCase();
 			filteredOrderbooks = availableOrderbooks.filter(
