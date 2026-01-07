@@ -122,7 +122,7 @@ where
     let retryable = || async { operation().await.map_err(RetryError::Operation) };
 
     retryable
-        .retry(backoff)
+        .retry(&backoff)
         .when(|error: &RetryError<E>| matches!(error, RetryError::Operation(err) if should_retry(err)))
         .await
 }
