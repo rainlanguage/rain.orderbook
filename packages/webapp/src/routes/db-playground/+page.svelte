@@ -9,13 +9,18 @@
 	let queryResults: unknown = null;
 	let isLoading = false;
 	let error = '';
+	let queryTime = 0;
 
 	async function executeQuery() {
 		isLoading = true;
 		error = '';
 		queryResults = null;
+		queryTime = 0;
 
+		const startTime = performance.now();
 		const result = await localDb.query(sqlQuery);
+		queryTime = performance.now() - startTime;
+
 		if (result.error) {
 			error = result.error.msg;
 			isLoading = false;
@@ -80,6 +85,16 @@
 			<h3 class="mb-3 text-lg font-medium text-red-800 dark:text-red-200">Error</h3>
 			<pre
 				class="overflow-x-auto rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">{error}</pre>
+		</div>
+	{/if}
+
+	{#if queryTime > 0}
+		<div
+			class="rounded-lg border border-blue-300 bg-blue-50 p-4 shadow-sm dark:border-blue-600 dark:bg-blue-900/20"
+		>
+			<span class="font-medium text-blue-800 dark:text-blue-200">
+				Query executed in {queryTime.toFixed(2)}ms
+			</span>
 		</div>
 	{/if}
 
