@@ -58,10 +58,26 @@ const ORDER_HASH_CLAUSE: &str = "/*ORDER_HASH_CLAUSE*/";
 const ORDER_HASH_CLAUSE_BODY: &str = "AND COALESCE(la.order_hash, l.order_hash) = {param}";
 
 const INPUT_TOKENS_CLAUSE: &str = "/*INPUT_TOKENS_CLAUSE*/";
-const INPUT_TOKENS_CLAUSE_BODY: &str = "AND EXISTS (\n      SELECT 1 FROM order_ios io2\n      WHERE io2.chain_id = l.chain_id\n        AND io2.orderbook_address = l.orderbook_address\n        AND io2.transaction_hash = la.transaction_hash\n        AND io2.log_index = la.log_index\n        AND lower(io2.io_type) = 'input'\n        AND io2.token IN ({list})\n    )";
+const INPUT_TOKENS_CLAUSE_BODY: &str = "AND EXISTS (
+      SELECT 1 FROM order_ios io2
+      WHERE io2.chain_id = l.chain_id
+        AND io2.orderbook_address = l.orderbook_address
+        AND io2.transaction_hash = la.transaction_hash
+        AND io2.log_index = la.log_index
+        AND lower(io2.io_type) = 'input'
+        AND io2.token IN ({list})
+    )";
 
 const OUTPUT_TOKENS_CLAUSE: &str = "/*OUTPUT_TOKENS_CLAUSE*/";
-const OUTPUT_TOKENS_CLAUSE_BODY: &str = "AND EXISTS (\n      SELECT 1 FROM order_ios io2\n      WHERE io2.chain_id = l.chain_id\n        AND io2.orderbook_address = l.orderbook_address\n        AND io2.transaction_hash = la.transaction_hash\n        AND io2.log_index = la.log_index\n        AND lower(io2.io_type) = 'output'\n        AND io2.token IN ({list})\n    )";
+const OUTPUT_TOKENS_CLAUSE_BODY: &str = "AND EXISTS (
+      SELECT 1 FROM order_ios io2
+      WHERE io2.chain_id = l.chain_id
+        AND io2.orderbook_address = l.orderbook_address
+        AND io2.transaction_hash = la.transaction_hash
+        AND io2.log_index = la.log_index
+        AND lower(io2.io_type) = 'output'
+        AND io2.token IN ({list})
+    )";
 
 const MAIN_CHAIN_IDS_CLAUSE: &str = "/*MAIN_CHAIN_IDS_CLAUSE*/";
 const MAIN_CHAIN_IDS_CLAUSE_BODY: &str = "AND oe.chain_id IN ({list})";
