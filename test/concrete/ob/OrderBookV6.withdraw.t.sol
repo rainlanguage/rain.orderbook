@@ -10,7 +10,7 @@ import {
     OrderBookV6ExternalMockTest, REVERTING_MOCK_BYTECODE
 } from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {TaskV2, IOrderBookV6} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
@@ -27,6 +27,13 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
 
     uint256 internal sRunID;
     mapping(uint256 => mapping(address => bool)) internal sHasDeposit;
+
+    /// Withdrawing vault ID zero is an error.
+    function testWithdrawZeroVaultId(address alice, address token) external {
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(IOrderBookV6.ZeroVaultId.selector, alice, token));
+        iOrderbook.withdraw4(token, bytes32(0), Float.wrap(0), new TaskV2[](0));
+    }
 
     /// Withdrawing a zero target amount should revert.
     /// forge-config: default.fuzz.runs = 100
