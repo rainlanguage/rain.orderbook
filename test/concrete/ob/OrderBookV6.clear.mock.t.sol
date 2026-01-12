@@ -67,6 +67,22 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         vm.assume(bobConfig.validInputs.length > 0);
         vm.assume(bobConfig.validOutputs.length > 0);
 
+        IOV2[] memory aliceValidInputs = new IOV2[](1);
+        aliceValidInputs[0] = aliceConfig.validInputs[0];
+        aliceConfig.validInputs = aliceValidInputs;
+
+        IOV2[] memory aliceValidOutputs = new IOV2[](1);
+        aliceValidOutputs[0] = aliceConfig.validOutputs[0];
+        aliceConfig.validOutputs = aliceValidOutputs;
+
+        IOV2[] memory bobValidInputs = new IOV2[](1);
+        bobValidInputs[0] = bobConfig.validInputs[0];
+        bobConfig.validInputs = bobValidInputs;
+
+        IOV2[] memory bobValidOutputs = new IOV2[](1);
+        bobValidOutputs[0] = bobConfig.validOutputs[0];
+        bobConfig.validOutputs = bobValidOutputs;
+
         aliceConfig.evaluable.interpreter = iInterpreter;
         aliceConfig.evaluable.store = iStore;
 
@@ -79,9 +95,9 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         bobConfig.validInputs[0].token = address(iToken1);
         bobConfig.validOutputs[0].token = address(iToken0);
 
-        if (aliceConfig.validInputs[0].vaultId == bytes32(0)) {
-            aliceConfig.validInputs[0].vaultId = bytes32(uint256(0x01));
-        }
+        // if (aliceConfig.validInputs[0].vaultId == bytes32(0)) {
+        //     aliceConfig.validInputs[0].vaultId = bytes32(uint256(0x01));
+        // }
 
         if (aliceConfig.validOutputs[0].vaultId == bytes32(0)) {
             aliceConfig.validOutputs[0].vaultId = bytes32(uint256(0x02));
@@ -140,12 +156,13 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId, clear.bobAmount
         );
 
-        {
+        if (clear.aliceConfig.validInputs[0].vaultId != bytes32(0)) {
             Float aliceInputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
             );
             assertTrue(aliceInputBalance.isZero());
         }
+
         {
             Float aliceOutputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
@@ -200,6 +217,20 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
                 bobBountyVaultId: clear.bobBountyVaultId
             });
 
+            if (clear.aliceConfig.validInputs[0].vaultId == bytes32(0)) {
+                uint256 expectedAliceInput18 = LibDecimalFloat.toFixedDecimalLossless(clear.expectedAliceInput, 18);
+                vm.mockCall(
+                    clear.aliceConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.transfer.selector, clear.alice, expectedAliceInput18),
+                    abi.encode(true)
+                );
+                vm.expectCall(
+                    clear.aliceConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.transfer.selector, clear.alice, expectedAliceInput18),
+                    1
+                );
+            }
+
             vm.prank(clear.bountyBot);
             if (clear.expectedError.length > 0) {
                 vm.expectRevert(clear.expectedError);
@@ -213,12 +244,15 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             ).eq(clear.aliceAmount.sub(clear.expectedAliceOutput)),
             "Alice output vault"
         );
-        assertTrue(
-            iOrderbook.vaultBalance2(
-                clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
-            ).eq(clear.expectedAliceInput),
-            "Alice input vault"
-        );
+
+        if (clear.aliceConfig.validInputs[0].vaultId != bytes32(0)) {
+            assertTrue(
+                iOrderbook.vaultBalance2(
+                    clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
+                ).eq(clear.expectedAliceInput),
+                "Alice input vault"
+            );
+        }
 
         assertTrue(
             iOrderbook.vaultBalance2(
@@ -257,7 +291,7 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         );
     }
 
-    /// forge-config: default.fuzz.runs = 100
+    /// forge-config: default.fuzz.runs = 1000
     function testClearSimple(
         address alice,
         OrderConfigV4 memory aliceConfig,
