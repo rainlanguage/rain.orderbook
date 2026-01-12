@@ -49,7 +49,8 @@ import {
     EvaluableV4,
     TaskV2,
     QuoteV2,
-    Float
+    Float,
+    IOV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IOrderBookV6OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV6OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
@@ -66,6 +67,9 @@ import {
 import {OrderBookV6FlashLender} from "../../abstract/OrderBookV6FlashLender.sol";
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
+
+import {console2} from "forge-std/console2.sol";
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
@@ -233,7 +237,23 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         nonZeroVaultId(owner, token, vaultId)
         returns (Float)
     {
-        return sVaultBalances[owner][token][vaultId];
+        return _vaultBalance(owner, token, vaultId);
+    }
+
+    function _vaultBalance(address owner, address token, bytes32 vaultId) internal view returns (Float) {
+        if (vaultId != bytes32(0)) {
+            return sVaultBalances[owner][token][vaultId];
+        } else {
+            (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(token);
+            if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
+                revert TokenDecimalsReadFailure(token, tofuOutcome);
+            }
+            Float ownerTokenBalance =
+                LibDecimalFloat.fromFixedDecimalLosslessPacked(IERC20(token).balanceOf(owner), decimals);
+            (Float ownerTokenApproval,) =
+                LibDecimalFloat.fromFixedDecimalLossyPacked(IERC20(token).allowance(owner, address(this)), decimals);
+            return ownerTokenBalance.min(ownerTokenApproval);
+        }
     }
 
     /// @inheritdoc IOrderBookV6
@@ -295,7 +315,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             if (!targetAmount.gt(Float.wrap(0))) {
                 revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
             }
-            Float currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
+            Float currentVaultBalance = _vaultBalance(msg.sender, token, vaultId);
             withdrawAmount = targetAmount.min(currentVaultBalance);
             (beforeBalance, afterBalance) = decreaseVaultBalance(msg.sender, token, vaultId, withdrawAmount);
 
@@ -633,6 +653,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         OrderIOCalculationV4 memory bobOrderIOCalculation = calculateOrderIO(
             bobOrder, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, aliceOrder.owner, aliceSignedContext
         );
+        console2.log(LibFormatDecimalFloat.toDecimalString(aliceOrderIOCalculation.outputMax, false));
+        console2.log(LibFormatDecimalFloat.toDecimalString(aliceOrderIOCalculation.IORatio, false));
+
         ClearStateChangeV2 memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
 
@@ -640,6 +663,10 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         recordVaultIO(clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
 
         {
+            console2.log("*");
+            console2.log(LibFormatDecimalFloat.toDecimalString(clearStateChange.aliceOutput, false));
+            console2.log(LibFormatDecimalFloat.toDecimalString(clearStateChange.bobInput, false));
+
             Float aliceBounty = clearStateChange.aliceOutput.sub(clearStateChange.bobInput);
             Float bobBounty = clearStateChange.bobOutput.sub(clearStateChange.aliceInput);
 
@@ -710,8 +737,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
 
-                    Float inputTokenVaultBalance = sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order
-                        .validInputs[inputIOIndex].vaultId];
+                    Float inputTokenVaultBalance = _vaultBalance(
+                        order.owner, order.validInputs[inputIOIndex].token, order.validInputs[inputIOIndex].vaultId
+                    );
                     callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(order.validInputs[inputIOIndex].token))),
                         bytes32(uint256(inputDecimals)),
@@ -729,8 +757,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                         revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }
 
-                    Float outputTokenVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
-                        .validOutputs[outputIOIndex].vaultId];
+                    Float outputTokenVaultBalance = _vaultBalance(
+                        order.owner, order.validOutputs[outputIOIndex].token, order.validOutputs[outputIOIndex].vaultId
+                    );
                     callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(order.validOutputs[outputIOIndex].token))),
                         bytes32(uint256(outputDecimals)),
@@ -783,8 +812,8 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             {
                 // The order owner can't send more than the smaller of their vault
                 // balance or their per-order limit.
-                Float ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
-                    .validOutputs[outputIOIndex].vaultId];
+                IOV2 memory output = order.validOutputs[outputIOIndex];
+                Float ownerVaultBalance = _vaultBalance(order.owner, output.token, output.vaultId);
                 orderOutputMax = orderOutputMax.min(ownerVaultBalance);
             }
 
@@ -881,7 +910,8 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID],
             input
         );
-
+        // Decrease before increasing so that if vault id == 0 then we pull
+        // tokens before pushing them.
         decreaseVaultBalance(
             orderIOCalculation.order.owner,
             address(uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))),

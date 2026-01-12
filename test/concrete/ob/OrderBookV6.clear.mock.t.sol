@@ -26,6 +26,9 @@ import {LibFixedPointDecimalArithmeticOpenZeppelin} from
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
+import {console2} from "forge-std/console2.sol";
+
 contract MockInterpreter {
     StackItem[] internal sStack;
 
@@ -47,18 +50,21 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
 
     /// Make a deposit to the OB mocking the internal transferFrom call.
     function _depositInternal(address depositor, address token, bytes32 vaultId, Float amount) internal {
-        uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, 18);
-        vm.prank(depositor);
-        vm.mockCall(
-            token,
-            abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount18),
-            abi.encode(true)
-        );
-        iOrderbook.deposit4(address(token), vaultId, amount, new TaskV2[](0));
-
-        Float balance = iOrderbook.vaultBalance2(depositor, token, vaultId);
-
-        assertTrue(balance.eq(amount));
+        if (vaultId != bytes32(0)) {
+            uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, 18);
+            // The transferFrom will be used regardless of whether vaultId is 0 or
+            // not, but in the nonzero case the deposit has to be done now, for the
+            // zero case the clear will internally do a transfer from.
+            vm.mockCall(
+                token,
+                abi.encodeWithSelector(IERC20.transferFrom.selector, depositor, address(iOrderbook), amount18),
+                abi.encode(true)
+            );
+            vm.prank(depositor);
+            iOrderbook.deposit4(address(token), vaultId, amount, new TaskV2[](0));
+            Float balance = iOrderbook.vaultBalance2(depositor, token, vaultId);
+            assertTrue(balance.eq(amount));
+        }
     }
 
     function conformBasicConfig(OrderConfigV4 memory aliceConfig, OrderConfigV4 memory bobConfig) internal view {
@@ -94,14 +100,6 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
 
         bobConfig.validInputs[0].token = address(iToken1);
         bobConfig.validOutputs[0].token = address(iToken0);
-
-        // if (aliceConfig.validInputs[0].vaultId == bytes32(0)) {
-        //     aliceConfig.validInputs[0].vaultId = bytes32(uint256(0x01));
-        // }
-
-        if (aliceConfig.validOutputs[0].vaultId == bytes32(0)) {
-            aliceConfig.validOutputs[0].vaultId = bytes32(uint256(0x02));
-        }
 
         if (bobConfig.validInputs[0].vaultId == bytes32(0)) {
             bobConfig.validInputs[0].vaultId = bytes32(uint256(0x03));
@@ -163,12 +161,13 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             assertTrue(aliceInputBalance.isZero());
         }
 
-        {
+        if (clear.aliceConfig.validOutputs[0].vaultId != bytes32(0)) {
             Float aliceOutputBalance = iOrderbook.vaultBalance2(
                 clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
             );
             assertTrue(aliceOutputBalance.eq(clear.aliceAmount));
         }
+
         {
             Float bobInputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
@@ -221,12 +220,68 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
                 uint256 expectedAliceInput18 = LibDecimalFloat.toFixedDecimalLossless(clear.expectedAliceInput, 18);
                 vm.mockCall(
                     clear.aliceConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
+                    abi.encode(expectedAliceInput18)
+                );
+                vm.expectCall(
+                    clear.aliceConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
+                    1
+                );
+                vm.mockCall(
+                    clear.aliceConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
+                    abi.encode(expectedAliceInput18)
+                );
+                vm.expectCall(
+                    clear.aliceConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
+                    1
+                );
+                vm.mockCall(
+                    clear.aliceConfig.validInputs[0].token,
                     abi.encodeWithSelector(IERC20.transfer.selector, clear.alice, expectedAliceInput18),
                     abi.encode(true)
                 );
                 vm.expectCall(
                     clear.aliceConfig.validInputs[0].token,
                     abi.encodeWithSelector(IERC20.transfer.selector, clear.alice, expectedAliceInput18),
+                    1
+                );
+            }
+            console2.log("alice");
+            console2.log(clear.alice);
+
+            if (clear.aliceConfig.validOutputs[0].vaultId == bytes32(0)) {
+                uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(clear.expectedAliceOutput, 18);
+                vm.mockCall(
+                    clear.aliceConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
+                    abi.encode(amount18)
+                );
+                vm.expectCall(
+                    clear.aliceConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
+                    2
+                );
+                vm.mockCall(
+                    clear.aliceConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
+                    abi.encode(amount18)
+                );
+                vm.expectCall(
+                    clear.aliceConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
+                    2
+                );
+                vm.mockCall(
+                    clear.aliceConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.transferFrom.selector, clear.alice, address(iOrderbook), amount18),
+                    abi.encode(true)
+                );
+                vm.expectCall(
+                    clear.aliceConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.transferFrom.selector, clear.alice, address(iOrderbook), amount18),
                     1
                 );
             }
@@ -238,12 +293,14 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             iOrderbook.clear3(aliceOrder, bobOrder, configClear, new SignedContextV1[](0), new SignedContextV1[](0));
         }
 
-        assertTrue(
-            iOrderbook.vaultBalance2(
-                clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
-            ).eq(clear.aliceAmount.sub(clear.expectedAliceOutput)),
-            "Alice output vault"
-        );
+        if (clear.aliceConfig.validOutputs[0].vaultId != bytes32(0)) {
+            assertTrue(
+                iOrderbook.vaultBalance2(
+                    clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
+                ).eq(clear.aliceAmount.sub(clear.expectedAliceOutput)),
+                "Alice output vault"
+            );
+        }
 
         if (clear.aliceConfig.validInputs[0].vaultId != bytes32(0)) {
             assertTrue(
