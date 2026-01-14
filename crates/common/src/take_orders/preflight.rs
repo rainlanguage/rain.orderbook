@@ -177,49 +177,27 @@ pub async fn find_failing_order_index(
         return None;
     }
 
-    let mut low = 0usize;
-    let mut high = config.orders.len();
-
-    while low < high {
-        let mid = low + (high - low) / 2;
-
-        let prefix_config = TakeOrdersConfigV5 {
+    for idx in 0..config.orders.len() {
+        let single_order_config = TakeOrdersConfigV5 {
             minimumIO: config.minimumIO,
             maximumIO: config.maximumIO,
             maximumIORatio: config.maximumIORatio,
             IOIsInput: config.IOIsInput,
-            orders: config.orders[..=mid].to_vec(),
+            orders: vec![config.orders[idx].clone()],
             data: config.data.clone(),
         };
 
-        let result =
-            simulate_take_orders(provider, orderbook, taker, &prefix_config, block_number).await;
+        let result = simulate_take_orders(
+            provider,
+            orderbook,
+            taker,
+            &single_order_config,
+            block_number,
+        )
+        .await;
 
         if result.is_err() {
-            high = mid + 1;
-            if high == mid + 1 && low == mid {
-                return Some(mid);
-            }
-        } else {
-            low = mid + 1;
-        }
-    }
-
-    if low > 0 && low <= config.orders.len() {
-        let prefix_config = TakeOrdersConfigV5 {
-            minimumIO: config.minimumIO,
-            maximumIO: config.maximumIO,
-            maximumIORatio: config.maximumIORatio,
-            IOIsInput: config.IOIsInput,
-            orders: config.orders[..low].to_vec(),
-            data: config.data.clone(),
-        };
-
-        let result =
-            simulate_take_orders(provider, orderbook, taker, &prefix_config, block_number).await;
-
-        if result.is_err() && low > 0 {
-            return Some(low - 1);
+            return Some(idx);
         }
     }
 

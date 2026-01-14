@@ -119,11 +119,14 @@ impl RaindexClient {
         )
         .await?;
 
-        let (best_orderbook, best_sim) =
-            selection::select_best_orderbook_simulation(candidates, req.mode, req.price_cap)?;
+        let (best_orderbook, best_sim) = selection::select_best_orderbook_simulation(
+            candidates.clone(),
+            req.mode,
+            req.price_cap,
+        )?;
 
         let mut built =
-            build_take_orders_config_from_simulation(best_sim, req.mode, req.price_cap)?
+            build_take_orders_config_from_simulation(best_sim.clone(), req.mode, req.price_cap)?
                 .ok_or(RaindexError::NoLiquidity)?;
 
         let provider =
@@ -148,7 +151,7 @@ impl RaindexClient {
                         req.price_cap,
                     );
                 }
-                Err(_sim_error) => {
+                Err(sim_error) => {
                     if let Some(failing_idx) = find_failing_order_index(
                         &provider,
                         best_orderbook,
@@ -159,17 +162,19 @@ impl RaindexClient {
                     .await
                     {
                         if built.config.orders.len() <= 1 {
-                            return Err(RaindexError::PreflightError(
-                                "All orders failed simulation".to_string(),
-                            ));
+                            return Err(RaindexError::PreflightError(format!(
+                                "All orders failed simulation. Last error: {}",
+                                sim_error
+                            )));
                         }
 
                         built.config.orders.remove(failing_idx);
                         built.sim.legs.remove(failing_idx);
                     } else {
-                        return Err(RaindexError::PreflightError(
-                            "Simulation failed but could not identify failing order".to_string(),
-                        ));
+                        return Err(RaindexError::PreflightError(format!(
+                            "Simulation failed but could not identify failing order: {}",
+                            sim_error
+                        )));
                     }
                 }
             }
