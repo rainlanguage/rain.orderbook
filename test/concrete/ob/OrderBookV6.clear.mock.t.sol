@@ -18,7 +18,7 @@ import {
     Float
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {NotOrderOwner, StackItem, NegativeBounty} from "src/concrete/ob/OrderBookV6.sol";
+import {NotOrderOwner, StackItem, NegativeBounty, ClearZeroAmount} from "src/concrete/ob/OrderBookV6.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {StateNamespace, EvalV4, SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {LibFixedPointDecimalArithmeticOpenZeppelin} from
@@ -101,14 +101,6 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         bobConfig.validInputs[0].token = address(iToken1);
         bobConfig.validOutputs[0].token = address(iToken0);
 
-        if (bobConfig.validInputs[0].vaultId == bytes32(0)) {
-            bobConfig.validInputs[0].vaultId = bytes32(uint256(0x03));
-        }
-
-        if (bobConfig.validOutputs[0].vaultId == bytes32(0)) {
-            bobConfig.validOutputs[0].vaultId = bytes32(uint256(0x04));
-        }
-
         aliceConfig.meta = "";
         bobConfig.meta = "";
     }
@@ -168,13 +160,14 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             assertTrue(aliceOutputBalance.eq(clear.aliceAmount));
         }
 
-        {
+        if (clear.bobConfig.validInputs[0].vaultId != bytes32(0)) {
             Float bobInputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
             );
             assertTrue(bobInputBalance.isZero());
         }
-        {
+
+        if (clear.bobConfig.validOutputs[0].vaultId != bytes32(0)) {
             Float bobOutputBalance = iOrderbook.vaultBalance2(
                 clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
             );
@@ -223,34 +216,35 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
                     abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
                     abi.encode(expectedAliceInput18)
                 );
-                vm.expectCall(
-                    clear.aliceConfig.validInputs[0].token,
-                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
-                    1
-                );
                 vm.mockCall(
                     clear.aliceConfig.validInputs[0].token,
                     abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
                     abi.encode(expectedAliceInput18)
-                );
-                vm.expectCall(
-                    clear.aliceConfig.validInputs[0].token,
-                    abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
-                    1
                 );
                 vm.mockCall(
                     clear.aliceConfig.validInputs[0].token,
                     abi.encodeWithSelector(IERC20.transfer.selector, clear.alice, expectedAliceInput18),
                     abi.encode(true)
                 );
-                vm.expectCall(
-                    clear.aliceConfig.validInputs[0].token,
-                    abi.encodeWithSelector(IERC20.transfer.selector, clear.alice, expectedAliceInput18),
-                    1
-                );
+
+                if (clear.expectedError.length == 0) {
+                    vm.expectCall(
+                        clear.aliceConfig.validInputs[0].token,
+                        abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
+                        1
+                    );
+                    vm.expectCall(
+                        clear.aliceConfig.validInputs[0].token,
+                        abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
+                        1
+                    );
+                    vm.expectCall(
+                        clear.aliceConfig.validInputs[0].token,
+                        abi.encodeWithSelector(IERC20.transfer.selector, clear.alice, expectedAliceInput18),
+                        1
+                    );
+                }
             }
-            console2.log("alice");
-            console2.log(clear.alice);
 
             if (clear.aliceConfig.validOutputs[0].vaultId == bytes32(0)) {
                 uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(clear.expectedAliceOutput, 18);
@@ -259,31 +253,111 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
                     abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
                     abi.encode(amount18)
                 );
-                vm.expectCall(
-                    clear.aliceConfig.validOutputs[0].token,
-                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
-                    2
-                );
                 vm.mockCall(
                     clear.aliceConfig.validOutputs[0].token,
                     abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
                     abi.encode(amount18)
-                );
-                vm.expectCall(
-                    clear.aliceConfig.validOutputs[0].token,
-                    abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
-                    2
                 );
                 vm.mockCall(
                     clear.aliceConfig.validOutputs[0].token,
                     abi.encodeWithSelector(IERC20.transferFrom.selector, clear.alice, address(iOrderbook), amount18),
                     abi.encode(true)
                 );
-                vm.expectCall(
-                    clear.aliceConfig.validOutputs[0].token,
-                    abi.encodeWithSelector(IERC20.transferFrom.selector, clear.alice, address(iOrderbook), amount18),
-                    1
+
+                if (clear.expectedError.length == 0) {
+                    vm.expectCall(
+                        clear.aliceConfig.validOutputs[0].token,
+                        abi.encodeWithSelector(IERC20.balanceOf.selector, clear.alice),
+                        2
+                    );
+                    vm.expectCall(
+                        clear.aliceConfig.validOutputs[0].token,
+                        abi.encodeWithSelector(IERC20.allowance.selector, clear.alice),
+                        2
+                    );
+                    vm.expectCall(
+                        clear.aliceConfig.validOutputs[0].token,
+                        abi.encodeWithSelector(IERC20.transferFrom.selector, clear.alice, address(iOrderbook), amount18),
+                        1
+                    );
+                }
+            }
+
+            if (clear.bobConfig.validInputs[0].vaultId == bytes32(0)) {
+                uint256 expectedBobInput18 = LibDecimalFloat.toFixedDecimalLossless(clear.expectedBobInput, 18);
+                vm.mockCall(
+                    clear.bobConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.bob),
+                    abi.encode(expectedBobInput18)
                 );
+                vm.mockCall(
+                    clear.bobConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.allowance.selector, clear.bob),
+                    abi.encode(expectedBobInput18)
+                );
+                vm.mockCall(
+                    clear.bobConfig.validInputs[0].token,
+                    abi.encodeWithSelector(IERC20.transfer.selector, clear.bob, expectedBobInput18),
+                    abi.encode(true)
+                );
+
+                if (clear.expectedError.length == 0) {
+                    vm.expectCall(
+                        clear.bobConfig.validInputs[0].token,
+                        abi.encodeWithSelector(IERC20.balanceOf.selector, clear.bob),
+                        1
+                    );
+
+                    vm.expectCall(
+                        clear.bobConfig.validInputs[0].token,
+                        abi.encodeWithSelector(IERC20.allowance.selector, clear.bob),
+                        1
+                    );
+                    vm.expectCall(
+                        clear.bobConfig.validInputs[0].token,
+                        abi.encodeWithSelector(IERC20.transfer.selector, clear.bob, expectedBobInput18),
+                        1
+                    );
+                }
+            }
+
+            if (clear.bobConfig.validOutputs[0].vaultId == bytes32(0)) {
+                (uint256 bobAmount18) = LibDecimalFloat.toFixedDecimalLossless(clear.expectedBobOutput, 18);
+                vm.mockCall(
+                    clear.bobConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.balanceOf.selector, clear.bob),
+                    abi.encode(bobAmount18)
+                );
+                vm.mockCall(
+                    clear.bobConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.allowance.selector, clear.bob),
+                    abi.encode(bobAmount18)
+                );
+                vm.mockCall(
+                    clear.bobConfig.validOutputs[0].token,
+                    abi.encodeWithSelector(IERC20.transferFrom.selector, clear.bob, address(iOrderbook), bobAmount18),
+                    abi.encode(true)
+                );
+
+                if (clear.expectedError.length == 0) {
+                    vm.expectCall(
+                        clear.bobConfig.validOutputs[0].token,
+                        abi.encodeWithSelector(IERC20.balanceOf.selector, clear.bob),
+                        2
+                    );
+                    vm.expectCall(
+                        clear.bobConfig.validOutputs[0].token,
+                        abi.encodeWithSelector(IERC20.allowance.selector, clear.bob),
+                        2
+                    );
+                    vm.expectCall(
+                        clear.bobConfig.validOutputs[0].token,
+                        abi.encodeWithSelector(
+                            IERC20.transferFrom.selector, clear.bob, address(iOrderbook), bobAmount18
+                        ),
+                        1
+                    );
+                }
             }
 
             vm.prank(clear.bountyBot);
@@ -311,18 +385,23 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             );
         }
 
-        assertTrue(
-            iOrderbook.vaultBalance2(
-                clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
-            ).eq(clear.bobAmount.sub(clear.expectedBobOutput)),
-            "Bob output vault"
-        );
-        assertTrue(
-            iOrderbook.vaultBalance2(
-                clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
-            ).eq(clear.expectedBobInput),
-            "Bob input vault"
-        );
+        if (clear.bobConfig.validOutputs[0].vaultId != bytes32(0)) {
+            assertTrue(
+                iOrderbook.vaultBalance2(
+                    clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
+                ).eq(clear.bobAmount.sub(clear.expectedBobOutput)),
+                "Bob output vault"
+            );
+        }
+
+        if (clear.bobConfig.validInputs[0].vaultId != bytes32(0)) {
+            assertTrue(
+                iOrderbook.vaultBalance2(
+                    clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
+                ).eq(clear.expectedBobInput),
+                "Bob input vault"
+            );
+        }
 
         assertTrue(
             iOrderbook.vaultBalance2(clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId)
@@ -358,7 +437,7 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         address bountyBot,
         bytes32 aliceBountyVaultId,
         bytes32 bobBountyVaultId
-    ) external {
+    ) public {
         Float aliceAmount = LibDecimalFloat.packLossless(2, 0);
         Float bobAmount = LibDecimalFloat.packLossless(2, 0);
 
@@ -389,6 +468,88 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
                 ""
             )
         );
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearAliceInputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validInputs.length > 0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearBobInputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(bobConfig.validInputs.length > 0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearBobAliceInputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(bobConfig.validInputs.length > 0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearAliceOutputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearBobOutputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(bobConfig.validOutputs.length > 0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -499,6 +660,7 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         checkClearStruct.expectedBobOutput = LibDecimalFloat.packLossless(0, 0);
         checkClearStruct.expectedAliceInput = LibDecimalFloat.packLossless(0, 0);
         checkClearStruct.expectedBobInput = LibDecimalFloat.packLossless(0, 0);
+
         checkClearStruct.expectedError = abi.encodeWithSelector(NegativeBounty.selector);
 
         checkClear(checkClearStruct);
