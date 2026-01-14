@@ -503,6 +503,42 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
     }
 
     /// forge-config: default.fuzz.runs = 100
+    function testClearAliceBothVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearBobBothVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(bobConfig.validInputs.length > 0);
+        vm.assume(bobConfig.validOutputs.length > 0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
     function testClearBobAliceInputVaultIdZero(
         address alice,
         OrderConfigV4 memory aliceConfig,
@@ -548,6 +584,162 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         bytes32 bobBountyVaultId
     ) external {
         vm.assume(bobConfig.validOutputs.length > 0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearAliceBobOutputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        vm.assume(bobConfig.validOutputs.length > 0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearAliceInputBobOutputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(bobConfig.validOutputs.length > 0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearBobInputAliceOutputVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(bobConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearAliceInputBobBothVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(bobConfig.validOutputs.length > 0);
+        vm.assume(bobConfig.validInputs.length > 0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearBobInputAliceBothVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(bobConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearAliceOutputBobBothVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        vm.assume(bobConfig.validInputs.length > 0);
+        vm.assume(bobConfig.validOutputs.length > 0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearBobOutputAliceBothVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(bobConfig.validOutputs.length > 0);
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        bobConfig.validOutputs[0].vaultId = bytes32(0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
+    }
+
+    /// forge-config: default.fuzz.runs = 100
+    function testClearAllVaultIdZero(
+        address alice,
+        OrderConfigV4 memory aliceConfig,
+        address bob,
+        OrderConfigV4 memory bobConfig,
+        bytes memory expression,
+        address bountyBot,
+        bytes32 aliceBountyVaultId,
+        bytes32 bobBountyVaultId
+    ) external {
+        vm.assume(aliceConfig.validInputs.length > 0);
+        vm.assume(aliceConfig.validOutputs.length > 0);
+        vm.assume(bobConfig.validInputs.length > 0);
+        vm.assume(bobConfig.validOutputs.length > 0);
+        aliceConfig.validInputs[0].vaultId = bytes32(0);
+        aliceConfig.validOutputs[0].vaultId = bytes32(0);
+        bobConfig.validInputs[0].vaultId = bytes32(0);
         bobConfig.validOutputs[0].vaultId = bytes32(0);
         testClearSimple(alice, aliceConfig, bob, bobConfig, expression, bountyBot, aliceBountyVaultId, bobBountyVaultId);
     }
