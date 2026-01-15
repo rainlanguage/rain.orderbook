@@ -1,12 +1,19 @@
 <script lang="ts">
-	import { OrderDetail, PageHeader, useAccount, useToasts } from '@rainlanguage/ui-components';
+	import {
+		OrderDetail,
+		PageHeader,
+		useAccount,
+		useToasts,
+		useTransactions
+	} from '@rainlanguage/ui-components';
 	import { page } from '$app/stores';
 	import { codeMirrorTheme, lightweightChartsTheme, colorTheme } from '$lib/darkMode';
 	import {
 		handleDepositModal,
 		handleTransactionConfirmationModal,
 		handleWithdrawModal,
-		handleWithdrawAllModal
+		handleWithdrawAllModal,
+		handleTakeOrderModal
 	} from '$lib/services/modal';
 	import type {
 		Address,
@@ -16,11 +23,11 @@
 		RaindexVaultsList
 	} from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
-	import { useTransactions } from '@rainlanguage/ui-components';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 	import { handleVaultsWithdrawAll } from '$lib/services/handleVaultsWithdrawAll';
+	import { handleTakeOrder } from '$lib/services/handleTakeOrder';
 
 	const { orderHash, chainId, orderbook } = $page.params;
 	const parsedOrderHash = orderHash as Hex;
@@ -76,6 +83,18 @@
 			account: $account as Hex
 		});
 	}
+
+	function onTakeOrder(raindexClient: RaindexClient, order: RaindexOrder) {
+		handleTakeOrder({
+			raindexClient,
+			order,
+			handleTakeOrderModal,
+			handleTransactionConfirmationModal,
+			errToast,
+			manager,
+			account: $account as Hex
+		});
+	}
 </script>
 
 <PageHeader title="Order" pathname={$page.url.pathname} />
@@ -91,4 +110,5 @@
 	{onDeposit}
 	{onWithdraw}
 	{onWithdrawAll}
+	{onTakeOrder}
 />

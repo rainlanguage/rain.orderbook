@@ -1,6 +1,7 @@
 import DepositModal from '$lib/components/DepositModal.svelte';
 import WithdrawModal from '$lib/components/WithdrawModal.svelte';
 import TransactionConfirmationModal from '$lib/components/TransactionConfirmationModal.svelte';
+import TakeOrderModal from '$lib/components/TakeOrderModal.svelte';
 import {
 	DisclaimerModal,
 	type TransactionConfirmationProps,
@@ -9,6 +10,7 @@ import {
 } from '@rainlanguage/ui-components';
 import WithdrawAllModal from '../components/WithdrawAllModal.svelte';
 import type { WithdrawAllModalProps } from './handleVaultsWithdrawAll';
+import type { RaindexOrder, RaindexOrderQuote, TakeOrdersMode } from '@rainlanguage/orderbook';
 
 export const handleDepositModal = (props: VaultActionModalProps) => {
 	new DepositModal({ target: document.body, props });
@@ -79,4 +81,23 @@ export const handleTransactionConfirmationModal = (
 
 export const handleDisclaimerModal = (props: DisclaimerModalProps) => {
 	new DisclaimerModal({ target: document.body, props });
+};
+
+export interface TakeOrderSubmitParams {
+	quote: RaindexOrderQuote;
+	mode: TakeOrdersMode;
+	amount: string;
+	priceCap: string;
+}
+
+export interface TakeOrderModalProps {
+	open: boolean;
+	order: RaindexOrder;
+	onSubmit: (params: TakeOrderSubmitParams) => void;
+}
+
+export type HandleTakeOrderModal = (props: TakeOrderModalProps) => void;
+
+export const handleTakeOrderModal: HandleTakeOrderModal = (props: TakeOrderModalProps) => {
+	new TakeOrderModal({ target: document.body, props });
 };
