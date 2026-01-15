@@ -28,6 +28,8 @@
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export let handleOrderRemoveModal: any = undefined;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	export let handleTakeOrderModal: any = undefined;
 	// End of optional props
 
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
@@ -141,6 +143,11 @@
 			>Output Token(s)</TableHeadCell
 		>
 		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4">Trades</TableHeadCell>
+		{#if $account && (handleTakeOrderModal || handleOrderRemoveModal)}
+			<TableHeadCell data-testid="orderListHeadingActions" padding="px-2 py-4"
+				>Actions</TableHeadCell
+			>
+		{/if}
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
@@ -196,36 +203,47 @@
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2">
 			{item.tradesCount > 99 ? '>99' : item.tradesCount}
 		</TableBodyCell>
-		{#if matchesAccount(item.owner) && handleOrderRemoveModal}
-			<div data-testid="wallet-actions">
-				<TableBodyCell tdClass="px-0 text-right">
-					{#if item.active}
+		{#if $account && (handleTakeOrderModal || handleOrderRemoveModal)}
+			<TableBodyCell data-testid="orderListRowActions" tdClass="px-2 py-2">
+				{#if item.active}
+					{#if handleTakeOrderModal}
 						<Button
-							color="alternative"
-							outline={false}
-							data-testid={`order-menu-${item.id}`}
-							id={`order-menu-${item.id}`}
-							class="mr-2 border-none px-2"
+							size="xs"
+							data-testid={`order-take-${item.id}`}
 							on:click={(e) => {
 								e.stopPropagation();
+								handleTakeOrderModal(item, $query.refetch, context);
 							}}
 						>
-							<DotsVerticalOutline class="dark:text-white" />
+							Take
 						</Button>
 					{/if}
-				</TableBodyCell>
-
-				{#if item.active}
-					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
-						<DropdownItem
-							on:click={(e) => {
-								e.stopPropagation();
-								handleOrderRemoveModal(item, $query.refetch, context);
-							}}>Remove</DropdownItem
-						>
-					</Dropdown>
+					{#if matchesAccount(item.owner) && handleOrderRemoveModal}
+						<div data-testid="wallet-actions">
+							<Button
+								color="alternative"
+								outline={false}
+								data-testid={`order-menu-${item.id}`}
+								id={`order-menu-${item.id}`}
+								class="border-none px-2"
+								on:click={(e) => {
+									e.stopPropagation();
+								}}
+							>
+								<DotsVerticalOutline class="dark:text-white" />
+							</Button>
+							<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
+								<DropdownItem
+									on:click={(e) => {
+										e.stopPropagation();
+										handleOrderRemoveModal(item, $query.refetch, context);
+									}}>Remove</DropdownItem
+								>
+							</Dropdown>
+						</div>
+					{/if}
 				{/if}
-			</div>
+			</TableBodyCell>
 		{/if}
 	</svelte:fragment>
 </AppTable>
