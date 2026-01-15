@@ -6,26 +6,139 @@ use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV6::takeOrders4Call;
 use serde::{Deserialize, Serialize};
 use std::ops::{Div, Mul};
-use wasm_bindgen_utils::impl_wasm_traits;
 use wasm_bindgen_utils::prelude::*;
 
-#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
 pub struct TakeOrdersCalldataResult {
-    #[tsify(type = "Address")]
-    pub orderbook: Address,
-    #[tsify(type = "Hex")]
-    pub calldata: Bytes,
-    #[tsify(type = "Hex")]
-    pub effective_price: Float,
-    #[tsify(type = "Hex[]")]
-    pub prices: Vec<Float>,
-    #[tsify(type = "Hex")]
-    pub expected_sell: Float,
-    #[tsify(type = "Hex")]
-    pub max_sell_cap: Float,
+    orderbook: Address,
+    calldata: Bytes,
+    effective_price: Float,
+    prices: Vec<Float>,
+    expected_sell: Float,
+    max_sell_cap: Float,
 }
-impl_wasm_traits!(TakeOrdersCalldataResult);
+
+impl TakeOrdersCalldataResult {
+    pub(crate) fn new(
+        orderbook: Address,
+        calldata: Bytes,
+        effective_price: Float,
+        prices: Vec<Float>,
+        expected_sell: Float,
+        max_sell_cap: Float,
+    ) -> Self {
+        Self {
+            orderbook,
+            calldata,
+            effective_price,
+            prices,
+            expected_sell,
+            max_sell_cap,
+        }
+    }
+}
+
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl TakeOrdersCalldataResult {
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
+    pub fn orderbook(&self) -> String {
+        self.orderbook.to_string()
+    }
+    #[wasm_bindgen(getter, unchecked_return_type = "Hex")]
+    pub fn calldata(&self) -> String {
+        self.calldata.to_string()
+    }
+    #[wasm_bindgen(getter = effectivePrice)]
+    pub fn effective_price(&self) -> Float {
+        self.effective_price
+    }
+    #[wasm_bindgen(getter)]
+    pub fn prices(&self) -> Vec<Float> {
+        self.prices.clone()
+    }
+    #[wasm_bindgen(getter = expectedSell)]
+    pub fn expected_sell(&self) -> Float {
+        self.expected_sell
+    }
+    #[wasm_bindgen(getter = maxSellCap)]
+    pub fn max_sell_cap(&self) -> Float {
+        self.max_sell_cap
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl TakeOrdersCalldataResult {
+    pub fn orderbook(&self) -> Address {
+        self.orderbook
+    }
+    pub fn calldata(&self) -> &Bytes {
+        &self.calldata
+    }
+    pub fn effective_price(&self) -> Float {
+        self.effective_price
+    }
+    pub fn prices(&self) -> &Vec<Float> {
+        &self.prices
+    }
+    pub fn expected_sell(&self) -> Float {
+        self.expected_sell
+    }
+    pub fn max_sell_cap(&self) -> Float {
+        self.max_sell_cap
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
+pub struct TakeOrderEstimate {
+    expected_spend: Float,
+    expected_receive: Float,
+    is_partial: bool,
+}
+
+impl TakeOrderEstimate {
+    pub(crate) fn new(expected_spend: Float, expected_receive: Float, is_partial: bool) -> Self {
+        Self {
+            expected_spend,
+            expected_receive,
+            is_partial,
+        }
+    }
+}
+
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl TakeOrderEstimate {
+    #[wasm_bindgen(getter = expectedSpend)]
+    pub fn expected_spend(&self) -> Float {
+        self.expected_spend
+    }
+    #[wasm_bindgen(getter = expectedReceive)]
+    pub fn expected_receive(&self) -> Float {
+        self.expected_receive
+    }
+    #[wasm_bindgen(getter = isPartial)]
+    pub fn is_partial(&self) -> bool {
+        self.is_partial
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl TakeOrderEstimate {
+    pub fn expected_spend(&self) -> Float {
+        self.expected_spend
+    }
+    pub fn expected_receive(&self) -> Float {
+        self.expected_receive
+    }
+    pub fn is_partial(&self) -> bool {
+        self.is_partial
+    }
+}
 
 pub(crate) fn build_calldata_result(
     orderbook: Address,
@@ -63,14 +176,14 @@ pub(crate) fn build_calldata_result(
         mode.target_amount()
     };
 
-    Ok(TakeOrdersCalldataResult {
+    Ok(TakeOrdersCalldataResult::new(
         orderbook,
         calldata,
         effective_price,
         prices,
         expected_sell,
         max_sell_cap,
-    })
+    ))
 }
 
 #[cfg(test)]
@@ -127,8 +240,8 @@ mod tests {
             takeOrders4Call::abi_decode(&calldata_result.calldata).expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(
-            !decoded.config.IOIsInput,
-            "IOIsInput should be false for buy mode (taker output constraints)"
+            decoded.config.IOIsInput,
+            "IOIsInput should be true for buy mode (taker input constraints)"
         );
     }
 
@@ -160,8 +273,8 @@ mod tests {
             takeOrders4Call::abi_decode(&calldata_result.calldata).expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(
-            decoded.config.IOIsInput,
-            "IOIsInput should be true for spend mode (taker input constraints)"
+            !decoded.config.IOIsInput,
+            "IOIsInput should be false for spend mode (taker output constraints)"
         );
     }
 
@@ -185,7 +298,7 @@ mod tests {
 
         let zero = Float::zero().unwrap();
         assert!(
-            result.effective_price.gt(zero).unwrap(),
+            result.effective_price().gt(zero).unwrap(),
             "Effective price should be > 0"
         );
     }
@@ -210,12 +323,12 @@ mod tests {
         let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
 
         assert_eq!(
-            result.prices.len(),
+            result.prices().len(),
             leg_count,
             "Number of prices should match number of legs"
         );
         assert!(
-            result.prices[0].eq(ratio).unwrap(),
+            result.prices()[0].eq(ratio).unwrap(),
             "Price should match the candidate ratio"
         );
     }
@@ -242,11 +355,11 @@ mod tests {
         let expected_max_sell_cap = Float::parse("30".to_string()).unwrap();
 
         assert!(
-            result.expected_sell.eq(expected_sell).unwrap(),
+            result.expected_sell().eq(expected_sell).unwrap(),
             "expected_sell should be output * ratio = 10 * 2 = 20"
         );
         assert!(
-            result.max_sell_cap.eq(expected_max_sell_cap).unwrap(),
+            result.max_sell_cap().eq(expected_max_sell_cap).unwrap(),
             "max_sell_cap should be buy_target * price_cap = 10 * 3 = 30"
         );
     }
@@ -273,11 +386,11 @@ mod tests {
         let expected_max_sell_cap = Float::parse("20".to_string()).unwrap();
 
         assert!(
-            result.expected_sell.eq(expected_sell).unwrap(),
+            result.expected_sell().eq(expected_sell).unwrap(),
             "expected_sell should equal spend_budget = 20"
         );
         assert!(
-            result.max_sell_cap.eq(expected_max_sell_cap).unwrap(),
+            result.max_sell_cap().eq(expected_max_sell_cap).unwrap(),
             "max_sell_cap in spend mode should equal spend_budget = 20"
         );
     }
