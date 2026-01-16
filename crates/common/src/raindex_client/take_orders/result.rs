@@ -241,7 +241,7 @@ mod tests {
         assert!(!decoded.config.orders.is_empty());
         assert!(
             decoded.config.IOIsInput,
-            "IOIsInput should be true for buy mode (taker input constraints)"
+            "IOIsInput should be true for buy mode (taker output constraints)"
         );
     }
 
@@ -274,7 +274,7 @@ mod tests {
         assert!(!decoded.config.orders.is_empty());
         assert!(
             !decoded.config.IOIsInput,
-            "IOIsInput should be false for spend mode (taker output constraints)"
+            "IOIsInput should be false for spend mode (taker input constraints)"
         );
     }
 
