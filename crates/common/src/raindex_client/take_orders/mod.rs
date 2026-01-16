@@ -69,7 +69,7 @@ impl RaindexClient {
     /// - `effectivePrice`: expected blended sell per 1 buy from the simulation.
     /// - `prices`: per-leg ratios, best→worst.
     /// - `expectedSell`: simulated sell at current quotes.
-    /// - `maxSellCap`: `amount * priceCap` (worst-case on-chain spend cap).
+    /// - `maxSellCap`: `amount * priceCap` for buy modes, `amount` for spend modes (worst-case on-chain spend cap).
     ///
     /// ## Example (JS)
     /// ```javascript
