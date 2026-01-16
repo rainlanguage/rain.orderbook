@@ -209,7 +209,9 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
     let order_hash_val = args.order_hash.as_ref().map(|hash| SqlValue::from(*hash));
     stmt.bind_param_clause(ORDER_HASH_CLAUSE, ORDER_HASH_CLAUSE_BODY, order_hash_val)?;
 
-    // Directional token filters with OR logic when both present
+    // Directional token filters
+    // - When inputs == outputs (identical lists): OR logic for "any-IO" filtering
+    // - When inputs != outputs (different lists): AND logic for directional filtering
     let mut input_tokens = args.tokens.inputs.clone();
     input_tokens.sort();
     input_tokens.dedup();
@@ -221,8 +223,10 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
     let has_inputs = !input_tokens.is_empty();
     let has_outputs = !output_tokens.is_empty();
 
-    if has_inputs && has_outputs {
+    if has_inputs && has_outputs && input_tokens == output_tokens {
         // Combined OR clause: matches orders where token is in inputs OR outputs
+        // Used when lists are identical for "any-IO" behavior (e.g., UI token filter)
+
         // Build parameter placeholders for input tokens
         let input_placeholders: Vec<String> = input_tokens
             .iter()
@@ -258,7 +262,9 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
         stmt.sql = stmt.sql.replace(INPUT_TOKENS_CLAUSE, &combined_clause);
         stmt.sql = stmt.sql.replace(OUTPUT_TOKENS_CLAUSE, "");
     } else {
-        // Single-direction filtering (original behavior)
+        // Separate EXISTS clauses with AND logic:
+        // - When only inputs or only outputs specified: single-direction filtering
+        // - When both specified but different: directional filtering (input AND output)
         stmt.bind_list_clause(
             INPUT_TOKENS_CLAUSE,
             INPUT_TOKENS_CLAUSE_BODY,
@@ -369,15 +375,15 @@ mod tests {
     }
 
     #[test]
-    fn combined_or_clause_when_inputs_and_outputs_present() {
-        let input_addr = address!("0x00000000000000000000000000000000000000aa");
-        let output_addr = address!("0x00000000000000000000000000000000000000bb");
+    fn combined_or_clause_when_inputs_and_outputs_identical() {
+        // When inputs == outputs, use OR logic for "any-IO" filtering
+        let token_addr = address!("0x00000000000000000000000000000000000000aa");
 
         let args = FetchOrdersArgs {
             chain_ids: vec![1],
             tokens: FetchOrdersTokensFilter {
-                inputs: vec![input_addr],
-                outputs: vec![output_addr],
+                inputs: vec![token_addr],
+                outputs: vec![token_addr],
             },
             ..FetchOrdersArgs::default()
         };
@@ -393,17 +399,37 @@ mod tests {
         assert!(stmt.sql.contains(" OR "));
         // Should only have one EXISTS clause, not two
         assert_eq!(stmt.sql.matches("AND EXISTS (").count(), 1);
+    }
 
-        // Verify placeholder index correctness: input tokens must come before output tokens
-        // in params to match the placeholder numbers in the SQL
+    #[test]
+    fn separate_and_clauses_when_inputs_and_outputs_differ() {
+        // When inputs != outputs, use AND logic for directional filtering
+        let input_addr = address!("0x00000000000000000000000000000000000000aa");
+        let output_addr = address!("0x00000000000000000000000000000000000000bb");
+
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tokens: FetchOrdersTokensFilter {
+                inputs: vec![input_addr],
+                outputs: vec![output_addr],
+            },
+            ..FetchOrdersArgs::default()
+        };
+
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        // Should have two separate EXISTS clauses (AND logic)
+        assert!(stmt.sql.contains("AND lower(io2.io_type) = 'input'"));
+        assert!(stmt.sql.contains("AND lower(io2.io_type) = 'output'"));
+        // Should NOT have OR in the token filtering (io_type check)
+        assert!(!stmt.sql.contains("(lower(io2.io_type) = 'input'"));
+        // Should have two EXISTS clauses
+        assert_eq!(stmt.sql.matches("AND EXISTS (").count(), 2);
+
+        // Verify both tokens are in params
         let input_param = SqlValue::from(input_addr);
         let output_param = SqlValue::from(output_addr);
-        let input_pos = stmt.params.iter().position(|p| p == &input_param);
-        let output_pos = stmt.params.iter().position(|p| p == &output_param);
-        assert!(
-            input_pos < output_pos,
-            "input token param must come before output token param"
-        );
+        assert!(stmt.params.contains(&input_param));
+        assert!(stmt.params.contains(&output_param));
     }
 
     #[test]
