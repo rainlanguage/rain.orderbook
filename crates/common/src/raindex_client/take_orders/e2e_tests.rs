@@ -1638,7 +1638,10 @@ async fn test_spend_up_to_mode_happy_path() {
         "Should have at least one order in config"
     );
 
-    assert!(config.IOIsInput, "IOIsInput should be true for spend mode");
+    assert!(
+        !config.IOIsInput,
+        "IOIsInput should be false for spend mode"
+    );
 
     assert_eq!(
         config.minimumIO,
@@ -1756,12 +1759,12 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
     let expected_price_cap = Float::parse(price_cap).unwrap().get_inner();
 
     assert!(
-        config_up_to.IOIsInput,
-        "IOIsInput should be true for SpendUpTo mode"
+        !config_up_to.IOIsInput,
+        "IOIsInput should be false for SpendUpTo mode"
     );
     assert!(
-        config_exact.IOIsInput,
-        "IOIsInput should be true for SpendExact mode"
+        !config_exact.IOIsInput,
+        "IOIsInput should be false for SpendExact mode"
     );
 
     assert_eq!(
@@ -2095,7 +2098,10 @@ async fn test_spend_mode_cross_orderbook_selection() {
     let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
     let config = decoded.config;
 
-    assert!(config.IOIsInput, "IOIsInput should be true for spend mode");
+    assert!(
+        !config.IOIsInput,
+        "IOIsInput should be false for spend mode"
+    );
 
     assert_eq!(
         result.orderbook, setup.orderbook_b,

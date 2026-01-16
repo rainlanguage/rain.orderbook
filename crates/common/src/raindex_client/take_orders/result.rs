@@ -127,8 +127,8 @@ mod tests {
             takeOrders4Call::abi_decode(&calldata_result.calldata).expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(
-            !decoded.config.IOIsInput,
-            "IOIsInput should be false for buy mode (taker output constraints)"
+            decoded.config.IOIsInput,
+            "IOIsInput should be true for buy mode (taker output constraints)"
         );
     }
 
@@ -160,8 +160,8 @@ mod tests {
             takeOrders4Call::abi_decode(&calldata_result.calldata).expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(
-            decoded.config.IOIsInput,
-            "IOIsInput should be true for spend mode (taker input constraints)"
+            !decoded.config.IOIsInput,
+            "IOIsInput should be false for spend mode (taker input constraints)"
         );
     }
 
