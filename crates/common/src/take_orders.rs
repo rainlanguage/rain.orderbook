@@ -60,7 +60,7 @@ pub async fn build_take_order_candidates_for_pair(
             let gas_string = gas_string.clone();
             async move { order.get_quotes(block_number, gas_string).await }
         }))
-        .buffer_unordered(DEFAULT_QUOTE_CONCURRENCY)
+        .buffered(DEFAULT_QUOTE_CONCURRENCY)
         .collect()
         .await;
 
