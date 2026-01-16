@@ -140,6 +140,9 @@ pub async fn take_orders(
         price_cap: request.price_cap.clone(),
     };
 
+    // RaindexClient contains Rc<RefCell<...>> which is not Send, but Rocket requires
+    // Send futures. We use spawn_blocking with a dedicated runtime to run everything
+    // on a single thread where Rc<RefCell> is safe.
     let response = tokio::task::spawn_blocking(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()

@@ -36,7 +36,6 @@ fn configure_cors() -> CorsOptions {
             .map(From::from)
             .collect(),
         allowed_headers: AllowedHeaders::all(),
-        allow_credentials: true,
         ..Default::default()
     }
 }

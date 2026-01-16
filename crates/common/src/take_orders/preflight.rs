@@ -26,7 +26,35 @@ pub enum PreflightError {
 }
 
 #[derive(Debug, Clone)]
-pub struct AllowanceCheckResult {
+pub struct AllowanceOnlyResult {
+    pub current_allowance: U256,
+    pub required_amount: U256,
+    pub needs_approval: bool,
+    pub approval_amount: Option<U256>,
+}
+
+impl AllowanceOnlyResult {
+    pub fn sufficient(allowance: U256, required: U256) -> Self {
+        Self {
+            current_allowance: allowance,
+            required_amount: required,
+            needs_approval: false,
+            approval_amount: None,
+        }
+    }
+
+    pub fn insufficient(allowance: U256, required: U256) -> Self {
+        Self {
+            current_allowance: allowance,
+            required_amount: required,
+            needs_approval: true,
+            approval_amount: Some(required),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BalanceAndAllowanceResult {
     pub current_balance: U256,
     pub current_allowance: U256,
     pub required_amount: U256,
@@ -34,7 +62,7 @@ pub struct AllowanceCheckResult {
     pub approval_amount: Option<U256>,
 }
 
-impl AllowanceCheckResult {
+impl BalanceAndAllowanceResult {
     pub fn sufficient(balance: U256, allowance: U256, required: U256) -> Self {
         Self {
             current_balance: balance,
@@ -76,20 +104,12 @@ pub async fn check_taker_allowance(
     taker: Address,
     orderbook: Address,
     required: U256,
-) -> Result<AllowanceCheckResult, PreflightError> {
+) -> Result<AllowanceOnlyResult, PreflightError> {
     let allowance = erc20.allowance(taker, orderbook).await?;
     if allowance >= required {
-        Ok(AllowanceCheckResult::sufficient(
-            U256::ZERO,
-            allowance,
-            required,
-        ))
+        Ok(AllowanceOnlyResult::sufficient(allowance, required))
     } else {
-        Ok(AllowanceCheckResult::insufficient_allowance(
-            U256::ZERO,
-            allowance,
-            required,
-        ))
+        Ok(AllowanceOnlyResult::insufficient(allowance, required))
     }
 }
 
@@ -98,7 +118,7 @@ pub async fn check_taker_balance_and_allowance(
     taker: Address,
     orderbook: Address,
     required: U256,
-) -> Result<AllowanceCheckResult, PreflightError> {
+) -> Result<BalanceAndAllowanceResult, PreflightError> {
     let balance = erc20.get_account_balance(taker).await?;
     if balance < required {
         return Err(PreflightError::BalanceCheckFailed(format!(
@@ -109,11 +129,11 @@ pub async fn check_taker_balance_and_allowance(
 
     let allowance = erc20.allowance(taker, orderbook).await?;
     if allowance >= required {
-        Ok(AllowanceCheckResult::sufficient(
+        Ok(BalanceAndAllowanceResult::sufficient(
             balance, allowance, required,
         ))
     } else {
-        Ok(AllowanceCheckResult::insufficient_allowance(
+        Ok(BalanceAndAllowanceResult::insufficient_allowance(
             balance, allowance, required,
         ))
     }
@@ -177,49 +197,27 @@ pub async fn find_failing_order_index(
         return None;
     }
 
-    let mut low = 0usize;
-    let mut high = config.orders.len();
-
-    while low < high {
-        let mid = low + (high - low) / 2;
-
-        let prefix_config = TakeOrdersConfigV5 {
+    for idx in 0..config.orders.len() {
+        let single_order_config = TakeOrdersConfigV5 {
             minimumIO: config.minimumIO,
             maximumIO: config.maximumIO,
             maximumIORatio: config.maximumIORatio,
             IOIsInput: config.IOIsInput,
-            orders: config.orders[..=mid].to_vec(),
+            orders: vec![config.orders[idx].clone()],
             data: config.data.clone(),
         };
 
-        let result =
-            simulate_take_orders(provider, orderbook, taker, &prefix_config, block_number).await;
+        let result = simulate_take_orders(
+            provider,
+            orderbook,
+            taker,
+            &single_order_config,
+            block_number,
+        )
+        .await;
 
         if result.is_err() {
-            high = mid + 1;
-            if high == mid + 1 && low == mid {
-                return Some(mid);
-            }
-        } else {
-            low = mid + 1;
-        }
-    }
-
-    if low > 0 && low <= config.orders.len() {
-        let prefix_config = TakeOrdersConfigV5 {
-            minimumIO: config.minimumIO,
-            maximumIO: config.maximumIO,
-            maximumIORatio: config.maximumIORatio,
-            IOIsInput: config.IOIsInput,
-            orders: config.orders[..low].to_vec(),
-            data: config.data.clone(),
-        };
-
-        let result =
-            simulate_take_orders(provider, orderbook, taker, &prefix_config, block_number).await;
-
-        if result.is_err() && low > 0 {
-            return Some(low - 1);
+            return Some(idx);
         }
     }
 
@@ -243,8 +241,22 @@ mod tests {
     }
 
     #[test]
-    fn test_allowance_check_result_needs_approval_when_insufficient() {
-        let result = AllowanceCheckResult::insufficient_allowance(
+    fn test_allowance_only_result_needs_approval_when_insufficient() {
+        let result = AllowanceOnlyResult::insufficient(U256::from(50), U256::from(100));
+        assert!(result.needs_approval);
+        assert_eq!(result.approval_amount, Some(U256::from(100)));
+    }
+
+    #[test]
+    fn test_allowance_only_result_no_approval_when_sufficient() {
+        let result = AllowanceOnlyResult::sufficient(U256::from(100), U256::from(100));
+        assert!(!result.needs_approval);
+        assert_eq!(result.approval_amount, None);
+    }
+
+    #[test]
+    fn test_balance_and_allowance_result_needs_approval_when_insufficient() {
+        let result = BalanceAndAllowanceResult::insufficient_allowance(
             U256::from(1000),
             U256::from(50),
             U256::from(100),
@@ -254,9 +266,12 @@ mod tests {
     }
 
     #[test]
-    fn test_allowance_check_result_no_approval_when_sufficient() {
-        let result =
-            AllowanceCheckResult::sufficient(U256::from(1000), U256::from(100), U256::from(100));
+    fn test_balance_and_allowance_result_no_approval_when_sufficient() {
+        let result = BalanceAndAllowanceResult::sufficient(
+            U256::from(1000),
+            U256::from(100),
+            U256::from(100),
+        );
         assert!(!result.needs_approval);
         assert_eq!(result.approval_amount, None);
     }
