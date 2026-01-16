@@ -662,5 +662,76 @@ describe('TakeOrderModal', () => {
 
 			vi.useRealTimers();
 		});
+
+		it('clears error message when auto-refresh succeeds after initial load error', async () => {
+			vi.useFakeTimers();
+
+			vi.mocked(mockOrder.getQuotes)
+				.mockResolvedValueOnce({
+					value: undefined,
+					error: { msg: 'Initial error', readableMsg: 'Failed to fetch quotes' }
+				})
+				.mockResolvedValueOnce({
+					value: mockQuotes as never,
+					error: undefined
+				});
+
+			render(TakeOrderModal, defaultProps);
+
+			await vi.advanceTimersByTimeAsync(0);
+
+			await waitFor(() => {
+				expect(screen.getByText('Failed to fetch quotes')).toBeInTheDocument();
+			});
+
+			await vi.advanceTimersByTimeAsync(10000);
+
+			await waitFor(() => {
+				expect(screen.queryByText('Failed to fetch quotes')).not.toBeInTheDocument();
+				expect(screen.getByTestId('max-output')).toBeInTheDocument();
+			});
+
+			vi.useRealTimers();
+		});
+
+		it('clamps selectedPairIndex when quotes shrink during refresh', async () => {
+			const threeQuotes = [
+				mockQuotes[0],
+				{
+					pair: { pairName: 'DAI/ETH', inputIndex: 1, outputIndex: 0 },
+					blockNumber: 12345678,
+					success: true,
+					data: mockQuotes[0].data
+				},
+				{
+					pair: { pairName: 'WBTC/ETH', inputIndex: 2, outputIndex: 0 },
+					blockNumber: 12345678,
+					success: true,
+					data: mockQuotes[0].data
+				}
+			];
+
+			vi.mocked(mockOrder.getQuotes)
+				.mockResolvedValueOnce({ value: threeQuotes as never, error: undefined })
+				.mockResolvedValueOnce({ value: [mockQuotes[0]] as never, error: undefined });
+
+			render(TakeOrderModal, defaultProps);
+
+			await waitFor(() => {
+				expect(screen.getByTestId('pair-selector')).toBeInTheDocument();
+			});
+
+			const pairSelector = screen.getByTestId('pair-selector');
+			await fireEvent.change(pairSelector, { target: { value: '2' } });
+
+			const refreshButton = screen.getByTestId('refresh-button');
+			await fireEvent.click(refreshButton);
+
+			await waitFor(() => {
+				expect(screen.queryByTestId('pair-selector')).not.toBeInTheDocument();
+				expect(screen.getByTestId('max-output')).toBeInTheDocument();
+				expect(screen.getByTestId('max-output')).toHaveTextContent('100');
+			});
+		});
 	});
 });

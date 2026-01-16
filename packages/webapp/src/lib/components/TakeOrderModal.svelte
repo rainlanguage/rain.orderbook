@@ -56,6 +56,12 @@
 				return;
 			}
 			quotes = result.value.filter((q: RaindexOrderQuote) => q.success && q.data);
+			if (quotes.length > 0) {
+				errorMessage = '';
+			}
+			if (selectedPairIndex >= quotes.length) {
+				selectedPairIndex = 0;
+			}
 			if (quotes.length === 0 && !isRefresh) {
 				errorMessage = 'No valid quotes available for this order';
 			}
