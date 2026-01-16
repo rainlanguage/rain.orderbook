@@ -742,11 +742,19 @@ async fn test_single_order_take_preflight_insufficient_balance() {
 
     let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None).await;
 
-    assert!(
-        matches!(result, Err(RaindexError::PreflightError(_))),
-        "Should return PreflightError when taker has no balance, got: {:?}",
-        result
-    );
+    match &result {
+        Err(RaindexError::PreflightError(msg)) => {
+            assert!(
+                msg.contains("Order failed simulation"),
+                "Single order preflight failure should report 'Order failed simulation', got: {}",
+                msg
+            );
+        }
+        _ => panic!(
+            "Should return PreflightError when taker has no balance, got: {:?}",
+            result
+        ),
+    }
 }
 
 #[tokio::test]
@@ -834,11 +842,19 @@ async fn test_single_order_take_preflight_insufficient_allowance() {
 
     let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None).await;
 
-    assert!(
-        matches!(result, Err(RaindexError::PreflightError(_))),
-        "Should return PreflightError when taker has no allowance, got: {:?}",
-        result
-    );
+    match &result {
+        Err(RaindexError::PreflightError(msg)) => {
+            assert!(
+                msg.contains("Order failed simulation"),
+                "Single order preflight failure should report 'Order failed simulation', got: {}",
+                msg
+            );
+        }
+        _ => panic!(
+            "Should return PreflightError when taker has no allowance, got: {:?}",
+            result
+        ),
+    }
 }
 
 #[tokio::test]

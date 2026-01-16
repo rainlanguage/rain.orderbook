@@ -169,7 +169,12 @@ pub async fn execute_single_take(
     match sim_result {
         Ok(()) => build_calldata_result(orderbook, built, mode, price_cap),
         Err(sim_error) => {
-            if let Some(_failing_idx) =
+            if built.config.orders.len() == 1 {
+                Err(RaindexError::PreflightError(format!(
+                    "Order failed simulation: {}",
+                    sim_error
+                )))
+            } else if let Some(_failing_idx) =
                 find_failing_order_index(&provider, orderbook, taker, &built.config, block_number)
                     .await
             {
