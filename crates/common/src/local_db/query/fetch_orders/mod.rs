@@ -370,11 +370,14 @@ mod tests {
 
     #[test]
     fn combined_or_clause_when_inputs_and_outputs_present() {
+        let input_addr = address!("0x00000000000000000000000000000000000000aa");
+        let output_addr = address!("0x00000000000000000000000000000000000000bb");
+
         let args = FetchOrdersArgs {
             chain_ids: vec![1],
             tokens: FetchOrdersTokensFilter {
-                inputs: vec![address!("0x00000000000000000000000000000000000000aa")],
-                outputs: vec![address!("0x00000000000000000000000000000000000000bb")],
+                inputs: vec![input_addr],
+                outputs: vec![output_addr],
             },
             ..FetchOrdersArgs::default()
         };
@@ -390,6 +393,17 @@ mod tests {
         assert!(stmt.sql.contains(" OR "));
         // Should only have one EXISTS clause, not two
         assert_eq!(stmt.sql.matches("AND EXISTS (").count(), 1);
+
+        // Verify placeholder index correctness: input tokens must come before output tokens
+        // in params to match the placeholder numbers in the SQL
+        let input_param = SqlValue::from(input_addr);
+        let output_param = SqlValue::from(output_addr);
+        let input_pos = stmt.params.iter().position(|p| p == &input_param);
+        let output_pos = stmt.params.iter().position(|p| p == &output_param);
+        assert!(
+            input_pos < output_pos,
+            "input token param must come before output token param"
+        );
     }
 
     #[test]
