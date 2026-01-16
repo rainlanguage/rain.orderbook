@@ -97,7 +97,7 @@ pub fn build_take_orders_config_from_simulation(
         })
         .collect();
 
-    let io_is_input = !mode.is_buy_mode();
+    let io_is_input = mode.is_buy_mode();
 
     let maximum_io = target;
     let minimum_io = if mode.is_exact_mode() { target } else { zero };
@@ -198,7 +198,7 @@ mod tests {
         assert_eq!(result.config.minimumIO, Float::zero().unwrap().get_inner());
         assert_eq!(result.config.maximumIO, buy_target.get_inner());
         assert_eq!(result.config.maximumIORatio, price_cap.get_inner());
-        assert!(!result.config.IOIsInput);
+        assert!(result.config.IOIsInput);
         assert_eq!(result.config.orders.len(), 1);
     }
 
@@ -227,7 +227,7 @@ mod tests {
         assert_eq!(result.config.minimumIO, buy_target.get_inner());
         assert_eq!(result.config.maximumIO, buy_target.get_inner());
         assert_eq!(result.config.maximumIORatio, price_cap.get_inner());
-        assert!(!result.config.IOIsInput);
+        assert!(result.config.IOIsInput);
     }
 
     #[test]
@@ -401,8 +401,8 @@ mod tests {
             "maximumIO should equal buy_target"
         );
         assert!(
-            !built.config.IOIsInput,
-            "IOIsInput should be false for buy mode"
+            built.config.IOIsInput,
+            "IOIsInput should be true for buy mode"
         );
     }
 
@@ -432,7 +432,7 @@ mod tests {
         assert_eq!(result.config.minimumIO, Float::zero().unwrap().get_inner());
         assert_eq!(result.config.maximumIO, spend_budget.get_inner());
         assert_eq!(result.config.maximumIORatio, price_cap.get_inner());
-        assert!(result.config.IOIsInput);
+        assert!(!result.config.IOIsInput);
         assert_eq!(result.config.orders.len(), 1);
     }
 
@@ -462,7 +462,7 @@ mod tests {
         assert_eq!(result.config.minimumIO, spend_budget.get_inner());
         assert_eq!(result.config.maximumIO, spend_budget.get_inner());
         assert_eq!(result.config.maximumIORatio, price_cap.get_inner());
-        assert!(result.config.IOIsInput);
+        assert!(!result.config.IOIsInput);
     }
 
     #[test]
@@ -517,7 +517,7 @@ mod tests {
 
         assert_eq!(result.config.maximumIO, spend_target.get_inner());
         assert_eq!(result.config.minimumIO, Float::zero().unwrap().get_inner());
-        assert!(result.config.IOIsInput);
+        assert!(!result.config.IOIsInput);
     }
 
     #[test]
@@ -553,8 +553,8 @@ mod tests {
             "maximumIO should equal spend_budget"
         );
         assert!(
-            built.config.IOIsInput,
-            "IOIsInput should be true for spend mode"
+            !built.config.IOIsInput,
+            "IOIsInput should be false for spend mode"
         );
     }
 

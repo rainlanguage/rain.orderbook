@@ -12,7 +12,7 @@ pub use config::{
 pub use preflight::{
     build_approval_calldata, check_taker_allowance, check_taker_balance,
     check_taker_balance_and_allowance, find_failing_order_index, simulate_take_orders,
-    AllowanceCheckResult, PreflightError,
+    AllowanceOnlyResult, BalanceAndAllowanceResult, PreflightError,
 };
 pub use price::cmp_float;
 pub use simulation::{
