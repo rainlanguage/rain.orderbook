@@ -32,6 +32,11 @@ pub enum DepositError {
 
     #[error(transparent)]
     FloatError(#[from] FloatError),
+
+    #[error(
+        "Cannot deposit to vaultless (vault_id = 0). Vaultless orders use wallet balance directly."
+    )]
+    InvalidVaultIdZero,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -58,6 +63,13 @@ impl TryFrom<DepositArgs> for deposit4Call {
 }
 
 impl DepositArgs {
+    pub fn validate_vault_id(&self) -> Result<(), DepositError> {
+        if self.vault_id == B256::ZERO {
+            return Err(DepositError::InvalidVaultIdZero);
+        }
+        Ok(())
+    }
+
     /// Execute read IERC20 allowance call
     pub async fn read_allowance(
         &self,
@@ -84,6 +96,8 @@ impl DepositArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), DepositError> {
+        self.validate_vault_id()?;
+
         let (ledger_client, address) = transaction_args.clone().try_into_ledger_client().await?;
 
         // Check allowance already granted for this token and contract
@@ -116,6 +130,8 @@ impl DepositArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), DepositError> {
+        self.validate_vault_id()?;
+
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
         let deposit_call: deposit4Call = self.clone().try_into()?;
@@ -241,5 +257,29 @@ mod tests {
         assert_eq!(params.call, approve_call);
         assert_eq!(params.max_priority_fee_per_gas, Some(200));
         assert_eq!(params.max_fee_per_gas, Some(100));
+    }
+
+    #[test]
+    fn test_validate_vault_id_rejects_zero() {
+        let args = DepositArgs {
+            token: address!("1234567890abcdef1234567890abcdef12345678"),
+            vault_id: B256::ZERO,
+            amount: Float::from_fixed_decimal(U256::from(100), 18).unwrap(),
+            decimals: 18,
+        };
+        let result = args.validate_vault_id();
+        assert!(matches!(result, Err(DepositError::InvalidVaultIdZero)));
+    }
+
+    #[test]
+    fn test_validate_vault_id_accepts_non_zero() {
+        let args = DepositArgs {
+            token: address!("1234567890abcdef1234567890abcdef12345678"),
+            vault_id: B256::from(U256::from(42)),
+            amount: Float::from_fixed_decimal(U256::from(100), 18).unwrap(),
+            decimals: 18,
+        };
+        let result = args.validate_vault_id();
+        assert!(result.is_ok());
     }
 }
