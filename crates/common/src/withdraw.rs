@@ -36,14 +36,18 @@ pub struct WithdrawArgs {
     pub target_amount: Float,
 }
 
-impl From<WithdrawArgs> for withdraw4Call {
-    fn from(val: WithdrawArgs) -> Self {
-        withdraw4Call {
+impl TryFrom<WithdrawArgs> for withdraw4Call {
+    type Error = WithdrawError;
+
+    fn try_from(val: WithdrawArgs) -> Result<Self, Self::Error> {
+        val.validate_vault_id()?;
+
+        Ok(withdraw4Call {
             token: val.token,
             vaultId: val.vault_id,
             targetAmount: val.target_amount.get_inner(),
             tasks: vec![],
-        }
+        })
     }
 }
 
@@ -62,11 +66,9 @@ impl WithdrawArgs {
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), WithdrawError> {
-        self.validate_vault_id()?;
-
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let withdraw_call: withdraw4Call = self.clone().into();
+        let withdraw_call: withdraw4Call = self.clone().try_into()?;
         let params = transaction_args.try_into_write_contract_parameters(
             withdraw_call,
             transaction_args.orderbook_address,
@@ -80,9 +82,7 @@ impl WithdrawArgs {
     }
 
     pub fn get_withdraw_calldata(&self) -> Result<Vec<u8>, WithdrawError> {
-        self.validate_vault_id()?;
-
-        let withdraw_call: withdraw4Call = self.clone().into();
+        let withdraw_call: withdraw4Call = self.clone().try_into()?;
         Ok(withdraw_call.abi_encode())
     }
 }
@@ -94,7 +94,7 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn test_withdraw_args_into() {
+    fn test_withdraw_args_try_into() {
         let amount = Float::parse("100".to_string()).unwrap();
         let args = WithdrawArgs {
             token: "0x1234567890abcdef1234567890abcdef12345678"
@@ -104,13 +104,28 @@ mod tests {
             target_amount: amount,
         };
 
-        let withdraw_call: withdraw4Call = args.into();
+        let withdraw_call: withdraw4Call = args.try_into().unwrap();
         assert_eq!(
             withdraw_call.token,
             address!("1234567890abcdef1234567890abcdef12345678")
         );
         assert_eq!(withdraw_call.vaultId, B256::from(U256::from(42)));
         assert_eq!(withdraw_call.targetAmount, amount.get_inner());
+    }
+
+    #[test]
+    fn test_withdraw_args_try_into_rejects_vault_id_zero() {
+        let amount = Float::parse("100".to_string()).unwrap();
+        let args = WithdrawArgs {
+            token: "0x1234567890abcdef1234567890abcdef12345678"
+                .parse::<Address>()
+                .unwrap(),
+            vault_id: B256::ZERO,
+            target_amount: amount,
+        };
+
+        let result: Result<withdraw4Call, _> = args.try_into();
+        assert!(matches!(result, Err(WithdrawError::InvalidVaultIdZero)));
     }
 
     #[test]

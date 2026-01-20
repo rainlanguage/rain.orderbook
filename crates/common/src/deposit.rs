@@ -48,9 +48,11 @@ pub struct DepositArgs {
 }
 
 impl TryFrom<DepositArgs> for deposit4Call {
-    type Error = FloatError;
+    type Error = DepositError;
 
     fn try_from(val: DepositArgs) -> Result<Self, Self::Error> {
+        val.validate_vault_id()?;
+
         let call = deposit4Call {
             token: val.token,
             vaultId: val.vault_id,
@@ -281,5 +283,31 @@ mod tests {
         };
         let result = args.validate_vault_id();
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_deposit_args_try_into() {
+        let args = DepositArgs {
+            token: address!("1234567890abcdef1234567890abcdef12345678"),
+            vault_id: B256::from(U256::from(42)),
+            amount: Float::from_fixed_decimal(U256::from(100), 18).unwrap(),
+            decimals: 18,
+        };
+        let deposit_call: deposit4Call = args.clone().try_into().unwrap();
+        assert_eq!(deposit_call.token, args.token);
+        assert_eq!(deposit_call.vaultId, args.vault_id);
+        assert_eq!(deposit_call.depositAmount, args.amount.get_inner());
+    }
+
+    #[test]
+    fn test_deposit_args_try_into_rejects_vault_id_zero() {
+        let args = DepositArgs {
+            token: address!("1234567890abcdef1234567890abcdef12345678"),
+            vault_id: B256::ZERO,
+            amount: Float::from_fixed_decimal(U256::from(100), 18).unwrap(),
+            decimals: 18,
+        };
+        let result: Result<deposit4Call, _> = args.try_into();
+        assert!(matches!(result, Err(DepositError::InvalidVaultIdZero)));
     }
 }
