@@ -49,7 +49,7 @@ All of the code snippets below reuse the same fixed-limit dotrain/settings sourc
 
 ```ts
 const FIXED_LIMIT_SOURCE = `
-version: 4
+version: 5
 
 networks:
   base:
