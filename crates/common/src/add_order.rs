@@ -94,12 +94,21 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
+    fn generate_nonzero_random_vault_id() -> B256 {
+        loop {
+            let id = B256::random();
+            if id != B256::ZERO {
+                return id;
+            }
+        }
+    }
+
     /// create a new  instance from Deployment
     pub async fn new_from_deployment(
         dotrain: String,
         deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
-        let random_vault_id = B256::random();
+        let random_vault_id = Self::generate_nonzero_random_vault_id();
 
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
@@ -108,9 +117,15 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::InputTokenNotFound(i.to_string()))?;
 
+            let vault_id = if input.vaultless == Some(true) {
+                B256::ZERO
+            } else {
+                input.vault_id.map(B256::from).unwrap_or(random_vault_id)
+            };
+
             inputs.push(IOV2 {
                 token: input_token.address,
-                vaultId: input.vault_id.map(B256::from).unwrap_or(random_vault_id),
+                vaultId: vault_id,
             });
         }
 
@@ -121,9 +136,15 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::OutputTokenNotFound(i.to_string()))?;
 
+            let vault_id = if output.vaultless == Some(true) {
+                B256::ZERO
+            } else {
+                output.vault_id.map(B256::from).unwrap_or(random_vault_id)
+            };
+
             outputs.push(IOV2 {
                 token: output_token.address,
-                vaultId: output.vault_id.map(B256::from).unwrap_or(random_vault_id),
+                vaultId: vault_id,
             });
         }
 
@@ -499,15 +520,18 @@ price: 2e18;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: None,
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: None,
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -612,15 +636,18 @@ _ _: 0 0;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -768,15 +795,18 @@ _ _: 0 0;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: None,
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: None,
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -1100,15 +1130,18 @@ _ _: 16 52;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
