@@ -72,6 +72,21 @@ impl OrderCfg {
         token: String,
         vault_id: Option<String>,
     ) -> Result<Self, YamlError> {
+        let io_vec = match vault_type {
+            VaultType::Input => &self.inputs,
+            VaultType::Output => &self.outputs,
+        };
+        let io_item = io_vec
+            .iter()
+            .find(|io| io.token.as_ref().is_some_and(|t| t.key == token));
+        if let Some(io) = io_item {
+            if io.vaultless == Some(true) {
+                return Err(YamlError::ParseOrderConfigSourceError(
+                    ParseOrderConfigSourceError::VaultIdNotAllowedInVaultlessMode,
+                ));
+            }
+        }
+
         let new_vault_id = if let Some(ref v) = vault_id {
             if v.is_empty() {
                 None
@@ -120,7 +135,6 @@ impl OrderCfg {
                     if let Some(StrictYaml::Array(ref mut vec)) =
                         order.get_mut(&StrictYaml::String(vec_key.to_string()))
                     {
-                        // Find the item with matching token key
                         let item_index = vec.iter().position(|item| {
                             if let StrictYaml::Hash(ref item_map) = item {
                                 if let Some(StrictYaml::String(item_token)) =
@@ -230,8 +244,13 @@ impl OrderCfg {
                     {
                         for (index, input) in inputs.iter_mut().enumerate() {
                             if let StrictYaml::Hash(ref mut input_hash) = input {
-                                if !input_hash
-                                    .contains_key(&StrictYaml::String("vault-id".to_string()))
+                                let is_vaultless = optional_bool(
+                                    &StrictYaml::Hash(input_hash.clone()),
+                                    "vaultless",
+                                ) == Some(true);
+                                if !is_vaultless
+                                    && !input_hash
+                                        .contains_key(&StrictYaml::String("vault-id".to_string()))
                                 {
                                     input_hash.insert(
                                         StrictYaml::String("vault-id".to_string()),
@@ -259,8 +278,13 @@ impl OrderCfg {
                     {
                         for (index, output) in outputs.iter_mut().enumerate() {
                             if let StrictYaml::Hash(ref mut output_hash) = output {
-                                if !output_hash
-                                    .contains_key(&StrictYaml::String("vault-id".to_string()))
+                                let is_vaultless = optional_bool(
+                                    &StrictYaml::Hash(output_hash.clone()),
+                                    "vaultless",
+                                ) == Some(true);
+                                if !is_vaultless
+                                    && !output_hash
+                                        .contains_key(&StrictYaml::String("vault-id".to_string()))
                                 {
                                     output_hash.insert(
                                         StrictYaml::String("vault-id".to_string()),
@@ -285,10 +309,14 @@ impl OrderCfg {
                     }
 
                     self.inputs.iter_mut().for_each(|input| {
-                        input.vault_id = Some(input.vault_id.unwrap_or(vault_id));
+                        if input.vaultless != Some(true) {
+                            input.vault_id = Some(input.vault_id.unwrap_or(vault_id));
+                        }
                     });
                     self.outputs.iter_mut().for_each(|output| {
-                        output.vault_id = Some(output.vault_id.unwrap_or(vault_id));
+                        if output.vaultless != Some(true) {
+                            output.vault_id = Some(output.vault_id.unwrap_or(vault_id));
+                        }
                     });
                 } else {
                     return Err(YamlError::Field {
@@ -1351,5 +1379,70 @@ orders:
         let order = orders.get("order1").unwrap();
         assert_eq!(order.inputs[0].vaultless, Some(false));
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(123)));
+    }
+
+    #[test]
+    fn test_update_vault_id_rejects_vaultless_entry() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vaultless: true
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+        let error = order
+            .update_vault_id(VaultType::Input, "eth".to_string(), Some("123".to_string()))
+            .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::ParseOrderConfigSourceError(
+                ParseOrderConfigSourceError::VaultIdNotAllowedInVaultlessMode
+            )
+        );
+    }
+
+    #[test]
+    fn test_populate_vault_ids_skips_vaultless_entries() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+    usdc:
+        network: mainnet
+        address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vaultless: true
+            - token: usdc
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+        order.populate_vault_ids().unwrap();
+        assert_eq!(order.inputs[0].vault_id, None);
+        assert!(order.inputs[1].vault_id.is_some());
+        assert!(order.outputs[0].vault_id.is_some());
     }
 }
