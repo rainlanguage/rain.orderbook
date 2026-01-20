@@ -1,6 +1,6 @@
 import { vi, describe } from 'vitest';
 import Page from './+page.svelte';
-import { render, waitFor } from '@testing-library/svelte';
+import { render, waitFor, fireEvent } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import {
 	useAccount,
@@ -189,12 +189,10 @@ describe('Full Deployment Tests', () => {
 			const vaultIdInputs = screen.getAllByTestId('vault-id-input') as HTMLInputElement[];
 
 			// Set vault id for token2
-			await userEvent.clear(vaultIdInputs[0]);
-			await userEvent.type(vaultIdInputs[0], '0x123');
+			await fireEvent.input(vaultIdInputs[0], { target: { value: '0x123' } });
 
 			// Set vault id for token1
-			await userEvent.clear(vaultIdInputs[1]);
-			await userEvent.type(vaultIdInputs[1], '0x234');
+			await fireEvent.input(vaultIdInputs[1], { target: { value: '0x234' } });
 
 			// Click the "Deploy Order" button
 			const deployButton = screen.getByText('Deploy Order');
