@@ -567,7 +567,6 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
                 target_amount,
             },
         )
-        .await
         .unwrap();
 
         let target_amount_bytes = target_amount.get_inner();
