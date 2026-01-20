@@ -44,7 +44,7 @@ impl RaindexVaultsList {
         RaindexVaultsList::new(combined_vaults)
     }
 
-    pub async fn get_withdraw_calldata(&self) -> Result<Bytes, VaultsListError> {
+    pub fn get_withdraw_calldata(&self) -> Result<Bytes, VaultsListError> {
         let mut calldatas: Vec<Bytes> = Vec::new();
         let vaults_to_withdraw = self.get_withdrawable_vaults();
         // If no vaults to withdraw, return error
@@ -60,7 +60,7 @@ impl RaindexVaultsList {
         }
         // Generate multicall calldata for all vaults
         for vault in vaults_to_withdraw {
-            match vault.get_withdraw_calldata(&vault.balance()).await {
+            match vault.get_withdraw_calldata(&vault.balance()) {
                 Ok(calldata) => calldatas.push(calldata),
                 Err(e) => return Err(VaultsListError::WithdrawMulticallError(e.to_readable_msg())),
             }
@@ -148,8 +148,8 @@ impl RaindexVaultsList {
         return_description = "Encoded multicall calldata for withdrawing from all vaults",
         unchecked_return_type = "Hex"
     )]
-    pub async fn get_withdraw_calldata_wasm(&self) -> Result<Bytes, VaultsListError> {
-        let calldata = self.get_withdraw_calldata().await?;
+    pub fn get_withdraw_calldata_wasm(&self) -> Result<Bytes, VaultsListError> {
+        let calldata = self.get_withdraw_calldata()?;
         Ok(calldata)
     }
 
@@ -350,7 +350,7 @@ mod tests {
         async fn test_get_withdraw_calldata() {
             let vaults_list = RaindexVaultsList::new(get_vaults().await);
 
-            let result = vaults_list.get_withdraw_calldata().await;
+            let result = vaults_list.get_withdraw_calldata();
             let calldata = result.unwrap();
             assert!(!calldata.is_empty());
             assert!(calldata.len() > 2); // should contain vault2's ID
@@ -444,9 +444,9 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
-        async fn test_wasm_get_withdraw_calldata_empty() {
+        fn test_wasm_get_withdraw_calldata_empty() {
             let vaults_list = RaindexVaultsList::new(vec![]);
-            let result = vaults_list.get_withdraw_calldata_wasm().await;
+            let result = vaults_list.get_withdraw_calldata_wasm();
             assert!(result.is_err());
         }
 

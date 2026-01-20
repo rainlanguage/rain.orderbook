@@ -434,7 +434,7 @@ impl RaindexVault {
         return_description = "Encoded transaction calldata as hex string",
         unchecked_return_type = "Hex"
     )]
-    pub async fn get_withdraw_calldata(
+    pub fn get_withdraw_calldata(
         &self,
         #[wasm_export(param_description = "Amount to withdraw in Float value")] amount: &Float,
     ) -> Result<Bytes, RaindexError> {
@@ -445,8 +445,7 @@ impl RaindexVault {
                 vault_id: B256::from(self.vault_id),
                 target_amount: *amount,
             }
-            .get_withdraw_calldata()
-            .await?,
+            .get_withdraw_calldata()?,
         ))
     }
 
@@ -2762,7 +2761,7 @@ mod tests {
                 .await
                 .unwrap();
             let amount: Float = Float::parse("0.0000000000000005".to_string()).unwrap();
-            let result = vault.get_withdraw_calldata(&amount).await.unwrap();
+            let result = vault.get_withdraw_calldata(&amount).unwrap();
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
@@ -2779,7 +2778,6 @@ mod tests {
 
             let err = vault
                 .get_withdraw_calldata(&Float::parse("0".to_string()).unwrap())
-                .await
                 .unwrap_err();
             assert_eq!(err.to_string(), RaindexError::ZeroAmount.to_string());
         }

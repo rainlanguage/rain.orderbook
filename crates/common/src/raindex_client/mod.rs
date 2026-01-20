@@ -3,7 +3,7 @@ use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHand
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
-    utils::amount_formatter::AmountFormatterError,
+    utils::amount_formatter::AmountFormatterError, withdraw::WithdrawError,
 };
 use alloy::{
     hex::FromHexError,
@@ -282,6 +282,8 @@ pub enum RaindexError {
     WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
     #[error(transparent)]
     DepositArgsError(#[from] DepositError),
+    #[error(transparent)]
+    WithdrawArgsError(#[from] WithdrawError),
     #[error("Orderbook not found for address: {0} on chain ID: {1}")]
     OrderbookNotFound(String, u32),
     #[error("Order not found for address: {0} on chain ID: {1} with hash: {2}")]
@@ -405,6 +407,9 @@ impl RaindexError {
             }
             RaindexError::DepositArgsError(err) => {
                 format!("Failed to create deposit arguments: {}", err)
+            }
+            RaindexError::WithdrawArgsError(err) => {
+                format!("Failed to create withdraw arguments: {}", err)
             }
             RaindexError::OrderbookNotFound(address, chain_id) => {
                 format!(
