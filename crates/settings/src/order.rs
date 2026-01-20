@@ -63,7 +63,11 @@ impl_wasm_traits!(OrderCfg);
 
 impl OrderCfg {
     pub fn validate_vault_id(value: &str) -> Result<U256, ParseOrderConfigSourceError> {
-        U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)
+        let id = U256::from_str(value).map_err(ParseOrderConfigSourceError::VaultParseError)?;
+        if id == U256::ZERO {
+            return Err(ParseOrderConfigSourceError::InvalidVaultIdZero);
+        }
+        Ok(id)
     }
 
     pub fn update_vault_id(
@@ -225,7 +229,12 @@ impl OrderCfg {
     }
 
     pub fn populate_vault_ids(&mut self) -> Result<Self, YamlError> {
-        let vault_id = U256::random();
+        let vault_id = loop {
+            let id = U256::random();
+            if id != U256::ZERO {
+                break id;
+            }
+        };
 
         let mut document = self
             .document
@@ -732,22 +741,20 @@ impl YamlParsableHash for OrderCfg {
                                         ParseOrderConfigSourceError::VaultIdNotAllowedInVaultlessMode,
                                     ));
                                 }
-                                let parsed_id =
-                                    OrderCfg::validate_vault_id(&id).map_err(|e| {
-                                        YamlError::Field {
+                                Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
+                                    match e {
+                                        ParseOrderConfigSourceError::InvalidVaultIdZero => {
+                                            YamlError::ParseOrderConfigSourceError(e)
+                                        }
+                                        _ => YamlError::Field {
                                             kind: FieldErrorKind::InvalidValue {
                                                 field: "vault-id".to_string(),
                                                 reason: e.to_string(),
                                             },
                                             location: location.clone(),
-                                        }
-                                    })?;
-                                if parsed_id == U256::ZERO {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::InvalidVaultIdZero,
-                                    ));
-                                }
-                                Some(parsed_id)
+                                        },
+                                    }
+                                })?)
                             }
                             None => None,
                         };
@@ -833,22 +840,20 @@ impl YamlParsableHash for OrderCfg {
                                         ParseOrderConfigSourceError::VaultIdNotAllowedInVaultlessMode,
                                     ));
                                 }
-                                let parsed_id =
-                                    OrderCfg::validate_vault_id(&id).map_err(|e| {
-                                        YamlError::Field {
+                                Some(OrderCfg::validate_vault_id(&id).map_err(|e| {
+                                    match e {
+                                        ParseOrderConfigSourceError::InvalidVaultIdZero => {
+                                            YamlError::ParseOrderConfigSourceError(e)
+                                        }
+                                        _ => YamlError::Field {
                                             kind: FieldErrorKind::InvalidValue {
                                                 field: "vault-id".to_string(),
                                                 reason: e.to_string(),
                                             },
                                             location: location.clone(),
-                                        }
-                                    })?;
-                                if parsed_id == U256::ZERO {
-                                    return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::InvalidVaultIdZero,
-                                    ));
-                                }
-                                Some(parsed_id)
+                                        },
+                                    }
+                                })?)
                             }
                             None => None,
                         };
@@ -1411,6 +1416,43 @@ orders:
             YamlError::ParseOrderConfigSourceError(
                 ParseOrderConfigSourceError::VaultIdNotAllowedInVaultlessMode
             )
+        );
+    }
+
+    #[test]
+    fn test_update_vault_id_rejects_zero() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+        let error = order
+            .update_vault_id(VaultType::Input, "eth".to_string(), Some("0".to_string()))
+            .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "vault-id".to_string(),
+                    reason: "Invalid vault-id value. For vaultless mode use vaultless: true"
+                        .to_string(),
+                },
+                location: "token 'eth' in inputs of order 'order1'".to_string(),
+            }
         );
     }
 

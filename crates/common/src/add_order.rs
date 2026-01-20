@@ -106,21 +106,17 @@ pub struct AddOrderArgs {
 }
 
 impl AddOrderArgs {
-    fn generate_nonzero_random_vault_id() -> B256 {
-        loop {
-            let id = B256::random();
-            if id != B256::ZERO {
-                return id;
-            }
-        }
-    }
-
     /// create a new  instance from Deployment
     pub async fn new_from_deployment(
         dotrain: String,
         deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
-        let random_vault_id = Self::generate_nonzero_random_vault_id();
+        let random_vault_id = loop {
+            let id = B256::random();
+            if id != B256::ZERO {
+                break id;
+            }
+        };
 
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
