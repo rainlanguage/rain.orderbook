@@ -68,6 +68,10 @@ pub enum AddOrderArgsError {
     OutputTokenNotFound(String),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
+    #[error("Invalid vault id zero for input index: {0}")]
+    InvalidInputVaultIdZero(usize),
+    #[error("Invalid vault id zero for output index: {0}")]
+    InvalidOutputVaultIdZero(usize),
 }
 
 impl From<DotrainOrderError> for AddOrderArgsError {
@@ -119,6 +123,8 @@ impl AddOrderArgs {
 
             let vault_id = if input.vaultless == Some(true) {
                 B256::ZERO
+            } else if input.vault_id == Some(U256::ZERO) {
+                return Err(AddOrderArgsError::InvalidInputVaultIdZero(i));
             } else {
                 input.vault_id.map(B256::from).unwrap_or(random_vault_id)
             };
@@ -138,6 +144,8 @@ impl AddOrderArgs {
 
             let vault_id = if output.vaultless == Some(true) {
                 B256::ZERO
+            } else if output.vault_id == Some(U256::ZERO) {
+                return Err(AddOrderArgsError::InvalidOutputVaultIdZero(i));
             } else {
                 output.vault_id.map(B256::from).unwrap_or(random_vault_id)
             };
