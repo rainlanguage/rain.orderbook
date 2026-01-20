@@ -2,8 +2,8 @@ use super::{cache::Cache, ValidationConfig, *};
 use crate::{
     accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, local_db_sync::LocalDbSyncCfg,
     metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg,
-    sentry::Sentry, spec_version::SpecVersion, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg,
-    OrderbookCfg, TokenCfg,
+    spec_version::SpecVersion, subgraph::SubgraphCfg, DeployerCfg, NetworkCfg, OrderbookCfg,
+    TokenCfg,
 };
 use alloy::primitives::Address;
 use serde::{
@@ -367,23 +367,10 @@ impl OrderbookYaml {
     }
 
     pub fn get_sentry(&self) -> Result<Option<bool>, YamlError> {
-        let value_opt_str = Sentry::parse_from_yaml_optional(self.documents[0].clone())?;
-
-        let res = value_opt_str
-            .map(|v| v.to_ascii_lowercase())
-            .map(|v| match v.as_str() {
-                "true" | "1" => Ok(true),
-                "false" | "0" => Ok(false),
-                _ => Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "sentry".to_string(),
-                        expected: "a boolean".to_string(),
-                    },
-                    location: "root".to_string(),
-                }),
-            });
-
-        res.transpose()
+        let document_read = self.documents[0]
+            .read()
+            .map_err(|_| YamlError::ReadLockError)?;
+        Ok(optional_bool(&document_read, "sentry"))
     }
 
     pub fn get_spec_version(&self) -> Result<String, YamlError> {

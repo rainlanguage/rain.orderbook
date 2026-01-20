@@ -1,9 +1,9 @@
 use crate::{
     yaml::{
         context::{Context, GuiContextTrait},
-        default_document, get_hash_value, get_hash_value_as_option, optional_hash, optional_string,
-        optional_vec, require_string, require_vec, FieldErrorKind, YamlError, YamlParsableHash,
-        YamlParseableValue,
+        default_document, get_hash_value, get_hash_value_as_option, optional_bool, optional_hash,
+        optional_string, optional_vec, require_string, require_vec, FieldErrorKind, YamlError,
+        YamlParsableHash, YamlParseableValue,
     },
     DeploymentCfg, TokenCfg,
 };
@@ -840,7 +840,7 @@ impl YamlParseableValue for GuiCfg {
                         };
 
                         let default = optional_string(field_yaml, "default");
-                        let show_custom_field = optional_string(field_yaml, "show-custom-field").map(|v| v.eq("true"));
+                        let show_custom_field = optional_bool(field_yaml, "show-custom-field");
 
                         let validation = optional_hash(field_yaml, "validation").map(|validation_yaml| {
                             parse_field_validation(validation_yaml, &format!(
