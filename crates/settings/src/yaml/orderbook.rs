@@ -454,7 +454,7 @@ mod tests {
     use url::Url;
 
     const FULL_YAML: &str = r#"
-    version: 4
+    version: 5
     networks:
         mainnet:
             rpcs:
