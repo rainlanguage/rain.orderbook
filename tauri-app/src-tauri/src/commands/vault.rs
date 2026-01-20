@@ -139,13 +139,12 @@ pub async fn vault_withdraw(
 }
 
 #[tauri::command]
-pub async fn vault_withdraw_calldata<R: Runtime>(
+pub fn vault_withdraw_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     withdraw_args: WithdrawArgs,
 ) -> CommandResult<Bytes> {
     let calldata = withdraw_args
         .get_withdraw_calldata()
-        .await
         .inspect_err(|e| {
             toast_error(&app_handle, e.to_string());
         })?;
