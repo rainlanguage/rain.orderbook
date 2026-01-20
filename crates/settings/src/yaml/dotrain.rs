@@ -1129,4 +1129,138 @@ orders:
             "Invalid value for field 'token' in output index '0' in order 'order1': missing yaml data for token 'token-three'"
         );
     }
+
+    #[test]
+    fn test_parse_order_with_vaultless() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+        decimals: 18
+    usdc:
+        network: mainnet
+        address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+        decimals: 6
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+        bindings:
+            key1: value1
+deployments:
+    deployment1:
+        order: order1
+        scenario: scenario1
+orders:
+    order1:
+        deployer: mainnet
+        inputs:
+            - token: eth
+              vaultless: true
+        outputs:
+            - token: usdc
+              vault-id: "123"
+"#;
+        let dotrain_yaml =
+            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+        let deployment = dotrain_yaml.get_deployment("deployment1").unwrap();
+        assert_eq!(deployment.order.inputs[0].vaultless, Some(true));
+        assert_eq!(deployment.order.inputs[0].vault_id, None);
+        assert_eq!(deployment.order.outputs[0].vaultless, None);
+        assert!(deployment.order.outputs[0].vault_id.is_some());
+    }
+
+    #[test]
+    fn test_parse_order_vaultless_with_vault_id_error() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+        decimals: 18
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+deployments:
+    deployment1:
+        order: order1
+        scenario: scenario1
+orders:
+    order1:
+        deployer: mainnet
+        inputs:
+            - token: eth
+              vaultless: true
+              vault-id: "123"
+        outputs:
+            - token: eth
+"#;
+        let dotrain_yaml =
+            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+        let error = dotrain_yaml.get_deployment("deployment1").unwrap_err();
+        assert_eq!(
+            error.to_readable_msg(),
+            "Order configuration error in your YAML: Using vault-id is not allowed in vaultless mode"
+        );
+    }
+
+    #[test]
+    fn test_parse_order_vault_id_zero_error() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://mainnet.infura.io
+        chain-id: 1
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+        decimals: 18
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
+scenarios:
+    scenario1:
+        deployer: mainnet
+deployments:
+    deployment1:
+        order: order1
+        scenario: scenario1
+orders:
+    order1:
+        deployer: mainnet
+        inputs:
+            - token: eth
+              vault-id: "0"
+        outputs:
+            - token: eth
+"#;
+        let dotrain_yaml =
+            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+        let error = dotrain_yaml.get_deployment("deployment1").unwrap_err();
+        assert_eq!(
+            error.to_readable_msg(),
+            "Order configuration error in your YAML: Invalid vault-id value. For vaultless mode use vaultless: true"
+        );
+    }
 }
