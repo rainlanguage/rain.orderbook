@@ -1,7 +1,9 @@
 use clap::Args;
 use rain_orderbook_common::subgraph::SubgraphArgs;
 use rain_orderbook_subgraph_client::{
-    types::common::{SgBytes, SgOrdersListFilterArgs, SgVaultsListFilterArgs},
+    types::common::{
+        SgBytes, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs, SgVaultsListFilterArgs,
+    },
     SgPaginationArgs,
 };
 
@@ -93,11 +95,19 @@ pub struct CliFilterArgs {
 
 impl From<CliFilterArgs> for SgOrdersListFilterArgs {
     fn from(val: CliFilterArgs) -> Self {
+        let tokens = if val.tokens.is_empty() {
+            None
+        } else {
+            Some(SgOrdersTokensFilterArgs {
+                inputs: val.tokens.clone(),
+                outputs: val.tokens.clone(),
+            })
+        };
         Self {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             active: val.active,
             order_hash: val.order_hash.map(SgBytes),
-            tokens: val.tokens,
+            tokens,
         }
     }
 }
@@ -155,7 +165,10 @@ mod tests {
         );
         assert_eq!(filter_args.active, Some(true));
         assert_eq!(filter_args.order_hash, Some(SgBytes("0x789".to_string())));
-        assert_eq!(filter_args.tokens, tokens);
+        assert!(filter_args.tokens.is_some());
+        let tokens_filter = filter_args.tokens.unwrap();
+        assert_eq!(tokens_filter.inputs, tokens);
+        assert_eq!(tokens_filter.outputs, tokens_filter.inputs);
     }
 
     #[test]
