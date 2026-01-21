@@ -129,9 +129,7 @@ contract OrderBookV6ClearOrderContextTest is OrderBookV6ExternalRealTest {
             validOutputsAlice[0] = IOV2({token: address(iToken1), vaultId: aliceOutputVaultId});
             configAlice = OrderConfigV4({
                 evaluable: EvaluableV4({
-                    bytecode: iParserV2.parse2(rainStringAlice),
-                    interpreter: iInterpreter,
-                    store: iStore
+                    bytecode: iParserV2.parse2(rainStringAlice), interpreter: iInterpreter, store: iStore
                 }),
                 validInputs: validInputsAlice,
                 validOutputs: validOutputsAlice,
@@ -149,7 +147,9 @@ contract OrderBookV6ClearOrderContextTest is OrderBookV6ExternalRealTest {
             validOutputsBob[0] = IOV2({token: address(iToken0), vaultId: bobOutputVaultId});
 
             configBob = OrderConfigV4({
-                evaluable: EvaluableV4({bytecode: iParserV2.parse2(rainStringBob), interpreter: iInterpreter, store: iStore}),
+                evaluable: EvaluableV4({
+                    bytecode: iParserV2.parse2(rainStringBob), interpreter: iInterpreter, store: iStore
+                }),
                 validInputs: validInputsBob,
                 validOutputs: validOutputsBob,
                 nonce: 0,

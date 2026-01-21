@@ -45,6 +45,7 @@ import {
     ClearConfigV2,
     ClearStateChangeV2,
     SignedContextV1,
+
     //forge-lint: disable-next-line(unused-import)
     EvaluableV4,
     TaskV2,
@@ -68,7 +69,6 @@ import {OrderBookV6FlashLender} from "../../abstract/OrderBookV6FlashLender.sol"
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
-import {console2} from "forge-std/console2.sol";
 import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
 
 /// This will exist in a future version of Open Zeppelin if their main branch is
@@ -380,7 +380,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             }
 
             LibOrderBook.doPost(
-                LibBytes32Matrix.matrixFrom(LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))),
+                LibBytes32Matrix.matrixFrom(
+                    LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))
+                ),
                 post
             );
         }
@@ -404,7 +406,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             emit RemoveOrderV3(msg.sender, orderHash, order);
 
             LibOrderBook.doPost(
-                LibBytes32Matrix.matrixFrom(LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))),
+                LibBytes32Matrix.matrixFrom(
+                    LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))
+                ),
                 post
             );
         }
@@ -586,9 +590,8 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         pushTokens(msg.sender, orderOutputToken, totalTakerInput);
 
         if (config.data.length > 0) {
-            IOrderBookV6OrderTaker(msg.sender).onTakeOrders2(
-                orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data
-            );
+            IOrderBookV6OrderTaker(msg.sender)
+                .onTakeOrders2(orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data);
         }
 
         pullTokens(msg.sender, orderInputToken, totalTakerOutput);
@@ -613,14 +616,10 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                 revert SameOwner();
             }
             if (
-                (
-                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
-                        != bobOrder.validInputs[clearConfig.bobInputIOIndex].token
-                )
-                    || (
-                        bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
-                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
-                    )
+                (aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
+                            != bobOrder.validInputs[clearConfig.bobInputIOIndex].token)
+                    || (bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
+                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token)
             ) {
                 revert TokenMismatch();
             }
@@ -653,8 +652,6 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         OrderIOCalculationV4 memory bobOrderIOCalculation = calculateOrderIO(
             bobOrder, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, aliceOrder.owner, aliceSignedContext
         );
-        console2.log(LibFormatDecimalFloat.toDecimalString(aliceOrderIOCalculation.outputMax, false));
-        console2.log(LibFormatDecimalFloat.toDecimalString(aliceOrderIOCalculation.IORatio, false));
 
         ClearStateChangeV2 memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
@@ -663,10 +660,6 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         recordVaultIO(clearStateChange.bobInput, clearStateChange.bobOutput, bobOrderIOCalculation);
 
         {
-            console2.log("*");
-            console2.log(LibFormatDecimalFloat.toDecimalString(clearStateChange.aliceOutput, false));
-            console2.log(LibFormatDecimalFloat.toDecimalString(clearStateChange.bobInput, false));
-
             Float aliceBounty = clearStateChange.aliceOutput.sub(clearStateChange.bobInput);
             Float bobBounty = clearStateChange.bobOutput.sub(clearStateChange.aliceInput);
 
@@ -781,20 +774,18 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             // failing calls and resubmit a new transaction.
             // https://github.com/crytic/slither/issues/880
             //slither-disable-next-line calls-loop
-            (StackItem[] memory calculateOrderStack, bytes32[] memory calculateOrderKVs) = order
-                .evaluable
-                .interpreter
+            (StackItem[] memory calculateOrderStack, bytes32[] memory calculateOrderKVs) = order.evaluable.interpreter
                 .eval4(
-                EvalV4({
-                    store: order.evaluable.store,
-                    namespace: LibNamespace.qualifyNamespace(namespace, address(this)),
-                    bytecode: order.evaluable.bytecode,
-                    sourceIndex: CALCULATE_ORDER_ENTRYPOINT,
-                    context: context,
-                    inputs: new StackItem[](0),
-                    stateOverlay: new bytes32[](0)
-                })
-            );
+                    EvalV4({
+                        store: order.evaluable.store,
+                        namespace: LibNamespace.qualifyNamespace(namespace, address(this)),
+                        bytecode: order.evaluable.bytecode,
+                        sourceIndex: CALCULATE_ORDER_ENTRYPOINT,
+                        context: context,
+                        inputs: new StackItem[](0),
+                        stateOverlay: new bytes32[](0)
+                    })
+                );
 
             // This is a much clearer error message and overall is more efficient
             // than solidity generic index out of bounds errors.
@@ -944,21 +935,19 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         // failing calls and resubmit a new transaction.
         // https://github.com/crytic/slither/issues/880
         //slither-disable-next-line calls-loop
-        (StackItem[] memory handleIOStack, bytes32[] memory handleIOKVs) = orderIOCalculation
-            .order
-            .evaluable
+        (StackItem[] memory handleIOStack, bytes32[] memory handleIOKVs) = orderIOCalculation.order.evaluable
             .interpreter
             .eval4(
-            EvalV4({
-                store: orderIOCalculation.order.evaluable.store,
-                namespace: LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
-                bytecode: orderIOCalculation.order.evaluable.bytecode,
-                sourceIndex: HANDLE_IO_ENTRYPOINT,
-                context: orderIOCalculation.context,
-                inputs: new StackItem[](0),
-                stateOverlay: new bytes32[](0)
-            })
-        );
+                EvalV4({
+                    store: orderIOCalculation.order.evaluable.store,
+                    namespace: LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
+                    bytecode: orderIOCalculation.order.evaluable.bytecode,
+                    sourceIndex: HANDLE_IO_ENTRYPOINT,
+                    context: orderIOCalculation.context,
+                    inputs: new StackItem[](0),
+                    stateOverlay: new bytes32[](0)
+                })
+            );
         // There's nothing to be done with the stack.
         (handleIOStack);
         // Apply state changes to the interpreter store from the handle IO

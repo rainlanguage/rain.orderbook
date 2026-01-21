@@ -187,9 +187,8 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             // // - vault balance x1
             assertTrue(writes.length == 4 || writes.length == 3, "writes");
             assertTrue(
-                iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId).eq(
-                    actions[i].amount.add(vaultBalanceBefore)
-                ),
+                iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId)
+                    .eq(actions[i].amount.add(vaultBalanceBefore)),
                 "vault balance"
             );
         }

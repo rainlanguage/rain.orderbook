@@ -54,9 +54,8 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
         }
         iOrderbook.deposit4(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0));
         assertTrue(
-            iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(
-                LibDecimalFloat.packLossless(type(int224).max, -18)
-            )
+            iOrderbook.vaultBalance2(address(this), outputToken, vaultId)
+                .eq(LibDecimalFloat.packLossless(type(int224).max, -18))
         );
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](configs.length);

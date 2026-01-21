@@ -21,8 +21,9 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner, StackItem, NegativeBounty, ClearZeroAmount} from "src/concrete/ob/OrderBookV6.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {StateNamespace, EvalV4, SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
-import {LibFixedPointDecimalArithmeticOpenZeppelin} from
-    "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
+import {
+    LibFixedPointDecimalArithmeticOpenZeppelin
+} from "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
@@ -180,8 +181,9 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             assertTrue(aliceBountyBalance.isZero());
         }
         {
-            Float bobBountyBalance =
-                iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId);
+            Float bobBountyBalance = iOrderbook.vaultBalance2(
+                clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId
+            );
             assertTrue(bobBountyBalance.isZero());
         }
 
@@ -277,7 +279,9 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
                     );
                     vm.expectCall(
                         clear.aliceConfig.validOutputs[0].token,
-                        abi.encodeWithSelector(IERC20.transferFrom.selector, clear.alice, address(iOrderbook), amount18),
+                        abi.encodeWithSelector(
+                            IERC20.transferFrom.selector, clear.alice, address(iOrderbook), amount18
+                        ),
                         1
                     );
                 }
@@ -370,8 +374,8 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         if (clear.aliceConfig.validOutputs[0].vaultId != bytes32(0)) {
             assertTrue(
                 iOrderbook.vaultBalance2(
-                    clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
-                ).eq(clear.aliceAmount.sub(clear.expectedAliceOutput)),
+                        clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
+                    ).eq(clear.aliceAmount.sub(clear.expectedAliceOutput)),
                 "Alice output vault"
             );
         }
@@ -379,8 +383,8 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         if (clear.aliceConfig.validInputs[0].vaultId != bytes32(0)) {
             assertTrue(
                 iOrderbook.vaultBalance2(
-                    clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
-                ).eq(clear.expectedAliceInput),
+                        clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
+                    ).eq(clear.expectedAliceInput),
                 "Alice input vault"
             );
         }
@@ -388,8 +392,8 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         if (clear.bobConfig.validOutputs[0].vaultId != bytes32(0)) {
             assertTrue(
                 iOrderbook.vaultBalance2(
-                    clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
-                ).eq(clear.bobAmount.sub(clear.expectedBobOutput)),
+                        clear.bob, clear.bobConfig.validOutputs[0].token, clear.bobConfig.validOutputs[0].vaultId
+                    ).eq(clear.bobAmount.sub(clear.expectedBobOutput)),
                 "Bob output vault"
             );
         }
@@ -397,8 +401,8 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         if (clear.bobConfig.validInputs[0].vaultId != bytes32(0)) {
             assertTrue(
                 iOrderbook.vaultBalance2(
-                    clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
-                ).eq(clear.expectedBobInput),
+                        clear.bob, clear.bobConfig.validInputs[0].token, clear.bobConfig.validInputs[0].vaultId
+                    ).eq(clear.expectedBobInput),
                 "Bob input vault"
             );
         }
@@ -414,15 +418,13 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             "Alice bounty input"
         );
         assertTrue(
-            iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId).eq(
-                clear.expectedBobOutput.sub(clear.expectedAliceInput)
-            ),
+            iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId)
+                .eq(clear.expectedBobOutput.sub(clear.expectedAliceInput)),
             "Bob bounty"
         );
         assertTrue(
-            iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validInputs[0].token, clear.bobBountyVaultId).eq(
-                LibDecimalFloat.packLossless(0, 0)
-            ),
+            iOrderbook.vaultBalance2(clear.bountyBot, clear.bobConfig.validInputs[0].token, clear.bobBountyVaultId)
+                .eq(LibDecimalFloat.packLossless(0, 0)),
             "Bob bounty input"
         );
     }

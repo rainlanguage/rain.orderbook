@@ -357,7 +357,9 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
                 owner: ownerOne,
                 token: address(iToken1),
                 deposit: LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18, 18),
-                expect: LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18 - ownerOneTakerInput18, 18)
+                expect: LibDecimalFloat.fromFixedDecimalLosslessPacked(
+                    ownerOneDepositAmount18 - ownerOneTakerInput18, 18
+                )
             });
         }
 

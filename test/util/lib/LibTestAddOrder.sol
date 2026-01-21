@@ -14,11 +14,7 @@ import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.s
 library LibTestAddOrder {
     /// A little boilerplate to make it easier to build the order that we expect
     /// for a given order config.
-    function expectedOrder(address owner, OrderConfigV4 memory config)
-        internal
-        pure
-        returns (OrderV4 memory, bytes32)
-    {
+    function expectedOrder(address owner, OrderConfigV4 memory config) internal pure returns (OrderV4 memory, bytes32) {
         OrderV4 memory order = OrderV4(owner, config.evaluable, config.validInputs, config.validOutputs, config.nonce);
         return (order, LibOrder.hash(order));
     }

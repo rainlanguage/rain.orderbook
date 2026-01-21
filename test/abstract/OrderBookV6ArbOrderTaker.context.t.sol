@@ -54,10 +54,7 @@ contract OrderBookV6ArbOrderTakerContextTest is OrderBookV6ExternalRealTest {
         });
 
         TakeOrderConfigV4 memory aliceTakeOrderConfig = TakeOrderConfigV4({
-            order: aliceOrder,
-            inputIOIndex: 0,
-            outputIOIndex: 0,
-            signedContext: new SignedContextV1[](0)
+            order: aliceOrder, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)
         });
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);

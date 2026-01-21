@@ -6,9 +6,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {Math} from "openzeppelin-contracts/contracts/utils/math/Math.sol";
 
-import {
-    OrderBookV6ExternalMockTest, REVERTING_MOCK_BYTECODE
-} from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
+import {OrderBookV6ExternalMockTest, REVERTING_MOCK_BYTECODE} from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
 import {Reenteroor, IERC20} from "test/util/concrete/Reenteroor.sol";
 import {TaskV2, IOrderBookV6} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -230,9 +228,8 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
                 emit DepositV2(action.alice, action.token, action.vaultId, action.amount);
                 iOrderbook.deposit4(action.token, action.vaultId, action.amountFloat, new TaskV2[](0));
                 assertTrue(
-                    iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId).eq(
-                        balance.add(action.amountFloat)
-                    ),
+                    iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId)
+                        .eq(balance.add(action.amountFloat)),
                     "vault balance on deposit"
                 );
             } else {
@@ -260,9 +257,8 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
                 }
                 iOrderbook.withdraw4(action.token, action.vaultId, action.amountFloat, new TaskV2[](0));
                 assertTrue(
-                    iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId).eq(
-                        balance.sub(expectedActualAmount)
-                    ),
+                    iOrderbook.vaultBalance2(action.alice, action.token, action.vaultId)
+                        .eq(balance.sub(expectedActualAmount)),
                     "vault balance on withdraw"
                 );
             }

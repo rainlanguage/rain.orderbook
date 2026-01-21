@@ -114,7 +114,7 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = LibParseOperand.handleOperandDisallowed;
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] = LibParseOperand.handleOperandDisallowed;
         contextCallingContextHandlers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
-            LibParseOperand.handleOperandDisallowed;
+        LibParseOperand.handleOperandDisallowed;
 
         function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextCalculationsHandlers =
             new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_CALCULATIONS_ROWS);
@@ -144,7 +144,7 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextSignedContextHandlers =
             new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
         contextSignedContextHandlers[CONTEXT_SIGNED_CONTEXT_START_ROW] =
-            LibParseOperand.handleOperandDoublePerByteNoDefault;
+        LibParseOperand.handleOperandDoublePerByteNoDefault;
 
         handlers[CONTEXT_BASE_COLUMN] = contextBaseHandlers;
         handlers[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContextHandlers;
@@ -188,38 +188,43 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         // Add 1 for deposit context
         // Add 1 for withdraw context
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[][] memory
-            parsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[][](
-                CONTEXT_COLUMNS + 2 + 1 + 1
-            );
+            parsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            contextBaseParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                CONTEXT_BASE_ROWS
-            );
+            contextBaseParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_BASE_ROWS);
         contextBaseParsers[CONTEXT_BASE_ROW_SENDER] = LibOrderBookSubParser.subParserSender;
         contextBaseParsers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibOrderBookSubParser.subParserCallingContract;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            contextCallingContextParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                CONTEXT_CALLING_CONTEXT_ROWS
-            );
+            contextCallingContextParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_CALLING_CONTEXT_ROWS);
         contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = LibOrderBookSubParser.subParserOrderHash;
         contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] =
-            LibOrderBookSubParser.subParserOrderOwner;
+        LibOrderBookSubParser.subParserOrderOwner;
         contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
-            LibOrderBookSubParser.subParserOrderCounterparty;
+        LibOrderBookSubParser.subParserOrderCounterparty;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            contextCalculationsParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                CONTEXT_CALCULATIONS_ROWS
-            );
+            contextCalculationsParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_CALCULATIONS_ROWS);
         contextCalculationsParsers[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = LibOrderBookSubParser.subParserMaxOutput;
         contextCalculationsParsers[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = LibOrderBookSubParser.subParserIORatio;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            contextVaultInputsParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                CONTEXT_VAULT_IO_ROWS
-            );
+            contextVaultInputsParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_VAULT_IO_ROWS);
         contextVaultInputsParsers[CONTEXT_VAULT_IO_TOKEN] = LibOrderBookSubParser.subParserInputToken;
         contextVaultInputsParsers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibOrderBookSubParser.subParserInputTokenDecimals;
         contextVaultInputsParsers[CONTEXT_VAULT_IO_VAULT_ID] = LibOrderBookSubParser.subParserInputVaultId;
@@ -227,9 +232,10 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultInputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserInputBalanceDiff;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            contextVaultOutputsParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                CONTEXT_VAULT_IO_ROWS
-            );
+            contextVaultOutputsParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_VAULT_IO_ROWS);
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_TOKEN] = LibOrderBookSubParser.subParserOutputToken;
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibOrderBookSubParser.subParserOutputTokenDecimals;
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_VAULT_ID] = LibOrderBookSubParser.subParserOutputVaultId;
@@ -237,15 +243,17 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserOutputBalanceDiff;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            contextSignersParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
-            );
+            contextSignersParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
         contextSignersParsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibOrderBookSubParser.subParserSigners;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            contextSignedContextParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                CONTEXT_SIGNED_CONTEXT_START_ROWS
-            );
+            contextSignedContextParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
         contextSignedContextParsers[CONTEXT_SIGNED_CONTEXT_START_ROW] = LibOrderBookSubParser.subParserSignedContext;
 
         parsers[CONTEXT_BASE_COLUMN] = contextBaseParsers;
@@ -259,9 +267,10 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         // Deposits
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            depositParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                DEPOSIT_WORDS_LENGTH
-            );
+            depositParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](DEPOSIT_WORDS_LENGTH);
 
         depositParsers[DEPOSIT_WORD_DEPOSITOR] = LibOrderBookSubParser.subParserSender;
         depositParsers[DEPOSIT_WORD_TOKEN] = LibOrderBookSubParser.subParserDepositToken;
@@ -274,9 +283,10 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         // Withdraws
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
-            withdrawParsers = new function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[](
-                WITHDRAW_WORDS_LENGTH
-            );
+            withdrawParsers =
+            new function(uint256, uint256, OperandV2)
+            internal
+            view returns (bool, bytes memory, bytes32[] memory)[](WITHDRAW_WORDS_LENGTH);
 
         withdrawParsers[WITHDRAW_WORD_WITHDRAWER] = LibOrderBookSubParser.subParserSender;
         withdrawParsers[WITHDRAW_WORD_TOKEN] = LibOrderBookSubParser.subParserWithdrawToken;
