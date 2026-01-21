@@ -19,7 +19,22 @@ const mockVault: RaindexVault = {
 		address: '0x0000000000000000000000000000000000000000',
 		decimals: 18
 	},
-	formattedBalance: '1.5'
+	formattedBalance: '1.5',
+	vaultless: false
+} as unknown as RaindexVault;
+
+const mockVaultlessVault: RaindexVault = {
+	id: '0x1234567890abcdef1234567890abcdef12345678',
+	chainId: 1,
+	orderbook: '0x2222222222222222222222222222222222222222',
+	token: {
+		symbol: 'USDC',
+		name: 'USD Coin',
+		address: '0x0000000000000000000000000000000000000001',
+		decimals: 6
+	},
+	formattedBalance: '0',
+	vaultless: true
 } as unknown as RaindexVault;
 
 describe('VaultCard', () => {
@@ -108,5 +123,39 @@ describe('VaultCard', () => {
 		});
 
 		expect(screen.getByText('1,234,567.89')).toBeInTheDocument();
+	});
+
+	it('renders vaultless vault with badge and no balance', () => {
+		render(VaultCard, {
+			vault: mockVaultlessVault
+		});
+
+		expect(screen.getByTestId('vault-card-vaultless')).toBeInTheDocument();
+		expect(screen.getByText('USDC')).toBeInTheDocument();
+		expect(screen.getByText('Vaultless')).toBeInTheDocument();
+		expect(screen.queryByText('0')).not.toBeInTheDocument();
+	});
+
+	it('vaultless vault is not clickable', async () => {
+		const { goto } = await import('$app/navigation');
+		vi.mocked(goto).mockClear();
+
+		render(VaultCard, {
+			vault: mockVaultlessVault
+		});
+
+		const vaultCard = screen.getByTestId('vault-card-vaultless');
+		await userEvent.click(vaultCard);
+
+		expect(goto).not.toHaveBeenCalled();
+	});
+
+	it('vaultless vault does not render as a button', () => {
+		render(VaultCard, {
+			vault: mockVaultlessVault
+		});
+
+		const vaultCard = screen.getByTestId('vault-card-vaultless');
+		expect(vaultCard.tagName).toBe('DIV');
 	});
 });

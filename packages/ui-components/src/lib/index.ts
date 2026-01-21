@@ -17,6 +17,7 @@ export { default as PageHeader } from './components/PageHeader.svelte';
 export { default as CodeMirrorRainlang } from './components/CodeMirrorRainlang.svelte';
 export { default as BadgeActive } from './components/BadgeActive.svelte';
 export { default as ButtonVaultLink } from './components/ButtonVaultLink.svelte';
+export { default as VaultlessTokenDisplay } from './components/VaultlessTokenDisplay.svelte';
 export { default as ButtonTab } from './components/ButtonTab.svelte';
 export { default as ChartTimeFilters } from './components/charts/ChartTimeFilters.svelte';
 export { default as LightweightChart } from './components/charts/LightweightChart.svelte';
