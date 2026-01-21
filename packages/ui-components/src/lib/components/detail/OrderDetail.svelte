@@ -8,6 +8,7 @@
 	import CardProperty from '../CardProperty.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ButtonVaultLink from '../ButtonVaultLink.svelte';
+	import VaultlessTokenDisplay from '../VaultlessTokenDisplay.svelte';
 	// import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
@@ -199,30 +200,34 @@
 						<svelte:fragment slot="value">
 							<div class="mt-2 space-y-2">
 								{#each filteredVaults as vault}
-									<ButtonVaultLink tokenVault={vault} {chainId} {orderbookAddress}>
-										<svelte:fragment slot="buttons">
-											{#if matchesAccount(vault.owner)}
-												<div class="flex gap-1">
-													<Button
-														color="light"
-														size="xs"
-														data-testid="deposit-button"
-														on:click={() => onDeposit(raindexClient, vault)}
-													>
-														<ArrowDownToBracketOutline size="xs" />
-													</Button>
-													<Button
-														color="light"
-														size="xs"
-														data-testid="withdraw-button"
-														on:click={() => onWithdraw(raindexClient, vault)}
-													>
-														<ArrowUpFromBracketOutline size="xs" />
-													</Button>
-												</div>
-											{/if}
-										</svelte:fragment>
-									</ButtonVaultLink>
+									{#if vault.vaultless}
+										<VaultlessTokenDisplay tokenVault={vault} />
+									{:else}
+										<ButtonVaultLink tokenVault={vault} {chainId} {orderbookAddress}>
+											<svelte:fragment slot="buttons">
+												{#if matchesAccount(vault.owner)}
+													<div class="flex gap-1">
+														<Button
+															color="light"
+															size="xs"
+															data-testid="deposit-button"
+															on:click={() => onDeposit(raindexClient, vault)}
+														>
+															<ArrowDownToBracketOutline size="xs" />
+														</Button>
+														<Button
+															color="light"
+															size="xs"
+															data-testid="withdraw-button"
+															on:click={() => onWithdraw(raindexClient, vault)}
+														>
+															<ArrowUpFromBracketOutline size="xs" />
+														</Button>
+													</div>
+												{/if}
+											</svelte:fragment>
+										</ButtonVaultLink>
+									{/if}
 								{/each}
 							</div>
 						</svelte:fragment>
