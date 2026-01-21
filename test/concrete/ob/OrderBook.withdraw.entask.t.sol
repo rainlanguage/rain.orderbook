@@ -11,7 +11,7 @@ import {
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-
+import {LibOrderTest} from "../../lib/LibOrder.t.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
@@ -19,6 +19,8 @@ import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimal
 import {console2} from "forge-std/Test.sol";
 
 contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
+    LibOrderTest libOrderTest;
+
     using Strings for address;
     using Strings for uint256;
     using LibDecimalFloat for Float;
@@ -401,5 +403,103 @@ contract OrderBookWithdrawEvalTest is OrderBookExternalRealTest {
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
 
         checkWithdraw(alice, vaultId, depositAmount, targetAmount, evals, 0, 0, "");
+    }
+
+    function testWithdrawBypassesTaskWithZeroWithdrawAmount(
+        address alice,
+        uint256 vaultId,
+        uint256 depositAmount,
+        uint256 targetAmount,
+        bytes[] memory evalStrings
+    ) external {
+        depositAmount = bound(depositAmount, 1, type(uint128).max);
+        targetAmount = bound(targetAmount, 1, type(uint128).max);
+        uint256 withdrawAmount = 0;
+
+        string memory usingWordsFrom = string.concat("using-words-from ", address(iSubParser).toHexString(), "\n");
+
+        bytes[] memory evals = new bytes[](7);
+        evals[0] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(orderbook() ",
+                address(iOrderbook).toHexString(),
+                ") \"orderbook is iOrderbook\");"
+            )
+        );
+        evals[1] = bytes(
+            string.concat(
+                usingWordsFrom, ":ensure(equal-to(withdrawer() ", alice.toHexString(), ") \"withdrawer is alice\");"
+            )
+        );
+        evals[2] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-token() ",
+                address(iToken0).toHexString(),
+                ") \"withdraw token\");"
+            )
+        );
+        evals[3] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-vault-id() ",
+                vaultId.toHexString(),
+                ") \"withdraw vaultId\");"
+            )
+        );
+        evals[4] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-vault-balance() ",
+                depositAmount.toString(),
+                "e-6) \"vault balance\");"
+            )
+        );
+        evals[5] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-amount() ",
+                withdrawAmount.toString(),
+                "e-6) \"withdraw amount\");"
+            )
+        );
+        // target amount
+        evals[6] = bytes(
+            string.concat(
+                usingWordsFrom,
+                ":ensure(equal-to(withdraw-target-amount() ",
+                targetAmount.toString(),
+                "e-6) \"target amount\");"
+            )
+        );
+
+        vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
+
+        vm.startPrank(alice);
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook), depositAmount),
+            abi.encode(true)
+        );
+        iOrderbook.deposit2(address(iToken0), vaultId, depositAmount, new TaskV1[](0));
+
+        TaskV1[] memory actions = new TaskV1[](evals.length);
+        for (uint256 i = 0; i < evals.length; i++) {
+            actions[i] = TaskV1(EvaluableV3(iInterpreter, iStore, iParserV2.parse2(evals[i])), new SignedContextV1[](0));
+        }
+        vm.mockCall(
+            address(iToken0),
+            abi.encodeWithSelector(IERC20.transfer.selector, alice, withdrawAmount),
+            abi.encode(withdrawAmount > 0)
+        );
+        vm.record();
+        iOrderbook.withdraw2(address(iToken0), vaultId, targetAmount, actions);
+
+        // Assert that the tasks (`actions`) were executed regardless of `withdrawAmount`
+        (bytes32[] memory writes,) = vm.accesses(address(iOrderbook));
+        assert(writes.length > 0); // Ensure state writes occurred, indicating task execution
+
+        vm.stopPrank();
     }
 }
