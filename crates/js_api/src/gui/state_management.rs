@@ -26,6 +26,7 @@ struct SerializedGuiState {
     deposits: BTreeMap<String, GuiPresetCfg>,
     select_tokens: BTreeMap<String, TokenCfg>,
     vault_ids: BTreeMap<(VaultType, String), Option<String>>,
+    vaultless_flags: BTreeMap<(VaultType, String), Option<bool>>,
     dotrain_hash: String,
     selected_deployment: String,
 }
@@ -83,6 +84,23 @@ impl DotrainOrderGui {
             vault_ids.insert((r#type, token), vault_id.as_ref().map(|v| v.to_string()));
         }
         Ok(vault_ids)
+    }
+
+    fn parse_vaultless_flags_for_order(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        order_key: &str,
+        is_input: bool,
+    ) -> Result<BTreeMap<(VaultType, String), Option<bool>>, GuiError> {
+        let mut vaultless_flags = BTreeMap::new();
+        let r#type = if is_input {
+            VaultType::Input
+        } else {
+            VaultType::Output
+        };
+        for (token, vaultless) in OrderCfg::parse_vaultless_flags(documents, order_key, r#type)? {
+            vaultless_flags.insert((r#type, token), vaultless);
+        }
+        Ok(vaultless_flags)
     }
 
     /// Exports the complete GUI state as a compressed, encoded string.
@@ -174,11 +192,24 @@ impl DotrainOrderGui {
             false,
         )?);
 
+        let mut vaultless_flags = BTreeMap::new();
+        vaultless_flags.extend(Self::parse_vaultless_flags_for_order(
+            self.dotrain_order.dotrain_yaml().documents.clone(),
+            &order_key,
+            true,
+        )?);
+        vaultless_flags.extend(Self::parse_vaultless_flags_for_order(
+            self.dotrain_order.dotrain_yaml().documents.clone(),
+            &order_key,
+            false,
+        )?);
+
         let state = SerializedGuiState {
             field_values: field_values.clone(),
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
+            vaultless_flags: vaultless_flags.clone(),
             dotrain_hash: DotrainOrderGui::get_dotrain_hash(self.dotrain_order.dotrain()?)?,
             selected_deployment: self.selected_deployment.clone(),
         };
@@ -296,6 +327,16 @@ impl DotrainOrderGui {
                 .dotrain_yaml()
                 .get_order_for_gui_deployment(&order_key, &state.selected_deployment)
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
+        }
+
+        for ((vault_type, token_key), vaultless) in state.vaultless_flags {
+            if vaultless == Some(true) {
+                dotrain_order_gui
+                    .dotrain_order
+                    .dotrain_yaml()
+                    .get_order_for_gui_deployment(&order_key, &state.selected_deployment)
+                    .and_then(|mut order| order.update_vaultless(vault_type, token_key, true))?;
+            }
         }
 
         Ok(dotrain_order_gui)
@@ -602,5 +643,33 @@ mod tests {
 
         let expected_state = gui.serialize_state().unwrap();
         assert_eq!(received_state_rust, expected_state);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_vaultless_state_serialization_round_trip() {
+        let mut gui =
+            DotrainOrderGui::new_with_deployment(get_yaml(), "other-deployment".to_string(), None)
+                .await
+                .unwrap();
+
+        gui.set_vaultless(VaultType::Output, "token1".to_string(), true)
+            .unwrap();
+        gui.set_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "200".to_string())
+            .unwrap();
+
+        let status_before = gui.get_vaultless_status().unwrap();
+        assert_eq!(status_before.0["output"]["token1"], Some(true));
+
+        let serialized_state = gui.serialize_state().unwrap();
+
+        let restored_gui =
+            DotrainOrderGui::new_from_state(get_yaml(), serialized_state.to_string(), None)
+                .await
+                .unwrap();
+
+        let status_after = restored_gui.get_vaultless_status().unwrap();
+        assert_eq!(status_after.0["output"]["token1"], Some(true));
     }
 }

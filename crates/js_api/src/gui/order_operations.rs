@@ -68,6 +68,13 @@ pub struct IOVaultIds(
 );
 impl_wasm_traits!(IOVaultIds);
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+pub struct IOVaultlessStatus(
+    #[tsify(type = "Map<string, Map<string, boolean | undefined>>")]
+    pub  HashMap<String, HashMap<String, Option<bool>>>,
+);
+impl_wasm_traits!(IOVaultlessStatus);
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default, Tsify)]
 pub struct VaultlessApprovalAmounts(
     #[tsify(type = "Map<string, string>")] pub HashMap<String, String>,
@@ -760,6 +767,99 @@ impl DotrainOrderGui {
             .any(|token_map| token_map.values().any(|vault_id| vault_id.is_some())))
     }
 
+    /// Configures vaultless mode for an input or output token.
+    ///
+    /// When vaultless mode is enabled, the token will be transferred directly
+    /// from/to the wallet instead of using orderbook vaults. This also clears
+    /// any existing vault ID for that token.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// // Enable vaultless mode for an output token
+    /// const result = gui.setVaultless("output", "token1", true);
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// // Disable vaultless mode
+    /// const result2 = gui.setVaultless("output", "token1", false);
+    /// ```
+    #[wasm_export(js_name = "setVaultless", unchecked_return_type = "void")]
+    pub fn set_vaultless(
+        &mut self,
+        #[wasm_export(param_description = "Vault type: 'input' or 'output'")] r#type: VaultType,
+        #[wasm_export(
+            param_description = "Token key to identify which token to set vaultless for"
+        )]
+        token: String,
+        #[wasm_export(param_description = "True to enable vaultless mode, false to disable")]
+        vaultless: bool,
+    ) -> Result<(), GuiError> {
+        let deployment = self.get_current_deployment()?;
+        self.dotrain_order
+            .dotrain_yaml()
+            .get_order(&deployment.deployment.order.key)?
+            .update_vaultless(r#type, token, vaultless)?;
+
+        self.execute_state_update_callback()?;
+        Ok(())
+    }
+
+    /// Gets the vaultless status for all inputs and outputs.
+    ///
+    /// Returns a map with 'input' and 'output' keys, where each value is a map
+    /// of token keys to their vaultless status (true, false, or undefined).
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = gui.getVaultlessStatus();
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    ///
+    /// // Check if a specific output token is vaultless
+    /// const outputMap = result.value.get('output');
+    /// const isVaultless = outputMap?.get('token1') === true;
+    /// ```
+    #[wasm_export(
+        js_name = "getVaultlessStatus",
+        unchecked_return_type = "IOVaultlessStatus",
+        return_description = "Map with 'input' and 'output' keys containing token-to-vaultless maps"
+    )]
+    pub fn get_vaultless_status(&self) -> Result<IOVaultlessStatus, GuiError> {
+        let deployment = self.get_current_deployment()?;
+
+        let mut input_map = HashMap::new();
+        for input in deployment.deployment.order.inputs.iter() {
+            let token_key = input
+                .token
+                .as_ref()
+                .map(|t| t.key.clone())
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            input_map.insert(token_key, input.vaultless);
+        }
+
+        let mut output_map = HashMap::new();
+        for output in deployment.deployment.order.outputs.iter() {
+            let token_key = output
+                .token
+                .as_ref()
+                .map(|t| t.key.clone())
+                .ok_or(GuiError::SelectTokensNotSet)?;
+            output_map.insert(token_key, output.vaultless);
+        }
+
+        let map = HashMap::from([
+            ("input".to_string(), input_map),
+            ("output".to_string(), output_map),
+        ]);
+        Ok(IOVaultlessStatus(map))
+    }
+
     #[wasm_export(skip)]
     pub fn update_scenario_bindings(&mut self) -> Result<(), GuiError> {
         let deployment = self.get_current_deployment()?;
@@ -1138,6 +1238,51 @@ mod tests {
         assert_eq!(res.0["input"]["token1"], Some(U256::from(1)));
         assert_eq!(res.0["output"]["token1"], Some(U256::from(1)));
         assert_eq!(res.0["output"]["token2"], None);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_set_vaultless_updates_deployment() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        let status = gui.get_vaultless_status().unwrap();
+        assert_eq!(status.0["output"]["token1"], None);
+
+        gui.set_vaultless(VaultType::Output, "token1".to_string(), true)
+            .unwrap();
+
+        let status = gui.get_vaultless_status().unwrap();
+        assert_eq!(status.0["output"]["token1"], Some(true));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_set_vaultless_clears_vault_id_in_gui() {
+        let mut gui = initialize_gui(Some("other-deployment".to_string())).await;
+
+        gui.set_vault_id(
+            VaultType::Output,
+            "token1".to_string(),
+            Some("123".to_string()),
+        )
+        .unwrap();
+        let vault_ids = gui.get_vault_ids().unwrap();
+        assert_eq!(vault_ids.0["output"]["token1"], Some(U256::from(123)));
+
+        gui.set_vaultless(VaultType::Output, "token1".to_string(), true)
+            .unwrap();
+
+        let vault_ids = gui.get_vault_ids().unwrap();
+        assert_eq!(vault_ids.0["output"]["token1"], None);
+        let status = gui.get_vaultless_status().unwrap();
+        assert_eq!(status.0["output"]["token1"], Some(true));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_vaultless_status_returns_correct_map() {
+        let gui = initialize_gui(Some("mixed-vault-deployment".to_string())).await;
+        let status = gui.get_vaultless_status().unwrap();
+        assert_eq!(status.0["input"]["token1"], None);
+        assert_eq!(status.0["output"]["token1"], None);
+        assert_eq!(status.0["output"]["token2"], Some(true));
     }
 
     #[cfg(not(target_family = "wasm"))]
