@@ -418,7 +418,7 @@ impl DotrainOrderGui {
                 .allowance(owner_address, tx_args.orderbook_address)
                 .await?;
 
-            if current_allowance != vaultless_amount {
+            if current_allowance < vaultless_amount {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
                     amount: vaultless_amount,

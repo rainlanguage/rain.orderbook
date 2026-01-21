@@ -462,14 +462,16 @@ if (approvalCalldatasResult.error) throw new Error(approvalCalldatasResult.error
 
 // For vaultless outputs, you can optionally specify custom approval amounts per token.
 // By default, vaultless outputs use infinite approval (max uint256).
-// const vaultlessApprovals = new Map([['output-token', '1000000000000000000']]);
-// const approvalCalldatasResult = await gui.generateApprovalCalldatas('0xOwner', vaultlessApprovals);
+// const vaultlessApprovalAmounts = new Map([['output-token', '1000000000000000000']]);
+// const approvalCalldatasResult = await gui.generateApprovalCalldatas('0xOwner', vaultlessApprovalAmounts);
 
 const depositCalldatasResult = await gui.generateDepositCalldatas();
 if (depositCalldatasResult.error) throw new Error(depositCalldatasResult.error.readableMsg);
 
 // For vaultless outputs, pass an optional Map of token keys to custom approval amounts.
 // Omit or pass undefined for infinite approval (max uint256) on vaultless tokens.
+// const vaultlessApprovalAmounts = new Map([['output-token', '1000000000000000000']]);
+// const deploymentArgsResult = await gui.getDeploymentTransactionArgs('0xOwner', vaultlessApprovalAmounts);
 const deploymentArgsResult = await gui.getDeploymentTransactionArgs('0xOwner');
 if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
 const { approvals, deploymentCalldata, orderbookAddress, chainId } = deploymentArgsResult.value;
