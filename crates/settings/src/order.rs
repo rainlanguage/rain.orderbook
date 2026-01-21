@@ -1819,4 +1819,45 @@ orders:
             }
         );
     }
+
+    #[test]
+    fn test_parse_vaultless_flags() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+    usdc:
+        network: mainnet
+        address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vaultless: true
+            - token: usdc
+        outputs:
+            - token: eth
+              vaultless: false
+            - token: usdc
+              vaultless: true
+"#;
+        let document = get_document(yaml);
+
+        let input_flags =
+            OrderCfg::parse_vaultless_flags(vec![document.clone()], "order1", VaultType::Input)
+                .unwrap();
+        assert_eq!(input_flags.get("eth"), Some(&Some(true)));
+        assert_eq!(input_flags.get("usdc"), Some(&None));
+
+        let output_flags =
+            OrderCfg::parse_vaultless_flags(vec![document], "order1", VaultType::Output).unwrap();
+        assert_eq!(output_flags.get("eth"), Some(&Some(false)));
+        assert_eq!(output_flags.get("usdc"), Some(&Some(true)));
+    }
 }

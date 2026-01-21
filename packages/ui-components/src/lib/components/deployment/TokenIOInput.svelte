@@ -75,6 +75,7 @@
 		const result = gui.setVaultless(label.toLowerCase() as VaultType, vault.token.key, isVaultless);
 		if (result.error) {
 			error = result.error.msg;
+			isVaultless = !isVaultless;
 			return;
 		}
 		if (isVaultless) {
