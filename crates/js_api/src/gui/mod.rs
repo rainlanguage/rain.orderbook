@@ -651,6 +651,8 @@ pub enum GuiError {
     TokenNotInSelectTokens(String),
     #[error("JavaScript error: {0}")]
     JsError(String),
+    #[error("Invalid U256 value: {0}")]
+    InvalidU256(String),
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
@@ -744,6 +746,8 @@ impl GuiError {
                 format!("The token '{}' is not in the list of selectable tokens defined in the YAML configuration.", token),
             GuiError::JsError(msg) =>
                 format!("A JavaScript error occurred: {}", msg),
+            GuiError::InvalidU256(value) =>
+                format!("The value '{}' is not a valid U256 number.", value),
             GuiError::DotrainOrderError(err) =>
                 format!("Order configuration error in YAML: {}", err),
             GuiError::ParseGuiConfigSourceError(err) =>
@@ -901,6 +905,52 @@ gui:
         - key: token4
           name: Token 4
           description: Token 4 description
+    vaultless-deployment:
+      name: Vaultless test
+      description: Vaultless test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "0"
+    mixed-vault-deployment:
+      name: Mixed vault test
+      description: Mixed vault test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "0"
 networks:
     some-network:
         rpcs:
@@ -968,6 +1018,26 @@ orders:
         - token: token1
       deployer: some-deployer
       orderbook: some-orderbook
+    vaultless-order:
+      inputs:
+        - token: token1
+          vault-id: 1
+      outputs:
+        - token: token1
+          vaultless: true
+      deployer: some-deployer
+      orderbook: some-orderbook
+    mixed-vault-order:
+      inputs:
+        - token: token1
+          vault-id: 1
+      outputs:
+        - token: token1
+          vault-id: 1
+        - token: token2
+          vaultless: true
+      deployer: some-deployer
+      orderbook: some-orderbook
 deployments:
     some-deployment:
         scenario: some-scenario
@@ -978,6 +1048,12 @@ deployments:
     select-token-deployment:
         scenario: some-scenario
         order: some-order
+    vaultless-deployment:
+        scenario: some-scenario.sub-scenario
+        order: vaultless-order
+    mixed-vault-deployment:
+        scenario: some-scenario.sub-scenario
+        order: mixed-vault-order
 ---
 #test-binding !
 #another-binding !
@@ -1267,7 +1343,9 @@ _ _: 0 0;
             vec![
                 "some-deployment",
                 "other-deployment",
-                "select-token-deployment"
+                "select-token-deployment",
+                "vaultless-deployment",
+                "mixed-vault-deployment"
             ]
         );
     }
@@ -1617,7 +1695,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     fn test_get_deployment_details() {
         let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml()).unwrap();
-        assert_eq!(deployment_details.len(), 3);
+        assert_eq!(deployment_details.len(), 5);
         let deployment_detail = deployment_details.get("some-deployment").unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
         assert_eq!(
