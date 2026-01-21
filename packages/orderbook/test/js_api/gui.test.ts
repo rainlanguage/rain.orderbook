@@ -462,6 +462,106 @@ ${guiConfig}
 ${dotrain}
 `;
 
+const dotrainWithVaultless = `
+version: 5
+networks:
+    some-network:
+        rpcs:
+            - http://localhost:8085/rpc-url
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+
+subgraphs:
+    some-sg: https://www.some-sg.com
+metaboards:
+    test: https://metaboard.com
+
+deployers:
+    some-deployer:
+        network: some-network
+        address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+
+orderbooks:
+    some-orderbook:
+        address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+        network: some-network
+        subgraph: some-sg
+        deployment-block: 12345
+
+tokens:
+    token1:
+        network: some-network
+        address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+        decimals: 6
+        label: Token 1
+        symbol: T1
+    token2:
+        network: some-network
+        address: 0x8f3cf7ad23cd3cadbd9735aff958023239c6a063
+        decimals: 18
+        label: Token 2
+        symbol: T2
+
+scenarios:
+    some-scenario:
+        deployer: some-deployer
+        bindings:
+            test-binding: 5
+
+orders:
+    vaultless-order:
+        inputs:
+            - token: token1
+              vault-id: 1
+        outputs:
+            - token: token2
+              vaultless: true
+        deployer: some-deployer
+        orderbook: some-orderbook
+
+deployments:
+    vaultless-deployment:
+        scenario: some-scenario
+        order: vaultless-order
+---
+#test-binding !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+`;
+
+const guiConfigVaultless = `
+gui:
+  name: Vaultless test
+  description: Vaultless test
+  deployments:
+    vaultless-deployment:
+      name: Vaultless deployment
+      description: Vaultless deployment
+      deposits:
+        - token: token2
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          description: Test binding
+          presets:
+            - value: "10"
+          default: "10"
+`;
+
+const dotrainWithVaultlessGui = `
+${guiConfigVaultless}
+
+${dotrainWithVaultless}
+`;
+
 describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () {
 	const mockServer = getLocal();
 	beforeAll(async () => {
@@ -2283,6 +2383,105 @@ ${dotrainWithoutVaultIds}`;
 			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
 			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
+		});
+	});
+
+	describe('vaultless order operations', () => {
+		let vaultlessGui: DotrainOrderGui;
+
+		beforeEach(async () => {
+			mockServer.reset();
+			vaultlessGui = extractWasmEncodedData(
+				await DotrainOrderGui.newWithDeployment(dotrainWithVaultlessGui, 'vaultless-deployment')
+			);
+		});
+
+		it('generates approval calldatas for vaultless outputs with infinite approval', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xdd62ed3e')
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			const result = extractWasmEncodedData<ApprovalCalldataResult>(
+				await vaultlessGui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
+			);
+
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 1);
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas[0].token, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
+			// @ts-expect-error - result is valid
+			expect(result.Calldatas[0].calldata).toContain(
+				'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+			);
+		});
+
+		it('generates approval calldatas for vaultless outputs with custom amount', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xdd62ed3e')
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			const vaultlessApprovalAmounts = new Map([['token2', '1000000000000000000']]);
+
+			const result = extractWasmEncodedData<ApprovalCalldataResult>(
+				await vaultlessGui.generateApprovalCalldatas(
+					'0x1234567890abcdef1234567890abcdef12345678',
+					vaultlessApprovalAmounts
+				)
+			);
+
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 1);
+			// @ts-expect-error - result is valid
+			expect(result.Calldatas[0].calldata).toContain('0de0b6b3a7640000');
+		});
+
+		it('skips approval for vaultless outputs when already at max', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0xdd62ed3e')
+				.thenSendJsonRpcResult(
+					'0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
+				);
+
+			const result = extractWasmEncodedData<ApprovalCalldataResult>(
+				await vaultlessGui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
+			);
+
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 0);
+		});
+
+		it('skips deposits for vaultless outputs', async () => {
+			await mockServer
+				.forPost('/rpc-url')
+				.withBodyIncluding('0x82ad56cb')
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000754656b656e203200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025432000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			await vaultlessGui.setDeposit('token2', '1000');
+
+			const result = extractWasmEncodedData<DepositCalldataResult>(
+				await vaultlessGui.generateDepositCalldatas()
+			);
+
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 0);
+		});
+
+		it('returns vault_id as undefined for vaultless outputs in getVaultIds', () => {
+			const vaultIds = extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(
+				vaultlessGui.getVaultIds()
+			);
+
+			assert.equal(vaultIds.get('input')?.get('token1'), '0x1');
+			assert.equal(vaultIds.get('output')?.get('token2'), undefined);
 		});
 	});
 });
