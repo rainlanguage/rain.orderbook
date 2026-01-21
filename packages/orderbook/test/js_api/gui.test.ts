@@ -1068,8 +1068,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('state management tests', async () => {
-		let serializedState =
-			'H4sIAAAAAAAA_21QwUrDQBDNRlEQDyJeBcGrazYLW5NSD2IDEaVIieC1TVYTu9mNyda2-BEevfoDxS_w6s3vEW8SnLUGO4d9s_Pe7L4ZZP3EJqDmlcbDTCaZvEVQI9bGX_ZhIMbchsqaYdSIS9cysQrIyGGrIaG_khVAlxC07DHavBmDlco5llxPVDkyfbuAqdZF23GEigciVZVue8RjTlnEeFyKx1qB6hOZr4Mo3IH0qfM53__ozN-e2evXtU3995cYbaN1oKPawx5FZuyI2tYimktAxpaL_s204A4gie_62UnSu5xO8-C0iz3m9e-7F0EwS3vhpDhj5-GNn_jDoxa_Ot6CHqVTXuKEF0LNci71N8oNjEjFAQAA';
+		let serializedState: string;
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1104,6 +1103,8 @@ ${dotrain}`;
 			await gui.setSelectToken('token1', '0x6666666666666666666666666666666666666666');
 			gui.setVaultId('input', 'token1', '666');
 			gui.setVaultId('output', 'token2', '333');
+
+			serializedState = extractWasmEncodedData<string>(gui.serializeState());
 		});
 
 		it('should serialize gui state', async () => {
@@ -2482,6 +2483,81 @@ ${dotrainWithoutVaultIds}`;
 
 			assert.equal(vaultIds.get('input')?.get('token1'), '0x1');
 			assert.equal(vaultIds.get('output')?.get('token2'), undefined);
+		});
+
+		it('getVaultlessStatus returns correct map for vaultless deployment', () => {
+			const status = extractWasmEncodedData<Map<string, Map<string, boolean | undefined>>>(
+				vaultlessGui.getVaultlessStatus()
+			);
+
+			assert.equal(status.get('input')?.get('token1'), undefined);
+			assert.equal(status.get('output')?.get('token2'), true);
+		});
+
+		it('setVaultless enables vaultless mode for output token', async () => {
+			const normalGui = extractWasmEncodedData(
+				await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment')
+			);
+
+			const statusBefore = extractWasmEncodedData<Map<string, Map<string, boolean | undefined>>>(
+				normalGui.getVaultlessStatus()
+			);
+			assert.equal(statusBefore.get('output')?.get('token2'), undefined);
+
+			normalGui.setVaultless('output', 'token2', true);
+
+			const statusAfter = extractWasmEncodedData<Map<string, Map<string, boolean | undefined>>>(
+				normalGui.getVaultlessStatus()
+			);
+			assert.equal(statusAfter.get('output')?.get('token2'), true);
+		});
+
+		it('setVaultless clears vault-id when enabling vaultless', async () => {
+			const normalGui = extractWasmEncodedData(
+				await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment')
+			);
+
+			normalGui.setVaultId('output', 'token2', '123');
+			const vaultIdsBefore = extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(
+				normalGui.getVaultIds()
+			);
+			assert.equal(vaultIdsBefore.get('output')?.get('token2'), '0x7b');
+
+			normalGui.setVaultless('output', 'token2', true);
+
+			const vaultIdsAfter = extractWasmEncodedData<Map<string, Map<string, string | undefined>>>(
+				normalGui.getVaultIds()
+			);
+			assert.equal(vaultIdsAfter.get('output')?.get('token2'), undefined);
+
+			const status = extractWasmEncodedData<Map<string, Map<string, boolean | undefined>>>(
+				normalGui.getVaultlessStatus()
+			);
+			assert.equal(status.get('output')?.get('token2'), true);
+		});
+
+		it('vaultless state persists through serialization round-trip', async () => {
+			const gui = extractWasmEncodedData(
+				await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment')
+			);
+
+			gui.setVaultless('output', 'token2', true);
+
+			const statusBefore = extractWasmEncodedData<Map<string, Map<string, boolean | undefined>>>(
+				gui.getVaultlessStatus()
+			);
+			assert.equal(statusBefore.get('output')?.get('token2'), true);
+
+			const serializedState = extractWasmEncodedData<string>(gui.serializeState());
+
+			const restoredGui = extractWasmEncodedData(
+				await DotrainOrderGui.newFromState(dotrainWithGui, serializedState)
+			);
+
+			const statusAfter = extractWasmEncodedData<Map<string, Map<string, boolean | undefined>>>(
+				restoredGui.getVaultlessStatus()
+			);
+			assert.equal(statusAfter.get('output')?.get('token2'), true);
 		});
 	});
 });
