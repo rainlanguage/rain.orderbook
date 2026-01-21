@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button, Modal, Label, ButtonGroup } from 'flowbite-svelte';
-  import { Float, type AccountBalance, type RaindexVault } from '@rainlanguage/orderbook';
+  import { Float, type RaindexAmount, type RaindexVault } from '@rainlanguage/orderbook';
   import { vaultDeposit } from '$lib/services/vault';
   import { InputTokenAmount, useRaindexClient } from '@rainlanguage/ui-components';
   import { ethersExecute } from '$lib/services/ethersTx';
@@ -20,10 +20,10 @@
   let amount: Float;
   let isSubmitting = false;
   let selectWallet = false;
-  let userBalance: AccountBalance = {
-    balance: Float.parse('0').value,
-    formattedBalance: '0',
-  } as unknown as AccountBalance;
+  let userBalance: RaindexAmount = {
+    amount: Float.parse('0').value,
+    formattedAmount: '0',
+  } as unknown as RaindexAmount;
 
   function reset() {
     open = false;
@@ -52,12 +52,9 @@
       if (allowance.error) {
         throw new Error(allowance.error.readableMsg);
       }
-      let allowanceFloat = Float.parse(allowance.value);
-      if (allowanceFloat.error) {
-        throw new Error(allowanceFloat.error.readableMsg);
-      }
+      const allowanceFloat = allowance.value.amount;
 
-      if (allowanceFloat.value.lt(amount).value) {
+      if (allowanceFloat.lt(amount).value) {
         const calldata = await vault.getApprovalCalldata(amount);
         if (calldata.error) {
           throw new Error(calldata.error.readableMsg);
@@ -131,7 +128,7 @@
           Your Balance
         </h5>
         <p class="break-all font-normal leading-tight text-gray-700 dark:text-gray-400">
-          {userBalance.formattedBalance}
+          {userBalance.formattedAmount}
         </p>
       </div>
       <div class="w-1/2">
@@ -155,7 +152,7 @@
         <InputTokenAmount
           bind:value={amount}
           symbol={vault.token.symbol}
-          maxValue={userBalance.balance}
+          maxValue={userBalance.amount}
         />
       </ButtonGroup>
     </div>
