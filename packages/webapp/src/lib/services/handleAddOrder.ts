@@ -3,7 +3,8 @@ import type {
 	DotrainOrderGui,
 	RaindexClient,
 	RaindexVault,
-	RaindexVaultToken
+	RaindexVaultToken,
+	VaultlessApprovalAmounts
 } from '@rainlanguage/orderbook';
 import type {
 	TransactionManager,
@@ -28,6 +29,7 @@ export type HandleAddOrderDependencies = {
 	gui: DotrainOrderGui;
 	raindexClient: RaindexClient;
 	account: Hex | null;
+	vaultlessApprovalAmounts?: VaultlessApprovalAmounts;
 };
 
 export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
@@ -37,7 +39,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 		return errToast('Could not deploy: ' + AddOrderErrors.NO_ACCOUNT_CONNECTED);
 	}
 
-	const result = await gui.getDeploymentTransactionArgs(account);
+	const result = await gui.getDeploymentTransactionArgs(account, deps.vaultlessApprovalAmounts);
 
 	if (result.error) {
 		return errToast('Could not deploy: ' + result.error.msg);

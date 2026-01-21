@@ -9,6 +9,7 @@
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
 		type OrderIOCfg,
+		type VaultlessApprovalAmounts,
 		DotrainOrderGui,
 		RaindexClient,
 		AccountBalance,
@@ -43,7 +44,11 @@
 	/** Strategy details containing name and description configuration */
 	export let orderDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
-	export let onDeploy: (raindexClient: RaindexClient, gui: DotrainOrderGui) => void;
+	export let onDeploy: (
+		raindexClient: RaindexClient,
+		gui: DotrainOrderGui,
+		vaultlessApprovalAmounts?: VaultlessApprovalAmounts
+	) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let account: Account;
@@ -59,6 +64,16 @@
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
 	let tokenBalances: Map<string, TokenBalance> = new Map();
+	let vaultlessApprovalAmounts: VaultlessApprovalAmounts = new Map();
+
+	const handleApprovalAmountChange = (tokenKey: string, amount: string) => {
+		if (amount) {
+			vaultlessApprovalAmounts.set(tokenKey, amount);
+		} else {
+			vaultlessApprovalAmounts.delete(tokenKey);
+		}
+		vaultlessApprovalAmounts = vaultlessApprovalAmounts;
+	};
 
 	const gui = useGui();
 	const registry = useRegistry();
@@ -201,7 +216,7 @@
 			}
 			allTokenInfos = getAllTokenInfosResult.value;
 
-			// if we have deposits or vault ids set, show advanced options
+			// if we have deposits, vault ids, or vaultless mode set, show advanced options
 			const hasDepositsResult = gui.hasAnyDeposit();
 			if (hasDepositsResult.error) {
 				throw new Error(hasDepositsResult.error.msg);
@@ -210,7 +225,14 @@
 			if (hasVaultIdsResult.error) {
 				throw new Error(hasVaultIdsResult.error.msg);
 			}
-			if (hasDepositsResult.value || hasVaultIdsResult.value) {
+			const vaultlessStatusResult = gui.getVaultlessStatus();
+			if (vaultlessStatusResult.error) {
+				throw new Error(vaultlessStatusResult.error.msg);
+			}
+			const hasAnyVaultless = Array.from(vaultlessStatusResult.value.values()).some((tokenMap) =>
+				Array.from(tokenMap.values()).some((v) => v === true)
+			);
+			if (hasDepositsResult.value || hasVaultIdsResult.value || hasAnyVaultless) {
 				showAdvancedOptions = true;
 			}
 		} catch (e) {
@@ -233,7 +255,7 @@
 			}
 			DeploymentStepsError.clear();
 
-			return onDeploy(raindexClient, gui);
+			return onDeploy(raindexClient, gui, vaultlessApprovalAmounts);
 		} catch (e) {
 			DeploymentStepsError.catch(e, DeploymentStepsErrorCode.ADD_ORDER_FAILED);
 		} finally {
@@ -287,7 +309,12 @@
 					{/each}
 
 					{#each allTokenOutputs as output}
-						<TokenIOInput label="Output" vault={output} {tokenBalances} />
+						<TokenIOInput
+							label="Output"
+							vault={output}
+							{tokenBalances}
+							onApprovalAmountChange={handleApprovalAmountChange}
+						/>
 					{/each}
 
 					{#each allTokenInputs as input}

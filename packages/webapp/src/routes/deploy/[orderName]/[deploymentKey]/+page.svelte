@@ -10,7 +10,11 @@
 	} from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDisclaimerModal } from '$lib/services/modal';
-	import { DotrainOrderGui, RaindexClient } from '@rainlanguage/orderbook';
+	import {
+		DotrainOrderGui,
+		RaindexClient,
+		type VaultlessApprovalAmounts
+	} from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
 	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 	import { handleAddOrder } from '$lib/services/handleAddOrder';
@@ -44,7 +48,11 @@
 		}
 	});
 
-	const onDeploy = (raindexClient: RaindexClient, gui: DotrainOrderGui) => {
+	const onDeploy = (
+		raindexClient: RaindexClient,
+		gui: DotrainOrderGui,
+		vaultlessApprovalAmounts?: VaultlessApprovalAmounts
+	) => {
 		handleDisclaimerModal({
 			open: true,
 			onAccept: () => {
@@ -54,7 +62,8 @@
 					errToast,
 					manager,
 					gui,
-					account: $account
+					account: $account,
+					vaultlessApprovalAmounts
 				});
 			}
 		});
