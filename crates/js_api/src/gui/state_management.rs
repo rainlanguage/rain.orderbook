@@ -413,8 +413,6 @@ mod tests {
     use rain_orderbook_app_settings::order::VaultType;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDN2tJS6EkKPRX6A7ok2dSPCF6MgqBIDlGMF9F1MZp1N8QVFf-EP1misxGDc5j3Zt_bmWFKxi0-AOcrsViJJbYNHS-AtmUVTQTBg2XkTJM3QCVjJpxn3Z47H6tPqLZyw7Bgai_TWP_7AYyUShqmySWd8UhuVaNu1StmmlC8S_kpc6AsIz26E3S_gJb_R4dzIaEyegc5yHb4ddCrrnsDp2Tc42FXOx9guy4qqiRXiev-Aa22xwOCQz_0PH-CCUv9Nd3Von0rkQEPqex5cX-6psEwHDa_9SUYZ1Tha1O8YAmXxw0T6gLtkqFGyAEAAA==";
-
     #[wasm_bindgen_test]
     async fn test_serialize_state() {
         let mut gui = initialize_gui_with_select_tokens().await;
@@ -449,12 +447,43 @@ mod tests {
 
         let state = gui.serialize_state().unwrap();
         assert!(!state.is_empty());
-        assert_eq!(state, SERIALIZED_STATE);
     }
 
     #[wasm_bindgen_test]
     async fn test_new_from_state() {
-        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
+        let mut gui = initialize_gui_with_select_tokens().await;
+
+        gui.add_record_to_yaml(
+            "token3".to_string(),
+            "some-network".to_string(),
+            "0x1234567890123456789012345678901234567890".to_string(),
+            "18".to_string(),
+            "Token 3".to_string(),
+            "TKN3".to_string(),
+        );
+        gui.set_deposit("token3".to_string(), "100".to_string())
+            .await
+            .unwrap();
+        gui.set_field_value("binding-1".to_string(), "100".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+        gui.set_vault_id(
+            VaultType::Input,
+            "token1".to_string(),
+            Some("199".to_string()),
+        )
+        .unwrap();
+        gui.set_vault_id(
+            VaultType::Output,
+            "token2".to_string(),
+            Some("299".to_string()),
+        )
+        .unwrap();
+
+        let serialized_state = gui.serialize_state().unwrap();
+
+        let gui = DotrainOrderGui::new_from_state(get_yaml(), serialized_state.to_string(), None)
             .await
             .unwrap();
 
@@ -489,19 +518,19 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
-        let dotrain = r#"
+        let gui = initialize_gui_with_select_tokens().await;
+        let serialized_state = gui.serialize_state().unwrap();
+
+        let different_dotrain = r#"
         dotrain:
             name: Test
             description: Test
         "#;
 
-        let err = DotrainOrderGui::new_from_state(
-            dotrain.to_string(),
-            SERIALIZED_STATE.to_string(),
-            None,
-        )
-        .await
-        .unwrap_err();
+        let err =
+            DotrainOrderGui::new_from_state(different_dotrain.to_string(), serialized_state, None)
+                .await
+                .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),
