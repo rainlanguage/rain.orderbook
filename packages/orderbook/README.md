@@ -10,6 +10,7 @@ Raindex is an **onchain orderbook contract** that enables users to deploy comple
 
 - **Dynamic Orders**: Unlike traditional orderbooks, Raindex orders contain algorithms that determine token movements based on real-time conditions
 - **Vault System**: Users deposit tokens into vaults (virtual accounts) instead of using token approvals
+- **Vaultless Mode**: Alternatively, orders can use `vaultless: true` to draw funds directly from the user's wallet via approvals
 - **Multi-Token Strategies**: Orders can reference multiple input/output vaults for sophisticated trading scenarios
 - **Perpetual Execution**: Strategies remain active until explicitly removed by the owner
 - **Decentralized Execution**: Third-party fillers execute trades by capitalizing on arbitrage opportunities
@@ -459,9 +460,16 @@ const allowances = allowancesResult.value;
 const approvalCalldatasResult = await gui.generateApprovalCalldatas('0xOwner');
 if (approvalCalldatasResult.error) throw new Error(approvalCalldatasResult.error.readableMsg);
 
+// For vaultless outputs, you can optionally specify custom approval amounts per token.
+// By default, vaultless outputs use infinite approval (max uint256).
+// const vaultlessApprovals = new Map([['output-token', '1000000000000000000']]);
+// const approvalCalldatasResult = await gui.generateApprovalCalldatas('0xOwner', vaultlessApprovals);
+
 const depositCalldatasResult = await gui.generateDepositCalldatas();
 if (depositCalldatasResult.error) throw new Error(depositCalldatasResult.error.readableMsg);
 
+// For vaultless outputs, pass an optional Map of token keys to custom approval amounts.
+// Omit or pass undefined for infinite approval (max uint256) on vaultless tokens.
 const deploymentArgsResult = await gui.getDeploymentTransactionArgs('0xOwner');
 if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
 const { approvals, deploymentCalldata, orderbookAddress, chainId } = deploymentArgsResult.value;
