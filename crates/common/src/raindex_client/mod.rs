@@ -334,6 +334,10 @@ pub enum RaindexError {
     RpcClientError(#[from] crate::rpc_client::RpcClientError),
     #[error("Preflight check failed: {0}")]
     PreflightError(String),
+    #[error("Quote data is missing")]
+    QuoteDataMissing,
+    #[error("Invalid input index: {0}")]
+    InvalidInputIndex(u32),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -495,6 +499,15 @@ impl RaindexError {
             RaindexError::RpcClientError(err) => format!("RPC client error: {}", err),
             RaindexError::PreflightError(err) => {
                 format!("Preflight check failed: {err}")
+            }
+            RaindexError::QuoteDataMissing => {
+                "Quote data is missing. Please ensure the quote was successful.".to_string()
+            }
+            RaindexError::InvalidInputIndex(index) => {
+                format!(
+                    "Invalid input index: {}. The order does not have an input at this index.",
+                    index
+                )
             }
         }
     }

@@ -546,4 +546,85 @@ describe('OrdersListTable', () => {
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 		expect(screen.getByTestId('orderListRowTrades')).toHaveTextContent('>99');
 	});
+
+	it('shows Take button for active orders', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[mockOrder]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		render(OrdersListTable, {
+			...defaultProps,
+			handleTakeOrderModal: vi.fn()
+		} as OrdersListTableProps);
+
+		expect(screen.getByTestId(`order-take-${mockOrder.id}`)).toBeInTheDocument();
+		expect(screen.getByTestId(`order-take-${mockOrder.id}`)).toHaveTextContent('Take');
+	});
+
+	it('does not show Take button for inactive orders', async () => {
+		const inactiveOrder = {
+			...mockOrder,
+			active: false
+		};
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[inactiveOrder]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		render(OrdersListTable, {
+			...defaultProps,
+			handleTakeOrderModal: vi.fn()
+		} as OrdersListTableProps);
+
+		expect(screen.queryByTestId(`order-take-${inactiveOrder.id}`)).not.toBeInTheDocument();
+	});
+
+	it('calls handleTakeOrderModal when Take button clicked', async () => {
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		const mockRefetch = vi.fn();
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
+		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+			subscribe: (fn: (value: any) => void) => {
+				fn({
+					data: { pages: [[mockOrder]] },
+					status: 'success',
+					isFetching: false,
+					isFetched: true,
+					refetch: mockRefetch
+				});
+				return { unsubscribe: () => {} };
+			}
+		})) as Mock;
+
+		const handleTakeOrderModal = vi.fn();
+
+		render(OrdersListTable, {
+			...defaultProps,
+			handleTakeOrderModal
+		} as OrdersListTableProps);
+
+		const takeButton = screen.getByTestId(`order-take-${mockOrder.id}`);
+		await userEvent.click(takeButton);
+
+		expect(handleTakeOrderModal).toHaveBeenCalledWith(mockOrder, mockRefetch, new Map());
+	});
 });

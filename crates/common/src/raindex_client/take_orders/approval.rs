@@ -6,7 +6,8 @@ use rain_math_float::Float;
 use std::ops::Mul;
 use url::Url;
 
-use super::result::{build_approval_result, TakeOrdersCalldataResult};
+use super::result::build_approval_result;
+use super::TakeOrdersCalldataResult;
 
 pub struct ApprovalCheckParams {
     pub rpc_urls: Vec<Url>,
@@ -206,8 +207,6 @@ mod local_evm_tests {
             price_cap: Float::parse("2".to_string()).unwrap(),
         };
 
-        use super::super::result::TakeOrdersCalldataResult;
-
         let result = check_approval_needed(&params).await.unwrap();
 
         assert!(
@@ -215,17 +214,24 @@ mod local_evm_tests {
             "Should return approval result when allowance is insufficient"
         );
         let approval_result = result.unwrap();
-        let TakeOrdersCalldataResult::NeedsApproval(approval_info) = approval_result else {
-            panic!("Expected NeedsApproval variant");
-        };
+        assert!(
+            approval_result.is_needs_approval(),
+            "Expected NeedsApproval variant"
+        );
+        let approval_info = approval_result.approval_info().unwrap();
 
-        assert_eq!(approval_info.token, *token.address(), "token should match");
         assert_eq!(
-            approval_info.spender, orderbook,
+            approval_info.token(),
+            *token.address(),
+            "token should match"
+        );
+        assert_eq!(
+            approval_info.spender(),
+            orderbook,
             "spender should be orderbook"
         );
         assert!(
-            !approval_info.calldata.is_empty(),
+            !approval_info.calldata().is_empty(),
             "calldata should not be empty"
         );
     }

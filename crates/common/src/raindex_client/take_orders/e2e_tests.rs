@@ -1,4 +1,3 @@
-use crate::raindex_client::take_orders::result::TakeOrdersCalldataResult;
 use crate::raindex_client::take_orders::TakeOrdersRequest;
 use crate::raindex_client::tests::get_test_yaml;
 use crate::raindex_client::RaindexClient;
@@ -207,16 +206,16 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
         })
         .await
         .expect("Should succeed with funded vault and valid order");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook,
+        result.orderbook(),
+        setup.orderbook,
         "Orderbook address should match"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -231,20 +230,20 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
     );
 
     assert!(
-        !result.prices.is_empty(),
+        !result.prices().is_empty(),
         "Should have at least one price in result"
     );
 
     let expected_ratio = Float::parse("2".to_string()).unwrap();
     assert!(
-        result.prices[0].eq(expected_ratio).unwrap(),
+        result.prices()[0].eq(expected_ratio).unwrap(),
         "Price should match expected ratio of 2, got: {:?}",
-        result.prices[0].format()
+        result.prices()[0].format()
     );
 
     let zero = Float::zero().unwrap();
     assert!(
-        result.effective_price.gt(zero).unwrap(),
+        result.effective_price().gt(zero).unwrap(),
         "Effective price should be > 0"
     );
 }
@@ -313,9 +312,11 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
         })
         .await
         .expect("BuyUpTo mode should succeed");
-    let TakeOrdersCalldataResult::Ready(result_partial) = result_partial else {
-        panic!("Expected Ready variant for BuyUpTo");
-    };
+    assert!(
+        result_partial.is_ready(),
+        "Expected Ready variant for BuyUpTo"
+    );
+    let result_partial = result_partial.take_orders_info().unwrap();
 
     let result_exact = client
         .get_take_orders_calldata(TakeOrdersRequest {
@@ -329,16 +330,18 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
         })
         .await
         .expect("BuyExact mode should succeed");
-    let TakeOrdersCalldataResult::Ready(result_exact) = result_exact else {
-        panic!("Expected Ready variant for BuyExact");
-    };
+    assert!(
+        result_exact.is_ready(),
+        "Expected Ready variant for BuyExact"
+    );
+    let result_exact = result_exact.take_orders_info().unwrap();
 
-    let decoded_partial = takeOrders4Call::abi_decode(&result_partial.calldata)
+    let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
     let config_partial = decoded_partial.config;
 
     let decoded_exact =
-        takeOrders4Call::abi_decode(&result_exact.calldata).expect("Should decode exact calldata");
+        takeOrders4Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
     let config_exact = decoded_exact.config;
 
     let expected_buy_target = Float::parse(buy_target).unwrap().get_inner();
@@ -496,11 +499,10 @@ async fn test_min_receive_mode_exact_returns_error_when_insufficient_liquidity()
         })
         .await
         .expect("BuyUpTo mode calldata build should succeed");
-    let TakeOrdersCalldataResult::Ready(result_partial) = result_partial else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result_partial.is_ready(), "Expected Ready variant");
+    let result_partial = result_partial.take_orders_info().unwrap();
 
-    let decoded_partial = takeOrders4Call::abi_decode(&result_partial.calldata)
+    let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
     let config_partial = decoded_partial.config;
 
@@ -618,11 +620,10 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         })
         .await
         .expect("Should build calldata with both orders");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
 
     assert_eq!(
@@ -638,15 +639,18 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         "maximumIORatio should equal price_cap (2)"
     );
 
-    assert_eq!(result.prices.len(), 2, "Should have 2 prices");
+    assert_eq!(result.prices().len(), 2, "Should have 2 prices");
     let cheap_price = Float::parse("1".to_string()).unwrap();
     let expensive_price = Float::parse("2".to_string()).unwrap();
     assert!(
-        result.prices.iter().any(|p| p.eq(cheap_price).unwrap()),
+        result.prices().iter().any(|p| p.eq(cheap_price).unwrap()),
         "Should have price 1 in the list"
     );
     assert!(
-        result.prices.iter().any(|p| p.eq(expensive_price).unwrap()),
+        result
+            .prices()
+            .iter()
+            .any(|p| p.eq(expensive_price).unwrap()),
         "Should have price 2 in the list"
     );
 
@@ -835,11 +839,10 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
         })
         .await
         .expect("Should build calldata with both orders");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
 
     let expected_price_cap_2 = Float::parse(price_cap_2.clone()).unwrap();
@@ -874,7 +877,7 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
 
     let tx = WithOtherFields::new(
         TransactionRequest::default()
-            .with_input(result.calldata.to_vec())
+            .with_input(result.calldata().to_vec())
             .with_to(setup.orderbook)
             .with_from(taker),
     );
@@ -1051,15 +1054,15 @@ async fn test_cross_orderbook_selection_picks_best_book() {
         })
         .await
         .expect("Should succeed with orders from multiple orderbooks");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert_eq!(
-        result.orderbook, setup.orderbook_b,
+        result.orderbook(),
+        setup.orderbook_b,
         "Should select orderbook B (max_output=8 > max_output=5)"
     );
 
@@ -1082,20 +1085,20 @@ async fn test_cross_orderbook_selection_picks_best_book() {
 
     let expected_ratio = Float::parse("2".to_string()).unwrap();
     assert!(
-        result.prices[0].eq(expected_ratio).unwrap(),
+        result.prices()[0].eq(expected_ratio).unwrap(),
         "Price should be 2 (orderbook B's ratio)"
     );
 
     let tolerance = Float::parse("0.0001".to_string()).unwrap();
-    let diff = if result.effective_price.gt(expected_ratio).unwrap() {
-        result.effective_price.sub(expected_ratio).unwrap()
+    let diff = if result.effective_price().gt(expected_ratio).unwrap() {
+        result.effective_price().sub(expected_ratio).unwrap()
     } else {
-        expected_ratio.sub(result.effective_price).unwrap()
+        expected_ratio.sub(result.effective_price()).unwrap()
     };
     assert!(
         diff.lte(tolerance).unwrap(),
         "Effective price should be ~2 (sell/buy ratio), got: {:?}",
-        result.effective_price.format()
+        result.effective_price().format()
     );
 }
 
@@ -1203,16 +1206,16 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
         })
         .await
         .expect("Should succeed with flipped economics");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook_a,
+        result.orderbook(),
+        setup.orderbook_a,
         "Should select orderbook A (max_output=10 > max_output=3)"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1345,16 +1348,15 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
         })
         .await
         .expect("Should succeed with orders from multiple orderbooks");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook_a,
+        result.orderbook(), setup.orderbook_a,
         "Should select orderbook A (can fill 5 buy at ratio 1.0) over B (can fill 5 buy but at worse price 1.5)"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1375,27 +1377,27 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
     }
 
     assert_eq!(
-        result.prices.len(),
+        result.prices().len(),
         1,
         "Should have exactly one price (from orderbook A only)"
     );
     let expected_ratio = Float::parse("1".to_string()).unwrap();
     assert!(
-        result.prices[0].eq(expected_ratio).unwrap(),
+        result.prices()[0].eq(expected_ratio).unwrap(),
         "Price should be 1.0 (orderbook A's ratio), got: {:?}",
-        result.prices[0].format()
+        result.prices()[0].format()
     );
 
     let tolerance = Float::parse("0.0001".to_string()).unwrap();
-    let diff = if result.effective_price.gt(expected_ratio).unwrap() {
-        result.effective_price.sub(expected_ratio).unwrap()
+    let diff = if result.effective_price().gt(expected_ratio).unwrap() {
+        result.effective_price().sub(expected_ratio).unwrap()
     } else {
-        expected_ratio.sub(result.effective_price).unwrap()
+        expected_ratio.sub(result.effective_price()).unwrap()
     };
     assert!(
         diff.lte(tolerance).unwrap(),
         "Effective price should be ~1.0 (total_sell/total_buy), got: {:?}",
-        result.effective_price.format()
+        result.effective_price().format()
     );
 }
 
@@ -1547,35 +1549,38 @@ async fn test_prices_sorted_best_to_worst_matching_config_orders() {
         })
         .await
         .expect("Should build calldata with both orders");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
-    assert_eq!(result.prices.len(), 2, "Should have 2 prices for 2 orders");
+    assert_eq!(
+        result.prices().len(),
+        2,
+        "Should have 2 prices for 2 orders"
+    );
     assert_eq!(config.orders.len(), 2, "Should have 2 orders in config");
 
     let cheap_price = Float::parse("1".to_string()).unwrap();
     let expensive_price = Float::parse("2".to_string()).unwrap();
 
     assert!(
-        result.prices[0].eq(cheap_price).unwrap(),
+        result.prices()[0].eq(cheap_price).unwrap(),
         "First price should be cheap (1), got: {:?}",
-        result.prices[0].format()
+        result.prices()[0].format()
     );
     assert!(
-        result.prices[1].eq(expensive_price).unwrap(),
+        result.prices()[1].eq(expensive_price).unwrap(),
         "Second price should be expensive (2), got: {:?}",
-        result.prices[1].format()
+        result.prices()[1].format()
     );
 
     assert!(
-        result.prices[0].lt(result.prices[1]).unwrap(),
+        result.prices()[0].lt(result.prices()[1]).unwrap(),
         "Prices should be sorted best (lowest) to worst: {:?} < {:?}",
-        result.prices[0].format(),
-        result.prices[1].format()
+        result.prices()[0].format(),
+        result.prices()[1].format()
     );
 
     use alloy::primitives::keccak256;
@@ -1655,16 +1660,16 @@ async fn test_spend_up_to_mode_happy_path() {
         })
         .await
         .expect("Should succeed with funded vault and valid order in spend mode");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook,
+        result.orderbook(),
+        setup.orderbook,
         "Orderbook address should match"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1691,13 +1696,13 @@ async fn test_spend_up_to_mode_happy_path() {
     );
 
     assert!(
-        !result.prices.is_empty(),
+        !result.prices().is_empty(),
         "Should have at least one price in result"
     );
 
     let zero = Float::zero().unwrap();
     assert!(
-        result.effective_price.gt(zero).unwrap(),
+        result.effective_price().gt(zero).unwrap(),
         "Effective price should be > 0"
     );
 }
@@ -1767,9 +1772,11 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
         })
         .await
         .expect("SpendUpTo mode should succeed");
-    let TakeOrdersCalldataResult::Ready(result_up_to) = result_up_to else {
-        panic!("Expected Ready variant for SpendUpTo");
-    };
+    assert!(
+        result_up_to.is_ready(),
+        "Expected Ready variant for SpendUpTo"
+    );
+    let result_up_to = result_up_to.take_orders_info().unwrap();
 
     let result_exact = client
         .get_take_orders_calldata(TakeOrdersRequest {
@@ -1783,16 +1790,18 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
         })
         .await
         .expect("SpendExact mode should succeed");
-    let TakeOrdersCalldataResult::Ready(result_exact) = result_exact else {
-        panic!("Expected Ready variant for SpendExact");
-    };
+    assert!(
+        result_exact.is_ready(),
+        "Expected Ready variant for SpendExact"
+    );
+    let result_exact = result_exact.take_orders_info().unwrap();
 
     let decoded_up_to =
-        takeOrders4Call::abi_decode(&result_up_to.calldata).expect("Should decode up_to calldata");
+        takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
     let config_up_to = decoded_up_to.config;
 
     let decoded_exact =
-        takeOrders4Call::abi_decode(&result_exact.calldata).expect("Should decode exact calldata");
+        takeOrders4Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
     let config_exact = decoded_exact.config;
 
     let expected_spend_budget = Float::parse(spend_budget).unwrap().get_inner();
@@ -1898,12 +1907,11 @@ async fn test_spend_exact_mode_insufficient_liquidity() {
         })
         .await
         .expect("SpendUpTo mode calldata build should succeed even with insufficient liquidity");
-    let TakeOrdersCalldataResult::Ready(result_up_to) = result_up_to else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result_up_to.is_ready(), "Expected Ready variant");
+    let result_up_to = result_up_to.take_orders_info().unwrap();
 
     let decoded_up_to =
-        takeOrders4Call::abi_decode(&result_up_to.calldata).expect("Should decode up_to calldata");
+        takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
     let config_up_to = decoded_up_to.config;
 
     assert_eq!(
@@ -1999,9 +2007,11 @@ async fn test_spend_mode_max_sell_cap_equals_spend_budget() {
         })
         .await
         .expect("Spend mode should succeed");
-    let TakeOrdersCalldataResult::Ready(result_spend) = result_spend else {
-        panic!("Expected Ready variant for SpendUpTo");
-    };
+    assert!(
+        result_spend.is_ready(),
+        "Expected Ready variant for SpendUpTo"
+    );
+    let result_spend = result_spend.take_orders_info().unwrap();
 
     let result_buy = client
         .get_take_orders_calldata(TakeOrdersRequest {
@@ -2015,28 +2025,27 @@ async fn test_spend_mode_max_sell_cap_equals_spend_budget() {
         })
         .await
         .expect("Buy mode should succeed");
-    let TakeOrdersCalldataResult::Ready(result_buy) = result_buy else {
-        panic!("Expected Ready variant for BuyUpTo");
-    };
+    assert!(result_buy.is_ready(), "Expected Ready variant for BuyUpTo");
+    let result_buy = result_buy.take_orders_info().unwrap();
 
     let spend_budget_float = Float::parse(spend_budget.clone()).unwrap();
     let price_cap_float = Float::parse(price_cap).unwrap();
 
     assert!(
-        result_spend.max_sell_cap.eq(spend_budget_float).unwrap(),
+        result_spend.max_sell_cap().eq(spend_budget_float).unwrap(),
         "In spend mode, max_sell_cap should equal spend_budget ({}), got: {:?}",
         spend_budget,
-        result_spend.max_sell_cap.format()
+        result_spend.max_sell_cap().format()
     );
 
     let expected_buy_max_sell_cap = spend_budget_float.mul(price_cap_float).unwrap();
     assert!(
         result_buy
-            .max_sell_cap
+            .max_sell_cap()
             .eq(expected_buy_max_sell_cap)
             .unwrap(),
         "In buy mode, max_sell_cap should equal buy_target * price_cap, got: {:?}",
-        result_buy.max_sell_cap.format()
+        result_buy.max_sell_cap().format()
     );
 }
 
@@ -2143,11 +2152,10 @@ async fn test_spend_mode_cross_orderbook_selection() {
         })
         .await
         .expect("Should succeed with spend mode across multiple orderbooks");
-    let TakeOrdersCalldataResult::Ready(result) = result else {
-        panic!("Expected Ready variant");
-    };
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -2156,7 +2164,8 @@ async fn test_spend_mode_cross_orderbook_selection() {
     );
 
     assert_eq!(
-        result.orderbook, setup.orderbook_b,
+        result.orderbook(),
+        setup.orderbook_b,
         "Should select orderbook B (can spend more: 80*2=160 vs 50*2=100)"
     );
 
@@ -2231,20 +2240,24 @@ async fn test_get_take_orders_calldata_returns_approval_when_no_allowance() {
         .await
         .expect("Should succeed with approval result");
 
-    let TakeOrdersCalldataResult::NeedsApproval(approval) = result else {
-        panic!("Expected NeedsApproval variant when taker has no allowance");
-    };
+    assert!(
+        result.is_needs_approval(),
+        "Expected NeedsApproval variant when taker has no allowance"
+    );
+    let approval = result.approval_info().unwrap();
 
     assert_eq!(
-        approval.token, setup.token1,
+        approval.token(),
+        setup.token1,
         "Approval token should be sell_token"
     );
     assert_eq!(
-        approval.spender, setup.orderbook,
+        approval.spender(),
+        setup.orderbook,
         "Approval spender should be orderbook"
     );
     assert!(
-        !approval.calldata.is_empty(),
+        !approval.calldata().is_empty(),
         "Approval calldata should not be empty"
     );
 }
@@ -2321,16 +2334,20 @@ async fn test_get_take_orders_calldata_returns_approval_when_insufficient_allowa
         .await
         .expect("Should succeed with approval result");
 
-    let TakeOrdersCalldataResult::NeedsApproval(approval) = result else {
-        panic!("Expected NeedsApproval variant when allowance < max_sell_cap");
-    };
+    assert!(
+        result.is_needs_approval(),
+        "Expected NeedsApproval variant when allowance < max_sell_cap"
+    );
+    let approval = result.approval_info().unwrap();
 
     assert_eq!(
-        approval.token, setup.token1,
+        approval.token(),
+        setup.token1,
         "Approval token should be sell_token"
     );
     assert_eq!(
-        approval.spender, setup.orderbook,
+        approval.spender(),
+        setup.orderbook,
         "Approval spender should be orderbook"
     );
 }
@@ -2410,16 +2427,19 @@ async fn test_get_take_orders_calldata_returns_take_orders_when_sufficient_allow
         .await
         .expect("Should succeed with take_orders result");
 
-    let TakeOrdersCalldataResult::Ready(take_orders) = result else {
-        panic!("Expected Ready variant when allowance is sufficient");
-    };
+    assert!(
+        result.is_ready(),
+        "Expected Ready variant when allowance is sufficient"
+    );
+    let take_orders = result.take_orders_info().unwrap();
 
     assert_eq!(
-        take_orders.orderbook, setup.orderbook,
+        take_orders.orderbook(),
+        setup.orderbook,
         "Orderbook address should match"
     );
     assert!(
-        !take_orders.calldata.is_empty(),
+        !take_orders.calldata().is_empty(),
         "Calldata should not be empty"
     );
 }
