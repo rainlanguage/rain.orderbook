@@ -5,11 +5,18 @@ use rocket::serde::json::Json;
 use rocket::Request;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use utoipa::ToSchema;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "error": "No liquidity available for the given token pair",
+    "readableMessage": "No liquidity available for the given token pair on the specified chain"
+}))]
 pub struct ApiErrorResponse {
+    #[schema(example = "No liquidity available for the given token pair")]
     pub error: String,
+    #[schema(example = "No liquidity available for the given token pair on the specified chain")]
     pub readable_message: String,
 }
 
