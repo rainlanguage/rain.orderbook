@@ -1,10 +1,9 @@
 use alloy::primitives::Bytes;
 use alloy::sol_types::SolCall;
-use rain_math_float::FloatError;
 use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::approveCall};
 use rain_orderbook_common::{
     csv::TryIntoCsv,
-    deposit::DepositArgs,
+    deposit::{DepositArgs, DepositError},
     subgraph::SubgraphArgs,
     transaction::TransactionArgs,
     types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
@@ -111,7 +110,7 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let deposit_call: deposit4Call = deposit_args.try_into().inspect_err(|e: &FloatError| {
+    let deposit_call: deposit4Call = deposit_args.try_into().inspect_err(|e: &DepositError| {
         toast_error(&app_handle, e.to_string());
     })?;
     Ok(Bytes::from(deposit_call.abi_encode()))
