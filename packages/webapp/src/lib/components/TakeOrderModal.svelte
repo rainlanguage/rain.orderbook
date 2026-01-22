@@ -25,7 +25,7 @@
 		mode: TakeOrdersMode;
 		amount: string;
 		priceCap: string;
-	}) => void;
+	}) => Promise<boolean>;
 
 	type Direction = 'buy' | 'sell';
 
@@ -222,7 +222,7 @@
 	$: canSubmit =
 		isAmountValid && !exceedsMax && selectedQuote && effectivePriceCap && $signerAddress;
 
-	function handleSubmit() {
+	async function handleSubmit() {
 		if (!selectedQuote || !effectivePriceCap) return;
 
 		const priceCapStr = effectivePriceCap.format();
@@ -237,14 +237,16 @@
 			return;
 		}
 
-		onSubmit({
+		const shouldClose = await onSubmit({
 			quote: selectedQuote,
 			mode: mode as TakeOrdersMode,
 			amount: amountStr.value as string,
 			priceCap: priceCapStr.value as string
 		});
 
-		handleClose();
+		if (shouldClose) {
+			handleClose();
+		}
 	}
 
 	$: pairOptions = quotes.map((q, i) => ({

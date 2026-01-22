@@ -93,7 +93,7 @@ export interface TakeOrderSubmitParams {
 export interface TakeOrderModalProps {
 	open: boolean;
 	order: RaindexOrder;
-	onSubmit: (params: TakeOrderSubmitParams) => void;
+	onSubmit: (params: TakeOrderSubmitParams) => Promise<boolean>;
 }
 
 export type HandleTakeOrderModal = (props: TakeOrderModalProps) => void;

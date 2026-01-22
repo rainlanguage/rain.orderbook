@@ -14,12 +14,15 @@ import type { Hex } from 'viem';
 import type { TransactionManager } from '@rainlanguage/ui-components';
 
 const mockHandleTakeOrderModal = vi.fn();
-const mockHandleTransactionConfirmationModal = vi.fn();
+const mockHandleTransactionConfirmationModal = vi.fn().mockResolvedValue({ success: true });
 const mockErrToast = vi.fn();
+const mockAddToast = vi.fn();
 const mockCreateTakeOrderTransaction = vi.fn();
+const mockCreateApprovalTransaction = vi.fn();
 
 const mockManager = {
-	createTakeOrderTransaction: mockCreateTakeOrderTransaction
+	createTakeOrderTransaction: mockCreateTakeOrderTransaction,
+	createApprovalTransaction: mockCreateApprovalTransaction
 };
 
 const mockRaindexClient = {} as unknown as RaindexClient;
@@ -66,6 +69,7 @@ const mockDeps: TakeOrderHandlerDependencies = {
 	handleTakeOrderModal: mockHandleTakeOrderModal,
 	handleTransactionConfirmationModal: mockHandleTransactionConfirmationModal,
 	errToast: mockErrToast,
+	addToast: mockAddToast,
 	manager: mockManager as unknown as TransactionManager,
 	account: MOCK_ACCOUNT_ADDRESS
 };
@@ -77,14 +81,37 @@ const mockParams: TakeOrderSubmitParams = {
 	priceCap: '2.0'
 };
 
-function createMockCalldataResult(calldata: string, orderbook: string): TakeOrdersCalldataResult {
+function createMockReadyResult(calldata: string, orderbook: string): TakeOrdersCalldataResult {
 	return {
-		calldata,
-		orderbook,
-		effectivePrice: Float.parse('1.5').value as Float,
-		maxSellCap: Float.parse('15').value as Float,
-		expectedSell: Float.parse('15').value as Float,
-		prices: []
+		isReady: true,
+		isNeedsApproval: false,
+		approvalInfo: undefined,
+		takeOrdersInfo: {
+			calldata,
+			orderbook,
+			effectivePrice: Float.parse('1.5').value as Float,
+			maxSellCap: Float.parse('15').value as Float,
+			expectedSell: Float.parse('15').value as Float,
+			prices: []
+		}
+	} as unknown as TakeOrdersCalldataResult;
+}
+
+function createMockApprovalResult(
+	token: string,
+	approvalCalldata: string
+): TakeOrdersCalldataResult {
+	return {
+		isReady: false,
+		isNeedsApproval: true,
+		approvalInfo: {
+			token,
+			calldata: approvalCalldata,
+			spender: '0xspender',
+			amount: Float.parse('100').value as Float,
+			formattedAmount: '100'
+		},
+		takeOrdersInfo: undefined
 	} as unknown as TakeOrdersCalldataResult;
 }
 
@@ -147,7 +174,7 @@ describe('handleTakeOrder', () => {
 		const mockCalldata = '0xcalldata' as Hex;
 
 		vi.mocked(mockOrder.getTakeCalldata).mockResolvedValue({
-			value: createMockCalldataResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
+			value: createMockReadyResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
 			error: undefined
 		});
 
@@ -183,7 +210,7 @@ describe('handleTakeOrder', () => {
 		const mockTxHash = '0xtxhash' as Hex;
 
 		vi.mocked(mockOrder.getTakeCalldata).mockResolvedValue({
-			value: createMockCalldataResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
+			value: createMockReadyResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
 			error: undefined
 		});
 
@@ -245,7 +272,7 @@ describe('handleTakeOrder', () => {
 		} as unknown as RaindexOrder;
 
 		vi.mocked(orderWithCustomSymbol.getTakeCalldata).mockResolvedValue({
-			value: createMockCalldataResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
+			value: createMockReadyResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
 			error: undefined
 		});
 
@@ -279,7 +306,7 @@ describe('handleTakeOrder', () => {
 		} as unknown as RaindexOrder;
 
 		vi.mocked(orderWithNoSymbol.getTakeCalldata).mockResolvedValue({
-			value: createMockCalldataResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
+			value: createMockReadyResult(mockCalldata, MOCK_ORDERBOOK_ADDRESS),
 			error: undefined
 		});
 
@@ -291,5 +318,93 @@ describe('handleTakeOrder', () => {
 				modalTitle: 'Taking order for tokens'
 			})
 		);
+	});
+
+	it('should show approval modal when isNeedsApproval is true', async () => {
+		const mockApprovalCalldata = '0xapprovalcalldata' as Hex;
+
+		mockHandleTransactionConfirmationModal.mockResolvedValue({ success: true });
+
+		vi.mocked(mockOrder.getTakeCalldata).mockResolvedValue({
+			value: createMockApprovalResult(MOCK_TOKEN_ADDRESS, mockApprovalCalldata),
+			error: undefined
+		});
+
+		await handleTakeOrder(mockDeps);
+		await triggerOnSubmit();
+
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledWith({
+			open: true,
+			modalTitle: 'Approving TEST spend',
+			closeOnConfirm: true,
+			args: expect.objectContaining({
+				toAddress: MOCK_TOKEN_ADDRESS,
+				chainId: mockOrder.chainId,
+				calldata: mockApprovalCalldata
+			})
+		});
+	});
+
+	it('should show success toast after approval and not proceed with take order', async () => {
+		const mockApprovalCalldata = '0xapprovalcalldata' as Hex;
+
+		mockHandleTransactionConfirmationModal.mockResolvedValue({ success: true });
+
+		vi.mocked(mockOrder.getTakeCalldata).mockResolvedValue({
+			value: createMockApprovalResult(MOCK_TOKEN_ADDRESS, mockApprovalCalldata),
+			error: undefined
+		});
+
+		await handleTakeOrder(mockDeps);
+		await triggerOnSubmit();
+
+		expect(mockAddToast).toHaveBeenCalledWith({
+			message: "Approval successful! Click 'Take Order' again to proceed with fresh quotes.",
+			type: 'success',
+			color: 'green'
+		});
+		expect(mockHandleTransactionConfirmationModal).toHaveBeenCalledTimes(1);
+	});
+
+	it('should show error toast when approval is cancelled', async () => {
+		const mockApprovalCalldata = '0xapprovalcalldata' as Hex;
+
+		mockHandleTransactionConfirmationModal.mockResolvedValue({ success: false });
+
+		vi.mocked(mockOrder.getTakeCalldata).mockResolvedValue({
+			value: createMockApprovalResult(MOCK_TOKEN_ADDRESS, mockApprovalCalldata),
+			error: undefined
+		});
+
+		await handleTakeOrder(mockDeps);
+		await triggerOnSubmit();
+
+		expect(mockErrToast).toHaveBeenCalledWith('Approval was cancelled or failed');
+		expect(mockAddToast).not.toHaveBeenCalled();
+	});
+
+	it('should call manager.createApprovalTransaction on approval confirmation', async () => {
+		const mockApprovalCalldata = '0xapprovalcalldata' as Hex;
+		const mockTxHash = '0xapprovaltxhash' as Hex;
+
+		mockHandleTransactionConfirmationModal.mockResolvedValue({ success: true });
+
+		vi.mocked(mockOrder.getTakeCalldata).mockResolvedValue({
+			value: createMockApprovalResult(MOCK_TOKEN_ADDRESS, mockApprovalCalldata),
+			error: undefined
+		});
+
+		await handleTakeOrder(mockDeps);
+		await triggerOnSubmit();
+
+		const onConfirmCall = mockHandleTransactionConfirmationModal.mock.calls[0][0].args.onConfirm;
+		onConfirmCall(mockTxHash);
+
+		expect(mockCreateApprovalTransaction).toHaveBeenCalledWith({
+			txHash: mockTxHash,
+			chainId: mockOrder.chainId,
+			queryKey: mockOrder.orderHash
+		});
 	});
 });
