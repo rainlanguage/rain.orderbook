@@ -1,5 +1,6 @@
+pub(crate) mod approval;
 mod request;
-mod result;
+pub(crate) mod result;
 mod selection;
 pub mod single;
 
@@ -10,7 +11,7 @@ mod e2e_tests;
 mod single_tests;
 
 pub use request::TakeOrdersRequest;
-pub use result::{TakeOrderEstimate, TakeOrdersCalldataResult};
+pub use result::{ApprovalInfo, TakeOrderEstimate, TakeOrdersCalldataResult, TakeOrdersInfo};
 pub use single::{build_candidate_from_quote, estimate_take_order, execute_single_take};
 
 use super::orders::{GetOrdersFilters, GetOrdersTokenFilter, RaindexOrder};
@@ -20,6 +21,7 @@ use crate::take_orders::{
     build_take_orders_config_from_simulation, find_failing_order_index, simulate_take_orders,
 };
 use alloy::primitives::Address;
+use approval::{check_approval_needed, ApprovalCheckParams};
 use rain_orderbook_bindings::provider::mk_read_provider;
 use wasm_bindgen_utils::prelude::*;
 use wasm_bindgen_utils::wasm_export;
@@ -134,6 +136,19 @@ impl RaindexClient {
         let mut built =
             build_take_orders_config_from_simulation(best_sim.clone(), req.mode, req.price_cap)?
                 .ok_or(RaindexError::NoLiquidity)?;
+
+        let approval_params = ApprovalCheckParams {
+            rpc_urls: rpc_urls.clone(),
+            sell_token: req.sell_token,
+            taker: req.taker,
+            orderbook: best_orderbook,
+            mode: req.mode,
+            price_cap: req.price_cap,
+        };
+
+        if let Some(approval_result) = check_approval_needed(&approval_params).await? {
+            return Ok(approval_result);
+        }
 
         let provider =
             mk_read_provider(&rpc_urls).map_err(|e| RaindexError::PreflightError(e.to_string()))?;

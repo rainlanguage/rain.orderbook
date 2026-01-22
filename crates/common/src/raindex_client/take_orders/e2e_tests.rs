@@ -1,3 +1,4 @@
+use crate::raindex_client::take_orders::result::TakeOrdersCalldataResult;
 use crate::raindex_client::take_orders::TakeOrdersRequest;
 use crate::raindex_client::tests::get_test_yaml;
 use crate::raindex_client::RaindexClient;
@@ -8,9 +9,9 @@ use crate::test_helpers::dotrain::{
     create_dotrain_config_with_vault_and_ratio,
 };
 use crate::test_helpers::local_evm::{
-    create_vault, create_vault_for_orderbook, deposit_to_orderbook, fund_and_approve_taker,
-    fund_and_approve_taker_multi_orderbook, fund_standard_two_token_vault,
-    setup_multi_orderbook_test, setup_test as base_setup_test, standard_deposit_amount,
+    approve_taker, create_vault, create_vault_for_orderbook, deposit_to_orderbook,
+    fund_and_approve_taker, fund_and_approve_taker_multi_orderbook, fund_standard_two_token_vault,
+    fund_taker, setup_multi_orderbook_test, setup_test as base_setup_test, standard_deposit_amount,
 };
 use crate::test_helpers::orders::deploy::{deploy_order, deploy_order_to_orderbook};
 use crate::test_helpers::subgraph::{
@@ -206,6 +207,9 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
         })
         .await
         .expect("Should succeed with funded vault and valid order");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     assert_eq!(
         result.orderbook(),
@@ -310,6 +314,9 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
         })
         .await
         .expect("BuyUpTo mode should succeed");
+    let TakeOrdersCalldataResult::Ready(result_partial) = result_partial else {
+        panic!("Expected Ready variant for BuyUpTo");
+    };
 
     let result_exact = client
         .get_take_orders_calldata(TakeOrdersRequest {
@@ -323,6 +330,9 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
         })
         .await
         .expect("BuyExact mode should succeed");
+    let TakeOrdersCalldataResult::Ready(result_exact) = result_exact else {
+        panic!("Expected Ready variant for BuyExact");
+    };
 
     let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
@@ -487,6 +497,9 @@ async fn test_min_receive_mode_exact_returns_error_when_insufficient_liquidity()
         })
         .await
         .expect("BuyUpTo mode calldata build should succeed");
+    let TakeOrdersCalldataResult::Ready(result_partial) = result_partial else {
+        panic!("Expected Ready variant");
+    };
 
     let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
@@ -606,6 +619,9 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         })
         .await
         .expect("Should build calldata with both orders");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
@@ -823,6 +839,9 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
         })
         .await
         .expect("Should build calldata with both orders");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
@@ -1036,6 +1055,9 @@ async fn test_cross_orderbook_selection_picks_best_book() {
         })
         .await
         .expect("Should succeed with orders from multiple orderbooks");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
@@ -1186,6 +1208,9 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
         })
         .await
         .expect("Should succeed with flipped economics");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     assert_eq!(
         result.orderbook(),
@@ -1326,6 +1351,9 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
         })
         .await
         .expect("Should succeed with orders from multiple orderbooks");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     assert_eq!(
         result.orderbook(), setup.orderbook_a,
@@ -1525,6 +1553,9 @@ async fn test_prices_sorted_best_to_worst_matching_config_orders() {
         })
         .await
         .expect("Should build calldata with both orders");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
@@ -1634,6 +1665,9 @@ async fn test_spend_up_to_mode_happy_path() {
         })
         .await
         .expect("Should succeed with funded vault and valid order in spend mode");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     assert_eq!(
         result.orderbook(),
@@ -1744,6 +1778,9 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
         })
         .await
         .expect("SpendUpTo mode should succeed");
+    let TakeOrdersCalldataResult::Ready(result_up_to) = result_up_to else {
+        panic!("Expected Ready variant for SpendUpTo");
+    };
 
     let result_exact = client
         .get_take_orders_calldata(TakeOrdersRequest {
@@ -1757,6 +1794,9 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
         })
         .await
         .expect("SpendExact mode should succeed");
+    let TakeOrdersCalldataResult::Ready(result_exact) = result_exact else {
+        panic!("Expected Ready variant for SpendExact");
+    };
 
     let decoded_up_to =
         takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
@@ -1869,6 +1909,9 @@ async fn test_spend_exact_mode_insufficient_liquidity() {
         })
         .await
         .expect("SpendUpTo mode calldata build should succeed even with insufficient liquidity");
+    let TakeOrdersCalldataResult::Ready(result_up_to) = result_up_to else {
+        panic!("Expected Ready variant");
+    };
 
     let decoded_up_to =
         takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
@@ -1967,6 +2010,9 @@ async fn test_spend_mode_max_sell_cap_equals_spend_budget() {
         })
         .await
         .expect("Spend mode should succeed");
+    let TakeOrdersCalldataResult::Ready(result_spend) = result_spend else {
+        panic!("Expected Ready variant for SpendUpTo");
+    };
 
     let result_buy = client
         .get_take_orders_calldata(TakeOrdersRequest {
@@ -1980,6 +2026,9 @@ async fn test_spend_mode_max_sell_cap_equals_spend_budget() {
         })
         .await
         .expect("Buy mode should succeed");
+    let TakeOrdersCalldataResult::Ready(result_buy) = result_buy else {
+        panic!("Expected Ready variant for BuyUpTo");
+    };
 
     let spend_budget_float = Float::parse(spend_budget.clone()).unwrap();
     let price_cap_float = Float::parse(price_cap).unwrap();
@@ -2105,6 +2154,9 @@ async fn test_spend_mode_cross_orderbook_selection() {
         })
         .await
         .expect("Should succeed with spend mode across multiple orderbooks");
+    let TakeOrdersCalldataResult::Ready(result) = result else {
+        panic!("Expected Ready variant");
+    };
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
@@ -2127,4 +2179,259 @@ async fn test_spend_mode_cross_orderbook_selection() {
             "All orders should be from orderbook B"
         );
     }
+}
+
+#[tokio::test]
+async fn test_get_take_orders_calldata_returns_approval_when_no_allowance() {
+    let setup = base_setup_test().await;
+    let sg_server = MockServer::start_async().await;
+
+    let vault_id = B256::from(U256::from(1u64));
+    fund_standard_two_token_vault(&setup, vault_id).await;
+
+    let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+    let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+    let dotrain = create_dotrain_config_with_params(&setup, "100", "2");
+    let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+    let order_json = create_sg_order_json(
+        &setup,
+        &order_bytes,
+        order_hash,
+        vec![vault1.clone(), vault2.clone()],
+        vec![vault1.clone(), vault2.clone()],
+    );
+
+    sg_server.mock(|when, then| {
+        when.path("/sg");
+        then.status(200).json_body_obj(&json!({
+            "data": {
+                "orders": [order_json]
+            }
+        }));
+    });
+
+    let yaml = get_minimal_yaml_for_chain(
+        123,
+        &setup.local_evm.url().to_string(),
+        &sg_server.url("/sg"),
+        &setup.orderbook.to_string(),
+    );
+
+    let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_taker(
+        &setup,
+        setup.token1,
+        taker,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
+    let result = client
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
+        .await
+        .expect("Should succeed with approval result");
+
+    let TakeOrdersCalldataResult::NeedsApproval(approval) = result else {
+        panic!("Expected NeedsApproval variant when taker has no allowance");
+    };
+
+    assert_eq!(
+        approval.token, setup.token1,
+        "Approval token should be sell_token"
+    );
+    assert_eq!(
+        approval.spender, setup.orderbook,
+        "Approval spender should be orderbook"
+    );
+    assert!(
+        !approval.calldata.is_empty(),
+        "Approval calldata should not be empty"
+    );
+}
+
+#[tokio::test]
+async fn test_get_take_orders_calldata_returns_approval_when_insufficient_allowance() {
+    let setup = base_setup_test().await;
+    let sg_server = MockServer::start_async().await;
+
+    let vault_id = B256::from(U256::from(1u64));
+    fund_standard_two_token_vault(&setup, vault_id).await;
+
+    let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+    let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+    let dotrain = create_dotrain_config_with_params(&setup, "100", "2");
+    let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+    let order_json = create_sg_order_json(
+        &setup,
+        &order_bytes,
+        order_hash,
+        vec![vault1.clone(), vault2.clone()],
+        vec![vault1.clone(), vault2.clone()],
+    );
+
+    sg_server.mock(|when, then| {
+        when.path("/sg");
+        then.status(200).json_body_obj(&json!({
+            "data": {
+                "orders": [order_json]
+            }
+        }));
+    });
+
+    let yaml = get_minimal_yaml_for_chain(
+        123,
+        &setup.local_evm.url().to_string(),
+        &sg_server.url("/sg"),
+        &setup.orderbook.to_string(),
+    );
+
+    let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_taker(
+        &setup,
+        setup.token1,
+        taker,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
+    let insufficient_allowance = U256::from(10).pow(U256::from(18));
+    approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        insufficient_allowance,
+    )
+    .await;
+
+    let result = client
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
+        .await
+        .expect("Should succeed with approval result");
+
+    let TakeOrdersCalldataResult::NeedsApproval(approval) = result else {
+        panic!("Expected NeedsApproval variant when allowance < max_sell_cap");
+    };
+
+    assert_eq!(
+        approval.token, setup.token1,
+        "Approval token should be sell_token"
+    );
+    assert_eq!(
+        approval.spender, setup.orderbook,
+        "Approval spender should be orderbook"
+    );
+}
+
+#[tokio::test]
+async fn test_get_take_orders_calldata_returns_take_orders_when_sufficient_allowance() {
+    let setup = base_setup_test().await;
+    let sg_server = MockServer::start_async().await;
+
+    let vault_id = B256::from(U256::from(1u64));
+    fund_standard_two_token_vault(&setup, vault_id).await;
+
+    let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+    let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+    let dotrain = create_dotrain_config_with_params(&setup, "100", "2");
+    let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+    let order_json = create_sg_order_json(
+        &setup,
+        &order_bytes,
+        order_hash,
+        vec![vault1.clone(), vault2.clone()],
+        vec![vault1.clone(), vault2.clone()],
+    );
+
+    sg_server.mock(|when, then| {
+        when.path("/sg");
+        then.status(200).json_body_obj(&json!({
+            "data": {
+                "orders": [order_json]
+            }
+        }));
+    });
+
+    let yaml = get_minimal_yaml_for_chain(
+        123,
+        &setup.local_evm.url().to_string(),
+        &sg_server.url("/sg"),
+        &setup.orderbook.to_string(),
+    );
+
+    let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_taker(
+        &setup,
+        setup.token1,
+        taker,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
+    let buy_target = Float::parse("100".to_string()).unwrap();
+    let price_cap = Float::parse(high_price_cap()).unwrap();
+    let max_sell_cap = buy_target.mul(price_cap).unwrap();
+    let sufficient_allowance = max_sell_cap.to_fixed_decimal(18).unwrap();
+    approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        sufficient_allowance,
+    )
+    .await;
+
+    let result = client
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
+        .await
+        .expect("Should succeed with take_orders result");
+
+    let TakeOrdersCalldataResult::Ready(take_orders) = result else {
+        panic!("Expected Ready variant when allowance is sufficient");
+    };
+
+    assert_eq!(
+        take_orders.orderbook, setup.orderbook,
+        "Orderbook address should match"
+    );
+    assert!(
+        !take_orders.calldata.is_empty(),
+        "Calldata should not be empty"
+    );
 }
