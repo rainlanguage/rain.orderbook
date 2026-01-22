@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect } from 'vitest';
 import type { ComponentProps } from 'svelte';
 import VaultIdInformation from '$lib/components/deployment/VaultIdInformation.svelte';
-import { Float, type AccountBalance } from '@rainlanguage/orderbook';
+import { Float, type RaindexAmount } from '@rainlanguage/orderbook';
 
 export type VaultIdInformationComponentProps = ComponentProps<VaultIdInformation>;
 
@@ -18,9 +18,9 @@ describe('VaultIdInformation', () => {
 		description: 'Test Description',
 		tokenBalance: {
 			value: {
-				balance: Float.parse('100').value,
-				formattedBalance: '100'
-			} as AccountBalance,
+				amount: Float.parse('100').value,
+				formattedAmount: '100'
+			} as RaindexAmount,
 			loading: false,
 			error: ''
 		}
@@ -39,9 +39,9 @@ describe('VaultIdInformation', () => {
 			...defaultProps,
 			tokenBalance: {
 				value: {
-					balance: Float.parse('0').value,
-					formattedBalance: '0'
-				} as AccountBalance,
+					amount: Float.parse('0').value,
+					formattedAmount: '0'
+				} as RaindexAmount,
 				loading: true,
 				error: ''
 			}
@@ -57,9 +57,9 @@ describe('VaultIdInformation', () => {
 			...defaultProps,
 			tokenBalance: {
 				value: {
-					balance: Float.parse('0').value,
-					formattedBalance: '0'
-				} as AccountBalance,
+					amount: Float.parse('0').value,
+					formattedAmount: '0'
+				} as RaindexAmount,
 				loading: false,
 				error: 'Failed to fetch balance'
 			}

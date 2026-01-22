@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import TokenBalance from '../lib/components/deployment/TokenBalance.svelte';
 import type { ComponentProps } from 'svelte';
 import type { TokenBalance as TokenBalanceType } from '$lib/types/tokenBalance';
-import { Float, type AccountBalance } from '@rainlanguage/orderbook';
+import { Float, type RaindexAmount } from '@rainlanguage/orderbook';
 
 type TokenBalanceComponentProps = ComponentProps<TokenBalance>;
 
@@ -15,12 +15,12 @@ vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 
 describe('TokenBalance', () => {
 	const createMockTokenBalance = (
-		balance = Float.parse('0').value,
-		formattedBalance: string = '0',
+		amount = Float.parse('0').value,
+		formattedAmount: string = '0',
 		loading: boolean = false,
 		error: string = ''
 	): TokenBalanceType => ({
-		value: { balance, formattedBalance } as AccountBalance,
+		value: { amount, formattedAmount } as RaindexAmount,
 		loading,
 		error
 	});
