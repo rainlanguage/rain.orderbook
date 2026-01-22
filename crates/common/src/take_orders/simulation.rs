@@ -138,16 +138,20 @@ fn filter_candidates_by_price_cap(
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
     Ok(candidates
         .into_iter()
-        .map(|candidate| {
-            candidate
-                .ratio
-                .lte(price_cap)
-                .map(|is_below_cap| if is_below_cap { Some(candidate) } else { None })
+        .filter_map(|candidate| {
+            let ratio = candidate.ratio;
+            match ratio.lte(price_cap) {
+                Ok(is_below_cap) => {
+                    if is_below_cap {
+                        Some(Ok(candidate))
+                    } else {
+                        None
+                    }
+                }
+                Err(e) => Some(Err(e)),
+            }
         })
-        .collect::<Result<Vec<_>, _>>()?
-        .into_iter()
-        .flatten()
-        .collect())
+        .collect::<Result<Vec<_>, _>>()?)
 }
 
 pub fn simulate_buy_over_candidates(
@@ -166,7 +170,7 @@ pub fn simulate_buy_over_candidates(
     };
     let mut legs: Vec<SelectedTakeOrderLeg> = Vec::new();
 
-    for candidate in filtered {
+    for candidate in filtered.into_iter() {
         if totals.remaining_output.lte(zero)? {
             break;
         }
@@ -200,7 +204,7 @@ pub fn simulate_spend_over_candidates(
     };
     let mut legs: Vec<SelectedTakeOrderLeg> = Vec::new();
 
-    for candidate in filtered {
+    for candidate in filtered.into_iter() {
         if totals.remaining_input.lte(zero)? {
             break;
         }

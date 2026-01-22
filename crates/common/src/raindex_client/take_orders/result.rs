@@ -1,5 +1,5 @@
 use crate::raindex_client::RaindexError;
-use crate::take_orders::{BuiltTakeOrdersConfig, ParsedTakeOrdersMode};
+use crate::take_orders::{build_approval_calldata, BuiltTakeOrdersConfig, ParsedTakeOrdersMode};
 use alloy::primitives::{Address, Bytes};
 use alloy::sol_types::SolCall;
 use rain_math_float::Float;
@@ -11,7 +11,22 @@ use wasm_bindgen_utils::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct TakeOrdersCalldataResult {
+pub struct ApprovalInfo {
+    #[tsify(type = "Address")]
+    pub token: Address,
+    #[tsify(type = "Address")]
+    pub spender: Address,
+    #[tsify(type = "Hex")]
+    pub amount: Float,
+    pub formatted_amount: String,
+    #[tsify(type = "Hex")]
+    pub calldata: Bytes,
+}
+impl_wasm_traits!(ApprovalInfo);
+
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct TakeOrdersInfo {
     #[tsify(type = "Address")]
     pub orderbook: Address,
     #[tsify(type = "Hex")]
@@ -25,7 +40,33 @@ pub struct TakeOrdersCalldataResult {
     #[tsify(type = "Hex")]
     pub max_sell_cap: Float,
 }
+impl_wasm_traits!(TakeOrdersInfo);
+
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum TakeOrdersCalldataResult {
+    NeedsApproval(ApprovalInfo),
+    Ready(TakeOrdersInfo),
+}
 impl_wasm_traits!(TakeOrdersCalldataResult);
+
+pub(crate) fn build_approval_result(
+    token: Address,
+    spender: Address,
+    amount: Float,
+    decimals: u8,
+) -> Result<TakeOrdersCalldataResult, RaindexError> {
+    let amount_u256 = amount.to_fixed_decimal(decimals)?;
+    let calldata = build_approval_calldata(spender, amount_u256);
+    let formatted_amount = amount.format().unwrap_or_default();
+    Ok(TakeOrdersCalldataResult::NeedsApproval(ApprovalInfo {
+        token,
+        spender,
+        amount,
+        formatted_amount,
+        calldata,
+    }))
+}
 
 pub(crate) fn build_calldata_result(
     orderbook: Address,
@@ -63,14 +104,14 @@ pub(crate) fn build_calldata_result(
         mode.target_amount()
     };
 
-    Ok(TakeOrdersCalldataResult {
+    Ok(TakeOrdersCalldataResult::Ready(TakeOrdersInfo {
         orderbook,
         calldata,
         effective_price,
         prices,
         expected_sell,
         max_sell_cap,
-    })
+    }))
 }
 
 #[cfg(test)]
@@ -118,17 +159,19 @@ mod tests {
         let result = build_calldata_result(ob, built, mode, price_cap);
 
         assert!(result.is_ok());
-        let calldata_result = result.unwrap();
-        assert_eq!(calldata_result.orderbook, ob);
-        assert!(!calldata_result.calldata.is_empty());
-        assert!(!calldata_result.prices.is_empty());
+        let TakeOrdersCalldataResult::Ready(take_orders_info) = result.unwrap() else {
+            panic!("Expected Ready variant");
+        };
+        assert_eq!(take_orders_info.orderbook, ob);
+        assert!(!take_orders_info.calldata.is_empty());
+        assert!(!take_orders_info.prices.is_empty());
 
-        let decoded =
-            takeOrders4Call::abi_decode(&calldata_result.calldata).expect("Should decode calldata");
+        let decoded = takeOrders4Call::abi_decode(&take_orders_info.calldata)
+            .expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(
-            !decoded.config.IOIsInput,
-            "IOIsInput should be false for buy mode (taker output constraints)"
+            decoded.config.IOIsInput,
+            "IOIsInput should be true for buy mode (taker output constraints)"
         );
     }
 
@@ -151,17 +194,19 @@ mod tests {
         let result = build_calldata_result(ob, built, mode, price_cap);
 
         assert!(result.is_ok());
-        let calldata_result = result.unwrap();
-        assert_eq!(calldata_result.orderbook, ob);
-        assert!(!calldata_result.calldata.is_empty());
-        assert!(!calldata_result.prices.is_empty());
+        let TakeOrdersCalldataResult::Ready(take_orders_info) = result.unwrap() else {
+            panic!("Expected Ready variant");
+        };
+        assert_eq!(take_orders_info.orderbook, ob);
+        assert!(!take_orders_info.calldata.is_empty());
+        assert!(!take_orders_info.prices.is_empty());
 
-        let decoded =
-            takeOrders4Call::abi_decode(&calldata_result.calldata).expect("Should decode calldata");
+        let decoded = takeOrders4Call::abi_decode(&take_orders_info.calldata)
+            .expect("Should decode calldata");
         assert!(!decoded.config.orders.is_empty());
         assert!(
-            decoded.config.IOIsInput,
-            "IOIsInput should be true for spend mode (taker input constraints)"
+            !decoded.config.IOIsInput,
+            "IOIsInput should be false for spend mode (taker input constraints)"
         );
     }
 
@@ -182,10 +227,13 @@ mod tests {
             .unwrap();
 
         let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let TakeOrdersCalldataResult::Ready(take_orders_info) = result else {
+            panic!("Expected Ready variant");
+        };
 
         let zero = Float::zero().unwrap();
         assert!(
-            result.effective_price.gt(zero).unwrap(),
+            take_orders_info.effective_price.gt(zero).unwrap(),
             "Effective price should be > 0"
         );
     }
@@ -208,14 +256,17 @@ mod tests {
             .unwrap();
 
         let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let TakeOrdersCalldataResult::Ready(take_orders_info) = result else {
+            panic!("Expected Ready variant");
+        };
 
         assert_eq!(
-            result.prices.len(),
+            take_orders_info.prices.len(),
             leg_count,
             "Number of prices should match number of legs"
         );
         assert!(
-            result.prices[0].eq(ratio).unwrap(),
+            take_orders_info.prices[0].eq(ratio).unwrap(),
             "Price should match the candidate ratio"
         );
     }
@@ -237,16 +288,22 @@ mod tests {
             .unwrap();
 
         let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let TakeOrdersCalldataResult::Ready(take_orders_info) = result else {
+            panic!("Expected Ready variant");
+        };
 
         let expected_sell = Float::parse("20".to_string()).unwrap();
         let expected_max_sell_cap = Float::parse("30".to_string()).unwrap();
 
         assert!(
-            result.expected_sell.eq(expected_sell).unwrap(),
+            take_orders_info.expected_sell.eq(expected_sell).unwrap(),
             "expected_sell should be output * ratio = 10 * 2 = 20"
         );
         assert!(
-            result.max_sell_cap.eq(expected_max_sell_cap).unwrap(),
+            take_orders_info
+                .max_sell_cap
+                .eq(expected_max_sell_cap)
+                .unwrap(),
             "max_sell_cap should be buy_target * price_cap = 10 * 3 = 30"
         );
     }
@@ -268,17 +325,42 @@ mod tests {
             .unwrap();
 
         let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let TakeOrdersCalldataResult::Ready(take_orders_info) = result else {
+            panic!("Expected Ready variant");
+        };
 
         let expected_sell = Float::parse("20".to_string()).unwrap();
         let expected_max_sell_cap = Float::parse("20".to_string()).unwrap();
 
         assert!(
-            result.expected_sell.eq(expected_sell).unwrap(),
+            take_orders_info.expected_sell.eq(expected_sell).unwrap(),
             "expected_sell should equal spend_budget = 20"
         );
         assert!(
-            result.max_sell_cap.eq(expected_max_sell_cap).unwrap(),
+            take_orders_info
+                .max_sell_cap
+                .eq(expected_max_sell_cap)
+                .unwrap(),
             "max_sell_cap in spend mode should equal spend_budget = 20"
         );
+    }
+
+    #[test]
+    fn test_build_approval_result_produces_valid_approval_info() {
+        let token = Address::from([0x22u8; 20]);
+        let spender = Address::from([0x33u8; 20]);
+        let amount = Float::parse("1000".to_string()).unwrap();
+        let decimals = 18u8;
+
+        let result = build_approval_result(token, spender, amount, decimals).unwrap();
+
+        let TakeOrdersCalldataResult::NeedsApproval(approval_info) = result else {
+            panic!("Expected NeedsApproval variant");
+        };
+        assert_eq!(approval_info.token, token);
+        assert_eq!(approval_info.spender, spender);
+        assert!(approval_info.amount.eq(amount).unwrap());
+        assert_eq!(approval_info.formatted_amount, "1000");
+        assert!(!approval_info.calldata.is_empty());
     }
 }
