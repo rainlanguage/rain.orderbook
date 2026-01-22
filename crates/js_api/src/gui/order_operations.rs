@@ -384,9 +384,9 @@ impl DotrainOrderGui {
             };
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
-            let allowance_float = Float::from_fixed_decimal(token_allowance.allowance, decimals)?;
+            let deposit_amount_fixed = deposit_amount.to_fixed_decimal(decimals)?;
 
-            if !allowance_float.eq(*deposit_amount)? {
+            if token_allowance.allowance < deposit_amount_fixed {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
                     amount: deposit_amount.to_fixed_decimal(decimals)?,
