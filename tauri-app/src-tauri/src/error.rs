@@ -10,6 +10,8 @@ use rain_orderbook_common::fuzz::FuzzRunnerError;
 use rain_orderbook_common::raindex_client::RaindexError;
 use rain_orderbook_common::remove_order::RemoveOrderArgsError;
 use rain_orderbook_common::transaction::WritableTransactionExecuteError;
+use rain_orderbook_common::deposit::DepositError;
+use rain_orderbook_common::withdraw::WithdrawError;
 use rain_orderbook_common::{
     add_order::AddOrderArgsError, csv::TryIntoCsvError, meta::TryDecodeRainlangSourceError,
     rainlang::ForkParseError, utils::timestamp::FormatTimestampDisplayError,
@@ -110,6 +112,12 @@ pub enum CommandError {
 
     #[error(transparent)]
     YamlError(#[from] YamlError),
+
+    #[error(transparent)]
+    WithdrawError(#[from] WithdrawError),
+
+    #[error(transparent)]
+    DepositError(#[from] DepositError),
 }
 
 impl Serialize for CommandError {

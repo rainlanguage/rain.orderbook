@@ -1,10 +1,9 @@
 use alloy::primitives::Bytes;
 use alloy::sol_types::SolCall;
-use rain_math_float::FloatError;
 use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::approveCall};
 use rain_orderbook_common::{
     csv::TryIntoCsv,
-    deposit::DepositArgs,
+    deposit::{DepositArgs, DepositError},
     subgraph::SubgraphArgs,
     transaction::TransactionArgs,
     types::{FlattenError, TokenVaultFlattened, VaultBalanceChangeFlattened},
@@ -111,7 +110,7 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let deposit_call: deposit4Call = deposit_args.try_into().inspect_err(|e: &FloatError| {
+    let deposit_call: deposit4Call = deposit_args.try_into().inspect_err(|e: &DepositError| {
         toast_error(&app_handle, e.to_string());
     })?;
     Ok(Bytes::from(deposit_call.abi_encode()))
@@ -139,13 +138,12 @@ pub async fn vault_withdraw(
 }
 
 #[tauri::command]
-pub async fn vault_withdraw_calldata<R: Runtime>(
+pub fn vault_withdraw_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     withdraw_args: WithdrawArgs,
 ) -> CommandResult<Bytes> {
     let calldata = withdraw_args
         .get_withdraw_calldata()
-        .await
         .inspect_err(|e| {
             toast_error(&app_handle, e.to_string());
         })?;
@@ -568,7 +566,6 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
                 target_amount,
             },
         )
-        .await
         .unwrap();
 
         let target_amount_bytes = target_amount.get_inner();
