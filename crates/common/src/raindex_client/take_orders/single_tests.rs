@@ -14,7 +14,10 @@ use crate::test_helpers::local_evm::{
 use crate::test_helpers::orders::deploy::deploy_order;
 use crate::test_helpers::quotes::{make_quote, make_quote_value};
 use crate::test_helpers::subgraph::{create_sg_order_json, get_minimal_yaml_for_chain};
-use alloy::primitives::{B256, U256};
+use alloy::network::{ReceiptResponse, TransactionBuilder};
+use alloy::primitives::{Bytes, B256, U256};
+use alloy::rpc::types::TransactionRequest;
+use alloy::serde::WithOtherFields;
 use alloy::sol_types::SolCall;
 use httpmock::MockServer;
 use rain_math_float::Float;
@@ -128,10 +131,20 @@ async fn test_single_order_take_happy_path_buy_up_to() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed with BuyUpTo mode");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with BuyUpTo mode");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     assert_eq!(result.orderbook(), setup.orderbook);
     assert!(!result.calldata().is_empty());
     assert_eq!(
@@ -227,10 +240,20 @@ async fn test_single_order_take_happy_path_buy_exact() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed with BuyExact mode");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with BuyExact mode");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
@@ -319,10 +342,20 @@ async fn test_single_order_take_happy_path_spend_up_to() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed with SpendUpTo mode");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with SpendUpTo mode");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
@@ -535,7 +568,16 @@ async fn test_single_order_take_buy_exact_insufficient_liquidity() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None).await;
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await;
 
     assert!(
         matches!(result, Err(RaindexError::InsufficientLiquidity { .. })),
@@ -617,7 +659,16 @@ async fn test_single_order_take_price_exceeds_cap() {
     let price_cap = Float::parse("2".to_string()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None).await;
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await;
 
     assert!(
         matches!(result, Err(RaindexError::NoLiquidity)),
@@ -740,21 +791,26 @@ async fn test_single_order_take_preflight_insufficient_balance() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None).await;
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with approval result");
 
-    match &result {
-        Err(RaindexError::PreflightError(msg)) => {
-            assert!(
-                msg.contains("Order failed simulation"),
-                "Single order preflight failure should report 'Order failed simulation', got: {}",
-                msg
-            );
-        }
-        _ => panic!(
-            "Should return PreflightError when taker has no balance, got: {:?}",
-            result
-        ),
-    }
+    assert!(
+        result.is_needs_approval(),
+        "Should return NeedsApproval when taker has no balance (allowance check happens first), got: {:?}",
+        result
+    );
+    let approval_info = result.approval_info().expect("Should have approval info");
+    assert_eq!(approval_info.token(), setup.token1);
+    assert_eq!(approval_info.spender(), setup.orderbook);
 }
 
 #[tokio::test]
@@ -840,21 +896,193 @@ async fn test_single_order_take_preflight_insufficient_allowance() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None).await;
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with approval result");
 
-    match &result {
-        Err(RaindexError::PreflightError(msg)) => {
-            assert!(
-                msg.contains("Order failed simulation"),
-                "Single order preflight failure should report 'Order failed simulation', got: {}",
-                msg
-            );
-        }
-        _ => panic!(
-            "Should return PreflightError when taker has no allowance, got: {:?}",
-            result
-        ),
-    }
+    assert!(
+        result.is_needs_approval(),
+        "Should return NeedsApproval when taker has no allowance, got: {:?}",
+        result
+    );
+    let approval_info = result.approval_info().expect("Should have approval info");
+    assert_eq!(approval_info.token(), setup.token1);
+    assert_eq!(approval_info.spender(), setup.orderbook);
+}
+
+#[tokio::test]
+async fn test_single_order_take_approval_then_ready_flow() {
+    let setup = base_setup_test().await;
+    let sg_server = MockServer::start_async().await;
+
+    let vault_id = B256::from(U256::from(1u64));
+    fund_standard_two_token_vault(&setup, vault_id).await;
+
+    let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+    let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+    let dotrain = create_dotrain_config_with_params(&setup, "100", "2");
+    let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+    let order_json = create_sg_order_json(
+        &setup,
+        &order_bytes,
+        order_hash,
+        vec![vault1.clone(), vault2.clone()],
+        vec![vault1.clone(), vault2.clone()],
+    );
+
+    sg_server.mock(|when, then| {
+        when.path("/sg");
+        then.status(200).json_body_obj(&json!({
+            "data": {
+                "orders": [order_json]
+            }
+        }));
+    });
+
+    let yaml = get_minimal_yaml_for_chain(
+        123,
+        &setup.local_evm.url().to_string(),
+        &sg_server.url("/sg"),
+        &setup.orderbook.to_string(),
+    );
+
+    let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+    let order = client
+        .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
+        .await
+        .unwrap();
+
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+
+    let token_contract = setup
+        .local_evm
+        .tokens
+        .iter()
+        .find(|t| *t.address() == setup.token1)
+        .expect("Token should exist");
+
+    let amount = U256::from(10).pow(U256::from(22));
+    token_contract
+        .transfer(taker, amount)
+        .from(setup.owner)
+        .send()
+        .await
+        .unwrap()
+        .get_receipt()
+        .await
+        .unwrap();
+
+    let max_output = Float::parse("100".to_string()).unwrap();
+    let ratio = Float::parse("2".to_string()).unwrap();
+    let max_input = max_output.mul(ratio).unwrap();
+    let quote = make_quote(
+        0,
+        1,
+        Some(make_quote_value(max_output, max_input, ratio)),
+        true,
+    );
+
+    let candidate = build_candidate_from_quote(&order, &quote)
+        .unwrap()
+        .expect("Should build candidate from quote");
+
+    let mode = parse_buy_up_to("50");
+    let price_cap = Float::parse(high_price_cap()).unwrap();
+    let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
+
+    // Step 1: First call should return NeedsApproval
+    let result = execute_single_take(
+        candidate.clone(),
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with approval result");
+
+    assert!(
+        result.is_needs_approval(),
+        "First call should return NeedsApproval, got: {:?}",
+        result
+    );
+
+    let approval_info = result.approval_info().expect("Should have approval info");
+    assert_eq!(approval_info.token(), setup.token1);
+    assert_eq!(approval_info.spender(), setup.orderbook);
+    assert!(
+        !approval_info.calldata().is_empty(),
+        "Approval calldata should not be empty"
+    );
+
+    // Step 2: Execute the approval transaction
+    let approval_tx = WithOtherFields::new(
+        TransactionRequest::default()
+            .with_input(Bytes::from(approval_info.calldata().to_vec()))
+            .with_to(approval_info.token())
+            .with_from(taker),
+    );
+
+    let approval_result = setup
+        .local_evm
+        .send_transaction(approval_tx)
+        .await
+        .expect("Failed to send approval transaction");
+
+    assert!(
+        approval_result.status(),
+        "Approval transaction should succeed"
+    );
+
+    // Step 3: Second call should return Ready with take order calldata
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with ready result after approval");
+
+    assert!(
+        result.is_ready(),
+        "Second call after approval should return Ready, got: {:?}",
+        result
+    );
+
+    let take_info = result
+        .take_orders_info()
+        .expect("Should have take orders info");
+    assert_eq!(take_info.orderbook(), setup.orderbook);
+    assert!(
+        !take_info.calldata().is_empty(),
+        "Take orders calldata should not be empty"
+    );
+
+    // Verify the calldata is valid by decoding it
+    let decoded = takeOrders4Call::abi_decode(take_info.calldata())
+        .expect("Should decode take orders calldata");
+    assert_eq!(
+        decoded.config.orders.len(),
+        1,
+        "Should have exactly 1 order"
+    );
 }
 
 #[tokio::test]
@@ -932,10 +1160,20 @@ async fn test_single_order_take_calldata_encoding_buy_mode() {
     let price_cap = Float::parse(price_cap_str.to_string()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
@@ -1029,10 +1267,20 @@ async fn test_single_order_take_expected_spend_calculation() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     let expected_sell = Float::parse("100".to_string()).unwrap();
     assert!(
         result.expected_sell().eq(expected_sell).unwrap(),
@@ -1130,10 +1378,20 @@ async fn test_single_order_take_spend_exact_mode() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed with SpendExact mode");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed with SpendExact mode");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
@@ -1350,7 +1608,16 @@ async fn test_single_order_take_spend_exact_insufficient_liquidity() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None).await;
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await;
 
     assert!(
         matches!(result, Err(RaindexError::InsufficientLiquidity { .. })),
@@ -1434,10 +1701,20 @@ async fn test_single_order_take_calldata_encoding_spend_mode() {
     let price_cap = Float::parse(price_cap_str.to_string()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
@@ -1540,10 +1817,20 @@ async fn test_single_order_take_expected_receive_calculation() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
-    let result = execute_single_take(candidate, mode, price_cap, taker, &rpc_urls, None)
-        .await
-        .expect("Should succeed");
+    let result = execute_single_take(
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        &rpc_urls,
+        None,
+        setup.token1,
+    )
+    .await
+    .expect("Should succeed");
 
+    assert!(result.is_ready());
+    let result = result.take_orders_info().unwrap();
     let expected_sell = Float::parse("100".to_string()).unwrap();
     assert!(
         result.expected_sell().eq(expected_sell).unwrap(),

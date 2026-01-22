@@ -526,6 +526,15 @@ impl RaindexOrder {
             return Err(RaindexError::NegativePriceCap);
         }
 
+        let sell_token = self
+            .inputs
+            .get(input_index as usize)
+            .ok_or(RaindexError::InvalidInputIndex(input_index))?
+            .token()
+            .address();
+        #[cfg(target_family = "wasm")]
+        let sell_token = Address::from_str(&sell_token)?;
+
         let rpc_urls = self.get_rpc_urls()?;
 
         let rpc_client = RpcClient::new_with_urls(rpc_urls.clone())?;
@@ -548,6 +557,7 @@ impl RaindexOrder {
             taker_addr,
             &rpc_urls,
             Some(block_number),
+            sell_token,
         )
         .await
     }
@@ -2495,6 +2505,8 @@ mod tests {
         }
 
         fn make_test_calldata_result() -> TakeOrdersCalldataResult {
+            use crate::raindex_client::take_orders::result::TakeOrdersInfoData;
+
             let orderbook = Address::from([0x11u8; 20]);
             let calldata = Bytes::from(vec![0x01, 0x02, 0x03, 0x04]);
             let effective_price = Float::parse("1.5".to_string()).unwrap();
@@ -2505,14 +2517,14 @@ mod tests {
             let expected_sell = Float::parse("150".to_string()).unwrap();
             let max_sell_cap = Float::parse("200".to_string()).unwrap();
 
-            TakeOrdersCalldataResult::new(
+            TakeOrdersCalldataResult::ready(TakeOrdersInfoData {
                 orderbook,
                 calldata,
                 effective_price,
                 prices,
                 expected_sell,
                 max_sell_cap,
-            )
+            })
         }
 
         #[wasm_bindgen_test]
@@ -2564,26 +2576,33 @@ mod tests {
         fn test_take_orders_calldata_result_wasm_serialization() {
             let result = make_test_calldata_result();
 
-            let js_value =
-                to_js_value(&result).expect("Should serialize TakeOrdersCalldataResult to JS");
-            let roundtrip: TakeOrdersCalldataResult = from_js_value(js_value)
-                .expect("Should deserialize TakeOrdersCalldataResult from JS");
+            assert!(result.is_ready());
+            let result_info = result.take_orders_info().unwrap();
 
-            assert_eq!(roundtrip.orderbook(), result.orderbook());
-            assert_eq!(roundtrip.calldata(), result.calldata());
+            let js_value =
+                to_js_value(&result_info).expect("Should serialize TakeOrdersInfo to JS");
+            let roundtrip: crate::raindex_client::take_orders::TakeOrdersInfo =
+                from_js_value(js_value).expect("Should deserialize TakeOrdersInfo from JS");
+
+            assert_eq!(roundtrip.orderbook(), result_info.orderbook());
+            assert_eq!(roundtrip.calldata(), result_info.calldata());
             assert!(roundtrip
                 .effective_price()
-                .eq(result.effective_price())
+                .eq(result_info.effective_price())
                 .unwrap());
-            assert_eq!(roundtrip.prices().len(), result.prices().len());
-            for (rt_price, orig_price) in roundtrip.prices().iter().zip(result.prices().iter()) {
+            assert_eq!(roundtrip.prices().len(), result_info.prices().len());
+            for (rt_price, orig_price) in roundtrip.prices().iter().zip(result_info.prices().iter())
+            {
                 assert!(rt_price.eq(*orig_price).unwrap());
             }
             assert!(roundtrip
                 .expected_sell()
-                .eq(result.expected_sell())
+                .eq(result_info.expected_sell())
                 .unwrap());
-            assert!(roundtrip.max_sell_cap().eq(result.max_sell_cap()).unwrap());
+            assert!(roundtrip
+                .max_sell_cap()
+                .eq(result_info.max_sell_cap())
+                .unwrap());
         }
 
         #[wasm_bindgen_test]

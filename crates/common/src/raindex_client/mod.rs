@@ -336,6 +336,8 @@ pub enum RaindexError {
     PreflightError(String),
     #[error("Quote data is missing")]
     QuoteDataMissing,
+    #[error("Invalid input index: {0}")]
+    InvalidInputIndex(u32),
 }
 
 impl From<DotrainOrderError> for RaindexError {
@@ -500,6 +502,12 @@ impl RaindexError {
             }
             RaindexError::QuoteDataMissing => {
                 "Quote data is missing. Please ensure the quote was successful.".to_string()
+            }
+            RaindexError::InvalidInputIndex(index) => {
+                format!(
+                    "Invalid input index: {}. The order does not have an input at this index.",
+                    index
+                )
             }
         }
     }

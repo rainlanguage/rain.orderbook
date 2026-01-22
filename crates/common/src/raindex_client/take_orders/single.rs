@@ -15,6 +15,7 @@ use std::ops::{Div, Mul};
 use std::str::FromStr;
 use url::Url;
 
+use super::approval::{check_approval_needed, ApprovalCheckParams};
 use super::result::{build_calldata_result, TakeOrderEstimate, TakeOrdersCalldataResult};
 
 pub fn build_candidate_from_quote(
@@ -108,11 +109,27 @@ pub async fn execute_single_take(
     taker: Address,
     rpc_urls: &[Url],
     block_number: Option<u64>,
+    sell_token: Address,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
     let zero = Float::zero()?;
 
     if candidate.ratio.gt(price_cap)? {
         return Err(RaindexError::NoLiquidity);
+    }
+
+    let orderbook = candidate.orderbook;
+
+    let approval_params = ApprovalCheckParams {
+        rpc_urls: rpc_urls.to_vec(),
+        sell_token,
+        taker,
+        orderbook,
+        mode,
+        price_cap,
+    };
+
+    if let Some(approval_result) = check_approval_needed(&approval_params).await? {
+        return Ok(approval_result);
     }
 
     let target = mode.target_amount();
@@ -160,8 +177,6 @@ pub async fn execute_single_take(
 
     let provider =
         mk_read_provider(rpc_urls).map_err(|e| RaindexError::PreflightError(e.to_string()))?;
-
-    let orderbook = candidate.orderbook;
 
     let sim_result =
         simulate_take_orders(&provider, orderbook, taker, &built.config, block_number).await;
