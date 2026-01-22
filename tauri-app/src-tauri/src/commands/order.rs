@@ -791,7 +791,7 @@ _ _: 0 0;
         assert!(matches!(
             err,
             CommandError::DotrainOrderError(DotrainOrderError::SpecVersionMismatch(ref expected, ref actual))
-            if expected == "4" && actual == "1"
+            if expected == "5" && actual == "1"
         ));
     }
 }

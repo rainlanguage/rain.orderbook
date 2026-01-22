@@ -809,7 +809,7 @@ b: fuzzed;
         assert!(matches!(
             err,
             FuzzRunnerError::SpecVersionMismatch(ref expected, ref actual)
-                if expected == "4" && actual == "1"
+                if expected == "5" && actual == "1"
         ));
     }
 

@@ -408,6 +408,16 @@ pub fn optional_string(value: &StrictYaml, field: &str) -> Option<String> {
     value[field].as_str().map(|s| s.to_string())
 }
 
+pub fn optional_bool(value: &StrictYaml, field: &str) -> Option<bool> {
+    value[field]
+        .as_str()
+        .and_then(|s| match s.to_ascii_lowercase().as_str() {
+            "true" | "1" => Some(true),
+            "false" | "0" => Some(false),
+            _ => None,
+        })
+}
+
 pub fn require_hash<'a>(
     value: &'a StrictYaml,
     field: Option<&str>,

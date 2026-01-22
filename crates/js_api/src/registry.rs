@@ -591,7 +591,7 @@ mod tests {
 fixed-limit https://example.com/fixed-limit.rain
 auction-dca https://example.com/auction-dca.rain"#;
 
-    const MOCK_SETTINGS_CONTENT: &str = r#"version: 4
+    const MOCK_SETTINGS_CONTENT: &str = r#"version: 5
 networks:
   flare:
     rpcs:
@@ -981,7 +981,7 @@ _ _: 1 1;
             );
             assert_eq!(merged1, expected1);
 
-            assert!(merged1.starts_with("version: 4\nnetworks:"));
+            assert!(merged1.starts_with("version: 5\nnetworks:"));
             assert!(merged1.contains("\n\ngui:"));
             assert!(merged1.contains("_ _: 0 0;"));
 
@@ -993,7 +993,7 @@ _ _: 1 1;
             );
             assert_eq!(merged2, expected2);
 
-            assert!(merged2.starts_with("version: 4\nnetworks:"));
+            assert!(merged2.starts_with("version: 5\nnetworks:"));
             assert!(merged2.contains("\n\ngui:"));
             assert!(merged2.contains("_ _: 1 1;"));
 

@@ -136,7 +136,7 @@ gui:
 `;
 
 const dotrain = `
-version: 4
+version: 5
 networks:
     some-network:
         rpcs:
@@ -215,7 +215,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 4
+version: 5
 networks:
     some-network:
         rpcs:
@@ -287,7 +287,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 4
+version: 5
 networks:
     some-network:
         rpcs:
@@ -344,7 +344,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainForRemotes = `
-version: 4
+version: 5
 gui:
   name: Test
   description: Fixed limit order
@@ -969,7 +969,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21Qy0rEMBTtraIgLkTcCoJba9MwteMwrnxQRHBTZXQjM53YlKZJaZMO4ke4dOsPDH6BW3d-j7iTYuJMmbmLnOSec5NzAtZfbWqUpJLOKOXjlCege8jamGfrIVPE1p01w4iMcM8ytarRR4dHLQn-l6xo9BCCZZfh9skYrEROHE7kRJSZmdvVSKUseq7LRDxkVFSy10Vd3y2L2FEle24U0Kxgnj6Pwh29fel_T_e_-tOPV__9Z2Dj48-3GLZhXdNR42EPg4kdYduaVfsTwNjyYCHTjDsweVKlqLx3itMsGdCL64R3gqBWQZJ3rkY30e2kvgv9h_Dx8kycbOkZISkpnTEpmHjKCZe_KJd7OsUBAAA=';
+			'H4sIAAAAAAAA_21QwUrDQBDNRlEQDyJeBcGrazYLW5NSD2IDEaVIieC1TVYTu9mNyda2-BEevfoDxS_w6s3vEW8SnLUGO4d9s_Pe7L4ZZP3EJqDmlcbDTCaZvEVQI9bGX_ZhIMbchsqaYdSIS9cysQrIyGGrIaG_khVAlxC07DHavBmDlco5llxPVDkyfbuAqdZF23GEigciVZVue8RjTlnEeFyKx1qB6hOZr4Mo3IH0qfM53__ozN-e2evXtU3995cYbaN1oKPawx5FZuyI2tYimktAxpaL_s204A4gie_62UnSu5xO8-C0iz3m9e-7F0EwS3vhpDhj5-GNn_jDoxa_Ot6CHqVTXuKEF0LNci71N8oNjEjFAQAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {

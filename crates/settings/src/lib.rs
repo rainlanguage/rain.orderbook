@@ -16,7 +16,6 @@ pub mod remote;
 pub mod remote_networks;
 pub mod remote_tokens;
 pub mod scenario;
-pub mod sentry;
 pub mod spec_version;
 pub mod subgraph;
 pub mod token;

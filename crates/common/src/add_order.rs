@@ -3,9 +3,9 @@ use crate::{
     rainlang::compose_to_rainlang,
     transaction::{TransactionArgs, TransactionArgsError},
 };
-use alloy::primitives::{hex::FromHexError, Address, B256};
 #[cfg(not(target_family = "wasm"))]
-use alloy::primitives::{FixedBytes, U256};
+use alloy::primitives::FixedBytes;
+use alloy::primitives::{hex::FromHexError, Address, B256, U256};
 use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::{
     ReadableClient, ReadableClientError, WritableClientError, WriteContractParameters,
@@ -68,6 +68,18 @@ pub enum AddOrderArgsError {
     OutputTokenNotFound(String),
     #[error("Invalid input args: {0}")]
     InvalidArgs(String),
+    #[error(
+        "Invalid vault-id value for input at index {0}. For vaultless mode use vaultless: true"
+    )]
+    InvalidInputVaultIdZero(usize),
+    #[error(
+        "Invalid vault-id value for output at index {0}. For vaultless mode use vaultless: true"
+    )]
+    InvalidOutputVaultIdZero(usize),
+    #[error("Using vault-id is not allowed in vaultless mode for input at index {0}")]
+    VaultIdNotAllowedInVaultlessModeInput(usize),
+    #[error("Using vault-id is not allowed in vaultless mode for output at index {0}")]
+    VaultIdNotAllowedInVaultlessModeOutput(usize),
 }
 
 impl From<DotrainOrderError> for AddOrderArgsError {
@@ -99,7 +111,12 @@ impl AddOrderArgs {
         dotrain: String,
         deployment: DeploymentCfg,
     ) -> Result<AddOrderArgs, AddOrderArgsError> {
-        let random_vault_id = B256::random();
+        let random_vault_id = loop {
+            let id = B256::random();
+            if id != B256::ZERO {
+                break id;
+            }
+        };
 
         let mut inputs = vec![];
         for (i, input) in deployment.order.inputs.iter().enumerate() {
@@ -108,9 +125,20 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::InputTokenNotFound(i.to_string()))?;
 
+            let vault_id = if input.vaultless == Some(true) {
+                if input.vault_id.is_some() {
+                    return Err(AddOrderArgsError::VaultIdNotAllowedInVaultlessModeInput(i));
+                }
+                B256::ZERO
+            } else if input.vault_id == Some(U256::ZERO) {
+                return Err(AddOrderArgsError::InvalidInputVaultIdZero(i));
+            } else {
+                input.vault_id.map(B256::from).unwrap_or(random_vault_id)
+            };
+
             inputs.push(IOV2 {
                 token: input_token.address,
-                vaultId: input.vault_id.map(B256::from).unwrap_or(random_vault_id),
+                vaultId: vault_id,
             });
         }
 
@@ -121,9 +149,20 @@ impl AddOrderArgs {
                 .as_ref()
                 .ok_or_else(|| AddOrderArgsError::OutputTokenNotFound(i.to_string()))?;
 
+            let vault_id = if output.vaultless == Some(true) {
+                if output.vault_id.is_some() {
+                    return Err(AddOrderArgsError::VaultIdNotAllowedInVaultlessModeOutput(i));
+                }
+                B256::ZERO
+            } else if output.vault_id == Some(U256::ZERO) {
+                return Err(AddOrderArgsError::InvalidOutputVaultIdZero(i));
+            } else {
+                output.vault_id.map(B256::from).unwrap_or(random_vault_id)
+            };
+
             outputs.push(IOV2 {
                 token: output_token.address,
-                vaultId: output.vault_id.map(B256::from).unwrap_or(random_vault_id),
+                vaultId: vault_id,
             });
         }
 
@@ -499,15 +538,18 @@ price: 2e18;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: None,
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: None,
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -612,15 +654,18 @@ _ _: 0 0;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -768,15 +813,18 @@ _ _: 0 0;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: None,
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(known_vault_id),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: None,
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -1100,15 +1148,18 @@ _ _: 16 52;
                 OrderIOCfg {
                     token: Some(token1_arc.clone()),
                     vault_id: Some(U256::from(2)),
+                    vaultless: None,
                 },
                 OrderIOCfg {
                     token: Some(token2_arc.clone()),
                     vault_id: Some(U256::from(1)),
+                    vaultless: None,
                 },
             ],
             outputs: vec![OrderIOCfg {
                 token: Some(token3_arc.clone()),
                 vault_id: Some(U256::from(4)),
+                vaultless: None,
             }],
             network: network_arc.clone(),
             deployer: None,
@@ -1583,5 +1634,191 @@ _ _: 0 0;
             ),
             "unexpected error variant: {err:?}"
         );
+    }
+
+    #[tokio::test]
+    async fn test_vaultless_with_vault_id_input_error() {
+        let network = NetworkCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-network".to_string(),
+            rpcs: vec![Url::parse("https://some-rpc.com").unwrap()],
+            chain_id: 137,
+            label: None,
+            network_id: None,
+            currency: None,
+        };
+        let network_arc = Arc::new(network);
+        let deployer = DeployerCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            network: network_arc.clone(),
+            address: Address::default(),
+        };
+        let deployer_arc = Arc::new(deployer);
+        let scenario = ScenarioCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
+            bindings: HashMap::new(),
+            runs: None,
+            blocks: None,
+            deployer: deployer_arc.clone(),
+        };
+        let token1 = TokenCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token1".to_string()),
+        };
+        let token2 = TokenCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token2".to_string()),
+        };
+        let token1_arc = Arc::new(token1);
+        let token2_arc = Arc::new(token2);
+        let order = OrderCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            inputs: vec![OrderIOCfg {
+                token: Some(token1_arc.clone()),
+                vault_id: Some(U256::from(123)),
+                vaultless: Some(true),
+            }],
+            outputs: vec![OrderIOCfg {
+                token: Some(token2_arc.clone()),
+                vault_id: None,
+                vaultless: None,
+            }],
+            network: network_arc.clone(),
+            deployer: None,
+            orderbook: None,
+        };
+        let deployment = DeploymentCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            scenario: Arc::new(scenario),
+            order: Arc::new(order),
+        };
+
+        let dotrain = format!(
+            "
+version: {spec_version}
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+",
+            spec_version = SpecVersion::current()
+        );
+        let err = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::VaultIdNotAllowedInVaultlessModeInput(0)
+        ));
+    }
+
+    #[tokio::test]
+    async fn test_vaultless_with_vault_id_output_error() {
+        let network = NetworkCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-network".to_string(),
+            rpcs: vec![Url::parse("https://some-rpc.com").unwrap()],
+            chain_id: 137,
+            label: None,
+            network_id: None,
+            currency: None,
+        };
+        let network_arc = Arc::new(network);
+        let deployer = DeployerCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            network: network_arc.clone(),
+            address: Address::default(),
+        };
+        let deployer_arc = Arc::new(deployer);
+        let scenario = ScenarioCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "test-scenario".to_string(),
+            bindings: HashMap::new(),
+            runs: None,
+            blocks: None,
+            deployer: deployer_arc.clone(),
+        };
+        let token1 = TokenCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token1".to_string()),
+        };
+        let token2 = TokenCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            address: Address::default(),
+            network: network_arc.clone(),
+            decimals: Some(18),
+            label: None,
+            symbol: Some("Token2".to_string()),
+        };
+        let token1_arc = Arc::new(token1);
+        let token2_arc = Arc::new(token2);
+        let order = OrderCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            inputs: vec![OrderIOCfg {
+                token: Some(token1_arc.clone()),
+                vault_id: None,
+                vaultless: None,
+            }],
+            outputs: vec![OrderIOCfg {
+                token: Some(token2_arc.clone()),
+                vault_id: Some(U256::from(456)),
+                vaultless: Some(true),
+            }],
+            network: network_arc.clone(),
+            deployer: None,
+            orderbook: None,
+        };
+        let deployment = DeploymentCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "".to_string(),
+            scenario: Arc::new(scenario),
+            order: Arc::new(order),
+        };
+
+        let dotrain = format!(
+            "
+version: {spec_version}
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+_ _: 0 0;
+",
+            spec_version = SpecVersion::current()
+        );
+        let err = AddOrderArgs::new_from_deployment(dotrain.to_string(), deployment)
+            .await
+            .unwrap_err();
+        assert!(matches!(
+            err,
+            AddOrderArgsError::VaultIdNotAllowedInVaultlessModeOutput(0)
+        ));
     }
 }
