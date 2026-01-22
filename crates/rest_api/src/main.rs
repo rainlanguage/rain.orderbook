@@ -5,7 +5,10 @@ use error::ApiErrorResponse;
 use rocket::http::Method;
 use rocket::{launch, Build, Rocket};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
-use routes::take_orders::{TakeOrdersApiRequest, TakeOrdersApiResponse, TakeOrdersMode};
+use routes::take_orders::{
+    ApprovalApiResponse, TakeOrdersApiRequest, TakeOrdersApiResponse, TakeOrdersMode,
+    TakeOrdersReadyResponse,
+};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -19,6 +22,8 @@ use utoipa_swagger_ui::SwaggerUi;
     components(schemas(
         TakeOrdersApiRequest,
         TakeOrdersApiResponse,
+        ApprovalApiResponse,
+        TakeOrdersReadyResponse,
         TakeOrdersMode,
         ApiErrorResponse
     )),
@@ -274,6 +279,8 @@ mod tests {
         let schemas = &spec["components"]["schemas"];
         assert!(schemas["TakeOrdersApiRequest"].is_object());
         assert!(schemas["TakeOrdersApiResponse"].is_object());
+        assert!(schemas["ApprovalApiResponse"].is_object());
+        assert!(schemas["TakeOrdersReadyResponse"].is_object());
         assert!(schemas["TakeOrdersMode"].is_object());
         assert!(schemas["ApiErrorResponse"].is_object());
     }
@@ -290,5 +297,39 @@ mod tests {
         assert!(responses["400"].is_object());
         assert!(responses["404"].is_object());
         assert!(responses["500"].is_object());
+    }
+
+    #[test]
+    fn test_openapi_json_contains_response_examples() {
+        let client = client();
+        let response = client.get("/swagger/openapi.json").dispatch();
+        let body = response.into_string().unwrap();
+        let spec: serde_json::Value = serde_json::from_str(&body).unwrap();
+
+        let examples = &spec["paths"]["/take-orders"]["post"]["responses"]["200"]["content"]
+            ["application/json"]["examples"];
+
+        assert!(examples["Ready"].is_object(), "Ready example should exist");
+        assert!(
+            examples["NeedsApproval"].is_object(),
+            "NeedsApproval example should exist"
+        );
+
+        let ready_value = &examples["Ready"]["value"];
+        assert_eq!(ready_value["status"], "ready");
+        assert!(ready_value["data"]["orderbook"].is_string());
+        assert!(ready_value["data"]["calldata"].is_string());
+        assert!(ready_value["data"]["effectivePrice"].is_string());
+        assert!(ready_value["data"]["prices"].is_array());
+        assert!(ready_value["data"]["expectedSell"].is_string());
+        assert!(ready_value["data"]["maxSellCap"].is_string());
+
+        let needs_approval_value = &examples["NeedsApproval"]["value"];
+        assert_eq!(needs_approval_value["status"], "needsApproval");
+        assert!(needs_approval_value["data"]["token"].is_string());
+        assert!(needs_approval_value["data"]["spender"].is_string());
+        assert!(needs_approval_value["data"]["amount"].is_string());
+        assert!(needs_approval_value["data"]["formattedAmount"].is_string());
+        assert!(needs_approval_value["data"]["calldata"].is_string());
     }
 }
