@@ -1,5 +1,7 @@
 use crate::error::{ApiError, ApiErrorResponse};
-use rain_orderbook_common::raindex_client::take_orders::TakeOrdersRequest;
+use rain_orderbook_common::raindex_client::take_orders::{
+    TakeOrdersCalldataResult, TakeOrdersRequest,
+};
 use rain_orderbook_common::raindex_client::RaindexClient;
 use rain_orderbook_common::take_orders::TakeOrdersMode;
 use rocket::serde::json::Json;
@@ -73,7 +75,42 @@ pub struct SellRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct TakeOrdersApiResponse {
+#[schema(example = json!({
+    "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "spender": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+    "amount": "1000",
+    "formattedAmount": "1000",
+    "calldata": "0x095ea7b3..."
+}))]
+pub struct ApprovalApiResponse {
+    /// Token address that needs approval
+    #[schema(example = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")]
+    pub token: String,
+    /// Spender address (the orderbook contract)
+    #[schema(example = "0xd2938e7c9fe3597f78832ce780feb61945c377d7")]
+    pub spender: String,
+    /// Amount to approve (raw value)
+    #[schema(example = "1000")]
+    pub amount: String,
+    /// Human-readable formatted amount
+    #[schema(example = "1000")]
+    pub formatted_amount: String,
+    /// ABI-encoded approval calldata
+    #[schema(example = "0x095ea7b3...")]
+    pub calldata: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+#[schema(example = json!({
+    "orderbook": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+    "calldata": "0x...",
+    "effectivePrice": "0.00045",
+    "prices": ["0.00044", "0.00046"],
+    "expectedSell": "450",
+    "maxSellCap": "500"
+}))]
+pub struct TakeOrdersReadyResponse {
     /// Address of the orderbook contract to call
     #[schema(example = "0xd2938e7c9fe3597f78832ce780feb61945c377d7")]
     pub orderbook: String,
@@ -94,6 +131,15 @@ pub struct TakeOrdersApiResponse {
     pub max_sell_cap: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase", tag = "status", content = "data")]
+pub enum TakeOrdersApiResponse {
+    #[schema(title = "NeedsApproval")]
+    NeedsApproval(ApprovalApiResponse),
+    #[schema(title = "Ready")]
+    Ready(TakeOrdersReadyResponse),
+}
+
 async fn execute_take_orders(
     yaml_content: String,
     request: TakeOrdersRequest,
@@ -102,44 +148,63 @@ async fn execute_take_orders(
 
     let result = client.get_take_orders_calldata(request).await?;
 
-    let effective_price = result.effective_price.format().map_err(|e| {
-        ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-            e,
-        ))
-    })?;
-
-    let prices: Result<Vec<String>, _> = result
-        .prices
-        .iter()
-        .map(|p| {
-            p.format().map_err(|e| {
+    match result {
+        TakeOrdersCalldataResult::NeedsApproval(approval_info) => {
+            let amount = approval_info.amount.format().map_err(|e| {
                 ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
                     e,
                 ))
-            })
-        })
-        .collect();
+            })?;
 
-    let expected_sell = result.expected_sell.format().map_err(|e| {
-        ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-            e,
-        ))
-    })?;
+            Ok(TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
+                token: approval_info.token.to_string(),
+                spender: approval_info.spender.to_string(),
+                amount,
+                formatted_amount: approval_info.formatted_amount,
+                calldata: approval_info.calldata.to_string(),
+            }))
+        }
+        TakeOrdersCalldataResult::Ready(take_orders_info) => {
+            let effective_price = take_orders_info.effective_price.format().map_err(|e| {
+                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                    e,
+                ))
+            })?;
 
-    let max_sell_cap = result.max_sell_cap.format().map_err(|e| {
-        ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-            e,
-        ))
-    })?;
+            let prices: Result<Vec<String>, _> = take_orders_info
+                .prices
+                .iter()
+                .map(|p| {
+                    p.format().map_err(|e| {
+                        ApiError::Raindex(
+                            rain_orderbook_common::raindex_client::RaindexError::Float(e),
+                        )
+                    })
+                })
+                .collect();
 
-    Ok(TakeOrdersApiResponse {
-        orderbook: result.orderbook.to_string(),
-        calldata: result.calldata.to_string(),
-        effective_price,
-        prices: prices?,
-        expected_sell,
-        max_sell_cap,
-    })
+            let expected_sell = take_orders_info.expected_sell.format().map_err(|e| {
+                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                    e,
+                ))
+            })?;
+
+            let max_sell_cap = take_orders_info.max_sell_cap.format().map_err(|e| {
+                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                    e,
+                ))
+            })?;
+
+            Ok(TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
+                orderbook: take_orders_info.orderbook.to_string(),
+                calldata: take_orders_info.calldata.to_string(),
+                effective_price,
+                prices: prices?,
+                expected_sell,
+                max_sell_cap,
+            }))
+        }
+    }
 }
 
 #[utoipa::path(
@@ -148,7 +213,39 @@ async fn execute_take_orders(
     tag = "Take Orders",
     request_body = BuyRequest,
     responses(
-        (status = 200, description = "Successfully generated buy calldata", body = TakeOrdersApiResponse),
+        (status = 200, description = "Successfully generated buy calldata. Returns either approval info if token approval is needed, or ready calldata if approval is sufficient.", body = TakeOrdersApiResponse,
+            examples(
+                ("Ready" = (
+                    summary = "Calldata ready to execute",
+                    description = "Returned when the taker has sufficient token approval. The calldata can be submitted directly to the orderbook.",
+                    value = json!({
+                        "status": "ready",
+                        "data": {
+                            "orderbook": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+                            "calldata": "0x...",
+                            "effectivePrice": "0.00045",
+                            "prices": ["0.00044", "0.00046"],
+                            "expectedSell": "450",
+                            "maxSellCap": "500"
+                        }
+                    })
+                )),
+                ("NeedsApproval" = (
+                    summary = "Token approval required",
+                    description = "Returned when the taker needs to approve token spending before executing. Submit the approval calldata first, then retry the request.",
+                    value = json!({
+                        "status": "needsApproval",
+                        "data": {
+                            "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                            "spender": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+                            "amount": "1000",
+                            "formattedAmount": "1000",
+                            "calldata": "0x095ea7b3..."
+                        }
+                    })
+                ))
+            )
+        ),
         (status = 400, description = "Invalid request parameters", body = ApiErrorResponse),
         (status = 404, description = "No liquidity found or configuration not found", body = ApiErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse)
@@ -196,7 +293,39 @@ pub async fn buy(request: Json<BuyRequest>) -> Result<Json<TakeOrdersApiResponse
     tag = "Take Orders",
     request_body = SellRequest,
     responses(
-        (status = 200, description = "Successfully generated sell calldata", body = TakeOrdersApiResponse),
+        (status = 200, description = "Successfully generated sell calldata. Returns either approval info if token approval is needed, or ready calldata if approval is sufficient.", body = TakeOrdersApiResponse,
+            examples(
+                ("Ready" = (
+                    summary = "Calldata ready to execute",
+                    description = "Returned when the taker has sufficient token approval. The calldata can be submitted directly to the orderbook.",
+                    value = json!({
+                        "status": "ready",
+                        "data": {
+                            "orderbook": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+                            "calldata": "0x...",
+                            "effectivePrice": "0.00045",
+                            "prices": ["0.00044", "0.00046"],
+                            "expectedSell": "450",
+                            "maxSellCap": "500"
+                        }
+                    })
+                )),
+                ("NeedsApproval" = (
+                    summary = "Token approval required",
+                    description = "Returned when the taker needs to approve token spending before executing. Submit the approval calldata first, then retry the request.",
+                    value = json!({
+                        "status": "needsApproval",
+                        "data": {
+                            "token": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                            "spender": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+                            "amount": "1000",
+                            "formattedAmount": "1000",
+                            "calldata": "0x095ea7b3..."
+                        }
+                    })
+                ))
+            )
+        ),
         (status = 400, description = "Invalid request parameters", body = ApiErrorResponse),
         (status = 404, description = "No liquidity found or configuration not found", body = ApiErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse)
@@ -343,23 +472,46 @@ mod tests {
     }
 
     #[test]
-    fn test_response_serialization() {
-        let response = TakeOrdersApiResponse {
+    fn test_response_serialization_ready() {
+        let response = TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
             orderbook: "0x1234567890123456789012345678901234567890".to_string(),
             calldata: "0xabcdef".to_string(),
             effective_price: "1.5".to_string(),
             prices: vec!["1.4".to_string(), "1.6".to_string()],
             expected_sell: "150".to_string(),
             max_sell_cap: "200".to_string(),
-        };
+        });
 
         let json = serde_json::to_string(&response).unwrap();
 
+        assert!(json.contains("\"status\":\"ready\""));
+        assert!(json.contains("\"data\":"));
         assert!(json.contains("\"orderbook\":"));
         assert!(json.contains("\"calldata\":"));
         assert!(json.contains("\"effectivePrice\":"));
         assert!(json.contains("\"prices\":"));
         assert!(json.contains("\"expectedSell\":"));
         assert!(json.contains("\"maxSellCap\":"));
+    }
+
+    #[test]
+    fn test_response_serialization_needs_approval() {
+        let response = TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
+            token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".to_string(),
+            spender: "0xd2938e7c9fe3597f78832ce780feb61945c377d7".to_string(),
+            amount: "1000".to_string(),
+            formatted_amount: "1000".to_string(),
+            calldata: "0x095ea7b3...".to_string(),
+        });
+
+        let json = serde_json::to_string(&response).unwrap();
+
+        assert!(json.contains("\"status\":\"needsApproval\""));
+        assert!(json.contains("\"data\":"));
+        assert!(json.contains("\"token\":"));
+        assert!(json.contains("\"spender\":"));
+        assert!(json.contains("\"amount\":"));
+        assert!(json.contains("\"formattedAmount\":"));
+        assert!(json.contains("\"calldata\":"));
     }
 }

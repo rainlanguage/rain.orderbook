@@ -5,7 +5,9 @@ use error::ApiErrorResponse;
 use rocket::http::Method;
 use rocket::{launch, Build, Rocket};
 use rocket_cors::{AllowedHeaders, AllowedOrigins, CorsOptions};
-use routes::take_orders::{BuyRequest, SellRequest, TakeOrdersApiResponse};
+use routes::take_orders::{
+    ApprovalApiResponse, BuyRequest, SellRequest, TakeOrdersApiResponse, TakeOrdersReadyResponse,
+};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -20,6 +22,8 @@ use utoipa_swagger_ui::SwaggerUi;
         BuyRequest,
         SellRequest,
         TakeOrdersApiResponse,
+        ApprovalApiResponse,
+        TakeOrdersReadyResponse,
         ApiErrorResponse
     )),
     tags(
@@ -424,6 +428,8 @@ mod tests {
         assert!(schemas["BuyRequest"].is_object());
         assert!(schemas["SellRequest"].is_object());
         assert!(schemas["TakeOrdersApiResponse"].is_object());
+        assert!(schemas["ApprovalApiResponse"].is_object());
+        assert!(schemas["TakeOrdersReadyResponse"].is_object());
         assert!(schemas["ApiErrorResponse"].is_object());
     }
 
@@ -540,31 +546,93 @@ mod tests {
         let body = response.into_string().unwrap();
         let spec: serde_json::Value = serde_json::from_str(&body).unwrap();
 
-        let response_schema = &spec["components"]["schemas"]["TakeOrdersApiResponse"]["properties"];
+        let ready_schema = &spec["components"]["schemas"]["TakeOrdersReadyResponse"]["properties"];
 
         assert_eq!(
-            response_schema["orderbook"]["description"],
+            ready_schema["orderbook"]["description"],
             "Address of the orderbook contract to call"
         );
         assert_eq!(
-            response_schema["calldata"]["description"],
+            ready_schema["calldata"]["description"],
             "ABI-encoded calldata for the takeOrders4 function"
         );
         assert_eq!(
-            response_schema["effectivePrice"]["description"],
+            ready_schema["effectivePrice"]["description"],
             "Blended effective price across all selected orders (tokenIn per 1 tokenOut)"
         );
         assert_eq!(
-            response_schema["prices"]["description"],
+            ready_schema["prices"]["description"],
             "Individual prices for each order leg, sorted from best to worst"
         );
         assert_eq!(
-            response_schema["expectedSell"]["description"],
+            ready_schema["expectedSell"]["description"],
             "Expected amount of tokenIn to spend based on current quotes"
         );
         assert_eq!(
-            response_schema["maxSellCap"]["description"],
+            ready_schema["maxSellCap"]["description"],
             "Maximum tokenIn that could be spent (worst-case based on maxRatio)"
         );
+
+        let approval_schema = &spec["components"]["schemas"]["ApprovalApiResponse"]["properties"];
+
+        assert_eq!(
+            approval_schema["token"]["description"],
+            "Token address that needs approval"
+        );
+        assert_eq!(
+            approval_schema["spender"]["description"],
+            "Spender address (the orderbook contract)"
+        );
+        assert_eq!(
+            approval_schema["amount"]["description"],
+            "Amount to approve (raw value)"
+        );
+        assert_eq!(
+            approval_schema["formattedAmount"]["description"],
+            "Human-readable formatted amount"
+        );
+        assert_eq!(
+            approval_schema["calldata"]["description"],
+            "ABI-encoded approval calldata"
+        );
+    }
+
+    #[test]
+    fn test_openapi_json_contains_response_examples() {
+        let client = client();
+        let response = client.get("/swagger/openapi.json").dispatch();
+        let body = response.into_string().unwrap();
+        let spec: serde_json::Value = serde_json::from_str(&body).unwrap();
+
+        for endpoint in ["/take-orders/buy", "/take-orders/sell"] {
+            let examples = &spec["paths"][endpoint]["post"]["responses"]["200"]["content"]
+                ["application/json"]["examples"];
+
+            assert!(
+                examples["Ready"].is_object(),
+                "Ready example should exist for {endpoint}"
+            );
+            assert!(
+                examples["NeedsApproval"].is_object(),
+                "NeedsApproval example should exist for {endpoint}"
+            );
+
+            let ready_value = &examples["Ready"]["value"];
+            assert_eq!(ready_value["status"], "ready");
+            assert!(ready_value["data"]["orderbook"].is_string());
+            assert!(ready_value["data"]["calldata"].is_string());
+            assert!(ready_value["data"]["effectivePrice"].is_string());
+            assert!(ready_value["data"]["prices"].is_array());
+            assert!(ready_value["data"]["expectedSell"].is_string());
+            assert!(ready_value["data"]["maxSellCap"].is_string());
+
+            let needs_approval_value = &examples["NeedsApproval"]["value"];
+            assert_eq!(needs_approval_value["status"], "needsApproval");
+            assert!(needs_approval_value["data"]["token"].is_string());
+            assert!(needs_approval_value["data"]["spender"].is_string());
+            assert!(needs_approval_value["data"]["amount"].is_string());
+            assert!(needs_approval_value["data"]["formattedAmount"].is_string());
+            assert!(needs_approval_value["data"]["calldata"].is_string());
+        }
     }
 }
