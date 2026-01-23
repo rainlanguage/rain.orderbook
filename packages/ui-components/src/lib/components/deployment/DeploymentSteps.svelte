@@ -12,7 +12,7 @@
 		type VaultlessApprovalAmounts,
 		DotrainOrderGui,
 		RaindexClient,
-		AccountBalance,
+		RaindexAmount,
 		Float
 	} from '@rainlanguage/orderbook';
 	import WalletConnect from '../wallet/WalletConnect.svelte';
@@ -145,7 +145,7 @@
 
 		const balances = tokenBalances;
 		balances.set(tokenInfo.key, {
-			value: { balance: Float.parse('0').value, formattedBalance: '0' } as AccountBalance,
+			value: { amount: Float.parse('0').value, formattedAmount: '0' } as RaindexAmount,
 			loading: true,
 			error: ''
 		});
@@ -156,7 +156,7 @@
 		);
 		if (error) {
 			balances.set(tokenInfo.key, {
-				value: { balance: Float.parse('0').value, formattedBalance: '0' } as AccountBalance,
+				value: { amount: Float.parse('0').value, formattedAmount: '0' } as RaindexAmount,
 				loading: false,
 				error: error.readableMsg
 			});

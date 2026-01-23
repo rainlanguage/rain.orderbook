@@ -26,13 +26,13 @@ describe('DepositModal', () => {
 		},
 		getOwnerBalance: vi.fn().mockResolvedValue({
 			value: {
-				balance: Float.parse('1').value, // 1 token
-				formattedBalance: '1'
+				amount: Float.parse('1').value,
+				formattedAmount: '1'
 			}
 		}),
 		chainId: 1,
 		orderbook: '0x123',
-		balance: Float.parse('1').value as Float
+		formattedBalance: '1'
 	} as unknown as RaindexVault;
 
 	const mockOnSubmit = vi.fn();
@@ -78,8 +78,8 @@ describe('DepositModal', () => {
 	it('shows error when amount exceeds balance', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: Float.parse('0.5').value, // 0.5 tokens
-				formattedBalance: '0.5'
+				amount: Float.parse('0.5').value,
+				formattedAmount: '0.5'
 			}
 		});
 		render(DepositModal, defaultProps);
@@ -113,8 +113,8 @@ describe('DepositModal', () => {
 	it('disables continue button when amount exceeds balance', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: Float.parse('0.5').value, // 0.5 tokens
-				formattedBalance: '0.5'
+				amount: Float.parse('0.5').value,
+				formattedAmount: '0.5'
 			}
 		});
 		render(DepositModal, defaultProps);
@@ -134,8 +134,8 @@ describe('DepositModal', () => {
 	it('handles zero user balance correctly', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: Float.parse('0').value,
-				formattedBalance: '0'
+				amount: Float.parse('0').value,
+				formattedAmount: '0'
 			}
 		});
 
@@ -159,8 +159,8 @@ describe('DepositModal', () => {
 	it('displays user balance correctly', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: Float.parse('2.5').value,
-				formattedBalance: '2.5'
+				amount: Float.parse('2.5').value,
+				formattedAmount: '2.5'
 			}
 		});
 
@@ -191,8 +191,8 @@ describe('DepositModal', () => {
 	it('shows wallet address in truncated form', async () => {
 		(mockVault.getOwnerBalance as Mock).mockResolvedValue({
 			value: {
-				balance: Float.parse('1').value, // 1 token
-				formattedBalance: '1'
+				amount: Float.parse('1').value,
+				formattedAmount: '1'
 			}
 		});
 		render(DepositModal, defaultProps);

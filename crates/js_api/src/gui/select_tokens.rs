@@ -5,7 +5,7 @@ use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
 };
-use rain_orderbook_common::raindex_client::vaults::AccountBalance;
+use rain_orderbook_common::raindex_client::vaults::RaindexAmount;
 use std::str::FromStr;
 
 const MAX_CONCURRENT_FETCHES: usize = 5;
@@ -383,12 +383,12 @@ impl DotrainOrderGui {
     ///   return;
     /// }
     ///
-    /// console.log("Raw balance:", result.value.balance);
-    /// console.log("Formatted balance:", result.value.formattedBalance);
+    /// console.log("Raw balance:", result.value.amount);
+    /// console.log("Formatted balance:", result.value.formattedAmount);
     /// ```
     #[wasm_export(
         js_name = "getAccountBalance",
-        unchecked_return_type = "AccountBalance",
+        unchecked_return_type = "RaindexAmount",
         return_description = "Owner balance in both raw and human-readable format",
         preserve_js_class
     )]
@@ -401,7 +401,7 @@ impl DotrainOrderGui {
             unchecked_param_type = "Hex"
         )]
         owner: String,
-    ) -> Result<AccountBalance, GuiError> {
+    ) -> Result<RaindexAmount, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -420,7 +420,7 @@ impl DotrainOrderGui {
             .await?;
         let float_balance = Float::from_fixed_decimal(balance, decimals)?;
 
-        Ok(AccountBalance::new(float_balance, float_balance.format()?))
+        Ok(RaindexAmount::new(float_balance, float_balance.format()?))
     }
 }
 
@@ -833,7 +833,7 @@ mod tests {
         use alloy::primitives::{Address, U256};
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_common::raindex_client::vaults::AccountBalance;
+        use rain_orderbook_common::raindex_client::vaults::RaindexAmount;
         use serde_json::json;
         use std::str::FromStr;
 
@@ -1060,10 +1060,7 @@ _ _: 0 0;
                 .await
                 .unwrap();
 
-            assert_eq!(
-                balance,
-                AccountBalance::new(U256::from(1000), "0.000000000000001".to_string(),)
-            );
+            assert_eq!(balance.formatted_amount(), "0.000000000000001".to_string());
         }
     }
 }

@@ -9,7 +9,7 @@
 	import { validateAmount } from '$lib/services/validateAmount';
 	import { fade } from 'svelte/transition';
 	import truncateEthAddress from 'truncate-eth-address';
-	import { Float, type AccountBalance } from '@rainlanguage/orderbook';
+	import { Float, type RaindexAmount } from '@rainlanguage/orderbook';
 
 	/**
 	 * Modal component for withdrawing tokens from a vault.
@@ -22,10 +22,10 @@
 	const { vault, account } = args;
 
 	let amount: Float = Float.parse('0').value as Float;
-	let userBalance: AccountBalance = {
-		balance: Float.parse('0').value,
-		formattedBalance: '0'
-	} as unknown as AccountBalance;
+	let userBalance: RaindexAmount = {
+		amount: Float.parse('0').value,
+		formattedAmount: '0'
+	} as unknown as RaindexAmount;
 	let errorMessage = '';
 	let isCheckingCalldata = false;
 
@@ -68,7 +68,7 @@
 									>
 								</p>
 								<p in:fade>
-									{userBalance.formattedBalance}
+									{userBalance.formattedAmount}
 									{vault.token.symbol}
 								</p>
 							</div>

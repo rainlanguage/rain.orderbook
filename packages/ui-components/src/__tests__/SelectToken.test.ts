@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
-import { Float, type AccountBalance, type DotrainOrderGui } from '@rainlanguage/orderbook';
+import { Float, type RaindexAmount, type DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 import type { TokenBalance } from '$lib/types/tokenBalance';
 
@@ -331,9 +331,9 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: Float.parse('1').value,
-					formattedBalance: '1'
-				} as AccountBalance,
+					amount: Float.parse('1').value,
+					formattedAmount: '1'
+				} as RaindexAmount,
 				loading: false,
 				error: ''
 			});
@@ -366,9 +366,9 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: Float.parse('0').value,
-					formattedBalance: '0'
-				} as AccountBalance,
+					amount: Float.parse('0').value,
+					formattedAmount: '0'
+				} as RaindexAmount,
 				loading: true,
 				error: ''
 			});
@@ -401,9 +401,9 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: Float.parse('0').value,
-					formattedBalance: '0'
-				} as AccountBalance,
+					amount: Float.parse('0').value,
+					formattedAmount: '0'
+				} as RaindexAmount,
 				loading: false,
 				error: 'Network error'
 			});
@@ -436,9 +436,9 @@ describe('SelectToken', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('input', {
 				value: {
-					balance: Float.parse('1.5').value,
-					formattedBalance: '1.5'
-				} as AccountBalance,
+					amount: Float.parse('1.5').value,
+					formattedAmount: '1.5'
+				} as RaindexAmount,
 				loading: false,
 				error: ''
 			});

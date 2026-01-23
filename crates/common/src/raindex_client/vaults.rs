@@ -95,6 +95,7 @@ pub struct RaindexVault {
     id: Bytes,
     owner: Address,
     vault_id: U256,
+    vaultless: bool,
     balance: Float,
     formatted_balance: String,
     token: RaindexVaultToken,
@@ -130,6 +131,10 @@ impl RaindexVault {
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
         Self::u256_to_bigint(self.vault_id)
+    }
+    #[wasm_bindgen(getter)]
+    pub fn vaultless(&self) -> bool {
+        self.vaultless
     }
     #[wasm_bindgen(getter)]
     pub fn balance(&self) -> Float {
@@ -174,6 +179,9 @@ impl RaindexVault {
     pub fn vault_id(&self) -> U256 {
         self.vault_id
     }
+    pub fn vaultless(&self) -> bool {
+        self.vaultless
+    }
     pub fn balance(&self) -> Float {
         self.balance
     }
@@ -197,37 +205,37 @@ impl RaindexVault {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
-pub struct AccountBalance {
-    balance: Float,
-    formatted_balance: String,
+pub struct RaindexAmount {
+    amount: Float,
+    formatted_amount: String,
 }
-impl AccountBalance {
-    pub fn new(balance: Float, formatted_balance: String) -> Self {
+impl RaindexAmount {
+    pub fn new(amount: Float, formatted_amount: String) -> Self {
         Self {
-            balance,
-            formatted_balance,
+            amount,
+            formatted_amount,
         }
     }
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
-impl AccountBalance {
+impl RaindexAmount {
     #[wasm_bindgen(getter)]
-    pub fn balance(&self) -> Float {
-        self.balance
+    pub fn amount(&self) -> Float {
+        self.amount
     }
-    #[wasm_bindgen(getter = formattedBalance)]
-    pub fn formatted_balance(&self) -> String {
-        self.formatted_balance.clone()
+    #[wasm_bindgen(getter = formattedAmount)]
+    pub fn formatted_amount(&self) -> String {
+        self.formatted_amount.clone()
     }
 }
 #[cfg(not(target_family = "wasm"))]
-impl AccountBalance {
-    pub fn balance(&self) -> Float {
-        self.balance
+impl RaindexAmount {
+    pub fn amount(&self) -> Float {
+        self.amount
     }
-    pub fn formatted_balance(&self) -> String {
-        self.formatted_balance.clone()
+    pub fn formatted_amount(&self) -> String {
+        self.formatted_amount.clone()
     }
 }
 
@@ -534,20 +542,37 @@ impl RaindexVault {
     ///   return;
     /// }
     /// const allowance = result.value;
-    /// // Do something with the allowance
+    /// console.log("Formatted allowance:", allowance.formattedAmount);
     /// ```
     #[wasm_export(
         js_name = "getAllowance",
-        return_description = "Current allowance amount in token's smallest unit (e.g., \"1000000000000000000\" for 1 token with 18 decimals)"
+        return_description = "Allowance in both raw and human-readable format",
+        unchecked_return_type = "RaindexAmount",
+        preserve_js_class
     )]
-    pub async fn get_allowance(&self) -> Result<RaindexVaultAllowance, RaindexError> {
+    pub async fn get_allowance(&self) -> Result<RaindexAmount, RaindexError> {
         let (deposit_args, transaction_args) = self
             .get_deposit_and_transaction_args(&Float::parse("0".to_string())?)
             .await?;
-        let allowance = deposit_args
+        let allowance_u256 = deposit_args
             .read_allowance(self.owner, transaction_args.clone())
             .await?;
-        Ok(RaindexVaultAllowance(allowance))
+
+        let decimals = self.token.decimals;
+        let max_half = U256::MAX >> 1;
+
+        let (float_allowance, formatted) = if allowance_u256 >= max_half {
+            (Float::zero()?, "Unlimited".to_string())
+        } else {
+            let float = Float::from_fixed_decimal(allowance_u256, decimals)?;
+            let formatted = float.format()?;
+            (float, formatted)
+        };
+
+        Ok(RaindexAmount {
+            amount: float_allowance,
+            formatted_amount: formatted,
+        })
     }
 
     /// Fetches the balance of the owner for this vault
@@ -560,28 +585,27 @@ impl RaindexVault {
     /// ```javascript
     /// const result = await vault.getOwnerBalance();
     /// if (result.error) {
-    ///  console.error("Error fetching balance:", result.error.readableMsg);
-    /// return;
+    ///   console.error("Error fetching balance:", result.error.readableMsg);
+    ///   return;
     /// }
-    /// const accountBalance = result.value;
-    /// console.log("Raw balance:", accountBalance.balance);
-    /// console.log("Formatted balance:", accountBalance.formattedBalance);
+    /// const balance = result.value;
+    /// console.log("Raw balance:", balance.amount);
+    /// console.log("Formatted balance:", balance.formattedAmount);
     /// ```
     #[wasm_export(
         js_name = "getOwnerBalance",
         return_description = "Owner balance in both raw and human-readable format",
-        unchecked_return_type = "AccountBalance",
+        unchecked_return_type = "RaindexAmount",
         preserve_js_class
     )]
-    pub async fn get_owner_balance_wasm_binding(&self) -> Result<AccountBalance, RaindexError> {
+    pub async fn get_owner_balance_wasm_binding(&self) -> Result<RaindexAmount, RaindexError> {
         let balance = self.get_owner_balance(self.owner).await?;
         let decimals = self.token.decimals;
         let float_balance = Float::from_fixed_decimal(balance, decimals)?;
-        let account_balance = AccountBalance {
-            balance: float_balance,
-            formatted_balance: float_balance.format()?,
-        };
-        Ok(account_balance)
+        Ok(RaindexAmount {
+            amount: float_balance,
+            formatted_amount: float_balance.format()?,
+        })
     }
 }
 impl RaindexVault {
@@ -748,10 +772,6 @@ pub(crate) struct LocalTradeBalanceInfo {
     pub delta: String,
     pub running_balance: Option<String>,
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct RaindexVaultAllowance(#[tsify(type = "string")] U256);
-impl_wasm_traits!(RaindexVaultAllowance);
 
 impl RaindexVaultBalanceChange {
     pub fn try_from_sg_balance_change(
@@ -1389,6 +1409,8 @@ impl RaindexVault {
 
         let balance = Float::from_hex(&vault.balance.0)?;
         let formatted_balance = balance.format()?;
+        let vault_id = U256::from_str(&vault.vault_id.0)?;
+        let vaultless = vault_id == U256::ZERO;
 
         Ok(Self {
             raindex_client,
@@ -1396,7 +1418,8 @@ impl RaindexVault {
             vault_type,
             id: Bytes::from_str(&vault.id.0)?,
             owner: Address::from_str(&vault.owner.0)?,
-            vault_id: U256::from_str(&vault.vault_id.0)?,
+            vault_id,
+            vaultless,
             balance,
             formatted_balance,
             token,
@@ -1422,6 +1445,7 @@ impl RaindexVault {
             id: self.id.clone(),
             owner: self.owner,
             vault_id: self.vault_id,
+            vaultless: self.vaultless,
             balance: self.balance,
             formatted_balance: self.formatted_balance.clone(),
             token: self.token.clone(),
@@ -1462,6 +1486,7 @@ impl RaindexVault {
     ) -> Result<Self, RaindexError> {
         let balance = Float::from_hex(&vault.balance)?;
         let formatted_balance = balance.format()?;
+        let vaultless = vault.vault_id == U256::ZERO;
 
         let mut id = Vec::from(vault.orderbook_address.as_slice());
         id.extend_from_slice(vault.owner.as_slice());
@@ -1475,6 +1500,7 @@ impl RaindexVault {
             id: Bytes::from(id),
             owner: vault.owner,
             vault_id: vault.vault_id,
+            vaultless,
             balance,
             formatted_balance,
             token: RaindexVaultToken {
@@ -2036,6 +2062,78 @@ mod tests {
             assert_eq!(rv.token.name(), Some("Test Token".to_string()));
             assert_eq!(rv.token.symbol(), Some("TST".to_string()));
             assert_eq!(rv.token.decimals(), 6);
+        }
+
+        #[tokio::test]
+        async fn test_vaultless_true_when_vault_id_zero() {
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://sg1",
+                    "http://sg2",
+                    "http://rpc1",
+                    "http://rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let local_vault = LocalDbVault {
+                chain_id: 1,
+                vault_id: U256::ZERO,
+                token: address!("0x0000000000000000000000000000000000000001"),
+                owner: address!("0x0000000000000000000000000000000000000002"),
+                orderbook_address: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                token_name: "Vaultless Token".to_string(),
+                token_symbol: "VLT".to_string(),
+                token_decimals: 18,
+                balance: Float::parse("0".to_string()).unwrap().as_hex(),
+                input_orders: None,
+                output_orders: None,
+            };
+
+            let rv = RaindexVault::try_from_local_db(Rc::new(raindex_client), local_vault, None)
+                .unwrap();
+
+            assert!(
+                rv.vaultless(),
+                "vaultless should be true when vault_id is 0"
+            );
+        }
+
+        #[tokio::test]
+        async fn test_vaultless_false_when_vault_id_nonzero() {
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://sg1",
+                    "http://sg2",
+                    "http://rpc1",
+                    "http://rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let local_vault = LocalDbVault {
+                chain_id: 1,
+                vault_id: U256::from(1),
+                token: address!("0x0000000000000000000000000000000000000001"),
+                owner: address!("0x0000000000000000000000000000000000000002"),
+                orderbook_address: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                token_name: "Normal Token".to_string(),
+                token_symbol: "NRM".to_string(),
+                token_decimals: 18,
+                balance: Float::parse("100".to_string()).unwrap().as_hex(),
+                input_orders: None,
+                output_orders: None,
+            };
+
+            let rv = RaindexVault::try_from_local_db(Rc::new(raindex_client), local_vault, None)
+                .unwrap();
+
+            assert!(
+                !rv.vaultless(),
+                "vaultless should be false when vault_id is non-zero"
+            );
         }
 
         fn get_vault1_json() -> Value {
@@ -2901,7 +2999,7 @@ mod tests {
                 .await
                 .unwrap();
             let result = vault.get_allowance().await.unwrap();
-            assert_eq!(result.0, U256::from(1));
+            assert!(!result.formatted_amount().is_empty());
         }
 
         #[tokio::test]

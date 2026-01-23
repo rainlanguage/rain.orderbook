@@ -12,7 +12,7 @@
 		</div>
 	{:else if !tokenBalance.error}
 		<div class="text-sm text-gray-600 dark:text-gray-400">
-			Balance: {tokenBalance.value.formattedBalance}
+			Balance: {tokenBalance.value.formattedAmount}
 		</div>
 	{:else if tokenBalance.error}
 		<div class="text-sm text-red-600 dark:text-red-400">

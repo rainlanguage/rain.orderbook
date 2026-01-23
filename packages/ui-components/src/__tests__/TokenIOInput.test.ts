@@ -2,7 +2,7 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
-import { AccountBalance, DotrainOrderGui, Float } from '@rainlanguage/orderbook';
+import { RaindexAmount, DotrainOrderGui, Float } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 import type { TokenBalance } from '$lib/types/tokenBalance';
 
@@ -135,9 +135,9 @@ describe('TokenInput', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
 				value: {
-					balance: Float.parse('1').value,
-					formattedBalance: '1'
-				} as AccountBalance,
+					amount: Float.parse('1').value,
+					formattedAmount: '1'
+				} as RaindexAmount,
 				loading: false,
 				error: ''
 			});
@@ -157,9 +157,9 @@ describe('TokenInput', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
 				value: {
-					balance: Float.parse('0').value,
-					formattedBalance: '0'
-				} as AccountBalance,
+					amount: Float.parse('0').value,
+					formattedAmount: '0'
+				} as RaindexAmount,
 				loading: true,
 				error: ''
 			});
@@ -179,9 +179,9 @@ describe('TokenInput', () => {
 			const tokenBalances = new Map<string, TokenBalance>();
 			tokenBalances.set('test', {
 				value: {
-					balance: Float.parse('0').value,
-					formattedBalance: '0'
-				} as AccountBalance,
+					amount: Float.parse('0').value,
+					formattedAmount: '0'
+				} as RaindexAmount,
 				loading: false,
 				error: 'Network error'
 			});
