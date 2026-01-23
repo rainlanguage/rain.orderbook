@@ -1781,7 +1781,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 			const res = extractWasmEncodedData(await vault.getAllowance());
-			assert.equal(res, '0x64');
+			assert.equal(res.amount.format().value, Float.parse(res.formattedAmount).value.format().value);
+			assert.equal(res.formattedAmount, '1e-16');
 		});
 
 		it('should generate valid approval calldata with correct length', async () => {
@@ -1965,8 +1966,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const res = extractWasmEncodedData(await vault.getOwnerBalance());
-			assert.equal(res.balance.toFixedDecimal(18).value, BigInt(1000));
-			assert.equal(res.formattedBalance, '1e-15');
+			assert.equal(res.amount.format().value, Float.parse(res.formattedAmount).value.format().value);
+			assert.equal(res.formattedAmount, '1e-15');
 		});
 	});
 
