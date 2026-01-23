@@ -12,7 +12,10 @@ use rain_orderbook_bindings::{
     IOrderBookV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
 };
 use rain_orderbook_common::{
-    add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
+    add_order::AddOrderArgs,
+    deposit::{DepositArgs, DepositError},
+    erc20::ERC20,
+    transaction::TransactionArgs,
 };
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
@@ -64,6 +67,12 @@ pub struct IOVaultIds(
     pub  HashMap<String, HashMap<String, Option<U256>>>,
 );
 impl_wasm_traits!(IOVaultIds);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default, Tsify)]
+pub struct VaultlessApprovalAmounts(
+    #[tsify(type = "Map<string, string>")] pub HashMap<String, String>,
+);
+impl_wasm_traits!(VaultlessApprovalAmounts);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub struct WithdrawCalldataResult(#[tsify(type = "Hex[]")] Vec<Bytes>);
@@ -278,13 +287,30 @@ impl DotrainOrderGui {
 
     /// Generates approval calldatas for tokens that need increased allowances.
     ///
-    /// Automatically checks current allowances and generates approval calldata
-    /// whenever the on-chain allowance differs from the planned deposit amount.
+    /// Automatically checks current allowances and generates approval calldata for:
+    /// - Deposits: whenever the on-chain allowance differs from the planned deposit amount
+    /// - Vaultless outputs: tokens with vault_id = 0 need approval to orderbook
+    ///
+    /// ## Parameters
+    ///
+    /// - `owner` - Wallet address that will approve the tokens
+    /// - `vaultlessApprovalAmounts` - Optional map of token keys to approval amounts for
+    ///   vaultless outputs. Each key is a token key (e.g. "token1"), each value is the
+    ///   approval amount as a string. Tokens not in the map default to infinite approval
+    ///   (max uint256).
     ///
     /// ## Examples
     ///
     /// ```javascript
+    /// // With default infinite approval for all vaultless outputs
     /// const result = await gui.generateApprovalCalldatas(walletAddress);
+    ///
+    /// // With custom approval amounts per vaultless token key
+    /// const result = await gui.generateApprovalCalldatas(walletAddress, new Map([
+    ///   ["token1", "1000000000000000000"],
+    ///   ["token2", "2000000000000000000"]
+    /// ]));
+    ///
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -308,23 +334,46 @@ impl DotrainOrderGui {
         &mut self,
         #[wasm_export(param_description = "Wallet address that will approve the tokens")]
         owner: String,
+        #[wasm_export(
+            js_name = "vaultlessApprovalAmounts",
+            param_description = "Optional map of token keys to approval amounts for vaultless outputs. Defaults to infinite (max uint256) for tokens not in the map"
+        )]
+        vaultless_approval_amounts: Option<VaultlessApprovalAmounts>,
     ) -> Result<ApprovalCalldataResult, GuiError> {
         let deposits_map = self.get_deposits_as_map().await?;
-        if deposits_map.is_empty() {
+        let deployment = self.get_current_deployment()?;
+
+        let vaultless_outputs: Vec<_> = deployment
+            .deployment
+            .order
+            .outputs
+            .iter()
+            .filter(|output| output.vaultless == Some(true))
+            .collect();
+        let vaultless_addresses: Vec<Address> = vaultless_outputs
+            .iter()
+            .filter_map(|output| output.token.as_ref().map(|t| t.address))
+            .collect();
+
+        if deposits_map.is_empty() && vaultless_outputs.is_empty() {
             return Ok(ApprovalCalldataResult::NoDeposits);
         }
 
         let mut calldatas = Vec::new();
+        let owner_address = Address::from_str(&owner)?;
+        let tx_args = self.get_transaction_args()?;
+        let rpcs: Vec<Url> = tx_args
+            .rpcs
+            .iter()
+            .map(|rpc| Url::parse(rpc))
+            .collect::<Result<Vec<_>, _>>()?;
 
         for (token_address, deposit_amount) in &deposits_map {
-            let tx_args = self.get_transaction_args()?;
-            let rpcs = tx_args
-                .rpcs
-                .iter()
-                .map(|rpc| Url::parse(rpc))
-                .collect::<Result<Vec<_>, _>>()?;
+            if vaultless_addresses.contains(token_address) {
+                continue;
+            }
 
-            let erc20 = ERC20::new(rpcs, *token_address);
+            let erc20 = ERC20::new(rpcs.clone(), *token_address);
             let decimals = erc20.decimals().await?;
 
             let deposit_args = DepositArgs {
@@ -335,9 +384,9 @@ impl DotrainOrderGui {
             };
 
             let token_allowance = self.check_allowance(&deposit_args, &owner).await?;
-            let allowance_float = Float::from_fixed_decimal(token_allowance.allowance, decimals)?;
+            let deposit_amount_fixed = deposit_amount.to_fixed_decimal(decimals)?;
 
-            if !allowance_float.eq(*deposit_amount)? {
+            if token_allowance.allowance < deposit_amount_fixed {
                 let calldata = approveCall {
                     spender: tx_args.orderbook_address,
                     amount: deposit_amount.to_fixed_decimal(decimals)?,
@@ -346,6 +395,38 @@ impl DotrainOrderGui {
 
                 calldatas.push(ApprovalCalldata {
                     token: *token_address,
+                    calldata: Bytes::copy_from_slice(&calldata),
+                });
+            }
+        }
+
+        for output in vaultless_outputs {
+            let token = output.token.as_ref().ok_or(GuiError::SelectTokensNotSet)?;
+
+            let vaultless_amount = match &vaultless_approval_amounts {
+                Some(amounts) => match amounts.0.get(&token.key) {
+                    Some(amount) => {
+                        U256::from_str(amount).map_err(|_| GuiError::InvalidU256(amount.clone()))?
+                    }
+                    None => U256::MAX,
+                },
+                None => U256::MAX,
+            };
+
+            let erc20 = ERC20::new(rpcs.clone(), token.address);
+            let current_allowance = erc20
+                .allowance(owner_address, tx_args.orderbook_address)
+                .await?;
+
+            if current_allowance < vaultless_amount {
+                let calldata = approveCall {
+                    spender: tx_args.orderbook_address,
+                    amount: vaultless_amount,
+                }
+                .abi_encode();
+
+                calldatas.push(ApprovalCalldata {
+                    token: token.address,
                     calldata: Bytes::copy_from_slice(&calldata),
                 });
             }
@@ -420,6 +501,10 @@ impl DotrainOrderGui {
                 continue;
             }
 
+            if order_io.vaultless == Some(true) {
+                continue;
+            }
+
             let token = order_io
                 .token
                 .as_ref()
@@ -447,10 +532,11 @@ impl DotrainOrderGui {
                 vault_id: vault_id.into(),
                 decimals,
             };
-            let calldata = deposit4Call::try_from(deposit_args)
-                .map_err(rain_orderbook_common::deposit::DepositError::from)?
-                .abi_encode();
-            calldatas.push(Bytes::copy_from_slice(&calldata));
+            match deposit4Call::try_from(deposit_args) {
+                Ok(call) => calldatas.push(Bytes::copy_from_slice(&call.abi_encode())),
+                Err(DepositError::InvalidVaultIdZero) => continue,
+                Err(e) => return Err(e.into()),
+            }
         }
 
         Ok(DepositCalldataResult::Calldatas(calldatas))
@@ -687,6 +773,12 @@ impl DotrainOrderGui {
     /// an order: approval calldatas, the main deployment transaction, and metadata.
     /// Use this for full transaction orchestration.
     ///
+    /// # Parameters
+    ///
+    /// - `owner` - Wallet address that will deploy the order
+    /// - `vaultlessApprovalAmounts` - Optional map of token keys to approval amounts for
+    ///   vaultless outputs. Tokens not in the map default to infinite approval (max uint256).
+    ///
     /// # Transaction Package
     ///
     /// - `approvals` - Token approval calldatas with symbols for UI
@@ -697,7 +789,15 @@ impl DotrainOrderGui {
     /// # Examples
     ///
     /// ```javascript
+    /// // With default infinite approval for all vaultless outputs
     /// const result = await gui.getDeploymentTransactionArgs(walletAddress);
+    ///
+    /// // With custom approval amounts per vaultless token key
+    /// const result = await gui.getDeploymentTransactionArgs(walletAddress, new Map([
+    ///   ["token1", "1000000000000000000"],
+    ///   ["token2", "2000000000000000000"]
+    /// ]));
+    ///
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -724,11 +824,18 @@ impl DotrainOrderGui {
         &mut self,
         #[wasm_export(param_description = "Wallet address that will deploy the order")]
         owner: String,
+        #[wasm_export(
+            js_name = "vaultlessApprovalAmounts",
+            param_description = "Optional map of token keys to approval amounts for vaultless outputs. Defaults to infinite (max uint256) for tokens not in the map"
+        )]
+        vaultless_approval_amounts: Option<VaultlessApprovalAmounts>,
     ) -> Result<DeploymentTransactionArgs, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut approvals = Vec::new();
-        let approval_calldata = self.generate_approval_calldatas(owner).await?;
+        let approval_calldata = self
+            .generate_approval_calldatas(owner, vaultless_approval_amounts)
+            .await?;
         if let ApprovalCalldataResult::Calldatas(calldatas) = approval_calldata {
             let mut output_token_infos = HashMap::new();
             for output in deployment.deployment.order.outputs.clone() {
@@ -969,5 +1076,299 @@ mod tests {
         let deployment = gui.get_current_deployment().unwrap();
         assert_eq!(deployment.deployment.scenario.bindings["binding-1"], "100");
         assert_eq!(deployment.deployment.scenario.bindings["binding-2"], "200");
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_generate_deposit_calldatas_skips_vaultless() {
+        let mut gui = initialize_gui(Some("vaultless-deployment".to_string())).await;
+
+        gui.set_deposit("token1".to_string(), "1000".to_string())
+            .await
+            .unwrap();
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+
+        match res {
+            DepositCalldataResult::Calldatas(calldatas) => {
+                assert!(calldatas.is_empty(), "vaultless outputs should be skipped");
+            }
+            DepositCalldataResult::NoDeposits => {}
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_generate_deposit_calldatas_mixed_vaulted_vaultless() {
+        let mut gui = initialize_gui(Some("mixed-vault-deployment".to_string())).await;
+
+        gui.set_deposit("token1".to_string(), "1000".to_string())
+            .await
+            .unwrap();
+        gui.set_deposit("token2".to_string(), "2000".to_string())
+            .await
+            .unwrap();
+
+        let res = gui.generate_deposit_calldatas().await.unwrap();
+
+        match res {
+            DepositCalldataResult::Calldatas(calldatas) => {
+                assert_eq!(
+                    calldatas.len(),
+                    1,
+                    "only vaulted output (token1) should generate calldata"
+                );
+            }
+            DepositCalldataResult::NoDeposits => {
+                panic!("should have one deposit for vaulted output");
+            }
+        }
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_vault_ids_vaultless() {
+        let gui = initialize_gui(Some("vaultless-deployment".to_string())).await;
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0["input"]["token1"], Some(U256::from(1)));
+        assert_eq!(res.0["output"]["token1"], None);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_vault_ids_mixed() {
+        let gui = initialize_gui(Some("mixed-vault-deployment".to_string())).await;
+        let res = gui.get_vault_ids().unwrap();
+        assert_eq!(res.0["input"]["token1"], Some(U256::from(1)));
+        assert_eq!(res.0["output"]["token1"], Some(U256::from(1)));
+        assert_eq!(res.0["output"]["token2"], None);
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    mod non_wasm_tests {
+        use super::super::*;
+        use alloy::sol_types::SolCall;
+        use httpmock::MockServer;
+        use rain_orderbook_app_settings::spec_version::SpecVersion;
+        use rain_orderbook_bindings::IERC20::approveCall;
+        use serde_json::json;
+
+        const TEST_YAML_VAULTLESS: &str = r#"
+version: {spec_version}
+gui:
+  name: Vaultless approval test
+  description: Test vaultless approval generation
+  deployments:
+    vaultless-deployment:
+      name: Vaultless test
+      description: Vaultless test
+      deposits:
+        - token: token1
+          min: 0
+          presets:
+            - "0"
+      fields:
+        - binding: binding-1
+          name: Field 1 name
+          description: Field 1 description
+          presets:
+            - name: Preset 1
+              value: "0"
+        - binding: binding-2
+          name: Field 2 name
+          description: Field 2 description
+          min: 100
+          presets:
+            - value: "0"
+networks:
+  some-network:
+    rpcs:
+      - {rpc_url}
+    chain-id: 123
+    network-id: 123
+    currency: ETH
+subgraphs:
+  some-sg: https://www.some-sg.com
+metaboards:
+  test: https://metaboard.com
+deployers:
+  some-deployer:
+    network: some-network
+    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+orderbooks:
+  some-orderbook:
+    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+    network: some-network
+    subgraph: some-sg
+    deployment-block: 12345
+tokens:
+  token1:
+    network: some-network
+    address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+    decimals: 6
+    label: Token 1
+    symbol: T1
+scenarios:
+  some-scenario:
+    deployer: some-deployer
+    bindings:
+      test-binding: 5
+    scenarios:
+      sub-scenario:
+        bindings:
+          another-binding: 300
+orders:
+  vaultless-order:
+    inputs:
+      - token: token1
+        vault-id: 1
+    outputs:
+      - token: token1
+        vaultless: true
+    deployer: some-deployer
+    orderbook: some-orderbook
+deployments:
+  vaultless-deployment:
+    scenario: some-scenario.sub-scenario
+    order: vaultless-order
+---
+#test-binding !
+#another-binding !
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#;
+
+        #[tokio::test]
+        async fn test_generate_approval_calldatas_vaultless_default_infinite() {
+            let server = MockServer::start_async().await;
+            let yaml = TEST_YAML_VAULTLESS
+                .replace("{rpc_url}", &server.url("/rpc"))
+                .replace("{spec_version}", &SpecVersion::current().to_string());
+
+            server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("dd62ed3e");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                }));
+            });
+
+            let mut gui = DotrainOrderGui::new_with_deployment(
+                yaml.to_string(),
+                "vaultless-deployment".to_string(),
+                None,
+            )
+            .await
+            .unwrap();
+
+            let res = gui
+                .generate_approval_calldatas(Address::random().to_string(), None)
+                .await
+                .unwrap();
+
+            match res {
+                ApprovalCalldataResult::Calldatas(calldatas) => {
+                    assert_eq!(calldatas.len(), 1);
+                    let decoded =
+                        approveCall::abi_decode(&calldatas[0].calldata[4..], true).unwrap();
+                    assert_eq!(decoded.amount, U256::MAX);
+                }
+                ApprovalCalldataResult::NoDeposits => {
+                    panic!("expected calldatas for vaultless output");
+                }
+            }
+        }
+
+        #[tokio::test]
+        async fn test_generate_approval_calldatas_vaultless_custom_amount() {
+            let server = MockServer::start_async().await;
+            let yaml = TEST_YAML_VAULTLESS
+                .replace("{rpc_url}", &server.url("/rpc"))
+                .replace("{spec_version}", &SpecVersion::current().to_string());
+
+            server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("dd62ed3e");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                }));
+            });
+
+            let mut gui = DotrainOrderGui::new_with_deployment(
+                yaml.to_string(),
+                "vaultless-deployment".to_string(),
+                None,
+            )
+            .await
+            .unwrap();
+
+            let custom_amount = U256::from(1000000000000000000u128);
+            let mut amounts = HashMap::new();
+            amounts.insert("token1".to_string(), custom_amount.to_string());
+
+            let res = gui
+                .generate_approval_calldatas(
+                    Address::random().to_string(),
+                    Some(VaultlessApprovalAmounts(amounts)),
+                )
+                .await
+                .unwrap();
+
+            match res {
+                ApprovalCalldataResult::Calldatas(calldatas) => {
+                    assert_eq!(calldatas.len(), 1);
+                    let decoded =
+                        approveCall::abi_decode(&calldatas[0].calldata[4..], true).unwrap();
+                    assert_eq!(decoded.amount, custom_amount);
+                }
+                ApprovalCalldataResult::NoDeposits => {
+                    panic!("expected calldatas for vaultless output");
+                }
+            }
+        }
+
+        #[tokio::test]
+        async fn test_generate_approval_calldatas_vaultless_already_approved() {
+            let server = MockServer::start_async().await;
+            let yaml = TEST_YAML_VAULTLESS
+                .replace("{rpc_url}", &server.url("/rpc"))
+                .replace("{spec_version}", &SpecVersion::current().to_string());
+
+            server.mock(|when, then| {
+                when.method("POST").path("/rpc").body_contains("dd62ed3e");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                }));
+            });
+
+            let mut gui = DotrainOrderGui::new_with_deployment(
+                yaml.to_string(),
+                "vaultless-deployment".to_string(),
+                None,
+            )
+            .await
+            .unwrap();
+
+            let res = gui
+                .generate_approval_calldatas(Address::random().to_string(), None)
+                .await
+                .unwrap();
+
+            match res {
+                ApprovalCalldataResult::Calldatas(calldatas) => {
+                    assert!(
+                        calldatas.is_empty(),
+                        "no approval needed when already at max"
+                    );
+                }
+                ApprovalCalldataResult::NoDeposits => {
+                    panic!("expected empty calldatas, not NoDeposits");
+                }
+            }
+        }
     }
 }
