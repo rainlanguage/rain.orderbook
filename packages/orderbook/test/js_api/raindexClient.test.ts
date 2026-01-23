@@ -1781,7 +1781,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
 			);
 			const res = extractWasmEncodedData(await vault.getAllowance());
-			assert.equal(res.amount.format().value, Float.parse(res.formattedAmount).value.format().value);
+			assert.equal(
+				res.amount.format().value,
+				Float.parse(res.formattedAmount).value.format().value
+			);
 			assert.equal(res.formattedAmount, '1e-16');
 		});
 
@@ -1966,7 +1969,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			);
 
 			const res = extractWasmEncodedData(await vault.getOwnerBalance());
-			assert.equal(res.amount.format().value, Float.parse(res.formattedAmount).value.format().value);
+			assert.equal(
+				res.amount.format().value,
+				Float.parse(res.formattedAmount).value.format().value
+			);
 			assert.equal(res.formattedAmount, '1e-15');
 		});
 	});
