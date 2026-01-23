@@ -17,8 +17,8 @@ import {
     SignedContextV1,
     EvaluableV4
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
-import {OrderBookV5ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV5ArbOrderTaker.sol";
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {OrderBookV6ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
@@ -41,14 +41,14 @@ abstract contract ArbTest is Test {
     FlashLendingMockOrderBook immutable iOrderBook;
     address immutable iArb;
 
-    /// Mimics the `Construct` event from `OrderBookV5ArbCommon`.
-    event Construct(address sender, OrderBookV5ArbConfig config);
+    /// Mimics the `Construct` event from `OrderBookV6ArbCommon`.
+    event Construct(address sender, OrderBookV6ArbConfig config);
 
     function expression() internal virtual returns (bytes memory) {
         return "";
     }
 
-    function buildArb(OrderBookV5ArbConfig memory config) internal virtual returns (address);
+    function buildArb(OrderBookV6ArbConfig memory config) internal virtual returns (address);
 
     constructor() {
         // Put the TOFU decimals contract in place so that any calls to it
@@ -69,7 +69,7 @@ abstract contract ArbTest is Test {
         iOrderBook = new FlashLendingMockOrderBook();
         vm.label(address(iOrderBook), "iOrderBook");
 
-        OrderBookV5ArbConfig memory config = OrderBookV5ArbConfig(
+        OrderBookV6ArbConfig memory config = OrderBookV6ArbConfig(
             address(iOrderBook),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),

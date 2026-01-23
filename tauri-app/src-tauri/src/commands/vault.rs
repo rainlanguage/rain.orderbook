@@ -1,7 +1,7 @@
 use alloy::primitives::Bytes;
 use alloy::sol_types::SolCall;
 use rain_math_float::FloatError;
-use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
+use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::approveCall};
 use rain_orderbook_common::{
     csv::TryIntoCsv,
     deposit::DepositArgs,
@@ -111,7 +111,7 @@ pub async fn vault_deposit_calldata<R: Runtime>(
     app_handle: AppHandle<R>,
     deposit_args: DepositArgs,
 ) -> CommandResult<Bytes> {
-    let deposit_call: deposit3Call = deposit_args.try_into().inspect_err(|e: &FloatError| {
+    let deposit_call: deposit4Call = deposit_args.try_into().inspect_err(|e: &FloatError| {
         toast_error(&app_handle, e.to_string());
     })?;
     Ok(Bytes::from(deposit_call.abi_encode()))
@@ -164,7 +164,7 @@ mod tests {
     use httpmock::MockServer;
     use rain_math_float::Float;
     use rain_orderbook_bindings::{
-        IOrderBookV5::{deposit3Call, withdraw3Call},
+        IOrderBookV6::{deposit4Call, withdraw4Call},
         IERC20::approveCall,
     };
     use rain_orderbook_subgraph_client::utils::float::*;
@@ -539,7 +539,7 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
             .unwrap()
             .get_inner();
 
-        let expected: Bytes = deposit3Call {
+        let expected: Bytes = deposit4Call {
             token: Address::default(),
             depositAmount: amount,
             vaultId: B256::from(U256::from(1)),
@@ -573,7 +573,7 @@ timestamp,timestamp_display,from,amount,amount_display_signed,change_type_displa
 
         let target_amount_bytes = target_amount.get_inner();
 
-        let expected: Bytes = withdraw3Call {
+        let expected: Bytes = withdraw4Call {
             token: Address::default(),
             targetAmount: target_amount_bytes,
             vaultId: B256::from(U256::from(1)),

@@ -7,7 +7,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
     trace::{RainEvalResult, RainEvalResultFromRawCallResultError},
 };
-use rain_orderbook_bindings::IOrderBookV5::quote2Call;
+use rain_orderbook_bindings::IOrderBookV6::quote2Call;
 use url::Url;
 
 pub struct NewQuoteDebugger {
@@ -89,7 +89,7 @@ mod tests {
     use alloy::sol_types::{SolCall, SolValue};
     use httpmock::MockServer;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IOrderBookV5::{OrderV4, QuoteV2};
+    use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2};
     use rain_orderbook_common::add_order::AddOrderArgs;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
     use rain_orderbook_test_fixtures::LocalEvm;
