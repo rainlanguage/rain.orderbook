@@ -119,6 +119,13 @@ describe('VaultsListTable', () => {
 		})) as Mock;
 		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
 		expect(screen.getByTestId('vault-network')).toHaveTextContent('Ethereum');
+
+		const addressesCell = screen.getByTestId('vaultAddresses');
+		expect(addressesCell).toBeInTheDocument();
+		expect(addressesCell).toHaveTextContent('Vault:');
+		expect(addressesCell).toHaveTextContent('Orderbook:');
+		expect(addressesCell).toHaveTextContent('Owner:');
+
 		expect(screen.getByTestId('vault-token')).toHaveTextContent('Mock Token');
 		expect(screen.getByTestId('vault-balance')).toHaveTextContent('1 MTK');
 	});

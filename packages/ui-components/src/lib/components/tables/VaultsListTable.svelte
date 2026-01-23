@@ -226,9 +226,7 @@
 		<svelte:fragment slot="head">
 			<TableHeadCell padding="p-0"><span class="sr-only">Select</span></TableHeadCell>
 			<TableHeadCell padding="p-4">Network</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
+			<TableHeadCell padding="px-4 py-4">Addresses</TableHeadCell>
 			<TableHeadCell padding="px-2 py-4">Token</TableHeadCell>
 			<TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
 			<TableHeadCell padding="px-3 py-4">Input For</TableHeadCell>
@@ -259,14 +257,21 @@
 				{getNetworkName(Number(item.chainId))}
 			</TableBodyCell>
 
-			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id">
-				<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
-			</TableBodyCell>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
-				<Hash type={HashType.Identifier} value={item.orderbook} />
-			</TableBodyCell>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner">
-				<Hash type={HashType.Wallet} value={item.owner} />
+			<TableBodyCell data-testid="vaultAddresses" tdClass="px-4 py-2">
+				<div class="flex flex-col gap-1 text-sm">
+					<div class="flex items-center gap-1">
+						<span class="text-gray-500 dark:text-gray-400">Vault:</span>
+						<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
+					</div>
+					<div class="flex items-center gap-1">
+						<span class="text-gray-500 dark:text-gray-400">Orderbook:</span>
+						<Hash type={HashType.Identifier} value={item.orderbook} />
+					</div>
+					<div class="flex items-center gap-1">
+						<span class="text-gray-500 dark:text-gray-400">Owner:</span>
+						<Hash type={HashType.Wallet} value={item.owner} />
+					</div>
+				</div>
 			</TableBodyCell>
 			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
 				>{item.token.name}</TableBodyCell

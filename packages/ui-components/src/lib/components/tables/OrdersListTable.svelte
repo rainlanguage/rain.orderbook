@@ -130,9 +130,7 @@
 	<svelte:fragment slot="head">
 		<TableHeadCell data-testid="orderListHeadingNetwork" padding="p-4">Network</TableHeadCell>
 		<TableHeadCell data-testid="orderListHeadingActive" padding="p-4">Active</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingOrderbook" padding="p-4">Orderbook</TableHeadCell>
+		<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4">Addresses</TableHeadCell>
 		<TableHeadCell data-testid="orderListHeadingLastAdded" padding="p-4">Last Added</TableHeadCell>
 		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
 			>Input Token(s)</TableHeadCell
@@ -154,14 +152,21 @@
 				<Badge color="yellow">Inactive</Badge>
 			{/if}
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4">
-			<Hash type={HashType.Identifier} value={item.orderHash} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Wallet} value={item.owner} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Identifier} value={item.orderbook} />
+		<TableBodyCell data-testid="orderListRowAddresses" tdClass="px-4 py-2">
+			<div class="flex flex-col gap-1 text-sm">
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Order:</span>
+					<Hash type={HashType.Identifier} value={item.orderHash} />
+				</div>
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Owner:</span>
+					<Hash type={HashType.Wallet} value={item.owner} />
+				</div>
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Orderbook:</span>
+					<Hash type={HashType.Identifier} value={item.orderbook} />
+				</div>
+			</div>
 		</TableBodyCell>
 		<TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
 			{formatTimestampSecondsAsLocal(item.timestampAdded)}

@@ -138,6 +138,12 @@ describe('OrdersListTable', () => {
 		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('Ethereum');
 		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
 
+		const addressesCell = screen.getByTestId('orderListRowAddresses');
+		expect(addressesCell).toBeInTheDocument();
+		expect(addressesCell).toHaveTextContent('Order:');
+		expect(addressesCell).toHaveTextContent('Owner:');
+		expect(addressesCell).toHaveTextContent('Orderbook:');
+
 		// Check that vault cards are rendered with correct content
 		const vaultCards = screen.getAllByTestId('vault-card');
 		expect(vaultCards).toHaveLength(2); // One input, one output
