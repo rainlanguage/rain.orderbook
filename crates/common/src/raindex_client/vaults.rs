@@ -559,13 +559,14 @@ impl RaindexVault {
             .await?;
 
         let decimals = self.token.decimals;
-        let float_allowance = Float::from_fixed_decimal(allowance_u256, decimals)?;
-
         let max_half = U256::MAX >> 1;
-        let formatted = if allowance_u256 >= max_half {
-            "Unlimited".to_string()
+
+        let (float_allowance, formatted) = if allowance_u256 >= max_half {
+            (Float::zero()?, "Unlimited".to_string())
         } else {
-            float_allowance.format()?
+            let float = Float::from_fixed_decimal(allowance_u256, decimals)?;
+            let formatted = float.format()?;
+            (float, formatted)
         };
 
         Ok(RaindexAmount {
