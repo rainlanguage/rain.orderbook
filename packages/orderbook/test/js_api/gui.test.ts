@@ -1330,7 +1330,7 @@ ${dotrain}`;
 			assert.equal(emptyResult, 'NoDeposits');
 		});
 
-		it('overwrites approvals when allowance is higher than deposit', async () => {
+		it('skips approval when allowance is higher than deposit', async () => {
 			// decimal call
 			await mockServer
 				.forPost('/rpc-url')
@@ -1354,14 +1354,63 @@ ${dotrain}`;
 			);
 
 			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 0);
+		});
+
+		it('generates approval when allowance is zero', async () => {
+			// decimal call
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			// allowance - 0
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000000'
+				);
+
+			gui.unsetDeposit('token1');
+			await gui.setDeposit('token2', '1000');
+
+			const result = extractWasmEncodedData<ApprovalCalldataResult>(
+				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
+			);
+
+			// @ts-expect-error - result is valid
 			assert.equal(result.Calldatas.length, 1);
 			// @ts-expect-error - result is valid
 			assert.equal(result.Calldatas[0].token, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
-			assert.equal(
-				// @ts-expect-error - result is valid
-				result.Calldatas[0].calldata,
-				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000006c6b935b8bbd400000'
+		});
+
+		it('skips approval when allowance equals deposit', async () => {
+			// decimal call
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000012'
+				);
+			// allowance - 1000 * 10^18
+			await mockServer
+				.forPost('/rpc-url')
+				.once()
+				.thenSendJsonRpcResult(
+					'0x00000000000000000000000000000000000000000000003635c9adc5dea00000'
+				);
+
+			gui.unsetDeposit('token1');
+			await gui.setDeposit('token2', '1000');
+
+			const result = extractWasmEncodedData<ApprovalCalldataResult>(
+				await gui.generateApprovalCalldatas('0x1234567890abcdef1234567890abcdef12345678')
 			);
+
+			// @ts-expect-error - result is valid
+			assert.equal(result.Calldatas.length, 0);
 		});
 
 		it('generates deposit calldatas', async () => {
