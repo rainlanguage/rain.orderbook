@@ -16,15 +16,13 @@
 
 {#if vault.vaultless}
 	<div
-		class="flex flex-col rounded-xl border border-blue-200 bg-blue-900/10 px-4 py-3"
+		class="relative flex flex-col rounded-xl border border-blue-200 bg-blue-900/10 px-4 pb-3 pt-4"
 		data-testid="vault-card-vaultless"
 	>
-		<div class="flex items-center gap-2">
-			<span class="font-semibold text-gray-800 dark:text-gray-200">{vault.token.symbol}</span>
-			<Badge color="blue" class="text-xs">
-				<WalletOutline size="xs" class="mr-1" />Vaultless
-			</Badge>
-		</div>
+		<Badge color="blue" class="absolute -top-2.5 left-3 text-xs">
+			<WalletOutline size="xs" class="mr-1" />Vaultless
+		</Badge>
+		<span class="font-semibold text-gray-800 dark:text-gray-200">{vault.token.symbol}</span>
 	</div>
 {:else}
 	<button
