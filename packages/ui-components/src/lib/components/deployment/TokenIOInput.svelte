@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Input } from 'flowbite-svelte';
+	import { Input, Toggle } from 'flowbite-svelte';
 	import { type OrderIOCfg, type TokenInfo, type VaultType } from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
 	import { useGui } from '$lib/hooks/useGui';
@@ -11,24 +11,30 @@
 	export let label: 'Input' | 'Output';
 	export let vault: OrderIOCfg;
 	export let tokenBalances: Map<string, TokenBalance> = new Map();
+	export let onApprovalAmountChange: ((tokenKey: string, amount: string) => void) | undefined =
+		undefined;
 
 	let tokenInfo: TokenInfo | null = null;
 	let inputValue: string = '';
 	let error: string = '';
+	let isVaultless: boolean = vault.vaultless === true;
+	let approvalAmount: string = '';
 
 	onMount(() => {
 		if (!vault.token?.key) return;
 
-		const result = gui.getVaultIds();
-		if (result.error) {
-			error = result.error.msg;
-			return;
-		}
-		const vaultIds = result.value;
-		const vaultMap = vaultIds.get(label.toLowerCase());
-		if (vaultMap) {
-			const vaultId = vaultMap.get(vault.token.key);
-			inputValue = vaultId || '';
+		if (!isVaultless) {
+			const result = gui.getVaultIds();
+			if (result.error) {
+				error = result.error.msg;
+				return;
+			}
+			const vaultIds = result.value;
+			const vaultMap = vaultIds.get(label.toLowerCase());
+			if (vaultMap) {
+				const vaultId = vaultMap.get(vault.token.key);
+				inputValue = vaultId || '';
+			}
 		}
 	});
 
@@ -63,6 +69,26 @@
 		}
 	};
 
+	const handleVaultlessToggle = () => {
+		if (!vault.token?.key) return;
+		error = '';
+		const result = gui.setVaultless(label.toLowerCase() as VaultType, vault.token.key, isVaultless);
+		if (result.error) {
+			error = result.error.msg;
+			isVaultless = !isVaultless;
+			return;
+		}
+		if (isVaultless) {
+			inputValue = '';
+		}
+	};
+
+	const handleApprovalAmountInput = () => {
+		if (vault.token?.key && onApprovalAmountChange) {
+			onApprovalAmountChange(vault.token.key, approvalAmount);
+		}
+	};
+
 	$: if (vault.token?.key) {
 		handleGetTokenInfo();
 	}
@@ -78,17 +104,46 @@
 			/>
 		</div>
 	</div>
-	<div class="flex flex-col gap-2">
-		<Input
-			data-testid="vault-id-input"
-			size="lg"
-			type="text"
-			placeholder="Enter vault ID"
-			bind:value={inputValue}
-			on:input={handleInput}
-		/>
-		{#if error}
-			<p class="text-red-500">{error}</p>
+
+	<Toggle bind:checked={isVaultless} on:change={handleVaultlessToggle}
+		>Vaultless mode (direct wallet transfer)</Toggle
+	>
+
+	{#if isVaultless}
+		<div class="rounded-lg bg-blue-900/20 p-3">
+			<p class="text-sm text-blue-300">Token transfers directly without vault storage.</p>
+		</div>
+
+		{#if label === 'Output'}
+			<div class="flex flex-col gap-2">
+				<label for="approval-amount" class="text-sm text-gray-400"
+					>Approval Amount (defaults to unlimited)</label
+				>
+				<Input
+					id="approval-amount"
+					data-testid="approval-amount-input"
+					size="lg"
+					type="text"
+					placeholder="Leave empty for unlimited"
+					bind:value={approvalAmount}
+					on:input={handleApprovalAmountInput}
+				/>
+			</div>
 		{/if}
-	</div>
+	{:else}
+		<div class="flex flex-col gap-2">
+			<Input
+				data-testid="vault-id-input"
+				size="lg"
+				type="text"
+				placeholder="Enter vault ID"
+				bind:value={inputValue}
+				on:input={handleInput}
+			/>
+		</div>
+	{/if}
+
+	{#if error}
+		<p class="text-red-500">{error}</p>
+	{/if}
 </div>

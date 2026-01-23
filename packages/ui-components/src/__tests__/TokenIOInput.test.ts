@@ -48,6 +48,7 @@ describe('TokenInput', () => {
 			setVaultId: vi.fn().mockImplementation(() => {
 				mockStateUpdateCallback();
 			}),
+			setVaultless: vi.fn().mockReturnValue({ error: null }),
 			getCurrentDeployment: vi.fn().mockResolvedValue({
 				deployment: {
 					order: {
@@ -59,6 +60,12 @@ describe('TokenInput', () => {
 				value: new Map([
 					['input', new Map([['test', 'vault1']])],
 					['output', new Map([['test', 'vault2']])]
+				])
+			}),
+			getVaultlessStatus: vi.fn().mockReturnValue({
+				value: new Map([
+					['input', new Map([['test', undefined]])],
+					['output', new Map([['test', undefined]])]
 				])
 			})
 		} as unknown as DotrainOrderGui;
@@ -218,5 +225,108 @@ describe('TokenInput', () => {
 		const labelWithSymbol = await findByText('Input (MOCK)');
 		expect(labelWithSymbol).toBeInTheDocument();
 		expect(guiInstance.getTokenInfo).toHaveBeenCalledWith('0x456');
+	});
+
+	describe('Vaultless Mode', () => {
+		it('renders vaultless toggle switch', () => {
+			const { getByText } = render(TokenIOInput, mockProps);
+			expect(getByText('Vaultless mode (direct wallet transfer)')).toBeInTheDocument();
+		});
+
+		it('initializes with vaultless enabled when vault.vaultless is true', async () => {
+			const vaultlessProps = {
+				...mockProps,
+				vault: {
+					...mockInput,
+					vaultless: true
+				}
+			} as unknown as TokenIOInputComponentProps;
+
+			const { findByText, queryByPlaceholderText } = render(TokenIOInput, vaultlessProps);
+
+			const infoText = await findByText('Token transfers directly without vault storage.');
+			expect(infoText).toBeInTheDocument();
+			expect(queryByPlaceholderText('Enter vault ID')).not.toBeInTheDocument();
+		});
+
+		it('calls setVaultless when toggle is switched on', async () => {
+			const { getByRole } = render(TokenIOInput, mockProps);
+			const toggle = getByRole('checkbox');
+			await fireEvent.click(toggle);
+			expect(guiInstance.setVaultless).toHaveBeenCalledWith('input', 'test', true);
+		});
+
+		it('hides vault ID input when vaultless toggle is enabled', async () => {
+			const { getByRole, queryByPlaceholderText, findByText } = render(TokenIOInput, mockProps);
+			const toggle = getByRole('checkbox');
+			await fireEvent.click(toggle);
+
+			const infoText = await findByText('Token transfers directly without vault storage.');
+			expect(infoText).toBeInTheDocument();
+			expect(queryByPlaceholderText('Enter vault ID')).not.toBeInTheDocument();
+		});
+
+		it('shows approval amount input for output when vaultless toggle is enabled', async () => {
+			const { getByRole, findByPlaceholderText, findByText } = render(
+				TokenIOInput,
+				outputMockProps
+			);
+			const toggle = getByRole('checkbox');
+			await fireEvent.click(toggle);
+
+			const label = await findByText('Approval Amount (defaults to unlimited)');
+			expect(label).toBeInTheDocument();
+			const input = await findByPlaceholderText('Leave empty for unlimited');
+			expect(input).toBeInTheDocument();
+		});
+
+		it('does not show approval amount input for input when vaultless toggle is enabled', async () => {
+			const { getByRole, findByText, queryByText } = render(TokenIOInput, mockProps);
+			const toggle = getByRole('checkbox');
+			await fireEvent.click(toggle);
+
+			const infoText = await findByText('Token transfers directly without vault storage.');
+			expect(infoText).toBeInTheDocument();
+			expect(queryByText('Approval Amount (defaults to unlimited)')).not.toBeInTheDocument();
+		});
+
+		it('displays error when setVaultless fails', async () => {
+			(guiInstance.setVaultless as Mock).mockReturnValue({
+				error: { msg: 'Failed to set vaultless' }
+			});
+
+			const { getByRole, findByText } = render(TokenIOInput, mockProps);
+			const toggle = getByRole('checkbox');
+			await fireEvent.click(toggle);
+
+			const errorMessage = await findByText('Failed to set vaultless');
+			expect(errorMessage).toBeInTheDocument();
+		});
+
+		it('calls onApprovalAmountChange callback when approval amount input changes', async () => {
+			const mockOnApprovalAmountChange = vi.fn();
+			const propsWithCallback = {
+				...outputMockProps,
+				onApprovalAmountChange: mockOnApprovalAmountChange
+			};
+
+			const { getByRole, findByPlaceholderText } = render(TokenIOInput, propsWithCallback);
+			const toggle = getByRole('checkbox');
+			await fireEvent.click(toggle);
+
+			const approvalInput = await findByPlaceholderText('Leave empty for unlimited');
+			await fireEvent.input(approvalInput, { target: { value: '100' } });
+
+			expect(mockOnApprovalAmountChange).toHaveBeenCalledWith('test', '100');
+		});
+
+		it('does not call onApprovalAmountChange when callback is undefined', async () => {
+			const { getByRole, findByPlaceholderText } = render(TokenIOInput, outputMockProps);
+			const toggle = getByRole('checkbox');
+			await fireEvent.click(toggle);
+
+			const approvalInput = await findByPlaceholderText('Leave empty for unlimited');
+			await fireEvent.input(approvalInput, { target: { value: '100' } });
+		});
 	});
 });

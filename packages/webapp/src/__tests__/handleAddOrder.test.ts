@@ -388,4 +388,38 @@ describe('handleAddOrder', () => {
 		expect(mockCreateApprovalTransaction).not.toHaveBeenCalled();
 		expect(mockCreateAddOrderTransaction).not.toHaveBeenCalled();
 	});
+
+	it('should pass vaultlessApprovalAmounts to getDeploymentTransactionArgs', async () => {
+		const vaultlessApprovalAmounts = new Map<string, string>();
+		vaultlessApprovalAmounts.set('token1', '100');
+		vaultlessApprovalAmounts.set('token2', '200');
+
+		const depsWithApprovalAmounts = {
+			...mockDeps,
+			vaultlessApprovalAmounts
+		};
+
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
+			value: mockDeploymentArgs,
+			error: null
+		});
+
+		await handleAddOrder(depsWithApprovalAmounts);
+
+		expect(mockGetDeploymentTransactionArgs).toHaveBeenCalledWith(
+			MOCKED_ACCOUNT,
+			vaultlessApprovalAmounts
+		);
+	});
+
+	it('should pass undefined for vaultlessApprovalAmounts when not provided', async () => {
+		mockGetDeploymentTransactionArgs.mockResolvedValue({
+			value: mockDeploymentArgs,
+			error: null
+		});
+
+		await handleAddOrder(mockDeps);
+
+		expect(mockGetDeploymentTransactionArgs).toHaveBeenCalledWith(MOCKED_ACCOUNT, undefined);
+	});
 });

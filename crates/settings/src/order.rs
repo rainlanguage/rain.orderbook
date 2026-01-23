@@ -70,6 +70,124 @@ impl OrderCfg {
         Ok(id)
     }
 
+    pub fn update_vaultless(
+        &mut self,
+        vault_type: VaultType,
+        token: String,
+        vaultless: bool,
+    ) -> Result<Self, YamlError> {
+        let mut document = self
+            .document
+            .write()
+            .map_err(|_| YamlError::WriteLockError)?;
+
+        if let StrictYaml::Hash(ref mut document_hash) = *document {
+            if let Some(StrictYaml::Hash(ref mut orders)) =
+                document_hash.get_mut(&StrictYaml::String("orders".to_string()))
+            {
+                if let Some(StrictYaml::Hash(ref mut order)) =
+                    orders.get_mut(&StrictYaml::String(self.key.to_string()))
+                {
+                    let vec_key = match vault_type {
+                        VaultType::Input => "inputs",
+                        VaultType::Output => "outputs",
+                    };
+                    if let Some(StrictYaml::Array(ref mut vec)) =
+                        order.get_mut(&StrictYaml::String(vec_key.to_string()))
+                    {
+                        let item_index = vec.iter().position(|item| {
+                            if let StrictYaml::Hash(ref item_map) = item {
+                                if let Some(StrictYaml::String(item_token)) =
+                                    item_map.get(&StrictYaml::String("token".to_string()))
+                                {
+                                    return item_token == &token;
+                                }
+                            }
+                            false
+                        });
+
+                        if let Some(idx) = item_index {
+                            if let Some(item) = vec.get_mut(idx) {
+                                if let StrictYaml::Hash(ref mut item_map) = item {
+                                    if vaultless {
+                                        item_map.insert(
+                                            StrictYaml::String("vaultless".to_string()),
+                                            StrictYaml::String("true".to_string()),
+                                        );
+                                        item_map
+                                            .remove(&StrictYaml::String("vault-id".to_string()));
+                                        match vault_type {
+                                            VaultType::Input => {
+                                                self.inputs[idx].vaultless = Some(true);
+                                                self.inputs[idx].vault_id = None;
+                                            }
+                                            VaultType::Output => {
+                                                self.outputs[idx].vaultless = Some(true);
+                                                self.outputs[idx].vault_id = None;
+                                            }
+                                        }
+                                    } else {
+                                        item_map
+                                            .remove(&StrictYaml::String("vaultless".to_string()));
+                                        match vault_type {
+                                            VaultType::Input => {
+                                                self.inputs[idx].vaultless = None;
+                                            }
+                                            VaultType::Output => {
+                                                self.outputs[idx].vaultless = None;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    return Err(YamlError::Field {
+                                        kind: FieldErrorKind::InvalidType {
+                                            field: vec_key.to_string(),
+                                            expected: "a hash".to_string(),
+                                        },
+                                        location: format!("order '{0}'", self.key),
+                                    });
+                                }
+                            }
+                        } else {
+                            return Err(YamlError::Field {
+                                kind: FieldErrorKind::InvalidValue {
+                                    field: vec_key.to_string(),
+                                    reason: format!("token '{}' not found", token),
+                                },
+                                location: format!("order '{0}'", self.key),
+                            });
+                        }
+                    } else {
+                        return Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing(vec_key.to_string()),
+                            location: format!("order '{0}'", self.key),
+                        });
+                    }
+                } else {
+                    return Err(YamlError::Field {
+                        kind: FieldErrorKind::Missing(self.key.clone()),
+                        location: "orders".to_string(),
+                    });
+                }
+            } else {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::Missing("orders".to_string()),
+                    location: "root".to_string(),
+                });
+            }
+        } else {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "document".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
+        }
+
+        Ok(self.clone())
+    }
+
     pub fn update_vault_id(
         &mut self,
         vault_type: VaultType,
@@ -527,6 +645,64 @@ impl OrderCfg {
         }
 
         Ok(vault_ids)
+    }
+
+    pub fn parse_vaultless_flags(
+        documents: Vec<Arc<RwLock<StrictYaml>>>,
+        order_key: &str,
+        r#type: VaultType,
+    ) -> Result<HashMap<String, Option<bool>>, YamlError> {
+        let mut vaultless_flags = HashMap::new();
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+
+            if let Ok(orders_hash) = require_hash(&document_read, Some("orders"), None) {
+                if let Some(order_yaml) =
+                    orders_hash.get(&StrictYaml::String(order_key.to_string()))
+                {
+                    let location = format!("order '{}'", order_key);
+
+                    let items = match r#type {
+                        VaultType::Input => {
+                            require_vec(order_yaml, "inputs", Some(location.clone()))?
+                        }
+                        VaultType::Output => {
+                            require_vec(order_yaml, "outputs", Some(location.clone()))?
+                        }
+                    };
+
+                    for (idx, item) in items.iter().enumerate() {
+                        let token = require_string(
+                            item,
+                            Some("token"),
+                            Some(format!(
+                                "{} index '{}' in order '{}'",
+                                if r#type == VaultType::Input {
+                                    "input"
+                                } else {
+                                    "output"
+                                },
+                                idx,
+                                order_key
+                            )),
+                        )?;
+                        let vaultless = optional_bool(item, "vaultless");
+                        vaultless_flags.insert(token, vaultless);
+                    }
+                }
+            } else {
+                return Err(YamlError::Field {
+                    kind: FieldErrorKind::InvalidType {
+                        field: "orders".to_string(),
+                        expected: "a map".to_string(),
+                    },
+                    location: "root".to_string(),
+                });
+            }
+        }
+
+        Ok(vaultless_flags)
     }
 
     pub fn parse_io_token_keys(
@@ -1486,5 +1662,202 @@ orders:
         assert_eq!(order.inputs[0].vault_id, None);
         assert!(order.inputs[1].vault_id.is_some());
         assert!(order.outputs[0].vault_id.is_some());
+    }
+
+    #[test]
+    fn test_update_vaultless_enables_vaultless_mode() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+        assert_eq!(order.inputs[0].vaultless, None);
+
+        order
+            .update_vaultless(VaultType::Input, "eth".to_string(), true)
+            .unwrap();
+        assert_eq!(order.inputs[0].vaultless, Some(true));
+    }
+
+    #[test]
+    fn test_update_vaultless_disables_vaultless_mode() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vaultless: true
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+        assert_eq!(order.inputs[0].vaultless, Some(true));
+
+        order
+            .update_vaultless(VaultType::Input, "eth".to_string(), false)
+            .unwrap();
+        assert_eq!(order.inputs[0].vaultless, None);
+    }
+
+    #[test]
+    fn test_update_vaultless_clears_existing_vault_id() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vault-id: "123"
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+        assert_eq!(order.inputs[0].vault_id, Some(U256::from(123)));
+
+        order
+            .update_vaultless(VaultType::Input, "eth".to_string(), true)
+            .unwrap();
+        assert_eq!(order.inputs[0].vaultless, Some(true));
+        assert_eq!(order.inputs[0].vault_id, None);
+    }
+
+    #[test]
+    fn test_update_vaultless_on_output() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+        assert_eq!(order.outputs[0].vaultless, None);
+
+        order
+            .update_vaultless(VaultType::Output, "eth".to_string(), true)
+            .unwrap();
+        assert_eq!(order.outputs[0].vaultless, Some(true));
+    }
+
+    #[test]
+    fn test_update_vaultless_token_not_found() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+orders:
+    order1:
+        inputs:
+            - token: eth
+        outputs:
+            - token: eth
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+        let mut order = orders.get("order1").unwrap().clone();
+
+        let error = order
+            .update_vaultless(VaultType::Input, "nonexistent".to_string(), true)
+            .unwrap_err();
+        assert_eq!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue {
+                    field: "inputs".to_string(),
+                    reason: "token 'nonexistent' not found".to_string(),
+                },
+                location: "order 'order1'".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_vaultless_flags() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    eth:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+    usdc:
+        network: mainnet
+        address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vaultless: true
+            - token: usdc
+        outputs:
+            - token: eth
+              vaultless: false
+            - token: usdc
+              vaultless: true
+"#;
+        let document = get_document(yaml);
+
+        let input_flags =
+            OrderCfg::parse_vaultless_flags(vec![document.clone()], "order1", VaultType::Input)
+                .unwrap();
+        assert_eq!(input_flags.get("eth"), Some(&Some(true)));
+        assert_eq!(input_flags.get("usdc"), Some(&None));
+
+        let output_flags =
+            OrderCfg::parse_vaultless_flags(vec![document], "order1", VaultType::Output).unwrap();
+        assert_eq!(output_flags.get("eth"), Some(&Some(false)));
+        assert_eq!(output_flags.get("usdc"), Some(&Some(true)));
     }
 }
