@@ -224,13 +224,12 @@
 			</div>
 		</svelte:fragment>
 		<svelte:fragment slot="head">
-			<TableHeadCell padding="p-0"><span class="sr-only">Select</span></TableHeadCell>
-			<TableHeadCell padding="p-4">Network</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4">Addresses</TableHeadCell>
-			<TableHeadCell padding="px-2 py-4">Token</TableHeadCell>
-			<TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
-			<TableHeadCell padding="px-3 py-4">Input For</TableHeadCell>
-			<TableHeadCell padding="px-3 py-4">Output For</TableHeadCell>
+			<TableHeadCell padding="p-0" class="w-10"><span class="sr-only">Select</span></TableHeadCell>
+			<TableHeadCell padding="pl-0 py-4" class="w-[7%]">Network</TableHeadCell>
+			<TableHeadCell padding="px-4 py-4" class="w-[24%]">Addresses</TableHeadCell>
+			<TableHeadCell padding="px-2 py-4" class="w-[25%]">Token</TableHeadCell>
+			<TableHeadCell padding="px-3 py-4" class="w-[20%]">Input For</TableHeadCell>
+			<TableHeadCell padding="px-3 py-4" class="w-[20%]">Output For</TableHeadCell>
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>
@@ -273,13 +272,15 @@
 					</div>
 				</div>
 			</TableBodyCell>
-			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
-				>{item.token.name}</TableBodyCell
-			>
-			<TableBodyCell tdClass="break-all p-2 min-w-48" data-testid="vault-balance">
-				{`${item.formattedBalance} ${item.token.symbol}`}
+			<TableBodyCell tdClass="p-2" data-testid="vault-token">
+				<div class="flex flex-col overflow-hidden">
+					<span class="truncate font-medium">{item.token.name}</span>
+					<span class="max-w-[200px] truncate text-sm text-gray-500 dark:text-gray-400"
+						>{item.formattedBalance} {item.token.symbol}</span
+					>
+				</div>
 			</TableBodyCell>
-			<TableBodyCell tdClass="break-all p-2 min-w-48">
+			<TableBodyCell tdClass="break-all p-2">
 				{#if item.ordersAsInput.length > 0}
 					<div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
 						{#each item.ordersAsInput.slice(0, 3) as order}
@@ -294,7 +295,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			<TableBodyCell tdClass="break-all p-2 min-w-48">
+			<TableBodyCell tdClass="break-all p-2">
 				{#if item.ordersAsOutput.length > 0}
 					<div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
 						{#each item.ordersAsOutput.slice(0, 3) as order}

@@ -128,21 +128,25 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="head">
-		<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-44"
+		<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
 			>Order Info</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4">Addresses</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
+		<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[20%]"
+			>Addresses</TableHeadCell
+		>
+		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[27.5%]"
 			>Input Token(s)</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4"
+		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[27.5%]"
 			>Output Token(s)</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4">Trades</TableHeadCell>
+		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
+			>Trades</TableHeadCell
+		>
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
-		<TableBodyCell data-testid="orderListRowOrderInfo" tdClass="px-4 py-2 w-44">
+		<TableBodyCell data-testid="orderListRowOrderInfo" tdClass="px-4 py-2">
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center gap-2">
 					<span class="text-sm font-medium">{getNetworkName(Number(item.chainId))}</span>
