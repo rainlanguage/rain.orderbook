@@ -70,6 +70,7 @@ export { default as TransactionList } from './components/transactions/Transactio
 export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
 export { default as LocalDbStatusCard } from './components/LocalDbStatusCard.svelte';
 export { default as LocalDbStatusBadge } from './components/LocalDbStatusBadge.svelte';
+export { default as LocalDbStatusModal } from './components/LocalDbStatusModal.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

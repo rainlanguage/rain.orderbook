@@ -8,7 +8,8 @@ use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
 use crate::local_db::query::fetch_target_watermark::TargetWatermarkRow;
 use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
+use crate::local_db::query::integrity_check::{integrity_check_stmt, IntegrityCheckRow};
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::LocalDbError;
 use crate::local_db::OrderbookIdentifier;
 use async_trait::async_trait;
@@ -18,7 +19,7 @@ use std::collections::HashSet;
 #[derive(Debug, Clone)]
 pub struct BootstrapConfig {
     pub ob_id: OrderbookIdentifier,
-    pub dump_stmt: Option<SqlStatement>,
+    pub dump_stmt: Option<SqlStatementBatch>,
     pub latest_block: u64,
     pub block_number_threshold: u32,
     pub deployment_block: u64,
@@ -115,6 +116,18 @@ pub trait BootstrapPipeline {
         .await?;
         db.execute_batch(&create_views_batch()).await?;
         Ok(())
+    }
+
+    async fn check_integrity<DB>(&self, db: &DB) -> Result<bool, LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        let rows: Vec<IntegrityCheckRow> = db.query_json(&integrity_check_stmt()).await?;
+        let is_healthy = rows
+            .first()
+            .map(|row| row.quick_check.eq_ignore_ascii_case("ok"))
+            .unwrap_or(false);
+        Ok(is_healthy)
     }
 
     async fn clear_orderbook_data<DB>(
@@ -750,5 +763,88 @@ mod tests {
             .map(|stmt| stmt.sql().to_string())
             .collect();
         assert_eq!(captured, expected);
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_true_when_ok() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "ok".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(is_healthy, "should return true for 'ok' response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_true_when_ok_uppercase() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "OK".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(is_healthy, "should return true for 'OK' response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_false_when_corrupted() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "database disk image is malformed".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(
+            !is_healthy,
+            "should return false for corruption error message"
+        );
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_false_for_any_non_ok_response() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "some error".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(!is_healthy, "should return false for any non-ok response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_false_for_empty_response() {
+        let adapter = TestBootstrapPipeline::new();
+        let db = MockDb::default().with_json(
+            &integrity_check_stmt(),
+            json!([]), // empty array
+        );
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(!is_healthy, "should return false for empty response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_propagates_query_error() {
+        let adapter = TestBootstrapPipeline::new();
+        let db = MockDb::default(); // no response configured -> will error
+
+        let err = adapter.check_integrity(&db).await.unwrap_err();
+        match err {
+            LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }

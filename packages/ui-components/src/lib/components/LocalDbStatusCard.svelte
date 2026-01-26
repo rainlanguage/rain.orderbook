@@ -1,66 +1,50 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
-	import type { LocalDbStatus } from '@rainlanguage/orderbook';
+	import type {
+		LocalDbStatus,
+		NetworkSyncStatus,
+		OrderbookSyncStatus
+	} from '@rainlanguage/orderbook';
 	import LocalDbStatusBadge from './LocalDbStatusBadge.svelte';
+	import LocalDbStatusModal from './LocalDbStatusModal.svelte';
+	import { ChevronRightOutline } from 'flowbite-svelte-icons';
 
-	export let status: LocalDbStatus = 'active';
-	export let error: string | undefined = undefined;
-	export let label = 'LocalDB';
+	export let networkStatuses: Map<number, NetworkSyncStatus> = new Map();
+	export let orderbookStatuses: Map<string, OrderbookSyncStatus> = new Map();
 
-	let copied = false;
-	let copyErrorFailed = false;
-	let copyResetTimeout: ReturnType<typeof setTimeout> | undefined;
+	let modalOpen = false;
 
-	onDestroy(() => {
-		if (copyResetTimeout) {
-			clearTimeout(copyResetTimeout);
-		}
-	});
+	$: networkList = Array.from(networkStatuses.values());
+	$: hasNetworks = networkList.length > 0;
+	$: hasFailure = networkList.some((s) => s.status === 'failure');
+	$: displayStatus = (hasFailure ? 'failure' : 'active') as LocalDbStatus;
 
-	const copyError = async () => {
-		if (!error || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-			return;
-		}
-		if (copyResetTimeout) {
-			clearTimeout(copyResetTimeout);
-			copyResetTimeout = undefined;
-		}
-
-		copyErrorFailed = false;
-
-		try {
-			await navigator.clipboard.writeText(error);
-			copied = true;
-			copyResetTimeout = setTimeout(() => {
-				copied = false;
-				copyResetTimeout = undefined;
-			}, 2500);
-		} catch {
-			copied = false;
-			copyErrorFailed = true;
-		}
-	};
+	function openModal() {
+		modalOpen = true;
+	}
 </script>
 
 <div
-	class="rounded-lg border border-gray-200 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-900"
+	class="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
 	data-testid="local-db-status-card"
 >
-	<div class="flex items-center justify-between">
-		<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-			{label}
-		</span>
-		<LocalDbStatusBadge {status} />
-	</div>
-	{#if error && status === 'failure'}
-		<button
-			class="mt-2 inline-flex w-full items-center justify-center rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-500"
-			type="button"
-			on:click={copyError}
-			disabled={!error}
-			data-testid="local-db-error-copy"
-		>
-			{copied ? 'Copied!' : copyErrorFailed ? 'Unable to copy' : 'Copy error details'}
-		</button>
-	{/if}
+	<button
+		type="button"
+		class="flex w-full items-center justify-between px-3 py-3 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800"
+		on:click={openModal}
+		data-testid="local-db-status-header"
+	>
+		<div class="flex items-center gap-2">
+			<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+				>LocalDB</span
+			>
+		</div>
+		<div class="flex items-center gap-2">
+			<LocalDbStatusBadge status={displayStatus} />
+			{#if hasNetworks}
+				<ChevronRightOutline class="h-3 w-3 shrink-0" />
+			{/if}
+		</div>
+	</button>
 </div>
+
+<LocalDbStatusModal bind:open={modalOpen} {networkStatuses} {orderbookStatuses} />

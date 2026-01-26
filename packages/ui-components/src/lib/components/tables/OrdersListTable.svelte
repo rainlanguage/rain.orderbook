@@ -80,7 +80,10 @@
 					owners,
 					active: $showInactiveOrders ? undefined : true,
 					orderHash: $orderHash || undefined,
-					tokens: selectedTokens
+					tokens:
+						selectedTokens.length > 0
+							? { inputs: selectedTokens, outputs: selectedTokens }
+							: undefined
 				},
 				pageParam + 1
 			);
