@@ -11,7 +11,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 		id: '1',
 		timestamp: BigInt(1632000000),
 		transaction: {
-			id: 'transaction_id',
+			id: 'transaction_id_1',
 			from: '0xsender_address',
 			timestamp: BigInt(1632000000),
 			blockNumber: BigInt(0)
@@ -23,8 +23,8 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			token: {
 				id: 'output_token',
 				address: '0xoutput_token',
-				name: 'output_token',
-				symbol: 'output_token',
+				name: 'Output Token',
+				symbol: 'OUT',
 				decimals: '1'
 			},
 			id: '1',
@@ -35,7 +35,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
-				id: 'transaction_id',
+				id: 'transaction_id_1',
 				from: '0xsender_address',
 				timestamp: BigInt(1632000000),
 				blockNumber: BigInt(0)
@@ -46,10 +46,10 @@ const mockTradeOrdersList: RaindexTrade[] = [
 		inputVaultBalanceChange: {
 			vaultId: BigInt(1),
 			token: {
-				id: 'output_token',
-				address: '0xoutput_token',
-				name: 'output_token',
-				symbol: 'output_token',
+				id: 'input_token',
+				address: '0xinput_token',
+				name: 'Input Token',
+				symbol: 'INP',
 				decimals: '1'
 			},
 			amount: BigInt(50),
@@ -62,7 +62,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
-				id: 'transaction_id',
+				id: 'transaction_id_1',
 				from: '0xsender_address',
 				timestamp: BigInt(1632000000),
 				blockNumber: BigInt(0)
@@ -75,7 +75,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 		id: '2',
 		timestamp: BigInt(1632000000),
 		transaction: {
-			id: 'transaction_id',
+			id: 'transaction_id_2',
 			from: '0xsender_address',
 			timestamp: BigInt(1632000000),
 			blockNumber: BigInt(0)
@@ -87,8 +87,8 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			token: {
 				id: 'output_token',
 				address: '0xoutput_token',
-				name: 'output_token',
-				symbol: 'output_token',
+				name: 'Output Token',
+				symbol: 'OUT',
 				decimals: '1'
 			},
 			id: '1',
@@ -99,7 +99,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
-				id: 'transaction_id',
+				id: 'transaction_id_2',
 				from: '0xsender_address',
 				timestamp: BigInt(1632000000),
 				blockNumber: BigInt(0)
@@ -110,10 +110,10 @@ const mockTradeOrdersList: RaindexTrade[] = [
 		inputVaultBalanceChange: {
 			vaultId: BigInt(1),
 			token: {
-				id: 'output_token',
-				address: '0xoutput_token',
-				name: 'output_token',
-				symbol: 'output_token',
+				id: 'input_token',
+				address: '0xinput_token',
+				name: 'Input Token',
+				symbol: 'INP',
 				decimals: '1'
 			},
 			amount: BigInt(50),
@@ -126,7 +126,7 @@ const mockTradeOrdersList: RaindexTrade[] = [
 			formattedOldBalance: '0',
 			timestamp: BigInt(0),
 			transaction: {
-				id: 'transaction_id',
+				id: 'transaction_id_2',
 				from: '0xsender_address',
 				timestamp: BigInt(1632000000),
 				blockNumber: BigInt(0)
@@ -205,5 +205,114 @@ test('renders a debug button for each trade', async () => {
 	await waitFor(async () => {
 		const buttons = screen.getAllByTestId('debug-trade-button');
 		expect(buttons).toHaveLength(mockTradeOrdersList.length);
+	});
+});
+
+test('renders combined Transaction column with Sender and Tx', async () => {
+	const queryClient = new QueryClient();
+
+	const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		subscribe: (fn: (value: any) => void) => {
+			fn({
+				data: { pages: [mockTradeOrdersList] },
+				status: 'success',
+				isFetching: false,
+				isFetched: true
+			});
+			return { unsubscribe: () => {} };
+		}
+	})) as Mock;
+
+	render(OrderTradesListTable, {
+		context: new Map([['$$_queryClient', queryClient]]),
+		props: { order: mockOrder, rpcs: ['https://example.com'] }
+	});
+
+	await waitFor(async () => {
+		const rows = screen.getAllByTestId('bodyRow');
+		expect(rows).toHaveLength(mockTradeOrdersList.length);
+
+		// Each row should have the Transaction column with Sender and Tx labels
+		rows.forEach((row) => {
+			expect(row).toHaveTextContent('Sender:');
+			expect(row).toHaveTextContent('Tx:');
+		});
+	});
+});
+
+test('renders Input column with token symbol and amount', async () => {
+	const queryClient = new QueryClient();
+
+	const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		subscribe: (fn: (value: any) => void) => {
+			fn({
+				data: { pages: [mockTradeOrdersList] },
+				status: 'success',
+				isFetching: false,
+				isFetched: true
+			});
+			return { unsubscribe: () => {} };
+		}
+	})) as Mock;
+
+	render(OrderTradesListTable, {
+		context: new Map([['$$_queryClient', queryClient]]),
+		props: { order: mockOrder, rpcs: ['https://example.com'] }
+	});
+
+	await waitFor(async () => {
+		const inputCells = screen.getAllByTestId('input');
+		expect(inputCells).toHaveLength(mockTradeOrdersList.length);
+
+		// Each input cell should show token symbol and amount
+		inputCells.forEach((cell, i) => {
+			expect(cell).toHaveTextContent(mockTradeOrdersList[i].inputVaultBalanceChange.token.symbol);
+			expect(cell).toHaveTextContent(
+				mockTradeOrdersList[i].inputVaultBalanceChange.formattedAmount
+			);
+		});
+	});
+});
+
+test('renders Output column with token symbol and amount', async () => {
+	const queryClient = new QueryClient();
+
+	const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		subscribe: (fn: (value: any) => void) => {
+			fn({
+				data: { pages: [mockTradeOrdersList] },
+				status: 'success',
+				isFetching: false,
+				isFetched: true
+			});
+			return { unsubscribe: () => {} };
+		}
+	})) as Mock;
+
+	render(OrderTradesListTable, {
+		context: new Map([['$$_queryClient', queryClient]]),
+		props: { order: mockOrder, rpcs: ['https://example.com'] }
+	});
+
+	await waitFor(async () => {
+		const outputCells = screen.getAllByTestId('output');
+		expect(outputCells).toHaveLength(mockTradeOrdersList.length);
+
+		// Each output cell should show token symbol and amount
+		outputCells.forEach((cell, i) => {
+			expect(cell).toHaveTextContent(mockTradeOrdersList[i].outputVaultBalanceChange.token.symbol);
+			expect(cell).toHaveTextContent(
+				mockTradeOrdersList[i].outputVaultBalanceChange.formattedAmount
+			);
+		});
 	});
 });
