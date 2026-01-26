@@ -126,8 +126,10 @@ describe('VaultsListTable', () => {
 		expect(addressesCell).toHaveTextContent('Orderbook:');
 		expect(addressesCell).toHaveTextContent('Owner:');
 
-		expect(screen.getByTestId('vault-token')).toHaveTextContent('Mock Token');
-		expect(screen.getByTestId('vault-balance')).toHaveTextContent('1 MTK');
+		// Token column now contains both token name and balance
+		const tokenCell = screen.getByTestId('vault-token');
+		expect(tokenCell).toHaveTextContent('Mock Token');
+		expect(tokenCell).toHaveTextContent('1 MTK');
 	});
 
 	it('shows deposit/withdraw buttons when handlers are provided', async () => {

@@ -224,12 +224,16 @@
 			</div>
 		</svelte:fragment>
 		<svelte:fragment slot="head">
-			<TableHeadCell padding="p-0" class="w-10"><span class="sr-only">Select</span></TableHeadCell>
-			<TableHeadCell padding="pl-0 py-4" class="w-[7%]">Network</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4" class="w-[24%]">Addresses</TableHeadCell>
-			<TableHeadCell padding="px-2 py-4" class="w-[25%]">Token</TableHeadCell>
+			<TableHeadCell padding="p-0" class="w-[4%]"><span class="sr-only">Select</span></TableHeadCell
+			>
+			<TableHeadCell padding="pl-0 py-4" class="w-[8%]">Network</TableHeadCell>
+			<TableHeadCell padding="px-4 py-4" class="w-[22%]">Addresses</TableHeadCell>
+			<TableHeadCell padding="px-2 py-4" class="w-[22%]">Token</TableHeadCell>
 			<TableHeadCell padding="px-3 py-4" class="w-[20%]">Input For</TableHeadCell>
 			<TableHeadCell padding="px-3 py-4" class="w-[20%]">Output For</TableHeadCell>
+			<TableHeadCell padding="p-0" class="w-[4%]"
+				><span class="sr-only">Actions</span></TableHeadCell
+			>
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>
@@ -310,8 +314,8 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
-				<TableBodyCell tdClass="px-0 text-right">
+			<TableBodyCell tdClass="px-0 text-right">
+				{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
 					<Button
 						color="alternative"
 						outline={false}
@@ -324,8 +328,9 @@
 					>
 						<DotsVerticalOutline class="dark:text-white" />
 					</Button>
-				</TableBodyCell>
-
+				{/if}
+			</TableBodyCell>
+			{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
 				<Dropdown
 					data-testid="dropdown"
 					placement="bottom-end"
