@@ -10,6 +10,7 @@
     hideZeroBalanceVaults,
     hideInactiveOrdersVaults,
     activeTokens,
+    activeOrderbookAddresses,
   } from '$lib/stores/settings';
 
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
@@ -28,5 +29,6 @@
   {handleDepositModal}
   {handleWithdrawModal}
   {activeTokens}
+  {activeOrderbookAddresses}
   showMyItemsOnly={writable(false)}
 />

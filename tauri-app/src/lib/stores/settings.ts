@@ -105,6 +105,25 @@ export const activeTokens = cachedWritableStore<Address[]>(
 );
 
 /**
+ * Store for managing selected orderbook addresses for filtering
+ * Stores an array of orderbook addresses that are currently selected for filtering
+ * @default [] - Empty array by default
+ * @returns A writable store containing selected orderbooks mapped by address
+ */
+export const activeOrderbookAddresses = cachedWritableStore<Address[]>(
+  'settings.activeOrderbookAddresses',
+  [],
+  JSON.stringify,
+  (str) => {
+    try {
+      return JSON.parse(str);
+    } catch {
+      return [];
+    }
+  },
+);
+
+/**
  * A persistent store that controls whether vaults without active orders should be hidden in the UI.
  *
  * This setting is saved to local storage and persists between sessions.

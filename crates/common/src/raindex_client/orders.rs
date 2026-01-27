@@ -765,6 +765,8 @@ pub struct GetOrdersFilters {
     pub order_hash: Option<B256>,
     #[tsify(optional)]
     pub tokens: Option<GetOrdersTokenFilter>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -809,6 +811,15 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .order_hash
                 .map(|order_hash| SgBytes(order_hash.to_string())),
             tokens: tokens.flatten(),
+            orderbooks: filters
+                .orderbook_addresses
+                .map(|addrs| {
+                    addrs
+                        .into_iter()
+                        .map(|addr| addr.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 }
@@ -1043,6 +1054,76 @@ mod tests {
                 }
                 _ => panic!("expected JsError"),
             }
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_maps_orderbook_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![
+                    address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                    address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+                ]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            );
+            assert_eq!(
+                sg_filter_args.orderbooks[1],
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            );
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_empty_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: None,
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert!(sg_filter_args.orderbooks.is_empty());
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![address!(
+                    "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
+                )]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            );
         }
 
         fn get_order1_json() -> Value {
@@ -1368,6 +1449,7 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: None,
+                orderbook_addresses: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(

@@ -12,7 +12,8 @@
 		hideInactiveOrdersVaults,
 		showMyItemsOnly,
 		orderHash,
-		activeTokens
+		activeTokens,
+		activeOrderbookAddresses
 	} from '$lib/stores/settings';
 	import { selectedChainIds } from '$lib/stores/settings';
 	import { handleTransactionConfirmationModal, handleWithdrawAllModal } from '$lib/services/modal';
@@ -54,5 +55,6 @@
 	{hideInactiveOrdersVaults}
 	{activeTokens}
 	{selectedChainIds}
+	{activeOrderbookAddresses}
 	{onWithdrawAll}
 />

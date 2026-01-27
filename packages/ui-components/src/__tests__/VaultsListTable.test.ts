@@ -17,25 +17,16 @@ vi.mock('$lib/providers/toasts/useToasts', () => ({
 	useToasts: vi.fn()
 }));
 
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
+
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+
 const mockMatchesAccount = vi.fn();
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
-
-vi.mock('$lib/hooks/useRaindexClient', () => ({
-	useRaindexClient: () => ({
-		getUniqueChainIds: vi.fn(() => ({
-			value: [1],
-			error: undefined
-		})),
-		getAllNetworks: vi.fn(() => ({
-			value: new Map([[1, { name: 'Ethereum', id: 1 }]]),
-			error: undefined
-		})),
-		getAllAccounts: vi.fn(() => ({
-			value: new Map(),
-			error: undefined
-		}))
-	})
-}));
+const mockGetVaults = vi.fn();
+const mockGetTokens = vi.fn();
 
 const mockVault = {
 	chainId: 1,
@@ -73,7 +64,9 @@ const {
 	mockShowInactiveOrdersStore,
 	mockActiveAccountsStore,
 	mockSelectedChainIdsStore,
-	mockShowMyItemsOnlyStore
+	mockShowMyItemsOnlyStore,
+	mockActiveTokensStore,
+	mockActiveOrderbookAddressesStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 const defaultProps = {
@@ -86,7 +79,9 @@ const defaultProps = {
 	activeOrderbookRef: mockActiveOrderbookRefStore,
 	activeAccounts: mockActiveAccountsStore,
 	selectedChainIds: mockSelectedChainIdsStore,
-	showMyItemsOnly: mockShowMyItemsOnlyStore
+	showMyItemsOnly: mockShowMyItemsOnlyStore,
+	activeTokens: mockActiveTokensStore,
+	activeOrderbookAddresses: mockActiveOrderbookAddressesStore
 };
 
 type VaultsListTableProps = ComponentProps<VaultsListTable>;
@@ -104,6 +99,37 @@ describe('VaultsListTable', () => {
 			warningToast: vi.fn(),
 			infoToast: vi.fn()
 		});
+		(useRaindexClient as Mock).mockReturnValue({
+			getVaults: mockGetVaults,
+			getTokens: mockGetTokens,
+			getUniqueChainIds: vi.fn(() => ({
+				value: [1],
+				error: undefined
+			})),
+			getAllNetworks: vi.fn(() => ({
+				value: new Map([[1, { name: 'Ethereum', id: 1 }]]),
+				error: undefined
+			})),
+			getAllAccounts: vi.fn(() => ({
+				value: new Map(),
+				error: undefined
+			})),
+			getAllOrderbooks: vi.fn(() => ({
+				value: new Map([
+					[
+						'orderbook1',
+						{
+							key: 'orderbook1',
+							address: '0x1111111111111111111111111111111111111111',
+							network: { chainId: 1 }
+						}
+					]
+				]),
+				error: undefined
+			}))
+		});
+		mockGetVaults.mockResolvedValue({ value: { items: [] }, error: undefined });
+		mockGetTokens.mockResolvedValue({ value: [], error: undefined });
 	});
 	it('displays vault information correctly', async () => {
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
@@ -412,5 +438,75 @@ describe('VaultsListTable', () => {
 		const withdrawButton = screen.getByTestId('withdraw-all-button');
 		expect(withdrawButton).toHaveTextContent('Withdraw vaults');
 		expect(withdrawButton).toBeDisabled();
+	});
+
+	it('passes orderbookAddresses filter to getVaults when orderbooks are selected', async () => {
+		const orderbookAddress = '0x1111111111111111111111111111111111111111';
+
+		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([orderbookAddress]);
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		mockQuery.createInfiniteQuery = vi.fn((options: any) => {
+			if (options.queryFn) {
+				options.queryFn({ pageParam: 0 });
+			}
+			return {
+				subscribe: (fn: (value: any) => void) => {
+					fn({
+						data: { pages: [{ items: [] }] },
+						status: 'success',
+						isFetching: false,
+						isFetched: true
+					});
+					return { unsubscribe: () => {} };
+				}
+			};
+		}) as Mock;
+
+		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
+
+		await waitFor(() => {
+			expect(mockGetVaults).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					orderbookAddresses: [orderbookAddress]
+				}),
+				expect.anything()
+			);
+		});
+	});
+
+	it('does not pass orderbookAddresses filter when no orderbooks are selected', async () => {
+		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([]);
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		mockQuery.createInfiniteQuery = vi.fn((options: any) => {
+			if (options.queryFn) {
+				options.queryFn({ pageParam: 0 });
+			}
+			return {
+				subscribe: (fn: (value: any) => void) => {
+					fn({
+						data: { pages: [{ items: [] }] },
+						status: 'success',
+						isFetching: false,
+						isFetched: true
+					});
+					return { unsubscribe: () => {} };
+				}
+			};
+		}) as Mock;
+
+		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
+
+		await waitFor(() => {
+			expect(mockGetVaults).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					orderbookAddresses: undefined
+				}),
+				expect.anything()
+			);
+		});
 	});
 });

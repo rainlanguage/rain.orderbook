@@ -298,6 +298,7 @@ mod tests {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                orderbook_addresses: None,
                 only_active_orders: false,
             };
 

@@ -100,7 +100,8 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			hideZeroBalanceVaults: writable<boolean>(false),
 			hideInactiveOrdersVaults: writable<boolean>(false),
 			showMyItemsOnly: writable<boolean>(false),
-			activeTokens: writable<Address[]>([])
+			activeTokens: writable<Address[]>([]),
+			activeOrderbookAddresses: writable<Address[]>([])
 		},
 		localDb,
 		raindexClient,

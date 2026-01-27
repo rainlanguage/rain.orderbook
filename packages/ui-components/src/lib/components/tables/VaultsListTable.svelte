@@ -17,7 +17,13 @@
 	import OrderOrVaultHash from '../OrderOrVaultHash.svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
-	import { Float, RaindexClient, RaindexVault, RaindexVaultsList } from '@rainlanguage/orderbook';
+	import {
+		Float,
+		RaindexClient,
+		RaindexVault,
+		RaindexVaultsList,
+		type OrderbookCfg
+	} from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
 	import type { AppStoresInterface } from '$lib/types/appStores.ts';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -37,6 +43,7 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
+	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
 	export let handleDepositModal:
 		| ((
 				vault: RaindexVault,
@@ -81,6 +88,21 @@
 			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
 		) ?? [];
 
+	$: orderbooksMap = raindexClient.getAllOrderbooks()?.value ?? new Map<string, OrderbookCfg>();
+	$: availableOrderbookAddresses = (() => {
+		const addrs: string[] = [];
+		orderbooksMap.forEach((cfg: OrderbookCfg) => {
+			if ($selectedChainIds.length === 0 || $selectedChainIds.includes(cfg.network.chainId)) {
+				addrs.push(cfg.address.toLowerCase());
+			}
+		});
+		return addrs;
+	})();
+	$: selectedOrderbookAddresses =
+		$activeOrderbookAddresses?.filter((address) =>
+			availableOrderbookAddresses.includes(address.toLowerCase())
+		) ?? [];
+
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_VAULTS,
@@ -88,7 +110,8 @@
 			$hideInactiveOrdersVaults,
 			$selectedChainIds,
 			owners,
-			selectedTokens
+			selectedTokens,
+			selectedOrderbookAddresses
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getVaults(
@@ -97,6 +120,8 @@
 					owners,
 					hideZeroBalance: $hideZeroBalanceVaults,
 					tokens: selectedTokens,
+					orderbookAddresses:
+						selectedOrderbookAddresses.length > 0 ? selectedOrderbookAddresses : undefined,
 					onlyActiveOrders: $hideInactiveOrdersVaults
 				},
 				pageParam + 1
@@ -205,6 +230,8 @@
 		{activeTokens}
 		{tokensQuery}
 		{selectedTokens}
+		{activeOrderbookAddresses}
+		{selectedOrderbookAddresses}
 	/>
 	<AppTable
 		{query}

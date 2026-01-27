@@ -26,6 +26,7 @@ pub struct SgOrdersListFilterArgs {
     pub order_hash: Option<SgBytes>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub tokens: Option<SgOrdersTokensFilterArgs>,
+    pub orderbooks: Vec<String>,
 }
 impl_wasm_traits!(SgOrdersListFilterArgs);
 
@@ -50,6 +51,8 @@ pub struct SgOrdersListQueryFilters {
     pub inputs_: Option<SgVaultTokenFilter>,
     #[cynic(rename = "outputs_", skip_serializing_if = "Option::is_none")]
     pub outputs_: Option<SgVaultTokenFilter>,
+    #[cynic(rename = "orderbook_in", skip_serializing_if = "Vec::is_empty")]
+    pub orderbook_in: Vec<String>,
 }
 
 #[derive(cynic::InputObject, Debug, Clone, Tsify)]
@@ -160,6 +163,7 @@ pub struct SgVaultsListFilterArgs {
     pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
     pub tokens: Vec<String>,
+    pub orderbooks: Vec<String>,
     pub only_active_orders: bool,
 }
 impl_wasm_traits!(SgVaultsListFilterArgs);
@@ -174,6 +178,8 @@ pub struct SgVaultsListQueryFilters {
     pub balance_not: Option<SgBytes>,
     #[cynic(rename = "token_in", skip_serializing_if = "Vec::is_empty")]
     pub token_in: Vec<String>,
+    #[cynic(rename = "orderbook_in", skip_serializing_if = "Vec::is_empty")]
+    pub orderbook_in: Vec<String>,
     #[cynic(rename = "ordersAsInput_", skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub orders_as_input_: Option<Box<SgOrdersListQueryFilters>>,

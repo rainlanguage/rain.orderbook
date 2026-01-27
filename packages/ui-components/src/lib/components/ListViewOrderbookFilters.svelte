@@ -11,6 +11,7 @@
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
+	import DropdownOrderbooksFilter from './dropdown/DropdownOrderbooksFilter.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
 	import CheckboxInactiveOrdersVault from './CheckboxInactiveOrdersVault.svelte';
@@ -28,6 +29,8 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedTokens: Address[];
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
+	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
+	export let selectedOrderbookAddresses: Address[];
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
@@ -75,6 +78,12 @@
 			<DropdownOrderListAccounts {activeAccountsItems} />
 		{/if}
 		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
+		<DropdownOrderbooksFilter
+			{activeOrderbookAddresses}
+			{selectedOrderbookAddresses}
+			selectedChainIds={$selectedChainIds}
+			label="Orderbooks"
+		/>
 		<DropdownActiveNetworks {selectedChainIds} />
 	{/if}
 </div>

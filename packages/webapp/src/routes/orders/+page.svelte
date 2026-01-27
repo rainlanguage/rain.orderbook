@@ -7,7 +7,8 @@
 		showMyItemsOnly,
 		showInactiveOrders,
 		activeTokens,
-		selectedChainIds
+		selectedChainIds,
+		activeOrderbookAddresses
 	} from '$lib/stores/settings';
 
 	const {
@@ -28,4 +29,5 @@
 	{hideZeroBalanceVaults}
 	{hideInactiveOrdersVaults}
 	{activeTokens}
+	{activeOrderbookAddresses}
 />

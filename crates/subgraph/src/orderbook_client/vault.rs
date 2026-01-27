@@ -34,6 +34,7 @@ impl OrderbookSubgraphClient {
                 order_hash: None,
                 inputs_: None,
                 outputs_: None,
+                orderbook_in: vec![],
             };
             Some(vec![
                 SgVaultsListQueryFilters {
@@ -53,6 +54,7 @@ impl OrderbookSubgraphClient {
             owner_in: filter_args.owners.clone(),
             balance_not,
             token_in: filter_args.tokens.clone(),
+            orderbook_in: filter_args.orderbooks.clone(),
             orders_as_input_: None,
             orders_as_output_: None,
             or,
@@ -61,6 +63,7 @@ impl OrderbookSubgraphClient {
         let has_filters = !filter_args.owners.is_empty()
             || filter_args.hide_zero_balance
             || !filter_args.tokens.is_empty()
+            || !filter_args.orderbooks.is_empty()
             || filter_args.only_active_orders;
 
         let variables = SgVaultsListQueryVariables {
@@ -88,6 +91,7 @@ impl OrderbookSubgraphClient {
                         owners: vec![],
                         hide_zero_balance: true,
                         tokens: vec![],
+                        orderbooks: vec![],
                         only_active_orders: false,
                     },
                     SgPaginationArgs {
@@ -379,6 +383,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -414,6 +419,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -444,6 +450,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: true,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -473,6 +480,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -502,6 +510,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -527,6 +536,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -791,6 +801,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![token_address.clone()],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -823,6 +834,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![token1.clone(), token2.clone()],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -855,6 +867,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: true,
             tokens: vec![token_address.clone()],
+            orderbooks: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -879,6 +892,71 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_vaults_list_with_orderbook_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let orderbook_address = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string();
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![],
+            orderbooks: vec![orderbook_address.clone()],
+            only_active_orders: false,
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"orderbook_in\":[\"{}\"]", orderbook_address));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
+    async fn test_vaults_list_with_multiple_orderbook_filters() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let ob1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
+        let ob2 = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string();
+        let filter_args = SgVaultsListFilterArgs {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: vec![],
+            orderbooks: vec![ob1.clone(), ob2.clone()],
+            only_active_orders: false,
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_vaults = vec![default_sg_vault()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"orderbook_in\":[\"{}\",\"{}\"]", ob1, ob2));
+            then.status(200)
+                .json_body(json!({"data": {"vaults": expected_vaults}}));
+        });
+
+        let result = client.vaults_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let vaults = result.unwrap();
+        assert_eq!(vaults.len(), expected_vaults.len());
+    }
+
+    #[tokio::test]
     async fn test_vaults_list_with_only_active_orders_filter() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
@@ -886,6 +964,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: true,
         };
         let pagination_args = SgPaginationArgs {
@@ -920,6 +999,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: true,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: true,
         };
         let pagination_args = SgPaginationArgs {
@@ -955,6 +1035,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
             only_active_orders: true,
         };
         let pagination_args = SgPaginationArgs {

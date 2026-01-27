@@ -11,4 +11,5 @@ export interface AppStoresInterface {
 	hideInactiveOrdersVaults: Writable<boolean>;
 	activeTokens: Writable<Address[]>;
 	showMyItemsOnly: Writable<boolean>;
+	activeOrderbookAddresses: Writable<Address[]>;
 }
