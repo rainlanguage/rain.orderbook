@@ -1355,6 +1355,8 @@ pub struct GetVaultsFilters {
     pub tokens: Option<Vec<Address>>,
     #[tsify(optional, type = "Address[]")]
     pub orderbook_addresses: Option<Vec<Address>>,
+    #[serde(default)]
+    pub only_active_orders: bool,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -1386,6 +1388,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                         .collect()
                 })
                 .unwrap_or_default(),
+            only_active_orders: filters.only_active_orders,
         })
     }
 }
@@ -1806,6 +1809,7 @@ mod tests {
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
                 orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let vaults = client
@@ -2959,6 +2963,7 @@ mod tests {
                 )
                 .unwrap()]),
                 orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let result = raindex_client
@@ -3015,6 +3020,7 @@ mod tests {
                     Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
                 orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let result = raindex_client
@@ -3184,6 +3190,7 @@ mod tests {
                     address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
                     address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
                 ]),
+                only_active_orders: false,
             };
 
             let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
@@ -3208,6 +3215,7 @@ mod tests {
                 hide_zero_balance: false,
                 tokens: None,
                 orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
@@ -3226,6 +3234,7 @@ mod tests {
                 orderbook_addresses: Some(vec![address!(
                     "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
                 )]),
+                only_active_orders: false,
             };
 
             let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();

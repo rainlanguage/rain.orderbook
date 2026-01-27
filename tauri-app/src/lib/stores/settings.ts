@@ -123,4 +123,26 @@ export const activeOrderbookAddresses = cachedWritableStore<Address[]>(
   },
 );
 
+/**
+ * A persistent store that controls whether vaults without active orders should be hidden in the UI.
+ *
+ * This setting is saved to local storage and persists between sessions.
+ *
+ * @default false - Vaults without active orders are shown by default
+ * @returns A writable store containing a boolean value
+ */
+export const hideInactiveOrdersVaults = cachedWritableStore<boolean>(
+  'settings.hideInactiveOrdersVaults',
+  false,
+  (value) => JSON.stringify(value),
+  (str) => {
+    try {
+      const value = JSON.parse(str);
+      return typeof value === 'boolean' ? value : false;
+    } catch {
+      return false;
+    }
+  },
+);
+
 export const isSentryEnabled = writable<boolean>(false);

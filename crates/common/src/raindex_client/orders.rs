@@ -18,7 +18,8 @@ use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
-            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
+            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs,
+            SgOrdersTokensFilterArgs, SgVault,
         },
         // Id,
     },
@@ -762,16 +763,43 @@ pub struct GetOrdersFilters {
     pub active: Option<bool>,
     #[tsify(optional, type = "Hex")]
     pub order_hash: Option<B256>,
-    #[tsify(optional, type = "Address[]")]
-    pub tokens: Option<Vec<Address>>,
+    #[tsify(optional)]
+    pub tokens: Option<GetOrdersTokenFilter>,
     #[tsify(optional, type = "Address[]")]
     pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GetOrdersTokenFilter {
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "Address[]"))]
+    pub inputs: Option<Vec<Address>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "Address[]"))]
+    pub outputs: Option<Vec<Address>>,
+}
+impl_wasm_traits!(GetOrdersTokenFilter);
+
 impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
     type Error = RaindexError;
     fn try_from(filters: GetOrdersFilters) -> Result<Self, Self::Error> {
+        let tokens = filters.tokens.map(|token_filter| {
+            let inputs = token_filter.inputs.unwrap_or_default();
+            let outputs = token_filter.outputs.unwrap_or_default();
+            let map_tokens = |list: Vec<Address>| {
+                list.into_iter()
+                    .map(|token| token.to_string().to_lowercase())
+            };
+
+            let inputs: Vec<String> = map_tokens(inputs).collect();
+            let outputs: Vec<String> = map_tokens(outputs).collect();
+            if inputs.is_empty() && outputs.is_empty() {
+                None
+            } else {
+                Some(SgOrdersTokensFilterArgs { inputs, outputs })
+            }
+        });
+
         Ok(Self {
             owners: filters
                 .owners
@@ -782,15 +810,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
             order_hash: filters
                 .order_hash
                 .map(|order_hash| SgBytes(order_hash.to_string())),
-            tokens: filters
-                .tokens
-                .map(|tokens| {
-                    tokens
-                        .into_iter()
-                        .map(|token| token.to_string().to_lowercase())
-                        .collect()
-                })
-                .unwrap_or_default(),
+            tokens: tokens.flatten(),
             orderbooks: filters
                 .orderbook_addresses
                 .map(|addrs| {
@@ -916,7 +936,7 @@ mod tests {
             },
             raindex_client::local_db::LocalDb,
         };
-        use alloy::primitives::{b256, U256};
+        use alloy::primitives::{address, b256, U256};
         use httpmock::MockServer;
         use rain_math_float::Float;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -959,6 +979,44 @@ mod tests {
                     "query_text not supported in StaticJsonExec",
                 ))
             }
+        }
+
+        #[test]
+        fn try_from_get_orders_filters_maps_directional_tokens() {
+            let input = address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB");
+            let output = address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e");
+            let filters = GetOrdersFilters {
+                tokens: Some(GetOrdersTokenFilter {
+                    inputs: Some(vec![input]),
+                    outputs: Some(vec![output]),
+                }),
+                ..Default::default()
+            };
+
+            let args = SgOrdersListFilterArgs::try_from(filters).unwrap();
+            let tokens = args.tokens.unwrap();
+            assert_eq!(
+                tokens.inputs,
+                vec!["0xf3dee5b36e3402893e6953a8670e37d329683abb".to_string()]
+            );
+            assert_eq!(
+                tokens.outputs,
+                vec!["0x7d3dd01fed0c16a6c353ce3bacf26467726ef96e".to_string()]
+            );
+        }
+
+        #[test]
+        fn try_from_get_orders_filters_drops_empty_token_lists() {
+            let filters = GetOrdersFilters {
+                tokens: Some(GetOrdersTokenFilter {
+                    inputs: Some(vec![]),
+                    outputs: Some(vec![]),
+                }),
+                ..Default::default()
+            };
+
+            let args = SgOrdersListFilterArgs::try_from(filters).unwrap();
+            assert!(args.tokens.is_none());
         }
 
         #[test]

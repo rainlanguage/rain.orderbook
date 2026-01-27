@@ -98,6 +98,7 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
+			hideInactiveOrdersVaults: writable<boolean>(false),
 			showMyItemsOnly: writable<boolean>(false),
 			activeTokens: writable<Address[]>([]),
 			activeOrderbookAddresses: writable<Address[]>([])

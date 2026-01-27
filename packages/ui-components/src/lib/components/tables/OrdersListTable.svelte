@@ -35,6 +35,7 @@
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let hideInactiveOrdersVaults: AppStoresInterface['hideInactiveOrdersVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
@@ -67,7 +68,7 @@
 	$: orderbooksMap = raindexClient.getAllOrderbooks()?.value ?? new Map<string, OrderbookCfg>();
 	$: availableOrderbookAddresses = (() => {
 		const addrs: string[] = [];
-		orderbooksMap.forEach((cfg) => {
+		orderbooksMap.forEach((cfg: OrderbookCfg) => {
 			if ($selectedChainIds.length === 0 || $selectedChainIds.includes(cfg.network.chainId)) {
 				addrs.push(cfg.address.toLowerCase());
 			}
@@ -96,7 +97,10 @@
 					owners,
 					active: $showInactiveOrders ? undefined : true,
 					orderHash: $orderHash || undefined,
-					tokens: selectedTokens,
+					tokens:
+						selectedTokens.length > 0
+							? { inputs: selectedTokens, outputs: selectedTokens }
+							: undefined,
 					orderbookAddresses:
 						selectedOrderbookAddresses.length > 0 ? selectedOrderbookAddresses : undefined
 				},
@@ -123,6 +127,7 @@
 	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{hideInactiveOrdersVaults}
 	{tokensQuery}
 	{activeTokens}
 	{selectedTokens}

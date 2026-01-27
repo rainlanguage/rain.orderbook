@@ -11,7 +11,11 @@
 		activeOrderbookAddresses
 	} from '$lib/stores/settings';
 
-	const { activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface = $page.data.stores;
+	const {
+		activeAccountsItems,
+		hideZeroBalanceVaults,
+		hideInactiveOrdersVaults
+	}: AppStoresInterface = $page.data.stores;
 </script>
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
@@ -23,6 +27,7 @@
 	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{hideInactiveOrdersVaults}
 	{activeTokens}
 	{activeOrderbookAddresses}
 />

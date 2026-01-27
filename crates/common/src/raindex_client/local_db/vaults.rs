@@ -299,6 +299,7 @@ mod tests {
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
                 orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let vaults = data_source

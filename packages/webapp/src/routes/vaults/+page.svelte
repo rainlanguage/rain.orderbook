@@ -9,6 +9,7 @@
 	import { page } from '$app/stores';
 	import {
 		hideZeroBalanceVaults,
+		hideInactiveOrdersVaults,
 		showMyItemsOnly,
 		orderHash,
 		activeTokens,
@@ -51,6 +52,7 @@
 	{activeAccountsItems}
 	{showInactiveOrders}
 	{hideZeroBalanceVaults}
+	{hideInactiveOrdersVaults}
 	{activeTokens}
 	{selectedChainIds}
 	{activeOrderbookAddresses}

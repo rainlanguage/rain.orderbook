@@ -8,6 +8,7 @@
     showInactiveOrders,
     orderHash,
     hideZeroBalanceVaults,
+    hideInactiveOrdersVaults,
     activeTokens,
     activeOrderbookAddresses,
   } from '$lib/stores/settings';
@@ -24,6 +25,7 @@
   {showInactiveOrders}
   {orderHash}
   {hideZeroBalanceVaults}
+  {hideInactiveOrdersVaults}
   {activeTokens}
   {activeOrderbookAddresses}
   showMyItemsOnly={writable(false)}

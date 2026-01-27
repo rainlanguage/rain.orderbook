@@ -38,6 +38,7 @@ describe('ListViewOrderbookFilters', () => {
 
 	const defaultProps: ListViewOrderbookFiltersProps = {
 		hideZeroBalanceVaults: writable(false),
+		hideInactiveOrdersVaults: writable(false),
 		activeAccountsItems: writable({}),
 		selectedChainIds: writable([]),
 		showInactiveOrders: writable(true),
@@ -119,6 +120,7 @@ describe('ListViewOrderbookFilters', () => {
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.getByTestId('zero-balance-vault-checkbox')).toBeInTheDocument();
+		expect(screen.getByTestId('inactive-orders-vault-checkbox')).toBeInTheDocument();
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-status-checkbox')).not.toBeInTheDocument();
 	});
@@ -134,6 +136,7 @@ describe('ListViewOrderbookFilters', () => {
 		expect(screen.getByTestId('order-hash-input')).toBeInTheDocument();
 		expect(screen.getByTestId('order-status-checkbox')).toBeInTheDocument();
 		expect(screen.queryByTestId('zero-balance-vault-checkbox')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('inactive-orders-vault-checkbox')).not.toBeInTheDocument();
 	});
 
 	test('shows common components when networks exist', () => {
@@ -152,6 +155,7 @@ describe('ListViewOrderbookFilters', () => {
 		render(ListViewOrderbookFilters, defaultProps);
 
 		expect(screen.queryByTestId('zero-balance-vault-checkbox')).not.toBeInTheDocument();
+		expect(screen.queryByTestId('inactive-orders-vault-checkbox')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-hash-input')).not.toBeInTheDocument();
 		expect(screen.queryByTestId('order-status-checkbox')).not.toBeInTheDocument();
 	});
