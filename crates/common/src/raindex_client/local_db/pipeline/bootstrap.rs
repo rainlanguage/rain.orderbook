@@ -89,6 +89,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
     {
         let is_healthy = self.check_integrity(db).await.unwrap_or(false);
         if !is_healthy {
+            db.wipe_and_recreate().await?;
             self.reset_db(db, db_schema_version).await?;
             return Ok(());
         }
@@ -613,6 +614,7 @@ mod tests {
         json_map: HashMap<String, String>,
         text_map: HashMap<String, String>,
         calls_text: Mutex<Vec<String>>,
+        wipe_called: Mutex<bool>,
     }
 
     impl CorruptedDb {
@@ -625,6 +627,7 @@ mod tests {
                 json_map: HashMap::new(),
                 text_map: HashMap::new(),
                 calls_text: Mutex::new(Vec::new()),
+                wipe_called: Mutex::new(false),
             };
             let corrupted_row = IntegrityCheckRow {
                 quick_check: "database disk image is malformed".to_string(),
@@ -649,6 +652,10 @@ mod tests {
 
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
+        }
+
+        fn was_wipe_called(&self) -> bool {
+            *self.wipe_called.lock().unwrap()
         }
     }
 
@@ -681,6 +688,11 @@ mod tests {
                 .cloned()
                 .ok_or_else(|| LocalDbQueryError::database("no text for sql"))
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            *self.wipe_called.lock().unwrap() = true;
+            Ok(())
+        }
     }
 
     #[tokio::test]
@@ -692,6 +704,8 @@ mod tests {
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .expect("runner_run should succeed after resetting corrupted db");
+
+        assert!(db.was_wipe_called(), "should have called wipe_and_recreate");
 
         let calls = db.calls();
         let expected_views: Vec<String> = create_views_batch()
@@ -720,6 +734,7 @@ mod tests {
     struct IntegrityCheckFailsDb {
         text_map: HashMap<String, String>,
         calls_text: Mutex<Vec<String>>,
+        wipe_called: Mutex<bool>,
     }
 
     impl IntegrityCheckFailsDb {
@@ -727,6 +742,7 @@ mod tests {
             let mut db = Self {
                 text_map: HashMap::new(),
                 calls_text: Mutex::new(Vec::new()),
+                wipe_called: Mutex::new(false),
             };
             db.text_map
                 .insert(clear_tables_stmt().sql().to_string(), "ok".to_string());
@@ -744,6 +760,10 @@ mod tests {
 
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
+        }
+
+        fn was_wipe_called(&self) -> bool {
+            *self.wipe_called.lock().unwrap()
         }
     }
 
@@ -773,6 +793,11 @@ mod tests {
                 .cloned()
                 .ok_or_else(|| LocalDbQueryError::database("no text for sql"))
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            *self.wipe_called.lock().unwrap() = true;
+            Ok(())
+        }
     }
 
     #[tokio::test]
@@ -785,6 +810,11 @@ mod tests {
             .await
             .expect("runner_run should succeed after resetting when integrity check errors");
 
+        assert!(
+            db.was_wipe_called(),
+            "should have called wipe_and_recreate when integrity check errors"
+        );
+
         let calls = db.calls();
         assert!(
             calls.contains(&clear_tables_stmt().sql().to_string()),
@@ -794,5 +824,49 @@ mod tests {
             calls.contains(&create_tables_stmt().sql().to_string()),
             "should have created tables"
         );
+    }
+
+    struct WipeFailsDb;
+
+    #[async_trait(?Send)]
+    impl LocalDbQueryExecutor for WipeFailsDb {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            Err(LocalDbQueryError::database(
+                "malformed database schema (db_metadata)",
+            ))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            Ok("ok".to_string())
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::database("wipe failed"))
+        }
+    }
+
+    #[tokio::test]
+    async fn runner_run_propagates_wipe_error() {
+        let adapter = ClientBootstrapAdapter::new();
+        let db = WipeFailsDb;
+
+        let err = adapter
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
+            .await
+            .unwrap_err();
+
+        match err {
+            LocalDbError::LocalDbQueryError(inner) => {
+                assert!(inner.to_string().contains("wipe failed"));
+            }
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }
