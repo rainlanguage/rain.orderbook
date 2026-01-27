@@ -296,7 +296,8 @@ WHERE
   )
 /*OWNERS_CLAUSE*/
 /*ORDER_HASH_CLAUSE*/
-/*TOKENS_CLAUSE*/
+/*INPUT_TOKENS_CLAUSE*/
+/*OUTPUT_TOKENS_CLAUSE*/
 GROUP BY
   l.chain_id,
   COALESCE(la.order_hash, l.order_hash),

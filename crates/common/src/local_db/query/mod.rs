@@ -16,6 +16,7 @@ pub mod fetch_transaction_by_hash;
 pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
 pub mod insert_db_metadata;
+pub mod integrity_check;
 pub mod sql_statement;
 pub mod sql_statement_batch;
 pub mod update_last_synced_block;
