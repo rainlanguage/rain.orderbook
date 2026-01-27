@@ -36,6 +36,24 @@ export const selectedChainIds = cachedWritableStore<number[]>(
   (str) => JSON.parse(str),
 );
 
+/**
+ * Store holding the list of valid/available chain IDs from the RaindexClient.
+ * Used to automatically filter selectedChainIds to ensure only valid IDs are selected.
+ * Populated during app initialization from RaindexClient.getUniqueChainIds().
+ * @default [] - Empty array until populated
+ */
+export const validChainIds = writable<number[]>([]);
+
+validChainIds.subscribe((valid) => {
+  if (valid.length > 0) {
+    const current = get(selectedChainIds);
+    const filtered = current.filter((id) => valid.includes(id));
+    if (filtered.length !== current.length) {
+      selectedChainIds.set(filtered);
+    }
+  }
+});
+
 // accounts
 export const activeAccountsItems = cachedWritableStore<Record<string, Address>>(
   'settings.activeAccountsItems',

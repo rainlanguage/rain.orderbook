@@ -22,7 +22,7 @@
   import { derived } from 'svelte/store';
   import { walletconnectAccount } from '$lib/stores/walletconnect';
   import { ledgerWalletAddress } from '$lib/stores/wallets';
-  import { settingsText } from '$lib/stores/settings';
+  import { settingsText, validChainIds } from '$lib/stores/settings';
   import { RaindexClient } from '@rainlanguage/orderbook';
   import { onMount } from 'svelte';
   import { loadRemoteSettings } from '$lib/services/loadRemoteSettings';
@@ -43,12 +43,16 @@
   });
 
   let raindexClient: RaindexClient | undefined = undefined;
+
   $: if ($settingsText) {
     const result = RaindexClient.new([$settingsText]);
     if (result.error) {
       throw new Error(result.error.readableMsg);
-    } else {
-      raindexClient = result.value;
+    }
+    raindexClient = result.value;
+    const uniqueChainIds = raindexClient.getUniqueChainIds();
+    if (!uniqueChainIds.error) {
+      validChainIds.set(uniqueChainIds.value);
     }
   }
 </script>

@@ -15,6 +15,7 @@
 		LocalDbProvider
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
+	import { validChainIds } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
@@ -39,6 +40,11 @@
 		if (!browser || !raindexClient || !localDb) return;
 		let client = raindexClient as RaindexClient;
 		client.startLocalDbScheduler(settingsYamlText, updateStatus);
+
+		const uniqueChainIds = client.getUniqueChainIds();
+		if (!uniqueChainIds.error) {
+			validChainIds.set(uniqueChainIds.value);
+		}
 	});
 	onDestroy(() => {
 		if (!raindexClient) return;
