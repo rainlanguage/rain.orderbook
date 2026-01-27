@@ -2,7 +2,7 @@ use super::local_db::orders::LocalDbOrders;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
-use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
+use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
@@ -18,7 +18,8 @@ use rain_orderbook_subgraph_client::{
     // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
-            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs, SgVault,
+            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs,
+            SgOrdersTokensFilterArgs, SgVault,
         },
         // Id,
     },
@@ -585,56 +586,15 @@ impl RaindexClient {
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
+        let ids = chain_ids.map(|ChainIds(ids)| ids);
+
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+            return local_source.list(ids, &filters, None).await;
+        }
+
         let subgraph_source = SubgraphOrders::new(self);
-
-        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
-            return subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await;
-        };
-
-        if ids.is_empty() {
-            return subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await;
-        }
-
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-
-        for id in ids.drain(..) {
-            if is_chain_supported_local_db(id) {
-                local_ids.push(id);
-            } else {
-                sg_ids.push(id);
-            }
-        }
-
-        let mut orders: Vec<RaindexOrder> = Vec::new();
-
-        match self.local_db() {
-            Some(local_db) => {
-                if !local_ids.is_empty() {
-                    let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-                    let local_orders = local_source
-                        .list(Some(local_ids.clone()), &filters, None)
-                        .await?;
-                    orders.extend(local_orders);
-                }
-            }
-            None => {
-                sg_ids.append(&mut local_ids);
-            }
-        }
-
-        if !sg_ids.is_empty() {
-            let sg = subgraph_source
-                .list(Some(sg_ids), &filters, Some(page_number))
-                .await?;
-            orders.extend(sg);
-        }
-
-        Ok(orders)
+        subgraph_source.list(ids, &filters, Some(page_number)).await
     }
 
     /// Retrieves a specific order by its hash from a particular blockchain network
@@ -774,12 +734,10 @@ impl RaindexClient {
             ));
         }
 
-        if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(local_db) = self.local_db() {
-                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-                if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
-                    return Ok(order);
-                }
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+            if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
+                return Ok(order);
             }
         }
 
@@ -805,14 +763,43 @@ pub struct GetOrdersFilters {
     pub active: Option<bool>,
     #[tsify(optional, type = "Hex")]
     pub order_hash: Option<B256>,
+    #[tsify(optional)]
+    pub tokens: Option<GetOrdersTokenFilter>,
     #[tsify(optional, type = "Address[]")]
-    pub tokens: Option<Vec<Address>>,
+    pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
+
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GetOrdersTokenFilter {
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "Address[]"))]
+    pub inputs: Option<Vec<Address>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "Address[]"))]
+    pub outputs: Option<Vec<Address>>,
+}
+impl_wasm_traits!(GetOrdersTokenFilter);
 
 impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
     type Error = RaindexError;
     fn try_from(filters: GetOrdersFilters) -> Result<Self, Self::Error> {
+        let tokens = filters.tokens.map(|token_filter| {
+            let inputs = token_filter.inputs.unwrap_or_default();
+            let outputs = token_filter.outputs.unwrap_or_default();
+            let map_tokens = |list: Vec<Address>| {
+                list.into_iter()
+                    .map(|token| token.to_string().to_lowercase())
+            };
+
+            let inputs: Vec<String> = map_tokens(inputs).collect();
+            let outputs: Vec<String> = map_tokens(outputs).collect();
+            if inputs.is_empty() && outputs.is_empty() {
+                None
+            } else {
+                Some(SgOrdersTokensFilterArgs { inputs, outputs })
+            }
+        });
+
         Ok(Self {
             owners: filters
                 .owners
@@ -823,12 +810,13 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
             order_hash: filters
                 .order_hash
                 .map(|order_hash| SgBytes(order_hash.to_string())),
-            tokens: filters
-                .tokens
-                .map(|tokens| {
-                    tokens
+            tokens: tokens.flatten(),
+            orderbooks: filters
+                .orderbook_addresses
+                .map(|addrs| {
+                    addrs
                         .into_iter()
-                        .map(|token| token.to_string().to_lowercase())
+                        .map(|addr| addr.to_string().to_lowercase())
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -948,7 +936,7 @@ mod tests {
             },
             raindex_client::local_db::LocalDb,
         };
-        use alloy::primitives::{b256, U256};
+        use alloy::primitives::{address, b256, U256};
         use httpmock::MockServer;
         use rain_math_float::Float;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -994,6 +982,44 @@ mod tests {
         }
 
         #[test]
+        fn try_from_get_orders_filters_maps_directional_tokens() {
+            let input = address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB");
+            let output = address!("0x7D3Dd01feD0C16A6c353ce3BACF26467726EF96e");
+            let filters = GetOrdersFilters {
+                tokens: Some(GetOrdersTokenFilter {
+                    inputs: Some(vec![input]),
+                    outputs: Some(vec![output]),
+                }),
+                ..Default::default()
+            };
+
+            let args = SgOrdersListFilterArgs::try_from(filters).unwrap();
+            let tokens = args.tokens.unwrap();
+            assert_eq!(
+                tokens.inputs,
+                vec!["0xf3dee5b36e3402893e6953a8670e37d329683abb".to_string()]
+            );
+            assert_eq!(
+                tokens.outputs,
+                vec!["0x7d3dd01fed0c16a6c353ce3bacf26467726ef96e".to_string()]
+            );
+        }
+
+        #[test]
+        fn try_from_get_orders_filters_drops_empty_token_lists() {
+            let filters = GetOrdersFilters {
+                tokens: Some(GetOrdersTokenFilter {
+                    inputs: Some(vec![]),
+                    outputs: Some(vec![]),
+                }),
+                ..Default::default()
+            };
+
+            let args = SgOrdersListFilterArgs::try_from(filters).unwrap();
+            assert!(args.tokens.is_none());
+        }
+
+        #[test]
         fn try_from_local_db_orders_csv_parses_records() {
             let csv = Some(
                 "0xdeadbeef:0xabc0000000000000000000000000000000000000000000000000000000000001:1,\
@@ -1028,6 +1054,76 @@ mod tests {
                 }
                 _ => panic!("expected JsError"),
             }
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_maps_orderbook_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![
+                    address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                    address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+                ]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            );
+            assert_eq!(
+                sg_filter_args.orderbooks[1],
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            );
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_empty_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: None,
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert!(sg_filter_args.orderbooks.is_empty());
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![address!(
+                    "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
+                )]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            );
         }
 
         fn get_order1_json() -> Value {
@@ -1353,6 +1449,7 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: None,
+                orderbook_addresses: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
@@ -1837,82 +1934,6 @@ mod tests {
                 RaindexError::LocalDbQueryError(LocalDbQueryError::Deserialization { .. }) => {}
                 other => panic!("unexpected error: {other:?}"),
             }
-        }
-
-        #[tokio::test]
-        async fn get_orders_routes_between_local_and_subgraph() {
-            let sg_server = MockServer::start_async().await;
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
-                  "data": {
-                    "orders": [
-                      get_order1_json()
-                    ]
-                  }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg2");
-                then.status(200).json_body_obj(&json!({
-                  "data": {
-                    "orders": []
-                  }
-                }));
-            });
-
-            let local_order = LocalDbOrder {
-                chain_id: 137,
-                order_hash: b256!(
-                    "0x0000000000000000000000000000000000000000000000000000000000000abc"
-                ),
-                owner: Address::from_str("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap(),
-                block_timestamp: 1,
-                block_number: 1,
-                orderbook_address: Address::from_str("0x0987654321098765432109876543210987654321")
-                    .unwrap(),
-                order_bytes: Bytes::from_str("0x01").unwrap(),
-                transaction_hash: b256!(
-                    "0x0000000000000000000000000000000000000000000000000000000000000010"
-                ),
-                inputs: None,
-                outputs: None,
-                trade_count: 0,
-                active: true,
-                meta: None,
-            };
-
-            let exec = StaticJsonExec {
-                json: serde_json::to_string(&vec![local_order]).unwrap(),
-            };
-            let local_db = LocalDb::new(exec);
-
-            let client = RaindexClient::new(
-                vec![get_test_yaml(
-                    &sg_server.url("/sg1"),
-                    &sg_server.url("/sg2"),
-                    &sg_server.url("/rpc1"),
-                    &sg_server.url("/rpc2"),
-                )],
-                None,
-            )
-            .unwrap();
-            client.local_db.borrow_mut().replace(local_db);
-
-            let result = client
-                .get_orders(
-                    Some(ChainIds(vec![1, 137])),
-                    Some(GetOrdersFilters::default()),
-                    Some(1),
-                )
-                .await
-                .unwrap();
-
-            assert_eq!(result.len(), 2);
-            assert!(result.iter().any(|o| o.order_hash
-                == b256!("0x0000000000000000000000000000000000000000000000000000000000000abc")));
-            assert!(result.iter().any(|o| o.order_hash
-                == b256!("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4")));
         }
 
         #[tokio::test]

@@ -36,3 +36,9 @@ pub struct RunReport {
     pub successes: Vec<TargetSuccess>,
     pub failures: Vec<TargetFailure>,
 }
+
+#[derive(Debug)]
+pub enum RunOutcome {
+    Report(RunReport),
+    NotLeader,
+}

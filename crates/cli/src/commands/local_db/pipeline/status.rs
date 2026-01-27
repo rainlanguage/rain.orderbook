@@ -1,4 +1,7 @@
-use rain_orderbook_common::local_db::{pipeline::StatusBus, LocalDbError, OrderbookIdentifier};
+use rain_orderbook_common::local_db::{
+    pipeline::{StatusBus, SyncPhase},
+    LocalDbError, OrderbookIdentifier,
+};
 use tracing::info;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -47,14 +50,15 @@ impl Default for ProducerStatusBus {
 
 #[async_trait::async_trait(?Send)]
 impl StatusBus for ProducerStatusBus {
-    async fn send(&self, message: &str) -> Result<(), LocalDbError> {
+    async fn send(&self, phase: SyncPhase) -> Result<(), LocalDbError> {
         if self.debug == DebugStatus::Enabled {
             info!(
                 target: "local_db_status",
                 chain_id = self.ob_id.chain_id,
                 orderbook = %self.ob_id.orderbook_address,
                 orderbook_key = %self.orderbook_key,
-                "{message}"
+                "{}",
+                phase.to_message()
             );
         }
         Ok(())

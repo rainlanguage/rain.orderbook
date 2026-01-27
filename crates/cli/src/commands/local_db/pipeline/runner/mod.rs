@@ -360,7 +360,7 @@ mod tests {
         DumpFuture, EnginePipelines, ManifestFuture,
     };
     use rain_orderbook_common::local_db::pipeline::{
-        EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
+        EventsPipeline, StatusBus, SyncPhase, TokensPipeline, WindowPipeline,
     };
     use rain_orderbook_common::local_db::query::{
         LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
@@ -919,8 +919,8 @@ mod tests {
 
     #[async_trait(?Send)]
     impl StatusBus for StubStatusBus {
-        async fn send(&self, message: &str) -> Result<(), LocalDbError> {
-            self.telemetry.record_status(message);
+        async fn send(&self, phase: SyncPhase) -> Result<(), LocalDbError> {
+            self.telemetry.record_status(phase.to_message());
             Ok(())
         }
     }
