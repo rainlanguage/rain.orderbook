@@ -33,11 +33,15 @@ type QueryJsonFn =
         &SqlStatement,
     ) -> Pin<Box<dyn Future<Output = Result<Value, LocalDbQueryError>> + 'static>>;
 
+type WipeAndRecreateFn =
+    dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
+
 #[derive(Clone)]
 pub(crate) struct LocalDb {
     execute_batch_fn: Rc<ExecuteBatchFn>,
     query_text_fn: Rc<QueryTextFn>,
     query_json_fn: Rc<QueryJsonFn>,
+    wipe_and_recreate_fn: Rc<WipeAndRecreateFn>,
 }
 
 impl LocalDb {
@@ -74,15 +78,27 @@ impl LocalDb {
             })
         };
 
+        let wipe_and_recreate_fn: Rc<WipeAndRecreateFn> = {
+            let exec = Rc::clone(&exec);
+            Rc::new(move || {
+                let exec = Rc::clone(&exec);
+                Box::pin(async move { exec.wipe_and_recreate().await })
+            })
+        };
+
         Self {
             execute_batch_fn,
             query_text_fn,
             query_json_fn,
+            wipe_and_recreate_fn,
         }
     }
 
-    pub(crate) fn from_js_callback(callback: js_sys::Function) -> Self {
-        Self::new(JsCallbackExecutor::new(callback))
+    pub(crate) fn from_js_callback(
+        query_callback: js_sys::Function,
+        wipe_callback: Option<js_sys::Function>,
+    ) -> Self {
+        Self::new(JsCallbackExecutor::new(query_callback, wipe_callback))
     }
 }
 
@@ -109,6 +125,10 @@ impl LocalDbQueryExecutor for LocalDb {
 
     async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
         (self.query_text_fn)(stmt).await
+    }
+
+    async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+        (self.wipe_and_recreate_fn)().await
     }
 }
 
@@ -376,6 +396,11 @@ mod tests {
             self.calls.lock().unwrap().push("text");
             Ok(self.text.clone())
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            self.calls.lock().unwrap().push("wipe");
+            Ok(())
+        }
     }
 
     #[tokio::test]
@@ -392,6 +417,17 @@ mod tests {
 
         let calls = exec.calls.lock().unwrap().clone();
         assert_eq!(calls, vec!["batch", "json", "text"]);
+    }
+
+    #[tokio::test]
+    async fn local_db_delegates_wipe_and_recreate_to_executor() {
+        let exec = RecordingExec::new("[]", "ok");
+        let db = LocalDb::new(exec.clone());
+
+        db.wipe_and_recreate().await.unwrap();
+
+        let calls = exec.calls.lock().unwrap().clone();
+        assert_eq!(calls, vec!["wipe"]);
     }
 
     #[test]
@@ -694,7 +730,7 @@ orderbooks:
     async fn local_db_from_js_callback_executes_queries() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback())
+            .set_local_db_callback(success_callback(), None)
             .expect("callback set");
         let db = client.local_db().expect("local db set");
 
@@ -724,7 +760,7 @@ orderbooks:
                 .unwrap()
         ));
 
-        let db = LocalDb::from_js_callback(callback);
+        let db = LocalDb::from_js_callback(callback, None);
         let stmt = SqlStatement::new("SELECT 1");
         let err = db.query_text(&stmt).await.unwrap_err();
         assert!(matches!(err, LocalDbQueryError::Database { .. }));
@@ -744,7 +780,7 @@ orderbooks:
     async fn start_and_stop_scheduler_updates_handle_state() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback())
+            .set_local_db_callback(success_callback(), None)
             .expect("callback set");
 
         client
@@ -763,7 +799,7 @@ orderbooks:
     async fn restarting_scheduler_replaces_handle() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback())
+            .set_local_db_callback(success_callback(), None)
             .expect("callback set");
 
         client
@@ -814,7 +850,7 @@ orderbooks:
     async fn start_scheduler_propagates_errors_and_leaves_handle_empty() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback())
+            .set_local_db_callback(success_callback(), None)
             .expect("callback set");
 
         let result = client
@@ -828,7 +864,7 @@ orderbooks:
     async fn stop_scheduler_is_idempotent() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback())
+            .set_local_db_callback(success_callback(), None)
             .expect("callback set");
 
         client
