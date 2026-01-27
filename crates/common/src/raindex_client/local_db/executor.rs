@@ -130,6 +130,7 @@ impl LocalDbQueryExecutor for JsCallbackExecutor {
     }
 
     async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+        let _guard = self.serialize.lock().await;
         let wipe_callback = self.wipe_callback.as_ref().ok_or_else(|| {
             LocalDbQueryError::database("wipe_and_recreate callback not configured")
         })?;
