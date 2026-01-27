@@ -137,13 +137,18 @@ impl RaindexClient {
     pub fn set_local_db_callback(
         &self,
         #[wasm_export(
-            js_name = "callback",
+            js_name = "queryCallback",
             param_description = "JavaScript function to execute local database queries"
         )]
-        callback: js_sys::Function,
+        query_callback: js_sys::Function,
+        #[wasm_export(
+            js_name = "wipeCallback",
+            param_description = "Optional JavaScript function to wipe and recreate the database"
+        )]
+        wipe_callback: Option<js_sys::Function>,
     ) -> Result<(), RaindexError> {
         let mut slot = self.local_db.borrow_mut();
-        *slot = Some(LocalDb::from_js_callback(callback));
+        *slot = Some(LocalDb::from_js_callback(query_callback, wipe_callback));
         Ok(())
     }
 
@@ -553,10 +558,10 @@ accounts:
     #[cfg(target_family = "wasm")]
     pub fn new_test_client_with_db_callback(
         yamls: Vec<String>,
-        callback: js_sys::Function,
+        query_callback: js_sys::Function,
     ) -> RaindexClient {
         let client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
-        client.set_local_db_callback(callback).unwrap();
+        client.set_local_db_callback(query_callback, None).unwrap();
         client
     }
 
