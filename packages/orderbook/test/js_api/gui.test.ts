@@ -969,7 +969,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21Qy0rEMBTtraIgLkTcCoJba9MwteMwrnxQRHBTZXQjM53YlKZJaZMO4ke4dOsPDH6BW3d-j7iTYuJMmbmLnOSec5NzAtZfbWqUpJLOKOXjlCege8jamGfrIVPE1p01w4iMcM8ytarRR4dHLQn-l6xo9BCCZZfh9skYrEROHE7kRJSZmdvVSKUseq7LRDxkVFSy10Vd3y2L2FEle24U0Kxgnj6Pwh29fel_T_e_-tOPV__9Z2Dj48-3GLZhXdNR42EPg4kdYduaVfsTwNjyYCHTjDsweVKlqLx3itMsGdCL64R3gqBWQZJ3rkY30e2kvgv9h_Dx8kycbOkZISkpnTEpmHjKCZe_KJd7OsUBAAA=';
+			'H4sIAAAAAAAA_21QT0vDMBxNqiiIBxGvguDV2DSsdo558g9FBC9VphfZutiUpklpkw7xQ3j06hcYfgKv3vw84k2KiVvZfoe85PfeL3kvEPzVpkFFK4VGqRinIoGmh8HGPFsPuaaO6axZRmZUeMDWqkEfHx61JORfsmLQwxguu4y0T9ZgJXOKBFUTWWZ2btcgU6rouS6X8ZAzWaleF3d9tyxipEv-3Chgs0L79HkU7pjtS_97uv_Vn368-u8_A4ccf77FcBuuGzpqPOwRaGNHBDhgVu1fgNaXBxdCzbgDGyjVmql7VJxmyYBdXCeiEwS1DpK8czW6iW4n9V3oP4SPl2fyZMvMSMVoica04PIpp0L9Ahm_MInGAQAA';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -2234,8 +2234,6 @@ ${dotrainWithoutVaultIds}`;
 	});
 
 	describe('remote tokens tests', () => {
-		let gui: DotrainOrderGui;
-
 		it('should fetch remote tokens', async () => {
 			mockServer
 				.forGet('/remote-networks')
@@ -2271,18 +2269,36 @@ ${dotrainWithoutVaultIds}`;
 					tokens: [
 						{
 							chainId: 123,
-							address: '0x0000000000000000000000000000000000000000',
-							name: 'Remote',
-							symbol: 'RN',
+							address: '0x0000000000000000000000000000000000000001',
+							name: 'Token With Logo',
+							symbol: 'TWL',
+							decimals: 18,
+							logoURI: 'https://example.com/token-logo.png'
+						},
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000002',
+							name: 'Token Without Logo',
+							symbol: 'TWOL',
 							decimals: 18
 						}
 					],
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
 			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
+
+			const allTokens = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokens());
+			const tokenWithLogo = allTokens.find((t) => t.name === 'Token With Logo');
+			const tokenWithoutLogo = allTokens.find((t) => t.name === 'Token Without Logo');
+
+			assert.ok(tokenWithLogo);
+			assert.equal(tokenWithLogo.logoUri, 'https://example.com/token-logo.png');
+
+			assert.ok(tokenWithoutLogo);
+			assert.equal(tokenWithoutLogo.logoUri, undefined);
 		});
 	});
 });
