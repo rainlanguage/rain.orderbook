@@ -8,6 +8,7 @@
     showInactiveOrders,
     orderHash,
     hideZeroBalanceVaults,
+    hideInactiveOrdersVaults,
     activeTokens,
   } from '$lib/stores/settings';
   import { page } from '$app/stores';
@@ -23,6 +24,7 @@
   {showInactiveOrders}
   {orderHash}
   {hideZeroBalanceVaults}
+  {hideInactiveOrdersVaults}
   {activeTokens}
   showMyItemsOnly={writable(false)}
 />
