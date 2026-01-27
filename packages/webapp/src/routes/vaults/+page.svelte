@@ -9,9 +9,11 @@
 	import { page } from '$app/stores';
 	import {
 		hideZeroBalanceVaults,
+		hideInactiveOrdersVaults,
 		showMyItemsOnly,
 		orderHash,
-		activeTokens
+		activeTokens,
+		activeOrderbookAddresses
 	} from '$lib/stores/settings';
 	import { selectedChainIds } from '$lib/stores/settings';
 	import { handleTransactionConfirmationModal, handleWithdrawAllModal } from '$lib/services/modal';
@@ -50,7 +52,9 @@
 	{activeAccountsItems}
 	{showInactiveOrders}
 	{hideZeroBalanceVaults}
+	{hideInactiveOrdersVaults}
 	{activeTokens}
 	{selectedChainIds}
+	{activeOrderbookAddresses}
 	{onWithdrawAll}
 />

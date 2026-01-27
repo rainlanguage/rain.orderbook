@@ -1,8 +1,7 @@
 use super::*;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
-    is_chain_supported_local_db, query::fetch_vault_balance_changes::LocalDbVaultBalanceChange,
-    OrderbookIdentifier,
+    query::fetch_vault_balance_changes::LocalDbVaultBalanceChange, OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::vaults::LocalDbVaults;
@@ -334,23 +333,21 @@ impl RaindexVault {
         &self,
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        if is_chain_supported_local_db(self.chain_id) {
-            if let Some(local_db) = self.raindex_client.local_db() {
-                let local_changes = fetch_vault_balance_changes(
-                    &local_db,
-                    &OrderbookIdentifier::new(self.chain_id, self.orderbook),
-                    self.vault_id,
-                    self.token.address,
-                    self.owner,
-                )
-                .await?;
+        if let Some(local_db) = self.raindex_client.local_db() {
+            let local_changes = fetch_vault_balance_changes(
+                &local_db,
+                &OrderbookIdentifier::new(self.chain_id, self.orderbook),
+                self.vault_id,
+                self.token.address,
+                self.owner,
+            )
+            .await?;
 
-                if !local_changes.is_empty() {
-                    return local_changes
-                        .into_iter()
-                        .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
-                        .collect::<Result<Vec<_>, _>>();
-                }
+            if !local_changes.is_empty() {
+                return local_changes
+                    .into_iter()
+                    .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
+                    .collect::<Result<Vec<_>, _>>();
             }
         }
 
@@ -1122,56 +1119,18 @@ impl RaindexClient {
     ) -> Result<RaindexVaultsList, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
-        let subgraph_source = SubgraphVaults::new(self);
-
-        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
-            let vaults = subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await?;
-            return Ok(RaindexVaultsList::new(vaults));
-        };
-
-        if ids.is_empty() {
-            let vaults = subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await?;
-            return Ok(RaindexVaultsList::new(vaults));
-        };
-
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-
-        for id in ids.drain(..) {
-            if is_chain_supported_local_db(id) {
-                local_ids.push(id);
-            } else {
-                sg_ids.push(id);
-            }
-        }
-
-        let mut vaults: Vec<RaindexVault> = Vec::new();
-
-        if self.local_db().is_none() {
-            sg_ids.append(&mut local_ids);
-        }
+        let ids = chain_ids.map(|ChainIds(ids)| ids);
 
         if let Some(local_db) = self.local_db() {
-            if !local_ids.is_empty() {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
-                let local_vaults = local_source
-                    .list(Some(local_ids.clone()), &filters, None)
-                    .await?;
-                vaults.extend(local_vaults);
-            }
+            let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+            let vaults = local_source.list(ids, &filters, None).await?;
+            return Ok(RaindexVaultsList::new(vaults));
         }
 
-        if !sg_ids.is_empty() {
-            let sg_vaults = subgraph_source
-                .list(Some(sg_ids), &filters, Some(page_number))
-                .await?;
-            vaults.extend(sg_vaults);
-        }
-
+        let subgraph_source = SubgraphVaults::new(self);
+        let vaults = subgraph_source
+            .list(ids, &filters, Some(page_number))
+            .await?;
         Ok(RaindexVaultsList::new(vaults))
     }
 
@@ -1298,12 +1257,10 @@ impl RaindexClient {
             ));
         }
 
-        if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(local_db) = self.local_db() {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
-                if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
-                    return Ok(vault);
-                }
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+            if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
+                return Ok(vault);
             }
         }
 
@@ -1396,6 +1353,10 @@ pub struct GetVaultsFilters {
     pub hide_zero_balance: bool,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
+    #[serde(default)]
+    pub only_active_orders: bool,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -1418,6 +1379,16 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                         .collect()
                 })
                 .unwrap_or_default(),
+            orderbooks: filters
+                .orderbook_addresses
+                .map(|addrs| {
+                    addrs
+                        .into_iter()
+                        .map(|addr| addr.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
+            only_active_orders: filters.only_active_orders,
         })
     }
 }
@@ -1837,6 +1808,8 @@ mod tests {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let vaults = client
@@ -2989,6 +2962,8 @@ mod tests {
                     "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 )
                 .unwrap()]),
+                orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let result = raindex_client
@@ -3044,6 +3019,8 @@ mod tests {
                     Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
                     Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
+                orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let result = raindex_client
@@ -3199,6 +3176,74 @@ mod tests {
 
             let balance = vault.get_owner_balance(Address::random()).await.unwrap();
             assert_eq!(balance, U256::from(1000));
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_maps_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: Some(vec![
+                    address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                    address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+                ]),
+                only_active_orders: false,
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            );
+            assert_eq!(
+                sg_filter_args.orderbooks[1],
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            );
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_empty_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: None,
+                only_active_orders: false,
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert!(sg_filter_args.orderbooks.is_empty());
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: Some(vec![address!(
+                    "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
+                )]),
+                only_active_orders: false,
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            );
         }
     }
 }

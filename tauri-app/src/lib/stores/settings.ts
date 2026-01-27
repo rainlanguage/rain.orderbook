@@ -104,4 +104,45 @@ export const activeTokens = cachedWritableStore<Address[]>(
   },
 );
 
+/**
+ * Store for managing selected orderbook addresses for filtering
+ * Stores an array of orderbook addresses that are currently selected for filtering
+ * @default [] - Empty array by default
+ * @returns A writable store containing selected orderbooks mapped by address
+ */
+export const activeOrderbookAddresses = cachedWritableStore<Address[]>(
+  'settings.activeOrderbookAddresses',
+  [],
+  JSON.stringify,
+  (str) => {
+    try {
+      return JSON.parse(str);
+    } catch {
+      return [];
+    }
+  },
+);
+
+/**
+ * A persistent store that controls whether vaults without active orders should be hidden in the UI.
+ *
+ * This setting is saved to local storage and persists between sessions.
+ *
+ * @default false - Vaults without active orders are shown by default
+ * @returns A writable store containing a boolean value
+ */
+export const hideInactiveOrdersVaults = cachedWritableStore<boolean>(
+  'settings.hideInactiveOrdersVaults',
+  false,
+  (value) => JSON.stringify(value),
+  (str) => {
+    try {
+      const value = JSON.parse(str);
+      return typeof value === 'boolean' ? value : false;
+    } catch {
+      return false;
+    }
+  },
+);
+
 export const isSentryEnabled = writable<boolean>(false);
