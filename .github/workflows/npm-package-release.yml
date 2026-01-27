@@ -1,19 +1,18 @@
 name: NPM Packages Release
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
 
 jobs:
   release:
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release')) }}
+    if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: write
     env:
-      DEPLOYMENT_KEY: ${{ github.ref == 'refs/heads/main' && secrets.PRIVATE_KEY || secrets.PRIVATE_KEY_DEV }}
+      DEPLOYMENT_KEY: ${{ secrets.PRIVATE_KEY }}
       DEPLOY_METABOARD_ADDRESS: ${{ vars.CI_DEPLOY_SEPOLIA_METABOARD_ADDRESS }}
       CI_FORK_SEPOLIA_BLOCK_NUMBER: ${{ vars.CI_FORK_SEPOLIA_BLOCK_NUMBER }}
       CI_FORK_SEPOLIA_DEPLOYER_ADDRESS: ${{ vars.CI_FORK_SEPOLIA_DEPLOYER_ADDRESS }}
@@ -35,28 +34,53 @@ jobs:
         with:
           swap-storage: false
 
-      - uses: nixbuild/nix-quick-install-action@v30
+      - uses: DeterminateSystems/nix-installer-action@main
         with:
-          nix_conf: |
-            keep-env-derivations = true
-            keep-outputs = true
-      - name: Restore and save Nix store
-        uses: nix-community/cache-nix-action@v6
-        with:
-          # restore and save a cache using this key
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('**/*.nix', '**/flake.lock') }}
-          # if there's no cache hit, restore a cache by this prefix
-          restore-prefixes-first-match: nix-${{ runner.os }}-
-          # collect garbage until the Nix store size (in bytes) is at most this number
-          # before trying to save a new cache
-          # 1G = 1073741824
-          gc-max-store-size-linux: 1G
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
 
-      - name: Install NodeJS v22
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: "npm"
+          node-version: "24.x"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Upgrade npm for OIDC
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - name: Verify OIDC availability
+        run: |
+          if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ] && [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" ]; then
+            echo "OIDC token available"
+            echo "Endpoint: ${ACTIONS_ID_TOKEN_REQUEST_URL}"
+          else
+            echo "OIDC token NOT available"
+            echo "Check workflow permissions include 'id-token: write'"
+            exit 1
+          fi
+
+      - name: Verify repository configuration
+        run: |
+          echo "Checking repository consistency..."
+          GIT_REPO=$(git remote get-url origin | sed 's/.*github.com[/:]//; s/.git$//')
+          OB_PKG_REPO=$(node -e "console.log(require('./packages/orderbook/package.json').repository?.url || '')" | sed 's|https://github.com/||; s|git+||; s|.git$||')
+          UC_PKG_REPO=$(node -e "console.log(require('./packages/ui-components/package.json').repository?.url || '')" | sed 's|https://github.com/||; s|git+||; s|.git$||')
+          echo "Git remote:              $GIT_REPO"
+          echo "orderbook package.json:  $OB_PKG_REPO"
+          echo "ui-components package.json: $UC_PKG_REPO"
+          if [ "$GIT_REPO" != "$OB_PKG_REPO" ]; then
+            echo "Repository mismatch for orderbook!"
+            echo "This will cause 422 error during publish"
+            exit 1
+          fi
+          if [ "$GIT_REPO" != "$UC_PKG_REPO" ]; then
+            echo "Repository mismatch for ui-components!"
+            echo "This will cause 422 error during publish"
+            exit 1
+          fi
+          echo "Repositories match"
 
       - run: ./prep-base.sh
 
@@ -86,39 +110,30 @@ jobs:
       - name: Test UI Components
         run: nix develop -c npm run test -w @rainlanguage/ui-components
 
-      # check for npm package blacklists pkgs across all orderbook related packages
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
-        if: ${{ github.event_name == 'push' }}
 
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
-        if: ${{ github.event_name == 'push' }}
         with:
           working-directory: packages/orderbook
 
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
-        if: ${{ github.event_name == 'push' }}
         with:
           working-directory: packages/ui-components
 
       - name: Git Config
-        if: ${{ github.event_name == 'push' }}
         run: |
           git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
           git config --global user.name "${{ secrets.CI_GIT_USER }}"
 
-      # get hash of latest published pkgs from npm and concat them
       - name: Get Old Hash
-        if: ${{ github.event_name == 'push' }}
         run: |
-          OB_PKG_OLD_HASH=$(npm view @rainlanguage/orderbook@latest dist.shasum)
-          UC_PKG_OLD_HASH=$(npm view @rainlanguage/ui-components@latest dist.shasum)
+          OB_PKG_OLD_HASH=$(npm view @rainlanguage/orderbook@latest dist.shasum 2>/dev/null || echo "none")
+          UC_PKG_OLD_HASH=$(npm view @rainlanguage/ui-components@latest dist.shasum 2>/dev/null || echo "none")
           OLD_HASH=$OB_PKG_OLD_HASH-$UC_PKG_OLD_HASH
           echo "OLD_HASH=$OLD_HASH" >> $GITHUB_ENV
           echo "old hash: $OLD_HASH"
 
-      # calc hash of current workspace pkgs by packing them and concat them
       - name: Get New Hash
-        if: ${{ github.event_name == 'push' }}
         run: |
           OB_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/orderbook | xargs shasum | cut -c1-40)
           UC_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/ui-components | xargs shasum | cut -c1-40)
@@ -127,11 +142,8 @@ jobs:
           echo "new hash: $NEW_HASH"
           rm -f *.tgz
 
-      # from here on, we'll skip if OLD_HASH and NEW_HASH are the same (ie no publish)
-      # this means we need to skip every step by using an if statement.
-      # set npm version
       - name: Set Version
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
           npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/orderbook
           NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)
@@ -140,9 +152,40 @@ jobs:
           npx prettier --write ./packages/ui-components/package.json
           npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/ui-components
 
-      # Commit changes and tag
+      - name: Create orderbook NPM Package Tarball
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
+        run: echo "OB_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/orderbook)" >> $GITHUB_ENV
+
+      - name: Rename orderbook NPM Package Tarball
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
+        run: mv ${{ env.OB_NPM_PACKAGE }} orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
+
+      - name: Publish orderbook pkg To NPM
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
+        run: |
+          npm publish orderbook_npm_package_${{ env.NEW_VERSION }}.tgz \
+            --access public \
+            --tag latest \
+            --verbose
+
+      - name: Create ui-components NPM Package Tarball
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
+        run: echo "UC_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/ui-components)" >> $GITHUB_ENV
+
+      - name: Rename ui-components NPM Package Tarball
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
+        run: mv ${{ env.UC_NPM_PACKAGE }} ui_components_npm_package_${{ env.NEW_VERSION }}.tgz
+
+      - name: Publish ui-components To NPM
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
+        run: |
+          npm publish ui_components_npm_package_${{ env.NEW_VERSION }}.tgz \
+            --access public \
+            --tag latest \
+            --verbose
+
       - name: Commit And Tag
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
           git add "packages/orderbook/package.json"
           git add "packages/ui-components/package.json"
@@ -150,54 +193,16 @@ jobs:
           git commit -m "NPM Package Release v${{ env.NEW_VERSION }}"
           git tag npm-v${{ env.NEW_VERSION }}
 
-      # Push the commit to remote
       - name: Push Changes To Remote
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
           git push origin
           git push -u origin npm-v${{ env.NEW_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Create orderbook npm package tarball
-      - name: Create orderbook NPM Package Tarball
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
-        run: echo "NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/orderbook)" >> $GITHUB_ENV
-
-      - name: Rename orderbook NPM Package Tarball
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
-        run: mv ${{ env.NPM_PACKAGE }} orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
-
-      # publish orderbook pkg to npm
-      - name: Publish orderbook pkg To NPM
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          access: public
-          package: orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
-
-      # Create npm package tarball for ui-components
-      - name: Create ui-components NPM Package Tarball
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
-        run: echo "NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/ui-components)" >> $GITHUB_ENV
-
-      - name: Rename ui-components NPM Package Tarball
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
-        run: mv ${{ env.NPM_PACKAGE }} ui_components_npm_package_${{ env.NEW_VERSION }}.tgz
-
-      # publish ui-components to npm
-      - name: Publish ui-components To NPM
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          access: public
-          package: ui_components_npm_package_${{ env.NEW_VERSION }}.tgz
-
-      # Create gitHub release with tarballs
-      - name: Create GitHub Release with orderbook pkg
-        if: ${{ github.event_name == 'push' && env.OLD_HASH != env.NEW_HASH }}
+      - name: Create GitHub Release
+        if: ${{ env.OLD_HASH != env.NEW_HASH }}
         id: gh_release
         uses: softprops/action-gh-release@v2
         with:
@@ -209,7 +214,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
       - name: Forward CI Status
         if: always()
         uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
