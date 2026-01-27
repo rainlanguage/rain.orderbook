@@ -1,11 +1,23 @@
 import { writable, type Readable, type Writable } from 'svelte/store';
 import type { QueryClient } from '@tanstack/svelte-query';
 import { TransactionStore, type Transaction } from '$lib/models/Transaction';
-import type { InternalTransactionArgs, TransactionArgs } from '$lib/types/transaction';
+import type {
+	InternalTransactionArgs,
+	TransactionArgs,
+	IndexingContext
+} from '$lib/types/transaction';
+import {
+	TransactionName,
+	TransactionStatusMessage,
+	TransactionStoreErrorMessage
+} from '$lib/types/transaction';
 import type { Config } from '@wagmi/core';
 import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
-import { TransactionName } from '$lib/types/transaction';
+import {
+	awaitSubgraphIndexing,
+	type AwaitSubgraphConfig
+} from '$lib/services/awaitTransactionIndexing';
 import {
 	type RaindexTransaction,
 	type RaindexVault,
@@ -13,7 +25,8 @@ import {
 	RaindexClient,
 	type Address,
 	type Hex,
-	Float
+	Float,
+	type WasmEncodedResult
 } from '@rainlanguage/orderbook';
 
 /**
@@ -25,6 +38,112 @@ import {
  * @param toast.links - Optional array of links to display in the toast.
  */
 export type AddToastFunction = (toast: Omit<ToastProps, 'id'>) => void;
+
+/**
+ * Creates an indexing function that wraps the legacy subgraph polling logic.
+ * This allows existing flows to work with the new generic indexing interface.
+ */
+function createSubgraphIndexingFn(config: AwaitSubgraphConfig) {
+	return async (ctx: IndexingContext): Promise<void> => {
+		ctx.updateState({ status: TransactionStatusMessage.PENDING_SUBGRAPH });
+
+		const result = await awaitSubgraphIndexing(config);
+
+		if (result.error === TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR) {
+			ctx.updateState({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+			});
+			return ctx.onError();
+		}
+
+		if (result.value) {
+			ctx.updateState({ status: TransactionStatusMessage.SUCCESS });
+			const newOrderHash = result.value.orderHash;
+
+			// If we have a new order hash, add the "View order" link
+			if (newOrderHash) {
+				const newLink = {
+					link: `/orders/${config.chainId}-${config.orderbook}-${newOrderHash}`,
+					label: 'View order'
+				};
+				ctx.updateState({ links: [newLink, ...ctx.links] });
+			}
+
+			return ctx.onSuccess();
+		}
+
+		ctx.updateState({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
+		return ctx.onError();
+	};
+}
+
+/**
+ * Creates an indexing function that wraps SDK-based polling logic.
+ * The SDK handles local-DB-first polling followed by subgraph fallback internally,
+ * so we only need to call it once.
+ *
+ * @param options Configuration for SDK-based indexing
+ * @param options.call Function that calls the SDK method (e.g. getAddOrdersForTransaction)
+ * @param options.isSuccess Function to determine if the result indicates success
+ * @param options.buildLinks Optional function to generate toast links from the result
+ * @returns An indexing function compatible with TransactionStore
+ */
+export function createSdkIndexingFn<T>(options: {
+	call: () => Promise<WasmEncodedResult<T>>;
+	isSuccess: (value: T) => boolean;
+	buildLinks?: (value: T) => ToastLink[];
+}) {
+	return async (ctx: IndexingContext): Promise<void> => {
+		ctx.updateState({ status: TransactionStatusMessage.PENDING_SUBGRAPH });
+
+		try {
+			const result = await options.call();
+
+			if (result.error) {
+				const errorMsg = result.error.readableMsg?.toLowerCase() ?? '';
+				if (errorMsg.includes('timeout')) {
+					ctx.updateState({
+						status: TransactionStatusMessage.ERROR,
+						errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+					});
+				} else {
+					ctx.updateState({
+						status: TransactionStatusMessage.ERROR,
+						errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+					});
+				}
+				return ctx.onError();
+			}
+
+			const value = result.value;
+			if (value && options.isSuccess(value)) {
+				const extraLinks = options.buildLinks?.(value) ?? [];
+				if (extraLinks.length > 0) {
+					ctx.updateState({ links: [...extraLinks, ...ctx.links] });
+				}
+				ctx.updateState({ status: TransactionStatusMessage.SUCCESS });
+				return ctx.onSuccess();
+			}
+
+			// No valid data after polling
+			ctx.updateState({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+			});
+			return ctx.onError();
+		} catch {
+			ctx.updateState({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+			});
+			return ctx.onError();
+		}
+	};
+}
 
 /**
  * Manages blockchain transactions with toast notifications and query invalidation.
@@ -91,6 +210,18 @@ export class TransactionManager {
 				label: 'View on explorer'
 			}
 		];
+
+		const awaitIndexingFn = createSubgraphIndexingFn({
+			chainId,
+			orderbook,
+			txHash,
+			successMessage,
+			fetchEntityFn: raindexClient.getRemoveOrdersForTransaction.bind(raindexClient),
+			isSuccess: (data: RaindexOrder[] | RaindexTransaction) => {
+				return Array.isArray(data) ? data.length > 0 : false;
+			}
+		});
+
 		return this.createTransaction({
 			...args,
 			name,
@@ -98,16 +229,7 @@ export class TransactionManager {
 			successMessage,
 			queryKey,
 			toastLinks,
-			awaitSubgraphConfig: {
-				chainId,
-				orderbook,
-				txHash,
-				successMessage,
-				fetchEntityFn: raindexClient.getRemoveOrdersForTransaction.bind(raindexClient),
-				isSuccess: (data: RaindexOrder[] | RaindexTransaction) => {
-					return Array.isArray(data) ? data.length > 0 : false;
-				}
-			}
+			awaitIndexingFn
 		});
 	}
 
@@ -152,6 +274,17 @@ export class TransactionManager {
 				label: 'View on explorer'
 			}
 		];
+
+		const awaitIndexingFn = createSubgraphIndexingFn({
+			chainId,
+			orderbook,
+			txHash,
+			successMessage,
+			fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
+				raindexClient.getTransaction(orderbook, txHash),
+			isSuccess: (data) => !!data
+		});
+
 		return this.createTransaction({
 			...args,
 			name,
@@ -159,15 +292,7 @@ export class TransactionManager {
 			successMessage,
 			queryKey,
 			toastLinks,
-			awaitSubgraphConfig: {
-				chainId,
-				orderbook,
-				txHash,
-				successMessage,
-				fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
-					raindexClient.getTransaction(orderbook, txHash),
-				isSuccess: (data) => !!data
-			}
+			awaitIndexingFn
 		});
 	}
 
@@ -216,6 +341,17 @@ export class TransactionManager {
 				label: 'View on explorer'
 			}
 		];
+
+		const awaitIndexingFn = createSubgraphIndexingFn({
+			chainId,
+			orderbook,
+			txHash,
+			successMessage,
+			fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
+				raindexClient.getTransaction(orderbook, txHash),
+			isSuccess: (data) => !!data
+		});
+
 		return this.createTransaction({
 			...args,
 			name,
@@ -223,15 +359,7 @@ export class TransactionManager {
 			successMessage,
 			toastLinks,
 			queryKey,
-			awaitSubgraphConfig: {
-				chainId,
-				orderbook,
-				txHash,
-				successMessage,
-				fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
-					raindexClient.getTransaction(orderbook, txHash),
-				isSuccess: (data) => !!data
-			}
+			awaitIndexingFn
 		});
 	}
 
@@ -338,6 +466,16 @@ export class TransactionManager {
 			}
 		];
 
+		const awaitIndexingFn = createSubgraphIndexingFn({
+			chainId,
+			orderbook,
+			txHash,
+			successMessage,
+			fetchEntityFn: (_chainId: number, orderbook: `0x${string}`, txHash: `0x${string}`) =>
+				raindexClient.getTransaction(orderbook, txHash),
+			isSuccess: (data) => !!data
+		});
+
 		return this.createTransaction({
 			...args,
 			name,
@@ -345,15 +483,7 @@ export class TransactionManager {
 			successMessage,
 			queryKey,
 			toastLinks,
-			awaitSubgraphConfig: {
-				chainId,
-				orderbook,
-				txHash,
-				successMessage,
-				fetchEntityFn: (_chainId: number, orderbook: `0x${string}`, txHash: `0x${string}`) =>
-					raindexClient.getTransaction(orderbook, txHash),
-				isSuccess: (data) => !!data
-			}
+			awaitIndexingFn
 		});
 	}
 
@@ -388,6 +518,24 @@ export class TransactionManager {
 			}
 		];
 
+		// SDK-based indexing - the SDK's getAddOrdersForTransaction handles
+		// local-DB-first polling followed by subgraph fallback internally
+		const awaitIndexingFn = createSdkIndexingFn({
+			call: () => raindexClient.getAddOrdersForTransaction(chainId, orderbook, txHash),
+			isSuccess: (orders) => Array.isArray(orders) && orders.length > 0,
+			buildLinks: (orders) => {
+				if (!Array.isArray(orders) || orders.length === 0) return [];
+				const firstOrder = orders[0];
+				if (!firstOrder?.orderHash) return [];
+				return [
+					{
+						link: `/orders/${chainId}-${orderbook}-${firstOrder.orderHash}`,
+						label: 'View order'
+					}
+				];
+			}
+		});
+
 		return this.createTransaction({
 			...args,
 			name,
@@ -395,16 +543,7 @@ export class TransactionManager {
 			successMessage,
 			queryKey,
 			toastLinks,
-			awaitSubgraphConfig: {
-				chainId,
-				orderbook,
-				txHash,
-				successMessage,
-				fetchEntityFn: raindexClient.getAddOrdersForTransaction.bind(raindexClient),
-				isSuccess: (data) => {
-					return Array.isArray(data) ? data.length > 0 : false;
-				}
-			}
+			awaitIndexingFn
 		});
 	}
 
@@ -416,7 +555,7 @@ export class TransactionManager {
 	 * @param args.successMessage - Message to display on transaction success.
 	 * @param args.queryKey - Key used for query invalidation.
 	 * @param args.toastLinks - Array of links to display in toast notifications.
-	 * @param args.awaitSubgraphConfig - Optional configuration for awaiting subgraph indexing.
+	 * @param args.awaitIndexingFn - Optional function to await transaction indexing.
 	 * @returns A new Transaction instance that has been initialized and started.
 	 * @private
 	 */
