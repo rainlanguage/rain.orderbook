@@ -10,16 +10,14 @@ This repository contains several components:
 - **Rust Crates**: Various tooling and libraries for interacting with the Rain Orderbook (`crates/*`)
 - **JavaScript Packages (`packages/*`)**:
   - `webapp`: A SvelteKit site for Raindex
-  - `ui-components`: A shared component library used in both the webapp and Tauri app
+  - `ui-components`: A shared component library used in the webapp
   - `orderbook`: A TypeScript package (published to npm) that provides bindings to the Rust crates
-- **Tauri App**: A cross-platform desktop application built with Tauri framework (`tauri-app`)
 
 ### Architecture
 
 We use wasm-bindgen to create the `orderbook` package from our Rust crates, which is then used by:
 - The UI components library
 - The webapp
-- The Tauri app
 
 This same package is [published to npm](https://www.npmjs.com/package/@rainlanguage/orderbook), allowing developers to more easily create their own frontends for Raindex.
 
@@ -28,8 +26,7 @@ This same package is [published to npm](https://www.npmjs.com/package/@rainlangu
 ### Environment Setup
 
 1. Copy `.env.example` to `.env`
-2. Copy `tauri-app/.env.example` to `tauri-app/.env` and fill out `VITE_WALLETCONNECT_PROJECT_ID` with a test project ID from [Reown (FKA WalletConnect)](https://cloud.reown.com/sign-in)
-3. Copy `packages/webapp/.env.example` to `packages/webapp/.env` and fill out `PUBLIC_WALLETCONNECT_PROJECT_ID` with a test project ID from [Reown (FKA WalletConnect)](https://cloud.reown.com/sign-in)
+2. Copy `packages/webapp/.env.example` to `packages/webapp/.env` and fill out `PUBLIC_WALLETCONNECT_PROJECT_ID` with a test project ID from [Reown (FKA WalletConnect)](https://cloud.reown.com/sign-in)
 
 Then run the following to install dependencies and build the project:
 ```bash
@@ -43,11 +40,6 @@ chmod +x prep-all.sh
 ### Run Webapp for local development
 ```
 cd packages/webapp && nix develop -c npm run dev
-```
-
-### Run Tauri App for local development
-```
-nix develop .#tauri-shell --command cargo tauri dev
 ```
 
 ## Legal stuff

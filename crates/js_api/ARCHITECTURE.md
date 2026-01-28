@@ -1,6 +1,6 @@
 **Overview**
 - Purpose: `rain_orderbook_js_api` exposes a single, browser-friendly WebAssembly surface for the Rain Orderbook application. It bridges YAML-based “dotrain” order configuration, on-chain ERC‑20/token metadata, and contract call generation into a typed JavaScript/TypeScript API.
-- Target: Compiles as a `cdylib` for wasm and is designed to be consumed from JS environments (webapps, Tauri). All public APIs are exported via `wasm_bindgen_utils` macros and return ergonomic results with rich, user‑readable errors.
+- Target: Compiles as a `cdylib` for wasm and is designed to be consumed from JS environments (webapps). All public APIs are exported via `wasm_bindgen_utils` macros and return ergonomic results with rich, user‑readable errors.
 - Scope: Includes high-level GUI helpers for interactive order building, a fetchable registry of orders, and low-level helpers for hashing and ABI calldata generation. It re-exports certain sibling crates so their wasm bindings are reachable from a single import.
 
 **Build & Targets**
