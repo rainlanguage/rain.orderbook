@@ -250,6 +250,8 @@ pub enum RaindexError {
     NoNetworksConfigured,
     #[error("Subgraph not configured for chain ID: {0}")]
     SubgraphNotConfigured(String),
+    #[error("Subgraph did not index transaction {tx_hash:#x} after {attempts} attempts")]
+    SubgraphIndexingTimeout { tx_hash: B256, attempts: usize },
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
@@ -351,6 +353,11 @@ impl RaindexError {
             }
             RaindexError::SubgraphNotConfigured(chain_id) => {
                 format!("No subgraph is configured for chain ID '{}'.", chain_id)
+            }
+            RaindexError::SubgraphIndexingTimeout { tx_hash, attempts } => {
+                format!(
+                    "Timeout waiting for the subgraph to index transaction {tx_hash:#x} after {attempts} attempts."
+                )
             }
             RaindexError::YamlError(err) => format!(
                 "YAML configuration parsing failed: {}. Check file syntax and structure.",

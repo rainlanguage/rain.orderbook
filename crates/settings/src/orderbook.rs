@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::num::ParseIntError;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
+use strict_yaml_rust::strict_yaml::Hash;
 use strict_yaml_rust::StrictYaml;
 use subgraph::SubgraphCfg;
 use thiserror::Error;
@@ -17,6 +18,15 @@ use yaml::context::Context;
 use yaml::{
     default_document, optional_string, require_hash, require_string, YamlError, YamlParsableHash,
 };
+
+const ALLOWED_ORDERBOOK_KEYS: [&str; 6] = [
+    "address",
+    "deployment-block",
+    "label",
+    "local-db-remote",
+    "network",
+    "subgraph",
+];
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -196,6 +206,60 @@ impl YamlParsableHash for OrderbookCfg {
         }
 
         Ok(orderbooks)
+    }
+
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
+
+            let orderbooks_key = StrictYaml::String("orderbooks".to_string());
+            let Some(orderbooks_value) = root_hash.get(&orderbooks_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref orderbooks_hash) = *orderbooks_value else {
+                continue;
+            };
+
+            let mut sanitized_orderbooks: Vec<(String, StrictYaml)> = Vec::new();
+
+            for (orderbook_key, orderbook_value) in orderbooks_hash {
+                let Some(orderbook_key_str) = orderbook_key.as_str() else {
+                    continue;
+                };
+
+                let StrictYaml::Hash(ref orderbook_hash) = *orderbook_value else {
+                    continue;
+                };
+
+                let mut sanitized_orderbook = Hash::new();
+
+                for allowed_key in ALLOWED_ORDERBOOK_KEYS.iter() {
+                    let key_yaml = StrictYaml::String(allowed_key.to_string());
+                    if let Some(v) = orderbook_hash.get(&key_yaml) {
+                        sanitized_orderbook.insert(key_yaml, v.clone());
+                    }
+                }
+
+                sanitized_orderbooks.push((
+                    orderbook_key_str.to_string(),
+                    StrictYaml::Hash(sanitized_orderbook),
+                ));
+            }
+
+            sanitized_orderbooks.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+            let mut new_orderbooks_hash = Hash::new();
+            for (key, value) in sanitized_orderbooks {
+                new_orderbooks_hash.insert(StrictYaml::String(key), value);
+            }
+
+            root_hash.insert(orderbooks_key, StrictYaml::Hash(new_orderbooks_hash));
+        }
+
+        Ok(())
     }
 }
 
@@ -894,5 +958,245 @@ orderbooks:
         let orderbooks = OrderbookCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         let ob = orderbooks.get("TestOrderbook").unwrap();
         assert!(ob.local_db_remote.is_none());
+    }
+
+    #[test]
+    fn test_sanitize_drops_unknown_keys() {
+        let yaml = r#"
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+        subgraph: mainnet
+        deployment-block: 12345
+        unknown-key: should-be-removed
+        another-unknown: also-removed
+"#;
+        let doc = get_document(yaml);
+        OrderbookCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let orderbooks = root
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let mainnet = orderbooks
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(mainnet.contains_key(&StrictYaml::String("address".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("network".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("subgraph".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("deployment-block".to_string())));
+        assert!(!mainnet.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!mainnet.contains_key(&StrictYaml::String("another-unknown".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_preserves_all_allowed_keys() {
+        let yaml = r#"
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        network: mainnet
+        subgraph: mainnet
+        local-db-remote: mainnet
+        label: Mainnet Orderbook
+        deployment-block: 12345
+"#;
+        let doc = get_document(yaml);
+        OrderbookCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let orderbooks = root
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let mainnet = orderbooks
+            .get(&StrictYaml::String("mainnet".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(
+            mainnet.get(&StrictYaml::String("address".to_string())),
+            Some(&StrictYaml::String(
+                "0x1234567890123456789012345678901234567890".to_string()
+            ))
+        );
+        assert_eq!(
+            mainnet.get(&StrictYaml::String("network".to_string())),
+            Some(&StrictYaml::String("mainnet".to_string()))
+        );
+        assert_eq!(
+            mainnet.get(&StrictYaml::String("subgraph".to_string())),
+            Some(&StrictYaml::String("mainnet".to_string()))
+        );
+        assert_eq!(
+            mainnet.get(&StrictYaml::String("local-db-remote".to_string())),
+            Some(&StrictYaml::String("mainnet".to_string()))
+        );
+        assert_eq!(
+            mainnet.get(&StrictYaml::String("label".to_string())),
+            Some(&StrictYaml::String("Mainnet Orderbook".to_string()))
+        );
+        assert_eq!(
+            mainnet.get(&StrictYaml::String("deployment-block".to_string())),
+            Some(&StrictYaml::String("12345".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_sanitize_drops_non_hash_orderbook_entries() {
+        let yaml = r#"
+orderbooks:
+    mainnet:
+        address: 0x1234567890123456789012345678901234567890
+        deployment-block: 12345
+    invalid-string: just-a-string
+"#;
+        let doc = get_document(yaml);
+        OrderbookCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let orderbooks = root
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert!(orderbooks.contains_key(&StrictYaml::String("mainnet".to_string())));
+        assert!(!orderbooks.contains_key(&StrictYaml::String("invalid-string".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_sorts_orderbooks_lexicographically() {
+        let yaml = r#"
+orderbooks:
+    zebra:
+        address: 0x1111111111111111111111111111111111111111
+        deployment-block: 1
+    alpha:
+        address: 0x2222222222222222222222222222222222222222
+        deployment-block: 2
+    mainnet:
+        address: 0x3333333333333333333333333333333333333333
+        deployment-block: 3
+"#;
+        let doc = get_document(yaml);
+        OrderbookCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let orderbooks = root
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let keys: Vec<_> = orderbooks.keys().map(|k| k.as_str().unwrap()).collect();
+        assert_eq!(keys, vec!["alpha", "mainnet", "zebra"]);
+    }
+
+    #[test]
+    fn test_sanitize_handles_missing_orderbooks_section() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://rpc.com
+        chain-id: 1
+"#;
+        let doc = get_document(yaml);
+        OrderbookCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        assert!(!root.contains_key(&StrictYaml::String("orderbooks".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_handles_non_hash_root() {
+        let yaml = r#"just-a-string"#;
+        let doc = get_document(yaml);
+        OrderbookCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        assert!(doc_read.as_str().is_some());
+    }
+
+    #[test]
+    fn test_sanitize_skips_non_hash_orderbooks_section() {
+        let yaml = r#"
+orderbooks: not-a-hash
+"#;
+        let doc = get_document(yaml);
+        OrderbookCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
+
+        let doc_read = doc.read().unwrap();
+        let root = doc_read.as_hash().unwrap();
+        let orderbooks = root
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .unwrap();
+        assert_eq!(orderbooks.as_str(), Some("not-a-hash"));
+    }
+
+    #[test]
+    fn test_sanitize_per_document_isolation() {
+        let yaml1 = r#"
+orderbooks:
+    from-doc1:
+        address: 0x1111111111111111111111111111111111111111
+        deployment-block: 1
+        extra-key: removed
+"#;
+        let yaml2 = r#"
+orderbooks:
+    from-doc2:
+        address: 0x2222222222222222222222222222222222222222
+        deployment-block: 2
+        another-extra: also-removed
+"#;
+        let doc1 = get_document(yaml1);
+        let doc2 = get_document(yaml2);
+
+        OrderbookCfg::sanitize_documents(&[doc1.clone(), doc2.clone()]).unwrap();
+
+        let doc1_read = doc1.read().unwrap();
+        let root1 = doc1_read.as_hash().unwrap();
+        let orderbooks1 = root1
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let from_doc1 = orderbooks1
+            .get(&StrictYaml::String("from-doc1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert!(!from_doc1.contains_key(&StrictYaml::String("extra-key".to_string())));
+        assert!(!orderbooks1.contains_key(&StrictYaml::String("from-doc2".to_string())));
+
+        let doc2_read = doc2.read().unwrap();
+        let root2 = doc2_read.as_hash().unwrap();
+        let orderbooks2 = root2
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let from_doc2 = orderbooks2
+            .get(&StrictYaml::String("from-doc2".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        assert!(!from_doc2.contains_key(&StrictYaml::String("another-extra".to_string())));
+        assert!(!orderbooks2.contains_key(&StrictYaml::String("from-doc1".to_string())));
     }
 }

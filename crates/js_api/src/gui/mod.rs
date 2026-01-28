@@ -12,8 +12,9 @@ use rain_orderbook_app_settings::{
     network::NetworkCfg,
     order::OrderCfg,
     yaml::{
+        context::ContextProfile,
         dotrain::{DotrainYaml, DotrainYamlValidation},
-        YamlError, YamlParsable,
+        emitter, YamlError, YamlParsable,
     },
 };
 use rain_orderbook_common::{
@@ -30,6 +31,7 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
+use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 mod deposits;
@@ -40,6 +42,7 @@ mod state_management;
 mod validation;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenInfo {
     pub key: String,
     #[tsify(type = "string")]
@@ -47,6 +50,8 @@ pub struct TokenInfo {
     pub decimals: u8,
     pub name: String,
     pub symbol: String,
+    #[tsify(optional, type = "string")]
+    pub logo_uri: Option<Url>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -56,6 +61,7 @@ pub struct DotrainOrderGui {
     selected_deployment: String,
     field_values: BTreeMap<String, field_values::PairValue>,
     deposits: BTreeMap<String, field_values::PairValue>,
+    dotrain_hash: String,
     #[serde(skip)]
     state_update_callback: Option<js_sys::Function>,
 }
@@ -66,6 +72,7 @@ impl Default for DotrainOrderGui {
             selected_deployment: "".to_string(),
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
+            dotrain_hash: "".to_string(),
             state_update_callback: None,
         }
     }
@@ -108,8 +115,12 @@ impl DotrainOrderGui {
             param_description = "Complete dotrain YAML content including the `gui.deployments` section"
         )]
         dotrain: String,
+        #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
+        settings: Option<Vec<String>>,
     ) -> Result<Vec<String>, GuiError> {
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings)?;
         Ok(GuiCfg::parse_deployment_keys(documents)?)
     }
 
@@ -157,6 +168,10 @@ impl DotrainOrderGui {
         #[wasm_export(param_description = "Complete dotrain YAML content with all configurations")]
         dotrain: String,
         #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
+        settings: Option<Vec<String>>,
+        #[wasm_export(
             param_description = "Key of the deployment to activate (must exist in YAML)"
         )]
         selected_deployment: String,
@@ -165,18 +180,28 @@ impl DotrainOrderGui {
             This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings.clone())?;
 
-        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(documents.clone())?;
         if !keys.contains(&selected_deployment) {
             return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
         }
+
+        let dotrain_order = DotrainOrder::create_with_profile(
+            dotrain.clone(),
+            settings,
+            ContextProfile::gui(selected_deployment.clone()),
+        )
+        .await?;
+
+        let dotrain_hash = DotrainOrderGui::compute_state_hash(&dotrain_order)?;
 
         Ok(DotrainOrderGui {
             dotrain_order,
             selected_deployment,
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
+            dotrain_hash,
             state_update_callback,
         })
     }
@@ -209,7 +234,7 @@ impl DotrainOrderGui {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui(Some(self.selected_deployment.clone()))?
+            .get_gui(&self.selected_deployment)?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
@@ -297,6 +322,7 @@ impl DotrainOrderGui {
                 decimals: *decimals,
                 name: label.clone(),
                 symbol: symbol.clone(),
+                logo_uri: token.logo_uri.clone(),
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(
@@ -319,6 +345,7 @@ impl DotrainOrderGui {
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
                 name: token.label.unwrap_or(onchain_info.name),
                 symbol: token.symbol.unwrap_or(onchain_info.symbol),
+                logo_uri: token.logo_uri.clone(),
             }
         };
 
@@ -409,8 +436,12 @@ impl DotrainOrderGui {
     )]
     pub fn get_order_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
+        #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
+        settings: Option<Vec<String>>,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings)?;
         Ok(GuiCfg::parse_order_details(documents)?)
     }
 
@@ -448,8 +479,12 @@ impl DotrainOrderGui {
     )]
     pub fn get_deployment_details(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
+        #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
+        settings: Option<Vec<String>>,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, GuiError> {
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain)?;
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings)?;
         Ok(GuiCfg::parse_deployment_details(documents)?)
     }
 
@@ -476,9 +511,13 @@ impl DotrainOrderGui {
     )]
     pub fn get_deployment_detail(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
+        #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
+        settings: Option<Vec<String>>,
         #[wasm_export(param_description = "Deployment identifier to look up")] key: String,
     ) -> Result<NameAndDescriptionCfg, GuiError> {
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain)?;
+        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain, settings)?;
         let deployment_detail = deployment_details
             .get(&key)
             .ok_or(GuiError::DeploymentNotFound(key))?;
@@ -554,7 +593,7 @@ impl DotrainOrderGui {
         let rain_document = RainDocument::create(self.dotrain_order.dotrain()?, None, None, None);
         let dotrain = format!(
             "{}\n{}\n{}",
-            DotrainYaml::get_yaml_string(self.dotrain_order.dotrain_yaml().documents[0].clone(),)?,
+            emitter::emit_documents(&self.dotrain_order.dotrain_yaml().documents)?,
             FRONTMATTER_SEPARATOR,
             rain_document.body()
         );
@@ -589,7 +628,13 @@ impl DotrainOrderGui {
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;
         let dotrain = self.generate_dotrain_text()?;
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let deployment = self.get_current_deployment()?;
+        let dotrain_order = DotrainOrder::create_with_profile(
+            dotrain.clone(),
+            None,
+            ContextProfile::gui(deployment.deployment.key.clone()),
+        )
+        .await?;
         let rainlang = dotrain_order
             .compose_deployment_to_rainlang(self.selected_deployment.clone())
             .await?;
@@ -597,12 +642,19 @@ impl DotrainOrderGui {
     }
 }
 impl DotrainOrderGui {
-    pub fn get_yaml_documents(dotrain: &str) -> Result<Vec<Arc<RwLock<StrictYaml>>>, GuiError> {
+    pub fn get_yaml_documents(
+        dotrain: &str,
+        settings: Option<Vec<String>>,
+    ) -> Result<Vec<Arc<RwLock<StrictYaml>>>, GuiError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
-        let dotrain_yaml =
-            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
+        let mut sources = vec![frontmatter];
+        if let Some(settings) = settings {
+            sources.extend(settings);
+        }
+
+        let dotrain_yaml = DotrainYaml::new(sources, DotrainYamlValidation::default())?;
         Ok(dotrain_yaml.documents)
     }
 }
@@ -1230,6 +1282,7 @@ _ _: 0 0;
     pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
+            None,
             deployment_name.unwrap_or("some-deployment".to_string()),
             None,
         )
@@ -1240,6 +1293,7 @@ _ _: 0 0;
     pub async fn initialize_gui_with_select_tokens() -> DotrainOrderGui {
         DotrainOrderGui::new_with_deployment(
             get_yaml(),
+            None,
             "select-token-deployment".to_string(),
             None,
         )
@@ -1250,6 +1304,7 @@ _ _: 0 0;
     pub async fn initialize_validation_gui() -> DotrainOrderGui {
         DotrainOrderGui::new_with_deployment(
             get_yaml_with_validation(),
+            None,
             "validation-deployment".to_string(),
             None,
         )
@@ -1259,28 +1314,33 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_deployment_keys() {
-        let deployment_keys = DotrainOrderGui::get_deployment_keys(get_yaml())
+        let deployment_keys = DotrainOrderGui::get_deployment_keys(get_yaml(), None)
             .await
             .unwrap();
         assert_eq!(
             deployment_keys,
             vec![
-                "some-deployment",
                 "other-deployment",
-                "select-token-deployment"
+                "select-token-deployment",
+                "some-deployment"
             ]
         );
     }
 
     #[wasm_bindgen_test]
     async fn test_new_with_deployment() {
-        let res =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await;
+        let res = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await;
         assert!(res.is_ok());
 
         let err = DotrainOrderGui::new_with_deployment(
             get_yaml(),
+            None,
             "invalid-deployment".to_string(),
             None,
         )
@@ -1295,10 +1355,14 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_gui_config() {
-        let gui =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
 
         let gui_config = gui.get_gui_config().unwrap();
         assert_eq!(gui_config.name, "Fixed limit".to_string());
@@ -1376,10 +1440,14 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_current_deployment() {
-        let gui =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
 
         let deployment = gui.get_current_deployment().unwrap();
         assert_eq!(deployment.name, "Buy WETH with USDC on Base.".to_string());
@@ -1453,10 +1521,14 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_token_info_local() {
-        let gui =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
 
         let token1_info = gui.get_token_info("token1".to_string()).await.unwrap();
         assert_eq!(
@@ -1492,10 +1564,14 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_all_token_infos_local() {
-        let gui =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
 
         let token_infos = gui.get_all_token_infos().await.unwrap();
         assert_eq!(token_infos.len(), 2);
@@ -1517,7 +1593,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     fn test_get_order_details() {
-        let order_details = DotrainOrderGui::get_order_details(get_yaml()).unwrap();
+        let order_details = DotrainOrderGui::get_order_details(get_yaml(), None).unwrap();
         assert_eq!(order_details.name, "Fixed limit");
         assert_eq!(order_details.description, "Fixed limit order");
         assert_eq!(
@@ -1540,7 +1616,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string()).unwrap_err();
+        let err = DotrainOrderGui::get_order_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1569,7 +1645,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string()).unwrap_err();
+        let err = DotrainOrderGui::get_order_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1599,7 +1675,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string()).unwrap_err();
+        let err = DotrainOrderGui::get_order_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1616,7 +1692,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     fn test_get_deployment_details() {
-        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml()).unwrap();
+        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml(), None).unwrap();
         assert_eq!(deployment_details.len(), 3);
         let deployment_detail = deployment_details.get("some-deployment").unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
@@ -1654,7 +1730,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let details = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap();
+        let details = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap();
         assert_eq!(details.len(), 0);
 
         let yaml = format!(
@@ -1672,7 +1748,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1701,7 +1777,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1734,7 +1810,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1767,7 +1843,27 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
+        let details = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap();
+        assert_eq!(details.len(), 0);
+
+        let yaml = format!(
+            r#"
+version: {spec_version}
+gui:
+    deployments:
+        test:
+            unknown-field: value
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            spec_version = SpecVersion::current()
+        );
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1798,7 +1894,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap_err();
+        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1816,7 +1912,7 @@ _ _: 0 0;
     #[wasm_bindgen_test]
     fn test_get_deployment_detail() {
         let deployment_detail =
-            DotrainOrderGui::get_deployment_detail(get_yaml(), "some-deployment".to_string())
+            DotrainOrderGui::get_deployment_detail(get_yaml(), None, "some-deployment".to_string())
                 .unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
         assert_eq!(
@@ -1831,10 +1927,14 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_current_deployment_detail() {
-        let gui =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
 
         let deployment_detail = gui.get_current_deployment_details().unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
@@ -1850,17 +1950,25 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_generate_dotrain_text() {
-        let gui =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
         let original_current_deployment = gui.get_current_deployment_details().unwrap();
 
         let dotrain_text = gui.generate_dotrain_text().unwrap();
-        let gui =
-            DotrainOrderGui::new_with_deployment(dotrain_text, "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_with_deployment(
+            dotrain_text,
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
         let new_current_deployment = gui.get_current_deployment_details().unwrap();
 
         assert_eq!(new_current_deployment, original_current_deployment);
@@ -1868,10 +1976,14 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_composed_rainlang() {
-        let mut gui =
-            DotrainOrderGui::new_with_deployment(get_yaml(), "some-deployment".to_string(), None)
-                .await
-                .unwrap();
+        let mut gui = DotrainOrderGui::new_with_deployment(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+            None,
+        )
+        .await
+        .unwrap();
 
         let rainlang = gui.get_composed_rainlang().await.unwrap();
         let expected_rainlang =

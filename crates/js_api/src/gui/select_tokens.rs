@@ -314,6 +314,7 @@ impl DotrainOrderGui {
                     decimals: *decimals,
                     name: label.clone(),
                     symbol: symbol.clone(),
+                    logo_uri: token.logo_uri.clone(),
                 });
             } else {
                 let erc20 = ERC20::new(network.rpcs.clone(), token.address);
@@ -325,6 +326,7 @@ impl DotrainOrderGui {
                         decimals: token.decimals.unwrap_or(token_info.decimals),
                         name: token.label.unwrap_or(token_info.name),
                         symbol: token.symbol.unwrap_or(token_info.symbol),
+                        logo_uri: token.logo_uri.clone(),
                     })
                 });
             }
@@ -951,6 +953,7 @@ _ _: 0 0;
 
             let mut gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
+                None,
                 "some-deployment".to_string(),
                 None,
             )
@@ -1000,6 +1003,7 @@ _ _: 0 0;
 
             let mut gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
+                None,
                 "normal-deployment".to_string(),
                 None,
             )
@@ -1046,6 +1050,7 @@ _ _: 0 0;
 
             let gui = DotrainOrderGui::new_with_deployment(
                 yaml.to_string(),
+                None,
                 "some-deployment".to_string(),
                 None,
             )
