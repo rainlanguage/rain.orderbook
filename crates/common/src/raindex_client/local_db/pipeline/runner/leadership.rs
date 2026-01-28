@@ -10,8 +10,8 @@ use wasm_bindgen_utils::prelude::*;
 #[cfg(target_family = "wasm")]
 use web_sys::window;
 
-#[cfg(target_family = "wasm")]
-const LOCK_NAME: &str = "local-db-sync-engine";
+#[cfg(any(target_family = "wasm", test))]
+const LOCK_NAME_PREFIX: &str = "local-db-sync-engine";
 
 /// Guard that keeps platform-specific leadership state alive for the duration of a run.
 pub struct LeadershipGuard {
@@ -54,11 +54,28 @@ pub trait Leadership {
 }
 
 #[derive(Clone, Debug)]
-pub struct DefaultLeadership;
+pub struct DefaultLeadership {
+    #[cfg_attr(not(any(target_family = "wasm", test)), allow(dead_code))]
+    network_key: Option<String>,
+}
 
 impl DefaultLeadership {
     pub fn new() -> Self {
-        Self
+        Self { network_key: None }
+    }
+
+    pub fn with_network_key(network_key: String) -> Self {
+        Self {
+            network_key: Some(network_key),
+        }
+    }
+
+    #[cfg(any(target_family = "wasm", test))]
+    fn lock_name(&self) -> String {
+        match &self.network_key {
+            Some(key) => format!("{}-{}", LOCK_NAME_PREFIX, key),
+            None => LOCK_NAME_PREFIX.to_string(),
+        }
     }
 }
 
@@ -73,7 +90,8 @@ impl Leadership for DefaultLeadership {
     async fn acquire(&self) -> Result<Option<LeadershipGuard>, LocalDbError> {
         #[cfg(target_family = "wasm")]
         {
-            match attempt_web_lock().await {
+            let lock_name = self.lock_name();
+            match attempt_web_lock(&lock_name).await {
                 Ok(Some(guard)) => Ok(Some(guard)),
                 Ok(None) => Ok(None),
                 Err(_) => Ok(Some(LeadershipGuard::new_noop())),
@@ -93,7 +111,7 @@ pub async fn acquire() -> Result<Option<LeadershipGuard>, LocalDbError> {
 }
 
 #[cfg(target_family = "wasm")]
-async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
+async fn attempt_web_lock(lock_name: &str) -> Result<Option<LeadershipGuard>, JsValue> {
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -157,7 +175,7 @@ async fn attempt_web_lock() -> Result<Option<LeadershipGuard>, JsValue> {
 
     let request_result = request_fn.call3(
         &locks_value,
-        &JsValue::from_str(LOCK_NAME),
+        &JsValue::from_str(lock_name),
         &options.into(),
         callback.as_ref().unchecked_ref(),
     );
@@ -235,6 +253,40 @@ mod tests {
             guard.is_some(),
             "stub leadership should be able to simulate acquiring leadership"
         );
+    }
+
+    #[test]
+    fn with_network_key_creates_leadership_with_key() {
+        let leadership = DefaultLeadership::with_network_key("mainnet".to_string());
+        assert_eq!(leadership.network_key, Some("mainnet".to_string()));
+    }
+
+    #[test]
+    fn new_creates_leadership_without_key() {
+        let leadership = DefaultLeadership::new();
+        assert_eq!(leadership.network_key, None);
+    }
+
+    #[test]
+    fn lock_name_without_network_key_uses_prefix_only() {
+        let leadership = DefaultLeadership::new();
+        assert_eq!(leadership.lock_name(), "local-db-sync-engine");
+    }
+
+    #[test]
+    fn lock_name_with_network_key_includes_network() {
+        let leadership = DefaultLeadership::with_network_key("mainnet".to_string());
+        assert_eq!(leadership.lock_name(), "local-db-sync-engine-mainnet");
+    }
+
+    #[test]
+    fn different_networks_produce_different_lock_names() {
+        let leadership_a = DefaultLeadership::with_network_key("network-a".to_string());
+        let leadership_b = DefaultLeadership::with_network_key("network-b".to_string());
+
+        assert_eq!(leadership_a.lock_name(), "local-db-sync-engine-network-a");
+        assert_eq!(leadership_b.lock_name(), "local-db-sync-engine-network-b");
+        assert_ne!(leadership_a.lock_name(), leadership_b.lock_name());
     }
 }
 

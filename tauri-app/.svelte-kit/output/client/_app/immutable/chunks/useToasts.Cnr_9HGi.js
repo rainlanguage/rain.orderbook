@@ -1,0 +1,2 @@
+import{M as c,I as T}from"./scheduler.D5AhQk_9.js";const e="rain:ui-components:toasts";function d(){const t=T(e);if(!t)throw new Error("No toasts context found. Did you forget to wrap your component with ToastProvider?");return t}function f(t){c(e,t)}function m(){const t=d(),n=o=>{t.update(s=>o<0||o>=s.length?s:s.filter((a,u)=>u!==o))},r=o=>{t.update(s=>[...s,o])};return{toasts:t,addToast:r,removeToast:n,errToast:(o,s)=>{r({message:o,detail:s,type:"error",color:"red"})}}}export{f as s,m as u};
+//# sourceMappingURL=useToasts.Cnr_9HGi.js.map

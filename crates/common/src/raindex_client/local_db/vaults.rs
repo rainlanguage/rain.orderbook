@@ -50,30 +50,12 @@ impl VaultsDataSource for LocalDbVaults<'_> {
         filters: &GetVaultsFilters,
         _page: Option<u16>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let Some(mut chain_ids) = chain_ids else {
-            return Ok(Vec::new());
-        };
-
-        if chain_ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        let orderbook_addresses = chain_ids
-            .iter()
-            .map(|&chain_id| self.client.get_orderbooks_by_chain_id(chain_id))
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .map(|cfg| cfg.address)
-            .collect::<Vec<_>>();
-
-        if orderbook_addresses.is_empty() {
-            return Ok(Vec::new());
-        }
-
         let mut fetch_args = FetchVaultsArgs::from_filters(filters.clone());
-        fetch_args.chain_ids.append(&mut chain_ids);
-        fetch_args.orderbook_addresses = orderbook_addresses;
+        if let Some(mut ids) = chain_ids {
+            if !ids.is_empty() {
+                fetch_args.chain_ids.append(&mut ids);
+            }
+        }
 
         let local_vaults = fetch_vaults(self.db, fetch_args).await?;
         self.convert_local_db_vaults(local_vaults, None)
@@ -232,6 +214,66 @@ mod tests {
         }
 
         #[wasm_bindgen_test]
+        async fn test_list_with_none_chain_ids_queries_all_vaults() {
+            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let token = "0x00000000000000000000000000000000000000aa";
+            let vault =
+                make_local_vault("0x01", token, owner, Float::parse("1".to_string()).unwrap());
+
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let json = serde_json::to_string(&vec![vault]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+            let local_db = LocalDb::from_js_callback(callback);
+
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
+
+            let vaults = data_source
+                .list(None, &GetVaultsFilters::default(), None)
+                .await
+                .expect("should query without chain_ids");
+
+            assert_eq!(vaults.len(), 1);
+
+            let sql = captured_sql.borrow();
+            assert!(
+                !sql.0.contains("o.chain_id IN"),
+                "should not filter by chain_id when None: {}",
+                sql.0
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_list_with_empty_chain_ids_queries_all_vaults() {
+            let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+            let token = "0x00000000000000000000000000000000000000aa";
+            let vault =
+                make_local_vault("0x01", token, owner, Float::parse("1".to_string()).unwrap());
+
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let json = serde_json::to_string(&vec![vault]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+            let local_db = LocalDb::from_js_callback(callback);
+
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
+
+            let vaults = data_source
+                .list(Some(vec![]), &GetVaultsFilters::default(), None)
+                .await
+                .expect("should query with empty chain_ids");
+
+            assert_eq!(vaults.len(), 1);
+
+            let sql = captured_sql.borrow();
+            assert!(
+                !sql.0.contains("o.chain_id IN"),
+                "should not filter by chain_id when empty: {}",
+                sql.0
+            );
+        }
+
+        #[wasm_bindgen_test]
         async fn test_get_vaults_local_db_filters() {
             use wasm_bindgen_utils::prelude::JsValue;
 
@@ -256,6 +298,8 @@ mod tests {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let vaults = data_source

@@ -18,10 +18,13 @@ use insert::InsertError;
 use query::{LocalDbQueryError, SqlBuildError};
 use rain_orderbook_app_settings::remote::manifest::FetchManifestError;
 use rain_orderbook_app_settings::yaml::YamlError;
+use serde::{Deserialize, Serialize};
 use std::array::TryFromSliceError;
 use std::num::ParseIntError;
 use strict_yaml_rust::ScanError;
 use tokio::task::JoinError;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[137, 8453, 42161];
 
@@ -36,10 +39,10 @@ pub enum LocalDbError {
     #[error(transparent)]
     YamlScan(#[from] ScanError),
 
-    #[error("HTTP request failed")]
+    #[error("HTTP request failed: {0}")]
     Http(#[from] reqwest::Error),
 
-    #[error("RPC error")]
+    #[error("RPC error: {0}")]
     Rpc(#[from] RpcClientError),
 
     #[error("JSON parsing failed")]
@@ -335,11 +338,16 @@ impl LocalDbError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct OrderbookIdentifier {
     pub chain_id: u32,
     pub orderbook_address: Address,
 }
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(OrderbookIdentifier);
+
 impl OrderbookIdentifier {
     pub fn new(chain_id: u32, orderbook_address: Address) -> Self {
         Self {
@@ -351,4 +359,27 @@ impl OrderbookIdentifier {
 
 pub fn is_chain_supported_local_db(chain_id: u32) -> bool {
     SUPPORTED_LOCAL_DB_CHAINS.contains(&chain_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rpc_error_display_includes_message() {
+        let inner = RpcClientError::RpcError {
+            message: "boom".to_string(),
+        };
+        let err = LocalDbError::Rpc(inner);
+        let display = err.to_string();
+        assert!(
+            display.contains("boom"),
+            "expected display to include inner message, got {display}"
+        );
+        let readable = err.to_readable_msg();
+        assert!(
+            readable.contains("boom"),
+            "expected readable message to include inner message, got {readable}"
+        );
+    }
 }

@@ -84,10 +84,9 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 		};
 	}
 
-	// TODO: will be enabled once all local db PRs are merged
-	// if (localDb && raindexClient) {
-	// 	raindexClient.setDbCallback(localDb.query.bind(localDb));
-	// }
+	if (localDb && raindexClient) {
+		raindexClient.setDbCallback(localDb.query.bind(localDb));
+	}
 
 	return {
 		stores: {
@@ -99,8 +98,10 @@ export const load: LayoutLoad<LayoutData> = async ({ fetch }) => {
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
+			hideInactiveOrdersVaults: writable<boolean>(false),
 			showMyItemsOnly: writable<boolean>(false),
-			activeTokens: writable<Address[]>([])
+			activeTokens: writable<Address[]>([]),
+			activeOrderbookAddresses: writable<Address[]>([])
 		},
 		localDb,
 		raindexClient,

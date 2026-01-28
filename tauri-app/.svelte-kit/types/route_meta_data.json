@@ -1,0 +1,27 @@
+{
+	"/": [
+		"src/routes/+layout.ts",
+		"src/routes/+layout.ts"
+	],
+	"/license": [
+		"src/routes/+layout.ts"
+	],
+	"/orders": [
+		"src/routes/+layout.ts"
+	],
+	"/orders/add": [
+		"src/routes/+layout.ts"
+	],
+	"/orders/[chainId]-[orderbook]-[orderHash]": [
+		"src/routes/+layout.ts"
+	],
+	"/settings": [
+		"src/routes/+layout.ts"
+	],
+	"/vaults": [
+		"src/routes/+layout.ts"
+	],
+	"/vaults/[chainId]-[orderbook]-[id]": [
+		"src/routes/+layout.ts"
+	]
+}

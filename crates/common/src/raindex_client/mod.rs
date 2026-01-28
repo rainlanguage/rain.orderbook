@@ -13,12 +13,9 @@ use alloy::{
     },
 };
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::{
-    orderbook::OrderbookCfg,
-    yaml::{
-        orderbook::{OrderbookYaml, OrderbookYamlValidation},
-        YamlError, YamlParsable,
-    },
+use rain_orderbook_app_settings::yaml::{
+    orderbook::{OrderbookYaml, OrderbookYamlValidation},
+    YamlError, YamlParsable,
 };
 use rain_orderbook_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
@@ -217,14 +214,6 @@ impl RaindexClient {
         Ok(network.rpcs.clone())
     }
 
-    pub(crate) fn get_orderbooks_by_chain_id(
-        &self,
-        chain_id: u32,
-    ) -> Result<Vec<OrderbookCfg>, RaindexError> {
-        let orderbooks = self.orderbook_yaml.get_orderbooks_by_chain_id(chain_id)?;
-        Ok(orderbooks)
-    }
-
     fn local_db(&self) -> Option<LocalDb> {
         self.local_db.borrow().as_ref().cloned()
     }
@@ -261,6 +250,8 @@ pub enum RaindexError {
     NoNetworksConfigured,
     #[error("Subgraph not configured for chain ID: {0}")]
     SubgraphNotConfigured(String),
+    #[error("Subgraph did not index transaction {tx_hash:#x} after {attempts} attempts")]
+    SubgraphIndexingTimeout { tx_hash: B256, attempts: usize },
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
@@ -362,6 +353,11 @@ impl RaindexError {
             }
             RaindexError::SubgraphNotConfigured(chain_id) => {
                 format!("No subgraph is configured for chain ID '{}'.", chain_id)
+            }
+            RaindexError::SubgraphIndexingTimeout { tx_hash, attempts } => {
+                format!(
+                    "Timeout waiting for the subgraph to index transaction {tx_hash:#x} after {attempts} attempts."
+                )
             }
             RaindexError::YamlError(err) => format!(
                 "YAML configuration parsing failed: {}. Check file syntax and structure.",
