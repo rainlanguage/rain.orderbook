@@ -172,6 +172,123 @@ describe('TransactionManager', () => {
 			});
 			expect(storeValue).toContain(mockTransaction);
 		});
+
+		it('should handle successful transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onSuccess: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success) => {
+				onSuccess = success;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			onSuccess!();
+
+			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: [removeOrderMockArgs.queryKey]
+			});
+		});
+
+		it('should handle failed transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onError: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success, error) => {
+				onError = error;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			onError!();
+
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Order removal failed.',
+				type: 'error',
+				color: 'red',
+				links: [
+					{
+						link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+						label: 'View on explorer'
+					}
+				]
+			});
+		});
+
+		it('should use SDK-based indexing via createSdkIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			// Verify awaitIndexingFn was passed and is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			// Simulate calling the awaitIndexingFn to verify it calls the SDK
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a successful SDK response
+			vi.mocked(mockRaindexClient.getRemoveOrdersForTransaction).mockResolvedValueOnce({
+				value: [{ orderHash: '0xremovedhash' }]
+			} as unknown as WasmEncodedResult<RaindexOrder[]>);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify the SDK method was called with correct arguments
+			expect(mockRaindexClient.getRemoveOrdersForTransaction).toHaveBeenCalledWith(
+				removeOrderMockArgs.chainId,
+				mockSgOrderEntity.orderbook,
+				removeOrderMockArgs.txHash
+			);
+
+			// Verify success was called
+			expect(mockContext.onSuccess).toHaveBeenCalled();
+		});
+
+		it('should handle SDK timeout error in awaitIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a timeout error from the SDK
+			vi.mocked(mockRaindexClient.getRemoveOrdersForTransaction).mockResolvedValueOnce({
+				error: {
+					readableMsg:
+						'Timeout waiting for the subgraph to index transaction 0x123 after 10 attempts.'
+				}
+			} as unknown as WasmEncodedResult<RaindexOrder[]>);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify error handling
+			expect(mockContext.updateState).toHaveBeenCalledWith({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+			});
+			expect(mockContext.onError).toHaveBeenCalled();
+			expect(mockContext.onSuccess).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('createWithdrawTransaction', () => {
