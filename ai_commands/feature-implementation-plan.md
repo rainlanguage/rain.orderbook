@@ -14,7 +14,7 @@ Interactive Start
   - Tooling/scripts (`script/*`, `.github/*`, `nix.flake`, repo root scripts)
   - Documentation (`README.md`, `ARCHITECTURE.md` in target dirs)
 - Ask for any known entry points, files, or APIs to extend vs. create new ones.
-- Ask for constraints and NFRs (choose/apply as relevant): performance targets, latency budget, throughput, gas bounds, security/trust model, backwards-compat requirements, migration needs, feature flags/env vars, telemetry/observability, offline/edge concerns, platform targets (native/WASM/browser/tauri), network or provider assumptions.
+- Ask for constraints and NFRs (choose/apply as relevant): performance targets, latency budget, throughput, gas bounds, security/trust model, backwards-compat requirements, migration needs, feature flags/env vars, telemetry/observability, offline/edge concerns, platform targets (native/WASM/browser), network or provider assumptions.
 - Ask for existing examples or patterns in the repo to mimic, and any explicit anti-patterns to avoid.
 
 Pre‑Plan Summary (non‑blocking)

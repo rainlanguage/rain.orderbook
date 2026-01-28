@@ -40,7 +40,7 @@ Procedure
      - Solidity: scan `src/**/*.sol` for `contract`, `interface`, `event` names; note Foundry config in `foundry.toml` and ABIs under `out/` if relevant.
      - Subgraph: if present, capture `subgraph.yaml`, `schema.graphql`, and mapping entry points.
    - Behavior and flows: identify primary responsibilities, key data flows, important invariants, and external dependencies (internal crates, packages, providers) as reflected in code.
-   - Build/Test commands: derive correct commands from this repo’s conventions (Nix + cargo/forge/npm/tauri) relevant to this directory.
+   - Build/Test commands: derive correct commands from this repo's conventions (Nix + cargo/forge/npm) relevant to this directory.
 
 4) Detect discrepancies between doc and code
    - Outdated or missing sections: modules/types that no longer exist, new modules not documented, renamed/moved files, changed public APIs, added/removed commands, changed feature flags or build targets.
@@ -64,7 +64,7 @@ Template (use when creating or fully rewriting the doc)
 
 Summary
 - Purpose: what this directory/crate/package does in the workspace.
-- Scope: key responsibilities and boundaries; platforms/targets (native, WASM, browser, tauri).
+- Scope: key responsibilities and boundaries; platforms/targets (native, WASM, browser).
 
 Directory Layout
 - Brief list of important files/folders and their roles.

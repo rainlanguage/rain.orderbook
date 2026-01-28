@@ -9,7 +9,7 @@ At a glance:
 - Cross‑document merge: parse operations accept a vector of YAML documents and merge sections across them, rejecting duplicate keys deterministically.
 - Remote sources: optional “using‑*” sections enable fetching networks/tokens from external endpoints and merging them into the local model.
 - Context: a runtime context carries selected deployment/order, token selection for GUI flows, remote caches, and supports string interpolation from order paths.
-- WASM/TypeScript: many types derive `Tsify` and implement WASM trait helpers for interop with the webapp/Tauri.
+- WASM/TypeScript: many types derive `Tsify` and implement WASM trait helpers for interop with the webapp.
 
 
 ## Parsing Framework (yaml/*)
