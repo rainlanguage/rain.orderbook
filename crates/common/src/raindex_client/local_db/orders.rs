@@ -1,4 +1,7 @@
 use super::super::orders::{GetOrdersFilters, OrdersDataSource, RaindexOrder};
+use super::super::trades::RaindexTrade;
+use super::query::fetch_order_trades::fetch_order_trades;
+use super::query::fetch_order_trades_count::fetch_order_trades_count;
 use super::{LocalDb, RaindexError};
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::query::LocalDbQueryError;
@@ -21,7 +24,7 @@ impl<'a> LocalDbOrders<'a> {
         Self { db, client }
     }
 
-    pub async fn get_by_tx_hash(
+    async fn fetch_orders_by_tx_hash(
         &self,
         chain_id: u32,
         orderbook: Address,
@@ -144,6 +147,56 @@ impl OrdersDataSource for LocalDbOrders<'_> {
         }
 
         Ok(None)
+    }
+
+    async fn get_added_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        self.fetch_orders_by_tx_hash(chain_id, orderbook, tx_hash)
+            .await
+    }
+
+    async fn get_removed_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        self.fetch_orders_by_tx_hash(chain_id, orderbook, tx_hash)
+            .await
+    }
+
+    async fn trades_list(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+        _page: Option<u16>,
+    ) -> Result<Vec<RaindexTrade>, RaindexError> {
+        let local_trades =
+            fetch_order_trades(self.db, ob_id, *order_hash, start_timestamp, end_timestamp).await?;
+
+        local_trades
+            .into_iter()
+            .map(|trade| RaindexTrade::try_from_local_db_trade(ob_id.chain_id, trade))
+            .collect()
+    }
+
+    async fn trades_count(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<u64, RaindexError> {
+        Ok(
+            fetch_order_trades_count(self.db, ob_id, *order_hash, start_timestamp, end_timestamp)
+                .await?,
+        )
     }
 }
 
@@ -501,6 +554,113 @@ mod tests {
             assert_eq!(order.trades_count(), local_order.trade_count as u16);
             assert_eq!(order.meta(), Some(meta.to_string()));
             assert_eq!(order.orderbook(), orderbook_address.to_string());
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_added_by_tx_hash_local_db_path() {
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let transaction_hash =
+                b256!("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+            let order_bytes =
+                bytes!("0x00000000000000000000000000000000000000000000000000000000000000ff");
+            let orderbook_address = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
+
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash,
+                owner,
+                block_timestamp: 123456,
+                block_number: 654321,
+                orderbook_address,
+                order_bytes: order_bytes.clone(),
+                transaction_hash,
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: None,
+            };
+
+            let callback = make_local_db_callback(vec![local_order.clone()]);
+            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+
+            let orders = client
+                .get_add_orders_for_transaction_wasm_binding(
+                    137,
+                    orderbook_address.to_string(),
+                    transaction_hash.to_string(),
+                    Some(1),
+                    Some(1),
+                )
+                .await
+                .expect("local db query should succeed");
+
+            assert_eq!(orders.len(), 1);
+            let order = &orders[0];
+            assert_eq!(order.chain_id(), 137);
+            assert_eq!(order.order_hash(), order_hash.to_string());
+            assert_eq!(order.order_bytes(), order_bytes.to_string());
+            let tx = order.transaction().expect("transaction should be set");
+            assert_eq!(
+                tx.id().to_lowercase(),
+                transaction_hash.to_string().to_lowercase()
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_removed_by_tx_hash_local_db_path() {
+            let order_hash =
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000def");
+            let owner = address!("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+            let transaction_hash =
+                b256!("0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc");
+            let order_bytes =
+                bytes!("0x00000000000000000000000000000000000000000000000000000000000000ee");
+            let orderbook_address = address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB");
+
+            let local_order = LocalDbOrder {
+                chain_id: 137,
+                order_hash,
+                owner,
+                block_timestamp: 789012,
+                block_number: 210987,
+                orderbook_address,
+                order_bytes: order_bytes.clone(),
+                transaction_hash,
+                inputs: None,
+                outputs: None,
+                trade_count: 5,
+                active: false,
+                meta: None,
+            };
+
+            let callback = make_local_db_callback(vec![local_order.clone()]);
+            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+
+            let orders = client
+                .get_remove_orders_for_transaction_wasm_binding(
+                    137,
+                    orderbook_address.to_string(),
+                    transaction_hash.to_string(),
+                    Some(1),
+                    Some(1),
+                )
+                .await
+                .expect("local db query should succeed");
+
+            assert_eq!(orders.len(), 1);
+            let order = &orders[0];
+            assert_eq!(order.chain_id(), 137);
+            assert_eq!(order.order_hash(), order_hash.to_string());
+            assert_eq!(order.order_bytes(), order_bytes.to_string());
+            assert!(!order.active());
+            let tx = order.transaction().expect("transaction should be set");
+            assert_eq!(
+                tx.id().to_lowercase(),
+                transaction_hash.to_string().to_lowercase()
+            );
         }
     }
 }
