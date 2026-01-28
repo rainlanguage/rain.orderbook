@@ -20,3 +20,4 @@ packages/orderbook/esm.d.ts
 .claude/
 .ai_docs/
 .ai_spec/
+.cursor/

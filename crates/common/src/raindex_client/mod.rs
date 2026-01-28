@@ -250,9 +250,7 @@ pub enum RaindexError {
     NoNetworksConfigured,
     #[error("Subgraph not configured for chain ID: {0}")]
     SubgraphNotConfigured(String),
-    #[error(
-        "Subgraph did not index add orders for transaction {tx_hash:#x} after {attempts} attempts"
-    )]
+    #[error("Subgraph did not index transaction {tx_hash:#x} after {attempts} attempts")]
     SubgraphIndexingTimeout { tx_hash: B256, attempts: usize },
     #[error(transparent)]
     YamlError(#[from] YamlError),
