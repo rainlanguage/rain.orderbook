@@ -293,49 +293,17 @@ impl DotrainOrderGui {
         let network_key =
             OrderCfg::parse_network_key(self.dotrain_order.dotrain_yaml().documents, &order_key)?;
         let tokens = self.dotrain_order.orderbook_yaml().get_tokens()?;
-        let network = self
-            .dotrain_order
-            .orderbook_yaml()
-            .get_network(&network_key)?;
 
         let mut fetch_futures = Vec::new();
-        let mut results = Vec::new();
 
         for (_, token) in tokens
             .into_iter()
             .filter(|(_, token)| token.network.key == network_key)
         {
-            if let (Some(decimals), Some(label), Some(symbol)) =
-                (&token.decimals, &token.label, &token.symbol)
-            {
-                results.push(ExtendedTokenInfo {
-                    key: token.key.clone(),
-                    address: token.address,
-                    decimals: *decimals,
-                    name: label.clone(),
-                    symbol: symbol.clone(),
-                    chain_id: token.network.chain_id,
-                    logo_uri: token.logo_uri.clone(),
-                });
-            } else {
-                let chain_id = token.network.chain_id;
-                let erc20 = ERC20::new(network.rpcs.clone(), token.address);
-                fetch_futures.push(async move {
-                    let token_info = erc20.token_info(None).await?;
-                    Ok::<ExtendedTokenInfo, GuiError>(ExtendedTokenInfo {
-                        key: token.key.clone(),
-                        address: token.address,
-                        decimals: token.decimals.unwrap_or(token_info.decimals),
-                        name: token.label.unwrap_or(token_info.name),
-                        symbol: token.symbol.unwrap_or(token_info.symbol),
-                        chain_id,
-                        logo_uri: token.logo_uri.clone(),
-                    })
-                });
-            }
+            fetch_futures.push(async move { ExtendedTokenInfo::from_token_cfg(&token).await });
         }
 
-        let fetched_results: Vec<ExtendedTokenInfo> = futures::stream::iter(fetch_futures)
+        let mut results: Vec<ExtendedTokenInfo> = futures::stream::iter(fetch_futures)
             .buffer_unordered(MAX_CONCURRENT_FETCHES)
             .filter_map(|res| async {
                 match res {
@@ -345,7 +313,6 @@ impl DotrainOrderGui {
             })
             .collect()
             .await;
-        results.extend(fetched_results);
         results.sort_by(|a, b| {
             a.address
                 .to_string()

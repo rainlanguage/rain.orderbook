@@ -191,6 +191,20 @@ orderbooks:
 	});
 
 	describe('getTokens tests', async function () {
+		const mockServer = getLocal();
+
+		beforeAll(async () => {
+			await mockServer.start(8087);
+		});
+
+		afterAll(async () => {
+			await mockServer.stop();
+		});
+
+		beforeEach(async () => {
+			await mockServer.reset();
+		});
+
 		it('should return local tokens with chainId', async function () {
 			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
 			const tokensResult = await orderbookYaml.getTokens();
@@ -217,24 +231,26 @@ orderbooks:
 			assert.strictEqual(token2.name, 'Token 2');
 		});
 
-		it('should return error when token is missing required fields', async function () {
+		it('should try to fetch missing token fields from RPC and return error on failure', async function () {
 			const YAML_MISSING_FIELDS = `
 networks:
     some-network:
         rpcs:
-            - http://localhost:8085/rpc-url
+            - http://localhost:8087/rpc-url
         chain-id: 123
 tokens:
     incomplete:
         network: some-network
         address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
 `;
+			// No mock set up - RPC call will fail
+			// This tests that when token fields are missing, the code attempts to fetch from RPC
+			// (rather than immediately returning a "missing field" error)
 			const orderbookYaml = buildYaml(YAML_MISSING_FIELDS);
 			const tokensResult = await orderbookYaml.getTokens();
 
-			assert.ok(tokensResult.error, 'Expected error for missing fields');
-			expect(tokensResult.error.msg).toContain('Missing');
-			expect(tokensResult.error.readableMsg).toContain('required field is missing');
+			assert.ok(tokensResult.error, 'Expected error when RPC fetch fails');
+			expect(tokensResult.error.readableMsg).toContain('Failed to fetch token information');
 		});
 
 		it('should return tokens with correct chainId for multiple networks', async function () {

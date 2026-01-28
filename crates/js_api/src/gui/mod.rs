@@ -9,7 +9,6 @@ use rain_orderbook_app_settings::{
         GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
         ParseGuiConfigSourceError,
     },
-    network::NetworkCfg,
     order::OrderCfg,
     yaml::{
         dotrain::{DotrainYaml, DotrainYamlValidation},
@@ -278,46 +277,7 @@ impl DotrainOrderGui {
         key: String,
     ) -> Result<ExtendedTokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
-
-        let token_info = if let (Some(decimals), Some(label), Some(symbol)) =
-            (&token.decimals, &token.label, &token.symbol)
-        {
-            ExtendedTokenInfo {
-                key: token.key.clone(),
-                address: token.address,
-                decimals: *decimals,
-                name: label.clone(),
-                symbol: symbol.clone(),
-                chain_id: token.network.chain_id,
-                logo_uri: token.logo_uri.clone(),
-            }
-        } else {
-            let order_key = DeploymentCfg::parse_order_key(
-                self.dotrain_order.dotrain_yaml().documents,
-                &self.selected_deployment,
-            )?;
-            let network_key = OrderCfg::parse_network_key(
-                self.dotrain_order.dotrain_yaml().documents,
-                &order_key,
-            )?;
-            let rpcs =
-                NetworkCfg::parse_rpcs(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
-
-            let erc20 = ERC20::new(rpcs, token.address);
-            let onchain_info = erc20.token_info(None).await?;
-
-            ExtendedTokenInfo {
-                key: token.key.clone(),
-                address: token.address,
-                decimals: token.decimals.unwrap_or(onchain_info.decimals),
-                name: token.label.unwrap_or(onchain_info.name),
-                symbol: token.symbol.unwrap_or(onchain_info.symbol),
-                chain_id: token.network.chain_id,
-                logo_uri: token.logo_uri.clone(),
-            }
-        };
-
-        Ok(token_info)
+        Ok(ExtendedTokenInfo::from_token_cfg(&token).await?)
     }
 
     /// Gets information for all tokens used in the current deployment's order.

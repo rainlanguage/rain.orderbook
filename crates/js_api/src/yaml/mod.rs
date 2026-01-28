@@ -148,25 +148,7 @@ impl OrderbookYaml {
 
         let mut token_infos: Vec<ExtendedTokenInfo> = Vec::new();
         for token in tokens.values() {
-            let decimals = token.decimals.ok_or_else(|| {
-                OrderbookYamlError::MissingField(format!("decimals for token {}", token.key))
-            })?;
-            let name = token.label.clone().ok_or_else(|| {
-                OrderbookYamlError::MissingField(format!("label for token {}", token.key))
-            })?;
-            let symbol = token.symbol.clone().ok_or_else(|| {
-                OrderbookYamlError::MissingField(format!("symbol for token {}", token.key))
-            })?;
-
-            token_infos.push(ExtendedTokenInfo {
-                key: token.key.clone(),
-                address: token.address,
-                decimals,
-                name,
-                symbol,
-                chain_id: token.network.chain_id,
-                logo_uri: token.logo_uri.clone(),
-            });
+            token_infos.push(ExtendedTokenInfo::from_token_cfg(token).await?);
         }
 
         Ok(token_infos)
@@ -183,6 +165,8 @@ pub enum OrderbookYamlError {
     MissingField(String),
     #[error(transparent)]
     ParseRemoteTokensError(#[from] ParseRemoteTokensError),
+    #[error(transparent)]
+    ERC20Error(#[from] rain_orderbook_common::erc20::Error),
 }
 
 impl OrderbookYamlError {
@@ -196,6 +180,8 @@ impl OrderbookYamlError {
                 format!("A required field is missing from the token configuration: \"{}\". Please ensure all tokens have decimals, label, and symbol defined.", field),
             OrderbookYamlError::ParseRemoteTokensError(err) =>
                 format!("Failed to fetch or parse remote tokens. Please check the using-tokens-from URLs are accessible and return valid token data. Error: \"{}\"", err),
+            OrderbookYamlError::ERC20Error(err) =>
+                format!("Failed to fetch token information from the blockchain. Please check your network connection and RPC settings. Error: \"{}\"", err),
         }
     }
 }
@@ -442,14 +428,20 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_tokens_missing_required_fields() {
+    async fn test_get_tokens_missing_fields_tries_rpc() {
         let mut orderbook_yaml = OrderbookYaml::new(vec![get_yaml_missing_fields()], None).unwrap();
         let result = orderbook_yaml.get_tokens().await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();
-        assert!(err.to_string().contains("Missing"));
-        assert!(err.to_readable_msg().contains("required field is missing"));
+        assert!(
+            matches!(err, OrderbookYamlError::ERC20Error(_)),
+            "Expected ERC20Error when trying to fetch missing token info from RPC, got: {:?}",
+            err
+        );
+        assert!(err
+            .to_readable_msg()
+            .contains("Failed to fetch token information"));
     }
 }
 
