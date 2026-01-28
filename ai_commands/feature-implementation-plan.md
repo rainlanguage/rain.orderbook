@@ -10,7 +10,6 @@ Interactive Start
   - Rust crates (`crates/*` — e.g., `cli`, `common`, `bindings`, `js_api`, `quote`, `subgraph`, `settings`, `math`)
   - JS/WASM package (`packages/orderbook`)
   - Webapp UI (`packages/webapp`) or UI components (`packages/ui-components`)
-  - Desktop app (`tauri-app`)
   - Subgraph/indexing (`subgraph/*`)
   - Tooling/scripts (`script/*`, `.github/*`, `nix.flake`, repo root scripts)
   - Documentation (`README.md`, `ARCHITECTURE.md` in target dirs)
@@ -36,7 +35,7 @@ Constraints & Repo Conventions
   - Do not run build/test/format/lint commands; include them in the plan as guidance only.
   - Perform read-only analysis only (open files, ast-grep searches, summarize docs).
   - No network access.
-- When listing commands in the plan, use Nix shells: prefix with `nix develop -c <cmd>` or use shell attrs (e.g., `nix develop .#tauri-shell`). Do not execute these commands.
+- When listing commands in the plan, use Nix shells: prefix with `nix develop -c <cmd>`. Do not execute these commands.
 - Prefer syntax-aware search with ast-grep for structured matching:
   - Rust: `sg --lang rust -p '<pattern>'`
   - TypeScript: `sg --lang ts -p '<pattern>'`
@@ -92,7 +91,6 @@ Procedure
      - Rust crates (e.g., `crates/<name>`): modules to add/modify, new types/functions, error handling, feature flags; `Cargo.toml` updates if needed.
      - JS/WASM (`packages/orderbook`): new exports, TS types, wasm bindings, build scripts.
      - Webapp (`packages/webapp`): routes/components, stores, API calls, state management, styles.
-     - Desktop (`tauri-app`): Rust commands, Svelte UI wiring, permission scopes.
      - Contracts (`src/`): new contracts/interfaces/libraries, events, storage layout notes, upgrade path; tests in `test/` with fixtures in `test-resources/`.
      - Subgraph (`subgraph/`): schema changes, mappings, handlers, data flow and reindex considerations.
      - Scripts/tooling (`script/`, root scripts): CLI tasks, generators, migrations.
@@ -169,7 +167,6 @@ Build/Test Commands Reference (use where relevant; reference only — do not exe
 - JS workspaces: `npm run test`, `npm run build:ui`, `npm run build:orderbook`
 - WASM bundle: `cd packages/orderbook && npm run build-wasm`
 - Webapp: `cd packages/webapp && nix develop -c npm run dev`
-- Tauri: `nix develop .#tauri-shell --command cargo tauri dev`
 
 Acceptance Criteria
 - Starts by asking concise, high-value clarifying questions and records assumptions.
