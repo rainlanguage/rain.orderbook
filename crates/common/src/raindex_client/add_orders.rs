@@ -123,7 +123,7 @@ impl RaindexClient {
                     Ok(orders) => return Ok(orders),
                     Err(RetryError::Operation(PollError::Inner(e))) => return Err(e),
                     Err(RetryError::InvalidMaxAttempts) => {
-                        return Err(RaindexError::SubgraphIndexingTimeout { tx_hash, attempts })
+                        return Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
                     }
                     Err(RetryError::Operation(PollError::Empty)) => {
                         // Local DB exhausted, fall through to subgraph
@@ -173,7 +173,7 @@ impl RaindexClient {
             Ok(orders) => Ok(orders),
             Err(RetryError::Operation(PollError::Inner(e))) => Err(e),
             Err(RetryError::Operation(PollError::Empty)) | Err(RetryError::InvalidMaxAttempts) => {
-                Err(RaindexError::SubgraphIndexingTimeout { tx_hash, attempts })
+                Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
             }
         }
     }
@@ -588,7 +588,7 @@ mod tests {
                 .unwrap_err();
 
             match err {
-                RaindexError::SubgraphIndexingTimeout { attempts, .. } => {
+                RaindexError::TransactionIndexingTimeout { attempts, .. } => {
                     assert_eq!(attempts, DEFAULT_ADD_ORDER_POLL_ATTEMPTS);
                 }
                 other => panic!("expected timeout error, got {other:?}"),
