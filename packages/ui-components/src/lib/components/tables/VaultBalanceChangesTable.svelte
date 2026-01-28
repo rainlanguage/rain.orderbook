@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
+	import { Badge, Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import { RaindexVault, type RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
@@ -7,6 +7,22 @@
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
+	import Tooltip from '../Tooltip.svelte';
+
+	type BadgeColor = 'green' | 'yellow' | 'blue' | 'red' | 'purple' | 'dark';
+
+	function getTypeBadgeColor(type: string): BadgeColor {
+		const lowerType = type.toLowerCase();
+		if (lowerType.includes('deposit')) return 'green';
+		if (lowerType.includes('withdrawal')) return 'yellow';
+		if (lowerType.includes('bounty')) return 'purple';
+		if (lowerType.includes('trade')) return 'blue';
+		return 'dark';
+	}
+
+	function formatType(type: string): string {
+		return type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (str) => str.toUpperCase());
+	}
 
 	export let vault: RaindexVault;
 
@@ -36,35 +52,67 @@
 		<Heading tag="h5" class="mb-4 mt-6 font-normal">Vault balance changes</Heading>
 	</svelte:fragment>
 	<svelte:fragment slot="head">
-		<TableHeadCell padding="p-4">Date</TableHeadCell>
-		<TableHeadCell padding="p-0">Sender</TableHeadCell>
-		<TableHeadCell padding="p-0">Transaction Hash</TableHeadCell>
-		<TableHeadCell padding="p-0">Balance Change</TableHeadCell>
-		<TableHeadCell padding="p-0">Balance</TableHeadCell>
-		<TableHeadCell padding="p--">Type</TableHeadCell>
+		<TableHeadCell padding="p-4" class="w-[18%]">Info</TableHeadCell>
+		<TableHeadCell padding="p-4" class="w-[28%]">Transaction</TableHeadCell>
+		<TableHeadCell padding="p-2" class="w-[27%]">Balance Change</TableHeadCell>
+		<TableHeadCell padding="p-2" class="w-[27%]">New Balance</TableHeadCell>
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
-		<TableBodyCell tdClass="px-4 py-2" data-testid="vaultBalanceChangesTableDate">
-			{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+		<TableBodyCell tdClass="px-4 py-2" data-testid="vaultBalanceChangesTableInfo">
+			<div class="flex flex-col gap-1 overflow-hidden">
+				<div class="flex">
+					<Badge
+						id={`type-${item.transaction.id}`}
+						class="truncate"
+						color={getTypeBadgeColor(item.type)}>{formatType(item.type)}</Badge
+					>
+					<Tooltip triggeredBy={`#type-${item.transaction.id}`}>
+						{formatType(item.type)}
+					</Tooltip>
+				</div>
+				<span class="text-xs text-gray-500 dark:text-gray-400">
+					{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
+				</span>
+			</div>
 		</TableBodyCell>
-		<TableBodyCell tdClass="break-all py-2 min-w-48" data-testid="vaultBalanceChangesTableFrom">
-			<Hash type={HashType.Wallet} value={item.transaction.from} />
+		<TableBodyCell tdClass="px-4 py-2" data-testid="vaultBalanceChangesTableTx">
+			<div class="flex flex-col gap-1 text-sm">
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Sender:</span>
+					<Hash type={HashType.Wallet} value={item.transaction.from} />
+				</div>
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Tx:</span>
+					<Hash type={HashType.Transaction} value={item.transaction.id} />
+				</div>
+			</div>
 		</TableBodyCell>
-		<TableBodyCell tdClass="break-all py-2 min-w-48" data-testid="vaultBalanceChangesTableTx">
-			<Hash type={HashType.Transaction} value={item.transaction.id} />
+		<TableBodyCell tdClass="p-2" data-testid="vaultBalanceChangesTableBalanceChange">
+			<div class="flex flex-col overflow-hidden">
+				<span class="truncate font-medium">{item.token.symbol}</span>
+				<span
+					id={`change-${item.transaction.id}`}
+					class="truncate text-sm text-gray-500 dark:text-gray-400">{item.formattedAmount}</span
+				>
+				<Tooltip triggeredBy={`#change-${item.transaction.id}`}>
+					{item.formattedAmount}
+					{item.token.symbol}
+				</Tooltip>
+			</div>
 		</TableBodyCell>
-		<TableBodyCell
-			tdClass="break-word p-0 text-left"
-			data-testid="vaultBalanceChangesTableBalanceChange"
-		>
-			{`${item.formattedAmount} ${item.token.symbol}`}
-		</TableBodyCell>
-		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableBalance">
-			{`${item.formattedNewBalance} ${item.token.symbol}`}
-		</TableBodyCell>
-		<TableBodyCell tdClass="break-word p-0 text-left" data-testid="vaultBalanceChangesTableType">
-			{item.type}
+		<TableBodyCell tdClass="p-2" data-testid="vaultBalanceChangesTableBalance">
+			<div class="flex flex-col overflow-hidden">
+				<span class="truncate font-medium">{item.token.symbol}</span>
+				<span
+					id={`balance-${item.transaction.id}`}
+					class="truncate text-sm text-gray-500 dark:text-gray-400">{item.formattedNewBalance}</span
+				>
+				<Tooltip triggeredBy={`#balance-${item.transaction.id}`}>
+					{item.formattedNewBalance}
+					{item.token.symbol}
+				</Tooltip>
+			</div>
 		</TableBodyCell>
 	</svelte:fragment>
 </AppTable>

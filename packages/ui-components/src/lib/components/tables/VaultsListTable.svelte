@@ -261,15 +261,16 @@
 			</div>
 		</svelte:fragment>
 		<svelte:fragment slot="head">
-			<TableHeadCell padding="p-0"><span class="sr-only">Select</span></TableHeadCell>
-			<TableHeadCell padding="p-4">Network</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4">Vault ID</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4">Orderbook</TableHeadCell>
-			<TableHeadCell padding="px-4 py-4">Owner</TableHeadCell>
-			<TableHeadCell padding="px-2 py-4">Token</TableHeadCell>
-			<TableHeadCell padding="px-2 py-4">Balance</TableHeadCell>
-			<TableHeadCell padding="px-3 py-4">Input For</TableHeadCell>
-			<TableHeadCell padding="px-3 py-4">Output For</TableHeadCell>
+			<TableHeadCell padding="p-0" class="w-[4%]"><span class="sr-only">Select</span></TableHeadCell
+			>
+			<TableHeadCell padding="pl-0 py-4" class="w-[8%]">Network</TableHeadCell>
+			<TableHeadCell padding="px-4 py-4" class="w-[22%]">Addresses</TableHeadCell>
+			<TableHeadCell padding="px-2 py-4" class="w-[22%]">Token</TableHeadCell>
+			<TableHeadCell padding="px-3 py-4" class="w-[20%]">Input For</TableHeadCell>
+			<TableHeadCell padding="px-3 py-4" class="w-[20%]">Output For</TableHeadCell>
+			<TableHeadCell padding="p-0" class="w-[4%]"
+				><span class="sr-only">Actions</span></TableHeadCell
+			>
 		</svelte:fragment>
 
 		<svelte:fragment slot="bodyRow" let:item>
@@ -296,22 +297,31 @@
 				{getNetworkName(Number(item.chainId))}
 			</TableBodyCell>
 
-			<TableBodyCell tdClass="break-all px-4 py-4" data-testid="vault-id">
-				<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
+			<TableBodyCell data-testid="vaultAddresses" tdClass="px-4 py-2">
+				<div class="flex flex-col gap-1 text-sm">
+					<div class="flex items-center gap-1">
+						<span class="text-gray-500 dark:text-gray-400">Vault:</span>
+						<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
+					</div>
+					<div class="flex items-center gap-1">
+						<span class="text-gray-500 dark:text-gray-400">Orderbook:</span>
+						<Hash type={HashType.Identifier} value={item.orderbook} />
+					</div>
+					<div class="flex items-center gap-1">
+						<span class="text-gray-500 dark:text-gray-400">Owner:</span>
+						<Hash type={HashType.Wallet} value={item.owner} />
+					</div>
+				</div>
 			</TableBodyCell>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-orderbook">
-				<Hash type={HashType.Identifier} value={item.orderbook} />
+			<TableBodyCell tdClass="p-2" data-testid="vault-token">
+				<div class="flex flex-col overflow-hidden">
+					<span class="truncate font-medium">{item.token.name}</span>
+					<span class="max-w-[200px] truncate text-sm text-gray-500 dark:text-gray-400"
+						>{item.formattedBalance} {item.token.symbol}</span
+					>
+				</div>
 			</TableBodyCell>
-			<TableBodyCell tdClass="break-all px-4 py-2 min-w-48" data-testid="vault-owner">
-				<Hash type={HashType.Wallet} value={item.owner} />
-			</TableBodyCell>
-			<TableBodyCell tdClass="break-word p-2 min-w-48" data-testid="vault-token"
-				>{item.token.name}</TableBodyCell
-			>
-			<TableBodyCell tdClass="break-all p-2 min-w-48" data-testid="vault-balance">
-				{`${item.formattedBalance} ${item.token.symbol}`}
-			</TableBodyCell>
-			<TableBodyCell tdClass="break-all p-2 min-w-48">
+			<TableBodyCell tdClass="break-all p-2">
 				{#if item.ordersAsInput.length > 0}
 					<div data-testid="vault-order-inputs" class="flex flex-wrap items-end justify-start">
 						{#each item.ordersAsInput.slice(0, 3) as order}
@@ -326,7 +336,7 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			<TableBodyCell tdClass="break-all p-2 min-w-48">
+			<TableBodyCell tdClass="break-all p-2">
 				{#if item.ordersAsOutput.length > 0}
 					<div data-testid="vault-order-outputs" class="flex flex-wrap items-end justify-start">
 						{#each item.ordersAsOutput.slice(0, 3) as order}
@@ -341,8 +351,8 @@
 					</div>
 				{/if}
 			</TableBodyCell>
-			{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
-				<TableBodyCell tdClass="px-0 text-right">
+			<TableBodyCell tdClass="px-0 text-right">
+				{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
 					<Button
 						color="alternative"
 						outline={false}
@@ -355,8 +365,9 @@
 					>
 						<DotsVerticalOutline class="dark:text-white" />
 					</Button>
-				</TableBodyCell>
-
+				{/if}
+			</TableBodyCell>
+			{#if handleDepositModal && handleWithdrawModal && item.owner.toLowerCase() === $account?.toLowerCase()}
 				<Dropdown
 					data-testid="dropdown"
 					placement="bottom-end"

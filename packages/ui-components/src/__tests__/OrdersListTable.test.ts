@@ -168,8 +168,16 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 
-		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('Ethereum');
-		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
+		const orderInfoCell = screen.getByTestId('orderListRowOrderInfo');
+		expect(orderInfoCell).toHaveTextContent('Ethereum');
+		expect(orderInfoCell).toHaveTextContent('Active');
+		expect(orderInfoCell).toHaveTextContent('Added:');
+
+		const addressesCell = screen.getByTestId('orderListRowAddresses');
+		expect(addressesCell).toBeInTheDocument();
+		expect(addressesCell).toHaveTextContent('Order:');
+		expect(addressesCell).toHaveTextContent('Owner:');
+		expect(addressesCell).toHaveTextContent('Orderbook:');
 
 		// Check that vault cards are rendered with correct content
 		const vaultCards = screen.getAllByTestId('vault-card');
@@ -462,7 +470,8 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 
-		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Inactive');
+		const orderInfoCell = screen.getByTestId('orderListRowOrderInfo');
+		expect(orderInfoCell).toHaveTextContent('Inactive');
 	});
 
 	it('does not show action menu for inactive orders', async () => {
