@@ -1,6 +1,43 @@
 use crate::{NetworkCfg, OrderCfg, OrderIOCfg, TokenCfg};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+
+/// ContextProfile selects how YAML is parsed and what data is injected into the context.
+/// - Strict: Full validation mode. Parses all orders/deployments and requires all networks,
+///   tokens, and bindings to be present. No scoping, no select-token deferral. Use this for
+///   batch validation, CLI, and non-GUI flows where the entire config must be consistent.
+/// - Gui: UI-scoped mode. Scopes parsing to the selected deployment, derives its order,
+///   injects select-tokens for that deployment, and avoids parsing unrelated orders so
+///   handlebars/missing-token templates in other orders don't fail. Use this for GUI/WASM
+///   flows where the user works within a single deployment at a time.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "kebab-case")]
+pub enum ContextProfile {
+    Strict,
+    Gui { current_deployment: String },
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ContextProfile);
+
+impl ContextProfile {
+    pub fn strict() -> Self {
+        Self::Strict
+    }
+
+    pub fn gui(current_deployment: String) -> Self {
+        Self::Gui { current_deployment }
+    }
+}
+
+impl Default for ContextProfile {
+    fn default() -> Self {
+        Self::Strict
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct GuiContext {
@@ -308,6 +345,20 @@ mod tests {
     use crate::{test::*, yaml::default_document};
     use alloy::primitives::{Address, U256};
     use strict_yaml_rust::StrictYaml;
+
+    #[test]
+    fn test_context_profile_helpers() {
+        assert_eq!(ContextProfile::strict(), ContextProfile::Strict);
+        assert_eq!(ContextProfile::default(), ContextProfile::Strict);
+
+        let gui_full = ContextProfile::gui("deployment1".to_string());
+        match gui_full {
+            ContextProfile::Gui { current_deployment } => {
+                assert_eq!(current_deployment, "deployment1".to_string());
+            }
+            _ => panic!("expected gui context profile"),
+        }
+    }
 
     fn setup_test_order_with_vault_id() -> Arc<OrderCfg> {
         let token = TokenCfg {

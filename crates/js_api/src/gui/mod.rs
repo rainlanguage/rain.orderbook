@@ -12,6 +12,7 @@ use rain_orderbook_app_settings::{
     network::NetworkCfg,
     order::OrderCfg,
     yaml::{
+        context::ContextProfile,
         dotrain::{DotrainYaml, DotrainYamlValidation},
         YamlError, YamlParsable,
     },
@@ -169,15 +170,24 @@ impl DotrainOrderGui {
             This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let frontmatter = RainDocument::get_front_matter(&dotrain)
+            .unwrap_or("")
+            .to_string();
+        let dotrain_yaml =
+            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
 
-        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(dotrain_yaml.documents.clone())?;
         if !keys.contains(&selected_deployment) {
             return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
         }
 
         Ok(DotrainOrderGui {
-            dotrain_order,
+            dotrain_order: DotrainOrder::create_with_profile(
+                dotrain.clone(),
+                None,
+                ContextProfile::gui(selected_deployment.clone()),
+            )
+            .await?,
             selected_deployment,
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
@@ -213,7 +223,7 @@ impl DotrainOrderGui {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui(Some(self.selected_deployment.clone()))?
+            .get_gui(&self.selected_deployment)?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
@@ -595,7 +605,13 @@ impl DotrainOrderGui {
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;
         let dotrain = self.generate_dotrain_text()?;
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let deployment = self.get_current_deployment()?;
+        let dotrain_order = DotrainOrder::create_with_profile(
+            dotrain.clone(),
+            None,
+            ContextProfile::gui(deployment.deployment.key.clone()),
+        )
+        .await?;
         let rainlang = dotrain_order
             .compose_deployment_to_rainlang(self.selected_deployment.clone())
             .await?;
