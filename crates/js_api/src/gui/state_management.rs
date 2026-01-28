@@ -236,7 +236,13 @@ impl DotrainOrderGui {
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
         }
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+
+        let dotrain_order = DotrainOrder::create_with_profile(
+            dotrain.clone(),
+            None,
+            ContextProfile::gui(state.selected_deployment.clone()),
+        )
+        .await?;
 
         let field_values = state
             .field_values
