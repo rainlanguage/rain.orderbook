@@ -1,1 +1,0 @@
-{"version":3,"file":"node.js","sources":["../../../../../node_modules/esm-env/node.js"],"sourcesContent":["export const BROWSER = false;\nexport const DEV = false;\nexport const NODE = true;\n"],"names":[],"mappings":"AAAY,MAAC,UAAU;AACX,MAAC,MAAM;","x_google_ignoreList":[0]}
