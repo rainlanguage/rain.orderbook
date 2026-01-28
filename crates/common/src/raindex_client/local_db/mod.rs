@@ -712,6 +712,19 @@ orderbooks:
         ))
     }
 
+    fn healthy_db_callback() -> js_sys::Function {
+        js_sys::Function::new_with_args(
+            "sql",
+            r#"
+            var value = '[]';
+            if (sql && sql.toLowerCase().includes('quick_check')) {
+                value = '[{"quick_check":"ok"}]';
+            }
+            return Promise.resolve({ value: value, error: null });
+            "#,
+        )
+    }
+
     fn recording_status_callback(
         store: Rc<RefCell<Vec<LocalDbStatusSnapshot>>>,
     ) -> js_sys::Function {
@@ -780,7 +793,7 @@ orderbooks:
     async fn start_and_stop_scheduler_updates_handle_state() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback(), None)
+            .set_local_db_callback(healthy_db_callback(), None)
             .expect("callback set");
 
         client
@@ -799,7 +812,7 @@ orderbooks:
     async fn restarting_scheduler_replaces_handle() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback(), None)
+            .set_local_db_callback(healthy_db_callback(), None)
             .expect("callback set");
 
         client
@@ -864,7 +877,7 @@ orderbooks:
     async fn stop_scheduler_is_idempotent() {
         let client = build_client();
         client
-            .set_local_db_callback(success_callback(), None)
+            .set_local_db_callback(healthy_db_callback(), None)
             .expect("callback set");
 
         client
