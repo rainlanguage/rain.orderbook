@@ -31,6 +31,7 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
+use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 mod deposits;
@@ -41,6 +42,7 @@ mod state_management;
 mod validation;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenInfo {
     pub key: String,
     #[tsify(type = "string")]
@@ -48,6 +50,8 @@ pub struct TokenInfo {
     pub decimals: u8,
     pub name: String,
     pub symbol: String,
+    #[tsify(optional, type = "string")]
+    pub logo_uri: Option<Url>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -307,6 +311,7 @@ impl DotrainOrderGui {
                 decimals: *decimals,
                 name: label.clone(),
                 symbol: symbol.clone(),
+                logo_uri: token.logo_uri.clone(),
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(
@@ -329,6 +334,7 @@ impl DotrainOrderGui {
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
                 name: token.label.unwrap_or(onchain_info.name),
                 symbol: token.symbol.unwrap_or(onchain_info.symbol),
+                logo_uri: token.logo_uri.clone(),
             }
         };
 
