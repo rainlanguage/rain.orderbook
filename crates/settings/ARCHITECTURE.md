@@ -1,6 +1,6 @@
 # Settings Crate – Architecture and Responsibilities
 
-This crate defines the configuration model, parsing, validation and update utilities for the Rain Orderbook stack. It turns one or more YAML “settings” documents into strongly‑typed Rust structures that the rest of the system can consume (CLI, services, GUI/Tauri, and WASM/JS bindings). It also supports fetching and merging remote configuration (networks, tokens), contextual variable interpolation, and in‑place updates back to the underlying YAML.
+This crate defines the configuration model, parsing, validation and update utilities for the Rain Orderbook stack. It turns one or more YAML "settings" documents into strongly‑typed Rust structures that the rest of the system can consume (CLI, services, and WASM/JS bindings). It also supports fetching and merging remote configuration (networks, tokens), contextual variable interpolation, and in‑place updates back to the underlying YAML.
 
 At a glance:
 
@@ -9,7 +9,7 @@ At a glance:
 - Cross‑document merge: parse operations accept a vector of YAML documents and merge sections across them, rejecting duplicate keys deterministically.
 - Remote sources: optional “using‑*” sections enable fetching networks/tokens from external endpoints and merging them into the local model.
 - Context: a runtime context carries selected deployment/order, token selection for GUI flows, remote caches, and supports string interpolation from order paths.
-- WASM/TypeScript: many types derive `Tsify` and implement WASM trait helpers for interop with the webapp/Tauri.
+- WASM/TypeScript: many types derive `Tsify` and implement WASM trait helpers for interop with the webapp.
 
 
 ## Parsing Framework (yaml/*)
@@ -307,7 +307,7 @@ All parser and validator errors convert to `YamlError` or module‑specific `*Pa
 
 ## WASM/TypeScript Interop
 
-When building for `wasm32`, many types derive `Tsify` and implement WASM trait helpers via `wasm_bindgen_utils::impl_wasm_traits!`. This allows the web UI/Tauri app to import the same configuration model with strong typing (including union types and optional fields) and to consume results produced by this crate.
+When building for `wasm32`, many types derive `Tsify` and implement WASM trait helpers via `wasm_bindgen_utils::impl_wasm_traits!`. This allows the web UI to import the same configuration model with strong typing (including union types and optional fields) and to consume results produced by this crate.
 
 
 ## Typical Workflows

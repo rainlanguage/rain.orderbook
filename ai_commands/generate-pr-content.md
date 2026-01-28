@@ -66,7 +66,6 @@ Procedure
    - Group changes by top-level path to derive scope keywords, e.g.:
      - `crates/<name>` → Rust crate scope
      - `packages/<name>` → npm/TS package scope
-     - `tauri-app` → desktop UI/app scope
      - `src/`, `test/`, `subgraph/`, `script/` → other well-known areas
    - Heuristics for commit type:
      - `fix:` if tests mention a bug or diffs reverse/guard behavior; otherwise
@@ -79,7 +78,7 @@ Procedure
 
 3) Draft the title
    - Format: `<type>: <scope>: <concise summary>`
-   - Scope: prefer a short identifier like `common`, `js_api`, `orderbook`, `webapp`, `tauri-app`.
+   - Scope: prefer a short identifier like `common`, `js_api`, `orderbook`, `webapp`.
    - Summary: 6–12 words, describe outcome, not implementation details.
 
 4) Fill the description template
@@ -89,7 +88,7 @@ Procedure
    - Solution:
      - Summarize what changed: key files/areas, notable functions/types touched, new behaviors or fixed defects.
      - Mention tests updated/added and any important follow‑ups.
-     - If UI files changed under `packages/webapp` or `tauri-app`, include a note to attach screenshots.
+     - If UI files changed under `packages/webapp`, include a note to attach screenshots.
    - Keep paragraphs short and skimmable.
 
 5) Present results

@@ -12,6 +12,7 @@ use rain_orderbook_app_settings::{
     network::NetworkCfg,
     order::OrderCfg,
     yaml::{
+        context::ContextProfile,
         dotrain::{DotrainYaml, DotrainYamlValidation},
         YamlError, YamlParsable,
     },
@@ -30,6 +31,7 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
+use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 mod deposits;
@@ -40,6 +42,7 @@ mod state_management;
 mod validation;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenInfo {
     pub key: String,
     #[tsify(type = "string")]
@@ -47,6 +50,8 @@ pub struct TokenInfo {
     pub decimals: u8,
     pub name: String,
     pub symbol: String,
+    #[tsify(optional, type = "string")]
+    pub logo_uri: Option<Url>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -165,15 +170,24 @@ impl DotrainOrderGui {
             This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, GuiError> {
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let frontmatter = RainDocument::get_front_matter(&dotrain)
+            .unwrap_or("")
+            .to_string();
+        let dotrain_yaml =
+            DotrainYaml::new(vec![frontmatter.clone()], DotrainYamlValidation::default())?;
 
-        let keys = GuiCfg::parse_deployment_keys(dotrain_order.dotrain_yaml().documents.clone())?;
+        let keys = GuiCfg::parse_deployment_keys(dotrain_yaml.documents.clone())?;
         if !keys.contains(&selected_deployment) {
             return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
         }
 
         Ok(DotrainOrderGui {
-            dotrain_order,
+            dotrain_order: DotrainOrder::create_with_profile(
+                dotrain.clone(),
+                None,
+                ContextProfile::gui(selected_deployment.clone()),
+            )
+            .await?,
             selected_deployment,
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
@@ -209,7 +223,7 @@ impl DotrainOrderGui {
         let gui = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui(Some(self.selected_deployment.clone()))?
+            .get_gui(&self.selected_deployment)?
             .ok_or(GuiError::GuiConfigNotFound)?;
         Ok(gui)
     }
@@ -297,6 +311,7 @@ impl DotrainOrderGui {
                 decimals: *decimals,
                 name: label.clone(),
                 symbol: symbol.clone(),
+                logo_uri: token.logo_uri.clone(),
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(
@@ -319,6 +334,7 @@ impl DotrainOrderGui {
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
                 name: token.label.unwrap_or(onchain_info.name),
                 symbol: token.symbol.unwrap_or(onchain_info.symbol),
+                logo_uri: token.logo_uri.clone(),
             }
         };
 
@@ -589,7 +605,13 @@ impl DotrainOrderGui {
     pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
         self.update_scenario_bindings()?;
         let dotrain = self.generate_dotrain_text()?;
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
+        let deployment = self.get_current_deployment()?;
+        let dotrain_order = DotrainOrder::create_with_profile(
+            dotrain.clone(),
+            None,
+            ContextProfile::gui(deployment.deployment.key.clone()),
+        )
+        .await?;
         let rainlang = dotrain_order
             .compose_deployment_to_rainlang(self.selected_deployment.clone())
             .await?;
@@ -1265,9 +1287,9 @@ _ _: 0 0;
         assert_eq!(
             deployment_keys,
             vec![
-                "some-deployment",
                 "other-deployment",
-                "select-token-deployment"
+                "select-token-deployment",
+                "some-deployment"
             ]
         );
     }
@@ -1757,6 +1779,26 @@ version: {spec_version}
 gui:
     deployments:
         test: test
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            spec_version = SpecVersion::current()
+        );
+        let details = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap();
+        assert_eq!(details.len(), 0);
+
+        let yaml = format!(
+            r#"
+version: {spec_version}
+gui:
+    deployments:
+        test:
+            unknown-field: value
 ---
 #calculate-io
 _ _: 0 0;
