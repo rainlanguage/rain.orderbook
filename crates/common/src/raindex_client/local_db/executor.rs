@@ -7,27 +7,30 @@ use futures::lock::Mutex;
 use js_sys::{Array, BigInt};
 use std::rc::Rc;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::JsFuture;
+use wasm_bindgen_utils::result::WasmEncodedResult;
 
 #[derive(Clone)]
 pub struct JsCallbackExecutor {
-    callback: js_sys::Function,
+    query_callback: js_sys::Function,
+    wipe_callback: Option<js_sys::Function>,
     serialize: Rc<Mutex<()>>,
 }
 
 impl JsCallbackExecutor {
-    pub fn new(callback: js_sys::Function) -> Self {
+    pub fn new(query_callback: js_sys::Function, wipe_callback: Option<js_sys::Function>) -> Self {
         Self {
-            callback,
+            query_callback,
+            wipe_callback,
             serialize: Rc::new(Mutex::new(())),
         }
     }
 
-    pub fn from_ref(callback: &js_sys::Function) -> Self {
-        Self::new(callback.clone())
+    pub fn from_ref(query_callback: &js_sys::Function) -> Self {
+        Self::new(query_callback.clone(), None)
     }
 
     fn function(&self) -> &js_sys::Function {
-        &self.callback
+        &self.query_callback
     }
 
     async fn invoke_statement_unlocked(
@@ -124,6 +127,36 @@ impl LocalDbQueryExecutor for JsCallbackExecutor {
         let value = self.query_text(stmt).await?;
         serde_json::from_str(&value)
             .map_err(|err| LocalDbQueryError::deserialization(err.to_string()))
+    }
+
+    async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+        let _guard = self.serialize.lock().await;
+        let wipe_callback = self.wipe_callback.as_ref().ok_or_else(|| {
+            LocalDbQueryError::database("wipe_and_recreate callback not configured")
+        })?;
+
+        let result = wipe_callback.call0(&JsValue::NULL).map_err(|e| {
+            LocalDbQueryError::database(format!(
+                "JavaScript wipe callback invocation failed: {:?}",
+                e
+            ))
+        })?;
+
+        let promise = js_sys::Promise::resolve(&result);
+        let future = JsFuture::from(promise);
+        let js_result = future.await.map_err(|e| {
+            LocalDbQueryError::database(format!("Wipe promise resolution failed: {:?}", e))
+        })?;
+
+        let wasm_result: WasmEncodedResult<()> = serde_wasm_bindgen::from_value(js_result)
+            .map_err(|_| LocalDbQueryError::invalid_response())?;
+
+        match wasm_result {
+            WasmEncodedResult::Success { .. } => Ok(()),
+            WasmEncodedResult::Err { error, .. } => {
+                Err(LocalDbQueryError::database(error.readable_msg))
+            }
+        }
     }
 }
 
@@ -592,6 +625,80 @@ pub mod tests {
                 res,
                 Err(LocalDbQueryError::Deserialization { .. })
             ));
+        }
+
+        #[wasm_bindgen_test]
+        async fn wipe_and_recreate_returns_error_when_no_callback() {
+            let callback = create_success_callback("[]");
+            let exec = JsCallbackExecutor::from_ref(&callback);
+
+            let result = exec.wipe_and_recreate().await;
+            assert!(matches!(result, Err(LocalDbQueryError::Database { .. })));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("wipe_and_recreate callback not configured"));
+        }
+
+        #[wasm_bindgen_test]
+        async fn wipe_and_recreate_calls_wipe_callback() {
+            use std::cell::RefCell;
+            use std::rc::Rc;
+            use wasm_bindgen::prelude::Closure;
+
+            let wipe_called = Rc::new(RefCell::new(false));
+            let wipe_called_clone = wipe_called.clone();
+            let wipe_closure = Closure::wrap(Box::new(move || -> JsValue {
+                *wipe_called_clone.borrow_mut() = true;
+                let result = WasmEncodedResult::Success::<()> {
+                    value: (),
+                    error: None,
+                };
+                serde_wasm_bindgen::to_value(&result).unwrap()
+            }) as Box<dyn FnMut() -> JsValue>);
+            let wipe_callback: Function = wipe_closure.as_ref().clone().unchecked_into();
+            wipe_closure.forget();
+
+            let callback = create_success_callback("[]");
+            let exec = JsCallbackExecutor::new(callback, Some(wipe_callback));
+
+            exec.wipe_and_recreate().await.unwrap();
+
+            assert!(
+                *wipe_called.borrow(),
+                "wipe callback should have been called"
+            );
+        }
+
+        #[wasm_bindgen_test]
+        async fn wipe_and_recreate_propagates_callback_error() {
+            let wipe_callback = Function::new_no_args(&{
+                let error = WasmEncodedResult::Err::<()> {
+                    value: None,
+                    error: WasmEncodedError {
+                        msg: "wipe failed".to_string(),
+                        readable_msg: "wipe failed readable".to_string(),
+                    },
+                };
+                let js_value = serde_wasm_bindgen::to_value(&error).unwrap();
+                format!(
+                    "return {}",
+                    js_sys::JSON::stringify(&js_value)
+                        .unwrap()
+                        .as_string()
+                        .unwrap()
+                )
+            });
+
+            let callback = create_success_callback("[]");
+            let exec = JsCallbackExecutor::new(callback, Some(wipe_callback));
+
+            let result = exec.wipe_and_recreate().await;
+            assert!(matches!(result, Err(LocalDbQueryError::Database { .. })));
+            assert!(result
+                .unwrap_err()
+                .to_string()
+                .contains("wipe failed readable"));
         }
     }
 }

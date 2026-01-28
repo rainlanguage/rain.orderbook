@@ -292,7 +292,7 @@ mod wasm_tests {
     }
 
     fn noop_local_db() -> LocalDb {
-        LocalDb::from_js_callback(noop_callback())
+        LocalDb::from_js_callback(noop_callback(), None)
     }
 
     impl SchedulerHandle {

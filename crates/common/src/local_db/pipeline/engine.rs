@@ -1094,6 +1094,10 @@ mod tests {
                 "query_text not supported in tests",
             ))
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+        }
     }
 
     struct EngineHarness {
@@ -2035,6 +2039,10 @@ mod tests {
 
         async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
             panic!("query_text should not be called");
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
         }
     }
 

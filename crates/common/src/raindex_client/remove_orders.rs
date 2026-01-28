@@ -271,6 +271,10 @@ mod tests {
                     "query_text not supported in CountingJsonExec",
                 ))
             }
+
+            async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+                Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+            }
         }
 
         fn empty_remove_orders_response() -> Value {

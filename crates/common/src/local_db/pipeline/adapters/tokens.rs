@@ -146,6 +146,10 @@ mod tests {
         async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
             Ok(String::new())
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+        }
     }
 
     #[tokio::test]

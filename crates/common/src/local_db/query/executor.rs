@@ -16,4 +16,6 @@ pub trait LocalDbQueryExecutor {
         T: FromDbJson;
 
     async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError>;
+
+    async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError>;
 }
