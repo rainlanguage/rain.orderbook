@@ -6,6 +6,7 @@ on:
 
 jobs:
   release:
+    # skip this job if the commit was created by this workflow (prevents infinite loop)
     if: ${{ github.ref == 'refs/heads/main' && !startsWith(github.event.head_commit.message, 'NPM Package Release') }}
     runs-on: ubuntu-latest
     permissions:
@@ -25,31 +26,38 @@ jobs:
     outputs:
       version: ${{ env.NEW_VERSION }}
     steps:
+      # checkout with SSH key to allow pushing version bump commits back to repo
       - uses: actions/checkout@v4
         with:
           ssh-key: ${{ secrets.PUBLISH_PRIVATE_KEY }}
 
+      # WASM builds require significant disk space; free up space to prevent build failures
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
           swap-storage: false
 
+      # install nix for building WASM artifacts and running tests
       - uses: DeterminateSystems/nix-installer-action@main
         with:
           determinate: true
+      # cache nix store to speed up subsequent builds
       - uses: DeterminateSystems/flakehub-cache-action@main
 
+      # setup node with npm registry for OIDC-based publishing (no NPM_TOKEN needed)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
 
+      # npm 10.9+ required for OIDC provenance support
       - name: Upgrade npm for OIDC
         run: |
           npm install -g npm@latest
           npm --version
 
+      # ensure GitHub Actions OIDC token is available for npm provenance attestation
       - name: Verify OIDC availability
         run: |
           if [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL}" ] && [ -n "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" ]; then
@@ -61,6 +69,8 @@ jobs:
             exit 1
           fi
 
+      # npm OIDC publish requires package.json repository URL to match git remote
+      # mismatch causes 422 error during publish
       - name: Verify repository configuration
         run: |
           echo "Checking repository consistency..."
@@ -82,11 +92,14 @@ jobs:
           fi
           echo "Repositories match"
 
+      # install dependencies and build the workspace
       - run: ./prep-base.sh
 
+      # remove debug artifacts to free disk space before WASM build
       - name: Remove Unused Artifacts
         run: rm -rf ./target/debug
 
+      # WASM linker can run out of memory on GitHub runners; add swap to prevent OOM
       - name: Add swap space
         run: |
           sudo fallocate -l 8G /swapfile
@@ -94,22 +107,27 @@ jobs:
           sudo mkswap /swapfile
           sudo swapon /swapfile
 
+      # build and test WASM bindings
       - name: Test JS/TS Binding 1/2
         run: nix develop -c rainix-wasm-test
 
+      # cleanup between test phases to prevent disk space exhaustion
       - name: Remove Test Artifacts
         run: |
           rm -rf ./target/debug
           rm -rf ./target/wasm32-unknown-unknown/debug
 
+      # run JS/TS integration tests against WASM bindings
       - name: Test JS/TS Binding 2/2
         run: nix develop -c test-js-bindings
 
+      # build and test UI components before publishing
       - name: Build UI Components
         run: nix develop -c npm run build -w @rainlanguage/ui-components
       - name: Test UI Components
         run: nix develop -c npm run test -w @rainlanguage/ui-components
 
+      # check for npm package blacklists pkgs across all orderbook related packages
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
 
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
@@ -120,11 +138,13 @@ jobs:
         with:
           working-directory: packages/ui-components
 
+      # configure git identity for version bump commits
       - name: Git Config
         run: |
           git config --global user.email "${{ secrets.CI_GIT_EMAIL }}"
           git config --global user.name "${{ secrets.CI_GIT_USER }}"
 
+      # get hash of latest published pkgs from npm and concat them
       - name: Get Old Hash
         run: |
           OB_PKG_OLD_HASH=$(npm view @rainlanguage/orderbook@latest dist.shasum 2>/dev/null || echo "none")
@@ -133,6 +153,7 @@ jobs:
           echo "OLD_HASH=$OLD_HASH" >> $GITHUB_ENV
           echo "old hash: $OLD_HASH"
 
+      # calc hash of current workspace pkgs by packing them and concat them
       - name: Get New Hash
         run: |
           OB_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/orderbook | xargs shasum | cut -c1-40)
@@ -142,6 +163,9 @@ jobs:
           echo "new hash: $NEW_HASH"
           rm -f *.tgz
 
+      # from here on, we'll skip if OLD_HASH and NEW_HASH are the same (ie no publish)
+      # this means we need to skip every step by using an if statement.
+      # set npm version
       - name: Set Version
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
@@ -152,6 +176,7 @@ jobs:
           npx prettier --write ./packages/ui-components/package.json
           npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/ui-components
 
+      # Create orderbook npm package tarball
       - name: Create orderbook NPM Package Tarball
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: echo "OB_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/orderbook)" >> $GITHUB_ENV
@@ -160,6 +185,7 @@ jobs:
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: mv ${{ env.OB_NPM_PACKAGE }} orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
 
+      # publish orderbook pkg to npm
       - name: Publish orderbook pkg To NPM
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
@@ -168,6 +194,7 @@ jobs:
             --tag latest \
             --verbose
 
+      # Create npm package tarball for ui-components
       - name: Create ui-components NPM Package Tarball
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: echo "UC_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/ui-components)" >> $GITHUB_ENV
@@ -176,6 +203,7 @@ jobs:
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: mv ${{ env.UC_NPM_PACKAGE }} ui_components_npm_package_${{ env.NEW_VERSION }}.tgz
 
+      # publish ui-components to npm
       - name: Publish ui-components To NPM
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
@@ -184,6 +212,7 @@ jobs:
             --tag latest \
             --verbose
 
+      # Commit changes and tag
       - name: Commit And Tag
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
@@ -193,6 +222,7 @@ jobs:
           git commit -m "NPM Package Release v${{ env.NEW_VERSION }}"
           git tag npm-v${{ env.NEW_VERSION }}
 
+      # Push the commit to remote
       - name: Push Changes To Remote
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
@@ -201,6 +231,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Create gitHub release with tarballs
       - name: Create GitHub Release
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         id: gh_release
@@ -214,6 +245,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
       - name: Forward CI Status
         if: always()
         uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
