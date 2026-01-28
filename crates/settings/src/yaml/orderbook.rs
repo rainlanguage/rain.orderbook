@@ -1,4 +1,4 @@
-use super::{cache::Cache, ValidationConfig, *};
+use super::{cache::Cache, sanitize_all_documents, ValidationConfig, *};
 use crate::{
     accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, local_db_sync::LocalDbSyncCfg,
     metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg,
@@ -15,6 +15,7 @@ use std::{
     fmt,
     sync::{Arc, RwLock},
 };
+use strict_yaml_rust::{StrictYaml, StrictYamlLoader};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -116,6 +117,8 @@ impl YamlParsable for OrderbookYaml {
 
             documents.push(document);
         }
+
+        sanitize_all_documents(&documents)?;
 
         if validate.should_validate_networks() {
             NetworkCfg::parse_all_from_yaml(documents.clone(), None)?;
@@ -536,6 +539,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
 mod tests {
     use super::*;
     use alloy::primitives::Address;
+
     use std::str::FromStr;
     use url::Url;
 

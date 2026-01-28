@@ -1287,9 +1287,9 @@ _ _: 0 0;
         assert_eq!(
             deployment_keys,
             vec![
-                "some-deployment",
                 "other-deployment",
-                "select-token-deployment"
+                "select-token-deployment",
+                "some-deployment"
             ]
         );
     }
@@ -1779,6 +1779,26 @@ version: {spec_version}
 gui:
     deployments:
         test: test
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+#handle-add-order
+:;
+"#,
+            spec_version = SpecVersion::current()
+        );
+        let details = DotrainOrderGui::get_deployment_details(yaml.to_string()).unwrap();
+        assert_eq!(details.len(), 0);
+
+        let yaml = format!(
+            r#"
+version: {spec_version}
+gui:
+    deployments:
+        test:
+            unknown-field: value
 ---
 #calculate-io
 _ _: 0 0;
