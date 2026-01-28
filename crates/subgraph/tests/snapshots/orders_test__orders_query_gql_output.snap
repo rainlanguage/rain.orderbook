@@ -91,6 +91,11 @@ query SgOrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
           orderbook {
             id
           }
+          trade {
+            tradeEvent {
+              __typename
+            }
+          }
         }
         ... on Deposit {
           id
@@ -232,6 +237,11 @@ query SgOrdersListQuery($first: Int, $skip: Int, $filters: Order_filter) {
           }
           orderbook {
             id
+          }
+          trade {
+            tradeEvent {
+              __typename
+            }
           }
         }
         ... on Deposit {

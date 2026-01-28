@@ -2,7 +2,7 @@
 
 This package is the JavaScript/TypeScript SDK that exposes Rain Orderbook functionality to web and Node.js consumers. It packages the Rust WASM crate surface (primarily `rain_orderbook_js_api`, plus re‑exports from sibling crates) into a single, installable NPM module with CJS and ESM entry points.
 
-The SDK is designed to work in browsers, Node.js, and hybrid runtimes (e.g., Tauri). It embeds the compiled `.wasm` bytes directly in the published bundle so consumers do not need network fetches or filesystem access at runtime.
+The SDK is designed to work in browsers, Node.js, and hybrid runtimes. It embeds the compiled `.wasm` bytes directly in the published bundle so consumers do not need network fetches or filesystem access at runtime.
 
 
 ## Overview
