@@ -161,7 +161,7 @@ These three model how orders are defined, how they are executed (bindings, block
 ### Orders (`order.rs`)
 
 - `OrderCfg { key, inputs: Vec<OrderIOCfg>, outputs: Vec<OrderIOCfg>, network: Arc<NetworkCfg>, deployer?: Arc<DeployerCfg>, orderbook?: Arc<OrderbookCfg> }`.
-- `OrderIOCfg { token?: Arc<TokenCfg>, vault_id?: U256 }` – tokens are optional to support GUI‑driven select‑tokens; vault IDs are arbitrary U256 strings.
+- `OrderIOCfg { token_key: String, token?: Arc<TokenCfg>, vault_id?: U256 }` – `token_key` preserves the declared token name even when the token is unresolved for select‑tokens; vault IDs are arbitrary U256 strings.
 - Validation and network unification
   - Inputs/outputs must each contain `token` (unless permitted by GUI select‑tokens through context) and optional `vault-id`.
   - The order’s effective `network` is inferred from first matching component (deployer/orderbook/token), and all references must match. Mismatch yields detailed errors (`DeployerNetworkDoesNotMatch`, `OrderbookNetworkDoesNotMatch`, `InputTokenNetworkDoesNotMatch`, `OutputTokenNetworkDoesNotMatch`). If no network can be determined, `NetworkNotFoundError` is raised.

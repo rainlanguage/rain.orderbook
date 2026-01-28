@@ -117,6 +117,7 @@ pub struct GuiFieldDefinitionSourceCfg {
 pub struct GuiDeploymentSourceCfg {
     pub name: String,
     pub description: String,
+    pub short_description: Option<String>,
     pub deposits: Vec<GuiDepositSourceCfg>,
     pub fields: Vec<GuiFieldDefinitionSourceCfg>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -129,6 +130,7 @@ pub struct GuiDeploymentSourceCfg {
 pub struct GuiConfigSourceCfg {
     pub name: String,
     pub description: String,
+    pub short_description: Option<String>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
@@ -165,6 +167,7 @@ impl GuiConfigSourceCfg {
                             .map(Arc::clone)?;
 
                         Ok(GuiDepositCfg {
+                            token_key: deposit_source.token.clone(),
                             token: Some(token.clone()),
                             presets: deposit_source.presets.clone(),
                             validation: deposit_source.validation.clone(),
@@ -212,6 +215,7 @@ impl GuiConfigSourceCfg {
                         deployment,
                         name: deployment_source.name.clone(),
                         description: deployment_source.description.clone(),
+                        short_description: deployment_source.short_description.clone(),
                         deposits,
                         fields,
                         select_tokens: deployment_source.select_tokens.clone(),
@@ -223,6 +227,7 @@ impl GuiConfigSourceCfg {
         Ok(GuiCfg {
             name: self.name,
             description: self.description,
+            short_description: self.short_description,
             deployments: gui_deployments,
         })
     }
@@ -256,6 +261,7 @@ impl_wasm_traits!(GuiPresetCfg);
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct GuiDepositCfg {
+    pub token_key: String,
     pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub presets: Option<Vec<String>>,
@@ -284,6 +290,7 @@ pub struct GuiDeploymentCfg {
     pub deployment: Arc<DeploymentCfg>,
     pub name: String,
     pub description: String,
+    pub short_description: Option<String>,
     pub deposits: Vec<GuiDepositCfg>,
     pub fields: Vec<GuiFieldDefinitionCfg>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
@@ -329,6 +336,7 @@ impl_wasm_traits!(GuiFieldDefinitionCfg);
 pub struct GuiCfg {
     pub name: String,
     pub description: String,
+    pub short_description: Option<String>,
     #[cfg_attr(
         target_family = "wasm",
         serde(serialize_with = "serialize_hashmap_as_object"),
@@ -733,10 +741,23 @@ impl YamlParseableValue for GuiCfg {
                         location: "gui".to_string(),
                     })?;
 
+                let short_description = get_hash_value_as_option(gui, "short-description")
+                    .map(|v| {
+                        v.as_str().ok_or(YamlError::Field {
+                            kind: FieldErrorKind::InvalidType {
+                                field: "short-description".to_string(),
+                                expected: "a string".to_string(),
+                            },
+                            location: "gui".to_string(),
+                        })
+                    })
+                    .transpose()?;
+
                 if gui_res.is_none() {
                     gui_res = Some(GuiCfg {
                         name: name.to_string(),
                         description: description.to_string(),
+                        short_description: short_description.map(|d| d.to_string()),
                         deployments: gui_deployments_res.clone(),
                     });
                 }
@@ -821,6 +842,8 @@ impl YamlParseableValue for GuiCfg {
                         Some(location.clone()),
                     )?;
 
+                    let short_description = optional_string(deployment_yaml, "short-description");
+
                     let deposits = require_vec(
                         deployment_yaml,
                         "deposits",
@@ -828,15 +851,16 @@ impl YamlParseableValue for GuiCfg {
                     )?.iter().enumerate().map(|(deposit_index, deposit_value)| {
                         let mut deposit_token = None;
 
-                        if let Ok(tokens) = &tokens {
-                            let token = tokens.get(&require_string(
-                                deposit_value,
-                                Some("token"),
-                                Some(format!(
-                                    "deposit index '{deposit_index}' in {location}",
-                                )),
-                            )?);
+                        let token_key = require_string(
+                                                    deposit_value,
+                                                    Some("token"),
+                                                    Some(format!(
+                                                        "deposit index '{deposit_index}' in {location}",
+                                                    )),
+                                                )?;
 
+                        if let Ok(tokens) = &tokens {
+                            let token = tokens.get(&token_key);
                             deposit_token = token.map(|token| Arc::new(token.clone()));
                         }
 
@@ -863,6 +887,7 @@ impl YamlParseableValue for GuiCfg {
                         }).transpose()?;
 
                         let gui_deposit = GuiDepositCfg {
+                            token_key,
                             token: deposit_token,
                             presets,
                             validation,
@@ -891,10 +916,10 @@ impl YamlParseableValue for GuiCfg {
                                 "fields list index '{field_index}' in {location}",
                             )),
                         )?;
-                        let interpolated_name = context.interpolate(&name)?;
+                        let interpolated_name = context.interpolate_with_select_tokens(&name)?;
 
                         let description = optional_string(field_yaml, "description");
-                        let interpolated_description = description.map(|description| context.interpolate(&description)).transpose()?;
+                        let interpolated_description = description.map(|description| context.interpolate_with_select_tokens(&description)).transpose()?;
 
                         let presets = match optional_vec(field_yaml, "presets") {
                             Some(p) => Some(p.iter().enumerate().map(|(preset_index, preset_yaml)| {
@@ -946,6 +971,7 @@ impl YamlParseableValue for GuiCfg {
                         deployment: Arc::new(deployment),
                         name,
                         description,
+                        short_description,
                         deposits,
                         fields,
                         select_tokens,
@@ -1072,11 +1098,14 @@ mod tests {
         let gui_config_source = GuiConfigSourceCfg {
             name: "test-gui".to_string(),
             description: "test-gui-description".to_string(),
+            short_description: None,
             deployments: HashMap::from([(
                 "test-deployment".to_string(),
                 GuiDeploymentSourceCfg {
                     name: "test-deployment".to_string(),
                     description: "test-deployment-description".to_string(),
+
+                    short_description: None,
                     deposits: vec![GuiDepositSourceCfg {
                         token: "test-token".to_string(),
                         presets: Some(vec!["1.3".to_string(), "2.7".to_string()]),
@@ -1789,7 +1818,7 @@ gui:
                 - binding: test
                   name: test
                   presets:
-                    - value: 
+                    - value:
                         wrong: map
 "#;
         let error = GuiCfg::parse_from_yaml_optional(
