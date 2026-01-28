@@ -16,7 +16,7 @@ use rain_orderbook_app_settings::{
         YamlError, YamlParsable,
     },
 };
-pub use rain_orderbook_common::erc20::TokenInfoExtended;
+pub use rain_orderbook_common::erc20::ExtendedTokenInfo;
 use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
@@ -269,20 +269,20 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getTokenInfo",
-        unchecked_return_type = "TokenInfoExtended",
+        unchecked_return_type = "ExtendedTokenInfo",
         return_description = "Complete token details including address, decimals, name, symbol, and chain_id"
     )]
     pub async fn get_token_info(
         &self,
         #[wasm_export(param_description = "Token identifier from the YAML tokens section")]
         key: String,
-    ) -> Result<TokenInfoExtended, GuiError> {
+    ) -> Result<ExtendedTokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
 
         let token_info = if let (Some(decimals), Some(label), Some(symbol)) =
             (&token.decimals, &token.label, &token.symbol)
         {
-            TokenInfoExtended {
+            ExtendedTokenInfo {
                 key: token.key.clone(),
                 address: token.address,
                 decimals: *decimals,
@@ -306,7 +306,7 @@ impl DotrainOrderGui {
             let erc20 = ERC20::new(rpcs, token.address);
             let onchain_info = erc20.token_info(None).await?;
 
-            TokenInfoExtended {
+            ExtendedTokenInfo {
                 key: token.key.clone(),
                 address: token.address,
                 decimals: token.decimals.unwrap_or(onchain_info.decimals),
@@ -344,10 +344,10 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getAllTokenInfos",
-        unchecked_return_type = "TokenInfoExtended[]",
+        unchecked_return_type = "ExtendedTokenInfo[]",
         return_description = "Array of complete token information"
     )]
-    pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfoExtended>, GuiError> {
+    pub async fn get_all_token_infos(&self) -> Result<Vec<ExtendedTokenInfo>, GuiError> {
         let select_tokens = self.get_select_tokens()?;
 
         let token_keys = match select_tokens.is_empty() {

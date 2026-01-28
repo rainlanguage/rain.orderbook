@@ -24,7 +24,7 @@ impl_wasm_traits!(TokenInfo);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
-pub struct TokenInfoExtended {
+pub struct ExtendedTokenInfo {
     pub key: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
     pub address: Address,
@@ -36,7 +36,7 @@ pub struct TokenInfoExtended {
     pub logo_uri: Option<Url>,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(TokenInfoExtended);
+impl_wasm_traits!(ExtendedTokenInfo);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ERC20 {

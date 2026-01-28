@@ -4,7 +4,7 @@
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import {
 		type GuiSelectTokensCfg,
-		type TokenInfoExtended,
+		type ExtendedTokenInfo,
 		type GuiDepositCfg,
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
@@ -55,7 +55,7 @@
 	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
-	let allTokenInfos: TokenInfoExtended[] = [];
+	let allTokenInfos: ExtendedTokenInfo[] = [];
 	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
 	let tokenBalances: Map<string, TokenBalance> = new Map();
@@ -125,7 +125,7 @@
 		await handleShareChoices(gui, registry.getCurrentRegistry());
 	}
 
-	async function fetchTokenBalance(tokenInfo: TokenInfoExtended) {
+	async function fetchTokenBalance(tokenInfo: ExtendedTokenInfo) {
 		if (!$account) return;
 
 		const balances = tokenBalances;

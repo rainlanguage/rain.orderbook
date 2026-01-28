@@ -276,7 +276,7 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getAllTokens",
-        unchecked_return_type = "TokenInfoExtended[]",
+        unchecked_return_type = "ExtendedTokenInfo[]",
         return_description = "Array of token information for the current network"
     )]
     pub async fn get_all_tokens(
@@ -285,7 +285,7 @@ impl DotrainOrderGui {
             param_description = "Optional search term to filter tokens by name, symbol, or address"
         )]
         search: Option<String>,
-    ) -> Result<Vec<TokenInfoExtended>, GuiError> {
+    ) -> Result<Vec<ExtendedTokenInfo>, GuiError> {
         let order_key = DeploymentCfg::parse_order_key(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -308,7 +308,7 @@ impl DotrainOrderGui {
             if let (Some(decimals), Some(label), Some(symbol)) =
                 (&token.decimals, &token.label, &token.symbol)
             {
-                results.push(TokenInfoExtended {
+                results.push(ExtendedTokenInfo {
                     key: token.key.clone(),
                     address: token.address,
                     decimals: *decimals,
@@ -322,7 +322,7 @@ impl DotrainOrderGui {
                 let erc20 = ERC20::new(network.rpcs.clone(), token.address);
                 fetch_futures.push(async move {
                     let token_info = erc20.token_info(None).await?;
-                    Ok::<TokenInfoExtended, GuiError>(TokenInfoExtended {
+                    Ok::<ExtendedTokenInfo, GuiError>(ExtendedTokenInfo {
                         key: token.key.clone(),
                         address: token.address,
                         decimals: token.decimals.unwrap_or(token_info.decimals),
@@ -335,7 +335,7 @@ impl DotrainOrderGui {
             }
         }
 
-        let fetched_results: Vec<TokenInfoExtended> = futures::stream::iter(fetch_futures)
+        let fetched_results: Vec<ExtendedTokenInfo> = futures::stream::iter(fetch_futures)
             .buffer_unordered(MAX_CONCURRENT_FETCHES)
             .filter_map(|res| async {
                 match res {

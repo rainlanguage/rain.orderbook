@@ -9,7 +9,7 @@ use rain_orderbook_app_settings::{
         YamlError, YamlParsable,
     },
 };
-use rain_orderbook_common::erc20::TokenInfoExtended;
+use rain_orderbook_common::erc20::ExtendedTokenInfo;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -134,10 +134,10 @@ impl OrderbookYaml {
     /// ```
     #[wasm_export(
         js_name = "getTokens",
-        unchecked_return_type = "TokenInfoExtended[]",
+        unchecked_return_type = "ExtendedTokenInfo[]",
         return_description = "Array of token information"
     )]
-    pub async fn get_tokens(&mut self) -> Result<Vec<TokenInfoExtended>, OrderbookYamlError> {
+    pub async fn get_tokens(&mut self) -> Result<Vec<ExtendedTokenInfo>, OrderbookYamlError> {
         if let Some(remote_tokens_cfg) = self.yaml.get_remote_tokens()? {
             let networks = self.yaml.get_networks()?;
             let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
@@ -146,7 +146,7 @@ impl OrderbookYaml {
 
         let tokens = self.yaml.get_tokens()?;
 
-        let mut token_infos: Vec<TokenInfoExtended> = Vec::new();
+        let mut token_infos: Vec<ExtendedTokenInfo> = Vec::new();
         for token in tokens.values() {
             let decimals = token.decimals.ok_or_else(|| {
                 OrderbookYamlError::MissingField(format!("decimals for token {}", token.key))
@@ -158,7 +158,7 @@ impl OrderbookYaml {
                 OrderbookYamlError::MissingField(format!("symbol for token {}", token.key))
             })?;
 
-            token_infos.push(TokenInfoExtended {
+            token_infos.push(ExtendedTokenInfo {
                 key: token.key.clone(),
                 address: token.address,
                 decimals,
