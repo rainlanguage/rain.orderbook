@@ -35,6 +35,41 @@ impl TryFrom<SgVaultBalanceChangeUnwrapped> for VaultBalanceChangeFlattened {
     }
 }
 
+impl TryFrom<SgVaultBalanceChangeType> for VaultBalanceChangeFlattened {
+    type Error = FlattenError;
+
+    fn try_from(val: SgVaultBalanceChangeType) -> Result<Self, Self::Error> {
+        let amount_bytes = val
+            .amount()
+            .ok_or_else(|| FlattenError::MissingField("amount".to_string()))?;
+        let amount = Float::from_hex(&amount_bytes.0)?;
+        let amount_display_signed = amount.format()?;
+
+        let timestamp = val
+            .timestamp()
+            .ok_or_else(|| FlattenError::MissingField("timestamp".to_string()))?;
+        let timestamp_display = format_bigint_timestamp_display(timestamp.0.clone())?;
+
+        let transaction = val
+            .transaction()
+            .ok_or_else(|| FlattenError::MissingField("transaction".to_string()))?;
+
+        let new_vault_balance = val
+            .new_vault_balance()
+            .ok_or_else(|| FlattenError::MissingField("new_vault_balance".to_string()))?;
+
+        Ok(Self {
+            timestamp: timestamp.clone(),
+            timestamp_display,
+            from: transaction.from.clone(),
+            amount: amount_bytes.clone(),
+            amount_display_signed,
+            change_type_display: val.typename().to_string(),
+            balance: new_vault_balance.clone(),
+        })
+    }
+}
+
 impl TryIntoCsv<VaultBalanceChangeFlattened> for Vec<VaultBalanceChangeFlattened> {}
 
 #[cfg(test)]
