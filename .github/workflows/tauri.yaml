@@ -16,12 +16,12 @@ jobs:
     strategy:
       fail-fast: ${{ github.ref != 'refs/heads/main' }}
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14]
+        os: [ubuntu-22.04, macos-15-intel, macos-14]
         is-not-main:
           - ${{ github.ref != 'refs/heads/main' }}
         exclude:
           - is-not-main: true
-            os: macos-13
+            os: macos-15-intel
           - is-not-main: true
             os: macos-14
 
@@ -45,7 +45,7 @@ jobs:
           sudo rm -rf "$HOME/.rustup/toolchains" "$HOME/.rustup/update-hashes"
           df -h /
       - name: Free up disk space in action runner (Macos)
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
+        if: matrix.os == 'macos-15-intel' || matrix.os == 'macos-14'
         run: |
           sudo rm -rf \
           "$AGENT_TOOLSDIRECTORY" \
@@ -138,3 +138,12 @@ jobs:
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
         with:
           working-directory: tauri-app
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always()
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}

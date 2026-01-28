@@ -165,6 +165,7 @@ impl OrderbookYaml {
                 name,
                 symbol,
                 chain_id: token.network.chain_id,
+                logo_uri: token.logo_uri.clone(),
             });
         }
 

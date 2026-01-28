@@ -12,6 +12,7 @@
 	let searchQuery = '';
 	let tokens: TokenInfoExtended[] = [];
 	let isSearching = false;
+	let failedImages: Set<string> = new Set();
 
 	const gui = useGui();
 
@@ -43,6 +44,10 @@
 	function handleTokenSelect(token: TokenInfoExtended) {
 		onSelect(token);
 		modalOpen = false;
+	}
+
+	function handleImageError(address: string) {
+		failedImages = new Set([...failedImages, address]);
 	}
 
 	$: displayText = selectedToken
@@ -108,6 +113,22 @@
 							role="button"
 							tabindex="0"
 						>
+							{#if token.logoUri && !failedImages.has(token.address)}
+								<img
+									src={token.logoUri}
+									alt="{token.symbol} logo"
+									class="mr-3 h-8 w-8 rounded-full object-cover"
+									on:error={() => handleImageError(token.address)}
+								/>
+							{:else}
+								<div
+									class="mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-600"
+								>
+									<span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+										{token.symbol?.slice(0, 2) || '??'}
+									</span>
+								</div>
+							{/if}
 							<div class="token-info flex-grow">
 								<div class="token-name font-medium text-gray-900 dark:text-white">
 									{token.name}

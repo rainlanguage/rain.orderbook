@@ -315,6 +315,7 @@ impl DotrainOrderGui {
                     name: label.clone(),
                     symbol: symbol.clone(),
                     chain_id: token.network.chain_id,
+                    logo_uri: token.logo_uri.clone(),
                 });
             } else {
                 let chain_id = token.network.chain_id;
@@ -328,6 +329,7 @@ impl DotrainOrderGui {
                         name: token.label.unwrap_or(token_info.name),
                         symbol: token.symbol.unwrap_or(token_info.symbol),
                         chain_id,
+                        logo_uri: token.logo_uri.clone(),
                     })
                 });
             }

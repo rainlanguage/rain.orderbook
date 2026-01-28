@@ -23,6 +23,7 @@ impl_wasm_traits!(TokenInfo);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
 pub struct TokenInfoExtended {
     pub key: String,
     #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
@@ -31,6 +32,8 @@ pub struct TokenInfoExtended {
     pub name: String,
     pub symbol: String,
     pub chain_id: u32,
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "string"))]
+    pub logo_uri: Option<Url>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TokenInfoExtended);

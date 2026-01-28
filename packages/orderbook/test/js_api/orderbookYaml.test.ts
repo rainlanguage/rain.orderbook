@@ -191,7 +191,7 @@ orderbooks:
 	});
 
 	describe('getTokens tests', async function () {
-		it('should return local tokens with chain_id', async function () {
+		it('should return local tokens with chainId', async function () {
 			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
 			const tokensResult = await orderbookYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
@@ -200,7 +200,7 @@ orderbooks:
 
 			const token1 = tokens.find((t: { key: string }) => t.key === 'token1');
 			assert.ok(token1, 'token1 should exist');
-			assert.strictEqual(token1.chain_id, 123);
+			assert.strictEqual(token1.chainId, 123);
 			assert.strictEqual(token1.decimals, 6);
 			assert.strictEqual(token1.symbol, 'T1');
 			assert.strictEqual(token1.name, 'Token 1');
@@ -211,7 +211,7 @@ orderbooks:
 
 			const token2 = tokens.find((t: { key: string }) => t.key === 'token2');
 			assert.ok(token2, 'token2 should exist');
-			assert.strictEqual(token2.chain_id, 123);
+			assert.strictEqual(token2.chainId, 123);
 			assert.strictEqual(token2.decimals, 18);
 			assert.strictEqual(token2.symbol, 'T2');
 			assert.strictEqual(token2.name, 'Token 2');
@@ -237,7 +237,7 @@ tokens:
 			expect(tokensResult.error.readableMsg).toContain('required field is missing');
 		});
 
-		it('should return tokens with correct chain_id for multiple networks', async function () {
+		it('should return tokens with correct chainId for multiple networks', async function () {
 			const MULTI_NETWORK_YAML = `
 networks:
     mainnet:
@@ -268,12 +268,12 @@ tokens:
 
 			assert.strictEqual(tokens.length, 2);
 
-			const mainnetToken = tokens.find((t: { chain_id: number }) => t.chain_id === 1);
+			const mainnetToken = tokens.find((t: { chainId: number }) => t.chainId === 1);
 			assert.ok(mainnetToken, 'mainnet token should exist');
 			assert.strictEqual(mainnetToken.symbol, 'WETH');
 			assert.strictEqual(mainnetToken.decimals, 18);
 
-			const polygonToken = tokens.find((t: { chain_id: number }) => t.chain_id === 137);
+			const polygonToken = tokens.find((t: { chainId: number }) => t.chainId === 137);
 			assert.ok(polygonToken, 'polygon token should exist');
 			assert.strictEqual(polygonToken.symbol, 'USDC');
 			assert.strictEqual(polygonToken.decimals, 6);
@@ -340,13 +340,13 @@ using-tokens-from:
 			const usdc = tokens.find((t: { symbol: string }) => t.symbol === 'USDC');
 			assert.ok(usdc, 'USDC should exist');
 			assert.strictEqual(usdc.decimals, 6);
-			assert.strictEqual(usdc.chain_id, 1);
+			assert.strictEqual(usdc.chainId, 1);
 			assert.strictEqual(usdc.name, 'USD Coin');
 
 			const usdt = tokens.find((t: { symbol: string }) => t.symbol === 'USDT');
 			assert.ok(usdt, 'USDT should exist');
 			assert.strictEqual(usdt.decimals, 6);
-			assert.strictEqual(usdt.chain_id, 1);
+			assert.strictEqual(usdt.chainId, 1);
 		});
 
 		it('should return both local and remote tokens', async function () {
@@ -462,7 +462,7 @@ using-tokens-from:
 			);
 		});
 
-		it('should return tokens with correct chain_id from multiple networks', async function () {
+		it('should return tokens with correct chainId from multiple networks', async function () {
 			const remoteTokensResponse = {
 				name: 'Multi-chain Tokens',
 				timestamp: '2021-01-01T00:00:00.000Z',
@@ -508,13 +508,13 @@ using-tokens-from:
 
 			assert.strictEqual(tokens.length, 2);
 
-			const mainnetUsdc = tokens.find((t: { chain_id: number }) => t.chain_id === 1);
+			const mainnetUsdc = tokens.find((t: { chainId: number }) => t.chainId === 1);
 			assert.ok(mainnetUsdc, 'mainnet token should exist');
-			assert.strictEqual(mainnetUsdc.chain_id, 1);
+			assert.strictEqual(mainnetUsdc.chainId, 1);
 
-			const polygonUsdc = tokens.find((t: { chain_id: number }) => t.chain_id === 137);
+			const polygonUsdc = tokens.find((t: { chainId: number }) => t.chainId === 137);
 			assert.ok(polygonUsdc, 'polygon token should exist');
-			assert.strictEqual(polygonUsdc.chain_id, 137);
+			assert.strictEqual(polygonUsdc.chainId, 137);
 		});
 	});
 });

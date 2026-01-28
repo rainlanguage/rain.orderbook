@@ -289,6 +289,7 @@ impl DotrainOrderGui {
                 name: label.clone(),
                 symbol: symbol.clone(),
                 chain_id: token.network.chain_id,
+                logo_uri: token.logo_uri.clone(),
             }
         } else {
             let order_key = DeploymentCfg::parse_order_key(
@@ -312,6 +313,7 @@ impl DotrainOrderGui {
                 name: token.label.unwrap_or(onchain_info.name),
                 symbol: token.symbol.unwrap_or(onchain_info.symbol),
                 chain_id: token.network.chain_id,
+                logo_uri: token.logo_uri.clone(),
             }
         };
 

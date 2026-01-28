@@ -2,7 +2,7 @@ import { render, cleanup, screen, fireEvent, waitFor } from '@testing-library/sv
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import { writable } from 'svelte/store';
 import Sidebar from '../lib/components/Sidebar.svelte';
-import { localDbStatus } from '../lib/stores/localDbStatus';
+import { networkStatuses } from '../lib/stores/localDbStatus';
 
 vi.mock('@rainlanguage/ui-components', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('@rainlanguage/ui-components')>();
@@ -55,7 +55,7 @@ const mockWindowSize = (width: number) => {
 describe('Sidebar', () => {
 	afterEach(() => {
 		cleanup();
-		localDbStatus.set({ status: 'active', error: undefined });
+		networkStatuses.set(new Map());
 	});
 
 	it('renders correctly with colorTheme store', async () => {
@@ -130,22 +130,5 @@ describe('Sidebar', () => {
 			const sidebar = screen.getByTestId('sidebar');
 			expect(sidebar.hidden).toBe(true);
 		});
-	});
-
-	it('renders copy button for local DB failures', () => {
-		mockWindowSize(1025);
-		const mockColorTheme = writable('light');
-		const mockPage = {
-			url: { pathname: '/' }
-		};
-
-		localDbStatus.set({ status: 'failure', error: 'Runner error occurred' });
-
-		render(Sidebar, { colorTheme: mockColorTheme, page: mockPage });
-
-		const copyButton = screen.getByTestId('local-db-error-copy');
-		expect(copyButton).toBeInTheDocument();
-		expect(copyButton).toHaveTextContent('Copy error details');
-		expect(screen.queryByTestId('local-db-error')).not.toBeInTheDocument();
 	});
 });
