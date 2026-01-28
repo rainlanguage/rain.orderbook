@@ -58,7 +58,6 @@ const defaultProps: ComponentProps<OrderDetail> = {
 	chainId: 1,
 	orderbookAddress,
 	orderHash,
-	colorTheme: readable('dark'),
 	codeMirrorTheme: readable('dark'),
 	lightweightChartsTheme: readable(darkChartTheme),
 	onRemove: vi.fn(),
