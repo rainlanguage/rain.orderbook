@@ -216,6 +216,10 @@ mod tests {
             };
             Ok(body.clone())
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+        }
     }
 
     fn sample_ob_id() -> OrderbookIdentifier {
