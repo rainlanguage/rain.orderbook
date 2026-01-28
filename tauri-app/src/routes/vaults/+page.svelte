@@ -8,7 +8,9 @@
     selectedChainIds,
     showInactiveOrders,
     hideZeroBalanceVaults,
+    hideInactiveOrdersVaults,
     activeTokens,
+    activeOrderbookAddresses,
   } from '$lib/stores/settings';
 
   import { handleDepositModal, handleWithdrawModal } from '$lib/services/modal';
@@ -23,8 +25,10 @@
   {selectedChainIds}
   {showInactiveOrders}
   {hideZeroBalanceVaults}
+  {hideInactiveOrdersVaults}
   {handleDepositModal}
   {handleWithdrawModal}
   {activeTokens}
+  {activeOrderbookAddresses}
   showMyItemsOnly={writable(false)}
 />
