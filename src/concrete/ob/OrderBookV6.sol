@@ -45,11 +45,13 @@ import {
     ClearConfigV2,
     ClearStateChangeV2,
     SignedContextV1,
+
     //forge-lint: disable-next-line(unused-import)
     EvaluableV4,
     TaskV2,
     QuoteV2,
-    Float
+    Float,
+    IOV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IOrderBookV6OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV6OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
@@ -67,14 +69,15 @@ import {OrderBookV6FlashLender} from "../../abstract/OrderBookV6FlashLender.sol"
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
+import {LibFormatDecimalFloat} from "rain.math.float/lib/format/LibFormatDecimalFloat.sol";
+
 /// This will exist in a future version of Open Zeppelin if their main branch is
 /// to be believed.
 error ReentrancyGuardReentrantCall();
 
 /// Thrown when the `msg.sender` modifying an order is not its owner.
-/// @param sender `msg.sender` attempting to modify the order.
 /// @param owner The owner of the order.
-error NotOrderOwner(address sender, address owner);
+error NotOrderOwner(address owner);
 
 /// Thrown when the input and output tokens don't match, in either direction.
 error TokenMismatch();
@@ -227,8 +230,30 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         sVaultBalances;
 
     /// @inheritdoc IOrderBookV6
-    function vaultBalance2(address owner, address token, bytes32 vaultId) external view override returns (Float) {
-        return sVaultBalances[owner][token][vaultId];
+    function vaultBalance2(address owner, address token, bytes32 vaultId)
+        external
+        view
+        override
+        nonZeroVaultId(owner, token, vaultId)
+        returns (Float)
+    {
+        return _vaultBalance(owner, token, vaultId);
+    }
+
+    function _vaultBalance(address owner, address token, bytes32 vaultId) internal view returns (Float) {
+        if (vaultId != bytes32(0)) {
+            return sVaultBalances[owner][token][vaultId];
+        } else {
+            (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(token);
+            if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
+                revert TokenDecimalsReadFailure(token, tofuOutcome);
+            }
+            Float ownerTokenBalance =
+                LibDecimalFloat.fromFixedDecimalLosslessPacked(IERC20(token).balanceOf(owner), decimals);
+            (Float ownerTokenApproval,) =
+                LibDecimalFloat.fromFixedDecimalLossyPacked(IERC20(token).allowance(owner, address(this)), decimals);
+            return ownerTokenBalance.min(ownerTokenApproval);
+        }
     }
 
     /// @inheritdoc IOrderBookV6
@@ -245,12 +270,13 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     function deposit4(address token, bytes32 vaultId, Float depositAmount, TaskV2[] calldata post)
         external
         nonReentrant
+        nonZeroVaultId(msg.sender, token, vaultId)
     {
         if (!depositAmount.gt(Float.wrap(0))) {
             revert ZeroDepositAmount(msg.sender, token, vaultId);
         }
 
-        (uint256 depositAmountUint256, uint8 decimals) = pullTokens(token, depositAmount);
+        (uint256 depositAmountUint256, uint8 decimals) = pullTokens(msg.sender, token, depositAmount);
 
         // It is safest with vault deposits to move tokens in to the Orderbook
         // before updating internal vault balances although we have a reentrancy
@@ -279,34 +305,38 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     function withdraw4(address token, bytes32 vaultId, Float targetAmount, TaskV2[] calldata post)
         external
         nonReentrant
+        nonZeroVaultId(msg.sender, token, vaultId)
     {
-        if (!targetAmount.gt(Float.wrap(0))) {
-            revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
+        Float withdrawAmount;
+        uint8 decimals;
+        Float beforeBalance;
+        Float afterBalance;
+        {
+            if (!targetAmount.gt(Float.wrap(0))) {
+                revert ZeroWithdrawTargetAmount(msg.sender, token, vaultId);
+            }
+            Float currentVaultBalance = _vaultBalance(msg.sender, token, vaultId);
+            withdrawAmount = targetAmount.min(currentVaultBalance);
+            (beforeBalance, afterBalance) = decreaseVaultBalance(msg.sender, token, vaultId, withdrawAmount);
+
+            uint256 withdrawAmountUint256;
+            (withdrawAmountUint256, decimals) = pushTokens(msg.sender, token, withdrawAmount);
+            emit WithdrawV2(msg.sender, token, vaultId, targetAmount, withdrawAmount, withdrawAmountUint256);
         }
 
-        Float currentVaultBalance = sVaultBalances[msg.sender][token][vaultId];
-        Float withdrawAmount = targetAmount.min(currentVaultBalance);
+        bytes32[] memory contextColumn = LibBytes32Array.arrayFrom(
+            bytes32(uint256(uint160(token))),
+            vaultId,
+            Float.unwrap(beforeBalance),
+            Float.unwrap(afterBalance),
+            Float.unwrap(targetAmount),
+            bytes32(uint256(decimals))
+        );
 
-        (Float beforeBalance, Float afterBalance) = decreaseVaultBalance(msg.sender, token, vaultId, withdrawAmount);
-
-        (uint256 withdrawAmountUint256, uint8 decimals) = pushTokens(token, withdrawAmount);
-
-        emit WithdrawV2(msg.sender, token, vaultId, targetAmount, withdrawAmount, withdrawAmountUint256);
+        bytes32[][] memory context = LibBytes32Matrix.matrixFrom(contextColumn);
 
         if (post.length != 0) {
-            LibOrderBook.doPost(
-                LibBytes32Matrix.matrixFrom(
-                    LibBytes32Array.arrayFrom(
-                        bytes32(uint256(uint160(token))),
-                        vaultId,
-                        Float.unwrap(beforeBalance),
-                        Float.unwrap(afterBalance),
-                        Float.unwrap(targetAmount),
-                        bytes32(uint256(decimals))
-                    )
-                ),
-                post
-            );
+            LibOrderBook.doPost(context, post);
         }
     }
 
@@ -350,7 +380,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             }
 
             LibOrderBook.doPost(
-                LibBytes32Matrix.matrixFrom(LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))),
+                LibBytes32Matrix.matrixFrom(
+                    LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))
+                ),
                 post
             );
         }
@@ -365,7 +397,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         returns (bool stateChanged)
     {
         if (msg.sender != order.owner) {
-            revert NotOrderOwner(msg.sender, order.owner);
+            revert NotOrderOwner(order.owner);
         }
         bytes32 orderHash = order.hash();
         if (sOrders[orderHash] == ORDER_LIVE) {
@@ -374,7 +406,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             emit RemoveOrderV3(msg.sender, orderHash, order);
 
             LibOrderBook.doPost(
-                LibBytes32Matrix.matrixFrom(LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))),
+                LibBytes32Matrix.matrixFrom(
+                    LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))
+                ),
                 post
             );
         }
@@ -553,15 +587,14 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         //   external data (e.g. prices) that could be modified by the caller's
         //   trades.
 
-        pushTokens(orderOutputToken, totalTakerInput);
+        pushTokens(msg.sender, orderOutputToken, totalTakerInput);
 
         if (config.data.length > 0) {
-            IOrderBookV6OrderTaker(msg.sender).onTakeOrders2(
-                orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data
-            );
+            IOrderBookV6OrderTaker(msg.sender)
+                .onTakeOrders2(orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data);
         }
 
-        pullTokens(orderInputToken, totalTakerOutput);
+        pullTokens(msg.sender, orderInputToken, totalTakerOutput);
 
         unchecked {
             for (uint256 i = 0; i < orderIOCalculationsToHandle.length; i++) {
@@ -583,14 +616,10 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                 revert SameOwner();
             }
             if (
-                (
-                    aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
-                        != bobOrder.validInputs[clearConfig.bobInputIOIndex].token
-                )
-                    || (
-                        bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
-                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token
-                    )
+                (aliceOrder.validOutputs[clearConfig.aliceOutputIOIndex].token
+                            != bobOrder.validInputs[clearConfig.bobInputIOIndex].token)
+                    || (bobOrder.validOutputs[clearConfig.bobOutputIOIndex].token
+                            != aliceOrder.validInputs[clearConfig.aliceInputIOIndex].token)
             ) {
                 revert TokenMismatch();
             }
@@ -623,6 +652,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         OrderIOCalculationV4 memory bobOrderIOCalculation = calculateOrderIO(
             bobOrder, clearConfig.bobInputIOIndex, clearConfig.bobOutputIOIndex, aliceOrder.owner, aliceSignedContext
         );
+
         ClearStateChangeV2 memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
 
@@ -700,8 +730,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                         revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
 
-                    Float inputTokenVaultBalance = sVaultBalances[order.owner][order.validInputs[inputIOIndex].token][order
-                        .validInputs[inputIOIndex].vaultId];
+                    Float inputTokenVaultBalance = _vaultBalance(
+                        order.owner, order.validInputs[inputIOIndex].token, order.validInputs[inputIOIndex].vaultId
+                    );
                     callingContext[CONTEXT_VAULT_INPUTS_COLUMN - 1] = LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(order.validInputs[inputIOIndex].token))),
                         bytes32(uint256(inputDecimals)),
@@ -719,8 +750,9 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                         revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }
 
-                    Float outputTokenVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
-                        .validOutputs[outputIOIndex].vaultId];
+                    Float outputTokenVaultBalance = _vaultBalance(
+                        order.owner, order.validOutputs[outputIOIndex].token, order.validOutputs[outputIOIndex].vaultId
+                    );
                     callingContext[CONTEXT_VAULT_OUTPUTS_COLUMN - 1] = LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(order.validOutputs[outputIOIndex].token))),
                         bytes32(uint256(outputDecimals)),
@@ -742,20 +774,18 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             // failing calls and resubmit a new transaction.
             // https://github.com/crytic/slither/issues/880
             //slither-disable-next-line calls-loop
-            (StackItem[] memory calculateOrderStack, bytes32[] memory calculateOrderKVs) = order
-                .evaluable
-                .interpreter
+            (StackItem[] memory calculateOrderStack, bytes32[] memory calculateOrderKVs) = order.evaluable.interpreter
                 .eval4(
-                EvalV4({
-                    store: order.evaluable.store,
-                    namespace: LibNamespace.qualifyNamespace(namespace, address(this)),
-                    bytecode: order.evaluable.bytecode,
-                    sourceIndex: CALCULATE_ORDER_ENTRYPOINT,
-                    context: context,
-                    inputs: new StackItem[](0),
-                    stateOverlay: new bytes32[](0)
-                })
-            );
+                    EvalV4({
+                        store: order.evaluable.store,
+                        namespace: LibNamespace.qualifyNamespace(namespace, address(this)),
+                        bytecode: order.evaluable.bytecode,
+                        sourceIndex: CALCULATE_ORDER_ENTRYPOINT,
+                        context: context,
+                        inputs: new StackItem[](0),
+                        stateOverlay: new bytes32[](0)
+                    })
+                );
 
             // This is a much clearer error message and overall is more efficient
             // than solidity generic index out of bounds errors.
@@ -773,8 +803,8 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             {
                 // The order owner can't send more than the smaller of their vault
                 // balance or their per-order limit.
-                Float ownerVaultBalance = sVaultBalances[order.owner][order.validOutputs[outputIOIndex].token][order
-                    .validOutputs[outputIOIndex].vaultId];
+                IOV2 memory output = order.validOutputs[outputIOIndex];
+                Float ownerVaultBalance = _vaultBalance(order.owner, output.token, output.vaultId);
                 orderOutputMax = orderOutputMax.min(ownerVaultBalance);
             }
 
@@ -802,17 +832,26 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             revert NegativeVaultBalanceChange(amount);
         }
 
-        Float oldBalance = sVaultBalances[owner][token][vaultId];
-        Float newBalance = oldBalance.add(amount);
+        // Vault ID 0 is special, it directly transfers tokens to the owner
+        // rather than allocating an internal balance in a vault.
+        if (vaultId == bytes32(0)) {
+            pushTokens(owner, token, amount);
+            // The internal balance of vault 0 is always 0 as every transfer in
+            // is effectively a compound matching withdrawal.
+            return (Float.wrap(0), Float.wrap(0));
+        } else {
+            Float oldBalance = sVaultBalances[owner][token][vaultId];
+            Float newBalance = oldBalance.add(amount);
 
-        // This should never be possible as amount is positive and floats are
-        // effectively impossible to overflow, but we check it anyway to be safe.
-        if (newBalance.lt(Float.wrap(0))) {
-            revert NegativeVaultBalance(newBalance);
+            // This should never be possible as amount is positive and floats are
+            // effectively impossible to overflow, but we check it anyway to be safe.
+            if (newBalance.lt(Float.wrap(0))) {
+                revert NegativeVaultBalance(newBalance);
+            }
+            sVaultBalances[owner][token][vaultId] = newBalance;
+
+            return (oldBalance, newBalance);
         }
-        sVaultBalances[owner][token][vaultId] = newBalance;
-
-        return (oldBalance, newBalance);
     }
 
     function decreaseVaultBalance(address owner, address token, bytes32 vaultId, Float amount)
@@ -823,18 +862,27 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             revert NegativeVaultBalanceChange(amount);
         }
 
-        Float oldBalance = sVaultBalances[owner][token][vaultId];
-        Float newBalance = oldBalance.sub(amount);
+        // Vault ID 0 is special, it directly pulls tokens from the owner when
+        // their balance on DEX is reduced.
+        if (vaultId == bytes32(0)) {
+            pullTokens(owner, token, amount);
+            // The internal balance of vault 0 is always 0 as every balance
+            // decrease is effectively a compound matching deposit.
+            return (Float.wrap(0), Float.wrap(0));
+        } else {
+            Float oldBalance = sVaultBalances[owner][token][vaultId];
+            Float newBalance = oldBalance.sub(amount);
 
-        // This can definitely happen, so needs to be guarded against.
-        // There's no specific check anywhere else that vault balances don't go
-        // negative, so this function should be used everywhere for safety.
-        if (newBalance.lt(Float.wrap(0))) {
-            revert NegativeVaultBalance(newBalance);
+            // This can definitely happen, so needs to be guarded against.
+            // There's no specific check anywhere else that vault balances don't go
+            // negative, so this function should be used everywhere for safety.
+            if (newBalance.lt(Float.wrap(0))) {
+                revert NegativeVaultBalance(newBalance);
+            }
+            sVaultBalances[owner][token][vaultId] = newBalance;
+
+            return (oldBalance, newBalance);
         }
-        sVaultBalances[owner][token][vaultId] = newBalance;
-
-        return (oldBalance, newBalance);
     }
 
     /// Given an order, final input and output amounts and the IO calculation
@@ -853,7 +901,8 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID],
             input
         );
-
+        // Decrease before increasing so that if vault id == 0 then we pull
+        // tokens before pushing them.
         decreaseVaultBalance(
             orderIOCalculation.order.owner,
             address(uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))),
@@ -886,21 +935,19 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         // failing calls and resubmit a new transaction.
         // https://github.com/crytic/slither/issues/880
         //slither-disable-next-line calls-loop
-        (StackItem[] memory handleIOStack, bytes32[] memory handleIOKVs) = orderIOCalculation
-            .order
-            .evaluable
+        (StackItem[] memory handleIOStack, bytes32[] memory handleIOKVs) = orderIOCalculation.order.evaluable
             .interpreter
             .eval4(
-            EvalV4({
-                store: orderIOCalculation.order.evaluable.store,
-                namespace: LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
-                bytecode: orderIOCalculation.order.evaluable.bytecode,
-                sourceIndex: HANDLE_IO_ENTRYPOINT,
-                context: orderIOCalculation.context,
-                inputs: new StackItem[](0),
-                stateOverlay: new bytes32[](0)
-            })
-        );
+                EvalV4({
+                    store: orderIOCalculation.order.evaluable.store,
+                    namespace: LibNamespace.qualifyNamespace(orderIOCalculation.namespace, address(this)),
+                    bytecode: orderIOCalculation.order.evaluable.bytecode,
+                    sourceIndex: HANDLE_IO_ENTRYPOINT,
+                    context: orderIOCalculation.context,
+                    inputs: new StackItem[](0),
+                    stateOverlay: new bytes32[](0)
+                })
+            );
         // There's nothing to be done with the stack.
         (handleIOStack);
         // Apply state changes to the interpreter store from the handle IO
@@ -955,7 +1002,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
     }
 
-    function pullTokens(address token, Float amount) internal returns (uint256, uint8) {
+    function pullTokens(address account, address token, Float amount) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
@@ -972,12 +1019,12 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
             ++amount18;
         }
         if (amount18 > 0) {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount18);
+            IERC20(token).safeTransferFrom(account, address(this), amount18);
         }
         return (amount18, decimals);
     }
 
-    function pushTokens(address token, Float amountFloat) internal returns (uint256, uint8) {
+    function pushTokens(address account, address token, Float amountFloat) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
             revert TokenDecimalsReadFailure(token, tofuOutcome);
@@ -991,9 +1038,20 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         // Truncate when pushing.
         (lossless);
         if (amount > 0) {
-            IERC20(token).safeTransfer(msg.sender, amount);
+            IERC20(token).safeTransfer(account, amount);
         }
 
         return (amount, decimals);
+    }
+
+    function _nonZeroVaultId(address vaultOwner, address token, bytes32 vaultId) internal pure {
+        if (vaultId == bytes32(0)) {
+            revert ZeroVaultId(vaultOwner, token);
+        }
+    }
+
+    modifier nonZeroVaultId(address vaultOwner, address token, bytes32 vaultId) {
+        _nonZeroVaultId(vaultOwner, token, vaultId);
+        _;
     }
 }

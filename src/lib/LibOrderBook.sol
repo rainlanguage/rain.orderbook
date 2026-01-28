@@ -103,17 +103,18 @@ library LibOrderBook {
         for (uint256 i = 0; i < post.length; ++i) {
             task = post[i];
             if (task.evaluable.bytecode.length > 0) {
-                (StackItem[] memory stack, bytes32[] memory writes) = task.evaluable.interpreter.eval4(
-                    EvalV4({
-                        store: task.evaluable.store,
-                        namespace: qualifiedNamespace,
-                        bytecode: task.evaluable.bytecode,
-                        sourceIndex: SourceIndexV2.wrap(0),
-                        context: LibContext.build(context, task.signedContext),
-                        inputs: emptyStack,
-                        stateOverlay: emptyStateOverlay
-                    })
-                );
+                (StackItem[] memory stack, bytes32[] memory writes) = task.evaluable.interpreter
+                    .eval4(
+                        EvalV4({
+                            store: task.evaluable.store,
+                            namespace: qualifiedNamespace,
+                            bytecode: task.evaluable.bytecode,
+                            sourceIndex: SourceIndexV2.wrap(0),
+                            context: LibContext.build(context, task.signedContext),
+                            inputs: emptyStack,
+                            stateOverlay: emptyStateOverlay
+                        })
+                    );
                 (stack);
                 if (writes.length > 0) {
                     task.evaluable.store.set(namespace, writes);

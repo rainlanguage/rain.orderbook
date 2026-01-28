@@ -48,9 +48,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
         iParser = new RainterpreterParser();
         iParserV2 = new RainterpreterExpressionDeployer(
             RainterpreterExpressionDeployerConstructionConfigV2({
-                interpreter: address(iInterpreter),
-                store: address(iStore),
-                parser: address(iParser)
+                interpreter: address(iInterpreter), store: address(iStore), parser: address(iParser)
             })
         );
 

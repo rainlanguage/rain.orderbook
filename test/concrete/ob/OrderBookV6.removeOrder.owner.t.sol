@@ -4,7 +4,10 @@ pragma solidity =0.8.25;
 
 import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
-    OrderConfigV4, OrderV4, EvaluableV4, TaskV2
+    OrderConfigV4,
+    OrderV4,
+    EvaluableV4,
+    TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
@@ -132,7 +135,7 @@ contract OrderBookV6RemoveOrderOwnerTest is OrderBookV6ExternalRealTest {
         assert(iOrderbook.orderExists(order.hash()));
 
         vm.prank(bob);
-        vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, bob, alice));
+        vm.expectRevert(abi.encodeWithSelector(NotOrderOwner.selector, alice));
         stateChange = iOrderbook.removeOrder3(order, new TaskV2[](0));
         assert(!stateChange);
         assert(iOrderbook.orderExists(order.hash()));

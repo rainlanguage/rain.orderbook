@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RouteProcessorOrderBookV6ArbOrderTakerTest} from
-    "test/util/abstract/RouteProcessorOrderBookV6ArbOrderTakerTest.sol";
+import {
+    RouteProcessorOrderBookV6ArbOrderTakerTest
+} from "test/util/abstract/RouteProcessorOrderBookV6ArbOrderTakerTest.sol";
 import {
     OrderV4,
     EvaluableV4,
@@ -27,20 +28,20 @@ contract RouteProcessorOrderBookV6ArbOrderTakerSenderTest is RouteProcessorOrder
     {
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        RouteProcessorOrderBookV6ArbOrderTaker(iArb).arb5(
-            iOrderBook,
-            TakeOrdersConfigV5({
-                minimumIO: LibDecimalFloat.packLossless(0, 0),
-                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
-                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
-                IOIsInput: true,
-                orders: orders,
-                data: abi.encode(bytes("0x00"))
-            }),
-            TaskV2({
-                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
-                signedContext: new SignedContextV1[](0)
-            })
-        );
+        RouteProcessorOrderBookV6ArbOrderTaker(iArb)
+            .arb5(
+                iOrderBook,
+                TakeOrdersConfigV5({
+                    minimumIO: LibDecimalFloat.packLossless(0, 0),
+                    maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+                    maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+                    IOIsInput: true,
+                    orders: orders,
+                    data: abi.encode(bytes("0x00"))
+                }),
+                TaskV2({
+                    evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)
+                })
+            );
     }
 }

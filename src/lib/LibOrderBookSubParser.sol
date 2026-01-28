@@ -98,11 +98,7 @@ uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
 
-    function subParserSender(uint256, uint256, OperandV2)
-        internal
-        pure
-        returns (bool, bytes memory, bytes32[] memory)
-    {
+    function subParserSender(uint256, uint256, OperandV2) internal pure returns (bool, bytes memory, bytes32[] memory) {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_SENDER);
     }
@@ -286,9 +282,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE
+            );
     }
 
     function subParserDepositVaultBalanceAfter(uint256, uint256, OperandV2)
@@ -297,9 +294,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER
+            );
     }
 
     function subParserWithdrawToken(uint256, uint256, OperandV2)
@@ -327,9 +325,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE
+            );
     }
 
     function subParserWithdrawVaultBalanceAfter(uint256, uint256, OperandV2)
@@ -338,9 +337,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER
+            );
     }
 
     function subParserWithdrawTargetAmount(uint256, uint256, OperandV2)

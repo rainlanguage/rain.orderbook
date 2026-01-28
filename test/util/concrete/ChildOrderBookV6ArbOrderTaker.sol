@@ -16,15 +16,13 @@ import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInt
 /// base contract.
 contract ChildOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     constructor()
-        OrderBookV6ArbOrderTaker(
-            OrderBookV6ArbConfig(
+        OrderBookV6ArbOrderTaker(OrderBookV6ArbConfig(
                 address(0),
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), ""),
                     signedContext: new SignedContextV1[](0)
                 }),
                 abi.encode(address(0))
-            )
-        )
+            ))
     {}
 }

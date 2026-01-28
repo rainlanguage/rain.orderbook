@@ -30,10 +30,7 @@ contract OrderBookV6TakeOrderSameTokenTest is OrderBookV6ExternalRealTest {
 
         TakeOrderConfigV4[] memory takeOrders = new TakeOrderConfigV4[](1);
         takeOrders[0] = TakeOrderConfigV4({
-            order: orderAlice,
-            inputIOIndex: 0,
-            outputIOIndex: 0,
-            signedContext: new SignedContextV1[](0)
+            order: orderAlice, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)
         });
 
         TakeOrdersConfigV5 memory takeOrdersConfig = TakeOrdersConfigV5({

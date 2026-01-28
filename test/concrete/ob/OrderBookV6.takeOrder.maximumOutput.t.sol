@@ -62,7 +62,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         Float expectedTakerOutput
     ) internal {
         address bob = address(uint160(uint256(keccak256("bob.rain.test"))));
-        bytes32 vaultId = 0;
+        bytes32 vaultId = bytes32(uint256(0x01));
 
         OrderV4[] memory orders = new OrderV4[](testOrders.length);
 
@@ -130,10 +130,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         TakeOrderConfigV4[] memory takeOrders = new TakeOrderConfigV4[](orders.length);
         for (uint256 i = 0; i < orders.length; i++) {
             takeOrders[i] = TakeOrderConfigV4({
-                order: orders[i],
-                inputIOIndex: 0,
-                outputIOIndex: 0,
-                signedContext: new SignedContextV1[](0)
+                order: orders[i], inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)
             });
         }
 

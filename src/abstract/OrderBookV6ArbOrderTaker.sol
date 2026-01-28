@@ -18,7 +18,8 @@ import {
     TaskV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6ArbOrderTaker.sol";
 import {
-    IInterpreterV4, DEFAULT_STATE_NAMESPACE
+    IInterpreterV4,
+    DEFAULT_STATE_NAMESPACE
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
 import {TakeOrdersConfigV5, Float} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";

@@ -29,7 +29,7 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
         Float expectedTakerTotalInput,
         Float expectedTakerTotalOutput
     ) internal {
-        bytes32 vaultId = 0;
+        bytes32 vaultId = bytes32(uint256(0x01));
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 
