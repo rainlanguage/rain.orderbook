@@ -9,7 +9,6 @@ use rain_orderbook_app_settings::{
         GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
         ParseGuiConfigSourceError,
     },
-    network::NetworkCfg,
     order::OrderCfg,
     yaml::{
         context::ContextProfile,
@@ -17,6 +16,7 @@ use rain_orderbook_app_settings::{
         emitter, YamlError, YamlParsable,
     },
 };
+pub use rain_orderbook_common::erc20::ExtendedTokenInfo;
 use rain_orderbook_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
@@ -31,7 +31,6 @@ use std::{
 };
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
-use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
 mod deposits;
@@ -40,19 +39,6 @@ mod order_operations;
 mod select_tokens;
 mod state_management;
 mod validation;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct TokenInfo {
-    pub key: String,
-    #[tsify(type = "string")]
-    pub address: Address,
-    pub decimals: u8,
-    pub name: String,
-    pub symbol: String,
-    #[tsify(optional, type = "string")]
-    pub logo_uri: Option<Url>,
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -303,53 +289,16 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getTokenInfo",
-        unchecked_return_type = "TokenInfo",
-        return_description = "Complete token details including address, decimals, name, and symbol"
+        unchecked_return_type = "ExtendedTokenInfo",
+        return_description = "Complete token details including address, decimals, name, symbol, and chain_id"
     )]
     pub async fn get_token_info(
         &self,
         #[wasm_export(param_description = "Token identifier from the YAML tokens section")]
         key: String,
-    ) -> Result<TokenInfo, GuiError> {
+    ) -> Result<ExtendedTokenInfo, GuiError> {
         let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
-
-        let token_info = if let (Some(decimals), Some(label), Some(symbol)) =
-            (&token.decimals, &token.label, &token.symbol)
-        {
-            TokenInfo {
-                key: token.key.clone(),
-                address: token.address,
-                decimals: *decimals,
-                name: label.clone(),
-                symbol: symbol.clone(),
-                logo_uri: token.logo_uri.clone(),
-            }
-        } else {
-            let order_key = DeploymentCfg::parse_order_key(
-                self.dotrain_order.dotrain_yaml().documents,
-                &self.selected_deployment,
-            )?;
-            let network_key = OrderCfg::parse_network_key(
-                self.dotrain_order.dotrain_yaml().documents,
-                &order_key,
-            )?;
-            let rpcs =
-                NetworkCfg::parse_rpcs(self.dotrain_order.dotrain_yaml().documents, &network_key)?;
-
-            let erc20 = ERC20::new(rpcs, token.address);
-            let onchain_info = erc20.token_info(None).await?;
-
-            TokenInfo {
-                key: token.key.clone(),
-                address: token.address,
-                decimals: token.decimals.unwrap_or(onchain_info.decimals),
-                name: token.label.unwrap_or(onchain_info.name),
-                symbol: token.symbol.unwrap_or(onchain_info.symbol),
-                logo_uri: token.logo_uri.clone(),
-            }
-        };
-
-        Ok(token_info)
+        Ok(ExtendedTokenInfo::from_token_cfg(&token).await?)
     }
 
     /// Gets information for all tokens used in the current deployment's order.
@@ -376,10 +325,10 @@ impl DotrainOrderGui {
     /// ```
     #[wasm_export(
         js_name = "getAllTokenInfos",
-        unchecked_return_type = "TokenInfo[]",
+        unchecked_return_type = "ExtendedTokenInfo[]",
         return_description = "Array of complete token information"
     )]
-    pub async fn get_all_token_infos(&self) -> Result<Vec<TokenInfo>, GuiError> {
+    pub async fn get_all_token_infos(&self) -> Result<Vec<ExtendedTokenInfo>, GuiError> {
         let select_tokens = self.get_select_tokens()?;
 
         let token_keys = match select_tokens.is_empty() {
