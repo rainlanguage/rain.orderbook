@@ -78,17 +78,17 @@ fn validate_hash_section<T: YamlParsableHash>(
 fn validate_string_field<T: YamlParsableString>(
     documents: &[Arc<RwLock<StrictYaml>>],
 ) -> Result<(), YamlError> {
-    for document in documents {
-        match T::parse_from_yaml(document.clone()) {
-            Ok(_) => return Ok(()),
-            Err(YamlError::Field {
-                kind: FieldErrorKind::Missing(_),
-                ..
-            }) => continue,
-            Err(e) => return Err(e),
-        }
+    if documents.is_empty() {
+        return Ok(());
     }
-    Ok(())
+    match T::parse_from_yaml(documents.to_vec()) {
+        Ok(_) => Ok(()),
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(_),
+            ..
+        }) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 fn validate_optional_string_field<T: YamlParsableString>(
@@ -100,7 +100,7 @@ fn validate_optional_string_field<T: YamlParsableString>(
     Ok(())
 }
 
-fn emit_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<String, YamlError> {
+pub fn emit_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<String, YamlError> {
     let mut merged_hash = Hash::new();
 
     for document in documents {
@@ -436,15 +436,18 @@ orders:
 
     #[test]
     fn test_validate_spec_version_valid() {
-        let yaml = r#"
-version: 4
+        let yaml = format!(
+            r#"
+version: {}
 networks:
     mainnet:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-"#;
-        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+"#,
+            SpecVersion::current()
+        );
+        let result = validate_and_emit_documents(&[get_document(&yaml)], None);
         assert!(result.is_ok());
     }
 

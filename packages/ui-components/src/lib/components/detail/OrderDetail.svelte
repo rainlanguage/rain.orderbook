@@ -8,7 +8,7 @@
 	import CardProperty from '../CardProperty.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ButtonVaultLink from '../ButtonVaultLink.svelte';
-	// import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
+	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
@@ -283,8 +283,7 @@
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>
 			<TabItem title="Volume">
-				<div>TODO: Issue #1989</div>
-				<!-- <OrderVaultsVolTable order={data} /> -->
+				<OrderVaultsVolTable order={data} />
 			</TabItem>
 			<TabItem title="APY">
 				<div>TODO: Issue #1989</div>

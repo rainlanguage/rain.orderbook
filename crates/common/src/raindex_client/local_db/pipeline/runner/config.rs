@@ -69,9 +69,12 @@ impl NetworkRunnerConfig {
 mod tests {
     use super::*;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
 
     fn sample_settings_yaml() -> String {
-        r#"
+        format!(
+            r#"
+version: {}
 networks:
   network-a:
     rpcs:
@@ -123,8 +126,9 @@ orderbooks:
     subgraph: network-a
     local-db-remote: remote-a
     deployment-block: 333
-"#
-        .to_string()
+"#,
+            SpecVersion::current()
+        )
     }
 
     #[test]

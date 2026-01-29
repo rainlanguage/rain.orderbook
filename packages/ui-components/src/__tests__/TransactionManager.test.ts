@@ -418,6 +418,46 @@ describe('TransactionManager', () => {
 				links: expect.any(Array)
 			});
 		});
+
+		it('should use SDK-based indexing via createSdkIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createWithdrawTransaction(withdrawMockArgs);
+
+			// Verify awaitIndexingFn was passed and is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			// Simulate calling the awaitIndexingFn to verify it calls the SDK
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a successful SDK response
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				value: { id: '0xwithdrawhash', from: '0xowner', blockNumber: 123n, timestamp: 1700000000n }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify the SDK method was called with correct arguments (chainId, orderbook, txHash)
+			expect(mockRaindexClient.getTransaction).toHaveBeenCalledWith(
+				withdrawMockArgs.chainId,
+				withdrawMockArgs.entity.orderbook,
+				withdrawMockArgs.txHash
+			);
+
+			// Verify success was called
+			expect(mockContext.onSuccess).toHaveBeenCalled();
+		});
 	});
 
 	describe('transaction callbacks', () => {
@@ -701,6 +741,82 @@ describe('TransactionManager', () => {
 				links: expect.any(Array)
 			});
 		});
+
+		it('should use SDK-based indexing via createSdkIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			// Verify awaitIndexingFn was passed and is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			// Simulate calling the awaitIndexingFn to verify it calls the SDK
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a successful SDK response
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				value: { id: '0xdeposithash', from: '0xowner', blockNumber: 123n, timestamp: 1700000000n }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify the SDK method was called with correct arguments (chainId, orderbook, txHash)
+			expect(mockRaindexClient.getTransaction).toHaveBeenCalledWith(
+				mockArgs.chainId,
+				mockArgs.entity.orderbook,
+				mockArgs.txHash
+			);
+
+			// Verify success was called
+			expect(mockContext.onSuccess).toHaveBeenCalled();
+		});
+
+		it('should handle SDK timeout error in awaitIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a timeout error from the SDK
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				error: {
+					readableMsg: 'Timeout waiting for transaction 0x123 to be indexed after 10 attempts.'
+				}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify error handling
+			expect(mockContext.updateState).toHaveBeenCalledWith({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+			});
+			expect(mockContext.onError).toHaveBeenCalled();
+			expect(mockContext.onSuccess).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('createAddOrderTransaction', () => {
@@ -951,11 +1067,10 @@ describe('createSdkIndexingFn', () => {
 		});
 	});
 
-	it('should set SUBGRAPH_TIMEOUT_ERROR for SDK SubgraphIndexingTimeout error format', async () => {
+	it('should set SUBGRAPH_TIMEOUT_ERROR for SDK TransactionIndexingTimeout error format', async () => {
 		const mockCall = vi.fn().mockResolvedValue({
 			error: {
-				readableMsg:
-					'Timeout waiting for the subgraph to index transaction 0x123abc after 10 attempts.'
+				readableMsg: 'Timeout waiting for transaction 0x123abc to be indexed after 10 attempts.'
 			}
 		} as WasmEncodedResult<unknown>);
 		const indexingFn = createSdkIndexingFn({
