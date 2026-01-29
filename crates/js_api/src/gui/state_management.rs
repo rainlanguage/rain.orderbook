@@ -428,7 +428,7 @@ mod tests {
     };
     use alloy::primitives::U256;
     use js_sys::{eval, Reflect};
-    use rain_orderbook_app_settings::order::VaultType;
+    use rain_orderbook_app_settings::{order::VaultType, spec_version::SpecVersion};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Qy2rDMBCU0tJS6CkUeir0Ayos2S5YgR7bmjb4UEIOvQRHURJjRTLOmrx-Ip8cnEgOMdnDzo5mtLtsB53iweI405NMzwhDLm4sMkrbJh_bB4qayhV3FsHkUgfXul13XrJHy5ZmIYmWsDJl7v69WJwDFD3PU0akam6W0Ito9O6VhSBVqXa1A9cZu9Gfg_jJlt1wuN63Eu7ieysP6h1eA3zr-G8SoA46x8WyrJnAOMdt1W9Un_M3ZwQq6JDwUI03f6zaQtzPov80qfTPV5jqeDTVZb_4TiqRfzy7U0glBZBjUzKRhTKbhdRwAGw0tlzJAQAA";
@@ -509,8 +509,9 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
-        let dotrain = r#"
-            version: 4
+        let dotrain = format!(
+            r#"
+            version: {}
             networks:
                 test:
                     rpcs:
@@ -561,16 +562,14 @@ mod tests {
                               name: Field 1 name
         ---
         #test
-        "#;
+        "#,
+            SpecVersion::current()
+        );
 
-        let err = DotrainOrderGui::new_from_state(
-            dotrain.to_string(),
-            None,
-            SERIALIZED_STATE.to_string(),
-            None,
-        )
-        .await
-        .unwrap_err();
+        let err =
+            DotrainOrderGui::new_from_state(dotrain, None, SERIALIZED_STATE.to_string(), None)
+                .await
+                .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),

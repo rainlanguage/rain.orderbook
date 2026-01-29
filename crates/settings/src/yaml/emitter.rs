@@ -436,15 +436,18 @@ orders:
 
     #[test]
     fn test_validate_spec_version_valid() {
-        let yaml = r#"
-version: 4
+        let yaml = format!(
+            r#"
+version: {}
 networks:
     mainnet:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-"#;
-        let result = validate_and_emit_documents(&[get_document(yaml)], None);
+"#,
+            SpecVersion::current()
+        );
+        let result = validate_and_emit_documents(&[get_document(&yaml)], None);
         assert!(result.is_ok());
     }
 

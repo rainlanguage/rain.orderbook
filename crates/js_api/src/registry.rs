@@ -1354,7 +1354,9 @@ _ _: 1 1;
             }
         }
 
-        const MOCK_SETTINGS_WITH_TOKENS: &str = r#"version: 4
+        fn mock_settings_with_tokens() -> String {
+            format!(
+                r#"version: {}
 networks:
   mainnet:
     rpcs:
@@ -1382,7 +1384,10 @@ deployers:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
-"#;
+"#,
+                SpecVersion::current()
+            )
+        }
 
         const MOCK_DOTRAIN_SIMPLE: &str = r#"gui:
   name: Test Order
@@ -1439,7 +1444,7 @@ _ _: 0 0;
 
             server.mock(|when, then| {
                 when.method("GET").path("/settings.yaml");
-                then.status(200).body(MOCK_SETTINGS_WITH_TOKENS);
+                then.status(200).body(mock_settings_with_tokens());
             });
 
             server.mock(|when, then| {
