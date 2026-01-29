@@ -387,7 +387,7 @@ amount price: 100 2;
             .dotrain_yaml()
             .get_deployment("test-deployment")
             .unwrap();
-        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
             .await
             .unwrap()
             .try_into_call(vec![setup.local_evm.url()])
