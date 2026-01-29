@@ -3,6 +3,7 @@ use alloy::primitives::{Address, U256};
 use alloy::providers::{MulticallError, Provider};
 use alloy_ethers_typecast::ReadContractParametersBuilderError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
+use rain_orderbook_app_settings::token::TokenCfg;
 use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
 use rain_orderbook_bindings::IERC20::IERC20Instance;
 use serde::{Deserialize, Serialize};
@@ -20,6 +21,54 @@ pub struct TokenInfo {
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TokenInfo);
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct ExtendedTokenInfo {
+    pub key: String,
+    #[cfg_attr(target_family = "wasm", tsify(type = "string"))]
+    pub address: Address,
+    pub decimals: u8,
+    pub name: String,
+    pub symbol: String,
+    pub chain_id: u32,
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "string"))]
+    pub logo_uri: Option<Url>,
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ExtendedTokenInfo);
+
+impl ExtendedTokenInfo {
+    pub async fn from_token_cfg(token: &TokenCfg) -> Result<Self, Error> {
+        if let (Some(decimals), Some(label), Some(symbol)) =
+            (&token.decimals, &token.label, &token.symbol)
+        {
+            Ok(ExtendedTokenInfo {
+                key: token.key.clone(),
+                address: token.address,
+                decimals: *decimals,
+                name: label.clone(),
+                symbol: symbol.clone(),
+                chain_id: token.network.chain_id,
+                logo_uri: token.logo_uri.clone(),
+            })
+        } else {
+            let erc20 = ERC20::new(token.network.rpcs.clone(), token.address);
+            let onchain_info = erc20.token_info(None).await?;
+
+            Ok(ExtendedTokenInfo {
+                key: token.key.clone(),
+                address: token.address,
+                decimals: token.decimals.unwrap_or(onchain_info.decimals),
+                name: token.label.clone().unwrap_or(onchain_info.name),
+                symbol: token.symbol.clone().unwrap_or(onchain_info.symbol),
+                chain_id: token.network.chain_id,
+                logo_uri: token.logo_uri.clone(),
+            })
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ERC20 {

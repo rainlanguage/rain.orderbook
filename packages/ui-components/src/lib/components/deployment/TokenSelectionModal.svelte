@@ -1,16 +1,16 @@
 <script lang="ts">
 	import { Input, Button, Modal } from 'flowbite-svelte';
 	import { SearchOutline, CheckCircleSolid, ChevronDownSolid } from 'flowbite-svelte-icons';
-	import type { TokenInfo } from '@rainlanguage/orderbook';
+	import type { ExtendedTokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
 	import { onMount, tick } from 'svelte';
 
-	export let selectedToken: TokenInfo | null = null;
-	export let onSelect: (token: TokenInfo) => void;
+	export let selectedToken: ExtendedTokenInfo | null = null;
+	export let onSelect: (token: ExtendedTokenInfo) => void;
 
 	let modalOpen = false;
 	let searchQuery = '';
-	let tokens: TokenInfo[] = [];
+	let tokens: ExtendedTokenInfo[] = [];
 	let isSearching = false;
 	let failedImages: Set<string> = new Set();
 
@@ -41,7 +41,7 @@
 		return `${address.slice(0, 6)}...${address.slice(-4)}`;
 	}
 
-	function handleTokenSelect(token: TokenInfo) {
+	function handleTokenSelect(token: ExtendedTokenInfo) {
 		onSelect(token);
 		modalOpen = false;
 	}

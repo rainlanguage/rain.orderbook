@@ -130,14 +130,16 @@
     - `getAllOrderDetails()` → parse order-level metadata for every merged dotrain.
     - `getOrderKeys()` → keys from `order_urls`.
     - `getDeploymentDetails(orderKey)` → deployment name/description map for a specific order.
+    - `getOrderbookYaml() -> OrderbookYaml` → returns an `OrderbookYaml` instance from the registry's shared settings YAML for querying tokens, networks, orderbooks, etc.
   - `getGui(orderKey, deploymentKey, serializedState?, stateCallback?)` → merge `settings + order`, optionally restore serialized state, and produce a `DotrainOrderGui` instance.
   - Errors: `DotrainRegistryError` covers fetch/parse/HTTP/URL issues and wraps `GuiError`. Also returns human-readable messages.
 
 - `yaml` (src/yaml/mod.rs)
-  - Purpose: Wasm-friendly wrapper around orderbook YAML parsing to retrieve an `OrderbookCfg` by contract address.
+  - Purpose: Wasm-friendly wrapper around orderbook YAML parsing to retrieve configuration objects by address or query token metadata.
   - Exports:
     - `OrderbookYaml.new([yamlSources], validate?) -> OrderbookYaml`: parse/merge/optionally validate sources.
     - `OrderbookYaml.getOrderbookByAddress(address) -> OrderbookCfg`.
+    - `OrderbookYaml.getTokens() -> TokenInfo[]` (async): returns all tokens from YAML with `chain_id`, `address`, `decimals`, `symbol`, and `name`. Automatically fetches remote tokens from `using-tokens-from` URLs.
   - Errors: `OrderbookYamlError` with readable messaging, converted to JS.
 
 **External Crates & Interactions**

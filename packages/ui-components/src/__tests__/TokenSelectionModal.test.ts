@@ -3,18 +3,19 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenSelectionModal from '../lib/components/deployment/TokenSelectionModal.svelte';
 import type { ComponentProps } from 'svelte';
-import type { TokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { ExtendedTokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 
 type TokenSelectionModalProps = ComponentProps<TokenSelectionModal>;
 
-const mockTokens: TokenInfo[] = [
+const mockTokens: ExtendedTokenInfo[] = [
 	{
 		key: 'token1',
 		address: '0x1234567890123456789012345678901234567890',
 		name: 'Test Token 1',
 		symbol: 'TEST1',
 		decimals: 18,
+		chainId: 1,
 		logoUri: 'https://example.com/token1-logo.png'
 	},
 	{
@@ -22,7 +23,9 @@ const mockTokens: TokenInfo[] = [
 		address: '0x0987654321098765432109876543210987654321',
 		name: 'Another Token',
 		symbol: 'ANOTHER',
-		decimals: 6
+		decimals: 6,
+		chainId: 1,
+		logoUri: undefined
 	}
 ];
 

@@ -409,7 +409,21 @@ fixed-limit https://example.com/orders/fixed-limit.rain
 dca https://example.com/orders/dca.rain
 ```
 
-The SDK merges the shared settings YAML with each order’s `.rain` content before you ever build a GUI.
+The SDK merges the shared settings YAML with each order's `.rain` content before you ever build a GUI.
+
+#### Access tokens from registry settings
+
+Use `getOrderbookYaml()` to access the shared settings as an `OrderbookYaml` instance, then query tokens, networks, or orderbooks:
+
+```ts
+const orderbookYamlResult = registry.getOrderbookYaml();
+if (orderbookYamlResult.error) throw new Error(orderbookYamlResult.error.readableMsg);
+const orderbookYaml = orderbookYamlResult.value;
+
+const tokensResult = await orderbookYaml.getTokens();
+if (tokensResult.error) throw new Error(tokensResult.error.readableMsg);
+const tokens = tokensResult.value; // TokenInfo[] with chain_id, address, decimals, symbol, name
+```
 
 ### Build a deployment GUI
 
@@ -579,6 +593,7 @@ if (!postTaskResult.error) console.log(postTaskResult.value);
 
 - `getOrderHash`, `keccak256`, `keccak256HexString` – deterministic hashing helpers for Rain orders or arbitrary payloads.
 - `Float` – arbitrary-precision arithmetic with parsing, formatting, comparisons, math ops, fixed-decimal conversions, and helpers like `Float.zero()` or `.formatWithRange(...)`.
+- `OrderbookYaml.getTokens()` – async method returning all tokens from YAML configuration with `chain_id`, `address`, `decimals`, `symbol`, and `name`. Automatically fetches remote tokens from `using-tokens-from` URLs.
 - `RaindexClient.getAllAccounts()` / `getAllVaultTokens()` – introspect accounts and ERC20 metadata defined in your YAML or discovered via subgraphs.
 - `clearTables`, `getSyncStatus`, `RaindexClient.syncLocalDatabase`, `RaindexClient.setDbCallback` – plug in a persistent cache for offline apps.
 - `RaindexVaultsList.getWithdrawCalldata()` – multicall builder that withdraws every vault with a balance.
