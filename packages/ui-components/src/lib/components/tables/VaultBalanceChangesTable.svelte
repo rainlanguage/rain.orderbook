@@ -1,35 +1,39 @@
 <script lang="ts">
 	import { Badge, Heading, TableHeadCell, TableBodyCell } from 'flowbite-svelte';
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
-	import { RaindexVault, type RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
+	import {
+		RaindexVault,
+		type RaindexVaultBalanceChange,
+		type VaultBalanceChangeFilter
+	} from '@rainlanguage/orderbook';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import Hash, { HashType } from '../Hash.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
 	import { DEFAULT_PAGE_SIZE } from '../../queries/constants';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import Tooltip from '../Tooltip.svelte';
+	import VaultBalanceChangeTypeFilter from '../VaultBalanceChangeTypeFilter.svelte';
 
-	type BadgeColor = 'green' | 'yellow' | 'blue' | 'red' | 'purple' | 'dark';
+	type BadgeColor = 'green' | 'yellow' | 'blue' | 'red' | 'purple' | 'pink' | 'dark';
 
 	function getTypeBadgeColor(type: string): BadgeColor {
 		const lowerType = type.toLowerCase();
 		if (lowerType.includes('deposit')) return 'green';
 		if (lowerType.includes('withdrawal')) return 'yellow';
 		if (lowerType.includes('bounty')) return 'purple';
-		if (lowerType.includes('trade')) return 'blue';
+		if (lowerType.includes('trade') || lowerType.includes('takeorder')) return 'blue';
+		if (lowerType.includes('clear')) return 'pink';
 		return 'dark';
-	}
-
-	function formatType(type: string): string {
-		return type.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (str) => str.toUpperCase());
 	}
 
 	export let vault: RaindexVault;
 
+	let filterTypes: VaultBalanceChangeFilter[] | undefined = undefined;
+
 	$: balanceChangesQuery = createInfiniteQuery({
-		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id],
+		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id, filterTypes],
 		queryFn: async ({ pageParam }) => {
-			const result = await vault.getBalanceChanges(pageParam + 1);
+			const result = await vault.getBalanceChanges(pageParam + 1, filterTypes);
 			if (result.error) throw new Error(result.error.msg);
 			return result.value;
 		},
@@ -42,10 +46,14 @@
 	const AppTable = TanstackAppTable<RaindexVaultBalanceChange>;
 </script>
 
+<div class="flex w-full justify-end">
+	<VaultBalanceChangeTypeFilter bind:value={filterTypes} />
+</div>
+
 <AppTable
 	query={balanceChangesQuery}
 	queryKey={vault.id}
-	emptyMessage="No deposits or withdrawals found"
+	emptyMessage="No balance changes found"
 	rowHoverable={false}
 >
 	<svelte:fragment slot="title">
@@ -65,10 +73,10 @@
 					<Badge
 						id={`type-${item.transaction.id}`}
 						class="truncate"
-						color={getTypeBadgeColor(item.type)}>{formatType(item.type)}</Badge
+						color={getTypeBadgeColor(item.type)}>{item.typeDisplayName}</Badge
 					>
 					<Tooltip triggeredBy={`#type-${item.transaction.id}`}>
-						{formatType(item.type)}
+						{item.typeDisplayName}
 					</Tooltip>
 				</div>
 				<span class="text-xs text-gray-500 dark:text-gray-400">

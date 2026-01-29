@@ -19,6 +19,12 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
 
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
+
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
 const mockVaultsList = () => ({
@@ -92,7 +98,9 @@ const {
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
 	mockShowMyItemsOnlyStore,
-	mockSelectedChainIdsStore
+	mockSelectedChainIdsStore,
+	mockActiveTokensStore,
+	mockActiveOrderbookAddressesStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 type OrdersListTableProps = ComponentProps<OrdersListTable>;
@@ -105,10 +113,16 @@ const defaultProps: OrdersListTableProps = {
 	showMyItemsOnly: mockShowMyItemsOnlyStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
-	selectedChainIds: mockSelectedChainIdsStore
+	selectedChainIds: mockSelectedChainIdsStore,
+	activeTokens: mockActiveTokensStore,
+	activeOrderbookAddresses: mockActiveOrderbookAddressesStore
 } as unknown as OrdersListTableProps;
 
 const mockMatchesAccount = vi.fn();
+
+const mockGetOrders = vi.fn();
+const mockGetTokens = vi.fn();
+const mockGetAllOrderbooks = vi.fn();
 
 describe('OrdersListTable', () => {
 	beforeEach(() => {
@@ -117,6 +131,25 @@ describe('OrdersListTable', () => {
 			account: mockAccountStore,
 			matchesAccount: mockMatchesAccount
 		});
+		(useRaindexClient as Mock).mockReturnValue({
+			getOrders: mockGetOrders,
+			getTokens: mockGetTokens,
+			getAllOrderbooks: mockGetAllOrderbooks.mockReturnValue({
+				value: new Map([
+					[
+						'orderbook1',
+						{
+							key: 'orderbook1',
+							address: '0x1111111111111111111111111111111111111111',
+							network: { chainId: 1 }
+						}
+					]
+				]),
+				error: undefined
+			})
+		});
+		mockGetOrders.mockResolvedValue({ value: [], error: undefined });
+		mockGetTokens.mockResolvedValue({ value: [], error: undefined });
 	});
 
 	it('displays order information correctly', async () => {
@@ -554,5 +587,77 @@ describe('OrdersListTable', () => {
 
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 		expect(screen.getByTestId('orderListRowTrades')).toHaveTextContent('>99');
+	});
+
+	it('passes orderbookAddresses filter to getOrders when orderbooks are selected', async () => {
+		const orderbookAddress = '0x1111111111111111111111111111111111111111';
+
+		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([orderbookAddress]);
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockQuery.createInfiniteQuery = vi.fn((options: any) => {
+			if (options.queryFn) {
+				options.queryFn({ pageParam: 0 });
+			}
+			return {
+				subscribe: (fn: (value: any) => void) => {
+					fn({
+						data: { pages: [[]] },
+						status: 'success',
+						isFetching: false,
+						isFetched: true
+					});
+					return { unsubscribe: () => {} };
+				}
+			};
+		}) as Mock;
+
+		render(OrdersListTable, defaultProps as OrdersListTableProps);
+
+		await waitFor(() => {
+			expect(mockGetOrders).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					orderbookAddresses: [orderbookAddress]
+				}),
+				expect.anything()
+			);
+		});
+	});
+
+	it('does not pass orderbookAddresses filter when no orderbooks are selected', async () => {
+		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([]);
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockQuery.createInfiniteQuery = vi.fn((options: any) => {
+			if (options.queryFn) {
+				options.queryFn({ pageParam: 0 });
+			}
+			return {
+				subscribe: (fn: (value: any) => void) => {
+					fn({
+						data: { pages: [[]] },
+						status: 'success',
+						isFetching: false,
+						isFetched: true
+					});
+					return { unsubscribe: () => {} };
+				}
+			};
+		}) as Mock;
+
+		render(OrdersListTable, defaultProps as OrdersListTableProps);
+
+		await waitFor(() => {
+			expect(mockGetOrders).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					orderbookAddresses: undefined
+				}),
+				expect.anything()
+			);
+		});
 	});
 });

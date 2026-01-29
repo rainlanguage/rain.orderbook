@@ -3,14 +3,30 @@ import { test, vi, describe } from 'vitest';
 import { expect } from '../lib/test/matchers';
 import { QueryClient } from '@tanstack/svelte-query';
 import VaultBalanceChangesTable from '../lib/components/tables/VaultBalanceChangesTable.svelte';
-import type { RaindexVault, RaindexVaultBalanceChange } from '@rainlanguage/orderbook';
+import type {
+	RaindexVault,
+	RaindexVaultBalanceChange,
+	RaindexVaultBalanceChangeType
+} from '@rainlanguage/orderbook';
 import { formatTimestampSecondsAsLocal } from '../lib/services/time';
+import { VAULT_BALANCE_CHANGE_LABELS } from '../lib/utils/vaultBalanceChangeLabels';
+
+const TYPE_DISPLAY_NAMES: Record<RaindexVaultBalanceChangeType, string> = {
+	deposit: 'Deposit',
+	withdrawal: 'Withdrawal',
+	takeOrder: 'Take order',
+	clear: 'Clear',
+	clearBounty: 'Clear Bounty',
+	unknown: 'Unknown'
+};
 
 const createMockVaultBalanceChange = (
 	overrides: Partial<RaindexVaultBalanceChange> = {}
-): RaindexVaultBalanceChange =>
-	({
-		type: 'withdrawal',
+): RaindexVaultBalanceChange => {
+	const type = (overrides.type as RaindexVaultBalanceChangeType) || 'withdrawal';
+	return {
+		type,
+		typeDisplayName: TYPE_DISPLAY_NAMES[type],
 		amount: BigInt(1000),
 		formattedAmount: '0.1',
 		oldBalance: BigInt(5000),
@@ -34,7 +50,8 @@ const createMockVaultBalanceChange = (
 		},
 		orderbook: '0x00',
 		...overrides
-	}) as unknown as RaindexVaultBalanceChange;
+	} as unknown as RaindexVaultBalanceChange;
+};
 
 test('renders the vault list table with correct data', async () => {
 	const queryClient = new QueryClient();
@@ -77,7 +94,7 @@ test('it shows the correct data in the table with combined Info column', async (
 	await waitFor(() => {
 		// Info column now contains both type badge and date
 		const infoCell = screen.getByTestId('vaultBalanceChangesTableInfo');
-		expect(infoCell).toHaveTextContent('Withdrawal');
+		expect(infoCell).toHaveTextContent(VAULT_BALANCE_CHANGE_LABELS.withdrawal);
 		expect(infoCell).toHaveTextContent(formatTimestampSecondsAsLocal(BigInt('1625247600')));
 
 		// Transaction column now contains both Sender and Tx
@@ -97,16 +114,13 @@ test('it shows the correct data in the table with combined Info column', async (
 	});
 });
 
-describe('type badge colors', () => {
-	const testCases = [
-		{ type: 'deposit', expectedColor: 'green', expectedLabel: 'Deposit' },
-		{ type: 'withdrawal', expectedColor: 'yellow', expectedLabel: 'Withdrawal' },
-		{
-			type: 'tradeVaultBalanceChange',
-			expectedColor: 'blue',
-			expectedLabel: 'Trade Vault Balance Change'
-		},
-		{ type: 'clearBounty', expectedColor: 'purple', expectedLabel: 'Clear Bounty' }
+describe('type badge labels', () => {
+	const testCases: { type: RaindexVaultBalanceChangeType; expectedLabel: string }[] = [
+		{ type: 'deposit', expectedLabel: 'Deposit' },
+		{ type: 'withdrawal', expectedLabel: 'Withdrawal' },
+		{ type: 'takeOrder', expectedLabel: 'Take order' },
+		{ type: 'clear', expectedLabel: 'Clear' },
+		{ type: 'clearBounty', expectedLabel: 'Clear Bounty' }
 	];
 
 	testCases.forEach(({ type, expectedLabel }) => {
@@ -136,26 +150,73 @@ describe('type badge colors', () => {
 	});
 });
 
-test('formats camelCase types correctly', async () => {
-	const queryClient = new QueryClient();
-
-	const mockVaultBalanceChanges: RaindexVaultBalanceChange[] = [
-		createMockVaultBalanceChange({ type: 'someComplexTypeName' })
+describe('type badge colors', () => {
+	const colorTestCases: { type: RaindexVaultBalanceChangeType; expectedColor: string }[] = [
+		{ type: 'deposit', expectedColor: 'green' },
+		{ type: 'withdrawal', expectedColor: 'yellow' },
+		{ type: 'takeOrder', expectedColor: 'blue' },
+		{ type: 'clear', expectedColor: 'pink' },
+		{ type: 'clearBounty', expectedColor: 'purple' }
 	];
+
+	colorTestCases.forEach(({ type, expectedColor }) => {
+		test(`displays ${type} with ${expectedColor} badge`, async () => {
+			const queryClient = new QueryClient();
+
+			const mockVaultBalanceChanges: RaindexVaultBalanceChange[] = [
+				createMockVaultBalanceChange({ type })
+			];
+			const mockVault: RaindexVault = {
+				id: 'vault1',
+				getBalanceChanges: vi.fn().mockResolvedValue({ value: mockVaultBalanceChanges })
+			} as unknown as RaindexVault;
+
+			render(VaultBalanceChangesTable, {
+				props: {
+					vault: mockVault
+				},
+				context: new Map([['$$_queryClient', queryClient]])
+			});
+
+			await waitFor(() => {
+				const badge = document.querySelector('#type-tx1');
+				expect(badge?.className).toContain(`bg-${expectedColor}-100`);
+			});
+		});
+	});
+});
+
+test('renders the filter dropdown', async () => {
+	const queryClient = new QueryClient();
 	const mockVault: RaindexVault = {
 		id: 'vault1',
-		getBalanceChanges: vi.fn().mockResolvedValue({ value: mockVaultBalanceChanges })
+		getBalanceChanges: vi.fn().mockResolvedValue({ value: [] })
 	} as unknown as RaindexVault;
 
 	render(VaultBalanceChangesTable, {
-		props: {
-			vault: mockVault
-		},
+		props: { vault: mockVault },
+		context: new Map([['$$_queryClient', queryClient]])
+	});
+
+	expect(screen.getByText('Vault balance changes')).toBeInTheDocument();
+	expect(screen.getByText('Change Type')).toBeInTheDocument();
+	expect(screen.getByTestId('dropdown-checkbox-button')).toBeInTheDocument();
+});
+
+test('calls getBalanceChanges with undefined initially', async () => {
+	const queryClient = new QueryClient();
+	const mockGetBalanceChanges = vi.fn().mockResolvedValue({ value: [] });
+	const mockVault: RaindexVault = {
+		id: 'vault1',
+		getBalanceChanges: mockGetBalanceChanges
+	} as unknown as RaindexVault;
+
+	render(VaultBalanceChangesTable, {
+		props: { vault: mockVault },
 		context: new Map([['$$_queryClient', queryClient]])
 	});
 
 	await waitFor(() => {
-		const infoCell = screen.getByTestId('vaultBalanceChangesTableInfo');
-		expect(infoCell).toHaveTextContent('Some Complex Type Name');
+		expect(mockGetBalanceChanges).toHaveBeenCalledWith(1, undefined);
 	});
 });

@@ -1,7 +1,6 @@
 [workspace]
 members = ["crates/*"]
 exclude = [
-    "tauri-app/src-tauri",
     "lib/rain.interpreter",
     "lib/rain.orderbook.interface",
 ]

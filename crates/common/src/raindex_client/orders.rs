@@ -8,24 +8,21 @@ use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
         transactions::RaindexTransaction,
-        vaults::{RaindexVault, RaindexVaultType},
+        vaults::{RaindexVault, RaindexVaultType, RaindexVaultVolume},
     },
 };
 use alloy::primitives::{b256, keccak256, Address, Bytes, B256, U256};
 use async_trait::async_trait;
 use csv::{ReaderBuilder, Terminator};
 use rain_orderbook_subgraph_client::{
-    // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
             SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs,
             SgOrdersTokensFilterArgs, SgVault,
         },
-        // Id,
+        Id,
     },
-    MultiOrderbookSubgraphClient,
-    OrderbookSubgraphClient,
-    OrderbookSubgraphClientError,
+    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
 use serde::{Deserialize, Serialize};
@@ -147,7 +144,12 @@ impl RaindexOrder {
             timestamp_added: U256::from(order.block_timestamp),
             meta: order.meta,
             rainlang,
-            transaction: None,
+            transaction: Some(RaindexTransaction::from_local_parts(
+                order.transaction_hash,
+                order.owner,
+                order.block_number,
+                order.block_timestamp,
+            )?),
             trades_count: order.trade_count as u16,
         })
     }
@@ -327,56 +329,37 @@ impl RaindexOrder {
         self.raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
 
-    // /// Retrieves volume data for all vaults associated with this order over a specified time period
-    // ///
-    // /// Queries historical volume information across all vaults that belong to this order,
-    // /// allowing analysis of trading activity and liquidity patterns over time.
-    // ///
-    // /// ## Examples
-    // ///
-    // /// ```javascript
-    // /// const result = await order.getVaultsVolume(
-    // ///   Math.floor(Date.now() / 1000) - 86400, // 24 hours ago
-    // ///   Math.floor(Date.now() / 1000)
-    // /// );
-    // /// if (result.error) {
-    // ///   console.error("Error fetching volume:", result.error.readableMsg);
-    // ///   return;
-    // /// }
-    // /// const volumes = result.value;
-    // /// // Do something with volumes
-    // /// ```
-    // #[wasm_export(
-    //     js_name = "getVaultsVolume",
-    //     return_description = "Volume data for each vault over the specified period",
-    //     unchecked_return_type = "RaindexVaultVolume[]",
-    //     preserve_js_class
-    // )]
-    // pub async fn get_vaults_volume(
-    //     &self,
-    //     #[wasm_export(
-    //         js_name = "startTimestamp",
-    //         param_description = "Unix timestamp for the start of the query period (optional)"
-    //     )]
-    //     start_timestamp: Option<u64>,
-    //     #[wasm_export(
-    //         js_name = "endTimestamp",
-    //         param_description = "Unix timestamp for the end of the query period (optional)"
-    //     )]
-    //     end_timestamp: Option<u64>,
-    // ) -> Result<Vec<RaindexVaultVolume>, RaindexError> {
-    //     let client = self.get_orderbook_client()?;
+    #[wasm_export(
+        js_name = "getVaultsVolume",
+        return_description = "Volume data for each vault over the specified period",
+        unchecked_return_type = "RaindexVaultVolume[]",
+        preserve_js_class
+    )]
+    pub async fn get_vaults_volume(
+        &self,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Unix timestamp for the start of the query period (optional)"
+        )]
+        start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Unix timestamp for the end of the query period (optional)"
+        )]
+        end_timestamp: Option<u64>,
+    ) -> Result<Vec<RaindexVaultVolume>, RaindexError> {
+        let client = self.get_orderbook_client()?;
 
-    //     let mut result_volumes = Vec::new();
-    //     let volumes = client
-    //         .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
-    //         .await?;
-    //     for volume in volumes {
-    //         let volume = RaindexVaultVolume::try_from_vault_volume(self.chain_id, volume)?;
-    //         result_volumes.push(volume);
-    //     }
-    //     Ok(result_volumes)
-    // }
+        let mut result_volumes = Vec::new();
+        let volumes = client
+            .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
+            .await?;
+        for volume in volumes {
+            let volume = RaindexVaultVolume::try_from_vault_volume(self.chain_id, volume)?;
+            result_volumes.push(volume);
+        }
+        Ok(result_volumes)
+    }
 
     // /// Gets comprehensive performance metrics and analytics for this order over a specified time period
     // ///
@@ -765,6 +748,8 @@ pub struct GetOrdersFilters {
     pub order_hash: Option<B256>,
     #[tsify(optional)]
     pub tokens: Option<GetOrdersTokenFilter>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -809,6 +794,15 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .order_hash
                 .map(|order_hash| SgBytes(order_hash.to_string())),
             tokens: tokens.flatten(),
+            orderbooks: filters
+                .orderbook_addresses
+                .map(|addrs| {
+                    addrs
+                        .into_iter()
+                        .map(|addr| addr.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 }
@@ -1043,6 +1037,76 @@ mod tests {
                 }
                 _ => panic!("expected JsError"),
             }
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_maps_orderbook_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![
+                    address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                    address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+                ]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            );
+            assert_eq!(
+                sg_filter_args.orderbooks[1],
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            );
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_empty_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: None,
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert!(sg_filter_args.orderbooks.is_empty());
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![address!(
+                    "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
+                )]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            );
         }
 
         fn get_order1_json() -> Value {
@@ -1368,6 +1432,7 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: None,
+                orderbook_addresses: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
@@ -1977,230 +2042,182 @@ mod tests {
             assert_eq!(order.chain_id, 137);
         }
 
-        // TODO: Issue #1989
-        // #[tokio::test]
-        // async fn test_order_vaults_volume() {
-        //     let sg_server = MockServer::start_async().await;
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1")
-        //             .body_contains("\"first\":200")
-        //             .body_contains("\"skip\":0");
-        //         then.status(200).json_body_obj(&json!({
-        //           "data": {
-        //             "trades": get_trades_json()
-        //           }
-        //         }));
-        //     });
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1")
-        //             .body_contains("\"first\":200")
-        //             .body_contains("\"skip\":200");
-        //         then.status(200).json_body_obj(&json!({
-        //             "data": { "trades": [] }
-        //         }));
-        //     });
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1");
-        //         then.status(200).json_body_obj(&json!({
-        //             "data": {
-        //                 "orders": [get_order1_json()]
-        //             }
-        //         }));
-        //     });
+        fn get_trades_json() -> Vec<Value> {
+            let float50 = Float::parse("50".to_string()).unwrap().as_hex();
+            let float100 = Float::parse("100".to_string()).unwrap().as_hex();
+            vec![json!({
+                "id": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+                "timestamp": "1632000000",
+                "tradeEvent": {
+                    "sender": "0x0000000000000000000000000000000000000000",
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "from": "0x0000000000000000000000000000000000000000",
+                        "timestamp": "1632000000",
+                        "blockNumber": "0"
+                    }
+                },
+                "order": {
+                    "id": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4",
+                    "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
+                },
+                "orderbook": {
+                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+                },
+                "inputVaultBalanceChange": {
+                    "id": "input-change-1",
+                    "__typename": "TradeVaultBalanceChange",
+                    "amount": float50,
+                    "newVaultBalance": float50,
+                    "oldVaultBalance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "timestamp": "1632000000",
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "from": "0x0000000000000000000000000000000000000000",
+                        "timestamp": "1632000000",
+                        "blockNumber": "0"
+                    },
+                    "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                    "vault": {
+                        "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                        "vaultId": "0x1234",
+                        "token": {
+                            "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                            "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                            "name": "Wrapped Flare",
+                            "symbol": "WFLR",
+                            "decimals": "18"
+                        }
+                    },
+                    "trade": {
+                        "tradeEvent": {
+                            "__typename": "TradeEvent"
+                        }
+                    }
+                },
+                "outputVaultBalanceChange": {
+                    "id": "output-change-1",
+                    "__typename": "TradeVaultBalanceChange",
+                    "amount": float100,
+                    "newVaultBalance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "oldVaultBalance": float100,
+                    "timestamp": "1632000000",
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "from": "0x0000000000000000000000000000000000000000",
+                        "timestamp": "1632000000",
+                        "blockNumber": "0"
+                    },
+                    "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                    "vault": {
+                        "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                        "vaultId": "0x5678",
+                        "token": {
+                            "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                            "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                            "name": "Staked FLR",
+                            "symbol": "sFLR",
+                            "decimals": "18"
+                        }
+                    },
+                    "trade": {
+                        "tradeEvent": {
+                            "__typename": "TradeEvent"
+                        }
+                    }
+                }
+            })]
+        }
 
-        //     let raindex_client = RaindexClient::new(
-        //         vec![get_test_yaml(
-        //             &sg_server.url("/sg1"),
-        //             &sg_server.url("/sg2"),
-        //             // not used
-        //             &sg_server.url("/rpc1"),
-        //             &sg_server.url("/rpc2"),
-        //         )],
-        //         None,
-        //     )
-        //     .unwrap();
-        //     let order = raindex_client
-        //         .get_order_by_hash(
-        //             1,
-        //             Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-        //             Bytes::from_str("0x0123").unwrap(),
-        //         )
+        #[tokio::test]
+        async fn test_order_vaults_volume() {
+            let sg_server = MockServer::start_async().await;
 
-        //     let volume1 = res[0].clone();
-        //     assert_eq!(volume1.id(), Bytes::from_str("0x10").unwrap());
-        //     assert_eq!(
-        //         volume1.token().address(),
-        //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
-        //     );
-        //     assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
-        //     assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
-        //     assert_eq!(volume1.token().decimals(), U256::from(18));
-        //     assert_eq!(volume1.details().total_in(), U256::from(1));
-        //     assert_eq!(volume1.details().total_out(), U256::from(0));
-        //     assert_eq!(volume1.details().total_vol(), U256::from(1));
-        //     assert_eq!(volume1.details().net_vol(), U256::from(1));
+            sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("orders");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
 
-        // TODO: Issue #1989
-        //     let volume1 = res[0].clone();
-        //     assert_eq!(volume1.id(), U256::from_str("0x10").unwrap());
-        //     assert_eq!(
-        //         volume1.token().address(),
-        //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
-        //     );
-        //     assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
-        //     assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
-        //     assert_eq!(volume1.token().decimals(), U256::from(18));
-        //     assert_eq!(volume1.details().total_in(), U256::from(1));
-        //     assert_eq!(volume1.details().total_out(), U256::from(0));
-        //     assert_eq!(volume1.details().total_vol(), U256::from(1));
-        //     assert_eq!(volume1.details().net_vol(), U256::from(1));
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("trades")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":0");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "trades": get_trades_json()
+                    }
+                }));
+            });
 
-        //     let volume2 = res[1].clone();
-        //     assert_eq!(volume2.id(), U256::from_str("0x10").unwrap());
-        //     assert_eq!(
-        //         volume2.token().address(),
-        //         Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
-        //     );
-        //     assert_eq!(volume2.token().name(), Some("Staked FLR".to_string()));
-        //     assert_eq!(volume2.token().symbol(), Some("sFLR".to_string()));
-        //     assert_eq!(volume2.token().decimals(), U256::from(18));
-        //     assert_eq!(volume2.details().total_in(), U256::from(0));
-        //     assert_eq!(volume2.details().total_out(), U256::from(2));
-        //     assert_eq!(volume2.details().total_vol(), U256::from(2));
-        //     assert_eq!(volume2.details().net_vol(), U256::from(2));
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("trades")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":200");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "trades": [] }
+                }));
+            });
 
-        //     let volume3 = res[2].clone();
-        //     assert_eq!(volume3.id(), U256::from_str("0x20").unwrap());
-        //     assert_eq!(
-        //         volume3.token().address(),
-        //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
-        //     );
-        //     assert_eq!(volume3.token().name(), Some("Wrapped Flare".to_string()));
-        //     assert_eq!(volume3.token().symbol(), Some("WFLR".to_string()));
-        //     assert_eq!(volume3.token().decimals(), U256::from(18));
-        //     assert_eq!(volume3.details().total_in(), U256::from(2));
-        //     assert_eq!(volume3.details().total_out(), U256::from(0));
-        //     assert_eq!(volume3.details().total_vol(), U256::from(2));
-        //     assert_eq!(volume3.details().net_vol(), U256::from(2));
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
 
-        //     let volume4 = res[3].clone();
-        //     assert_eq!(volume4.id(), U256::from_str("0x20").unwrap());
-        //     assert_eq!(
-        //         volume4.token().address(),
-        //         Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
-        //     );
-        //     assert_eq!(volume4.token().name(), Some("Staked FLR".to_string()));
-        //     assert_eq!(volume4.token().symbol(), Some("sFLR".to_string()));
-        //     assert_eq!(volume4.token().decimals(), U256::from(18));
-        //     assert_eq!(volume4.details().total_in(), U256::from(0));
-        //     assert_eq!(volume4.details().total_out(), U256::from(5));
-        //     assert_eq!(volume4.details().total_vol(), U256::from(5));
-        //     assert_eq!(volume4.details().net_vol(), U256::from(5));
-        // }
+            let order = raindex_client
+                .get_order_by_hash(
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
+                    b256!("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"),
+                )
+                .await
+                .unwrap();
 
-        //     let raindex_client = RaindexClient::new(
-        //         vec![get_test_yaml(
-        //             &sg_server.url("/sg1"),
-        //             &sg_server.url("/sg2"),
-        //             // not used
-        //             &sg_server.url("/rpc1"),
-        //             &sg_server.url("/rpc2"),
-        //         )],
-        //         None,
-        //     )
-        //     .unwrap();
-        //     let order = raindex_client
-        //         .get_order_by_hash(
-        //             1,
-        //             Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-        //             Bytes::from_str("0x0123").unwrap(),
-        //         )
-        //         .await
-        //         .unwrap();
-        //     let res = order
-        //         .get_performance(Some(1632000000), Some(1734571449))
-        //         .await
-        //         .unwrap();
+            let res = order.get_vaults_volume(None, None).await.unwrap();
 
-        //     assert_eq!(res.order_id, "order1");
-        //     assert_eq!(res.order_hash, "0x1");
-        //     assert_eq!(res.orderbook, "0x0000000000000000000000000000000000000000");
-        //     assert_eq!(
-        //         res.denominated_performance,
-        //         Some(DenominatedPerformance {
-        //             token: SgErc20 {
-        //                 id: SgBytes("token-2".to_string()),
-        //                 address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
-        //                 name: Some("Token Two".to_string()),
-        //                 symbol: Some("TK2".to_string()),
-        //                 decimals: Some(SgBigInt("18".to_string())),
-        //             },
-        //             apy: U256::from(0),
-        //             apy_is_neg: false,
-        //             net_vol: U256::from(0),
-        //             net_vol_is_neg: false,
-        //             starting_capital: U256::from(600),
-        //         })
-        //     );
-        //     assert_eq!(res.start_time, 1632000000);
-        //     assert_eq!(res.end_time, 1734571449);
-        //     assert_eq!(res.inputs_vaults.len(), 1);
-        //     assert_eq!(
-        //         res.inputs_vaults[0],
-        //         VaultPerformance {
-        //             id: "2".to_string(),
-        //             token: SgErc20 {
-        //                 id: SgBytes("token-2".to_string()),
-        //                 address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
-        //                 name: Some("Token Two".to_string()),
-        //                 symbol: Some("TK2".to_string()),
-        //                 decimals: Some(SgBigInt("18".to_string())),
-        //             },
-        //             vol_details: VolumeDetails {
-        //                 total_in: U256::from(50000000000000000000u128),
-        //                 total_out: U256::from(0u8),
-        //                 total_vol: U256::from(50000000000000000000u128),
-        //                 net_vol: U256::from(50000000000000000000u128),
-        //             },
-        //             apy_details: Some(APYDetails {
-        //                 start_time: 1632000000,
-        //                 end_time: 1734571449,
-        //                 net_vol: U256::from(50000000000000000000u128),
-        //                 capital: U256::from(150u8),
-        //                 apy: Some(U256::from(102484659254448087225972733172491493u128)),
-        //                 is_neg: false,
-        //             }),
-        //         }
-        //     );
-        //     assert_eq!(res.outputs_vaults.len(), 1);
-        //     assert_eq!(
-        //         res.outputs_vaults[0],
-        //         VaultPerformance {
-        //             id: "1".to_string(),
-        //             token: SgErc20 {
-        //                 id: SgBytes("token-1".to_string()),
-        //                 address: SgBytes("0x1111111111111111111111111111111111111111".to_string()),
-        //                 name: Some("Token One".to_string()),
-        //                 symbol: Some("TK1".to_string()),
-        //                 decimals: Some(SgBigInt("18".to_string())),
-        //             },
-        //             vol_details: VolumeDetails {
-        //                 total_in: U256::from(0),
-        //                 total_out: U256::from(100000000000000000000u128),
-        //                 total_vol: U256::from(100000000000000000000u128),
-        //                 net_vol: U256::from(100000000000000000000u128),
-        //             },
-        //             apy_details: Some(APYDetails {
-        //                 start_time: 1632000000,
-        //                 end_time: 1734571449,
-        //                 net_vol: U256::from(100000000000000000000u128),
-        //                 capital: U256::from(900u16),
-        //                 apy: Some(U256::from(34161553084816029075324244390830497u128)),
-        //                 is_neg: true,
-        //             }),
-        //         }
-        //     );
-        // }
+            assert_eq!(res.len(), 2);
+
+            let volume1 = &res[0];
+            assert_eq!(volume1.id(), U256::from_str("0x1234").unwrap());
+            assert_eq!(
+                volume1.token().address(),
+                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+            );
+            assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
+            assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
+            assert_eq!(volume1.token().decimals(), 18u8);
+            assert_eq!(volume1.details().formatted_total_in(), "50");
+            assert_eq!(volume1.details().formatted_total_out(), "0");
+            assert_eq!(volume1.details().formatted_total_vol(), "50");
+            assert_eq!(volume1.details().formatted_net_vol(), "50");
+
+            let volume2 = &res[1];
+            assert_eq!(volume2.id(), U256::from_str("0x5678").unwrap());
+            assert_eq!(
+                volume2.token().address(),
+                Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
+            );
+            assert_eq!(volume2.token().name(), Some("Staked FLR".to_string()));
+            assert_eq!(volume2.token().symbol(), Some("sFLR".to_string()));
+            assert_eq!(volume2.token().decimals(), 18u8);
+            assert_eq!(volume2.details().formatted_total_in(), "100");
+            assert_eq!(volume2.details().formatted_total_out(), "0");
+            assert_eq!(volume2.details().formatted_total_vol(), "100");
+            assert_eq!(volume2.details().formatted_net_vol(), "100");
+        }
 
         // TODO: Issue #1989
         // #[tokio::test]

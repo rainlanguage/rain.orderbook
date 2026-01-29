@@ -6,8 +6,11 @@ use std::{
     str::FromStr,
     sync::{Arc, RwLock},
 };
-use strict_yaml_rust::StrictYaml;
+use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
+
+const ALLOWED_ORDER_KEYS: [&str; 4] = ["deployer", "inputs", "orderbook", "outputs"];
+const ALLOWED_ORDER_IO_KEYS: [&str; 2] = ["token", "vault-id"];
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
@@ -30,6 +33,7 @@ impl_wasm_traits!(VaultType);
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub struct OrderIOCfg {
+    pub token_key: String,
     pub token: Option<Arc<TokenCfg>>,
     #[cfg_attr(
         target_family = "wasm",
@@ -476,15 +480,17 @@ impl OrderCfg {
                         vault_ids.insert(token, vault_id);
                     }
                 }
-            } else {
-                return Err(YamlError::Field {
-                    kind: FieldErrorKind::InvalidType {
-                        field: "orders".to_string(),
-                        expected: "a map".to_string(),
-                    },
-                    location: "root".to_string(),
-                });
             }
+        }
+
+        if vault_ids.is_empty() {
+            return Err(YamlError::Field {
+                kind: FieldErrorKind::InvalidType {
+                    field: "orders".to_string(),
+                    expected: "a map".to_string(),
+                },
+                location: "root".to_string(),
+            });
         }
 
         Ok(vault_ids)
@@ -537,11 +543,27 @@ impl YamlParsableHash for OrderCfg {
         let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), context);
         let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
-        if let Some(context) = context {
-            if context.select_tokens.is_none() && tokens.is_err() {
-                return Err(tokens.err().unwrap());
+        let tokens = if let Some(context) = context {
+            if context.select_tokens.is_some() {
+                match tokens {
+                    Ok(tokens) => Ok(tokens),
+                    Err(err) => match err {
+                        YamlError::Field {
+                            kind: FieldErrorKind::Missing(field),
+                            location,
+                        } if field == "tokens" && location == "root" => Err(YamlError::Field {
+                            kind: FieldErrorKind::Missing(field),
+                            location,
+                        }),
+                        other => return Err(other),
+                    },
+                }
+            } else {
+                tokens
             }
-        }
+        } else {
+            tokens
+        };
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -707,6 +729,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name,
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -791,6 +814,7 @@ impl YamlParsableHash for OrderCfg {
                         };
 
                         Ok(OrderIOCfg {
+                            token_key: token_name,
                             token: order_token.map(Arc::new),
                             vault_id,
                         })
@@ -825,6 +849,84 @@ impl YamlParsableHash for OrderCfg {
         }
 
         Ok(orders)
+    }
+
+    fn sanitize_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        for document in documents {
+            let mut document_write = document.write().map_err(|_| YamlError::WriteLockError)?;
+            let StrictYaml::Hash(ref mut root_hash) = *document_write else {
+                continue;
+            };
+
+            let orders_key = StrictYaml::String("orders".to_string());
+            let Some(orders_value) = root_hash.get(&orders_key) else {
+                continue;
+            };
+            let StrictYaml::Hash(ref orders_hash) = *orders_value else {
+                continue;
+            };
+
+            let mut sanitized_orders: Vec<(String, StrictYaml)> = Vec::new();
+
+            for (order_key, order_value) in orders_hash {
+                let Some(order_key_str) = order_key.as_str() else {
+                    continue;
+                };
+
+                let StrictYaml::Hash(ref order_hash) = *order_value else {
+                    continue;
+                };
+
+                let mut sanitized_order = Hash::new();
+
+                for allowed_key in ALLOWED_ORDER_KEYS.iter() {
+                    let key_yaml = StrictYaml::String(allowed_key.to_string());
+                    if let Some(v) = order_hash.get(&key_yaml) {
+                        if *allowed_key == "inputs" || *allowed_key == "outputs" {
+                            if let StrictYaml::Array(ref io_array) = *v {
+                                let sanitized_io: Vec<StrictYaml> = io_array
+                                    .iter()
+                                    .filter_map(|io_item| {
+                                        let StrictYaml::Hash(ref io_hash) = *io_item else {
+                                            return None;
+                                        };
+
+                                        let mut sanitized_io_item = Hash::new();
+                                        for allowed_io_key in ALLOWED_ORDER_IO_KEYS.iter() {
+                                            let io_key_yaml =
+                                                StrictYaml::String(allowed_io_key.to_string());
+                                            if let Some(io_v) = io_hash.get(&io_key_yaml) {
+                                                sanitized_io_item.insert(io_key_yaml, io_v.clone());
+                                            }
+                                        }
+                                        Some(StrictYaml::Hash(sanitized_io_item))
+                                    })
+                                    .collect();
+                                sanitized_order.insert(key_yaml, StrictYaml::Array(sanitized_io));
+                            } else {
+                                sanitized_order.insert(key_yaml, v.clone());
+                            }
+                        } else {
+                            sanitized_order.insert(key_yaml, v.clone());
+                        }
+                    }
+                }
+
+                sanitized_orders
+                    .push((order_key_str.to_string(), StrictYaml::Hash(sanitized_order)));
+            }
+
+            sanitized_orders.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+            let mut new_orders_hash = Hash::new();
+            for (key, value) in sanitized_orders {
+                new_orders_hash.insert(StrictYaml::String(key), value);
+            }
+
+            root_hash.insert(orders_key, StrictYaml::Hash(new_orders_hash));
+        }
+
+        Ok(())
     }
 }
 
@@ -1189,5 +1291,212 @@ orders:
             error.to_readable_msg(),
             "Field 'orders' in root must be a map"
         );
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_unknown_order_keys() {
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - token: eth
+        outputs:
+            - token: usdc
+        deployer: mainnet
+        orderbook: mainnet
+        unknown-key: should-be-dropped
+        another-unknown: also-dropped
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let order_hash = orders_hash
+            .get(&StrictYaml::String("order1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(order_hash.len(), 4);
+        assert!(order_hash.contains_key(&StrictYaml::String("inputs".to_string())));
+        assert!(order_hash.contains_key(&StrictYaml::String("outputs".to_string())));
+        assert!(order_hash.contains_key(&StrictYaml::String("deployer".to_string())));
+        assert!(order_hash.contains_key(&StrictYaml::String("orderbook".to_string())));
+        assert!(!order_hash.contains_key(&StrictYaml::String("unknown-key".to_string())));
+        assert!(!order_hash.contains_key(&StrictYaml::String("another-unknown".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_unknown_io_keys() {
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - token: eth
+              vault-id: 123
+              unknown: dropped
+        outputs:
+            - token: usdc
+              extra-field: removed
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let order_hash = orders_hash
+            .get(&StrictYaml::String("order1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let inputs = order_hash
+            .get(&StrictYaml::String("inputs".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+        let input_hash = inputs[0].as_hash().unwrap();
+        assert_eq!(input_hash.len(), 2);
+        assert!(input_hash.contains_key(&StrictYaml::String("token".to_string())));
+        assert!(input_hash.contains_key(&StrictYaml::String("vault-id".to_string())));
+        assert!(!input_hash.contains_key(&StrictYaml::String("unknown".to_string())));
+
+        let outputs = order_hash
+            .get(&StrictYaml::String("outputs".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+        let output_hash = outputs[0].as_hash().unwrap();
+        assert_eq!(output_hash.len(), 1);
+        assert!(output_hash.contains_key(&StrictYaml::String("token".to_string())));
+        assert!(!output_hash.contains_key(&StrictYaml::String("extra-field".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_lexicographic_order() {
+        let yaml = r#"
+orders:
+    zebra:
+        inputs:
+            - token: a
+        outputs:
+            - token: b
+    alpha:
+        inputs:
+            - token: c
+        outputs:
+            - token: d
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let keys: Vec<&str> = orders_hash.iter().filter_map(|(k, _)| k.as_str()).collect();
+        assert_eq!(keys, vec!["alpha", "zebra"]);
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_orders() {
+        let yaml = r#"
+orders:
+    valid-order:
+        inputs:
+            - token: eth
+        outputs:
+            - token: usdc
+    invalid-order: not_a_hash
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        assert_eq!(orders_hash.len(), 1);
+        assert!(orders_hash.contains_key(&StrictYaml::String("valid-order".to_string())));
+        assert!(!orders_hash.contains_key(&StrictYaml::String("invalid-order".to_string())));
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_missing_section() {
+        let yaml = r#"
+other-section: value
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_handles_non_hash_root() {
+        let yaml = "just a string";
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_skips_non_hash_section() {
+        let yaml = r#"
+orders: not_a_hash
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+    }
+
+    #[test]
+    fn test_sanitize_documents_drops_non_hash_io_items() {
+        let yaml = r#"
+orders:
+    order1:
+        inputs:
+            - token: eth
+            - not_a_hash
+        outputs:
+            - token: usdc
+"#;
+        let document = get_document(yaml);
+        OrderCfg::sanitize_documents(std::slice::from_ref(&document)).unwrap();
+
+        let doc_read = document.read().unwrap();
+        let root_hash = doc_read.as_hash().unwrap();
+        let orders_hash = root_hash
+            .get(&StrictYaml::String("orders".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+        let order_hash = orders_hash
+            .get(&StrictYaml::String("order1".to_string()))
+            .unwrap()
+            .as_hash()
+            .unwrap();
+
+        let inputs = order_hash
+            .get(&StrictYaml::String("inputs".to_string()))
+            .unwrap()
+            .as_vec()
+            .unwrap();
+        assert_eq!(inputs.len(), 1);
     }
 }
