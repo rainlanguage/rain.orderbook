@@ -78,17 +78,17 @@ fn validate_hash_section<T: YamlParsableHash>(
 fn validate_string_field<T: YamlParsableString>(
     documents: &[Arc<RwLock<StrictYaml>>],
 ) -> Result<(), YamlError> {
-    for document in documents {
-        match T::parse_from_yaml(document.clone()) {
-            Ok(_) => return Ok(()),
-            Err(YamlError::Field {
-                kind: FieldErrorKind::Missing(_),
-                ..
-            }) => continue,
-            Err(e) => return Err(e),
-        }
+    if documents.is_empty() {
+        return Ok(());
     }
-    Ok(())
+    match T::parse_from_yaml(documents.to_vec()) {
+        Ok(_) => Ok(()),
+        Err(YamlError::Field {
+            kind: FieldErrorKind::Missing(_),
+            ..
+        }) => Ok(()),
+        Err(e) => Err(e),
+    }
 }
 
 fn validate_optional_string_field<T: YamlParsableString>(

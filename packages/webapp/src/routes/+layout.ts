@@ -224,7 +224,10 @@ if (import.meta.vitest) {
 				value: mockRegistry
 			});
 			mockRaindexClientNew.mockReturnValue({
-				value: { client: true }
+				value: { client: true, setDbCallback: vi.fn() }
+			});
+			mockLocalDbNew.mockReturnValue({
+				value: { db: true, query: vi.fn() }
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
