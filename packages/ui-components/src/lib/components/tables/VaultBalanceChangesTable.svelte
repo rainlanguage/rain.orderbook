@@ -104,8 +104,7 @@
 					class="truncate text-sm text-gray-500 dark:text-gray-400">{item.formattedAmount}</span
 				>
 				<Tooltip triggeredBy={`#change-${item.transaction.id}`}>
-					{item.formattedAmount}
-					{item.token.symbol}
+					{`${item.formattedAmount} ${item.token.symbol}`}
 				</Tooltip>
 			</div>
 		</TableBodyCell>
@@ -117,8 +116,7 @@
 					class="truncate text-sm text-gray-500 dark:text-gray-400">{item.formattedNewBalance}</span
 				>
 				<Tooltip triggeredBy={`#balance-${item.transaction.id}`}>
-					{item.formattedNewBalance}
-					{item.token.symbol}
+					{`${item.formattedNewBalance} ${item.token.symbol}`}
 				</Tooltip>
 			</div>
 		</TableBodyCell>

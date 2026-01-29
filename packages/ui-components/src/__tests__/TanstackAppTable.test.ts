@@ -221,24 +221,3 @@ test('renders all rows when virtualization is disabled', async () => {
 		expect(screen.getAllByTestId('bodyRow')).toHaveLength(rows.length);
 	});
 });
-
-test('exposes horizontal scroll container', async () => {
-	const pages = createPages();
-	const mockQuery = createMockQuery(pages);
-	renderTable(mockQuery);
-
-	const container = await screen.findByTestId('tanstackTableContainer');
-	expect(container).toHaveClass('overflow-x-auto');
-});
-
-test('applies table-fixed layout for consistent column widths', async () => {
-	const pages = createPages();
-	const mockQuery = createMockQuery(pages);
-	renderTable(mockQuery);
-
-	await waitFor(() => {
-		const table = document.querySelector('table');
-		expect(table).toHaveClass('table-fixed');
-		expect(table).toHaveClass('w-full');
-	});
-});

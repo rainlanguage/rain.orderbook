@@ -103,12 +103,10 @@
 		<TableBodyCell tdClass="p-2" data-testid="input">
 			<div class="flex flex-col overflow-hidden">
 				<span class="truncate font-medium">{item.inputVaultBalanceChange.token.symbol}</span>
-				<span
-					id={`input-${item.transaction.id}`}
-					class="truncate text-sm text-gray-500 dark:text-gray-400"
+				<span id={`input-${item.id}`} class="truncate text-sm text-gray-500 dark:text-gray-400"
 					>{item.inputVaultBalanceChange.formattedAmount}</span
 				>
-				<Tooltip triggeredBy={`#input-${item.transaction.id}`}>
+				<Tooltip triggeredBy={`#input-${item.id}`}>
 					{item.inputVaultBalanceChange.formattedAmount}
 					{item.inputVaultBalanceChange.token.symbol}
 				</Tooltip>
@@ -117,19 +115,17 @@
 		<TableBodyCell tdClass="p-2" data-testid="output">
 			<div class="flex flex-col overflow-hidden">
 				<span class="truncate font-medium">{item.outputVaultBalanceChange.token.symbol}</span>
-				<span
-					id={`output-${item.transaction.id}`}
-					class="truncate text-sm text-gray-500 dark:text-gray-400"
+				<span id={`output-${item.id}`} class="truncate text-sm text-gray-500 dark:text-gray-400"
 					>{item.outputVaultBalanceChange.formattedAmount}</span
 				>
-				<Tooltip triggeredBy={`#output-${item.transaction.id}`}>
+				<Tooltip triggeredBy={`#output-${item.id}`}>
 					{item.outputVaultBalanceChange.formattedAmount}
 					{item.outputVaultBalanceChange.token.symbol}
 				</Tooltip>
 			</div>
 		</TableBodyCell>
 		<TableBodyCell tdClass="p-2" data-testid="io-ratio">
-			<div id={`io-ratio-${item.transaction.id}`} class="truncate">
+			<div id={`io-ratio-${item.id}`} class="truncate">
 				{Math.abs(
 					Number(item.inputVaultBalanceChange.formattedAmount) /
 						Number(item.outputVaultBalanceChange.formattedAmount)
@@ -141,7 +137,7 @@
 					)})
 				</span>
 			</div>
-			<Tooltip triggeredBy={`#io-ratio-${item.transaction.id}`}>
+			<Tooltip triggeredBy={`#io-ratio-${item.id}`}>
 				{Math.abs(
 					Number(item.inputVaultBalanceChange.formattedAmount) /
 						Number(item.outputVaultBalanceChange.formattedAmount)

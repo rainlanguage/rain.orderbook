@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
-	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import { RaindexOrder, type OrderbookCfg } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
@@ -12,24 +11,9 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { QKEY_ORDERS, QKEY_TOKENS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
-	import {
-		Badge,
-		Button,
-		Dropdown,
-		DropdownItem,
-		TableBodyCell,
-		TableHeadCell
-	} from 'flowbite-svelte';
+	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-	import { getAllContexts } from 'svelte';
-
-	const context = getAllContexts();
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export let handleOrderRemoveModal: any = undefined;
-	// End of optional props
-
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
@@ -40,7 +24,7 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
 
-	const { matchesAccount, account } = useAccount();
+	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	$: owners =
@@ -230,36 +214,5 @@
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2">
 			{item.tradesCount > 99 ? '>99' : item.tradesCount}
 		</TableBodyCell>
-		{#if matchesAccount(item.owner) && handleOrderRemoveModal}
-			<div data-testid="wallet-actions">
-				<TableBodyCell tdClass="px-0 text-right">
-					{#if item.active}
-						<Button
-							color="alternative"
-							outline={false}
-							data-testid={`order-menu-${item.id}`}
-							id={`order-menu-${item.id}`}
-							class="mr-2 border-none px-2"
-							on:click={(e) => {
-								e.stopPropagation();
-							}}
-						>
-							<DotsVerticalOutline class="dark:text-white" />
-						</Button>
-					{/if}
-				</TableBodyCell>
-
-				{#if item.active}
-					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
-						<DropdownItem
-							on:click={(e) => {
-								e.stopPropagation();
-								handleOrderRemoveModal(item, $query.refetch, context);
-							}}>Remove</DropdownItem
-						>
-					</Dropdown>
-				{/if}
-			</div>
-		{/if}
 	</svelte:fragment>
 </AppTable>
