@@ -40,8 +40,9 @@ mod tests {
     use super::*;
     use crate::orderbook_client::OrderbookSubgraphClientError;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeStructPartialOrder,
-        SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
+        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeEventTypename,
+        SgTradeRef, SgTradeStructPartialOrder, SgTradeVaultBalanceChange, SgTransaction,
+        SgVaultBalanceChangeVault,
     };
     use crate::utils::float::*;
     use cynic::Id;
@@ -107,6 +108,11 @@ mod tests {
                 orderbook: SgOrderbook {
                     id: SgBytes("0xorderbook_default".to_string()),
                 },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TradeEvent".to_string(),
+                    },
+                },
             },
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("ovbc_default".to_string()),
@@ -128,6 +134,11 @@ mod tests {
                 },
                 orderbook: SgOrderbook {
                     id: SgBytes("0xorderbook_default".to_string()),
+                },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TradeEvent".to_string(),
+                    },
                 },
             },
         }

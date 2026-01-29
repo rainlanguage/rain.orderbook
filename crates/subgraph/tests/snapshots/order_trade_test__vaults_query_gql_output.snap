@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/order_trade_test.rs
+assertion_line: 13
 expression: request_body.query
 ---
 query SgOrderTradeDetailQuery($id: ID!) {
@@ -41,6 +42,11 @@ query SgOrderTradeDetailQuery($id: ID!) {
       orderbook {
         id
       }
+      trade {
+        tradeEvent {
+          __typename
+        }
+      }
     }
     order {
       id
@@ -72,6 +78,11 @@ query SgOrderTradeDetailQuery($id: ID!) {
       }
       orderbook {
         id
+      }
+      trade {
+        tradeEvent {
+          __typename
+        }
       }
     }
     timestamp

@@ -1,11 +1,35 @@
 use std::str::FromStr;
 
 use super::*;
+use crate::local_db::is_chain_supported_local_db;
+use crate::local_db::OrderbookIdentifier;
+use crate::raindex_client::local_db::transactions::LocalDbTransactions;
 use alloy::primitives::{Address, B256, U256};
+#[cfg(target_family = "wasm")]
+use gloo_timers::future::TimeoutFuture;
 use rain_orderbook_subgraph_client::types::{common::SgTransaction, Id};
+use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_family = "wasm"))]
+use std::time::Duration;
+#[cfg(not(target_family = "wasm"))]
+use tokio::time::sleep;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
+
+const DEFAULT_TRANSACTION_POLL_ATTEMPTS: usize = 10;
+const DEFAULT_TRANSACTION_POLL_INTERVAL_MS: u64 = 1_000;
+
+#[cfg(target_family = "wasm")]
+async fn sleep_ms(ms: u64) {
+    let delay = ms.min(u32::MAX as u64) as u32;
+    TimeoutFuture::new(delay).await;
+}
+
+#[cfg(not(target_family = "wasm"))]
+async fn sleep_ms(ms: u64) {
+    sleep(Duration::from_millis(ms)).await;
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -75,12 +99,15 @@ impl RaindexClient {
     /// Fetches transaction details for a given transaction hash
     ///
     /// Retrieves basic transaction information including sender, block number,
-    /// and timestamp.
+    /// and timestamp. Uses a two-phase polling mechanism: first polls the local DB
+    /// (if available and the chain is supported), then falls back to subgraph polling.
     ///
     /// ## Examples
     ///
     /// ```javascript
     /// const result = await client.getTransaction(
+    ///   1,
+    ///   "0x1234567890123456789012345678901234567890",
     ///   "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
     /// );
     /// if (result.error) {
@@ -97,6 +124,8 @@ impl RaindexClient {
     )]
     pub async fn get_transaction_wasm_binding(
         &self,
+        #[wasm_export(js_name = "chainId", param_description = "Chain ID for the network")]
+        chain_id: u32,
         #[wasm_export(
             js_name = "orderbookAddress",
             param_description = "Orderbook contract address",
@@ -109,23 +138,82 @@ impl RaindexClient {
             unchecked_param_type = "Hex"
         )]
         tx_hash: String,
+        #[wasm_export(
+            js_name = "maxAttempts",
+            param_description = "Optional maximum polling attempts before timing out"
+        )]
+        max_attempts: Option<u32>,
+        #[wasm_export(
+            js_name = "intervalMs",
+            param_description = "Optional polling interval in milliseconds"
+        )]
+        interval_ms: Option<u32>,
     ) -> Result<RaindexTransaction, RaindexError> {
         let orderbook_address = Address::from_str(&orderbook_address)?;
         let tx_hash = B256::from_str(&tx_hash)?;
-        self.get_transaction(orderbook_address, tx_hash).await
+        self.get_transaction(
+            chain_id,
+            orderbook_address,
+            tx_hash,
+            max_attempts.map(|v| v as usize),
+            interval_ms.map(|v| v as u64),
+        )
+        .await
     }
 }
 impl RaindexClient {
     pub async fn get_transaction(
         &self,
+        chain_id: u32,
         orderbook_address: Address,
         tx_hash: B256,
+        max_attempts: Option<usize>,
+        interval_ms: Option<u64>,
     ) -> Result<RaindexTransaction, RaindexError> {
         let client = self.get_orderbook_client(orderbook_address)?;
-        let transaction = client
-            .transaction_detail(Id::new(tx_hash.to_string()))
-            .await?;
-        transaction.try_into()
+
+        let attempts = max_attempts
+            .unwrap_or(DEFAULT_TRANSACTION_POLL_ATTEMPTS)
+            .max(1);
+        let interval_ms = interval_ms.unwrap_or(DEFAULT_TRANSACTION_POLL_INTERVAL_MS);
+
+        // Phase 1: give the local DB the full polling window before touching subgraph
+        if let Some(local_db) = self.local_db() {
+            if is_chain_supported_local_db(chain_id) {
+                let local_source = LocalDbTransactions::new(&local_db);
+                let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
+
+                for attempt in 1..=attempts {
+                    if let Some(tx) = local_source.get_by_tx_hash(&ob_id, tx_hash).await? {
+                        return Ok(tx);
+                    }
+                    if attempt < attempts {
+                        sleep_ms(interval_ms).await;
+                    }
+                }
+            }
+        }
+
+        // Phase 2: fall back to subgraph polling
+        for attempt in 1..=attempts {
+            match client
+                .transaction_detail(Id::new(tx_hash.to_string()))
+                .await
+            {
+                Ok(transaction) => {
+                    return transaction.try_into();
+                }
+                Err(OrderbookSubgraphClientError::Empty) => {
+                    if attempt < attempts {
+                        sleep_ms(interval_ms).await;
+                        continue;
+                    }
+                }
+                Err(e) => return Err(e.into()),
+            }
+        }
+
+        Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
     }
 }
 
@@ -152,23 +240,36 @@ mod test_helpers {
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::b256;
         use httpmock::MockServer;
-        use serde_json::json;
+        use serde_json::{json, Value};
+
+        fn sample_transaction_response() -> Value {
+            json!({
+                "data": {
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
+                        "from": "0x1000000000000000000000000000000000000000",
+                        "blockNumber": "12345",
+                        "timestamp": "1734054063"
+                    }
+                }
+            })
+        }
+
+        fn empty_transaction_response() -> Value {
+            json!({
+                "data": {
+                    "transaction": null
+                }
+            })
+        }
 
         #[tokio::test]
         async fn test_get_transaction() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
                 when.path("/sg");
-                then.status(200).json_body_obj(&json!({
-                    "data": {
-                        "transaction": {
-                            "id": "0x0000000000000000000000000000000000000000000000000000000000000123",
-                            "from": "0x1000000000000000000000000000000000000000",
-                            "blockNumber": "12345",
-                            "timestamp": "1734054063"
-                        }
-                    }
-                }));
+                then.status(200)
+                    .json_body_obj(&sample_transaction_response());
             });
 
             let raindex_client = RaindexClient::new(
@@ -183,8 +284,11 @@ mod test_helpers {
             .unwrap();
             let tx = raindex_client
                 .get_transaction(
+                    1,
                     Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
+                    None,
+                    None,
                 )
                 .await
                 .unwrap();
@@ -198,6 +302,82 @@ mod test_helpers {
             );
             assert_eq!(tx.block_number(), U256::from_str("12345").unwrap());
             assert_eq!(tx.timestamp(), U256::from_str("1734054063").unwrap());
+        }
+
+        #[tokio::test]
+        async fn test_get_transaction_with_polling_success() {
+            let sg_server = MockServer::start_async().await;
+            let _mock = sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200)
+                    .json_body_obj(&sample_transaction_response());
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg"),
+                    &sg_server.url("/sg"),
+                    "http://localhost:3000",
+                    "http://localhost:3000",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let tx = raindex_client
+                .get_transaction(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
+                    Some(DEFAULT_TRANSACTION_POLL_ATTEMPTS),
+                    Some(10),
+                )
+                .await
+                .unwrap();
+
+            assert_eq!(
+                tx.id(),
+                b256!("0x0000000000000000000000000000000000000000000000000000000000000123")
+            );
+        }
+
+        #[tokio::test]
+        async fn test_get_transaction_timeout() {
+            let sg_server = MockServer::start_async().await;
+            let _empty = sg_server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200)
+                    .json_body_obj(&empty_transaction_response());
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg"),
+                    &sg_server.url("/sg"),
+                    "http://localhost:3000",
+                    "http://localhost:3000",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let err = raindex_client
+                .get_transaction(
+                    1,
+                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
+                    Some(3),
+                    Some(10),
+                )
+                .await
+                .unwrap_err();
+
+            match err {
+                RaindexError::TransactionIndexingTimeout { attempts, .. } => {
+                    assert_eq!(attempts, 3);
+                }
+                other => panic!("expected timeout error, got {other:?}"),
+            }
         }
     }
 }

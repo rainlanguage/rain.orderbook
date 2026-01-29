@@ -1,4 +1,5 @@
 use crate::gui::{DotrainOrderGui, GuiError};
+use crate::yaml::{OrderbookYaml, OrderbookYamlError};
 use rain_orderbook_app_settings::gui::NameAndDescriptionCfg;
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -133,6 +134,8 @@ pub enum DotrainRegistryError {
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     GuiError(#[from] GuiError),
+    #[error(transparent)]
+    OrderbookYamlError(#[from] OrderbookYamlError),
 }
 
 impl DotrainRegistryError {
@@ -162,7 +165,8 @@ impl DotrainRegistryError {
             DotrainRegistryError::UrlParseError(err) => {
                 format!("Invalid URL format: {}. Please ensure the URL is properly formatted.", err)
             }
-            DotrainRegistryError::GuiError(err) => err.to_readable_msg()
+            DotrainRegistryError::GuiError(err) => err.to_readable_msg(),
+            DotrainRegistryError::OrderbookYamlError(err) => err.to_readable_msg(),
         }
     }
 }
@@ -285,9 +289,10 @@ impl DotrainRegistry {
         &self,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, DotrainRegistryError> {
         let mut order_details = BTreeMap::new();
+        let settings = self.settings_sources();
 
         for (order_key, dotrain) in &self.orders {
-            let details = DotrainOrderGui::get_order_details(dotrain.clone())?;
+            let details = DotrainOrderGui::get_order_details(dotrain.clone(), settings.clone())?;
             order_details.insert(order_key.clone(), details);
         }
 
@@ -354,7 +359,9 @@ impl DotrainRegistry {
             .orders
             .get(&order_key)
             .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain.clone())?;
+        let settings = self.settings_sources();
+        let deployment_details =
+            DotrainOrderGui::get_deployment_details(dotrain.clone(), settings.clone())?;
         Ok(deployment_details)
     }
 
@@ -424,11 +431,17 @@ impl DotrainRegistry {
         )]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, DotrainRegistryError> {
-        let merged_content = self.merge_content_for_order(&order_key)?;
+        let dotrain = self
+            .orders
+            .get(&order_key)
+            .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
+        let settings = self.settings_sources();
+
         let gui_result = match serialized_state {
             Some(serialized_state) => {
                 match DotrainOrderGui::new_from_state(
-                    merged_content.clone(),
+                    dotrain.clone(),
+                    settings.clone(),
                     serialized_state,
                     state_update_callback.clone(),
                 )
@@ -437,7 +450,8 @@ impl DotrainRegistry {
                     Ok(gui) => Ok(gui),
                     Err(_) => {
                         DotrainOrderGui::new_with_deployment(
-                            merged_content,
+                            dotrain.clone(),
+                            settings.clone(),
                             deployment_key,
                             state_update_callback.clone(),
                         )
@@ -447,7 +461,8 @@ impl DotrainRegistry {
             }
             None => {
                 DotrainOrderGui::new_with_deployment(
-                    merged_content,
+                    dotrain.clone(),
+                    settings.clone(),
                     deployment_key,
                     state_update_callback.clone(),
                 )
@@ -458,9 +473,43 @@ impl DotrainRegistry {
         let gui = gui_result.map_err(DotrainRegistryError::GuiError)?;
         Ok(gui)
     }
+
+    /// Creates an OrderbookYaml instance from the registry's shared settings.
+    ///
+    /// This method provides access to the OrderbookYaml SDK, allowing you to query tokens,
+    /// networks, orderbooks, and other configuration from the shared settings YAML.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const yamlResult = registry.getOrderbookYaml();
+    /// if (yamlResult.error) {
+    ///   console.error("Failed to get OrderbookYaml:", yamlResult.error.readableMsg);
+    ///   return;
+    /// }
+    /// const orderbookYaml = yamlResult.value;
+    /// ```
+    #[wasm_export(
+        js_name = "getOrderbookYaml",
+        preserve_js_class,
+        unchecked_return_type = "OrderbookYaml",
+        return_description = "OrderbookYaml instance from registry settings"
+    )]
+    pub fn get_orderbook_yaml(&self) -> Result<OrderbookYaml, DotrainRegistryError> {
+        let yaml = OrderbookYaml::new(vec![self.settings.clone()], None)?;
+        Ok(yaml)
+    }
 }
 
 impl DotrainRegistry {
+    fn settings_sources(&self) -> Option<Vec<String>> {
+        if self.settings.is_empty() {
+            None
+        } else {
+            Some(vec![self.settings.clone()])
+        }
+    }
+
     async fn fetch_and_parse_registry(
         registry_url: &Url,
     ) -> Result<(String, Url, HashMap<String, Url>), DotrainRegistryError> {
@@ -564,21 +613,6 @@ impl DotrainRegistry {
         }
 
         Ok(orders)
-    }
-
-    fn merge_content_for_order(&self, order_key: &str) -> Result<String, DotrainRegistryError> {
-        let dotrain = self
-            .orders
-            .get(order_key)
-            .ok_or(DotrainRegistryError::OrderKeyNotFound(
-                order_key.to_string(),
-            ))?;
-
-        if self.settings.is_empty() {
-            Ok(dotrain.clone())
-        } else {
-            Ok(format!("{}\n\n{}", self.settings, dotrain))
-        }
     }
 }
 
@@ -920,27 +954,6 @@ _ _: 1 1;
         }
 
         #[wasm_bindgen_test]
-        fn test_merge_content_order_not_found() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
-                settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
-
-            let result = registry.merge_content_for_order("non-existent");
-            assert!(result.is_err());
-            match result.err().unwrap() {
-                DotrainRegistryError::OrderKeyNotFound(key) => {
-                    assert_eq!(key, "non-existent");
-                }
-                _ => panic!("Expected OrderKeyNotFound error"),
-            }
-        }
-
-        #[wasm_bindgen_test]
         fn test_error_readable_messages() {
             let registry_error =
                 DotrainRegistryError::RegistryFetchError("https://example.com".to_string());
@@ -955,69 +968,6 @@ _ _: 1 1;
             let not_found_error = DotrainRegistryError::OrderKeyNotFound("test-order".to_string());
             let readable = not_found_error.to_readable_msg();
             assert!(readable.contains("order key 'test-order' was not found"));
-        }
-
-        #[wasm_bindgen_test]
-        fn test_merge_content_for_order() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
-                settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: MOCK_SETTINGS_CONTENT.to_string(),
-                order_urls: HashMap::new(),
-                orders: vec![
-                    ("first-order".to_string(), get_first_dotrain_content()),
-                    ("second-order".to_string(), get_second_dotrain_content()),
-                ]
-                .into_iter()
-                .collect(),
-            };
-
-            let merged1 = registry.merge_content_for_order("first-order").unwrap();
-            let expected1 = format!(
-                "{}\n\n{}",
-                MOCK_SETTINGS_CONTENT,
-                get_first_dotrain_content()
-            );
-            assert_eq!(merged1, expected1);
-
-            assert!(merged1.starts_with("version: 4\nnetworks:"));
-            assert!(merged1.contains("\n\ngui:"));
-            assert!(merged1.contains("_ _: 0 0;"));
-
-            let merged2 = registry.merge_content_for_order("second-order").unwrap();
-            let expected2 = format!(
-                "{}\n\n{}",
-                MOCK_SETTINGS_CONTENT,
-                get_second_dotrain_content()
-            );
-            assert_eq!(merged2, expected2);
-
-            assert!(merged2.starts_with("version: 4\nnetworks:"));
-            assert!(merged2.contains("\n\ngui:"));
-            assert!(merged2.contains("_ _: 1 1;"));
-
-            assert_ne!(merged1, merged2);
-            assert!(merged1.contains("_ _: 0 0;") && !merged1.contains("_ _: 1 1;"));
-            assert!(merged2.contains("_ _: 1 1;") && !merged2.contains("_ _: 0 0;"));
-        }
-
-        #[wasm_bindgen_test]
-        fn test_merge_content_empty_settings() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
-                settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: vec![("test-order".to_string(), get_first_dotrain_content())]
-                    .into_iter()
-                    .collect(),
-            };
-
-            let merged = registry.merge_content_for_order("test-order").unwrap();
-            assert_eq!(merged, get_first_dotrain_content());
-            assert!(merged.starts_with("gui:"));
         }
     }
 
@@ -1328,10 +1278,6 @@ _ _: 1 1;
 
             let default_serialized_state = gui1.serialize_state().unwrap();
 
-            let merged_content1 = registry.merge_content_for_order("first-order").unwrap();
-            assert!(merged_content1.contains(MOCK_SETTINGS_CONTENT));
-            assert!(merged_content1.contains("_ _: 0 0;"));
-
             let gui2 = registry
                 .get_gui("second-order".to_string(), "base".to_string(), None, None)
                 .await
@@ -1340,16 +1286,6 @@ _ _: 1 1;
             let deployment_details2 = gui2.get_current_deployment().unwrap();
             assert_eq!(deployment_details2.name, "Base order name");
             assert_eq!(deployment_details2.description, "Base order description");
-
-            let merged_content2 = registry.merge_content_for_order("second-order").unwrap();
-            assert!(merged_content2.contains(MOCK_SETTINGS_CONTENT));
-            assert!(merged_content2.contains("_ _: 1 1;"));
-
-            assert_ne!(merged_content1, merged_content2);
-            assert!(merged_content1.contains("_ _: 0 0;"));
-            assert!(!merged_content1.contains("_ _: 1 1;"));
-            assert!(merged_content2.contains("_ _: 1 1;"));
-            assert!(!merged_content2.contains("_ _: 0 0;"));
 
             let mut gui_with_state = registry
                 .get_gui("first-order".to_string(), "flare".to_string(), None, None)
@@ -1400,6 +1336,107 @@ _ _: 1 1;
                 }
                 _ => panic!("Expected OrderKeyNotFound error"),
             }
+        }
+
+        const MOCK_SETTINGS_WITH_TOKENS: &str = r#"version: 4
+networks:
+  mainnet:
+    rpcs:
+      - https://mainnet.infura.io
+    chain-id: 1
+    currency: ETH
+tokens:
+  weth:
+    network: mainnet
+    address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+    decimals: 18
+    label: Wrapped Ether
+    symbol: WETH
+  usdc:
+    network: mainnet
+    address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+    decimals: 6
+    label: USD Coin
+    symbol: USDC
+orderbooks:
+  mainnet:
+    address: 0x1234567890123456789012345678901234567890
+    network: mainnet
+deployers:
+  mainnet:
+    address: 0x1234567890123456789012345678901234567890
+    network: mainnet
+"#;
+
+        const MOCK_DOTRAIN_SIMPLE: &str = r#"gui:
+  name: Test Order
+  description: Test description
+  deployments:
+    mainnet:
+      name: Mainnet Order
+      description: Mainnet deployment
+      deposits:
+        - token: weth
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          presets:
+            - value: "0xbeef"
+scenarios:
+  mainnet:
+    deployer: mainnet
+    runs: 1
+orders:
+  mainnet:
+    orderbook: mainnet
+    inputs:
+      - token: weth
+    outputs:
+      - token: usdc
+deployments:
+  mainnet:
+    scenario: mainnet
+    order: mainnet
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+"#;
+
+        #[tokio::test]
+        async fn test_get_orderbook_yaml_returns_valid_instance() {
+            let server = MockServer::start_async().await;
+
+            let test_registry_content = format!(
+                "{}/settings.yaml\ntest-order {}/order.rain",
+                server.url(""),
+                server.url("")
+            );
+
+            server.mock(|when, then| {
+                when.method("GET").path("/registry.txt");
+                then.status(200).body(test_registry_content.clone());
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/settings.yaml");
+                then.status(200).body(MOCK_SETTINGS_WITH_TOKENS);
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/order.rain");
+                then.status(200).body(MOCK_DOTRAIN_SIMPLE);
+            });
+
+            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+                .await
+                .unwrap();
+
+            let orderbook_yaml = registry.get_orderbook_yaml();
+            assert!(orderbook_yaml.is_ok());
         }
     }
 }
