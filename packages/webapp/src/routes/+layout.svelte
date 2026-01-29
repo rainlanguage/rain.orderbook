@@ -17,12 +17,13 @@
 		RegistryManager
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
+	import { validChainIds } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 	import { REGISTRY_URL } from '$lib/constants';
 	import { onDestroy, onMount } from 'svelte';
-	import { localDbStatus } from '$lib/stores/localDbStatus';
+	import { updateStatus } from '$lib/stores/localDbStatus';
 	import type { RaindexClient } from '@rainlanguage/orderbook';
 
 	const { errorMessage, localDb, raindexClient, registry } = $page.data;
@@ -41,22 +42,12 @@
 	onMount(() => {
 		if (!browser || !raindexClient || !localDb || !registry) return;
 		let client = raindexClient as RaindexClient;
-		client
-			.startLocalDbScheduler(registry.settings as string, localDbStatus.set)
-			.then((result) => {
-				if (result.error) {
-					localDbStatus.set({
-						status: 'failure',
-						error: result.error.readableMsg ?? result.error.msg
-					});
-				}
-			})
-			.catch((error) => {
-				localDbStatus.set({
-					status: 'failure',
-					error: error instanceof Error ? error.message : 'Local DB scheduler failed to start'
-				});
-			});
+		client.startLocalDbScheduler(registry.settings as string, updateStatus);
+
+		const uniqueChainIds = client.getUniqueChainIds();
+		if (!uniqueChainIds.error) {
+			validChainIds.set(uniqueChainIds.value);
+		}
 	});
 	onDestroy(() => {
 		if (!raindexClient) return;

@@ -1,20 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TransactionManager } from '../lib/providers/transactions/TransactionManager';
+import {
+	TransactionManager,
+	createSdkIndexingFn
+} from '../lib/providers/transactions/TransactionManager';
 import { TransactionStore } from '../lib/models/Transaction';
 import type { QueryClient } from '@tanstack/svelte-query';
 import type { Config } from '@wagmi/core';
 import type { ToastProps } from '../lib/types/toast';
-import { TransactionName, type InternalTransactionArgs } from '../lib/types/transaction';
+import {
+	TransactionName,
+	TransactionStatusMessage,
+	TransactionStoreErrorMessage,
+	type InternalTransactionArgs,
+	type IndexingContext
+} from '../lib/types/transaction';
 import { getExplorerLink } from '../lib/services/getExplorerLink';
 import {
 	Float,
 	RaindexClient,
 	RaindexOrder,
-	RaindexTransaction,
 	RaindexVault,
-	type Address
+	type Address,
+	type WasmEncodedResult
 } from '@rainlanguage/orderbook';
-import type { AwaitSubgraphConfig } from '$lib/services/awaitTransactionIndexing';
 
 vi.mock('../lib/models/Transaction', () => ({
 	TransactionStore: vi.fn()
@@ -98,27 +106,13 @@ describe('TransactionManager', () => {
 			raindexClient: mockRaindexClient
 		};
 
-		const fullMockArgsForExpectation: InternalTransactionArgs & {
-			awaitSubgraphConfig: AwaitSubgraphConfig;
-		} = {
-			...removeOrderMockArgs,
-			awaitSubgraphConfig: {
-				chainId: removeOrderMockArgs.chainId,
-				orderbook: removeOrderMockArgs.entity.orderbook,
-				txHash: removeOrderMockArgs.txHash,
-				successMessage: 'Order removed successfully.',
-				fetchEntityFn: expect.any(Function),
-				isSuccess: expect.any(Function)
-			}
-		};
-
 		beforeEach(() => {
 			vi.mocked(getExplorerLink).mockResolvedValue(
 				'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 			);
 		});
 
-		it('should create a transaction with correct parameters', async () => {
+		it('should create a transaction with correct parameters and awaitIndexingFn', async () => {
 			const mockTransaction = { execute: vi.fn() };
 			vi.mocked(TransactionStore).mockImplementation(
 				() => mockTransaction as unknown as TransactionStore
@@ -128,7 +122,6 @@ describe('TransactionManager', () => {
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				expect.objectContaining({
-					...fullMockArgsForExpectation,
 					name: TransactionName.REMOVAL,
 					errorMessage: 'Order removal failed.',
 					successMessage: 'Order removed successfully.',
@@ -140,44 +133,15 @@ describe('TransactionManager', () => {
 						}
 					],
 					config: mockWagmiConfig,
-					awaitSubgraphConfig: expect.objectContaining({
-						chainId: removeOrderMockArgs.chainId,
-						orderbook: removeOrderMockArgs.entity.orderbook,
-						txHash: removeOrderMockArgs.txHash,
-						successMessage: 'Order removed successfully.',
-						fetchEntityFn: expect.any(Function),
-						isSuccess: expect.any(Function)
-					})
+					awaitIndexingFn: expect.any(Function)
 				}),
 				expect.any(Function),
 				expect.any(Function)
 			);
 
-			const removeOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
-			const removeOrderIsSuccessFn = removeOrderCallArgs.awaitSubgraphConfig!.isSuccess;
-
-			expect(
-				removeOrderIsSuccessFn([
-					{
-						id: 'order1',
-						transaction: {
-							id: 'tx1',
-							from: '0xfrom',
-							blockNumber: '123',
-							timestamp: '1678886400'
-						}
-					}
-				] as unknown as RaindexOrder[])
-			).toBe(true);
-			expect(removeOrderIsSuccessFn([] as RaindexOrder[])).toBe(false);
-			expect(
-				removeOrderIsSuccessFn({
-					id: 'tx1',
-					from: '0xfrom',
-					blockNumber: '123',
-					timestamp: '1678886400'
-				} as unknown as RaindexTransaction)
-			).toBe(false);
+			// Verify awaitIndexingFn is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
 		});
 
 		it('should execute the transaction after creation', async () => {
@@ -208,6 +172,123 @@ describe('TransactionManager', () => {
 			});
 			expect(storeValue).toContain(mockTransaction);
 		});
+
+		it('should handle successful transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onSuccess: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success) => {
+				onSuccess = success;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			onSuccess!();
+
+			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: [removeOrderMockArgs.queryKey]
+			});
+		});
+
+		it('should handle failed transaction', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onError: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success, error) => {
+				onError = error;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			onError!();
+
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Order removal failed.',
+				type: 'error',
+				color: 'red',
+				links: [
+					{
+						link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+						label: 'View on explorer'
+					}
+				]
+			});
+		});
+
+		it('should use SDK-based indexing via createSdkIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			// Verify awaitIndexingFn was passed and is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			// Simulate calling the awaitIndexingFn to verify it calls the SDK
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a successful SDK response
+			vi.mocked(mockRaindexClient.getRemoveOrdersForTransaction).mockResolvedValueOnce({
+				value: [{ orderHash: '0xremovedhash' }]
+			} as unknown as WasmEncodedResult<RaindexOrder[]>);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify the SDK method was called with correct arguments
+			expect(mockRaindexClient.getRemoveOrdersForTransaction).toHaveBeenCalledWith(
+				removeOrderMockArgs.chainId,
+				mockSgOrderEntity.orderbook,
+				removeOrderMockArgs.txHash
+			);
+
+			// Verify success was called
+			expect(mockContext.onSuccess).toHaveBeenCalled();
+		});
+
+		it('should handle SDK timeout error in awaitIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createRemoveOrderTransaction(removeOrderMockArgs);
+
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a timeout error from the SDK
+			vi.mocked(mockRaindexClient.getRemoveOrdersForTransaction).mockResolvedValueOnce({
+				error: {
+					readableMsg:
+						'Timeout waiting for the subgraph to index transaction 0x123 after 10 attempts.'
+				}
+			} as unknown as WasmEncodedResult<RaindexOrder[]>);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify error handling
+			expect(mockContext.updateState).toHaveBeenCalledWith({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+			});
+			expect(mockContext.onError).toHaveBeenCalled();
+			expect(mockContext.onSuccess).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('createWithdrawTransaction', () => {
@@ -222,27 +303,13 @@ describe('TransactionManager', () => {
 			raindexClient: mockRaindexClient
 		};
 
-		const fullMockArgsForExpectation: InternalTransactionArgs & {
-			awaitSubgraphConfig: AwaitSubgraphConfig;
-		} = {
-			...withdrawMockArgs, // Spreads withdrawMockArgs including entity
-			awaitSubgraphConfig: {
-				chainId: withdrawMockArgs.chainId,
-				orderbook: withdrawMockArgs.entity.orderbook,
-				txHash: withdrawMockArgs.txHash,
-				successMessage: 'Withdrawal successful.',
-				fetchEntityFn: expect.any(Function),
-				isSuccess: expect.any(Function)
-			}
-		};
-
 		beforeEach(() => {
 			vi.mocked(getExplorerLink).mockResolvedValue(
 				'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
 			);
 		});
 
-		it('should create a transaction with correct parameters', async () => {
+		it('should create a transaction with correct parameters and awaitIndexingFn', async () => {
 			const mockTransaction = { execute: vi.fn() };
 			vi.mocked(TransactionStore).mockImplementation(
 				() => mockTransaction as unknown as TransactionStore
@@ -252,7 +319,6 @@ describe('TransactionManager', () => {
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				expect.objectContaining({
-					...fullMockArgsForExpectation,
 					name: TransactionName.WITHDRAWAL,
 					errorMessage: 'Withdrawal failed.',
 					successMessage: 'Withdrawal successful.',
@@ -268,27 +334,15 @@ describe('TransactionManager', () => {
 						}
 					],
 					config: mockWagmiConfig,
-					awaitSubgraphConfig: expect.objectContaining({
-						chainId: withdrawMockArgs.chainId,
-						orderbook: withdrawMockArgs.entity.orderbook,
-						txHash: withdrawMockArgs.txHash,
-						successMessage: 'Withdrawal successful.',
-						fetchEntityFn: expect.any(Function),
-						isSuccess: expect.any(Function)
-					})
+					awaitIndexingFn: expect.any(Function)
 				}),
 				expect.any(Function),
 				expect.any(Function)
 			);
 
-			const withdrawCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
-			const withdrawIsSuccessFn = withdrawCallArgs.awaitSubgraphConfig!.isSuccess;
-
-			expect(withdrawIsSuccessFn({ id: '0x0123' } as unknown as RaindexTransaction)).toBe(true);
-			expect(withdrawIsSuccessFn(null as unknown as RaindexTransaction)).toBe(false);
-			expect(withdrawIsSuccessFn(undefined as unknown as RaindexTransaction)).toBe(false);
-			expect(withdrawIsSuccessFn('' as unknown as RaindexTransaction)).toBe(false);
-			expect(withdrawIsSuccessFn(0 as unknown as RaindexTransaction)).toBe(false);
+			// Verify awaitIndexingFn is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
 		});
 
 		it('should execute the transaction after creation', async () => {
@@ -363,6 +417,46 @@ describe('TransactionManager', () => {
 				color: 'red',
 				links: expect.any(Array)
 			});
+		});
+
+		it('should use SDK-based indexing via createSdkIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createWithdrawTransaction(withdrawMockArgs);
+
+			// Verify awaitIndexingFn was passed and is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			// Simulate calling the awaitIndexingFn to verify it calls the SDK
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a successful SDK response
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				value: { id: '0xwithdrawhash', from: '0xowner', blockNumber: 123n, timestamp: 1700000000n }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify the SDK method was called with correct arguments (chainId, orderbook, txHash)
+			expect(mockRaindexClient.getTransaction).toHaveBeenCalledWith(
+				withdrawMockArgs.chainId,
+				withdrawMockArgs.entity.orderbook,
+				withdrawMockArgs.txHash
+			);
+
+			// Verify success was called
+			expect(mockContext.onSuccess).toHaveBeenCalled();
 		});
 	});
 
@@ -546,7 +640,7 @@ describe('TransactionManager', () => {
 			vi.mocked(getExplorerLink).mockResolvedValue('https://explorer.example.com/tx/0xdeposithash');
 		});
 
-		it('should create a transaction with correct parameters including formatted amount', async () => {
+		it('should create a transaction with correct parameters and awaitIndexingFn', async () => {
 			const mockTransaction = { execute: vi.fn() };
 			vi.mocked(TransactionStore).mockImplementation(
 				() => mockTransaction as unknown as TransactionStore
@@ -556,7 +650,6 @@ describe('TransactionManager', () => {
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				expect.objectContaining({
-					...mockArgs,
 					name: `Depositing ${mockArgs.amount.format().value} ${mockEntity.token.symbol}`,
 					errorMessage: 'Deposit failed.',
 					successMessage: 'Deposit successful.',
@@ -572,18 +665,15 @@ describe('TransactionManager', () => {
 						}
 					],
 					config: mockWagmiConfig,
-					awaitSubgraphConfig: expect.objectContaining({
-						chainId: mockArgs.chainId,
-						orderbook: mockEntity.orderbook,
-						txHash: mockArgs.txHash,
-						successMessage: 'Deposit successful.',
-						fetchEntityFn: expect.any(Function),
-						isSuccess: expect.any(Function)
-					})
+					awaitIndexingFn: expect.any(Function)
 				}),
 				expect.any(Function),
 				expect.any(Function)
 			);
+
+			// Verify awaitIndexingFn is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
 		});
 
 		it('should execute the transaction after creation', async () => {
@@ -651,6 +741,82 @@ describe('TransactionManager', () => {
 				links: expect.any(Array)
 			});
 		});
+
+		it('should use SDK-based indexing via createSdkIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			// Verify awaitIndexingFn was passed and is a function
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			// Simulate calling the awaitIndexingFn to verify it calls the SDK
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a successful SDK response
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				value: { id: '0xdeposithash', from: '0xowner', blockNumber: 123n, timestamp: 1700000000n }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify the SDK method was called with correct arguments (chainId, orderbook, txHash)
+			expect(mockRaindexClient.getTransaction).toHaveBeenCalledWith(
+				mockArgs.chainId,
+				mockArgs.entity.orderbook,
+				mockArgs.txHash
+			);
+
+			// Verify success was called
+			expect(mockContext.onSuccess).toHaveBeenCalled();
+		});
+
+		it('should handle SDK timeout error in awaitIndexingFn', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createDepositTransaction(mockArgs);
+
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// Mock a timeout error from the SDK
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				error: {
+					readableMsg: 'Timeout waiting for transaction 0x123 to be indexed after 10 attempts.'
+				}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			// Verify error handling
+			expect(mockContext.updateState).toHaveBeenCalledWith({
+				status: TransactionStatusMessage.ERROR,
+				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+			});
+			expect(mockContext.onError).toHaveBeenCalled();
+			expect(mockContext.onSuccess).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('createAddOrderTransaction', () => {
@@ -665,27 +831,13 @@ describe('TransactionManager', () => {
 			orderbook: '0xorderbook' as Address
 		};
 
-		const fullMockArgsForExpectation: InternalTransactionArgs & {
-			awaitSubgraphConfig: AwaitSubgraphConfig;
-		} = {
-			...addOrderMockArgs,
-			awaitSubgraphConfig: {
-				chainId: addOrderMockArgs.chainId,
-				orderbook: addOrderMockArgs.orderbook,
-				txHash: addOrderMockArgs.txHash,
-				successMessage: 'Strategy deployed successfully.',
-				fetchEntityFn: expect.any(Function),
-				isSuccess: expect.any(Function)
-			}
-		};
-
 		beforeEach(() => {
 			vi.mocked(getExplorerLink).mockResolvedValue(
 				'https://explorer.example.com/tx/0xaddordertxhash'
 			);
 		});
 
-		it('should create a transaction with correct parameters', async () => {
+		it('should create a transaction with correct parameters and awaitIndexingFn', async () => {
 			const mockTransaction = { execute: vi.fn() };
 			vi.mocked(TransactionStore).mockImplementation(
 				() => mockTransaction as unknown as TransactionStore
@@ -695,46 +847,26 @@ describe('TransactionManager', () => {
 
 			expect(TransactionStore).toHaveBeenCalledWith(
 				expect.objectContaining({
-					...fullMockArgsForExpectation,
 					name: 'Deploying order',
 					errorMessage: 'Deployment failed.',
 					successMessage: 'Order deployed successfully.',
 					queryKey: addOrderMockArgs.queryKey,
+					awaitIndexingFn: expect.any(Function),
 					toastLinks: [
 						{
 							link: 'https://explorer.example.com/tx/0xaddordertxhash',
 							label: 'View on explorer'
 						}
 					],
-					config: mockWagmiConfig,
-					awaitSubgraphConfig: expect.objectContaining({
-						chainId: addOrderMockArgs.chainId,
-						orderbook: addOrderMockArgs.orderbook,
-						txHash: addOrderMockArgs.txHash,
-						successMessage: 'Order deployed successfully.',
-						fetchEntityFn: expect.any(Function),
-						isSuccess: expect.any(Function)
-					})
+					config: mockWagmiConfig
 				}),
 				expect.any(Function), // onSuccess
 				expect.any(Function) // onError
 			);
 
-			const addOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
-			const addOrderIsSuccessFn = addOrderCallArgs.awaitSubgraphConfig!.isSuccess;
-			const addOrderFetchEntityFn = addOrderCallArgs.awaitSubgraphConfig!.fetchEntityFn;
-
-			expect(addOrderFetchEntityFn.name).toBe('bound spy');
-			expect(
-				addOrderIsSuccessFn([
-					{
-						id: 'order1',
-						orderHash: '0xneworderhash',
-						transaction: { id: 'tx1' }
-					}
-				] as unknown as RaindexOrder[])
-			).toBe(true);
-			expect(addOrderIsSuccessFn([] as RaindexOrder[])).toBe(false);
+			// Verify awaitIndexingFn is a function (SDK-based indexing)
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
 		});
 
 		it('should execute the transaction after creation', async () => {
@@ -807,5 +939,261 @@ describe('TransactionManager', () => {
 				]
 			});
 		});
+	});
+});
+
+describe('createSdkIndexingFn', () => {
+	let mockContext: IndexingContext;
+	let mockUpdateState: ReturnType<typeof vi.fn>;
+	let mockOnSuccess: ReturnType<typeof vi.fn>;
+	let mockOnError: ReturnType<typeof vi.fn>;
+
+	beforeEach(() => {
+		mockUpdateState = vi.fn();
+		mockOnSuccess = vi.fn();
+		mockOnError = vi.fn();
+
+		mockContext = {
+			updateState: mockUpdateState,
+			onSuccess: mockOnSuccess,
+			onError: mockOnError,
+			links: [{ link: '/existing', label: 'Existing Link' }]
+		};
+	});
+
+	it('should set PENDING_SUBGRAPH status when called', async () => {
+		const mockCall = vi.fn().mockResolvedValue({ value: 'test-value' });
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.PENDING_SUBGRAPH
+		});
+	});
+
+	it('should call onSuccess when SDK returns valid data and isSuccess returns true', async () => {
+		const mockCall = vi.fn().mockResolvedValue({ value: ['order1', 'order2'] });
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: (value: string[]) => value.length > 0
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.SUCCESS
+		});
+		expect(mockOnSuccess).toHaveBeenCalled();
+		expect(mockOnError).not.toHaveBeenCalled();
+	});
+
+	it('should call buildLinks and prepend links to context when provided', async () => {
+		const mockCall = vi.fn().mockResolvedValue({ value: { id: 'order-123' } });
+		const mockBuildLinks = vi
+			.fn()
+			.mockReturnValue([{ link: '/orders/order-123', label: 'View Order' }]);
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true,
+			buildLinks: mockBuildLinks
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockBuildLinks).toHaveBeenCalledWith({ id: 'order-123' });
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			links: [
+				{ link: '/orders/order-123', label: 'View Order' },
+				{ link: '/existing', label: 'Existing Link' }
+			]
+		});
+	});
+
+	it('should not update links when buildLinks returns empty array', async () => {
+		const mockCall = vi.fn().mockResolvedValue({ value: {} });
+		const mockBuildLinks = vi.fn().mockReturnValue([]);
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true,
+			buildLinks: mockBuildLinks
+		});
+
+		await indexingFn(mockContext);
+
+		// Should not call updateState with links since array is empty
+		const linksUpdateCalls = mockUpdateState.mock.calls.filter(
+			(call) => call[0] && typeof call[0] === 'object' && 'links' in call[0]
+		);
+		expect(linksUpdateCalls).toHaveLength(0);
+	});
+
+	it('should set SUBGRAPH_TIMEOUT_ERROR and call onError when error contains "timeout"', async () => {
+		const mockCall = vi.fn().mockResolvedValue({
+			error: { readableMsg: 'Request timeout exceeded' }
+		} as WasmEncodedResult<unknown>);
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+		});
+		expect(mockOnError).toHaveBeenCalled();
+		expect(mockOnSuccess).not.toHaveBeenCalled();
+	});
+
+	it('should set SUBGRAPH_TIMEOUT_ERROR for case-insensitive timeout detection', async () => {
+		const mockCall = vi.fn().mockResolvedValue({
+			error: { readableMsg: 'TIMEOUT occurred while fetching data' }
+		} as WasmEncodedResult<unknown>);
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+		});
+	});
+
+	it('should set SUBGRAPH_TIMEOUT_ERROR for SDK TransactionIndexingTimeout error format', async () => {
+		const mockCall = vi.fn().mockResolvedValue({
+			error: {
+				readableMsg: 'Timeout waiting for transaction 0x123abc to be indexed after 10 attempts.'
+			}
+		} as WasmEncodedResult<unknown>);
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
+		});
+		expect(mockOnError).toHaveBeenCalled();
+		expect(mockOnSuccess).not.toHaveBeenCalled();
+	});
+
+	it('should set SUBGRAPH_FAILED and call onError for non-timeout errors', async () => {
+		const mockCall = vi.fn().mockResolvedValue({
+			error: { readableMsg: 'Network connection failed' }
+		} as WasmEncodedResult<unknown>);
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
+		expect(mockOnError).toHaveBeenCalled();
+	});
+
+	it('should set SUBGRAPH_FAILED when error has no readableMsg', async () => {
+		const mockCall = vi.fn().mockResolvedValue({
+			error: {}
+		} as WasmEncodedResult<unknown>);
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
+	});
+
+	it('should set SUBGRAPH_FAILED and call onError when isSuccess returns false', async () => {
+		const mockCall = vi.fn().mockResolvedValue({ value: [] });
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: (value: unknown[]) => value.length > 0 // empty array fails
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
+		expect(mockOnError).toHaveBeenCalled();
+		expect(mockOnSuccess).not.toHaveBeenCalled();
+	});
+
+	it('should set SUBGRAPH_FAILED and call onError when value is undefined', async () => {
+		const mockCall = vi.fn().mockResolvedValue({ value: undefined });
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
+		expect(mockOnError).toHaveBeenCalled();
+	});
+
+	it('should set SUBGRAPH_FAILED and call onError when SDK call throws an exception', async () => {
+		const mockCall = vi.fn().mockRejectedValue(new Error('Unexpected error'));
+		const indexingFn = createSdkIndexingFn({
+			call: mockCall,
+			isSuccess: () => true
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			status: TransactionStatusMessage.ERROR,
+			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
+		});
+		expect(mockOnError).toHaveBeenCalled();
+		expect(mockOnSuccess).not.toHaveBeenCalled();
+	});
+
+	it('should work with complex value types', async () => {
+		type Order = { orderHash: string; owner: string };
+		const orders: Order[] = [
+			{ orderHash: '0x123', owner: '0xabc' },
+			{ orderHash: '0x456', owner: '0xdef' }
+		];
+		const mockCall = vi.fn().mockResolvedValue({ value: orders });
+		const indexingFn = createSdkIndexingFn<Order[]>({
+			call: mockCall,
+			isSuccess: (value) => Array.isArray(value) && value.length > 0,
+			buildLinks: (value) => [{ link: `/orders/${value[0].orderHash}`, label: 'View Order' }]
+		});
+
+		await indexingFn(mockContext);
+
+		expect(mockUpdateState).toHaveBeenCalledWith({
+			links: [
+				{ link: '/orders/0x123', label: 'View Order' },
+				{ link: '/existing', label: 'Existing Link' }
+			]
+		});
+		expect(mockOnSuccess).toHaveBeenCalled();
 	});
 });

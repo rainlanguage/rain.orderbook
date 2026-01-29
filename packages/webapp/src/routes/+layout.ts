@@ -97,6 +97,10 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 		};
 	}
 
+	if (localDb && raindexClient) {
+		raindexClient.setDbCallback(localDb.query.bind(localDb));
+	}
+
 	return {
 		stores: {
 			selectedChainIds: writable<number[]>([]),
@@ -106,8 +110,10 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
+			hideInactiveOrdersVaults: writable<boolean>(false),
 			showMyItemsOnly: writable<boolean>(false),
-			activeTokens: writable<Address[]>([])
+			activeTokens: writable<Address[]>([]),
+			activeOrderbookAddresses: writable<Address[]>([])
 		},
 		registry,
 		localDb,

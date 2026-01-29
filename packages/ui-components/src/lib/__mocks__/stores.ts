@@ -46,6 +46,7 @@ const mockActiveAccountsItemsWritable = writable<Record<string, string>>({});
 const mockShowInactiveOrdersWritable = writable<boolean>(true);
 const mockOrderHashWritable = writable<string>('');
 const mockHideZeroBalanceVaultsWritable = writable<boolean>(false);
+const mockHideInactiveOrdersVaultsWritable = writable<boolean>(false);
 const mockActiveNetworkRefWritable = writable<string>('');
 const mockActiveOrderbookRefWritable = writable<string>('');
 const mockActiveAccountsWritable = writable<Record<string, string>>({});
@@ -55,6 +56,8 @@ const mockConnectedWritable = writable<boolean>(true);
 const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockShowMyItemsOnlyWritable = writable<boolean>(false);
 const mockSelectedChainIdsWritable = writable<number[]>([]);
+const mockActiveTokensWritable = writable<string[]>([]);
+const mockActiveOrderbookAddressesWritable = writable<string[]>([]);
 
 export const mockActiveAccountsItemsStore = {
 	subscribe: mockActiveAccountsItemsWritable.subscribe,
@@ -79,6 +82,12 @@ export const mockHideZeroBalanceVaultsStore = {
 	subscribe: mockHideZeroBalanceVaultsWritable.subscribe,
 	set: mockHideZeroBalanceVaultsWritable.set,
 	mockSetSubscribeValue: (value: boolean): void => mockHideZeroBalanceVaultsWritable.set(value)
+};
+
+export const mockHideInactiveOrdersVaultsStore = {
+	subscribe: mockHideInactiveOrdersVaultsWritable.subscribe,
+	set: mockHideInactiveOrdersVaultsWritable.set,
+	mockSetSubscribeValue: (value: boolean): void => mockHideInactiveOrdersVaultsWritable.set(value)
 };
 
 export const mockActiveNetworkRefStore = {
@@ -148,4 +157,16 @@ export const mockPageStore = {
 		}));
 	},
 	reset: () => mockPageWritable.set(initialPageState)
+};
+
+export const mockActiveTokensStore = {
+	subscribe: mockActiveTokensWritable.subscribe,
+	set: mockActiveTokensWritable.set,
+	mockSetSubscribeValue: (value: string[]): void => mockActiveTokensWritable.set(value)
+};
+
+export const mockActiveOrderbookAddressesStore = {
+	subscribe: mockActiveOrderbookAddressesWritable.subscribe,
+	set: mockActiveOrderbookAddressesWritable.set,
+	mockSetSubscribeValue: (value: string[]): void => mockActiveOrderbookAddressesWritable.set(value)
 };

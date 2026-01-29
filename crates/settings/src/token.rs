@@ -11,6 +11,7 @@ use std::{collections::HashMap, sync::Arc};
 use strict_yaml_rust::strict_yaml::Hash;
 use strict_yaml_rust::StrictYaml;
 use thiserror::Error;
+use url::Url;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::context::Context;
@@ -33,6 +34,8 @@ pub struct TokenCfg {
     pub label: Option<String>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub symbol: Option<String>,
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "string"))]
+    pub logo_uri: Option<Url>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TokenCfg);
@@ -316,6 +319,16 @@ impl YamlParsableHash for TokenCfg {
 
                     let label = optional_string(token_yaml, "label");
                     let symbol = optional_string(token_yaml, "symbol");
+                    let logo_uri = optional_string(token_yaml, "logo-uri")
+                        .map(|s| Url::parse(&s))
+                        .transpose()
+                        .map_err(|e| YamlError::Field {
+                            kind: FieldErrorKind::InvalidValue {
+                                field: "logo-uri".to_string(),
+                                reason: e.to_string(),
+                            },
+                            location: location.clone(),
+                        })?;
 
                     let token = TokenCfg {
                         document: document.clone(),
@@ -325,6 +338,7 @@ impl YamlParsableHash for TokenCfg {
                         decimals,
                         label,
                         symbol,
+                        logo_uri,
                     };
 
                     if tokens.contains_key(&token_key) {
@@ -391,6 +405,7 @@ impl Default for TokenCfg {
             decimals: None,
             label: None,
             symbol: None,
+            logo_uri: None,
         }
     }
 }
@@ -402,6 +417,7 @@ impl PartialEq for TokenCfg {
             && self.decimals == other.decimals
             && self.label == other.label
             && self.symbol == other.symbol
+            && self.logo_uri == other.logo_uri
     }
 }
 
@@ -646,6 +662,7 @@ tokens:
         network: mainnet
         address: "0x6b175474e89094c44da98b954eedeac495271d0f"
         decimals: "18"
+        logo-uri: "https://example.com/dai-logo.png"
     usdc:
         network: mainnet
         address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
@@ -657,6 +674,7 @@ tokens:
         network: mainnet
         address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
         decimals: "18"
+        logo-uri: "https://example.com/weth-logo.png"
     usdt:
         network: mainnet
         address: "0xdac17f958d2ee523a2206206994597c13d831ec7"
@@ -675,20 +693,57 @@ tokens:
         );
         assert_eq!(tokens.get("dai").unwrap().decimals, Some(18));
         assert_eq!(
+            tokens.get("dai").unwrap().logo_uri,
+            Some(Url::parse("https://example.com/dai-logo.png").unwrap())
+        );
+        assert_eq!(
             tokens.get("usdc").unwrap().address,
             Address::from_str("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48").unwrap()
         );
         assert_eq!(tokens.get("usdc").unwrap().decimals, Some(6));
+        assert_eq!(tokens.get("usdc").unwrap().logo_uri, None);
         assert_eq!(
             tokens.get("weth").unwrap().address,
             Address::from_str("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2").unwrap()
         );
         assert_eq!(tokens.get("weth").unwrap().decimals, Some(18));
         assert_eq!(
+            tokens.get("weth").unwrap().logo_uri,
+            Some(Url::parse("https://example.com/weth-logo.png").unwrap())
+        );
+        assert_eq!(
             tokens.get("usdt").unwrap().address,
             Address::from_str("0xdac17f958d2ee523a2206206994597c13d831ec7").unwrap()
         );
         assert_eq!(tokens.get("usdt").unwrap().decimals, Some(6));
+        assert_eq!(tokens.get("usdt").unwrap().logo_uri, None);
+    }
+
+    #[test]
+    fn test_parse_tokens_invalid_logo_uri() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+tokens:
+    token1:
+        network: mainnet
+        address: "0x1234567890123456789012345678901234567890"
+        logo-uri: "not_a_valid_url"
+"#;
+        let error = TokenCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
+        assert!(matches!(
+            error,
+            YamlError::Field {
+                kind: FieldErrorKind::InvalidValue { .. },
+                location: _
+            }
+        ));
+        assert!(error
+            .to_readable_msg()
+            .contains("Invalid value for field 'logo-uri' in token 'token1'"));
     }
 
     #[test]

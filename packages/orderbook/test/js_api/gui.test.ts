@@ -16,8 +16,11 @@ import {
 	TokenInfo,
 	AllGuiConfig,
 	WasmEncodedResult,
-	FieldValue
+	FieldValue,
+	OrderbookYaml
 } from '../../dist/cjs';
+
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 import { getLocal } from 'mockttp';
 
 const guiConfig = `
@@ -136,7 +139,7 @@ gui:
 `;
 
 const dotrain = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -215,7 +218,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -287,7 +290,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -348,7 +351,7 @@ const dotrainWithTokensMismatch = dotrain.replace(
 	'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A7'
 );
 const dotrainForRemotes = `
-version: 4
+version: ${SPEC_VERSION}
 gui:
   name: Test
   description: Fixed limit order
@@ -1000,7 +1003,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QsU7DMBCNAwIJMSDEioTEionrKCFUZUiBFirBFAJMKKQuqerYIXGKEB_ByMoPVHwBKxvfg9hQxDkQwRv8zvfene-MjG8sAytWKHw9FsOxuEGQI8bSb3Ua8ZKZkFnQipww0TI05oEdsu02LLS2zAG3CEH_NaPNmx6wkCnDgqk7mU903TpwolTWtiwu44gnslBtj3iOlWcxLnP-UDlQdSL99GFwtAbhY-djtvnemb0-OS-fFybdfXuO0SpaBDmoZtigSK8dUNP4QfMT6vau66I_W9WqbdtbEJ5Ep_5-N-yP1PTKp2p07Dn97pmNB2Vv0LssD3bOechC_5alxd4K1EiVsBwPWcblfcqE-gJiUHqeyQEAAA==';
+			'H4sIAAAAAAAA_21QsU7DMBCNAwIJMSDEioTEionrKCFUZUiBFirBFAJMKKQuqerYIXGKEB_ByMoPVHwBKxvfg9hQxDkQwRv8zvfene-MjG8sAytWKHw9FsOxuEGQI8bSb3Ua8ZKZkFnQipww0TI05oEdsu02LLS2zAG3CEH_NaPNmx6wkCnDgqk7mU903TpwolTWtiwu44gnslBtj3iOlWcxLnP-UDlQdSL99GFwtAbhY-djtvnemb0-OS-fFybdfXuO0SpaBDmoZtigSK8dUMM0ftD8hbq_67roz1q1atv2FoQn0am_3w37IzW98qkaHXtOv3tm40HZG_Quy4Odcx6y0L9labG3AjVSJSzHQ5ZxeZ8yob4ABqxWocoBAAA=';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {

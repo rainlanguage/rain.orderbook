@@ -405,6 +405,57 @@ impl ScenarioCfg {
 
         new_scenarios_hash
     }
+
+    fn sanitize_scenario_hash(scenario_hash: &Hash) -> Hash {
+        let mut sanitized = Hash::new();
+
+        for allowed_key in ALLOWED_SCENARIO_KEYS.iter() {
+            let key_yaml = StrictYaml::String(allowed_key.to_string());
+            if let Some(v) = scenario_hash.get(&key_yaml) {
+                if *allowed_key == "scenarios" {
+                    if let StrictYaml::Hash(ref nested_scenarios) = *v {
+                        let sanitized_nested = Self::sanitize_scenarios_hash(nested_scenarios);
+                        sanitized.insert(key_yaml, StrictYaml::Hash(sanitized_nested));
+                    } else {
+                        sanitized.insert(key_yaml, v.clone());
+                    }
+                } else {
+                    sanitized.insert(key_yaml, v.clone());
+                }
+            }
+        }
+
+        sanitized
+    }
+
+    fn sanitize_scenarios_hash(scenarios_hash: &Hash) -> Hash {
+        let mut sanitized_scenarios: Vec<(String, StrictYaml)> = Vec::new();
+
+        for (scenario_key, scenario_value) in scenarios_hash {
+            let Some(scenario_key_str) = scenario_key.as_str() else {
+                continue;
+            };
+
+            let StrictYaml::Hash(ref scenario_hash) = *scenario_value else {
+                continue;
+            };
+
+            let sanitized_scenario = Self::sanitize_scenario_hash(scenario_hash);
+            sanitized_scenarios.push((
+                scenario_key_str.to_string(),
+                StrictYaml::Hash(sanitized_scenario),
+            ));
+        }
+
+        sanitized_scenarios.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+        let mut new_scenarios_hash = Hash::new();
+        for (key, value) in sanitized_scenarios {
+            new_scenarios_hash.insert(StrictYaml::String(key), value);
+        }
+
+        new_scenarios_hash
+    }
 }
 
 impl YamlParsableHash for ScenarioCfg {

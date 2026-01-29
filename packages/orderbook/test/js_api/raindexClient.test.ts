@@ -12,13 +12,18 @@ import {
 	SgAddOrderWithOrder,
 	SgRemoveOrderWithOrder,
 	Hex,
-	Float
+	Float,
+	OrderbookYaml
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
+
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 
 const CHAIN_ID_1_ORDERBOOK_ADDRESS = '0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6';
 const CHAIN_ID_2_ORDERBOOK_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed';
 const YAML = `
+version: ${SPEC_VERSION}
+
 networks:
     some-network:
         rpcs:
@@ -305,74 +310,155 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			removeEvents: []
 		} as unknown as SgOrder;
 
-		// TODO: Issue #1989
-		// const order3 = {
-		// 	id: '0x0123',
-		// 	orderBytes:
-		// 		'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
-		// 	orderHash: '0x0123',
-		// 	owner: '0x0000000000000000000000000000000000000000',
-		// 	outputs: [
-		// 		{
-		// 			id: '0x0123',
-		// 			token: {
-		// 				id: '0x0123',
-		// 				address: '0x1111111111111111111111111111111111111111',
-		// 				name: 'Token One',
-		// 				symbol: 'TK1',
-		// 				decimals: '18'
-		// 			},
-		// 			balance: '0x0',
-		// 			vaultId: '0x0123',
-		// 			owner: '0x0000000000000000000000000000000000000000',
-		// 			ordersAsOutput: [],
-		// 			ordersAsInput: [],
-		// 			balanceChanges: [],
-		// 			orderbook: {
-		// 				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
-		// 			}
-		// 		}
-		// 	],
-		// 	inputs: [
-		// 		{
-		// 			id: '0x0234',
-		// 			token: {
-		// 				id: '0x0234',
-		// 				address: '0x2222222222222222222222222222222222222222',
-		// 				name: 'Token Two',
-		// 				symbol: 'TK2',
-		// 				decimals: '18'
-		// 			},
-		// 			balance: '0x0',
-		// 			vaultId: '0x0234',
-		// 			owner: '0x0000000000000000000000000000000000000000',
-		// 			ordersAsOutput: [],
-		// 			ordersAsInput: [],
-		// 			balanceChanges: [],
-		// 			orderbook: {
-		// 				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
-		// 			}
-		// 		}
-		// 	],
-		// 	active: true,
-		// 	addEvents: [
-		// 		{
-		// 			transaction: {
-		// 				blockNumber: '0',
-		// 				timestamp: '0',
-		// 				id: '0x0123',
-		// 				from: '0x0000000000000000000000000000000000000000'
-		// 			}
-		// 		}
-		// 	],
-		// 	meta: null,
-		// 	timestampAdded: '0',
-		// 	orderbook: {
-		// 		id: CHAIN_ID_1_ORDERBOOK_ADDRESS
-		// 	},
-		// 	trades: [],
-		// 	removeEvents: []
-		// } as unknown as SgOrder;
+		const BYTES32_VOL_ORDER = `0x${'0'.repeat(60)}3456`;
+		const floatZero = (Float.parse('0').value as Float).asHex();
+		const float50 = (Float.parse('50').value as Float).asHex();
+		const float100 = (Float.parse('100').value as Float).asHex();
+
+		const order3 = {
+			id: BYTES32_VOL_ORDER,
+			orderBytes:
+				'0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000005f6c104ca9812ef91fe2e26a2e7187b92d3b0e800000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000022009cd210f509c66e18fab61fd30f76fb17c6c6cd09f0972ce0815b5b7630a1b050000000000000000000000005fb33d710f8b58de4c9fdec703b5c2487a5219d600000000000000000000000084c6e7f5a1e5dd89594cc25bef4722a1b8871ae600000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000075000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000015020000000c02020002011000000110000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000001d80c49bbbcd1c0911346656b529df9e5c2f783d0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372000000000000000000000000000000000000000000000000000000000000000100000000000000000000000012e605bc104e93b45e1ad99f9e555f659051c2bb0000000000000000000000000000000000000000000000000000000000000012f5bb1bfe104d351d99dcce1ccfb041ff244a2d3aaf83bd5c4f3fe20b3fceb372',
+			orderHash: BYTES32_VOL_ORDER,
+			owner: '0x0000000000000000000000000000000000000000',
+			outputs: [
+				{
+					id: BYTES32_0123,
+					token: {
+						id: BYTES32_0123,
+						address: '0x1111111111111111111111111111111111111111',
+						name: 'Token One',
+						symbol: 'TK1',
+						decimals: '18'
+					},
+					balance: floatZero,
+					vaultId: BYTES32_0123,
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			inputs: [
+				{
+					id: BYTES32_0234,
+					token: {
+						id: BYTES32_0234,
+						address: '0x2222222222222222222222222222222222222222',
+						name: 'Token Two',
+						symbol: 'TK2',
+						decimals: '18'
+					},
+					balance: floatZero,
+					vaultId: BYTES32_0234,
+					owner: '0x0000000000000000000000000000000000000000',
+					ordersAsOutput: [],
+					ordersAsInput: [],
+					balanceChanges: [],
+					orderbook: {
+						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					}
+				}
+			],
+			active: true,
+			addEvents: [
+				{
+					transaction: {
+						blockNumber: '0',
+						timestamp: '0',
+						id: BYTES32_VOL_ORDER,
+						from: '0x0000000000000000000000000000000000000000'
+					}
+				}
+			],
+			meta: null,
+			timestampAdded: '0',
+			orderbook: {
+				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+			},
+			trades: [],
+			removeEvents: []
+		} as unknown as SgOrder;
+
+		const mockVolumeTradesList: SgTrade[] = [
+			{
+				id: '0x07db8b3f3e7498f9d4d0e40b98f57c020d3d277516e86023a8200a20464d4895',
+				timestamp: '1632000000',
+				tradeEvent: {
+					sender: '0x0000000000000000000000000000000000000000',
+					transaction: {
+						id: BYTES32_ZERO,
+						from: '0x0000000000000000000000000000000000000000',
+						timestamp: '1632000000',
+						blockNumber: '0'
+					}
+				},
+				outputVaultBalanceChange: {
+					amount: float100,
+					vault: {
+						id: BYTES32_0123,
+						vaultId: BYTES32_0123,
+						token: {
+							id: BYTES32_0123,
+							address: '0x1111111111111111111111111111111111111111',
+							name: 'Token One',
+							symbol: 'TK1',
+							decimals: '18'
+						}
+					},
+					id: 'output-change-vol-1',
+					__typename: 'TradeVaultBalanceChange',
+					newVaultBalance: floatZero,
+					oldVaultBalance: float100,
+					timestamp: '1632000000',
+					transaction: {
+						id: BYTES32_ZERO,
+						from: '0x0000000000000000000000000000000000000000',
+						timestamp: '1632000000',
+						blockNumber: '0'
+					},
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
+				},
+				order: {
+					id: BYTES32_VOL_ORDER,
+					orderHash: BYTES32_VOL_ORDER
+				},
+				inputVaultBalanceChange: {
+					amount: float50,
+					vault: {
+						id: BYTES32_0234,
+						vaultId: BYTES32_0234,
+						token: {
+							id: BYTES32_0234,
+							address: '0x2222222222222222222222222222222222222222',
+							name: 'Token Two',
+							symbol: 'TK2',
+							decimals: '18'
+						}
+					},
+					id: 'input-change-vol-1',
+					__typename: 'TradeVaultBalanceChange',
+					newVaultBalance: float50,
+					oldVaultBalance: floatZero,
+					timestamp: '1632000000',
+					transaction: {
+						id: BYTES32_ZERO,
+						from: '0x0000000000000000000000000000000000000000',
+						timestamp: '1632000000',
+						blockNumber: '0'
+					},
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
+				},
+				orderbook: {
+					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				}
+			}
+		] as unknown as SgTrade[];
 
 		const mockOrderTradesList: SgTrade[] = [
 			{
@@ -411,7 +497,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				order: {
 					id: order1.id,
@@ -441,7 +528,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
@@ -494,7 +582,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
-				}
+				},
+				trade: { tradeEvent: { __typename: 'TakeOrder' } }
 			},
 			inputVaultBalanceChange: {
 				id: '0x0234',
@@ -522,7 +611,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
-				}
+				},
+				trade: { tradeEvent: { __typename: 'TakeOrder' } }
 			}
 		} as unknown as SgTrade;
 
@@ -616,69 +706,68 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(order.vaultsList.items[2].token.decimals, '0');
 		});
 
-		// it('should get the total volume for an order', async () => {
-		// 	await mockServer
-		// 		.forPost('/sg1')
-		// 		.once()
-		// 		.thenReply(200, JSON.stringify({ data: { orders: [order3] } }));
-		// 	await mockServer
-		// 		.forPost('/sg1')
-		// 		.once()
-		// 		.thenReply(
-		// 			200,
-		// 			JSON.stringify({
-		// 				data: {
-		// 					trades: mockOrderTradesList
-		// 				}
-		// 			})
-		// 		);
-		// 	await mockServer.forPost('/sg1').thenReply(
-		// 		200,
-		// 		JSON.stringify({
-		// 			data: {
-		// 				trades: []
-		// 			}
-		// 		})
-		// 	);
+		it('should get the total volume for an order', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(200, JSON.stringify({ data: { orders: [order3] } }));
+			await mockServer
+				.forPost('/sg1')
+				.once()
+				.thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							trades: mockVolumeTradesList
+						}
+					})
+				);
+			await mockServer.forPost('/sg1').thenReply(
+				200,
+				JSON.stringify({
+					data: {
+						trades: []
+					}
+				})
+			);
 
-		// // 	const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
-		// // 	const order = extractWasmEncodedData(
-		// // 		await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
-		// // 	);
-		// // 	const result = await order.getVaultsVolume(BigInt(1632000000), BigInt(1734571449));
-		// // 	if (result.error) assert.fail('expected to resolve, but failed');
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_VOL_ORDER)
+			);
+			const result = extractWasmEncodedData(await order.getVaultsVolume());
+			assert.equal(result.length, 2);
 
-		// 	assert.equal(result.value.length, 2);
-		// 	assert.equal(result.value[0].id, '0x0234');
-		// 	assert.equal(result.value[0].token.id, '0x0234');
-		// 	assert.equal(result.value[0].token.address, '0x2222222222222222222222222222222222222222');
-		// 	assert.equal(result.value[0].token.name, 'Token Two');
-		// 	assert.equal(result.value[0].token.symbol, 'TK2');
-		// 	assert.equal(result.value[0].token.decimals, BigInt(18));
-		// 	assert.equal(result.value[0].details.netVol, BigInt('0x2b5e3af16b1880000'));
-		// 	assert.equal(result.value[0].details.formattedNetVol, '50');
-		// 	assert.equal(result.value[0].details.totalIn, BigInt('0x2b5e3af16b1880000'));
-		// 	assert.equal(result.value[0].details.formattedTotalIn, '50');
-		// 	assert.equal(result.value[0].details.totalOut, BigInt('0x0'));
-		// 	assert.equal(result.value[0].details.formattedTotalOut, '0');
-		// 	assert.equal(result.value[0].details.totalVol, BigInt('0x2b5e3af16b1880000'));
-		// 	assert.equal(result.value[0].details.formattedTotalVol, '50');
+			assert.equal(result[0].id, BigInt(BYTES32_0234));
+			assert.equal(result[0].token.id, BYTES32_0234);
+			assert.equal(result[0].token.address, '0x2222222222222222222222222222222222222222');
+			assert.equal(result[0].token.name, 'Token Two');
+			assert.equal(result[0].token.symbol, 'TK2');
+			assert.equal(result[0].token.decimals, BigInt(18));
+			assert.equal(result[0].details.netVol.format().value, '50');
+			assert.equal(result[0].details.formattedNetVol, '50');
+			assert.equal(result[0].details.totalIn.format().value, '50');
+			assert.equal(result[0].details.formattedTotalIn, '50');
+			assert.equal(result[0].details.totalOut.format().value, '0');
+			assert.equal(result[0].details.formattedTotalOut, '0');
+			assert.equal(result[0].details.totalVol.format().value, '50');
+			assert.equal(result[0].details.formattedTotalVol, '50');
 
-		// 	assert.equal(result.value[1].id, '0x0123');
-		// 	assert.equal(result.value[1].token.id, '0x0123');
-		// 	assert.equal(result.value[1].token.address, '0x1111111111111111111111111111111111111111');
-		// 	assert.equal(result.value[1].token.name, 'Token One');
-		// 	assert.equal(result.value[1].token.symbol, 'TK1');
-		// 	assert.equal(result.value[1].token.decimals, BigInt(18));
-		// 	assert.equal(result.value[1].details.netVol, BigInt('0x56bc75e2d63100000'));
-		// 	assert.equal(result.value[1].details.formattedNetVol, '100');
-		// 	assert.equal(result.value[1].details.totalIn, BigInt('0x0'));
-		// 	assert.equal(result.value[1].details.formattedTotalIn, '0');
-		// 	assert.equal(result.value[1].details.totalOut, BigInt('0x56bc75e2d63100000'));
-		// 	assert.equal(result.value[1].details.formattedTotalOut, '100');
-		// 	assert.equal(result.value[1].details.totalVol, BigInt('0x56bc75e2d63100000'));
-		// 	assert.equal(result.value[1].details.formattedTotalVol, '100');
-		// });
+			assert.equal(result[1].id, BigInt(BYTES32_0123));
+			assert.equal(result[1].token.id, BYTES32_0123);
+			assert.equal(result[1].token.address, '0x1111111111111111111111111111111111111111');
+			assert.equal(result[1].token.name, 'Token One');
+			assert.equal(result[1].token.symbol, 'TK1');
+			assert.equal(result[1].token.decimals, BigInt(18));
+			assert.equal(result[1].details.netVol.format().value, '100');
+			assert.equal(result[1].details.formattedNetVol, '100');
+			assert.equal(result[1].details.totalIn.format().value, '100');
+			assert.equal(result[1].details.formattedTotalIn, '100');
+			assert.equal(result[1].details.totalOut.format().value, '0');
+			assert.equal(result[1].details.formattedTotalOut, '0');
+			assert.equal(result[1].details.totalVol.format().value, '100');
+			assert.equal(result[1].details.formattedTotalVol, '100');
+		});
 
 		// TODO: Issue #1989
 		// it('should calculate order performance metrics given an order id and subgraph', async () => {
@@ -1569,6 +1658,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		it('should fetch vault balance changes', async () => {
 			const mockVaultBalanceChanges = [
 				{
+					id: '0xdepositid0001',
 					__typename: 'Deposit',
 					amount: '0x0000000000000000000000000000000000000000000000000000000000000005',
 					newVaultBalance: '0x0000000000000000000000000000000000000000000000000000000000000005',
@@ -1983,7 +2073,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getTransaction(CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+				await raindexClient.getTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
 			);
 			assert.equal(result.id, transaction.id);
 			assert.equal(result.from, transaction.from);

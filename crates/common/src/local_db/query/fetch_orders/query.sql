@@ -96,6 +96,7 @@ FROM (
     WHERE 1 = 1
       /*MAIN_CHAIN_IDS_CLAUSE*/
       /*MAIN_ORDERBOOKS_CLAUSE*/
+      /*TX_HASH_CLAUSE*/
   ) latest
   WHERE latest.row_rank_latest = 1
 ) l
@@ -295,7 +296,8 @@ WHERE
   )
 /*OWNERS_CLAUSE*/
 /*ORDER_HASH_CLAUSE*/
-/*TOKENS_CLAUSE*/
+/*INPUT_TOKENS_CLAUSE*/
+/*OUTPUT_TOKENS_CLAUSE*/
 GROUP BY
   l.chain_id,
   COALESCE(la.order_hash, l.order_hash),

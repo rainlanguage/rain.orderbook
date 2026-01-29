@@ -11,13 +11,16 @@
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownOrderListAccounts from './dropdown/DropdownOrderListAccounts.svelte';
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
+	import DropdownOrderbooksFilter from './dropdown/DropdownOrderbooksFilter.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
+	import CheckboxInactiveOrdersVault from './CheckboxInactiveOrdersVault.svelte';
 	import CheckboxMyItemsOnly from '$lib/components/CheckboxMyItemsOnly.svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let hideInactiveOrdersVaults: AppStoresInterface['hideInactiveOrdersVaults'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
@@ -26,6 +29,8 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedTokens: Address[];
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
+	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
+	export let selectedOrderbookAddresses: Address[];
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
 	$: isOrdersPage = $page.url.pathname === '/orders';
@@ -58,6 +63,9 @@
 			<div class="mt-4 w-full lg:w-auto">
 				<CheckboxZeroBalanceVault {hideZeroBalanceVaults} />
 			</div>
+			<div class="mt-4 w-full lg:w-auto">
+				<CheckboxInactiveOrdersVault {hideInactiveOrdersVaults} />
+			</div>
 		{/if}
 
 		{#if isOrdersPage}
@@ -70,6 +78,12 @@
 			<DropdownOrderListAccounts {activeAccountsItems} />
 		{/if}
 		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
+		<DropdownOrderbooksFilter
+			{activeOrderbookAddresses}
+			{selectedOrderbookAddresses}
+			selectedChainIds={$selectedChainIds}
+			label="Orderbooks"
+		/>
 		<DropdownActiveNetworks {selectedChainIds} />
 	{/if}
 </div>
