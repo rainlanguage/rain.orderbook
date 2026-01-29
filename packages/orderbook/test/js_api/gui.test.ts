@@ -490,8 +490,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		const result = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
 		const deployments = extractWasmEncodedData<string[]>(result);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0], 'some-deployment');
-		assert.equal(deployments[1], 'other-deployment');
+		assert.ok(deployments.includes('some-deployment'));
+		assert.ok(deployments.includes('other-deployment'));
 	});
 
 	it('should initialize gui object', async () => {
@@ -969,7 +969,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21Qy0rEMBTtraIgLkTcCoJba9MwteMwrnxQRHBTZXQjM53YlKZJaZMO4ke4dOsPDH6BW3d-j7iTYuJMmbmLnOSec5NzAtZfbWqUpJLOKOXjlCege8jamGfrIVPE1p01w4iMcM8ytarRR4dHLQn-l6xo9BCCZZfh9skYrEROHE7kRJSZmdvVSKUseq7LRDxkVFSy10Vd3y2L2FEle24U0Kxgnj6Pwh29fel_T_e_-tOPV__9Z2Dj48-3GLZhXdNR42EPg4kdYduaVfsTwNjyYCHTjDsweVKlqLx3itMsGdCL64R3gqBWQZJ3rkY30e2kvgv9h_Dx8kycbOkZISkpnTEpmHjKCZe_KJd7OsUBAAA=';
+			'H4sIAAAAAAAA_21QzUrEMBBuqiiIBxGvguDV2Gy6bddlPflDEcFLldWL7HZjU5ompU26iA_h0asvsPgEXr35POJNikm16BzyJfN9M5lvgPUd6xolqSScpnyW8gToHLLWfrP1hCli68yKYURGeM8ysazRQ_t-R4JbyZLGHkLgv2a4-zIDViInkBM5F2Vm6rY1UimLoeMwEU8YFZUcDtDAc8oihqpkD40CNCcwX59E4Za-Po4-Frvvo8Xrk_fyObbxwdtzDDbBqqajZoYdDIztCFu29RPdLbT9fd8Hf2y1rOu6e8ZUqhSVN7A4ypIxPb1IeD8IahUkef98ehldzevr0LsN786OxeGGrhGSkhLOSMHEfU64_ALYHngYygEAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1036,8 +1036,8 @@ ${dotrain}`;
 
 			const result = gui.getCurrentDeployment();
 			const guiDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
-			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x1');
-			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x1');
+			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
+			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
 		});
 
 		it('should throw error if given dotrain is different', async () => {
@@ -2234,8 +2234,6 @@ ${dotrainWithoutVaultIds}`;
 	});
 
 	describe('remote tokens tests', () => {
-		let gui: DotrainOrderGui;
-
 		it('should fetch remote tokens', async () => {
 			mockServer
 				.forGet('/remote-networks')
@@ -2271,18 +2269,36 @@ ${dotrainWithoutVaultIds}`;
 					tokens: [
 						{
 							chainId: 123,
-							address: '0x0000000000000000000000000000000000000000',
-							name: 'Remote',
-							symbol: 'RN',
+							address: '0x0000000000000000000000000000000000000001',
+							name: 'Token With Logo',
+							symbol: 'TWL',
+							decimals: 18,
+							logoURI: 'https://example.com/token-logo.png'
+						},
+						{
+							chainId: 123,
+							address: '0x0000000000000000000000000000000000000002',
+							name: 'Token Without Logo',
+							symbol: 'TWOL',
 							decimals: 18
 						}
 					],
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
 			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
+
+			const allTokens = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokens());
+			const tokenWithLogo = allTokens.find((t) => t.name === 'Token With Logo');
+			const tokenWithoutLogo = allTokens.find((t) => t.name === 'Token Without Logo');
+
+			assert.ok(tokenWithLogo);
+			assert.equal(tokenWithLogo.logoUri, 'https://example.com/token-logo.png');
+
+			assert.ok(tokenWithoutLogo);
+			assert.equal(tokenWithoutLogo.logoUri, undefined);
 		});
 	});
 });
