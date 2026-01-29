@@ -15,11 +15,15 @@
 		LocalDbProvider
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
+	import { validChainIds } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
+	import { onDestroy, onMount } from 'svelte';
+	import { updateStatus } from '$lib/stores/localDbStatus';
+	import type { RaindexClient } from '@rainlanguage/orderbook';
 
-	const { errorMessage, localDb, raindexClient } = $page.data;
+	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data;
 
 	// Query client for caching
 	const queryClient = new QueryClient({
@@ -31,6 +35,21 @@
 	});
 
 	let walletInitError: string | null = null;
+
+	onMount(() => {
+		if (!browser || !raindexClient || !localDb) return;
+		let client = raindexClient as RaindexClient;
+		client.startLocalDbScheduler(settingsYamlText, updateStatus);
+
+		const uniqueChainIds = client.getUniqueChainIds();
+		if (!uniqueChainIds.error) {
+			validChainIds.set(uniqueChainIds.value);
+		}
+	});
+	onDestroy(() => {
+		if (!raindexClient) return;
+		raindexClient.stopLocalDbScheduler();
+	});
 
 	$: if (browser && window.navigator) {
 		initWallet().then((error) => {

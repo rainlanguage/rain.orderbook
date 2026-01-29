@@ -16,8 +16,8 @@ pub fn fetch_store_addresses_stmt(ob_id: &OrderbookIdentifier) -> SqlStatement {
     SqlStatement::new_with_params(
         FETCH_STORE_ADDRESSES_SQL,
         [
-            SqlValue::from(ob_id.chain_id as u64),
-            SqlValue::from(ob_id.orderbook_address.to_string()),
+            SqlValue::from(ob_id.chain_id),
+            SqlValue::from(ob_id.orderbook_address),
         ],
     )
 }
@@ -34,6 +34,6 @@ mod tests {
         assert!(stmt
             .sql
             .to_lowercase()
-            .contains("select distinct lower(store_address)"));
+            .contains("select distinct store_address"));
     }
 }

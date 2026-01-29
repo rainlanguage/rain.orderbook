@@ -1,3 +1,4 @@
+use super::functions;
 use async_trait::async_trait;
 use rain_orderbook_common::local_db::query::{
     FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch, SqlValue,
@@ -7,6 +8,7 @@ use serde_json::{json, Map, Value};
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use tokio::task::spawn_blocking;
 
 pub struct RusqliteExecutor {
     db_path: PathBuf,
@@ -31,14 +33,6 @@ impl RusqliteExecutor {
         }
     }
 
-    fn open_connection(&self) -> Result<Connection, LocalDbQueryError> {
-        let conn = Connection::open(&self.db_path)
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
-        conn.busy_timeout(Duration::from_millis(500))
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
-        Ok(conn)
-    }
-
     fn invoke_statement(conn: &Connection, stmt: &SqlStatement) -> Result<(), LocalDbQueryError> {
         if stmt.params().is_empty() {
             conn.execute_batch(stmt.sql())
@@ -57,6 +51,21 @@ impl RusqliteExecutor {
     }
 }
 
+fn open_connection(db_path: &Path) -> Result<Connection, LocalDbQueryError> {
+    let conn = Connection::open(db_path)
+        .map_err(|e| LocalDbQueryError::database(format!("Failed to open database: {e}")))?;
+    conn.busy_timeout(Duration::from_millis(500))
+        .map_err(|e| LocalDbQueryError::database(format!("Failed to set busy_timeout: {e}")))?;
+    functions::register_all(&conn).map_err(|e| {
+        LocalDbQueryError::database(format!("Failed to register sqlite functions: {e}"))
+    })?;
+    Ok(conn)
+}
+
+fn join_err(err: tokio::task::JoinError) -> LocalDbQueryError {
+    LocalDbQueryError::database(format!("Blocking task failed: {err}"))
+}
+
 #[async_trait(?Send)]
 impl LocalDbQueryExecutor for RusqliteExecutor {
     async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
@@ -66,74 +75,92 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
             ));
         }
 
-        let conn = self.open_connection()?;
-
-        for stmt in batch {
-            if let Err(err) = Self::invoke_statement(&conn, stmt) {
-                let _ = conn.execute_batch("ROLLBACK");
-                return Err(err);
+        let db_path = self.db_path.clone();
+        let batch = batch.clone();
+        spawn_blocking(move || {
+            let conn = open_connection(&db_path)?;
+            for stmt in &batch {
+                if let Err(err) = RusqliteExecutor::invoke_statement(&conn, stmt) {
+                    let _ = conn.execute_batch("ROLLBACK");
+                    return Err(err);
+                }
             }
-        }
-
-        Ok(())
+            Ok(())
+        })
+        .await
+        .map_err(join_err)?
     }
 
     async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
-        let conn = self.open_connection()?;
-        Self::invoke_statement(&conn, stmt)?;
-        Ok(String::new())
+        let db_path = self.db_path.clone();
+        let stmt = stmt.clone();
+        spawn_blocking(move || {
+            let conn = open_connection(&db_path)?;
+            RusqliteExecutor::invoke_statement(&conn, &stmt)?;
+            Ok(String::new())
+        })
+        .await
+        .map_err(join_err)?
     }
 
     async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
     where
         T: FromDbJson,
     {
-        let conn = self.open_connection()?;
-        let mut s = conn
-            .prepare(stmt.sql())
-            .map_err(|e| LocalDbQueryError::database(format!("Failed to prepare query: {e}")))?;
-        let column_names: Vec<String> = (0..s.column_count())
-            .map(|i| {
-                let raw = s.column_name(i).unwrap_or("");
-                let trimmed = raw.trim();
-                if trimmed.is_empty() {
-                    format!("column_{}", i)
-                } else {
-                    trimmed.to_string()
-                }
-            })
-            .collect();
+        let db_path = self.db_path.clone();
+        let stmt = stmt.clone();
 
-        let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
-        let params = rusqlite::params_from_iter(bound);
+        let json_value = spawn_blocking(move || {
+            let conn = open_connection(&db_path)?;
+            let mut s = conn.prepare(stmt.sql()).map_err(|e| {
+                LocalDbQueryError::database(format!("Failed to prepare query: {e}"))
+            })?;
+            let column_names: Vec<String> = (0..s.column_count())
+                .map(|i| {
+                    let raw = s.column_name(i).unwrap_or("");
+                    let trimmed = raw.trim();
+                    if trimmed.is_empty() {
+                        format!("column_{}", i)
+                    } else {
+                        trimmed.to_string()
+                    }
+                })
+                .collect();
 
-        let rows_iter = s
-            .query_map(params, |row| {
-                let mut obj = Map::with_capacity(column_names.len());
-                for (i, name) in column_names.iter().enumerate() {
-                    let v = match row.get_ref(i)? {
-                        ValueRef::Null => Value::Null,
-                        ValueRef::Integer(n) => json!(n),
-                        ValueRef::Real(f) => json!(f),
-                        ValueRef::Text(bytes) => match std::str::from_utf8(bytes) {
-                            Ok(s) => json!(s),
-                            Err(_) => json!(alloy::hex::encode_prefixed(bytes)),
-                        },
-                        ValueRef::Blob(bytes) => json!(alloy::hex::encode_prefixed(bytes)),
-                    };
-                    obj.insert(name.clone(), v);
-                }
-                Ok(Value::Object(obj))
-            })
-            .map_err(|e| LocalDbQueryError::database(format!("Query failed: {e}")))?;
+            let bound = stmt.params().iter().cloned().map(sqlvalue_to_rusqlite);
+            let params = rusqlite::params_from_iter(bound);
 
-        let mut out: Vec<Value> = Vec::new();
-        for r in rows_iter {
-            let v = r.map_err(|e| LocalDbQueryError::database(format!("Row error: {e}")))?;
-            out.push(v);
-        }
+            let rows_iter = s
+                .query_map(params, |row| {
+                    let mut obj = Map::with_capacity(column_names.len());
+                    for (i, name) in column_names.iter().enumerate() {
+                        let v = match row.get_ref(i)? {
+                            ValueRef::Null => Value::Null,
+                            ValueRef::Integer(n) => json!(n),
+                            ValueRef::Real(f) => json!(f),
+                            ValueRef::Text(bytes) => match std::str::from_utf8(bytes) {
+                                Ok(s) => json!(s),
+                                Err(_) => json!(alloy::hex::encode_prefixed(bytes)),
+                            },
+                            ValueRef::Blob(bytes) => json!(alloy::hex::encode_prefixed(bytes)),
+                        };
+                        obj.insert(name.clone(), v);
+                    }
+                    Ok(Value::Object(obj))
+                })
+                .map_err(|e| LocalDbQueryError::database(format!("Query failed: {e}")))?;
 
-        let json_value = Value::Array(out);
+            let mut out: Vec<Value> = Vec::new();
+            for r in rows_iter {
+                let v = r.map_err(|e| LocalDbQueryError::database(format!("Row error: {e}")))?;
+                out.push(v);
+            }
+
+            Ok::<_, LocalDbQueryError>(Value::Array(out))
+        })
+        .await
+        .map_err(join_err)??;
+
         serde_json::from_value::<T>(json_value)
             .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
     }

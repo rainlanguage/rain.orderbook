@@ -4,12 +4,14 @@ export { default as Hash, HashType } from './components/Hash.svelte';
 export { default as TanstackAppTable } from './components/TanstackAppTable.svelte';
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
 export { default as DropdownTokensFilter } from './components/dropdown/DropdownTokensFilter.svelte';
+export { default as DropdownOrderbooksFilter } from './components/dropdown/DropdownOrderbooksFilter.svelte';
 export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
 export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
 export { default as CheckboxActiveOrders } from './components/checkbox/CheckboxActiveOrders.svelte';
 export { default as InputOrderHash } from './components/input/InputOrderHash.svelte';
 export { default as CheckboxZeroBalanceVault } from './components/CheckboxZeroBalanceVault.svelte';
+export { default as CheckboxInactiveOrdersVault } from './components/CheckboxInactiveOrdersVault.svelte';
 export { default as ListViewOrderbookFilters } from './components/ListViewOrderbookFilters.svelte';
 export { default as OrdersListTable } from './components/tables/OrdersListTable.svelte';
 export { default as VaultsListTable } from './components/tables/VaultsListTable.svelte';
@@ -67,6 +69,9 @@ export { default as ValidOrdersSection } from './components/deployment/ValidOrde
 export { default as InputRegistryUrl } from './components/input/InputRegistryUrl.svelte';
 export { default as TransactionList } from './components/transactions/TransactionList.svelte';
 export { default as FixedBottomTransaction } from './components/transactions/FixedBottomTransaction.svelte';
+export { default as LocalDbStatusCard } from './components/LocalDbStatusCard.svelte';
+export { default as LocalDbStatusBadge } from './components/LocalDbStatusBadge.svelte';
+export { default as LocalDbStatusModal } from './components/LocalDbStatusModal.svelte';
 
 //Types
 export type { AppStoresInterface } from './types/appStores.ts';

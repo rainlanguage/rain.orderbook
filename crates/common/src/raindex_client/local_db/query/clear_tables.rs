@@ -1,6 +1,7 @@
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::LocalDbError;
+use crate::raindex_client::local_db::executor::JsCallbackExecutor;
 use wasm_bindgen_utils::prelude::*;
 
 pub async fn clear_tables<E: LocalDbQueryExecutor + ?Sized>(
@@ -16,9 +17,10 @@ pub async fn clear_tables_wasm(
     #[wasm_export(param_description = "JavaScript function to execute database queries")]
     db_callback: js_sys::Function,
 ) -> Result<(), LocalDbError> {
-    let exec = crate::raindex_client::local_db::executor::JsCallbackExecutor::new(&db_callback);
+    let exec = JsCallbackExecutor::from_ref(&db_callback);
     clear_tables(&exec).await.map_err(LocalDbError::from)
 }
+
 #[cfg(all(test, target_family = "wasm"))]
 mod wasm_tests {
     use super::*;
@@ -36,7 +38,7 @@ mod wasm_tests {
             wasm_bindgen::JsValue::UNDEFINED,
         )));
         let callback = create_sql_capturing_callback("OK", store.clone());
-        let exec = JsCallbackExecutor::new(&callback);
+        let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::clear_tables(&exec).await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone().0, expected_sql.sql);

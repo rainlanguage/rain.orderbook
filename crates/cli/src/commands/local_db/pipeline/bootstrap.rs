@@ -1,5 +1,5 @@
 use rain_orderbook_common::local_db::{
-    pipeline::{BootstrapConfig, BootstrapPipeline},
+    pipeline::adapters::bootstrap::{BootstrapConfig, BootstrapPipeline},
     query::LocalDbQueryExecutor,
     LocalDbError,
 };
@@ -8,7 +8,6 @@ use rain_orderbook_common::local_db::{
 pub struct ProducerBootstrapAdapter;
 
 impl ProducerBootstrapAdapter {
-    #[cfg(test)]
     pub fn new() -> Self {
         Self {}
     }
@@ -23,7 +22,7 @@ impl BootstrapPipeline for ProducerBootstrapAdapter {
         self.reset_db(db, None).await?;
 
         if let Some(dump_stmt) = &config.dump_stmt {
-            db.query_text(dump_stmt).await?;
+            db.execute_batch(dump_stmt).await?;
         }
 
         Ok(())
@@ -45,14 +44,14 @@ mod tests {
     use super::*;
     use alloy::primitives::Address;
     use async_trait::async_trait;
-    use rain_orderbook_common::local_db::pipeline::BootstrapConfig;
+    use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
     use rain_orderbook_common::local_db::query::clear_tables::clear_tables_stmt;
     use rain_orderbook_common::local_db::query::create_tables::create_tables_stmt;
     use rain_orderbook_common::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
     use rain_orderbook_common::local_db::query::{
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use rain_orderbook_common::local_db::{OrderbookIdentifier, DATABASE_SCHEMA_VERSION};
+    use rain_orderbook_common::local_db::OrderbookIdentifier;
 
     const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
@@ -71,6 +70,13 @@ mod tests {
 
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
+        }
+
+        fn with_views(self) -> Self {
+            rain_orderbook_common::local_db::query::create_views::create_views_batch()
+                .statements()
+                .iter()
+                .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
     }
 
@@ -110,13 +116,15 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -125,9 +133,7 @@ mod tests {
         // Presence assertions
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-            .sql()
-            .to_string();
+        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
 
         assert!(calls.contains(&clear));
         assert!(calls.contains(&create));
@@ -140,20 +146,54 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn engine_run_executes_view_creation() {
+        let adapter = ProducerBootstrapAdapter::new();
+        let db = MockDb::default()
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_text(&create_tables_stmt(), "ok")
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
+
+        let cfg = BootstrapConfig {
+            ob_id: sample_ob_id(),
+            dump_stmt: None,
+            latest_block: 0,
+            block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
+        };
+
+        adapter.engine_run(&db, &cfg).await.unwrap();
+
+        let calls = db.calls();
+        let expected_views: Vec<String> =
+            rain_orderbook_common::local_db::query::create_views::create_views_batch()
+                .statements()
+                .iter()
+                .map(|s| s.sql().to_string())
+                .collect();
+
+        for view_stmt in expected_views {
+            assert!(calls.contains(&view_stmt), "missing view creation call");
+        }
+    }
+
+    #[tokio::test]
     async fn engine_run_resets_and_imports_dump_when_present() {
         let adapter = ProducerBootstrapAdapter::new();
         let dump_stmt = SqlStatement::new("--dump-sql");
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok")
-            .with_text(&dump_stmt, "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_text(&dump_stmt, "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
+            dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -162,9 +202,7 @@ mod tests {
         // Presence assertions
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-            .sql()
-            .to_string();
+        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
         let dump = dump_stmt.sql().to_string();
 
         assert!(calls.contains(&clear));
@@ -186,13 +224,15 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
-            dump_stmt: Some(dump_stmt.clone()),
+            dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
+            deployment_block: 1,
         };
 
         // Expect error due to missing dump mapping, after successful reset
@@ -202,9 +242,7 @@ mod tests {
         let calls = db.calls();
         let clear = clear_tables_stmt().sql().to_string();
         let create = create_tables_stmt().sql().to_string();
-        let insert = insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-            .sql()
-            .to_string();
+        let insert = insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string();
         let dump = dump_stmt.sql().to_string();
 
         assert!(calls.contains(&clear));
@@ -222,13 +260,16 @@ mod tests {
     #[tokio::test]
     async fn engine_run_propagates_reset_error() {
         let adapter = ProducerBootstrapAdapter::new();
-        let db = MockDb::default().with_text(&clear_tables_stmt(), "ok");
+        let db = MockDb::default()
+            .with_text(&clear_tables_stmt(), "ok")
+            .with_views();
 
         let cfg = BootstrapConfig {
             ob_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 1,
+            deployment_block: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
@@ -248,7 +289,7 @@ mod tests {
         let db = MockDb::default();
 
         let err = adapter
-            .runner_run(&db, Some(DATABASE_SCHEMA_VERSION))
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap_err();
         match err {

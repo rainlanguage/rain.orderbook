@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS target_watermarks (
     orderbook_address TEXT NOT NULL,
     last_block INTEGER NOT NULL DEFAULT 0,
     last_hash TEXT,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
     PRIMARY KEY (chain_id, orderbook_address)
 );
 
@@ -238,7 +238,7 @@ CREATE TABLE meta_events (
     block_timestamp INTEGER NOT NULL,
     sender TEXT NOT NULL,
     subject TEXT NOT NULL,
-    meta BLOB NOT NULL,
+    meta TEXT NOT NULL,
     PRIMARY KEY (chain_id, orderbook_address, transaction_hash, log_index)
 );
 CREATE INDEX idx_deposits_vault ON deposits(chain_id, orderbook_address, sender, token, vault_id);
@@ -297,5 +297,54 @@ CREATE TABLE interpreter_store_sets (
 CREATE INDEX idx_store_sets_store ON interpreter_store_sets(chain_id, orderbook_address, store_address);
 CREATE INDEX idx_store_sets_block ON interpreter_store_sets(chain_id, orderbook_address, block_number);
 CREATE INDEX idx_store_sets_namespace ON interpreter_store_sets(chain_id, orderbook_address, namespace);
+
+CREATE TABLE IF NOT EXISTS vault_balance_changes (
+    chain_id INTEGER NOT NULL,
+    orderbook_address TEXT NOT NULL,
+    transaction_hash TEXT NOT NULL,
+    owner TEXT NOT NULL,
+    token TEXT NOT NULL,
+    vault_id TEXT NOT NULL,
+    block_number INTEGER NOT NULL,
+    block_timestamp INTEGER NOT NULL,
+    log_index INTEGER NOT NULL,
+    change_type TEXT NOT NULL,
+    delta TEXT NOT NULL,
+    running_balance TEXT NOT NULL,
+    PRIMARY KEY (
+        chain_id,
+        orderbook_address,
+        owner,
+        token,
+        vault_id,
+        block_number,
+        log_index
+    )
+);
+CREATE INDEX idx_vbc_timestamp ON vault_balance_changes(
+    chain_id,
+    orderbook_address,
+    owner,
+    token,
+    vault_id,
+    block_timestamp DESC,
+    block_number DESC,
+    log_index DESC
+);
+
+CREATE TABLE IF NOT EXISTS running_vault_balances (
+    chain_id INTEGER NOT NULL,
+    orderbook_address TEXT NOT NULL,
+    owner TEXT NOT NULL,
+    token TEXT NOT NULL,
+    vault_id TEXT NOT NULL,
+    balance TEXT NOT NULL,
+    last_block INTEGER NOT NULL,
+    last_log_index INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INTEGER) * 1000),
+    PRIMARY KEY (chain_id, orderbook_address, owner, token, vault_id)
+);
+CREATE INDEX idx_rvb_owner ON running_vault_balances(chain_id, orderbook_address, owner);
+CREATE INDEX idx_rvb_token ON running_vault_balances(chain_id, orderbook_address, token, vault_id);
 
 COMMIT;

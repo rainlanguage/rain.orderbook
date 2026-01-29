@@ -5,37 +5,47 @@ use crate::local_db::insert::{
     generate_erc20_token_statements as build_token_upserts,
     raw_events_to_statements as build_raw_event_sql,
 };
-use crate::local_db::pipeline::ApplyPipeline;
 use crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow;
-use crate::local_db::query::update_last_synced_block::build_update_last_synced_block_stmt;
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
+use crate::local_db::query::upsert_target_watermark::upsert_target_watermark_stmt;
+use crate::local_db::query::upsert_vault_balances::upsert_vault_balances_batch;
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement, SqlStatementBatch};
 use crate::local_db::OrderbookIdentifier;
 use crate::local_db::{decode::DecodedEventData, LocalDbError};
 use crate::rpc_client::LogEntryResponse;
-use alloy::primitives::Address;
+use alloy::primitives::{Address, B256};
 use async_trait::async_trait;
 use std::collections::HashMap;
 
-/// Default implementation of the ApplyPipeline.
-///
-/// - Translates fetched/decoded inputs into SQL using existing builders.
-/// - Wraps statements in a transaction and persists via the shared executor.
-/// - Export hook is a no-op; producers can override in their adapter.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct DefaultApplyPipeline;
-
-impl DefaultApplyPipeline {
-    pub const fn new() -> Self {
-        Self
-    }
+#[derive(Debug, Clone)]
+pub struct ApplyPipelineTargetInfo {
+    pub ob_id: OrderbookIdentifier,
+    pub start_block: u64,
+    pub target_block: u64,
+    pub hash: B256,
 }
 
+/// Translates fetched/decoded data into SQL and persists it atomically.
+///
+/// Responsibilities (concrete):
+/// - Build a transactional batch containing:
+///   - Raw events INSERTs.
+///   - Token upserts for provided `(Address, TokenInfo)` pairs.
+///   - Decoded event INSERTs for all orderbook-scoped tables, binding the
+///     target orderbook.
+///   - Vault balance change/running balance upserts.
+///   - Watermark update to the `target_block` (and later last hash).
+/// - Persist the batch with a single-writer gate; must assert that the batch
+///   is transaction-wrapped and fail if not.
+///
+/// Policy (environment-specific): Dump export after a successful persist
+/// (producer only); browser is no-op.
 #[async_trait(?Send)]
-impl ApplyPipeline for DefaultApplyPipeline {
+pub trait ApplyPipeline {
+    /// Builds the SQL batch for a cycle. The batch must be suitable for
+    /// atomic execution (the caller will ensure single-writer semantics).
     fn build_batch(
         &self,
-        ob_id: &OrderbookIdentifier,
-        target_block: u64,
+        target_info: &ApplyPipelineTargetInfo,
         raw_logs: &[LogEntryResponse],
         decoded_events: &[DecodedEventData<DecodedEvent>],
         existing_tokens: &[Erc20TokenRow],
@@ -56,26 +66,45 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let mut batch = SqlStatementBatch::new();
 
         // Raw events first
-        let raw_batch = build_raw_event_sql(ob_id, raw_logs)?;
+        let raw_batch = build_raw_event_sql(&target_info.ob_id, raw_logs)?;
         batch.extend(raw_batch);
 
         // Token upserts for the missing set only
         if !tokens_to_upsert.is_empty() {
-            let upserts = build_token_upserts(ob_id, tokens_to_upsert);
+            let upserts = build_token_upserts(&target_info.ob_id, tokens_to_upsert);
             batch.extend(upserts);
         }
 
         // Decoded orderbook/store events
-        let decoded_batch = build_decoded_event_sql(ob_id, decoded_events, &decimals_by_token)?;
+        let decoded_batch =
+            build_decoded_event_sql(&target_info.ob_id, decoded_events, &decimals_by_token)?;
         batch.extend(decoded_batch);
 
-        // Watermark update to target block
-        batch.add(build_update_last_synced_block_stmt(ob_id, target_block));
+        // Vault balance change/running balance updates
+        if target_info.start_block <= target_info.target_block {
+            batch.extend(upsert_vault_balances_batch(
+                &target_info.ob_id,
+                target_info.start_block,
+                target_info.target_block,
+            ));
+        }
 
-        // Ensure atomicity
-        Ok(batch.ensure_transaction())
+        // Watermark update to target block
+        batch.add(upsert_target_watermark_stmt(
+            &target_info.ob_id,
+            target_info.target_block,
+            target_info.hash.into(),
+        ));
+
+        // Ensure SQLite planner stats are up to date so reads don't suffer from
+        // poor query plans.
+        batch.add(SqlStatement::new("ANALYZE"));
+
+        Ok(batch)
     }
 
+    /// Persists the previously built batch. Implementations must assert that
+    /// the input is wrapped in a transaction and return an error otherwise.
     async fn persist<DB>(&self, db: &DB, batch: &SqlStatementBatch) -> Result<(), LocalDbError>
     where
         DB: LocalDbQueryExecutor + ?Sized,
@@ -83,13 +112,57 @@ impl ApplyPipeline for DefaultApplyPipeline {
         let stmts = batch.clone().ensure_transaction();
         db.execute_batch(&stmts).await.map_err(LocalDbError::from)
     }
+
+    /// Optional policy hook to export dumps after a successful persist.
+    /// Default implementation is a no-op.
+    async fn export_dump<DB>(
+        &self,
+        _db: &DB,
+        _ob_id: &OrderbookIdentifier,
+        _end_block: u64,
+    ) -> Result<(), LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        Ok(())
+    }
 }
+
+/// Default apply adapter using the trait's provided behavior.
+#[derive(Debug, Clone, Default)]
+pub struct DefaultApplyPipeline;
+
+impl DefaultApplyPipeline {
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+#[async_trait(?Send)]
+impl ApplyPipeline for DefaultApplyPipeline {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::local_db::query::{LocalDbQueryError, SqlStatement};
-    use alloy::primitives::U256;
+    use crate::local_db::query::{LocalDbQueryError, SqlStatement, SqlValue};
+    use crate::local_db::OrderbookIdentifier;
+    use alloy::primitives::{b256, Bytes, B256, U256};
+
+    const SAMPLE_HASH_B256: B256 =
+        b256!("0x111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000");
+
+    fn build_target_info(
+        ob_id: &OrderbookIdentifier,
+        start_block: u64,
+        target_block: u64,
+    ) -> ApplyPipelineTargetInfo {
+        ApplyPipelineTargetInfo {
+            ob_id: ob_id.clone(),
+            start_block,
+            target_block,
+            hash: SAMPLE_HASH_B256,
+        }
+    }
 
     struct MockDb {
         // capture executed SQL for assertions
@@ -149,7 +222,9 @@ mod tests {
             event_type: EventType::DepositV2,
             block_number: U256::from(1),
             block_timestamp: U256::from(2),
-            transaction_hash: "0xabc".into(),
+            transaction_hash: b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000abc"
+            ),
             log_index: U256::ZERO,
             decoded_data: DecodedEvent::DepositV2(Box::new(DepositV2 {
                 sender: Address::from([1u8; 20]),
@@ -167,7 +242,9 @@ mod tests {
             event_type: EventType::WithdrawV2,
             block_number: U256::from(0x10),
             block_timestamp: U256::from(0x20),
-            transaction_hash: "0xdef".into(),
+            transaction_hash: b256!(
+                "0x0000000000000000000000000000000000000000000000000000000000000def"
+            ),
             log_index: U256::from(1),
             decoded_data: DecodedEvent::WithdrawV2(Box::new(WithdrawV2 {
                 sender: Address::from([2u8; 20]),
@@ -181,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn build_batch_wraps_transaction_and_contains_watermark() {
+    fn build_batch_contains_watermark() {
         let pipeline = DefaultApplyPipeline::new();
         let ob_id = sample_ob_id();
         let token = Address::from([3u8; 20]);
@@ -199,17 +276,25 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let batch = pipeline
-            .build_batch(&ob_id, 123, &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 123),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("batch ok");
 
         assert!(
-            batch.is_transaction(),
-            "batch must be wrapped in a transaction"
+            batch.clone().ensure_transaction().is_transaction(),
+            "ensure_transaction should wrap the statements"
         );
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
         assert!(
-            texts.iter().any(|s| s.contains("INSERT INTO sync_status")),
+            texts
+                .iter()
+                .any(|s| s.contains("INSERT INTO target_watermarks")),
             "watermark update present"
         );
     }
@@ -263,18 +348,20 @@ mod tests {
         let ob_id = sample_ob_id();
 
         let batch = pipeline
-            .build_batch(&ob_id, 42, &[], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 42), &[], &[], &[], &[])
             .expect("batch ok");
 
-        // Expect exactly BEGIN, UPDATE, COMMIT
+        // Expect vault balance refresh plus the watermark and ANALYZE when there is no work.
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql().trim()).collect();
-        assert_eq!(texts.first().copied(), Some("BEGIN TRANSACTION"));
-        assert!(texts.iter().any(|s| s.contains("INSERT INTO sync_status")));
-        assert_eq!(
-            texts.last().copied().map(|s| s.to_ascii_uppercase()),
-            Some("COMMIT".into())
-        );
-        assert!(batch.is_transaction());
+        assert_eq!(texts.len(), 4);
+        assert!(texts.iter().any(|s| s.contains("vault_balance_changes")));
+        assert!(texts
+            .iter()
+            .any(|s| s.contains("INSERT OR REPLACE INTO running_vault_balances")));
+        assert!(texts
+            .iter()
+            .any(|s| s.contains("INSERT INTO target_watermarks")));
+        assert!(texts.contains(&"ANALYZE"));
     }
 
     #[test]
@@ -307,7 +394,13 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&ob_id, 100, &[], &decoded, &existing, &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 1, 100),
+                &[],
+                &decoded,
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         // Find the deposit INSERT and inspect params; ?10 is deposit_amount
@@ -364,7 +457,13 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&ob_id, 100, &[], &decoded, &existing, &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 1, 100),
+                &[],
+                &decoded,
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -392,7 +491,7 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let err = pipeline
-            .build_batch(&ob_id, 1, &[], &decoded, &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 1), &[], &decoded, &[], &[])
             .unwrap_err();
 
         use crate::local_db::insert::InsertError;
@@ -430,7 +529,13 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&ob_id, 1, &[], &[], &existing, &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 1, 1),
+                &[],
+                &[],
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         let upsert_stmts: Vec<_> = batch
@@ -461,23 +566,36 @@ mod tests {
 
         let target_block = 12345u64;
         let batch = pipeline
-            .build_batch(&ob_id, target_block, &[], &[], &[], &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, target_block),
+                &[],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch
             .statements()
             .iter()
-            .find(|s| s.sql().starts_with("INSERT INTO sync_status"))
+            .find(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .expect("watermark update present");
 
         match stmt.params().get(2) {
-            Some(crate::local_db::query::SqlValue::I64(v)) => {
-                assert_eq!(*v as u64, target_block);
-            }
             Some(crate::local_db::query::SqlValue::U64(v)) => {
                 assert_eq!(*v, target_block);
             }
+            Some(crate::local_db::query::SqlValue::I64(v)) => {
+                assert_eq!(*v as u64, target_block);
+            }
             other => panic!("unexpected watermark param: {other:?}"),
+        }
+
+        match stmt.params().get(3) {
+            Some(SqlValue::Text(v)) => {
+                assert_eq!(v, &SAMPLE_HASH_B256.to_string());
+            }
+            other => panic!("unexpected watermark hash param: {other:?}"),
         }
     }
 
@@ -502,7 +620,13 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&ob_id, 100, &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 100),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -588,7 +712,13 @@ mod tests {
 
         let decoded = vec![deposit_event(token)];
         let batch = pipeline
-            .build_batch(&ob_id, 100, &[], &decoded, &[], &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 1, 100),
+                &[],
+                &decoded,
+                &[],
+                &upserts,
+            )
             .expect("batch ok");
 
         // Two upserts present
@@ -633,7 +763,7 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&ob_id, 1, &[], &[], &[], &upserts)
+            .build_batch(&build_target_info(&ob_id, 1, 1), &[], &[], &[], &upserts)
             .expect("batch ok");
 
         let stmt = batch
@@ -658,23 +788,26 @@ mod tests {
         let ob_id = sample_ob_id();
 
         // Two raw logs out of order
-        let mk = |block: u64, log_index: u64| LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".into(),
-            topics: vec![],
-            data: "0x".into(),
-            block_number: U256::from(block),
-            block_timestamp: Some(U256::from(1)),
-            transaction_hash: format!("0x{:x}", block),
-            transaction_index: "0x0".into(),
-            block_hash: format!("0x{:x}", block),
-            log_index: U256::from(log_index),
-            removed: false,
+        let mk = |block: u64, log_index: u64| {
+            let tx_hash = B256::from(U256::from(block));
+            LogEntryResponse {
+                address: Address::from([0x11; 20]),
+                topics: vec![],
+                data: Bytes::new(),
+                block_number: U256::from(block),
+                block_timestamp: Some(U256::from(1)),
+                transaction_hash: tx_hash,
+                transaction_index: "0x0".into(),
+                block_hash: tx_hash,
+                log_index: U256::from(log_index),
+                removed: false,
+            }
         };
         let a = mk(10, 5);
         let b = mk(10, 3);
 
         let batch = pipeline
-            .build_batch(&ob_id, 10, &[a, b], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 10), &[a, b], &[], &[], &[])
             .expect("batch ok");
 
         let raws: Vec<_> = batch
@@ -705,21 +838,29 @@ mod tests {
         let ob_id = sample_ob_id();
 
         let mk = |block: u64, log_index: u64| LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".into(),
+            address: Address::from([0x11; 20]),
             topics: vec![],
-            data: "0x01".into(),
+            data: Bytes::from([0x01]),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(1)),
-            transaction_hash: format!("0x{:x}", block),
+            transaction_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             transaction_index: "0x0".into(),
-            block_hash: format!("0x{:x}", block),
+            block_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             log_index: U256::from(log_index),
             removed: false,
         };
         let raw = [mk(1, 0), mk(1, 1)];
 
         let batch = pipeline
-            .build_batch(&ob_id, 2, &raw, &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 2), &raw, &[], &[], &[])
             .expect("batch ok");
 
         let texts: Vec<_> = batch.statements().iter().map(|s| s.sql()).collect();
@@ -730,7 +871,9 @@ mod tests {
             .iter()
             .any(|s| s.starts_with("INSERT INTO erc20_tokens")));
         assert!(!texts.iter().any(|s| s.starts_with("INSERT INTO deposits")));
-        assert!(texts.iter().any(|s| s.contains("INSERT INTO sync_status")));
+        assert!(texts
+            .iter()
+            .any(|s| s.contains("INSERT INTO target_watermarks")));
     }
 
     #[test]
@@ -738,14 +881,58 @@ mod tests {
         let pipeline = DefaultApplyPipeline::new();
         let ob_id = sample_ob_id();
         let batch = pipeline
-            .build_batch(&ob_id, 77, &[], &[], &[], &[])
+            .build_batch(&build_target_info(&ob_id, 1, 77), &[], &[], &[], &[])
             .expect("batch ok");
         let count = batch
             .statements()
             .iter()
-            .filter(|s| s.sql().starts_with("INSERT INTO sync_status"))
+            .filter(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .count();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn analyze_emitted_exactly_once_and_is_last() {
+        let pipeline = DefaultApplyPipeline::new();
+        let ob_id = sample_ob_id();
+        let token = Address::from([3u8; 20]);
+
+        let existing = vec![Erc20TokenRow {
+            chain_id: ob_id.chain_id as u32,
+            orderbook_address: ob_id.orderbook_address,
+            token_address: token,
+            name: "Token".into(),
+            symbol: "TKN".into(),
+            decimals: 18,
+        }];
+        let decoded = vec![deposit_event(token)];
+
+        let batch = pipeline
+            .build_batch(
+                &build_target_info(&ob_id, 1, 100),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
+            .expect("batch ok");
+
+        let analyze_count = batch
+            .statements()
+            .iter()
+            .filter(|s| s.sql().trim() == "ANALYZE")
+            .count();
+        assert_eq!(analyze_count, 1, "ANALYZE should appear exactly once");
+
+        let last_stmt = batch
+            .statements()
+            .last()
+            .expect("batch should not be empty");
+        assert_eq!(
+            last_stmt.sql().trim(),
+            "ANALYZE",
+            "ANALYZE should be the last statement in the batch"
+        );
     }
 
     #[test]
@@ -755,14 +942,22 @@ mod tests {
 
         // Build one raw, one token upsert, one decoded deposit
         let mk_raw = |block: u64, log_index: u64| LogEntryResponse {
-            address: "0x1111111111111111111111111111111111111111".into(),
+            address: Address::from([0x11; 20]),
             topics: vec![],
-            data: "0x02".into(),
+            data: Bytes::from([0x02]),
             block_number: U256::from(block),
             block_timestamp: Some(U256::from(1)),
-            transaction_hash: format!("0x{:x}", block),
+            transaction_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             transaction_index: "0x0".into(),
-            block_hash: format!("0x{:x}", block),
+            block_hash: B256::from({
+                let mut bytes = [0u8; 32];
+                bytes[31] = block as u8;
+                bytes
+            }),
             log_index: U256::from(log_index),
             removed: false,
         };
@@ -778,7 +973,13 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let batch = pipeline
-            .build_batch(&ob_id, 9, &[mk_raw(9, 0)], &decoded, &[], &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 1, 9),
+                &[mk_raw(9, 0)],
+                &decoded,
+                &[],
+                &upserts,
+            )
             .expect("batch ok");
 
         let idx_raw = batch
@@ -799,18 +1000,12 @@ mod tests {
         let idx_watermark = batch
             .statements()
             .iter()
-            .position(|s| s.sql().starts_with("INSERT INTO sync_status"))
+            .position(|s| s.sql().starts_with("INSERT INTO target_watermarks"))
             .expect("watermark present");
-        let idx_commit = batch
-            .statements()
-            .iter()
-            .position(|s| s.sql().trim().eq_ignore_ascii_case("COMMIT"))
-            .expect("commit present");
 
         assert!(idx_raw < idx_token, "raw should precede token upserts");
         assert!(idx_token < idx_decoded, "token upserts before decoded");
         assert!(idx_decoded < idx_watermark, "decoded before watermark");
-        assert!(idx_watermark < idx_commit, "watermark before commit");
     }
 
     #[test]
@@ -830,10 +1025,22 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let b1 = pipeline
-            .build_batch(&ob_id, 5, &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 5),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b1 ok");
         let b2 = pipeline
-            .build_batch(&ob_id, 5, &[], &decoded, &existing, &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 5),
+                &[],
+                &decoded,
+                &existing,
+                &[],
+            )
             .expect("b2 ok");
 
         assert_eq!(b1.statements().len(), b2.statements().len());
@@ -850,7 +1057,13 @@ mod tests {
         let token = Address::from([12u8; 20]);
 
         let batch = pipeline
-            .build_batch(&ob_id, 5, &[], &[withdraw_event(token)], &[], &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 5),
+                &[],
+                &[withdraw_event(token)],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         assert!(batch
@@ -890,7 +1103,13 @@ mod tests {
 
         let decoded = vec![deposit_event(token_a), deposit_event(token_b)];
         let batch = pipeline
-            .build_batch(&ob_id, 100, &[], &decoded, &existing, &upserts)
+            .build_batch(
+                &build_target_info(&ob_id, 1, 100),
+                &[],
+                &decoded,
+                &existing,
+                &upserts,
+            )
             .expect("batch ok");
 
         // Collect deposit statements and check each token's deposit_amount uses the right decimals
@@ -943,7 +1162,13 @@ mod tests {
         let token = Address::from([15u8; 20]);
 
         let batch = pipeline
-            .build_batch(&ob_id, 5, &[], &[withdraw_event(token)], &[], &[])
+            .build_batch(
+                &build_target_info(&ob_id, 1, 5),
+                &[],
+                &[withdraw_event(token)],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let stmt = batch

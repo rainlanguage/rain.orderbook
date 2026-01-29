@@ -1,25 +1,28 @@
-use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_stmt;
+use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
 use crate::local_db::query::clear_tables::clear_tables_stmt;
 use crate::local_db::query::create_tables::create_tables_stmt;
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
+use crate::local_db::query::create_views::create_views_batch;
 use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
 use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
 use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
 use crate::local_db::query::fetch_target_watermark::TargetWatermarkRow;
 use crate::local_db::query::insert_db_metadata::insert_db_metadata_stmt;
-use crate::local_db::query::{LocalDbQueryExecutor, SqlStatement};
+use crate::local_db::query::integrity_check::{integrity_check_stmt, IntegrityCheckRow};
+use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::LocalDbError;
 use crate::local_db::OrderbookIdentifier;
-use crate::local_db::DATABASE_SCHEMA_VERSION;
 use async_trait::async_trait;
+use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]
 pub struct BootstrapConfig {
     pub ob_id: OrderbookIdentifier,
-    pub dump_stmt: Option<SqlStatement>,
+    pub dump_stmt: Option<SqlStatementBatch>,
     pub latest_block: u64,
     pub block_number_threshold: u32,
+    pub deployment_block: u64,
 }
 
 /// Bootstrap state snapshot used by environment orchestration to decide actions.
@@ -53,7 +56,7 @@ pub trait BootstrapPipeline {
             .query_json::<Vec<DbMetadataRow>>(&fetch_db_metadata_stmt())
             .await?;
         if let Some(row) = rows.first() {
-            let expected = db_schema_version.unwrap_or(DATABASE_SCHEMA_VERSION);
+            let expected = db_schema_version.unwrap_or(DB_SCHEMA_VERSION);
             if row.db_schema_version != expected {
                 return Err(LocalDbError::SchemaVersionMismatch {
                     expected,
@@ -108,10 +111,23 @@ pub trait BootstrapPipeline {
         db.query_text(&clear_tables_stmt()).await?;
         db.query_text(&create_tables_stmt()).await?;
         db.query_text(&insert_db_metadata_stmt(
-            db_schema_version.unwrap_or(DATABASE_SCHEMA_VERSION),
+            db_schema_version.unwrap_or(DB_SCHEMA_VERSION),
         ))
         .await?;
+        db.execute_batch(&create_views_batch()).await?;
         Ok(())
+    }
+
+    async fn check_integrity<DB>(&self, db: &DB) -> Result<bool, LocalDbError>
+    where
+        DB: LocalDbQueryExecutor + ?Sized,
+    {
+        let rows: Vec<IntegrityCheckRow> = db.query_json(&integrity_check_stmt()).await?;
+        let is_healthy = rows
+            .first()
+            .map(|row| row.quick_check.eq_ignore_ascii_case("ok"))
+            .unwrap_or(false);
+        Ok(is_healthy)
     }
 
     async fn clear_orderbook_data<DB>(
@@ -122,7 +138,8 @@ pub trait BootstrapPipeline {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
-        db.query_text(&clear_orderbook_data_stmt(ob_id)).await?;
+        let batch = clear_orderbook_data_batch(ob_id);
+        db.execute_batch(&batch).await?;
         Ok(())
     }
 
@@ -144,13 +161,15 @@ pub trait BootstrapPipeline {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::str::FromStr;
     use std::sync::Mutex;
 
     use super::*;
+    use crate::local_db::query::create_views::create_views_batch;
     use crate::local_db::query::fetch_db_metadata::{fetch_db_metadata_stmt, DbMetadataRow};
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
-    use alloy::primitives::Address;
+    use alloy::primitives::{Address, Bytes};
     use async_trait::async_trait;
     use serde_json::json;
 
@@ -171,6 +190,12 @@ mod tests {
             self.text_map
                 .insert(stmt.sql().to_string(), value.to_string());
             self
+        }
+        fn with_views(self) -> Self {
+            create_views_batch()
+                .statements()
+                .iter()
+                .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
         fn calls(&self) -> Vec<String> {
             self.calls_text.lock().unwrap().clone()
@@ -205,8 +230,22 @@ mod tests {
 
     #[async_trait(?Send)]
     impl LocalDbQueryExecutor for RecordingTextExecutor {
-        async fn execute_batch(&self, _: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
-            panic!("execute_batch should not be called in these tests");
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            let mut captured = self.captured_sql.lock().unwrap();
+            captured.extend(batch.statements().iter().map(|stmt| stmt.sql().to_string()));
+
+            let outcome = self
+                .result
+                .lock()
+                .unwrap()
+                .take()
+                .expect("execute_batch called more than expected");
+
+            match outcome {
+                Ok(()) => Ok(()),
+                Err(LocalDbError::LocalDbQueryError(inner)) => Err(inner),
+                Err(err) => Err(LocalDbQueryError::database(err.to_string())),
+            }
         }
 
         async fn query_json<T>(&self, _: &SqlStatement) -> Result<T, LocalDbQueryError>
@@ -285,7 +324,7 @@ mod tests {
         let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION,
+            db_schema_version: DB_SCHEMA_VERSION,
             created_at: None,
             updated_at: None,
         };
@@ -299,7 +338,7 @@ mod tests {
         let adapter = TestBootstrapPipeline::new();
         let db_row = DbMetadataRow {
             id: 1,
-            db_schema_version: DATABASE_SCHEMA_VERSION + 1,
+            db_schema_version: DB_SCHEMA_VERSION + 1,
             created_at: None,
             updated_at: None,
         };
@@ -308,8 +347,8 @@ mod tests {
         let err = adapter.ensure_schema(&db, None).await.unwrap_err();
         match err {
             LocalDbError::SchemaVersionMismatch { expected, found } => {
-                assert_eq!(expected, DATABASE_SCHEMA_VERSION);
-                assert_eq!(found, DATABASE_SCHEMA_VERSION + 1);
+                assert_eq!(expected, DB_SCHEMA_VERSION);
+                assert_eq!(found, DB_SCHEMA_VERSION + 1);
             }
             other => panic!("unexpected error: {other:?}"),
         }
@@ -318,7 +357,7 @@ mod tests {
     #[tokio::test]
     async fn ensure_schema_honors_override_ok() {
         let adapter = TestBootstrapPipeline::new();
-        let override_version = DATABASE_SCHEMA_VERSION + 7;
+        let override_version = DB_SCHEMA_VERSION + 7;
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: override_version,
@@ -336,7 +375,7 @@ mod tests {
     #[tokio::test]
     async fn ensure_schema_honors_override_mismatch() {
         let adapter = TestBootstrapPipeline::new();
-        let row_version = DATABASE_SCHEMA_VERSION + 3;
+        let row_version = DB_SCHEMA_VERSION + 3;
         let db_row = DbMetadataRow {
             id: 1,
             db_schema_version: row_version,
@@ -346,12 +385,12 @@ mod tests {
         let db = MockDb::default().with_json(&fetch_db_metadata_stmt(), json!([db_row]));
 
         let err = adapter
-            .ensure_schema(&db, Some(DATABASE_SCHEMA_VERSION))
+            .ensure_schema(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap_err();
         match err {
             LocalDbError::SchemaVersionMismatch { expected, found } => {
-                assert_eq!(expected, DATABASE_SCHEMA_VERSION);
+                assert_eq!(expected, DB_SCHEMA_VERSION);
                 assert_eq!(found, row_version);
             }
             other => panic!("unexpected error: {other:?}"),
@@ -390,8 +429,8 @@ mod tests {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,
             last_block: 123,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }]);
 
         let db = MockDb::default()
@@ -493,8 +532,8 @@ mod tests {
             chain_id: ob_id.chain_id,
             orderbook_address: ob_id.orderbook_address,
             last_block: 42,
-            last_hash: None,
-            updated_at: None,
+            last_hash: Bytes::from_str("0xbeef").unwrap(),
+            updated_at: 1,
         }]);
 
         let db = MockDb::default()
@@ -554,23 +593,32 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter
-            .reset_db(&db, Some(DATABASE_SCHEMA_VERSION))
+            .reset_db(&db, Some(DB_SCHEMA_VERSION))
             .await
             .unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(
+            calls.len(),
+            3 + expected_views.len(),
+            "unexpected number of executed statements"
+        );
         assert_eq!(calls[0], clear_tables_stmt().sql().to_string());
         assert_eq!(calls[1], create_tables_stmt().sql().to_string());
         assert_eq!(
             calls[2],
-            insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION)
-                .sql()
-                .to_string()
+            insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()
         );
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -579,32 +627,45 @@ mod tests {
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION), "ok");
+            .with_text(&insert_db_metadata_stmt(DB_SCHEMA_VERSION), "ok")
+            .with_views();
 
         adapter.reset_db(&db, None).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
-        assert_eq!(
-            calls[2],
-            insert_db_metadata_stmt(DATABASE_SCHEMA_VERSION).sql()
-        );
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(calls[0], clear_tables_stmt().sql());
+        assert_eq!(calls[1], create_tables_stmt().sql());
+        assert_eq!(calls[2], insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql());
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
     async fn reset_db_uses_custom_version_when_some() {
         let adapter = TestBootstrapPipeline::new();
-        let custom_version = DATABASE_SCHEMA_VERSION + 9;
+        let custom_version = DB_SCHEMA_VERSION + 9;
         let db = MockDb::default()
             .with_text(&clear_tables_stmt(), "ok")
             .with_text(&create_tables_stmt(), "ok")
-            .with_text(&insert_db_metadata_stmt(custom_version), "ok");
+            .with_text(&insert_db_metadata_stmt(custom_version), "ok")
+            .with_views();
 
         adapter.reset_db(&db, Some(custom_version)).await.unwrap();
 
         let calls = db.calls();
-        assert_eq!(calls.len(), 3);
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert_eq!(calls[0], clear_tables_stmt().sql());
+        assert_eq!(calls[1], create_tables_stmt().sql());
         assert_eq!(calls[2], insert_db_metadata_stmt(custom_version).sql());
+        assert_eq!(&calls[3..], expected_views.as_slice());
     }
 
     #[tokio::test]
@@ -634,6 +695,7 @@ mod tests {
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 10_000,
+            deployment_block: 1,
         };
 
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
@@ -658,28 +720,32 @@ mod tests {
     #[tokio::test]
     async fn clear_orderbook_data_executes_expected_statement() {
         let adapter = TestBootstrapPipeline::new();
-        let target = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
+        let ob_id = OrderbookIdentifier::new(42161, Address::from([0x11; 20]));
         let db = RecordingTextExecutor::succeed();
 
         adapter
-            .clear_orderbook_data(&db, &target)
+            .clear_orderbook_data(&db, &ob_id)
             .await
             .expect("clear_orderbook_data should succeed");
 
         let captured = db.captured_sql();
-        assert_eq!(captured.len(), 1);
-        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
+        let expected: Vec<String> = clear_orderbook_data_batch(&ob_id)
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        assert_eq!(captured, expected);
     }
 
     #[tokio::test]
     async fn clear_orderbook_data_propagates_error() {
         let adapter = TestBootstrapPipeline::new();
-        let target = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
+        let ob_id = OrderbookIdentifier::new(10, Address::from([0x22; 20]));
         let inner_error = LocalDbQueryError::database("boom");
         let db = RecordingTextExecutor::fail(LocalDbError::from(inner_error.clone()));
 
         let err = adapter
-            .clear_orderbook_data(&db, &target)
+            .clear_orderbook_data(&db, &ob_id)
             .await
             .expect_err("clear_orderbook_data should propagate error");
 
@@ -691,7 +757,94 @@ mod tests {
         }
 
         let captured = db.captured_sql();
-        assert_eq!(captured.len(), 1);
-        assert_eq!(captured[0], clear_orderbook_data_stmt(&target).sql());
+        let expected: Vec<String> = clear_orderbook_data_batch(&ob_id)
+            .statements()
+            .iter()
+            .map(|stmt| stmt.sql().to_string())
+            .collect();
+        assert_eq!(captured, expected);
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_true_when_ok() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "ok".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(is_healthy, "should return true for 'ok' response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_true_when_ok_uppercase() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "OK".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(is_healthy, "should return true for 'OK' response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_false_when_corrupted() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "database disk image is malformed".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(
+            !is_healthy,
+            "should return false for corruption error message"
+        );
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_false_for_any_non_ok_response() {
+        use crate::local_db::query::integrity_check::IntegrityCheckRow;
+
+        let adapter = TestBootstrapPipeline::new();
+        let row = IntegrityCheckRow {
+            quick_check: "some error".to_string(),
+        };
+        let db = MockDb::default().with_json(&integrity_check_stmt(), json!([row]));
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(!is_healthy, "should return false for any non-ok response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_returns_false_for_empty_response() {
+        let adapter = TestBootstrapPipeline::new();
+        let db = MockDb::default().with_json(
+            &integrity_check_stmt(),
+            json!([]), // empty array
+        );
+
+        let is_healthy = adapter.check_integrity(&db).await.unwrap();
+        assert!(!is_healthy, "should return false for empty response");
+    }
+
+    #[tokio::test]
+    async fn check_integrity_propagates_query_error() {
+        let adapter = TestBootstrapPipeline::new();
+        let db = MockDb::default(); // no response configured -> will error
+
+        let err = adapter.check_integrity(&db).await.unwrap_err();
+        match err {
+            LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
     }
 }

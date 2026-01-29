@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
-import { mockIPC } from '@tauri-apps/api/mocks';
 import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
@@ -187,11 +186,20 @@ test('renders table with correct data', async () => {
 test('renders a debug button for each trade', async () => {
 	const queryClient = new QueryClient();
 
-	mockIPC((cmd) => {
-		if (cmd === 'order_trades_list') {
-			return mockTradeOrdersList;
+	const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		subscribe: (fn: (value: any) => void) => {
+			fn({
+				data: { pages: [mockTradeOrdersList] },
+				status: 'success',
+				isFetching: false,
+				isFetched: true
+			});
+			return { unsubscribe: () => {} };
 		}
-	});
+	})) as Mock;
 
 	render(OrderTradesListTable, {
 		context: new Map([['$$_queryClient', queryClient]]),

@@ -8,6 +8,7 @@ use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     token::TokenCfg,
 };
+use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
@@ -38,13 +39,6 @@ struct SerializedGuiState {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    #[wasm_export(skip)]
-    pub fn get_dotrain_hash(dotrain: String) -> Result<String, GuiError> {
-        let dotrain_source = DotrainSourceV1(dotrain);
-        let hash = dotrain_source.hash();
-        Ok(URL_SAFE.encode(hash))
-    }
-
     fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPresetCfg {
         if value.is_preset {
             GuiPresetCfg {
@@ -296,7 +290,7 @@ impl DotrainOrderGui {
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
             vault_ids: vault_ids.clone(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(self.dotrain_order.dotrain()?)?,
+            dotrain_hash: self.dotrain_hash.clone(),
             selected_deployment: self.selected_deployment.clone(),
         };
         let bytes = bincode::serialize(&state)?;
@@ -339,6 +333,10 @@ impl DotrainOrderGui {
     pub async fn new_from_state(
         #[wasm_export(param_description = "Must match the original dotrain content exactly")]
         dotrain: String,
+        #[wasm_export(
+            param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
+        )]
+        settings: Option<Vec<String>>,
         #[wasm_export(param_description = "Previously serialized state string")] serialized: String,
         #[wasm_export(param_description = "Optional callback for future state changes")]
         state_update_callback: Option<js_sys::Function>,
@@ -348,11 +346,16 @@ impl DotrainOrderGui {
         let mut decoder = GzDecoder::new(&compressed[..]);
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
-
         let state: SerializedGuiState = bincode::deserialize(&bytes)?;
 
-        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await?;
-        let original_dotrain_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone())?;
+        let dotrain_order = DotrainOrder::create_with_profile(
+            dotrain.clone(),
+            settings,
+            ContextProfile::gui(state.selected_deployment.clone()),
+        )
+        .await?;
+
+        let original_dotrain_hash = DotrainOrderGui::compute_state_hash(&dotrain_order)?;
         if original_dotrain_hash != state.dotrain_hash {
             return Err(GuiError::DotrainMismatch);
         }
@@ -374,6 +377,7 @@ impl DotrainOrderGui {
             field_values,
             deposits,
             selected_deployment: state.selected_deployment.clone(),
+            dotrain_hash: original_dotrain_hash,
             state_update_callback,
         };
 
@@ -519,6 +523,20 @@ impl DotrainOrderGui {
         })
     }
 }
+impl DotrainOrderGui {
+    pub fn compute_state_hash(dotrain_order: &DotrainOrder) -> Result<String, GuiError> {
+        let yaml = emitter::emit_documents(&dotrain_order.dotrain_yaml().documents)?;
+
+        let rain_document = RainDocument::create(dotrain_order.dotrain()?, None, None, None);
+        let rainlang_body = rain_document.body().to_string();
+
+        let tuple = (yaml, rainlang_body);
+        let dotrain_bytes = bincode::serialize(&tuple)?;
+
+        let hash = Sha256::digest(dotrain_bytes);
+        Ok(URL_SAFE.encode(hash))
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -533,10 +551,11 @@ mod tests {
         network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
     };
     use rain_orderbook_common::dotrain::RainDocument;
+    use rain_orderbook_common::dotrain_order::DotrainOrder;
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTUvDQBDNVlEET0XwJPgDXJLdWEgKnlT8AqUaPXgpTbptQ7a723T6_Sf6k0va2ZSGzmHem31vZ4apObu4QIxT1U1VnzLHxgki87yqiRN88JySWXKGCDoTyj_W7bjzsLrEaqyHgioBM51n9t8N4gDANF1X6qQjB3oMzcALGm5uEjrJ5apwkCITO_o5er1CWr__m68ridTJOcpRscOtT05t_fHp15x9HOzKygEsDElV5aXKw_AOqfpesJccDJe9uJW-j-KgH8Tt3-XsP4IebTxl_PHny3Siaevt4dpeQkiRAN02pV1hpF4MhYINl3jZNMgBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Qy2rDMBCU0tJS6CkUeir0Ayos2S5YgR7bmjb4UEIOvQRHURJjRTLOmrx-Ip8cnEgOMdnDzo5mtLtsB53iweI405NMzwhDLm4sMkrbJh_bB4qayhV3FsHkUgfXul13XrJHy5ZmIYmWsDJl7v69WJwDFD3PU0akam6W0Ito9O6VhSBVqXa1A9cZu9Gfg_jJlt1wuN63Eu7ieysP6h1eA3zr-G8SoA46x8WyrJnAOMdt1W9Un_M3ZwQq6JDwUI03f6zaQtzPov80qfTPV5jqeDTVZb_4TiqRfzy7U0glBZBjUzKRhTKbhdRwAGw0tlzJAQAA";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
@@ -581,16 +600,18 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_get_dotrain_hash_changes_on_content_change() {
+    async fn test_compute_state_hash_changes_on_content_change() {
         let dotrain = get_yaml();
-        let original_hash = DotrainOrderGui::get_dotrain_hash(dotrain.clone()).unwrap();
-        let modified_hash = DotrainOrderGui::get_dotrain_hash(
-            dotrain.replace("Select token deployment", "Select token deployment v2"),
-        )
-        .unwrap();
+        let order1 = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
+        let original_hash = DotrainOrderGui::compute_state_hash(&order1).unwrap();
+
+        let modified = dotrain.replace("Select token deployment", "Select token deployment v2");
+        let order2 = DotrainOrder::create(modified, None).await.unwrap();
+        let modified_hash = DotrainOrderGui::compute_state_hash(&order2).unwrap();
         assert_ne!(original_hash, modified_hash);
 
-        let repeated_hash = DotrainOrderGui::get_dotrain_hash(get_yaml()).unwrap();
+        let order3 = DotrainOrder::create(get_yaml(), None).await.unwrap();
+        let repeated_hash = DotrainOrderGui::compute_state_hash(&order3).unwrap();
         assert_eq!(original_hash, repeated_hash);
     }
 
@@ -636,13 +657,15 @@ mod tests {
         let state = gui.serialize_state().unwrap();
         assert!(!state.is_empty());
         assert_eq!(state, SERIALIZED_STATE);
+        wasm_bindgen_test::console_log!("{}", SERIALIZED_STATE);
     }
 
     #[wasm_bindgen_test]
     async fn test_new_from_state() {
-        let gui = DotrainOrderGui::new_from_state(get_yaml(), SERIALIZED_STATE.to_string(), None)
-            .await
-            .unwrap();
+        let gui =
+            DotrainOrderGui::new_from_state(get_yaml(), None, SERIALIZED_STATE.to_string(), None)
+                .await
+                .unwrap();
 
         assert!(gui.is_select_token_set("token3".to_string()).unwrap());
         assert_eq!(gui.get_deposits().unwrap()[0].amount, "100");
@@ -676,15 +699,62 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
-        version: 4
-        dotrain:
-            name: Test
-            description: Test
+            version: 4
+            networks:
+                test:
+                    rpcs:
+                        - http://localhost:8085/rpc-url
+                    chain-id: 123
+            subgraphs:
+                test: http://localhost:8085/rpc-url
+            tokens:
+                token1:
+                    network: test
+                    address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
+            deployers:
+                test:
+                    network: test
+                    address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
+            orderbooks:
+                test:
+                    address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
+                    network: test
+                    subgraph: test
+                    deployment-block: 12345
+            scenarios:
+                test:
+                    deployer: test
+            orders:
+                test:
+                    inputs:
+                        - token: token1
+                    outputs:
+                        - token: token1
+                    deployer: test
+                    orderbook: test
+            deployments:
+                select-token-deployment:
+                    order: test
+                    scenario: test
+            gui:
+                name: Test
+                description: Fixed limit order
+                deployments:
+                    select-token-deployment:
+                        name: Test deployment
+                        description: Test description
+                        deposits:
+                            - token: token1
+                        fields:
+                            - binding: binding-1
+                              name: Field 1 name
         ---
+        #test
         "#;
 
         let err = DotrainOrderGui::new_from_state(
             dotrain.to_string(),
+            None,
             SERIALIZED_STATE.to_string(),
             None,
         )
@@ -700,19 +770,20 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_new_from_state_rejects_unknown_select_token_key() {
         let dotrain = get_yaml();
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain).unwrap();
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, None).unwrap();
         let token = TokenCfg::parse_from_yaml(documents.clone(), "token1", None).unwrap();
 
+        let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
         let serialized_state = encode_state(&SerializedGuiState {
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             select_tokens: BTreeMap::from([("token1".to_string(), token)]),
             vault_ids: BTreeMap::new(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(dotrain.clone()).unwrap(),
+            dotrain_hash: DotrainOrderGui::compute_state_hash(&dotrain_order).unwrap(),
             selected_deployment: "select-token-deployment".to_string(),
         });
 
-        let err = DotrainOrderGui::new_from_state(dotrain, serialized_state, None)
+        let err = DotrainOrderGui::new_from_state(dotrain, None, serialized_state, None)
             .await
             .unwrap_err();
         assert_eq!(
@@ -724,7 +795,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_new_from_state_replaces_existing_select_token_record() {
         let dotrain = get_yaml();
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain).unwrap();
+        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, None).unwrap();
         TokenCfg::add_record_to_yaml(
             documents.clone(),
             "token3",
@@ -754,22 +825,29 @@ mod tests {
             decimals: Some(6),
             label: Some("Replaced Token 3".to_string()),
             symbol: Some("NEW3".to_string()),
+            logo_uri: None,
         };
 
+        let dotrain_order = DotrainOrder::create(dotrain_with_existing_token.clone(), None)
+            .await
+            .unwrap();
         let serialized_state = encode_state(&SerializedGuiState {
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             select_tokens: BTreeMap::from([("token3".to_string(), replacement_token.clone())]),
             vault_ids: BTreeMap::new(),
-            dotrain_hash: DotrainOrderGui::get_dotrain_hash(dotrain_with_existing_token.clone())
-                .unwrap(),
+            dotrain_hash: DotrainOrderGui::compute_state_hash(&dotrain_order).unwrap(),
             selected_deployment: "select-token-deployment".to_string(),
         });
 
-        let gui =
-            DotrainOrderGui::new_from_state(dotrain_with_existing_token, serialized_state, None)
-                .await
-                .unwrap();
+        let gui = DotrainOrderGui::new_from_state(
+            dotrain_with_existing_token,
+            None,
+            serialized_state,
+            None,
+        )
+        .await
+        .unwrap();
 
         let restored_token = gui
             .dotrain_order
@@ -826,6 +904,7 @@ mod tests {
 
         let mut gui = DotrainOrderGui::new_with_deployment(
             get_yaml(),
+            None,
             "some-deployment".to_string(),
             Some(callback_js.clone()),
         )

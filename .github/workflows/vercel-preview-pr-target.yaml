@@ -50,7 +50,8 @@ jobs:
           nix_conf: |
             keep-env-derivations = true
             keep-outputs = true
-      - run: ./prep-all.sh
+
+      - run: ./prep-webapp.sh
         env:
           PUBLIC_WALLETCONNECT_PROJECT_ID: test
 
@@ -93,3 +94,12 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_PREVIEWS }}
         run: |
           "$VERCEL_BIN" deploy --prebuilt --token="$VERCEL_TOKEN" packages/webapp
+
+      # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
+      - name: Forward CI Status
+        if: always()
+        uses: rainlanguage/github-chore/.github/actions/telegram-status-report@main
+        with:
+          status: ${{ job.status }}
+          telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}

@@ -381,8 +381,8 @@ test: test
         assert_eq!(
             err.to_string(),
             YamlError::Field {
-                kind: FieldErrorKind::Missing("some-deployment".to_string()),
-                location: "deployments".to_string()
+                kind: FieldErrorKind::Missing("deployments".to_string()),
+                location: "root".to_string()
             }
             .to_string()
         );

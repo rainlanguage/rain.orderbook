@@ -9,7 +9,8 @@ use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::yaml::{
-    clone_section_entry, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+    clone_section_entry, context::ContextProfile, dotrain::DotrainYaml, orderbook::OrderbookYaml,
+    YamlError, YamlParsable,
 };
 use rain_orderbook_app_settings::{
     remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
@@ -297,6 +298,15 @@ impl DotrainOrder {
         )]
         settings: Option<Vec<String>>,
     ) -> Result<DotrainOrder, DotrainOrderError> {
+        Self::create_with_profile(dotrain, settings, ContextProfile::Strict).await
+    }
+
+    #[wasm_export(skip)]
+    pub async fn create_with_profile(
+        dotrain: String,
+        settings: Option<Vec<String>>,
+        profile: ContextProfile,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
@@ -316,7 +326,11 @@ impl DotrainOrder {
             ));
         }
 
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
+        let mut dotrain_yaml = DotrainYaml::new_with_profile(
+            sources.clone(),
+            DotrainYamlValidation::default(),
+            profile,
+        )?;
 
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
@@ -1285,10 +1299,7 @@ deployments:
 
         assert!(matches!(
             err,
-            DotrainOrderError::YamlError(YamlError::Field {
-                kind: FieldErrorKind::Missing(ref key),
-                location
-            }) if key == "does-not-exist" && location == "deployments"
+            DotrainOrderError::YamlError(YamlError::KeyNotFound(ref key)) if key == "does-not-exist"
         ));
     }
 
