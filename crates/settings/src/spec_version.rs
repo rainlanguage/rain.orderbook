@@ -5,7 +5,7 @@ use strict_yaml_rust::StrictYaml;
 #[derive(Clone, Debug)]
 pub struct SpecVersion;
 
-const CURRENT_SPEC_VERSION: &str = "4";
+pub const CURRENT_SPEC_VERSION: &str = "4";
 
 impl SpecVersion {
     pub fn current() -> String {
