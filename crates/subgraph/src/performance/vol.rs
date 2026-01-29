@@ -132,8 +132,9 @@ mod tests {
 
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeStructPartialOrder,
-        SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
+        SgBigInt, SgBytes, SgOrderbook, SgTradeEvent, SgTradeEventTypename, SgTradeRef,
+        SgTradeStructPartialOrder, SgTradeVaultBalanceChange, SgTransaction,
+        SgVaultBalanceChangeVault,
     };
     use crate::utils::float::*;
     use rain_math_float::Float;
@@ -262,6 +263,11 @@ mod tests {
                     timestamp: bigint.clone(),
                 },
                 orderbook: SgOrderbook { id: bytes.clone() },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TradeEvent".to_string(),
+                    },
+                },
             },
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
@@ -282,6 +288,11 @@ mod tests {
                     timestamp: bigint.clone(),
                 },
                 orderbook: SgOrderbook { id: bytes.clone() },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TradeEvent".to_string(),
+                    },
+                },
             },
         };
 
@@ -321,6 +332,11 @@ mod tests {
                     timestamp: bigint.clone(),
                 },
                 orderbook: SgOrderbook { id: bytes.clone() },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TradeEvent".to_string(),
+                    },
+                },
             },
             input_vault_balance_change: SgTradeVaultBalanceChange {
                 id: bytes.clone(),
@@ -341,6 +357,11 @@ mod tests {
                     timestamp: bigint.clone(),
                 },
                 orderbook: SgOrderbook { id: bytes.clone() },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TradeEvent".to_string(),
+                    },
+                },
             },
         };
 

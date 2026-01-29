@@ -2088,6 +2088,11 @@ mod tests {
                             "symbol": "WFLR",
                             "decimals": "18"
                         }
+                    },
+                    "trade": {
+                        "tradeEvent": {
+                            "__typename": "TradeEvent"
+                        }
                     }
                 },
                 "outputVaultBalanceChange": {
@@ -2113,6 +2118,11 @@ mod tests {
                             "name": "Staked FLR",
                             "symbol": "sFLR",
                             "decimals": "18"
+                        }
+                    },
+                    "trade": {
+                        "tradeEvent": {
+                            "__typename": "TradeEvent"
                         }
                     }
                 }

@@ -415,7 +415,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				order: {
 					id: BYTES32_VOL_ORDER,
@@ -445,7 +446,8 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS }
+					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				orderbook: {
 					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
