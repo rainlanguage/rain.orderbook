@@ -1,7 +1,9 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
-import { WasmEncodedResult, DotrainRegistry } from '../../dist/cjs';
+import { WasmEncodedResult, DotrainRegistry, OrderbookYaml } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
+
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
 	if (result.error) {
@@ -14,7 +16,7 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 };
 
 const MOCK_SETTINGS_CONTENT = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
   flare:
     rpcs:
@@ -62,7 +64,7 @@ tokens:
 `;
 
 const MOCK_DOTRAIN_PREFIX = `
-version: 4
+version: ${SPEC_VERSION}
 gui:
   name: Test gui
   description: Test description
@@ -143,7 +145,6 @@ _ _: 1 1;
 :;
 #handle-add-order
 :;`;
-
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Dotrain Registry', async function () {
 	const mockServer = getLocal();
@@ -344,7 +345,7 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 
 	describe('DotrainRegistry getOrderbookYaml', () => {
 		const MOCK_SETTINGS_WITH_TOKENS = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
   mainnet:
     rpcs:

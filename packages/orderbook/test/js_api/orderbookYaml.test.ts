@@ -3,8 +3,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { OrderbookYaml, OrderbookCfg, WasmEncodedResult } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
+
 const YAML_WITHOUT_ORDERBOOK = `
-version: 4
+version: ${SPEC_VERSION}
 
 networks:
     some-network:
@@ -107,6 +109,15 @@ const buildYaml = (source: string, validate?: boolean): OrderbookYaml => {
 };
 
 describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
+	it('should return current spec version', async function () {
+		const result = OrderbookYaml.getCurrentSpecVersion();
+		if (result.error) assert.fail(result.error.msg);
+		const version = result.value;
+		assert.ok(version);
+		assert.strictEqual(typeof version, 'string');
+		assert.ok(version.length > 0);
+	});
+
 	it('should create a new settings object', async function () {
 		const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
 		assert.ok(orderbookYaml);
@@ -143,7 +154,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 
 	describe('validation tests', async function () {
 		const INVALID_YAML = `
-version: 4
+version: ${SPEC_VERSION}
 
 networks:
     some-network:
@@ -237,7 +248,7 @@ orderbooks:
 
 		it('should try to fetch missing token fields from RPC and return error on failure', async function () {
 			const YAML_MISSING_FIELDS = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -260,7 +271,7 @@ tokens:
 
 		it('should return tokens with correct chainId for multiple networks', async function () {
 			const MULTI_NETWORK_YAML = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     mainnet:
         rpcs:
@@ -345,7 +356,7 @@ tokens:
 			await mockServer.forGet('/tokens.json').thenJson(200, remoteTokensResponse);
 
 			const yaml = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     mainnet:
         rpcs:
@@ -393,7 +404,7 @@ using-tokens-from:
 			await mockServer.forGet('/tokens.json').thenJson(200, remoteTokensResponse);
 
 			const yaml = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     mainnet:
         rpcs:
@@ -462,7 +473,7 @@ tokens:
 			await mockServer.forGet('/tokens2.json').thenJson(200, response2);
 
 			const yaml = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     mainnet:
         rpcs:
@@ -515,7 +526,7 @@ using-tokens-from:
 			await mockServer.forGet('/tokens.json').thenJson(200, remoteTokensResponse);
 
 			const yaml = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     mainnet:
         rpcs:
