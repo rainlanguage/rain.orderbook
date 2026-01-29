@@ -147,7 +147,7 @@ mod tests {
     };
     use crate::local_db::pipeline::engine::SyncInputs;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
-    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
+    use crate::local_db::pipeline::{FinalityConfig, SyncConfig, SyncPhase, WindowOverrides};
     use crate::local_db::query::sql_statement_batch::SqlStatementBatch;
     use crate::local_db::query::LocalDbQueryExecutor;
     use crate::local_db::{LocalDbError, OrderbookIdentifier};
@@ -416,7 +416,7 @@ mod tests {
 
     #[async_trait(?Send)]
     impl StatusBus for StubStatus {
-        async fn send(&self, _message: &str) -> Result<(), LocalDbError> {
+        async fn send(&self, _phase: SyncPhase) -> Result<(), LocalDbError> {
             Ok(())
         }
     }

@@ -1,11 +1,11 @@
 use super::*;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
-    is_chain_supported_local_db, query::fetch_vault_balance_changes::LocalDbVaultBalanceChange,
-    OrderbookIdentifier,
+    query::fetch_vault_balance_changes::LocalDbVaultBalanceChange, OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::vaults::LocalDbVaults;
+use crate::types::VaultBalanceChangeKind;
 use crate::{
     deposit::DepositArgs,
     erc20::ERC20,
@@ -29,7 +29,8 @@ use rain_orderbook_subgraph_client::{
     types::{
         common::{
             SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
-            SgVault, SgVaultBalanceChangeUnwrapped, SgVaultsListFilterArgs,
+            SgVault, SgVaultBalanceChangeType, SgVaultBalanceChangeUnwrapped,
+            SgVaultsListFilterArgs,
         },
         Id,
     },
@@ -311,18 +312,21 @@ impl RaindexVault {
     /// Fetches balance change history for a vault
     ///
     /// Retrieves chronological list of deposits, withdrawals, and trades affecting
-    /// a vault's balance.
+    /// a vault's balance. Optionally filter by balance change type.
     ///
     /// ## Examples
     ///
     /// ```javascript
+    /// // Fetch all balance changes
     /// const result = await vault.getBalanceChanges();
     /// if (result.error) {
     ///   console.error("Error fetching history:", result.error.readableMsg);
     ///   return;
     /// }
     /// const changes = result.value;
-    /// // Do something with the changes
+    ///
+    /// // Fetch only deposits and withdrawals
+    /// const filteredResult = await vault.getBalanceChanges(1, ["deposit", "withdrawal"]);
     /// ```
     #[wasm_export(
         js_name = "getBalanceChanges",
@@ -333,25 +337,26 @@ impl RaindexVault {
     pub async fn get_balance_changes(
         &self,
         #[wasm_export(param_description = "Optional page number (default to 1)")] page: Option<u16>,
+        #[wasm_export(
+            param_description = "Optional filter types array (deposit, withdrawal, takeOrder, clear, clearBounty)"
+        )]
+        filter_types: Option<Vec<VaultBalanceChangeFilter>>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        if is_chain_supported_local_db(self.chain_id) {
-            if let Some(local_db) = self.raindex_client.local_db() {
-                let local_changes = fetch_vault_balance_changes(
-                    &local_db,
-                    &OrderbookIdentifier::new(self.chain_id, self.orderbook),
-                    self.vault_id,
-                    self.token.address,
-                    self.owner,
-                )
-                .await?;
+        if let Some(local_db) = self.raindex_client.local_db() {
+            let local_changes = fetch_vault_balance_changes(
+                &local_db,
+                &OrderbookIdentifier::new(self.chain_id, self.orderbook),
+                self.vault_id,
+                self.token.address,
+                self.owner,
+                filter_types.as_deref(),
+            )
+            .await?;
 
-                if !local_changes.is_empty() {
-                    return local_changes
-                        .into_iter()
-                        .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
-                        .collect::<Result<Vec<_>, _>>();
-                }
-            }
+            return local_changes
+                .into_iter()
+                .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
+                .collect::<Result<Vec<_>, _>>();
         }
 
         let client = self.get_orderbook_client()?;
@@ -362,15 +367,30 @@ impl RaindexVault {
                     page: page.unwrap_or(1),
                     page_size: 1000,
                 },
+                None,
             )
             .await?;
 
         let balance_changes = balance_changes
             .into_iter()
             .map(|balance_change| {
-                RaindexVaultBalanceChange::try_from_sg_balance_change(self.chain_id, balance_change)
+                RaindexVaultBalanceChange::try_from_sg_balance_change_type(
+                    self.chain_id,
+                    balance_change,
+                )
             })
             .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
+
+        let balance_changes = if let Some(ref filters) = filter_types {
+            let raindex_types: Vec<_> = filters.iter().map(|f| f.to_raindex_type()).collect();
+            balance_changes
+                .into_iter()
+                .filter(|change| raindex_types.contains(&change.r#type))
+                .collect()
+        } else {
+            balance_changes
+        };
+
         Ok(balance_changes)
     }
 
@@ -601,32 +621,77 @@ impl RaindexVault {
 pub enum RaindexVaultBalanceChangeType {
     Deposit,
     Withdrawal,
-    TradeVaultBalanceChange,
+    TakeOrder,
+    Clear,
     ClearBounty,
     Unknown,
 }
 impl_wasm_traits!(RaindexVaultBalanceChangeType);
-impl TryFrom<String> for RaindexVaultBalanceChangeType {
-    type Error = RaindexError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.starts_with("CLEAR_") {
-            return Ok(RaindexVaultBalanceChangeType::ClearBounty);
-        }
-        match value.as_str() {
-            "Deposit" | "DEPOSIT" => Ok(RaindexVaultBalanceChangeType::Deposit),
-            "Withdrawal" | "WITHDRAWAL" | "WITHDRAW" => {
-                Ok(RaindexVaultBalanceChangeType::Withdrawal)
-            }
-            "TradeVaultBalanceChange" | "TAKE_INPUT" | "TAKE_OUTPUT" => {
-                Ok(RaindexVaultBalanceChangeType::TradeVaultBalanceChange)
-            }
-            "ClearBounty" | "CLEARBounty" => Ok(RaindexVaultBalanceChangeType::ClearBounty),
-            "Unknown" | "UNKNOWN" => Ok(RaindexVaultBalanceChangeType::Unknown),
-            _ => Err(RaindexError::InvalidVaultBalanceChangeType(value)),
+
+impl From<VaultBalanceChangeKind> for RaindexVaultBalanceChangeType {
+    fn from(kind: VaultBalanceChangeKind) -> Self {
+        match kind {
+            VaultBalanceChangeKind::Deposit => Self::Deposit,
+            VaultBalanceChangeKind::Withdrawal => Self::Withdrawal,
+            VaultBalanceChangeKind::TakeOrder => Self::TakeOrder,
+            VaultBalanceChangeKind::Clear => Self::Clear,
+            VaultBalanceChangeKind::ClearBounty => Self::ClearBounty,
+            VaultBalanceChangeKind::Unknown => Self::Unknown,
         }
     }
 }
-impl RaindexVaultBalanceChangeType {}
+
+impl TryFrom<String> for RaindexVaultBalanceChangeType {
+    type Error = RaindexError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let kind = VaultBalanceChangeKind::from_local_db_change_type(&value);
+        if matches!(kind, VaultBalanceChangeKind::Unknown) {
+            let kind_from_sg = VaultBalanceChangeKind::from_subgraph_typename(&value);
+            if matches!(kind_from_sg, VaultBalanceChangeKind::Unknown) && value != "Unknown" {
+                return Err(RaindexError::InvalidVaultBalanceChangeType(value));
+            }
+            return Ok(kind_from_sg.into());
+        }
+        Ok(kind.into())
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum VaultBalanceChangeFilter {
+    Deposit,
+    Withdrawal,
+    TakeOrder,
+    Clear,
+    ClearBounty,
+}
+impl_wasm_traits!(VaultBalanceChangeFilter);
+
+impl VaultBalanceChangeFilter {
+    pub fn to_kind(&self) -> VaultBalanceChangeKind {
+        match self {
+            Self::Deposit => VaultBalanceChangeKind::Deposit,
+            Self::Withdrawal => VaultBalanceChangeKind::Withdrawal,
+            Self::TakeOrder => VaultBalanceChangeKind::TakeOrder,
+            Self::Clear => VaultBalanceChangeKind::Clear,
+            Self::ClearBounty => VaultBalanceChangeKind::ClearBounty,
+        }
+    }
+
+    pub fn to_local_db_types(&self) -> &'static [&'static str] {
+        self.to_kind().to_local_db_change_types()
+    }
+
+    pub fn to_raindex_type(&self) -> RaindexVaultBalanceChangeType {
+        match self {
+            Self::Deposit => RaindexVaultBalanceChangeType::Deposit,
+            Self::Withdrawal => RaindexVaultBalanceChangeType::Withdrawal,
+            Self::TakeOrder => RaindexVaultBalanceChangeType::TakeOrder,
+            Self::Clear => RaindexVaultBalanceChangeType::Clear,
+            Self::ClearBounty => RaindexVaultBalanceChangeType::ClearBounty,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -751,6 +816,7 @@ pub(crate) struct LocalTradeTokenInfo {
 pub(crate) struct LocalTradeBalanceInfo {
     pub delta: String,
     pub running_balance: Option<String>,
+    pub trade_kind: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -804,8 +870,14 @@ impl RaindexVaultBalanceChange {
         let formatted_new_balance = new_balance.format()?;
         let formatted_old_balance = old_balance.format()?;
 
+        let change_type: RaindexVaultBalanceChangeType =
+            VaultBalanceChangeKind::from_subgraph_typename(
+                &balance_change.trade.trade_event.__typename,
+            )
+            .into();
+
         Ok(Self {
-            r#type: balance_change.__typename.try_into()?,
+            r#type: change_type,
             vault_id: U256::from_str(&balance_change.vault.vault_id.0)?,
             token,
             amount,
@@ -818,6 +890,85 @@ impl RaindexVaultBalanceChange {
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
             orderbook: Address::from_str(&balance_change.orderbook.id.0)?,
         })
+    }
+}
+
+impl RaindexVaultBalanceChange {
+    pub fn try_from_sg_balance_change_type(
+        chain_id: u32,
+        balance_change: SgVaultBalanceChangeType,
+    ) -> Result<Self, RaindexError> {
+        match balance_change {
+            SgVaultBalanceChangeType::Deposit(deposit) => {
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, deposit.vault.token)?;
+                let amount = Float::from_hex(&deposit.amount.0)?;
+                let new_balance = Float::from_hex(&deposit.new_vault_balance.0)?;
+                let old_balance = Float::from_hex(&deposit.old_vault_balance.0)?;
+
+                Ok(Self {
+                    r#type: RaindexVaultBalanceChangeType::Deposit,
+                    vault_id: U256::from_str(&deposit.vault.vault_id.0)?,
+                    token,
+                    amount,
+                    formatted_amount: amount.format()?,
+                    new_balance,
+                    formatted_new_balance: new_balance.format()?,
+                    old_balance,
+                    formatted_old_balance: old_balance.format()?,
+                    timestamp: U256::from_str(&deposit.timestamp.0)?,
+                    transaction: RaindexTransaction::try_from(deposit.transaction)?,
+                    orderbook: Address::from_str(&deposit.orderbook.id.0)?,
+                })
+            }
+            SgVaultBalanceChangeType::Withdrawal(withdrawal) => {
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, withdrawal.vault.token)?;
+                let amount = Float::from_hex(&withdrawal.amount.0)?;
+                let new_balance = Float::from_hex(&withdrawal.new_vault_balance.0)?;
+                let old_balance = Float::from_hex(&withdrawal.old_vault_balance.0)?;
+
+                Ok(Self {
+                    r#type: RaindexVaultBalanceChangeType::Withdrawal,
+                    vault_id: U256::from_str(&withdrawal.vault.vault_id.0)?,
+                    token,
+                    amount,
+                    formatted_amount: amount.format()?,
+                    new_balance,
+                    formatted_new_balance: new_balance.format()?,
+                    old_balance,
+                    formatted_old_balance: old_balance.format()?,
+                    timestamp: U256::from_str(&withdrawal.timestamp.0)?,
+                    transaction: RaindexTransaction::try_from(withdrawal.transaction)?,
+                    orderbook: Address::from_str(&withdrawal.orderbook.id.0)?,
+                })
+            }
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(trade_change) => {
+                Self::try_from_sg_trade_balance_change(chain_id, trade_change)
+            }
+            SgVaultBalanceChangeType::ClearBounty(bounty) => {
+                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, bounty.vault.token)?;
+                let amount = Float::from_hex(&bounty.amount.0)?;
+                let new_balance = Float::from_hex(&bounty.new_vault_balance.0)?;
+                let old_balance = Float::from_hex(&bounty.old_vault_balance.0)?;
+
+                Ok(Self {
+                    r#type: RaindexVaultBalanceChangeType::ClearBounty,
+                    vault_id: U256::from_str(&bounty.vault.vault_id.0)?,
+                    token,
+                    amount,
+                    formatted_amount: amount.format()?,
+                    new_balance,
+                    formatted_new_balance: new_balance.format()?,
+                    old_balance,
+                    formatted_old_balance: old_balance.format()?,
+                    timestamp: U256::from_str(&bounty.timestamp.0)?,
+                    transaction: RaindexTransaction::try_from(bounty.transaction)?,
+                    orderbook: Address::from_str(&bounty.orderbook.id.0)?,
+                })
+            }
+            SgVaultBalanceChangeType::Unknown => Err(RaindexError::InvalidVaultBalanceChangeType(
+                "Unknown".to_string(),
+            )),
+        }
     }
 }
 
@@ -895,8 +1046,11 @@ impl RaindexVaultBalanceChange {
             decimals,
         };
 
+        let change_type: RaindexVaultBalanceChangeType =
+            VaultBalanceChangeKind::from_local_db_trade_kind(&balance.trade_kind).into();
+
         Ok(Self {
-            r#type: RaindexVaultBalanceChangeType::TradeVaultBalanceChange,
+            r#type: change_type,
             vault_id,
             token,
             amount,
@@ -1122,56 +1276,18 @@ impl RaindexClient {
     ) -> Result<RaindexVaultsList, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
-        let subgraph_source = SubgraphVaults::new(self);
-
-        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
-            let vaults = subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await?;
-            return Ok(RaindexVaultsList::new(vaults));
-        };
-
-        if ids.is_empty() {
-            let vaults = subgraph_source
-                .list(None, &filters, Some(page_number))
-                .await?;
-            return Ok(RaindexVaultsList::new(vaults));
-        };
-
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-
-        for id in ids.drain(..) {
-            if is_chain_supported_local_db(id) {
-                local_ids.push(id);
-            } else {
-                sg_ids.push(id);
-            }
-        }
-
-        let mut vaults: Vec<RaindexVault> = Vec::new();
-
-        if self.local_db().is_none() {
-            sg_ids.append(&mut local_ids);
-        }
+        let ids = chain_ids.map(|ChainIds(ids)| ids);
 
         if let Some(local_db) = self.local_db() {
-            if !local_ids.is_empty() {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
-                let local_vaults = local_source
-                    .list(Some(local_ids.clone()), &filters, None)
-                    .await?;
-                vaults.extend(local_vaults);
-            }
+            let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+            let vaults = local_source.list(ids, &filters, None).await?;
+            return Ok(RaindexVaultsList::new(vaults));
         }
 
-        if !sg_ids.is_empty() {
-            let sg_vaults = subgraph_source
-                .list(Some(sg_ids), &filters, Some(page_number))
-                .await?;
-            vaults.extend(sg_vaults);
-        }
-
+        let subgraph_source = SubgraphVaults::new(self);
+        let vaults = subgraph_source
+            .list(ids, &filters, Some(page_number))
+            .await?;
         Ok(RaindexVaultsList::new(vaults))
     }
 
@@ -1298,12 +1414,10 @@ impl RaindexClient {
             ));
         }
 
-        if is_chain_supported_local_db(ob_id.chain_id) {
-            if let Some(local_db) = self.local_db() {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
-                if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
-                    return Ok(vault);
-                }
+        if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+            if let Some(vault) = local_source.get_by_id(ob_id, &vault_id).await? {
+                return Ok(vault);
             }
         }
 
@@ -1396,6 +1510,10 @@ pub struct GetVaultsFilters {
     pub hide_zero_balance: bool,
     #[tsify(optional, type = "Address[]")]
     pub tokens: Option<Vec<Address>>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
+    #[serde(default)]
+    pub only_active_orders: bool,
 }
 impl_wasm_traits!(GetVaultsFilters);
 
@@ -1418,6 +1536,16 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                         .collect()
                 })
                 .unwrap_or_default(),
+            orderbooks: filters
+                .orderbook_addresses
+                .map(|addrs| {
+                    addrs
+                        .into_iter()
+                        .map(|addr| addr.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
+            only_active_orders: filters.only_active_orders,
         })
     }
 }
@@ -1795,7 +1923,7 @@ mod tests {
                 .expect("local vault retrieval should succeed");
 
             let changes = vault
-                .get_balance_changes(None)
+                .get_balance_changes(None, None)
                 .await
                 .expect("balance changes should load from local db");
 
@@ -1837,6 +1965,8 @@ mod tests {
                 owners: vec![Address::from_str(owner_kept).unwrap()],
                 hide_zero_balance: true,
                 tokens: Some(vec![Address::from_str(token_kept).unwrap()]),
+                orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let vaults = client
@@ -1946,15 +2076,13 @@ mod tests {
                 LocalTradeBalanceInfo {
                     delta: amount_hex.clone(),
                     running_balance: Some(new_balance_hex.clone()),
+                    trade_kind: "take".to_string(),
                 },
                 789,
             )
             .unwrap();
 
-            assert_eq!(
-                change.r#type(),
-                RaindexVaultBalanceChangeType::TradeVaultBalanceChange
-            );
+            assert_eq!(change.r#type(), RaindexVaultBalanceChangeType::TakeOrder);
             assert_eq!(change.vault_id(), U256::from_str("0x10").unwrap());
             assert!(change.amount().eq(amount).unwrap());
             assert!(change.new_balance().eq(new_balance).unwrap());
@@ -2016,10 +2144,13 @@ mod tests {
                 LocalTradeBalanceInfo {
                     delta: amount_hex.clone(),
                     running_balance: None,
+                    trade_kind: "clear".to_string(),
                 },
                 333,
             )
             .unwrap();
+
+            assert_eq!(change.r#type(), RaindexVaultBalanceChangeType::Clear);
 
             assert!(change.amount().eq(amount).unwrap());
             assert!(change.new_balance().eq(amount).unwrap());
@@ -2331,13 +2462,22 @@ mod tests {
         async fn test_get_vault_balance_changes() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("SgVaultDetailQuery");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
                 when.path("/sg1")
-                .body_contains("\"first\":200")
-                .body_contains("\"skip\":0");
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":0");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
                             {
+                                "id": "0xdeposit001",
                                 "__typename": "Deposit",
                                 "amount": F5,
                                 "newVaultBalance": F5,
@@ -2370,17 +2510,11 @@ mod tests {
             });
             sg_server.mock(|when, then| {
                 when.path("/sg1")
-                    .body_contains("\"first\":200")
+                    .body_contains("SgVaultBalanceChangesListQuery")
                     .body_contains("\"skip\":200");
                 then.status(200).json_body_obj(&json!({
-                    "data": { "vaultBalanceChanges": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
                     "data": {
-                        "vault": get_vault1_json()
+                        "vaultBalanceChanges": []
                     }
                 }));
             });
@@ -2406,7 +2540,7 @@ mod tests {
                 )
                 .await
                 .unwrap();
-            let result = vault.get_balance_changes(None).await.unwrap();
+            let result = vault.get_balance_changes(None, None).await.unwrap();
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Deposit);
             assert_eq!(result[0].vault_id, U256::from_str("1").unwrap());
@@ -2506,13 +2640,22 @@ mod tests {
         async fn test_formatted_balance_change_with_negative_amount() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("SgVaultDetailQuery");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
                 when.path("/sg1")
-                .body_contains("\"first\":200")
-                .body_contains("\"skip\":0");
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":0");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
                             {
+                                "id": "0xwithdrawal001",
                                 "__typename": "Withdrawal",
                                 "amount": NEG2,
                                 "newVaultBalance": F3,
@@ -2545,17 +2688,11 @@ mod tests {
             });
             sg_server.mock(|when, then| {
                 when.path("/sg1")
-                    .body_contains("\"first\":200")
+                    .body_contains("SgVaultBalanceChangesListQuery")
                     .body_contains("\"skip\":200");
                 then.status(200).json_body_obj(&json!({
-                    "data": { "vaultBalanceChanges": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1");
-                then.status(200).json_body_obj(&json!({
                     "data": {
-                        "vault": get_vault1_json()
+                        "vaultBalanceChanges": []
                     }
                 }));
             });
@@ -2580,7 +2717,7 @@ mod tests {
                 )
                 .await
                 .unwrap();
-            let result = vault.get_balance_changes(None).await.unwrap();
+            let result = vault.get_balance_changes(None, None).await.unwrap();
 
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].r#type, RaindexVaultBalanceChangeType::Withdrawal);
@@ -2599,13 +2736,22 @@ mod tests {
         async fn test_missing_decimals_formatted_balance() {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("SgVaultDetailQuery");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "vault": get_vault1_json()
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
                 when.path("/sg1")
-                .body_contains("\"first\":200")
-                .body_contains("\"skip\":0");
+                    .body_contains("SgVaultBalanceChangesListQuery")
+                    .body_contains("\"skip\":0");
                 then.status(200).json_body_obj(&json!({
                     "data": {
                         "vaultBalanceChanges": [
                             {
+                                "id": "0xwithdrawal002",
                                 "__typename": "Withdrawal",
                                 "amount": "-25354",
                                 "newVaultBalance": "3378982",
@@ -2618,7 +2764,7 @@ mod tests {
                                         "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                                         "name": "Wrapped Ether",
                                         "symbol": "WETH",
-                                        "decimals": null // Missing decimals
+                                        "decimals": null
                                     }
                                 },
                                 "timestamp": "1734054063",
@@ -2638,17 +2784,11 @@ mod tests {
             });
             sg_server.mock(|when, then| {
                 when.path("/sg1")
-                    .body_contains("\"first\":200")
+                    .body_contains("SgVaultBalanceChangesListQuery")
                     .body_contains("\"skip\":200");
                 then.status(200).json_body_obj(&json!({
-                    "data": { "vaultBalanceChanges": [] }
-                }));
-            });
-            sg_server.mock(|when, then| {
-                when.path("/sg1").body_contains("SgVaultDetailQuery");
-                then.status(200).json_body_obj(&json!({
                     "data": {
-                        "vault": get_vault1_json()
+                        "vaultBalanceChanges": []
                     }
                 }));
             });
@@ -2687,7 +2827,7 @@ mod tests {
                 )
                 .await
                 .unwrap();
-            let err = vault.get_balance_changes(None).await.unwrap_err();
+            let err = vault.get_balance_changes(None, None).await.unwrap_err();
             assert!(matches!(
                 err,
                 RaindexError::MissingErc20Decimals(token)
@@ -2989,6 +3129,8 @@ mod tests {
                     "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                 )
                 .unwrap()]),
+                orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let result = raindex_client
@@ -3044,6 +3186,8 @@ mod tests {
                     Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap(),
                     Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap(),
                 ]),
+                orderbook_addresses: None,
+                only_active_orders: false,
             };
 
             let result = raindex_client
@@ -3199,6 +3343,74 @@ mod tests {
 
             let balance = vault.get_owner_balance(Address::random()).await.unwrap();
             assert_eq!(balance, U256::from(1000));
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_maps_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: Some(vec![
+                    address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                    address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+                ]),
+                only_active_orders: false,
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            );
+            assert_eq!(
+                sg_filter_args.orderbooks[1],
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            );
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_empty_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: None,
+                only_active_orders: false,
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert!(sg_filter_args.orderbooks.is_empty());
+        }
+
+        #[test]
+        fn get_vaults_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+
+            let filters = GetVaultsFilters {
+                owners: vec![],
+                hide_zero_balance: false,
+                tokens: None,
+                orderbook_addresses: Some(vec![address!(
+                    "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
+                )]),
+                only_active_orders: false,
+            };
+
+            let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            );
         }
     }
 }

@@ -10,7 +10,8 @@ use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
-    dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+    context::ContextProfile, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError,
+    YamlParsable,
 };
 use rain_orderbook_app_settings::{
     remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
@@ -295,6 +296,15 @@ impl DotrainOrder {
         )]
         settings: Option<Vec<String>>,
     ) -> Result<DotrainOrder, DotrainOrderError> {
+        Self::create_with_profile(dotrain, settings, ContextProfile::Strict).await
+    }
+
+    #[wasm_export(skip)]
+    pub async fn create_with_profile(
+        dotrain: String,
+        settings: Option<Vec<String>>,
+        profile: ContextProfile,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
@@ -306,7 +316,12 @@ impl DotrainOrder {
 
         let mut orderbook_yaml =
             OrderbookYaml::new(sources.clone(), OrderbookYamlValidation::default())?;
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
+
+        let mut dotrain_yaml = DotrainYaml::new_with_profile(
+            sources.clone(),
+            DotrainYamlValidation::default(),
+            profile,
+        )?;
 
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;

@@ -1,6 +1,6 @@
 **Overview**
 - Purpose: `rain_orderbook_js_api` exposes a single, browser-friendly WebAssembly surface for the Rain Orderbook application. It bridges YAML-based “dotrain” order configuration, on-chain ERC‑20/token metadata, and contract call generation into a typed JavaScript/TypeScript API.
-- Target: Compiles as a `cdylib` for wasm and is designed to be consumed from JS environments (webapps, Tauri). All public APIs are exported via `wasm_bindgen_utils` macros and return ergonomic results with rich, user‑readable errors.
+- Target: Compiles as a `cdylib` for wasm and is designed to be consumed from JS environments (webapps). All public APIs are exported via `wasm_bindgen_utils` macros and return ergonomic results with rich, user‑readable errors.
 - Scope: Includes high-level GUI helpers for interactive order building, a fetchable registry of orders, and low-level helpers for hashing and ABI calldata generation. It re-exports certain sibling crates so their wasm bindings are reachable from a single import.
 
 **Build & Targets**
@@ -130,14 +130,16 @@
     - `getAllOrderDetails()` → parse order-level metadata for every merged dotrain.
     - `getOrderKeys()` → keys from `order_urls`.
     - `getDeploymentDetails(orderKey)` → deployment name/description map for a specific order.
+    - `getOrderbookYaml() -> OrderbookYaml` → returns an `OrderbookYaml` instance from the registry's shared settings YAML for querying tokens, networks, orderbooks, etc.
   - `getGui(orderKey, deploymentKey, serializedState?, stateCallback?)` → merge `settings + order`, optionally restore serialized state, and produce a `DotrainOrderGui` instance.
   - Errors: `DotrainRegistryError` covers fetch/parse/HTTP/URL issues and wraps `GuiError`. Also returns human-readable messages.
 
 - `yaml` (src/yaml/mod.rs)
-  - Purpose: Wasm-friendly wrapper around orderbook YAML parsing to retrieve an `OrderbookCfg` by contract address.
+  - Purpose: Wasm-friendly wrapper around orderbook YAML parsing to retrieve configuration objects by address or query token metadata.
   - Exports:
     - `OrderbookYaml.new([yamlSources], validate?) -> OrderbookYaml`: parse/merge/optionally validate sources.
     - `OrderbookYaml.getOrderbookByAddress(address) -> OrderbookCfg`.
+    - `OrderbookYaml.getTokens() -> TokenInfo[]` (async): returns all tokens from YAML with `chain_id`, `address`, `decimals`, `symbol`, and `name`. Automatically fetches remote tokens from `using-tokens-from` URLs.
   - Errors: `OrderbookYamlError` with readable messaging, converted to JS.
 
 **External Crates & Interactions**
