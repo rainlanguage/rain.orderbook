@@ -24,8 +24,7 @@ use async_trait::async_trait;
 use rain_math_float::Float;
 use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
-    // TODO: Issue 1989 - performance modules are temporarily noop
-    // performance::vol::{VaultVolume, VolumeDetails},
+    performance::vol::{VaultVolume, VolumeDetails},
     types::{
         common::{
             SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
@@ -34,9 +33,7 @@ use rain_orderbook_subgraph_client::{
         },
         Id,
     },
-    MultiOrderbookSubgraphClient,
-    OrderbookSubgraphClient,
-    OrderbookSubgraphClientError,
+    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
 use std::{rc::Rc, str::FromStr};
@@ -1104,73 +1101,63 @@ impl RaindexVaultVolume {
     }
 }
 impl RaindexVaultVolume {
-    // TODO: Issue 1989 - performance modules are temporarily noop
-    /*
     pub fn try_from_vault_volume(
         chain_id: u32,
         vault_volume: VaultVolume,
     ) -> Result<Self, RaindexError> {
         let token = RaindexVaultToken::try_from_sg_erc20(chain_id, vault_volume.token)?;
-        let details = RaindexVaultVolumeDetails::try_from_volume_details(
-            token.clone(),
-            vault_volume.vol_details,
-        )?;
+        let details = RaindexVaultVolumeDetails::from_volume_details(vault_volume.vol_details)?;
         Ok(Self {
             id: U256::from_str(&vault_volume.id)?,
             token,
             details,
         })
     }
-    */
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVaultVolumeDetails {
-    total_in: U256,
+    total_in: Float,
     formatted_total_in: String,
-    total_out: U256,
+    total_out: Float,
     formatted_total_out: String,
-    total_vol: U256,
+    total_vol: Float,
     formatted_total_vol: String,
-    net_vol: U256,
+    net_vol: Float,
     formatted_net_vol: String,
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl RaindexVaultVolumeDetails {
     #[wasm_bindgen(getter = totalIn)]
-    pub fn total_in(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.total_in.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn total_in(&self) -> Float {
+        self.total_in
     }
     #[wasm_bindgen(getter = formattedTotalIn)]
     pub fn formatted_total_in(&self) -> String {
         self.formatted_total_in.clone()
     }
     #[wasm_bindgen(getter = totalOut)]
-    pub fn total_out(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.total_out.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn total_out(&self) -> Float {
+        self.total_out
     }
     #[wasm_bindgen(getter = formattedTotalOut)]
     pub fn formatted_total_out(&self) -> String {
         self.formatted_total_out.clone()
     }
     #[wasm_bindgen(getter = totalVol)]
-    pub fn total_vol(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.total_vol.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn total_vol(&self) -> Float {
+        self.total_vol
     }
     #[wasm_bindgen(getter = formattedTotalVol)]
     pub fn formatted_total_vol(&self) -> String {
         self.formatted_total_vol.clone()
     }
     #[wasm_bindgen(getter = netVol)]
-    pub fn net_vol(&self) -> Result<BigInt, RaindexError> {
-        BigInt::from_str(&self.net_vol.to_string())
-            .map_err(|e| RaindexError::JsError(e.to_string().into()))
+    pub fn net_vol(&self) -> Float {
+        self.net_vol
     }
     #[wasm_bindgen(getter = formattedNetVol)]
     pub fn formatted_net_vol(&self) -> String {
@@ -1179,25 +1166,25 @@ impl RaindexVaultVolumeDetails {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexVaultVolumeDetails {
-    pub fn total_in(&self) -> U256 {
+    pub fn total_in(&self) -> Float {
         self.total_in
     }
     pub fn formatted_total_in(&self) -> String {
         self.formatted_total_in.clone()
     }
-    pub fn total_out(&self) -> U256 {
+    pub fn total_out(&self) -> Float {
         self.total_out
     }
     pub fn formatted_total_out(&self) -> String {
         self.formatted_total_out.clone()
     }
-    pub fn total_vol(&self) -> U256 {
+    pub fn total_vol(&self) -> Float {
         self.total_vol
     }
     pub fn formatted_total_vol(&self) -> String {
         self.formatted_total_vol.clone()
     }
-    pub fn net_vol(&self) -> U256 {
+    pub fn net_vol(&self) -> Float {
         self.net_vol
     }
     pub fn formatted_net_vol(&self) -> String {
@@ -1205,30 +1192,18 @@ impl RaindexVaultVolumeDetails {
     }
 }
 impl RaindexVaultVolumeDetails {
-    // TODO: Issue 1989 - performance modules are temporarily noop
-    /*
-    pub fn try_from_volume_details(
-        token: RaindexVaultToken,
-        volume_details: VolumeDetails,
-    ) -> Result<Self, RaindexError> {
-        let decimals: u8 = token.decimals.try_into()?;
-        let formatted_total_in = format_amount_u256(volume_details.total_in, decimals)?;
-        let formatted_total_out = format_amount_u256(volume_details.total_out, decimals)?;
-        let formatted_total_vol = format_amount_u256(volume_details.total_vol, decimals)?;
-        let formatted_net_vol = format_amount_u256(volume_details.net_vol, decimals)?;
-
+    pub fn from_volume_details(volume_details: VolumeDetails) -> Result<Self, RaindexError> {
         Ok(Self {
             total_in: volume_details.total_in,
-            formatted_total_in,
+            formatted_total_in: volume_details.total_in.format()?,
             total_out: volume_details.total_out,
-            formatted_total_out,
+            formatted_total_out: volume_details.total_out.format()?,
             total_vol: volume_details.total_vol,
-            formatted_total_vol,
+            formatted_total_vol: volume_details.total_vol.format()?,
             net_vol: volume_details.net_vol,
-            formatted_net_vol,
+            formatted_net_vol: volume_details.net_vol.format()?,
         })
     }
-    */
 }
 
 #[wasm_export]
