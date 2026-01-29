@@ -62,6 +62,7 @@ tokens:
 `;
 
 const MOCK_DOTRAIN_PREFIX = `
+version: 4
 gui:
   name: Test gui
   description: Test description

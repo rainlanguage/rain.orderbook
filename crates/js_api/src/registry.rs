@@ -289,9 +289,10 @@ impl DotrainRegistry {
         &self,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, DotrainRegistryError> {
         let mut order_details = BTreeMap::new();
+        let settings = self.settings_sources();
 
         for (order_key, dotrain) in &self.orders {
-            let details = DotrainOrderGui::get_order_details(dotrain.clone())?;
+            let details = DotrainOrderGui::get_order_details(dotrain.clone(), settings.clone())?;
             order_details.insert(order_key.clone(), details);
         }
 
@@ -358,7 +359,9 @@ impl DotrainRegistry {
             .orders
             .get(&order_key)
             .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain.clone())?;
+        let settings = self.settings_sources();
+        let deployment_details =
+            DotrainOrderGui::get_deployment_details(dotrain.clone(), settings.clone())?;
         Ok(deployment_details)
     }
 
@@ -428,11 +431,17 @@ impl DotrainRegistry {
         )]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<DotrainOrderGui, DotrainRegistryError> {
-        let merged_content = self.merge_content_for_order(&order_key)?;
+        let dotrain = self
+            .orders
+            .get(&order_key)
+            .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
+        let settings = self.settings_sources();
+
         let gui_result = match serialized_state {
             Some(serialized_state) => {
                 match DotrainOrderGui::new_from_state(
-                    merged_content.clone(),
+                    dotrain.clone(),
+                    settings.clone(),
                     serialized_state,
                     state_update_callback.clone(),
                 )
@@ -441,7 +450,8 @@ impl DotrainRegistry {
                     Ok(gui) => Ok(gui),
                     Err(_) => {
                         DotrainOrderGui::new_with_deployment(
-                            merged_content,
+                            dotrain.clone(),
+                            settings.clone(),
                             deployment_key,
                             state_update_callback.clone(),
                         )
@@ -451,7 +461,8 @@ impl DotrainRegistry {
             }
             None => {
                 DotrainOrderGui::new_with_deployment(
-                    merged_content,
+                    dotrain.clone(),
+                    settings.clone(),
                     deployment_key,
                     state_update_callback.clone(),
                 )
@@ -491,6 +502,14 @@ impl DotrainRegistry {
 }
 
 impl DotrainRegistry {
+    fn settings_sources(&self) -> Option<Vec<String>> {
+        if self.settings.is_empty() {
+            None
+        } else {
+            Some(vec![self.settings.clone()])
+        }
+    }
+
     async fn fetch_and_parse_registry(
         registry_url: &Url,
     ) -> Result<(String, Url, HashMap<String, Url>), DotrainRegistryError> {
@@ -594,21 +613,6 @@ impl DotrainRegistry {
         }
 
         Ok(orders)
-    }
-
-    fn merge_content_for_order(&self, order_key: &str) -> Result<String, DotrainRegistryError> {
-        let dotrain = self
-            .orders
-            .get(order_key)
-            .ok_or(DotrainRegistryError::OrderKeyNotFound(
-                order_key.to_string(),
-            ))?;
-
-        if self.settings.is_empty() {
-            Ok(dotrain.clone())
-        } else {
-            Ok(format!("{}\n\n{}", self.settings, dotrain))
-        }
     }
 }
 
@@ -950,27 +954,6 @@ _ _: 1 1;
         }
 
         #[wasm_bindgen_test]
-        fn test_merge_content_order_not_found() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
-                settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: HashMap::new(),
-            };
-
-            let result = registry.merge_content_for_order("non-existent");
-            assert!(result.is_err());
-            match result.err().unwrap() {
-                DotrainRegistryError::OrderKeyNotFound(key) => {
-                    assert_eq!(key, "non-existent");
-                }
-                _ => panic!("Expected OrderKeyNotFound error"),
-            }
-        }
-
-        #[wasm_bindgen_test]
         fn test_error_readable_messages() {
             let registry_error =
                 DotrainRegistryError::RegistryFetchError("https://example.com".to_string());
@@ -985,69 +968,6 @@ _ _: 1 1;
             let not_found_error = DotrainRegistryError::OrderKeyNotFound("test-order".to_string());
             let readable = not_found_error.to_readable_msg();
             assert!(readable.contains("order key 'test-order' was not found"));
-        }
-
-        #[wasm_bindgen_test]
-        fn test_merge_content_for_order() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
-                settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: MOCK_SETTINGS_CONTENT.to_string(),
-                order_urls: HashMap::new(),
-                orders: vec![
-                    ("first-order".to_string(), get_first_dotrain_content()),
-                    ("second-order".to_string(), get_second_dotrain_content()),
-                ]
-                .into_iter()
-                .collect(),
-            };
-
-            let merged1 = registry.merge_content_for_order("first-order").unwrap();
-            let expected1 = format!(
-                "{}\n\n{}",
-                MOCK_SETTINGS_CONTENT,
-                get_first_dotrain_content()
-            );
-            assert_eq!(merged1, expected1);
-
-            assert!(merged1.starts_with("version: 4\nnetworks:"));
-            assert!(merged1.contains("\n\ngui:"));
-            assert!(merged1.contains("_ _: 0 0;"));
-
-            let merged2 = registry.merge_content_for_order("second-order").unwrap();
-            let expected2 = format!(
-                "{}\n\n{}",
-                MOCK_SETTINGS_CONTENT,
-                get_second_dotrain_content()
-            );
-            assert_eq!(merged2, expected2);
-
-            assert!(merged2.starts_with("version: 4\nnetworks:"));
-            assert!(merged2.contains("\n\ngui:"));
-            assert!(merged2.contains("_ _: 1 1;"));
-
-            assert_ne!(merged1, merged2);
-            assert!(merged1.contains("_ _: 0 0;") && !merged1.contains("_ _: 1 1;"));
-            assert!(merged2.contains("_ _: 1 1;") && !merged2.contains("_ _: 0 0;"));
-        }
-
-        #[wasm_bindgen_test]
-        fn test_merge_content_empty_settings() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
-                settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: "".to_string(),
-                order_urls: HashMap::new(),
-                orders: vec![("test-order".to_string(), get_first_dotrain_content())]
-                    .into_iter()
-                    .collect(),
-            };
-
-            let merged = registry.merge_content_for_order("test-order").unwrap();
-            assert_eq!(merged, get_first_dotrain_content());
-            assert!(merged.starts_with("gui:"));
         }
     }
 
@@ -1358,10 +1278,6 @@ _ _: 1 1;
 
             let default_serialized_state = gui1.serialize_state().unwrap();
 
-            let merged_content1 = registry.merge_content_for_order("first-order").unwrap();
-            assert!(merged_content1.contains(MOCK_SETTINGS_CONTENT));
-            assert!(merged_content1.contains("_ _: 0 0;"));
-
             let gui2 = registry
                 .get_gui("second-order".to_string(), "base".to_string(), None, None)
                 .await
@@ -1370,16 +1286,6 @@ _ _: 1 1;
             let deployment_details2 = gui2.get_current_deployment().unwrap();
             assert_eq!(deployment_details2.name, "Base order name");
             assert_eq!(deployment_details2.description, "Base order description");
-
-            let merged_content2 = registry.merge_content_for_order("second-order").unwrap();
-            assert!(merged_content2.contains(MOCK_SETTINGS_CONTENT));
-            assert!(merged_content2.contains("_ _: 1 1;"));
-
-            assert_ne!(merged_content1, merged_content2);
-            assert!(merged_content1.contains("_ _: 0 0;"));
-            assert!(!merged_content1.contains("_ _: 1 1;"));
-            assert!(merged_content2.contains("_ _: 1 1;"));
-            assert!(!merged_content2.contains("_ _: 0 0;"));
 
             let mut gui_with_state = registry
                 .get_gui("first-order".to_string(), "flare".to_string(), None, None)
