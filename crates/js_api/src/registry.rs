@@ -932,7 +932,7 @@ _ _: 1 1;
                 registry_url: Url::parse("https://example.com/test").unwrap(),
                 registry: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: MOCK_SETTINGS_CONTENT.to_string(),
+                settings: mock_settings_content(),
                 order_urls: vec![
                     (
                         "valid".to_string(),
