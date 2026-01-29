@@ -1,5 +1,5 @@
 use super::{cache::Cache, orderbook::OrderbookYaml, sanitize_all_documents, ValidationConfig, *};
-use crate::{ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
+use crate::{spec_version::SpecVersion, ChartCfg, DeploymentCfg, GuiCfg, OrderCfg, ScenarioCfg};
 use serde::{
     de::{self, IgnoredAny, MapAccess, SeqAccess, Visitor},
     ser::SerializeStruct,
@@ -98,6 +98,7 @@ impl YamlParsable for DotrainYaml {
             documents.push(document);
         }
 
+        SpecVersion::validate(documents.clone())?;
         sanitize_all_documents(&documents)?;
 
         if validate.should_validate_orders() {
@@ -371,6 +372,7 @@ impl<'de> Deserialize<'de> for DotrainYaml {
 mod tests {
     use crate::yaml::FieldErrorKind;
     use crate::{
+        spec_version::SpecVersion,
         test::*,
         yaml::{
             context::{ContextProfile, YamlCacheTrait},
@@ -385,7 +387,10 @@ mod tests {
 
     use super::*;
 
-    const FULL_YAML: &str = r#"
+    fn full_yaml() -> String {
+        format!(
+            r#"
+    version: {version}
     networks:
         mainnet:
             rpcs:
@@ -522,9 +527,15 @@ mod tests {
                     margin-top: 40
                     margin-bottom: 50
                     inset: 60
-    "#;
+    "#,
+            version = SpecVersion::current()
+        )
+    }
 
-    const HANDLEBARS_YAML: &str = r#"
+    fn handlebars_yaml() -> String {
+        format!(
+            r#"
+    version: {version}
     networks:
         mainnet:
             rpcs:
@@ -558,12 +569,12 @@ mod tests {
     scenarios:
         scenario1:
             bindings:
-                key1: ${order.inputs.0.token.address}
+                key1: ${{order.inputs.0.token.address}}
             deployer: deployer1
             scenarios:
                 scenario2:
                     bindings:
-                        key2: ${order.outputs.0.token.address}
+                        key2: ${{order.outputs.0.token.address}}
     deployments:
         deployment1:
             order: order1
@@ -582,24 +593,21 @@ mod tests {
                         - 2000
                 fields:
                     - binding: key1
-                      name: Binding for ${order.inputs.0.token.label}
-                      description: With token symbol ${order.inputs.0.token.symbol}
+                      name: Binding for ${{order.inputs.0.token.label}}
+                      description: With token symbol ${{order.inputs.0.token.symbol}}
                       presets:
                         - value: value2
-    "#;
+    "#,
+            version = SpecVersion::current()
+        )
+    }
 
     #[test]
     fn test_full_yaml() {
-        let ob_yaml = OrderbookYaml::new(
-            vec![FULL_YAML.to_string()],
-            OrderbookYamlValidation::default(),
-        )
-        .unwrap();
-        let dotrain_yaml = DotrainYaml::new(
-            vec![FULL_YAML.to_string()],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
+        let ob_yaml =
+            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+        let dotrain_yaml =
+            DotrainYaml::new(vec![full_yaml()], DotrainYamlValidation::default()).unwrap();
 
         assert_eq!(dotrain_yaml.get_order_keys().unwrap().len(), 1);
         let order = dotrain_yaml.get_order("order1").unwrap();
@@ -855,7 +863,9 @@ mod tests {
 
     #[test]
     fn test_build_context_profiles() {
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+        version: {}
         networks:
             mainnet:
                 rpcs:
@@ -888,7 +898,9 @@ mod tests {
             deployment1:
                 order: order1
                 scenario: scenario1
-        "#;
+        "#,
+            SpecVersion::current()
+        );
 
         let mut dotrain_yaml =
             DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
@@ -951,7 +963,9 @@ mod tests {
 
     #[test]
     fn test_get_order_uses_profile() {
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+        version: {}
         networks:
             mainnet:
                 rpcs:
@@ -981,7 +995,9 @@ mod tests {
                     select-tokens:
                         - key: token1
                         - key: token2
-        "#;
+        "#,
+            SpecVersion::current()
+        );
 
         let strict_yaml =
             DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
@@ -1010,7 +1026,7 @@ mod tests {
 
     #[test]
     fn test_dotrain_yaml_serialization_preserves_profile() {
-        let yaml = "orders: {}".to_string();
+        let yaml = format!("version: {}\norders: {{}}", SpecVersion::current());
         let dotrain_yaml = DotrainYaml::new_with_profile(
             vec![yaml.clone()],
             DotrainYamlValidation::default(),
@@ -1040,7 +1056,9 @@ mod tests {
 
     #[test]
     fn test_update_vault_ids() {
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+        version: {version}
         networks:
             mainnet:
                 rpcs:
@@ -1069,9 +1087,10 @@ mod tests {
                     - token: token1
                 outputs:
                     - token: token2
-        "#;
-        let dotrain_yaml =
-            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+        "#,
+            version = SpecVersion::current()
+        );
+        let dotrain_yaml = DotrainYaml::new(vec![yaml], DotrainYamlValidation::default()).unwrap();
 
         let mut order = dotrain_yaml.get_order("order1").unwrap();
 
@@ -1099,11 +1118,8 @@ mod tests {
         );
 
         // Populate vault IDs should not change if the vault IDs are already set
-        let dotrain_yaml = DotrainYaml::new(
-            vec![FULL_YAML.to_string()],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
+        let dotrain_yaml =
+            DotrainYaml::new(vec![full_yaml()], DotrainYamlValidation::default()).unwrap();
         let mut order = dotrain_yaml.get_order("order1").unwrap();
         assert_eq!(order.inputs[0].vault_id, Some(U256::from(1)));
         assert_eq!(order.outputs[0].vault_id, Some(U256::from(2)));
@@ -1114,7 +1130,9 @@ mod tests {
 
     #[test]
     fn test_update_vault_id() {
-        let yaml = r#"
+        let yaml = format!(
+            r#"
+        version: {version}
         networks:
             mainnet:
                 rpcs:
@@ -1143,9 +1161,10 @@ mod tests {
                     - token: token1
                 outputs:
                     - token: token2
-        "#;
-        let dotrain_yaml =
-            DotrainYaml::new(vec![yaml.to_string()], DotrainYamlValidation::default()).unwrap();
+        "#,
+            version = SpecVersion::current()
+        );
+        let dotrain_yaml = DotrainYaml::new(vec![yaml], DotrainYamlValidation::default()).unwrap();
         let mut order = dotrain_yaml.get_order("order1").unwrap();
 
         assert!(order.inputs[0].vault_id.is_none());
@@ -1199,11 +1218,8 @@ mod tests {
     fn test_update_bindings() {
         // Parent scenario
         {
-            let dotrain_yaml = DotrainYaml::new(
-                vec![FULL_YAML.to_string()],
-                DotrainYamlValidation::default(),
-            )
-            .unwrap();
+            let dotrain_yaml =
+                DotrainYaml::new(vec![full_yaml()], DotrainYamlValidation::default()).unwrap();
 
             let mut scenario = dotrain_yaml.get_scenario("scenario1").unwrap();
 
@@ -1224,11 +1240,8 @@ mod tests {
 
         // Child scenario
         {
-            let dotrain_yaml = DotrainYaml::new(
-                vec![FULL_YAML.to_string()],
-                DotrainYamlValidation::default(),
-            )
-            .unwrap();
+            let dotrain_yaml =
+                DotrainYaml::new(vec![full_yaml()], DotrainYamlValidation::default()).unwrap();
 
             let mut scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
 
@@ -1255,11 +1268,8 @@ mod tests {
 
         // Adding additional bindings
         {
-            let dotrain_yaml = DotrainYaml::new(
-                vec![FULL_YAML.to_string()],
-                DotrainYamlValidation::default(),
-            )
-            .unwrap();
+            let dotrain_yaml =
+                DotrainYaml::new(vec![full_yaml()], DotrainYamlValidation::default()).unwrap();
 
             let mut scenario = dotrain_yaml.get_scenario("scenario1.scenario2").unwrap();
             let updated_scenario = scenario
@@ -1277,11 +1287,8 @@ mod tests {
 
     #[test]
     fn test_handlebars() {
-        let dotrain_yaml = DotrainYaml::new(
-            vec![HANDLEBARS_YAML.to_string()],
-            DotrainYamlValidation::default(),
-        )
-        .unwrap();
+        let dotrain_yaml =
+            DotrainYaml::new(vec![handlebars_yaml()], DotrainYamlValidation::default()).unwrap();
 
         let gui = dotrain_yaml.get_gui("deployment1").unwrap().unwrap();
         let deployment = gui.deployments.get("deployment1").unwrap();
@@ -1304,7 +1311,9 @@ mod tests {
 
     #[test]
     fn test_parse_orders_missing_token() {
-        let yaml_prefix = r#"
+        let yaml_prefix = format!(
+            r#"
+version: {version}
 networks:
     mainnet:
         rpcs:
@@ -1348,7 +1357,9 @@ gui:
             select-tokens:
                 - key: token-one
                 - key: token-two
-"#;
+"#,
+            version = SpecVersion::current()
+        );
         let missing_input_token_yaml = format!(
             "{yaml_prefix}
 orders:

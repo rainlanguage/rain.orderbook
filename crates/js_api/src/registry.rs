@@ -619,13 +619,16 @@ impl DotrainRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
     use std::collections::HashMap;
 
     const MOCK_REGISTRY_CONTENT: &str = r#"https://example.com/settings.yaml
 fixed-limit https://example.com/fixed-limit.rain
 auction-dca https://example.com/auction-dca.rain"#;
 
-    const MOCK_SETTINGS_CONTENT: &str = r#"version: 4
+    fn mock_settings_content() -> String {
+        format!(
+            r#"version: {version}
 networks:
   flare:
     rpcs:
@@ -666,9 +669,20 @@ tokens:
   token2:
     address: 0x4200000000000000000000000000000000000042
     network: base
-"#;
+"#,
+            version = SpecVersion::current()
+        )
+    }
 
-    const MOCK_DOTRAIN_PREFIX: &str = r#"gui:
+    fn mock_dotrain_prefix() -> String {
+        format!(
+            r#"version: {version}
+gui:"#,
+            version = SpecVersion::current()
+        )
+    }
+
+    const MOCK_DOTRAIN_BODY: &str = r#"
   name: Test gui
   description: Test description
   short-description: Test short description
@@ -732,7 +746,7 @@ deployments:
 
     fn get_first_dotrain_content() -> String {
         format!(
-            r#"{prefix}
+            r#"{prefix}{body}
 ----
 #calculate-io
 _ _: 0 0;
@@ -740,13 +754,14 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;"#,
-            prefix = MOCK_DOTRAIN_PREFIX
+            prefix = mock_dotrain_prefix(),
+            body = MOCK_DOTRAIN_BODY
         )
     }
 
     fn get_second_dotrain_content() -> String {
         format!(
-            r#"{prefix}
+            r#"{prefix}{body}
 ----
 #calculate-io
 _ _: 1 1;
@@ -754,7 +769,8 @@ _ _: 1 1;
 :;
 #handle-add-order
 :;"#,
-            prefix = MOCK_DOTRAIN_PREFIX
+            prefix = mock_dotrain_prefix(),
+            body = MOCK_DOTRAIN_BODY
         )
     }
 
@@ -831,7 +847,7 @@ _ _: 1 1;
                 registry_url: Url::parse("https://example.com/test").unwrap(),
                 registry: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: MOCK_SETTINGS_CONTENT.to_string(),
+                settings: mock_settings_content(),
                 order_urls: vec![
                     (
                         "fixed-limit".to_string(),
@@ -872,7 +888,7 @@ _ _: 1 1;
                 registry_url: Url::parse("https://example.com/test").unwrap(),
                 registry: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: MOCK_SETTINGS_CONTENT.to_string(),
+                settings: mock_settings_content(),
                 order_urls: vec![(
                     "fixed-limit".to_string(),
                     Url::parse("https://example.com/fixed-limit.rain").unwrap(),
@@ -907,7 +923,7 @@ _ _: 1 1;
                 registry_url: Url::parse("https://example.com/test").unwrap(),
                 registry: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: MOCK_SETTINGS_CONTENT.to_string(),
+                settings: mock_settings_content(),
                 order_urls: HashMap::new(),
                 orders: HashMap::new(),
             };
@@ -929,7 +945,7 @@ _ _: 1 1;
                 registry_url: Url::parse("https://example.com/registry.txt").unwrap(),
                 registry: MOCK_REGISTRY_CONTENT.to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
-                settings: MOCK_SETTINGS_CONTENT.to_string(),
+                settings: mock_settings_content(),
                 order_urls: vec![(
                     "fixed-limit".to_string(),
                     Url::parse("https://example.com/fixed-limit.rain").unwrap(),
@@ -944,7 +960,7 @@ _ _: 1 1;
             assert_eq!(registry.registry_url(), "https://example.com/registry.txt");
             assert_eq!(registry.settings_url(), "https://example.com/settings.yaml");
             assert_eq!(registry.registry(), MOCK_REGISTRY_CONTENT);
-            assert_eq!(registry.settings(), MOCK_SETTINGS_CONTENT);
+            assert_eq!(registry.settings(), mock_settings_content());
 
             let order_urls_map = registry.order_urls();
             assert_eq!(order_urls_map.size(), 1);
@@ -994,7 +1010,7 @@ _ _: 1 1;
 
             server.mock(|when, then| {
                 when.method("GET").path("/settings.yaml");
-                then.status(200).body(MOCK_SETTINGS_CONTENT);
+                then.status(200).body(mock_settings_content());
             });
 
             server.mock(|when, then| {
@@ -1020,7 +1036,7 @@ _ _: 1 1;
                 registry.settings_url(),
                 format!("{}/settings.yaml", server.url(""))
             );
-            assert_eq!(registry.settings(), MOCK_SETTINGS_CONTENT);
+            assert_eq!(registry.settings(), mock_settings_content());
             assert_eq!(registry.order_urls.len(), 2);
             assert_eq!(registry.orders.len(), 2);
             assert!(registry.order_urls.contains_key("first-order"));
@@ -1207,7 +1223,7 @@ _ _: 1 1;
 
             server.mock(|when, then| {
                 when.method("GET").path("/settings.yaml");
-                then.status(200).body(MOCK_SETTINGS_CONTENT);
+                then.status(200).body(mock_settings_content());
             });
 
             let registry =
@@ -1219,7 +1235,7 @@ _ _: 1 1;
                 registry.settings_url(),
                 format!("{}/settings.yaml", server.url(""))
             );
-            assert_eq!(registry.settings(), MOCK_SETTINGS_CONTENT);
+            assert_eq!(registry.settings(), mock_settings_content());
             assert_eq!(registry.order_urls.len(), 0);
             assert_eq!(registry.orders.len(), 0);
 
@@ -1245,7 +1261,7 @@ _ _: 1 1;
 
             server.mock(|when, then| {
                 when.method("GET").path("/settings.yaml");
-                then.status(200).body(MOCK_SETTINGS_CONTENT);
+                then.status(200).body(mock_settings_content());
             });
 
             server.mock(|when, then| {
@@ -1338,7 +1354,9 @@ _ _: 1 1;
             }
         }
 
-        const MOCK_SETTINGS_WITH_TOKENS: &str = r#"version: 4
+        fn mock_settings_with_tokens() -> String {
+            format!(
+                r#"version: {}
 networks:
   mainnet:
     rpcs:
@@ -1366,7 +1384,10 @@ deployers:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
-"#;
+"#,
+                SpecVersion::current()
+            )
+        }
 
         const MOCK_DOTRAIN_SIMPLE: &str = r#"gui:
   name: Test Order
@@ -1423,7 +1444,7 @@ _ _: 0 0;
 
             server.mock(|when, then| {
                 when.method("GET").path("/settings.yaml");
-                then.status(200).body(MOCK_SETTINGS_WITH_TOKENS);
+                then.status(200).body(mock_settings_with_tokens());
             });
 
             server.mock(|when, then| {

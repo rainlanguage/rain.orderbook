@@ -4,6 +4,7 @@ use alloy::{hex::FromHexError, primitives::Address};
 use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
     remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg},
+    spec_version::CURRENT_SPEC_VERSION,
     yaml::{
         orderbook::{OrderbookYaml as OrderbookYamlCfg, OrderbookYamlValidation},
         YamlError, YamlParsable,
@@ -77,6 +78,14 @@ impl OrderbookYaml {
             },
         )?;
         Ok(Self { yaml })
+    }
+
+    #[wasm_export(
+        js_name = "getCurrentSpecVersion",
+        return_description = "Current spec version"
+    )]
+    pub fn get_current_spec_version() -> Result<String, OrderbookYamlError> {
+        Ok(CURRENT_SPEC_VERSION.to_string())
     }
 
     /// Retrieves orderbook configuration by its contract address from a parsed YAML configuration.
@@ -250,6 +259,12 @@ mod tests {
     "#,
             spec_version = SpecVersion::current()
         )
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_current_spec_version() {
+        let version = OrderbookYaml::get_current_spec_version().unwrap();
+        assert_eq!(version, SpecVersion::current().to_string());
     }
 
     #[wasm_bindgen_test]
