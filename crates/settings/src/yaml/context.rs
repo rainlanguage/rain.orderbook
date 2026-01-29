@@ -1,6 +1,43 @@
 use crate::{NetworkCfg, OrderCfg, OrderIOCfg, TokenCfg};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use thiserror::Error;
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
+
+/// ContextProfile selects how YAML is parsed and what data is injected into the context.
+/// - Strict: Full validation mode. Parses all orders/deployments and requires all networks,
+///   tokens, and bindings to be present. No scoping, no select-token deferral. Use this for
+///   batch validation, CLI, and non-GUI flows where the entire config must be consistent.
+/// - Gui: UI-scoped mode. Scopes parsing to the selected deployment, derives its order,
+///   injects select-tokens for that deployment, and avoids parsing unrelated orders so
+///   handlebars/missing-token templates in other orders don't fail. Use this for GUI/WASM
+///   flows where the user works within a single deployment at a time.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "kebab-case")]
+pub enum ContextProfile {
+    Strict,
+    Gui { current_deployment: String },
+}
+#[cfg(target_family = "wasm")]
+impl_wasm_traits!(ContextProfile);
+
+impl ContextProfile {
+    pub fn strict() -> Self {
+        Self::Strict
+    }
+
+    pub fn gui(current_deployment: String) -> Self {
+        Self::Gui { current_deployment }
+    }
+}
+
+impl Default for ContextProfile {
+    fn default() -> Self {
+        Self::Strict
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct GuiContext {
@@ -279,7 +316,41 @@ impl Context {
         }
     }
 
+    fn select_token_key_for_path(&self, path: &str) -> Option<String> {
+        let parts: Vec<&str> = path.split('.').collect();
+        if parts.len() < 3 || parts[0] != "order" {
+            return None;
+        }
+
+        let index = parts.get(2)?.parse::<usize>().ok()?;
+        let order = self.order()?;
+
+        let token_key = match parts.get(1).copied()? {
+            "inputs" => order.inputs.get(index).map(|io| io.token_key.clone()),
+            "outputs" => order.outputs.get(index).map(|io| io.token_key.clone()),
+            _ => None,
+        }?;
+
+        if self.is_select_token(&token_key) {
+            Some(token_key)
+        } else {
+            None
+        }
+    }
+
     pub fn interpolate(&self, input: &str) -> Result<String, ContextError> {
+        self.interpolate_internal(input, false)
+    }
+
+    pub fn interpolate_with_select_tokens(&self, input: &str) -> Result<String, ContextError> {
+        self.interpolate_internal(input, true)
+    }
+
+    fn interpolate_internal(
+        &self,
+        input: &str,
+        allow_select_tokens: bool,
+    ) -> Result<String, ContextError> {
         let mut result = input.to_string();
         let mut start = 0;
 
@@ -288,9 +359,24 @@ impl Context {
             if let Some(var_end) = result[var_start..].find('}') {
                 let var_end = var_start + var_end + 1;
                 let var = &result[var_start + 2..var_end - 1];
-                let replacement = self.resolve_path(var)?;
-                result.replace_range(var_start..var_end, &replacement);
-                start = var_start + replacement.len();
+                let replacement = match self.resolve_path(var) {
+                    Ok(value) => Some(value),
+                    Err(ContextError::PropertyNotFound(property))
+                        if allow_select_tokens
+                            && property == "token"
+                            && self.select_token_key_for_path(var).is_some() =>
+                    {
+                        None
+                    }
+                    Err(err) => return Err(err),
+                };
+
+                if let Some(replacement) = replacement {
+                    result.replace_range(var_start..var_end, &replacement);
+                    start = var_start + replacement.len();
+                } else {
+                    start = var_end;
+                }
             } else {
                 break;
             }
@@ -309,6 +395,20 @@ mod tests {
     use alloy::primitives::{Address, U256};
     use strict_yaml_rust::StrictYaml;
 
+    #[test]
+    fn test_context_profile_helpers() {
+        assert_eq!(ContextProfile::strict(), ContextProfile::Strict);
+        assert_eq!(ContextProfile::default(), ContextProfile::Strict);
+
+        let gui_full = ContextProfile::gui("deployment1".to_string());
+        match gui_full {
+            ContextProfile::Gui { current_deployment } => {
+                assert_eq!(current_deployment, "deployment1".to_string());
+            }
+            _ => panic!("expected gui context profile"),
+        }
+    }
+
     fn setup_test_order_with_vault_id() -> Arc<OrderCfg> {
         let token = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -325,13 +425,31 @@ mod tests {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
+                token_key: "token1".to_string(),
                 token: Some(Arc::new(token.clone())),
                 vault_id: Some(U256::from(42)),
             }],
             outputs: vec![OrderIOCfg {
+                token_key: "token2".to_string(),
                 token: Some(Arc::new(token.clone())),
                 vault_id: None,
             }],
+            network: mock_network(),
+            deployer: None,
+            orderbook: None,
+        })
+    }
+
+    fn setup_select_token_order() -> Arc<OrderCfg> {
+        Arc::new(OrderCfg {
+            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            key: "select_token_order".to_string(),
+            inputs: vec![OrderIOCfg {
+                token_key: "token1".to_string(),
+                token: None,
+                vault_id: None,
+            }],
+            outputs: vec![],
             network: mock_network(),
             deployer: None,
             orderbook: None,
@@ -405,6 +523,38 @@ mod tests {
     }
 
     #[test]
+    fn test_interpolate_with_select_tokens() {
+        let order = setup_select_token_order();
+        let mut context = Context::new();
+        context.add_order(order.clone());
+        context.add_select_tokens(vec!["token1".to_string()]);
+
+        // Strict interpolation should still error when the token is missing.
+        let strict_err = context
+            .interpolate("${order.inputs.0.token.address}")
+            .unwrap_err();
+        assert_eq!(
+            strict_err,
+            ContextError::PropertyNotFound("token".to_string())
+        );
+
+        // Relaxed interpolation should leave the placeholder intact when select-tokens cover the key.
+        let relaxed = context
+            .interpolate_with_select_tokens("${order.inputs.0.token.address}")
+            .unwrap();
+        assert_eq!(relaxed, "${order.inputs.0.token.address}");
+
+        // Relaxed interpolation still errors for other missing properties.
+        let relaxed_err = context
+            .interpolate_with_select_tokens("${order.inputs.0.vault-id}")
+            .unwrap_err();
+        assert_eq!(
+            relaxed_err,
+            ContextError::PropertyNotFound("vault-id".to_string())
+        );
+    }
+
+    #[test]
     fn test_context_no_order() {
         let context = Context::new();
         let error = context
@@ -425,10 +575,12 @@ mod tests {
             document: default_document(),
             key: "test_order".to_string(),
             inputs: vec![OrderIOCfg {
+                token_key: "token1".to_string(),
                 token: Some(mock_token("token1")),
                 vault_id: Some(U256::from(10)),
             }],
             outputs: vec![OrderIOCfg {
+                token_key: "token2".to_string(),
                 token: Some(mock_token("token2")),
                 vault_id: None,
             }],

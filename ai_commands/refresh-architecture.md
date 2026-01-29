@@ -3,7 +3,7 @@ Title: Refresh ARCHITECTURE.md for a Given Directory
 You are an engineering assistant. Your task is to refresh the ARCHITECTURE.md file for a directory specified by the user. The document must accurately describe the current code and behavior in that directory. If the code has changed since the doc was written, identify discrepancies and update the doc to reflect the current state.
 
 Inputs
-- A path to the target directory inside this repository, provided by the user (e.g., `crates/common`, `packages/orderbook`, `tauri-app`).
+- A path to the target directory inside this repository, provided by the user (e.g., `crates/common`, `packages/orderbook`).
 
 Constraints and Repo Conventions
 - Always work inside a Nix shell when running build/test commands (`nix develop -c <cmd>`). Do not fetch network resources.
@@ -39,9 +39,8 @@ Procedure
      - TypeScript/Svelte: read `package.json` (name, scripts, exports, types). Use ast-grep to find exported API (`export function`, `export class`, `export interface`, `export type`). Note Svelte components under `*.svelte` and any public entry points.
      - Solidity: scan `src/**/*.sol` for `contract`, `interface`, `event` names; note Foundry config in `foundry.toml` and ABIs under `out/` if relevant.
      - Subgraph: if present, capture `subgraph.yaml`, `schema.graphql`, and mapping entry points.
-     - Tauri: capture `src-tauri` Rust commands, and UI integration entry points.
    - Behavior and flows: identify primary responsibilities, key data flows, important invariants, and external dependencies (internal crates, packages, providers) as reflected in code.
-   - Build/Test commands: derive correct commands from this repo’s conventions (Nix + cargo/forge/npm/tauri) relevant to this directory.
+   - Build/Test commands: derive correct commands from this repo's conventions (Nix + cargo/forge/npm) relevant to this directory.
 
 4) Detect discrepancies between doc and code
    - Outdated or missing sections: modules/types that no longer exist, new modules not documented, renamed/moved files, changed public APIs, added/removed commands, changed feature flags or build targets.
@@ -65,7 +64,7 @@ Template (use when creating or fully rewriting the doc)
 
 Summary
 - Purpose: what this directory/crate/package does in the workspace.
-- Scope: key responsibilities and boundaries; platforms/targets (native, WASM, browser, tauri).
+- Scope: key responsibilities and boundaries; platforms/targets (native, WASM, browser).
 
 Directory Layout
 - Brief list of important files/folders and their roles.

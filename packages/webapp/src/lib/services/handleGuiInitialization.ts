@@ -3,12 +3,14 @@ import { pushGuiStateToUrlHistory } from '$lib/services/handleUpdateGuiState';
 
 export async function handleGuiInitialization(
 	dotrain: string,
+	settings: string[] | undefined,
 	deploymentKey: string,
 	stateFromUrl: string | null
 ): Promise<{ gui: DotrainOrderGui | null; error: string | null }> {
 	if (stateFromUrl) {
 		const stateResult = await DotrainOrderGui.newFromState(
 			dotrain,
+			settings,
 			stateFromUrl,
 			pushGuiStateToUrlHistory
 		);
@@ -20,6 +22,7 @@ export async function handleGuiInitialization(
 		// Fallback to newWithDeployment if newFromState fails
 		const deploymentResult = await DotrainOrderGui.newWithDeployment(
 			dotrain,
+			settings,
 			deploymentKey,
 			pushGuiStateToUrlHistory
 		);
@@ -34,6 +37,7 @@ export async function handleGuiInitialization(
 	} else {
 		const result = await DotrainOrderGui.newWithDeployment(
 			dotrain,
+			settings,
 			deploymentKey,
 			pushGuiStateToUrlHistory
 		);
