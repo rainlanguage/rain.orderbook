@@ -6,15 +6,21 @@ import {
 	getTokenLabel,
 	transformPairTrades,
 	getBucketSecondsForTimeDelta,
-	TIME_DELTA_24_HOURS,
-	TIME_DELTA_7_DAYS,
-	TIME_DELTA_30_DAYS,
-	TIME_DELTA_1_YEAR,
+	pairsAreEqual,
+	findPairIndex,
+	flipTradingPair,
+	formatChartTimestamp,
 	BUCKET_SECONDS_24_HOURS,
 	BUCKET_SECONDS_7_DAYS,
 	BUCKET_SECONDS_30_DAYS,
 	BUCKET_SECONDS_1_YEAR
 } from '../lib/services/pairTradesChartData';
+import {
+	TIME_DELTA_24_HOURS,
+	TIME_DELTA_7_DAYS,
+	TIME_DELTA_30_DAYS,
+	TIME_DELTA_1_YEAR
+} from '../lib/services/time';
 
 function createMockToken(address: string, symbol?: string, name?: string): RaindexVaultToken {
 	return {
@@ -303,5 +309,109 @@ describe('transformPairTrades', () => {
 		});
 
 		expect(result.pricePoints[0].time).toBeLessThan(result.pricePoints[1].time);
+	});
+});
+
+describe('pairsAreEqual', () => {
+	it('returns true for identical pairs', () => {
+		const pair = { baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') };
+		expect(pairsAreEqual(pair, pair)).toBe(true);
+	});
+
+	it('returns true for case-insensitive address match', () => {
+		const pair1 = { baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') };
+		const pair2 = { baseToken: createMockToken('0xaaa'), quoteToken: createMockToken('0xbbb') };
+		expect(pairsAreEqual(pair1, pair2)).toBe(true);
+	});
+
+	it('returns false for different pairs', () => {
+		const pair1 = { baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') };
+		const pair2 = { baseToken: createMockToken('0xCCC'), quoteToken: createMockToken('0xDDD') };
+		expect(pairsAreEqual(pair1, pair2)).toBe(false);
+	});
+
+	it('returns false for swapped base/quote (order matters)', () => {
+		const pair1 = { baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') };
+		const pair2 = { baseToken: createMockToken('0xBBB'), quoteToken: createMockToken('0xAAA') };
+		expect(pairsAreEqual(pair1, pair2)).toBe(false);
+	});
+});
+
+describe('findPairIndex', () => {
+	it('returns index when pair exists', () => {
+		const pairs = [
+			{ baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') },
+			{ baseToken: createMockToken('0xCCC'), quoteToken: createMockToken('0xDDD') }
+		];
+		expect(findPairIndex(pairs, pairs[1])).toBe(1);
+	});
+
+	it('returns -1 when pair not found', () => {
+		const pairs = [{ baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') }];
+		const target = { baseToken: createMockToken('0xCCC'), quoteToken: createMockToken('0xDDD') };
+		expect(findPairIndex(pairs, target)).toBe(-1);
+	});
+
+	it('finds pair with case-insensitive match', () => {
+		const pairs = [{ baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') }];
+		const target = { baseToken: createMockToken('0xaaa'), quoteToken: createMockToken('0xbbb') };
+		expect(findPairIndex(pairs, target)).toBe(0);
+	});
+});
+
+describe('flipTradingPair', () => {
+	it('swaps base and quote tokens', () => {
+		const base = createMockToken('0xAAA', 'AAA');
+		const quote = createMockToken('0xBBB', 'BBB');
+		const result = flipTradingPair({ baseToken: base, quoteToken: quote });
+		expect(result.baseToken.address).toBe('0xBBB');
+		expect(result.quoteToken.address).toBe('0xAAA');
+	});
+
+	it('double flip returns equivalent pair', () => {
+		const pair = { baseToken: createMockToken('0xAAA'), quoteToken: createMockToken('0xBBB') };
+		const flippedTwice = flipTradingPair(flipTradingPair(pair));
+		expect(pairsAreEqual(pair, flippedTwice)).toBe(true);
+	});
+
+	it('does not mutate original pair', () => {
+		const base = createMockToken('0xAAA');
+		const quote = createMockToken('0xBBB');
+		const original = { baseToken: base, quoteToken: quote };
+		flipTradingPair(original);
+		expect(original.baseToken.address).toBe('0xAAA');
+		expect(original.quoteToken.address).toBe('0xBBB');
+	});
+});
+
+describe('formatChartTimestamp', () => {
+	it('formats with minutes for 24h delta', () => {
+		const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+		const result = formatChartTimestamp(ts, TIME_DELTA_24_HOURS);
+		expect(result).toBe('Jan 15 14:30');
+	});
+
+	it('formats with hour precision for 7d delta', () => {
+		const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+		const result = formatChartTimestamp(ts, TIME_DELTA_7_DAYS);
+		expect(result).toBe('Jan 15 14:00');
+	});
+
+	it('formats with day only for 30d delta', () => {
+		const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+		const result = formatChartTimestamp(ts, TIME_DELTA_30_DAYS);
+		expect(result).toBe('Jan 15');
+	});
+
+	it('formats with day only for 1y delta', () => {
+		const ts = new Date(2024, 0, 15, 14, 30).getTime() / 1000;
+		const result = formatChartTimestamp(ts, TIME_DELTA_1_YEAR);
+		expect(result).toBe('Jan 15');
+	});
+
+	it('pads single-digit hours and minutes', () => {
+		const ts = new Date(2024, 0, 5, 9, 5).getTime() / 1000;
+		const result = formatChartTimestamp(ts, TIME_DELTA_24_HOURS);
+		expect(result).toBe('Jan 5 09:05');
 	});
 });

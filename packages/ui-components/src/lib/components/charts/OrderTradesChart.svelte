@@ -6,15 +6,20 @@
 	import {
 		CHART_COLORS,
 		extractPairsFromTrades,
+		findPairIndex,
+		flipTradingPair,
+		formatChartTimestamp,
 		getDefaultPair,
 		getTokenLabel,
 		transformPairTrades,
+		type TradingPair
+	} from '../../services/pairTradesChartData';
+	import {
 		TIME_DELTA_24_HOURS,
 		TIME_DELTA_7_DAYS,
 		TIME_DELTA_30_DAYS,
-		TIME_DELTA_1_YEAR,
-		type TradingPair
-	} from '../../services/pairTradesChartData';
+		TIME_DELTA_1_YEAR
+	} from '../../services/time';
 	import { Button, ButtonGroup, Dropdown, DropdownItem, Spinner } from 'flowbite-svelte';
 	import { ChevronDownSolid } from 'flowbite-svelte-icons';
 	import {
@@ -36,6 +41,13 @@
 	let buyVolumeSeries: ReturnType<IChartApi['addHistogramSeries']> | undefined;
 	let sellVolumeSeries: ReturnType<IChartApi['addHistogramSeries']> | undefined;
 
+	const TIME_OPTIONS = [
+		{ delta: TIME_DELTA_1_YEAR, label: '1Y' },
+		{ delta: TIME_DELTA_30_DAYS, label: '30D' },
+		{ delta: TIME_DELTA_7_DAYS, label: '7D' },
+		{ delta: TIME_DELTA_24_HOURS, label: '24H' }
+	] as const;
+
 	let timeDelta = TIME_DELTA_1_YEAR;
 	let pairs: TradingPair[] = [];
 	let selectedPairIndex = 0;
@@ -56,16 +68,11 @@
 
 	$: {
 		if (trades.length > 0) {
-			const extractedPairs = extractPairsFromTrades(trades);
 			const isFirstLoad = pairs.length === 0;
+			const extractedPairs = extractPairsFromTrades(trades);
 
 			for (const newPair of extractedPairs) {
-				const exists = pairs.some(
-					(p) =>
-						p.baseToken.address.toLowerCase() === newPair.baseToken.address.toLowerCase() &&
-						p.quoteToken.address.toLowerCase() === newPair.quoteToken.address.toLowerCase()
-				);
-				if (!exists) {
+				if (findPairIndex(pairs, newPair) === -1) {
 					pairs = [...pairs, newPair];
 				}
 			}
@@ -73,11 +80,7 @@
 			if (isFirstLoad && pairs.length > 0) {
 				const defaultPair = getDefaultPair(trades);
 				if (defaultPair) {
-					const idx = pairs.findIndex(
-						(p) =>
-							p.baseToken.address.toLowerCase() === defaultPair.baseToken.address.toLowerCase() &&
-							p.quoteToken.address.toLowerCase() === defaultPair.quoteToken.address.toLowerCase()
-					);
+					const idx = findPairIndex(pairs, defaultPair);
 					if (idx >= 0) selectedPairIndex = idx;
 				}
 			}
@@ -97,45 +100,21 @@
 		? `${getTokenLabel(selectedPair.baseToken)}/${getTokenLabel(selectedPair.quoteToken)}`
 		: 'Select pair';
 
-	function flipPair() {
-		if (selectedPair) {
-			const flippedPair: TradingPair = {
-				baseToken: selectedPair.quoteToken,
-				quoteToken: selectedPair.baseToken
-			};
-			const existingIdx = pairs.findIndex(
-				(p) =>
-					p.baseToken.address.toLowerCase() === flippedPair.baseToken.address.toLowerCase() &&
-					p.quoteToken.address.toLowerCase() === flippedPair.quoteToken.address.toLowerCase()
-			);
-			if (existingIdx >= 0) {
-				selectedPairIndex = existingIdx;
-			} else {
-				pairs = [...pairs, flippedPair];
-				selectedPairIndex = pairs.length - 1;
-			}
+	function handleFlipPair() {
+		if (!selectedPair) return;
+		const flipped = flipTradingPair(selectedPair);
+		const existingIdx = findPairIndex(pairs, flipped);
+		if (existingIdx >= 0) {
+			selectedPairIndex = existingIdx;
+		} else {
+			pairs = [...pairs, flipped];
+			selectedPairIndex = pairs.length - 1;
 		}
 	}
 
 	function selectPair(index: number) {
 		selectedPairIndex = index;
 		dropdownOpen = false;
-	}
-
-	function formatTime(timestamp: number): string {
-		const date = new Date(timestamp * 1000);
-		const day = date.getDate();
-		const month = date.toLocaleString('en-US', { month: 'short' });
-		const hours = date.getHours().toString().padStart(2, '0');
-		const minutes = date.getMinutes().toString().padStart(2, '0');
-
-		if (timeDelta <= TIME_DELTA_24_HOURS) {
-			return `${month} ${day} ${hours}:${minutes}`;
-		} else if (timeDelta <= TIME_DELTA_7_DAYS) {
-			return `${month} ${day} ${hours}:00`;
-		} else {
-			return `${month} ${day}`;
-		}
 	}
 
 	function setupChart() {
@@ -155,7 +134,7 @@
 				mode: CrosshairMode.Normal
 			},
 			timeScale: {
-				tickMarkFormatter: (time: number) => formatTime(time)
+				tickMarkFormatter: (time: number) => formatChartTimestamp(time, timeDelta)
 			}
 		});
 
@@ -238,7 +217,7 @@
 		if (!chart) return;
 
 		chart.timeScale().applyOptions({
-			tickMarkFormatter: (time: number) => formatTime(time)
+			tickMarkFormatter: (time: number) => formatChartTimestamp(time, timeDelta)
 		} as DeepPartial<TimeScaleOptions>);
 
 		if (chartData && chartData.pricePoints.length > 0) {
@@ -260,10 +239,9 @@
 		}
 	}
 
-	$: if (chartData) updateChartData();
-	$: if (timeDelta && chart) setTimeScale();
-	$: if ($lightweightChartsTheme && chart) setChartOptions();
 	$: if (chartElement && trades.length > 0 && selectedPair && !chart) setupChart();
+	$: if (chart && chartData) updateChartData();
+	$: if (chart && $lightweightChartsTheme) setChartOptions();
 
 	onMount(() => {
 		if (trades.length > 0 && selectedPair) setupChart();
@@ -309,7 +287,7 @@
 					<Button
 						color="alternative"
 						size="xs"
-						on:click={flipPair}
+						on:click={handleFlipPair}
 						title="Flip pair"
 						data-testid="flip-button"
 					>
@@ -333,30 +311,14 @@
 
 			{#if trades.length > 0}
 				<ButtonGroup class="bg-gray-800" data-testid="time-filters">
-					<Button
-						on:click={() => (timeDelta = TIME_DELTA_1_YEAR)}
-						color={timeDelta === TIME_DELTA_1_YEAR ? 'primary' : 'alternative'}
-						size="xs"
-						class="px-2 py-1">1Y</Button
-					>
-					<Button
-						on:click={() => (timeDelta = TIME_DELTA_30_DAYS)}
-						color={timeDelta === TIME_DELTA_30_DAYS ? 'primary' : 'alternative'}
-						size="xs"
-						class="px-2 py-1">30D</Button
-					>
-					<Button
-						on:click={() => (timeDelta = TIME_DELTA_7_DAYS)}
-						color={timeDelta === TIME_DELTA_7_DAYS ? 'primary' : 'alternative'}
-						size="xs"
-						class="px-2 py-1">7D</Button
-					>
-					<Button
-						on:click={() => (timeDelta = TIME_DELTA_24_HOURS)}
-						color={timeDelta === TIME_DELTA_24_HOURS ? 'primary' : 'alternative'}
-						size="xs"
-						class="px-2 py-1">24H</Button
-					>
+					{#each TIME_OPTIONS as option}
+						<Button
+							on:click={() => (timeDelta = option.delta)}
+							color={timeDelta === option.delta ? 'primary' : 'alternative'}
+							size="xs"
+							class="px-2 py-1">{option.label}</Button
+						>
+					{/each}
 				</ButtonGroup>
 			{/if}
 		</div>

@@ -1,14 +1,7 @@
 import type { RaindexTrade, RaindexVaultToken } from '@rainlanguage/orderbook';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { sortBy } from 'lodash';
-import {
-	TIME_DELTA_24_HOURS,
-	TIME_DELTA_7_DAYS,
-	TIME_DELTA_30_DAYS,
-	TIME_DELTA_1_YEAR
-} from './time';
-
-export { TIME_DELTA_24_HOURS, TIME_DELTA_7_DAYS, TIME_DELTA_30_DAYS, TIME_DELTA_1_YEAR };
+import { TIME_DELTA_24_HOURS, TIME_DELTA_7_DAYS, TIME_DELTA_30_DAYS } from './time';
 
 export const BUCKET_SECONDS_24_HOURS = 900;
 export const BUCKET_SECONDS_7_DAYS = 3600;
@@ -150,6 +143,40 @@ export function getTokenLabel(token: RaindexVaultToken): string {
 		return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 	}
 	return addr;
+}
+
+export function pairsAreEqual(pairA: TradingPair, pairB: TradingPair): boolean {
+	return (
+		pairA.baseToken.address.toLowerCase() === pairB.baseToken.address.toLowerCase() &&
+		pairA.quoteToken.address.toLowerCase() === pairB.quoteToken.address.toLowerCase()
+	);
+}
+
+export function findPairIndex(pairs: TradingPair[], targetPair: TradingPair): number {
+	return pairs.findIndex((p) => pairsAreEqual(p, targetPair));
+}
+
+export function flipTradingPair(pair: TradingPair): TradingPair {
+	return {
+		baseToken: pair.quoteToken,
+		quoteToken: pair.baseToken
+	};
+}
+
+export function formatChartTimestamp(timestampSeconds: number, timeDeltaSeconds: number): string {
+	const date = new Date(timestampSeconds * 1000);
+	const day = date.getDate();
+	const month = date.toLocaleString('en-US', { month: 'short' });
+	const hours = date.getHours().toString().padStart(2, '0');
+	const minutes = date.getMinutes().toString().padStart(2, '0');
+
+	if (timeDeltaSeconds <= TIME_DELTA_24_HOURS) {
+		return `${month} ${day} ${hours}:${minutes}`;
+	} else if (timeDeltaSeconds <= TIME_DELTA_7_DAYS) {
+		return `${month} ${day} ${hours}:00`;
+	} else {
+		return `${month} ${day}`;
+	}
 }
 
 export type TransformPairTradesInput = {
