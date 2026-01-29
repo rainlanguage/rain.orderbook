@@ -3,7 +3,7 @@ use super::local_db::query::fetch_order_vaults_volume::fetch_order_vaults_volume
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
-use crate::local_db::OrderbookIdentifier;
+use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
