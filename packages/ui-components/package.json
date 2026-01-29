@@ -4,6 +4,10 @@
 	"description": "A component library for building Svelte applications to be used with Raindex.",
 	"license": "LicenseRef-DCL-1.0",
 	"author": "Rain Open Source Software Ltd",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/rainlanguage/rain.orderbook.git"
+	},
 	"main": "dist/index.js",
 	"module": "dist/index.js",
 	"exports": {
