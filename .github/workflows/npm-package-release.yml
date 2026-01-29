@@ -110,6 +110,10 @@ jobs:
       # WASM linker can run out of memory on GitHub runners; add swap to prevent OOM
       - name: Add swap space
         run: |
+          if [ -f /swapfile ]; then
+            sudo swapoff /swapfile 2>/dev/null || true
+            sudo rm -f /swapfile
+          fi
           sudo fallocate -l 8G /swapfile
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
