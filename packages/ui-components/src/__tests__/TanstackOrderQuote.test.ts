@@ -313,4 +313,51 @@ describe('TanstackOrderQuote component', () => {
 			expect(mockErrToast).not.toHaveBeenCalled();
 		});
 	});
+
+	it('displays truncated amounts with tooltips', async () => {
+		(mockOrder.getQuotes as Mock).mockResolvedValueOnce({
+			value: [
+				{
+					success: true,
+					blockNumber: '0x123',
+					pair: { pairName: 'ETH/USDT', inputIndex: 0, outputIndex: 1 },
+					data: {
+						formattedMaxOutput: '1.550122181502135692',
+						formattedRatio: '6.563567234157974775',
+						formattedInverseRatio: '0.152345678901234567',
+						formattedMaxInput: '10.175432109876543210'
+					},
+					error: undefined
+				}
+			]
+		});
+
+		const queryClient = new QueryClient();
+
+		render(TanstackOrderQuote, {
+			props: {
+				order: mockOrder,
+				handleQuoteDebugModal: vi.fn()
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			const maxOutputSpan = document.getElementById('max-output-0');
+			expect(maxOutputSpan).not.toBeNull();
+			expect(maxOutputSpan?.classList.contains('truncate')).toBe(true);
+			expect(maxOutputSpan).toHaveTextContent('1.550122181502135692');
+
+			const ratioSpan = document.getElementById('ratio-0');
+			expect(ratioSpan).not.toBeNull();
+			expect(ratioSpan?.classList.contains('truncate')).toBe(true);
+			expect(ratioSpan).toHaveTextContent('6.563567234157974775');
+			expect(ratioSpan).toHaveTextContent('0.152345678901234567');
+
+			const maxInputSpan = document.getElementById('max-input-0');
+			expect(maxInputSpan).not.toBeNull();
+			expect(maxInputSpan?.classList.contains('truncate')).toBe(true);
+			expect(maxInputSpan).toHaveTextContent('10.175432109876543210');
+		});
+	});
 });
