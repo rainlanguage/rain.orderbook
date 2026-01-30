@@ -115,7 +115,6 @@
 		try {
 			return JSON.stringify(JSON.parse(guiState), null, 2);
 		} catch {
-			errToast('Failed to parse GUI state');
 			return 'Invalid GUI state';
 		}
 	};
