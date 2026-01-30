@@ -52,6 +52,7 @@ export { default as DeploymentSteps } from './components/deployment/DeploymentSt
 export { default as TokenIOInput } from './components/deployment/TokenIOInput.svelte';
 export { default as SelectToken } from './components/deployment/SelectToken.svelte';
 export { default as VaultBalanceChangesTable } from './components/tables/VaultBalanceChangesTable.svelte';
+export { default as VaultBalanceChangeTypeFilter } from './components/VaultBalanceChangeTypeFilter.svelte';
 export { default as VaultBalanceChart } from './components/charts/VaultBalanceChart.svelte';
 export { default as VaultDetail } from './components/detail/VaultDetail.svelte';
 export { default as InputToken } from './components/input/InputToken.svelte';
@@ -91,6 +92,7 @@ export type {
 } from './types/modal';
 export type { ValidOrderDetail, InvalidOrderDetail } from './types/order.ts';
 export type { ToastProps } from './types/toast';
+export type { DotrainRegistryContext } from './providers/dotrainRegistry/context';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -141,6 +143,7 @@ export { default as RegistryProvider } from './providers/registry/RegistryProvid
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
 export { default as TransactionProvider } from './providers/transactions/TransactionProvider.svelte';
 export { default as LocalDbProvider } from './providers/LocalDbProvider.svelte';
+export { default as DotrainRegistryProvider } from './providers/dotrainRegistry/DotrainRegistryProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
@@ -150,6 +153,7 @@ export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
 export { useTransactions } from './providers/transactions/useTransactions';
+export { useDotrainRegistry } from './providers/dotrainRegistry/useDotrainRegistry';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';

@@ -91,6 +91,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -119,6 +124,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -147,6 +157,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -175,6 +190,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -203,6 +223,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -231,6 +256,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -259,6 +289,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -287,6 +322,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -315,6 +355,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -343,6 +388,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -371,6 +421,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -399,6 +454,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -427,6 +487,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -455,6 +520,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -483,6 +553,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -511,6 +586,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -539,6 +619,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -595,6 +680,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -623,6 +713,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -651,6 +746,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -679,6 +779,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -707,6 +812,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -735,6 +845,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -763,6 +878,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -791,6 +911,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -819,6 +944,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -847,6 +977,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -875,6 +1010,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -903,6 +1043,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -931,6 +1076,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             }
                         ]
@@ -991,6 +1141,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1019,6 +1174,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1047,6 +1207,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1075,6 +1240,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1103,6 +1273,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1131,6 +1306,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1159,6 +1339,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1187,6 +1372,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1215,6 +1405,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1271,6 +1466,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1299,6 +1499,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1327,6 +1532,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1355,6 +1565,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1411,6 +1626,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1439,6 +1659,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1467,6 +1692,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1495,6 +1725,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1523,6 +1758,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1551,6 +1791,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1579,6 +1824,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1607,6 +1857,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1635,6 +1890,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1663,6 +1923,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1691,6 +1956,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1719,6 +1989,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1747,6 +2022,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1775,6 +2055,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1803,6 +2088,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1831,6 +2121,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1859,6 +2154,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             }
                         ]
@@ -1949,6 +2249,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -1977,6 +2282,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2005,6 +2315,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2033,6 +2348,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2061,6 +2381,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2089,6 +2414,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2117,6 +2447,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2145,6 +2480,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2173,6 +2513,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2201,6 +2546,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2229,6 +2579,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2257,6 +2612,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2285,6 +2645,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2313,6 +2678,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2341,6 +2711,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2369,6 +2744,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2397,6 +2777,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2453,6 +2838,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2481,6 +2871,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2509,6 +2904,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2537,6 +2937,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2565,6 +2970,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2593,6 +3003,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2621,6 +3036,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2649,6 +3069,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2677,6 +3102,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2705,6 +3135,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2733,6 +3168,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2761,6 +3201,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2789,6 +3234,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             }
                         ]
@@ -2849,6 +3299,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2877,6 +3332,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2905,6 +3365,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2933,6 +3398,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2961,6 +3431,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -2989,6 +3464,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3017,6 +3497,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3045,6 +3530,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3073,6 +3563,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3129,6 +3624,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3157,6 +3657,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3185,6 +3690,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3213,6 +3723,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3269,6 +3784,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3297,6 +3817,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3325,6 +3850,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3353,6 +3883,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3381,6 +3916,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3409,6 +3949,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3437,6 +3982,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3465,6 +4015,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3493,6 +4048,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3521,6 +4081,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3549,6 +4114,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3577,6 +4147,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3605,6 +4180,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3633,6 +4213,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3661,6 +4246,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3689,6 +4279,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -3717,6 +4312,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             }
                         ]
@@ -3894,6 +4494,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -4066,6 +4671,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             }
                         ]
@@ -4128,6 +4738,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             },
                             {
@@ -4300,6 +4915,11 @@
                                 },
                                 "orderbook": {
                                     "id": "0x550878091b2b1506069f61ae59e3a5484bca9166"
+                                },
+                                "trade": {
+                                    "tradeEvent": {
+                                        "__typename": "TakeOrder"
+                                    }
                                 }
                             }
                         ]
