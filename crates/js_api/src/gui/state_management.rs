@@ -548,7 +548,7 @@ mod tests {
     use alloy::primitives::{Address, U256};
     use js_sys::{eval, Reflect};
     use rain_orderbook_app_settings::{
-        network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
+        network::NetworkCfg, order::VaultType, spec_version::SpecVersion, yaml::YamlParsableHash,
     };
     use rain_orderbook_common::dotrain::RainDocument;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
@@ -698,8 +698,9 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
-        let dotrain = r#"
-            version: 4
+        let dotrain = format!(
+            r#"
+            version: {}
             networks:
                 test:
                     rpcs:
@@ -750,16 +751,14 @@ mod tests {
                               name: Field 1 name
         ---
         #test
-        "#;
+        "#,
+            SpecVersion::current()
+        );
 
-        let err = DotrainOrderGui::new_from_state(
-            dotrain.to_string(),
-            None,
-            SERIALIZED_STATE.to_string(),
-            None,
-        )
-        .await
-        .unwrap_err();
+        let err =
+            DotrainOrderGui::new_from_state(dotrain, None, SERIALIZED_STATE.to_string(), None)
+                .await
+                .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),

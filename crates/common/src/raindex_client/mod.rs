@@ -140,13 +140,18 @@ impl RaindexClient {
     pub fn set_local_db_callback(
         &self,
         #[wasm_export(
-            js_name = "callback",
+            js_name = "queryCallback",
             param_description = "JavaScript function to execute local database queries"
         )]
-        callback: js_sys::Function,
+        query_callback: js_sys::Function,
+        #[wasm_export(
+            js_name = "wipeCallback",
+            param_description = "Optional JavaScript function to wipe and recreate the database"
+        )]
+        wipe_callback: Option<js_sys::Function>,
     ) -> Result<(), RaindexError> {
         let mut slot = self.local_db.borrow_mut();
-        *slot = Some(LocalDb::from_js_callback(callback));
+        *slot = Some(LocalDb::from_js_callback(query_callback, wipe_callback));
         Ok(())
     }
 
@@ -249,8 +254,8 @@ pub enum RaindexError {
     NoNetworksConfigured,
     #[error("Subgraph not configured for chain ID: {0}")]
     SubgraphNotConfigured(String),
-    #[error("Subgraph did not index transaction {tx_hash:#x} after {attempts} attempts")]
-    SubgraphIndexingTimeout { tx_hash: B256, attempts: usize },
+    #[error("Transaction {tx_hash:#x} was not indexed after {attempts} attempts")]
+    TransactionIndexingTimeout { tx_hash: B256, attempts: usize },
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
@@ -363,9 +368,9 @@ impl RaindexError {
             RaindexError::SubgraphNotConfigured(chain_id) => {
                 format!("No subgraph is configured for chain ID '{}'.", chain_id)
             }
-            RaindexError::SubgraphIndexingTimeout { tx_hash, attempts } => {
+            RaindexError::TransactionIndexingTimeout { tx_hash, attempts } => {
                 format!(
-                    "Timeout waiting for the subgraph to index transaction {tx_hash:#x} after {attempts} attempts."
+                    "Timeout waiting for transaction {tx_hash:#x} to be indexed after {attempts} attempts."
                 )
             }
             RaindexError::YamlError(err) => format!(
@@ -583,10 +588,10 @@ accounts:
     #[cfg(target_family = "wasm")]
     pub fn new_test_client_with_db_callback(
         yamls: Vec<String>,
-        callback: js_sys::Function,
+        query_callback: js_sys::Function,
     ) -> RaindexClient {
         let client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
-        client.set_local_db_callback(callback).unwrap();
+        client.set_local_db_callback(query_callback, None).unwrap();
         client
     }
 

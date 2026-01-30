@@ -8,10 +8,12 @@ pub mod fetch_erc20_tokens_by_addresses;
 pub mod fetch_last_synced_block;
 pub mod fetch_order_trades;
 pub mod fetch_order_trades_count;
+pub mod fetch_order_vaults_volume;
 pub mod fetch_orders;
 pub mod fetch_store_addresses;
 pub mod fetch_tables;
 pub mod fetch_target_watermark;
+pub mod fetch_transaction_by_hash;
 pub mod fetch_vault_balance_changes;
 pub mod fetch_vaults;
 pub mod insert_db_metadata;
@@ -45,6 +47,9 @@ pub enum LocalDbQueryError {
 
     #[error("SQL build failed: {source}")]
     SqlBuild { source: SqlBuildError },
+
+    #[error("Operation not implemented: {operation}")]
+    NotImplemented { operation: String },
 }
 
 impl LocalDbQueryError {
@@ -61,6 +66,12 @@ impl LocalDbQueryError {
     pub fn deserialization(message: impl Into<String>) -> Self {
         Self::Deserialization {
             message: message.into(),
+        }
+    }
+
+    pub fn not_implemented(operation: impl Into<String>) -> Self {
+        Self::NotImplemented {
+            operation: operation.into(),
         }
     }
 }

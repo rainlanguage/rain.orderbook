@@ -8,7 +8,7 @@
 	import CardProperty from '../CardProperty.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ButtonVaultLink from '../ButtonVaultLink.svelte';
-	// import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
+	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
@@ -39,7 +39,6 @@
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
-	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
 	export let orderbookAddress: Address;
@@ -270,7 +269,7 @@
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart" let:data>
-		<OrderTradesChart order={data} {lightweightChartsTheme} {colorTheme} />
+		<OrderTradesChart order={data} {lightweightChartsTheme} />
 	</svelte:fragment>
 	<svelte:fragment slot="below" let:data>
 		<TanstackOrderQuote order={data} {handleQuoteDebugModal} />
@@ -316,8 +315,7 @@
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>
 			<TabItem title="Volume">
-				<div>TODO: Issue #1989</div>
-				<!-- <OrderVaultsVolTable order={data} /> -->
+				<OrderVaultsVolTable order={data} />
 			</TabItem>
 			<TabItem title="APY">
 				<div>TODO: Issue #1989</div>

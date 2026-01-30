@@ -169,7 +169,7 @@ impl RaindexClient {
             }
         }
 
-        Err(RaindexError::SubgraphIndexingTimeout { tx_hash, attempts })
+        Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
     }
 }
 
@@ -272,6 +272,10 @@ mod tests {
                 Err(LocalDbQueryError::database(
                     "query_text not supported in CountingJsonExec",
                 ))
+            }
+
+            async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+                Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
             }
         }
 
@@ -684,7 +688,7 @@ mod tests {
                 .unwrap_err();
 
             match err {
-                RaindexError::SubgraphIndexingTimeout { attempts, .. } => {
+                RaindexError::TransactionIndexingTimeout { attempts, .. } => {
                     assert_eq!(attempts, DEFAULT_REMOVE_ORDER_POLL_ATTEMPTS);
                 }
                 other => panic!("expected timeout error, got {other:?}"),

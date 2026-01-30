@@ -17,8 +17,11 @@ import {
 	TokenInfo,
 	AllGuiConfig,
 	WasmEncodedResult,
-	FieldValue
+	FieldValue,
+	OrderbookYaml
 } from '../../dist/cjs';
+
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 import { getLocal } from 'mockttp';
 
 const guiConfig = `
@@ -137,7 +140,7 @@ gui:
 `;
 
 const dotrain = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -217,7 +220,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -290,7 +293,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -351,7 +354,7 @@ const dotrainWithTokensMismatch = dotrain.replace(
 	'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A7'
 );
 const dotrainForRemotes = `
-version: 4
+version: ${SPEC_VERSION}
 gui:
   name: Test
   description: Fixed limit order

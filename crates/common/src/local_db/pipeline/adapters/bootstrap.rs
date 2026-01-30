@@ -274,6 +274,10 @@ mod tests {
                 Err(err) => Err(LocalDbQueryError::database(err.to_string())),
             }
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+        }
     }
 
     #[derive(Default, Clone, Copy)]
@@ -316,6 +320,10 @@ mod tests {
                 return Err(LocalDbQueryError::database("no text for sql"));
             };
             Ok(body.clone())
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
         }
     }
 

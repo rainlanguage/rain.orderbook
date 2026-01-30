@@ -15,15 +15,10 @@ import type { Config } from '@wagmi/core';
 import type { ToastLink, ToastProps } from '$lib/types/toast';
 import { getExplorerLink } from '$lib/services/getExplorerLink';
 import {
-	awaitSubgraphIndexing,
-	type AwaitSubgraphConfig
-} from '$lib/services/awaitTransactionIndexing';
-import {
 	type RaindexVault,
 	type RaindexOrder,
 	RaindexClient,
 	type Address,
-	type Hex,
 	Float,
 	type WasmEncodedResult
 } from '@rainlanguage/orderbook';
@@ -37,48 +32,6 @@ import {
  * @param toast.links - Optional array of links to display in the toast.
  */
 export type AddToastFunction = (toast: Omit<ToastProps, 'id'>) => void;
-
-/**
- * Creates an indexing function that wraps the legacy subgraph polling logic.
- * This allows existing flows to work with the new generic indexing interface.
- */
-function createSubgraphIndexingFn(config: AwaitSubgraphConfig) {
-	return async (ctx: IndexingContext): Promise<void> => {
-		ctx.updateState({ status: TransactionStatusMessage.PENDING_SUBGRAPH });
-
-		const result = await awaitSubgraphIndexing(config);
-
-		if (result.error === TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR) {
-			ctx.updateState({
-				status: TransactionStatusMessage.ERROR,
-				errorDetails: TransactionStoreErrorMessage.SUBGRAPH_TIMEOUT_ERROR
-			});
-			return ctx.onError();
-		}
-
-		if (result.value) {
-			ctx.updateState({ status: TransactionStatusMessage.SUCCESS });
-			const newOrderHash = result.value.orderHash;
-
-			// If we have a new order hash, add the "View order" link
-			if (newOrderHash) {
-				const newLink = {
-					link: `/orders/${config.chainId}-${config.orderbook}-${newOrderHash}`,
-					label: 'View order'
-				};
-				ctx.updateState({ links: [newLink, ...ctx.links] });
-			}
-
-			return ctx.onSuccess();
-		}
-
-		ctx.updateState({
-			status: TransactionStatusMessage.ERROR,
-			errorDetails: TransactionStoreErrorMessage.SUBGRAPH_FAILED
-		});
-		return ctx.onError();
-	};
-}
 
 /**
  * Creates an indexing function that wraps SDK-based polling logic.
@@ -268,14 +221,9 @@ export class TransactionManager {
 			}
 		];
 
-		const awaitIndexingFn = createSubgraphIndexingFn({
-			chainId,
-			orderbook,
-			txHash,
-			successMessage,
-			fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
-				raindexClient.getTransaction(orderbook, txHash),
-			isSuccess: (data) => !!data
+		const awaitIndexingFn = createSdkIndexingFn({
+			call: () => raindexClient.getTransaction(chainId, orderbook, txHash),
+			isSuccess: (tx) => !!tx
 		});
 
 		return this.createTransaction({
@@ -335,14 +283,9 @@ export class TransactionManager {
 			}
 		];
 
-		const awaitIndexingFn = createSubgraphIndexingFn({
-			chainId,
-			orderbook,
-			txHash,
-			successMessage,
-			fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
-				raindexClient.getTransaction(orderbook, txHash),
-			isSuccess: (data) => !!data
+		const awaitIndexingFn = createSdkIndexingFn({
+			call: () => raindexClient.getTransaction(chainId, orderbook, txHash),
+			isSuccess: (tx) => !!tx
 		});
 
 		return this.createTransaction({
@@ -487,14 +430,9 @@ export class TransactionManager {
 			}
 		];
 
-		const awaitIndexingFn = createSubgraphIndexingFn({
-			chainId,
-			orderbook,
-			txHash,
-			successMessage,
-			fetchEntityFn: (_chainId: number, orderbook: `0x${string}`, txHash: `0x${string}`) =>
-				raindexClient.getTransaction(orderbook, txHash),
-			isSuccess: (data) => !!data
+		const awaitIndexingFn = createSdkIndexingFn({
+			call: () => raindexClient.getTransaction(chainId, orderbook, txHash),
+			isSuccess: (tx) => !!tx
 		});
 
 		return this.createTransaction({
