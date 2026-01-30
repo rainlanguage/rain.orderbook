@@ -635,6 +635,19 @@ impl TryFrom<String> for RaindexVaultBalanceChangeType {
     }
 }
 
+impl RaindexVaultBalanceChangeType {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Deposit => "Deposit",
+            Self::Withdrawal => "Withdrawal",
+            Self::TakeOrder => "Take order",
+            Self::Clear => "Clear",
+            Self::ClearBounty => "Clear Bounty",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub enum VaultBalanceChangeFilter {
@@ -696,6 +709,10 @@ impl RaindexVaultBalanceChange {
     pub fn type_getter(&self) -> RaindexVaultBalanceChangeType {
         self.r#type.clone()
     }
+    #[wasm_bindgen(getter = typeDisplayName)]
+    pub fn type_display_name(&self) -> String {
+        self.r#type.display_name().to_string()
+    }
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
         BigInt::from_str(&self.vault_id.to_string())
@@ -747,6 +764,9 @@ impl RaindexVaultBalanceChange {
 impl RaindexVaultBalanceChange {
     pub fn r#type(&self) -> RaindexVaultBalanceChangeType {
         self.r#type.clone()
+    }
+    pub fn type_display_name(&self) -> &'static str {
+        self.r#type.display_name()
     }
     pub fn vault_id(&self) -> U256 {
         self.vault_id
