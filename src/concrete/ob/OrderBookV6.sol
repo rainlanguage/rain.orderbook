@@ -504,7 +504,12 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                             Float orderMaxInput = orderIOCalculation.IORatio.mul(orderIOCalculation.outputMax);
                             takerOutput = orderMaxInput.min(remainingTakerIO);
                             // This rounds down which favours the order/dex.
-                            takerInput = takerOutput.div(orderIOCalculation.IORatio);
+                            if (orderIOCalculation.IORatio.isZero()) {
+                                // Zero ratio means order will empty its maxoutput
+                                takerInput = orderIOCalculation.outputMax;
+                            } else {
+                                takerInput = takerOutput.div(orderIOCalculation.IORatio);
+                            }
 
                             remainingTakerIO = remainingTakerIO.sub(takerOutput);
                         }
