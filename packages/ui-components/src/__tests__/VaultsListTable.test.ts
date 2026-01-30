@@ -147,8 +147,17 @@ describe('VaultsListTable', () => {
 		})) as Mock;
 		render(VaultsListTable, defaultProps as unknown as VaultsListTableProps);
 		expect(screen.getByTestId('vault-network')).toHaveTextContent('Ethereum');
-		expect(screen.getByTestId('vault-token')).toHaveTextContent('Mock Token');
-		expect(screen.getByTestId('vault-balance')).toHaveTextContent('1 MTK');
+
+		const addressesCell = screen.getByTestId('vaultAddresses');
+		expect(addressesCell).toBeInTheDocument();
+		expect(addressesCell).toHaveTextContent('Vault:');
+		expect(addressesCell).toHaveTextContent('Orderbook:');
+		expect(addressesCell).toHaveTextContent('Owner:');
+
+		// Token column now contains both token name and balance
+		const tokenCell = screen.getByTestId('vault-token');
+		expect(tokenCell).toHaveTextContent('Mock Token');
+		expect(tokenCell).toHaveTextContent('1 MTK');
 	});
 
 	it('shows deposit/withdraw buttons when handlers are provided', async () => {
