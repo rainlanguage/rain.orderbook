@@ -4,6 +4,11 @@ use alloy::{
     sol_types::SolCall,
 };
 use rain_math_float::Float;
+use rain_metaboard_subgraph::metaboard_client::{
+    MetaboardSubgraphClient, MetaboardSubgraphClientError,
+};
+use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
+use rain_metadata::RainMetaDocumentV1Item;
 use rain_orderbook_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
@@ -81,6 +86,16 @@ impl_wasm_traits!(ExtendedApprovalCalldata);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
+pub struct ExternalCall {
+    #[tsify(type = "string")]
+    pub to: Address,
+    #[tsify(type = "string")]
+    pub calldata: Bytes,
+}
+impl_wasm_traits!(ExternalCall);
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
+#[serde(rename_all = "camelCase")]
 pub struct DeploymentTransactionArgs {
     approvals: Vec<ExtendedApprovalCalldata>,
     #[tsify(type = "string")]
@@ -88,6 +103,8 @@ pub struct DeploymentTransactionArgs {
     #[tsify(type = "string")]
     orderbook_address: Address,
     chain_id: u32,
+    #[tsify(type = "ExternalCall | undefined")]
+    emit_meta_call: Option<ExternalCall>,
 }
 impl_wasm_traits!(DeploymentTransactionArgs);
 
@@ -375,6 +392,28 @@ impl DotrainOrderGui {
         Ok(())
     }
 
+    async fn prepare_add_order_args(
+        &mut self,
+        deployment: &GuiDeploymentCfg,
+    ) -> Result<AddOrderArgs, GuiError> {
+        let dotrain_gui_state_instance_v1 = self.generate_dotrain_gui_state_instance_v1()?;
+        let dotrain_gui_state_meta =
+            RainMetaDocumentV1Item::try_from(dotrain_gui_state_instance_v1)?;
+
+        let dotrain_for_deployment = self
+            .dotrain_order
+            .generate_dotrain_for_deployment(&deployment.deployment.key)?;
+
+        let add_order_args = AddOrderArgs::new_from_deployment(
+            dotrain_for_deployment,
+            deployment.deployment.as_ref().clone(),
+            Some(vec![dotrain_gui_state_meta]),
+        )
+        .await?;
+
+        Ok(add_order_args)
+    }
+
     /// Generates calldata for depositing tokens into orderbook vaults.
     ///
     /// Creates deposit calldatas for all configured deposits, automatically
@@ -483,14 +522,16 @@ impl DotrainOrderGui {
     ) -> Result<AddOrderCalldataResult, GuiError> {
         let deployment = self.prepare_calldata_generation(CalldataFunction::AddOrder)?;
 
-        let calldata = AddOrderArgs::new_from_deployment(
-            self.dotrain_order.dotrain()?,
-            deployment.deployment.as_ref().clone(),
-        )
-        .await?
-        .get_add_order_calldata(self.get_transaction_args()?)
-        .await?;
-        return Ok(AddOrderCalldataResult(Bytes::copy_from_slice(&calldata)));
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
+        let transaction_args = self.get_transaction_args()?;
+
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
+            .await?;
+
+        return Ok(AddOrderCalldataResult(Bytes::copy_from_slice(
+            &add_order_call.abi_encode(),
+        )));
     }
 
     /// Generates a multicall combining all deposits and add order in one calldata.
@@ -523,7 +564,7 @@ impl DotrainOrderGui {
     pub async fn generate_deposit_and_add_order_calldatas(
         &mut self,
     ) -> Result<DepositAndAddOrderCalldataResult, GuiError> {
-        self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
+        let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut calls = Vec::new();
 
@@ -534,7 +575,13 @@ impl DotrainOrderGui {
             DepositCalldataResult::NoDeposits => Vec::new(),
         };
 
-        let add_order_calldata = self.generate_add_order_calldata().await?;
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
+        let transaction_args = self.get_transaction_args()?;
+
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
+            .await?;
+        let add_order_calldata = Bytes::copy_from_slice(&add_order_call.abi_encode());
 
         calls.push(Bytes::copy_from_slice(&add_order_calldata.0));
 
@@ -752,12 +799,50 @@ impl DotrainOrderGui {
             }
         }
 
-        let deposit_and_add_order_calldata =
-            self.generate_deposit_and_add_order_calldatas().await?;
+        let deposit_calldata_result = self.generate_deposit_calldatas().await?;
+        let deposit_calldatas = match deposit_calldata_result {
+            DepositCalldataResult::Calldatas(calldatas) => calldatas,
+            DepositCalldataResult::NoDeposits => Vec::new(),
+        };
+
+        let add_order_args = self.prepare_add_order_args(&deployment).await?;
+
+        let transaction_args = self.get_transaction_args()?;
+        let add_order_call = add_order_args
+            .try_into_call(transaction_args.rpcs.clone())
+            .await?;
+
+        let mut calls = Vec::new();
+        calls.push(Bytes::copy_from_slice(&add_order_call.abi_encode()));
+        for calldata in deposit_calldatas.iter() {
+            calls.push(Bytes::copy_from_slice(calldata));
+        }
+
+        let deployment_calldata =
+            Bytes::copy_from_slice(&multicallCall { data: calls }.abi_encode());
+
+        let emit_meta_call = if self.should_emit_meta_call().await? {
+            let client = self.get_metaboard_client()?;
+            let addresses = client.get_metaboard_addresses(None, None).await?;
+            let metaboard_address = addresses
+                .first()
+                .ok_or_else(|| GuiError::NoAddressInMetaboardSubgraph)?;
+
+            let calldata = add_order_args.try_into_emit_meta_call()?;
+            match calldata {
+                Some(calldata) => Some(ExternalCall {
+                    to: *metaboard_address,
+                    calldata: Bytes::copy_from_slice(&calldata.abi_encode()),
+                }),
+                None => None,
+            }
+        } else {
+            None
+        };
 
         Ok(DeploymentTransactionArgs {
             approvals,
-            deployment_calldata: deposit_and_add_order_calldata.0,
+            deployment_calldata,
             orderbook_address: deployment
                 .deployment
                 .order
@@ -766,7 +851,31 @@ impl DotrainOrderGui {
                 .ok_or(GuiError::OrderbookNotFound)?
                 .address,
             chain_id: deployment.deployment.order.network.chain_id,
+            emit_meta_call,
         })
+    }
+
+    fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, GuiError> {
+        let deployment = self.get_current_deployment()?;
+        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
+        let metaboard_cfg =
+            orderbook_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
+        Ok(MetaboardSubgraphClient::new(metaboard_cfg.url.clone()))
+    }
+
+    async fn should_emit_meta_call(&self) -> Result<bool, GuiError> {
+        let dotrain_gui_state = self.generate_dotrain_gui_state_instance_v1()?;
+        let subject = dotrain_gui_state.dotrain_hash();
+
+        let client = self.get_metaboard_client()?;
+        match client
+            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", alloy::hex::encode(subject))))
+            .await
+        {
+            Ok(metas) => Ok(metas.is_empty()),
+            Err(MetaboardSubgraphClientError::Empty(_)) => Ok(true),
+            Err(err) => Err(GuiError::MetaboardSubgraphClientError(err)),
+        }
     }
 }
 
@@ -774,6 +883,11 @@ impl DotrainOrderGui {
 mod tests {
     use super::*;
     use crate::gui::tests::{initialize_gui, initialize_gui_with_select_tokens};
+    #[cfg(all(test, not(target_family = "wasm")))]
+    use httpmock::{Method::POST, MockServer};
+    use rain_metadata::{types::dotrain::source_v1::DotrainSourceV1, RainMetaDocumentV1Item};
+    #[cfg(all(test, not(target_family = "wasm")))]
+    use serde_json::json;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
@@ -895,6 +1009,137 @@ mod tests {
             err.to_readable_msg(),
             "The value for field 'Field 2 name' is required but has not been set."
         );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_prepare_add_order_args_injects_gui_meta() {
+        let mut gui = initialize_gui(None).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        let deployment = gui.get_current_deployment().unwrap();
+        let trimmed_dotrain = gui
+            .dotrain_order
+            .generate_dotrain_for_deployment(&deployment.deployment.key)
+            .unwrap();
+
+        let add_order_args = gui
+            .prepare_add_order_args(&deployment)
+            .await
+            .expect("add order args");
+
+        // additional_meta should carry the GUI state document
+        let additional_meta = add_order_args
+            .additional_meta
+            .as_ref()
+            .expect("meta missing");
+        assert_eq!(additional_meta.len(), 1);
+        assert_eq!(
+            additional_meta[0].magic,
+            rain_metadata::KnownMagic::DotrainGuiStateV1
+        );
+
+        // try_into_emit_meta_call should emit a DotrainSourceV1 for the trimmed deployment dotrain
+        let emit_meta_call = add_order_args
+            .try_into_emit_meta_call()
+            .expect("emit meta call err")
+            .expect("emit meta call missing");
+        let decoded = RainMetaDocumentV1Item::cbor_decode(emit_meta_call.meta.as_ref()).unwrap();
+        assert_eq!(decoded.len(), 1);
+        let dotrain_source = DotrainSourceV1::try_from(decoded[0].clone()).unwrap();
+        assert_eq!(dotrain_source.0, trimmed_dotrain);
+
+        // Subject must match the dotrain hash
+        assert_eq!(
+            emit_meta_call.subject,
+            DotrainSourceV1(trimmed_dotrain).hash()
+        );
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    async fn initialize_gui_with_metaboard_url(url: &str) -> DotrainOrderGui {
+        let yaml = get_yaml().replace("https://metaboard.com", url);
+        DotrainOrderGui::new_with_deployment(yaml, "some-deployment".to_string(), None)
+            .await
+            .unwrap()
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    #[tokio::test]
+    async fn test_should_emit_meta_call_false_when_meta_exists() {
+        let server = MockServer::start_async().await;
+        server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body_obj(&json!({
+                "data": {
+                    "metaV1S": [
+                        {
+                            "meta": "0x01",
+                            "metaHash": "0x00",
+                            "sender": "0x00",
+                            "id": "0x00",
+                            "metaBoard": {
+                                "id": "0x00",
+                                "metas": [],
+                                "address": "0x00"
+                            },
+                            "subject": "0x00"
+                        }
+                    ]
+                }
+            }));
+        });
+
+        let mut gui = initialize_gui_with_metaboard_url(&server.url("/")).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        assert!(!gui.should_emit_meta_call().await.unwrap());
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    #[tokio::test]
+    async fn test_should_emit_meta_call_true_when_no_meta() {
+        let server = MockServer::start_async().await;
+        server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body_obj(&json!({
+                "data": {
+                    "metaV1S": []
+                }
+            }));
+        });
+
+        let mut gui = initialize_gui_with_metaboard_url(&server.url("/")).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        assert!(gui.should_emit_meta_call().await.unwrap());
+    }
+
+    #[cfg(all(test, not(target_family = "wasm")))]
+    #[tokio::test]
+    async fn test_should_emit_meta_call_propagates_errors() {
+        let server = MockServer::start_async().await;
+        server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let mut gui = initialize_gui_with_metaboard_url(&server.url("/")).await;
+        gui.set_field_value("binding-1".to_string(), "10".to_string())
+            .unwrap();
+        gui.set_field_value("binding-2".to_string(), "0".to_string())
+            .unwrap();
+
+        let err = gui.should_emit_meta_call().await.unwrap_err();
+        assert!(matches!(err, GuiError::MetaboardSubgraphClientError(_)));
     }
 
     #[wasm_bindgen_test]

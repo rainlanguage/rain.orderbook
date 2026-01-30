@@ -2,7 +2,7 @@ use super::orders::{OrdersDataSource, SubgraphOrders};
 use super::*;
 use crate::local_db::is_chain_supported_local_db;
 use crate::raindex_client::local_db::orders::LocalDbOrders;
-use crate::raindex_client::orders::RaindexOrder;
+use crate::raindex_client::orders::{fetch_orders_dotrain_sources, RaindexOrder};
 use crate::retry::{retry_with_constant_interval, RetryError};
 use alloy::primitives::B256;
 use std::rc::Rc;
@@ -117,7 +117,10 @@ impl RaindexClient {
                 .await;
 
                 match local_result {
-                    Ok(orders) => return Ok(orders),
+                    Ok(orders) => {
+                        let orders = fetch_orders_dotrain_sources(orders).await?;
+                        return Ok(orders);
+                    }
                     Err(RetryError::Operation(PollError::Inner(e))) => return Err(e),
                     Err(RetryError::InvalidMaxAttempts) => {
                         return Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
@@ -155,7 +158,10 @@ impl RaindexClient {
         .await;
 
         match subgraph_result {
-            Ok(orders) => Ok(orders),
+            Ok(orders) => {
+                let orders = fetch_orders_dotrain_sources(orders).await?;
+                Ok(orders)
+            }
             Err(RetryError::Operation(PollError::Inner(e))) => Err(e),
             Err(RetryError::Operation(PollError::Empty)) | Err(RetryError::InvalidMaxAttempts) => {
                 Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
