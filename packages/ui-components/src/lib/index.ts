@@ -92,6 +92,7 @@ export type {
 } from './types/modal';
 export type { ValidOrderDetail, InvalidOrderDetail } from './types/order.ts';
 export type { ToastProps } from './types/toast';
+export type { DotrainRegistryContext } from './providers/dotrainRegistry/context';
 
 // Functions
 export { createResolvableQuery, createResolvableInfiniteQuery } from './__mocks__/queries';
@@ -142,6 +143,7 @@ export { default as RegistryProvider } from './providers/registry/RegistryProvid
 export { default as ToastProvider } from './providers/toasts/ToastProvider.svelte';
 export { default as TransactionProvider } from './providers/transactions/TransactionProvider.svelte';
 export { default as LocalDbProvider } from './providers/LocalDbProvider.svelte';
+export { default as DotrainRegistryProvider } from './providers/dotrainRegistry/DotrainRegistryProvider.svelte';
 
 // Hooks
 export { useGui } from './hooks/useGui';
@@ -151,6 +153,7 @@ export { useAccount } from './providers/wallet/useAccount';
 export { useRegistry } from './providers/registry/useRegistry';
 export { useToasts } from './providers/toasts/useToasts';
 export { useTransactions } from './providers/transactions/useTransactions';
+export { useDotrainRegistry } from './providers/dotrainRegistry/useDotrainRegistry';
 
 // Classes
 export { RegistryManager } from './providers/registry/RegistryManager';

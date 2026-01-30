@@ -1,4 +1,5 @@
 use super::*;
+use crate::local_db::query::fetch_order_vaults_volume::LocalDbVaultVolume;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
     query::fetch_vault_balance_changes::LocalDbVaultBalanceChange, OrderbookIdentifier,
@@ -1133,6 +1134,46 @@ impl RaindexVaultVolume {
             details,
         })
     }
+
+    pub fn try_from_local_db_vault_volume(
+        chain_id: u32,
+        volume: LocalDbVaultVolume,
+    ) -> Result<Self, RaindexError> {
+        let decimals = volume
+            .token_decimals
+            .ok_or(RaindexError::MissingErc20Decimals(volume.token.to_string()))?;
+
+        let token = RaindexVaultToken {
+            chain_id,
+            id: volume.token.to_string(),
+            address: volume.token,
+            name: volume.token_name,
+            symbol: volume.token_symbol,
+            decimals,
+        };
+
+        let total_in = Float::from_hex(&volume.total_in)?;
+        let total_out = Float::from_hex(&volume.total_out)?;
+        let total_vol = (total_in + total_out)?;
+        let net_vol = (total_in - total_out)?;
+
+        let details = RaindexVaultVolumeDetails {
+            total_in,
+            formatted_total_in: total_in.format()?,
+            total_out,
+            formatted_total_out: total_out.format()?,
+            total_vol,
+            formatted_total_vol: total_vol.format()?,
+            net_vol,
+            formatted_net_vol: net_vol.format()?,
+        };
+
+        Ok(Self {
+            id: volume.vault_id,
+            token,
+            details,
+        })
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1807,7 +1848,7 @@ mod tests {
 
             let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
-                .set_local_db_callback(callback)
+                .set_local_db_callback(callback, None)
                 .expect("setting callback succeeds");
 
             let vaults = client
@@ -1953,7 +1994,7 @@ mod tests {
 
             let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
-                .set_local_db_callback(callback)
+                .set_local_db_callback(callback, None)
                 .expect("setting callback succeeds");
 
             let filters = GetVaultsFilters {
