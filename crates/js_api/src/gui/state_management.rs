@@ -657,7 +657,6 @@ mod tests {
         let state = gui.serialize_state().unwrap();
         assert!(!state.is_empty());
         assert_eq!(state, SERIALIZED_STATE);
-        wasm_bindgen_test::console_log!("{}", SERIALIZED_STATE);
     }
 
     #[wasm_bindgen_test]
@@ -698,9 +697,8 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
-        let dotrain = format!(
-            r#"
-            version: {}
+        let dotrain = r#"
+            version: 4
             networks:
                 test:
                     rpcs:
@@ -751,14 +749,16 @@ mod tests {
                               name: Field 1 name
         ---
         #test
-        "#,
-            SpecVersion::current()
-        );
+        "#;
 
-        let err =
-            DotrainOrderGui::new_from_state(dotrain, None, SERIALIZED_STATE.to_string(), None)
-                .await
-                .unwrap_err();
+        let err = DotrainOrderGui::new_from_state(
+            dotrain.to_string(),
+            None,
+            SERIALIZED_STATE.to_string(),
+            None,
+        )
+        .await
+        .unwrap_err();
         assert_eq!(err.to_string(), GuiError::DotrainMismatch.to_string());
         assert_eq!(
             err.to_readable_msg(),

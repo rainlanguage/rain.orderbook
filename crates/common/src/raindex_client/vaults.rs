@@ -2,9 +2,9 @@ use super::*;
 use crate::local_db::query::fetch_order_vaults_volume::LocalDbVaultVolume;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{
-    query::fetch_vault_balance_changes::LocalDbVaultBalanceChange, OrderbookIdentifier,
+    is_chain_supported_local_db, query::fetch_vault_balance_changes::LocalDbVaultBalanceChange,
+    OrderbookIdentifier,
 };
-use crate::raindex_client::local_db::query::fetch_vault_balance_changes::fetch_vault_balance_changes;
 use crate::raindex_client::local_db::vaults::LocalDbVaults;
 use crate::types::VaultBalanceChangeKind;
 use crate::{
@@ -66,6 +66,18 @@ pub(crate) trait VaultsDataSource {
         ob_id: &OrderbookIdentifier,
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError>;
+
+    async fn balance_changes_list(
+        &self,
+        vault: &RaindexVault,
+        page: Option<u16>,
+        filter_types: Option<&[VaultBalanceChangeFilter]>,
+    ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError>;
+
+    async fn tokens_list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<Vec<RaindexVaultToken>, RaindexError>;
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
@@ -126,6 +138,9 @@ impl RaindexVault {
     #[wasm_bindgen(getter, unchecked_return_type = "Address")]
     pub fn owner(&self) -> String {
         self.owner.to_string()
+    }
+    pub(crate) fn vault_id_hex(&self) -> String {
+        hex::encode_prefixed(self.vault_id.to_be_bytes::<32>())
     }
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
@@ -340,56 +355,22 @@ impl RaindexVault {
         )]
         filter_types: Option<Vec<VaultBalanceChangeFilter>>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        if let Some(local_db) = self.raindex_client.local_db() {
-            let local_changes = fetch_vault_balance_changes(
-                &local_db,
-                &OrderbookIdentifier::new(self.chain_id, self.orderbook),
-                self.vault_id,
-                self.token.address,
-                self.owner,
-                filter_types.as_deref(),
-            )
-            .await?;
-
-            return local_changes
-                .into_iter()
-                .map(|change| RaindexVaultBalanceChange::try_from_local_db(self, change))
-                .collect::<Result<Vec<_>, _>>();
+        if is_chain_supported_local_db(self.chain_id) {
+            if let Some(local_db) = self.raindex_client.local_db() {
+                let local_source = LocalDbVaults::new(&local_db, Rc::clone(&self.raindex_client));
+                let local_changes = local_source
+                    .balance_changes_list(self, page, filter_types.as_deref())
+                    .await?;
+                if !local_changes.is_empty() {
+                    return Ok(local_changes);
+                }
+            }
         }
 
-        let client = self.get_orderbook_client()?;
-        let balance_changes = client
-            .vault_balance_changes_list(
-                Id::new(self.id.to_string()),
-                SgPaginationArgs {
-                    page: page.unwrap_or(1),
-                    page_size: 1000,
-                },
-                None,
-            )
-            .await?;
-
-        let balance_changes = balance_changes
-            .into_iter()
-            .map(|balance_change| {
-                RaindexVaultBalanceChange::try_from_sg_balance_change_type(
-                    self.chain_id,
-                    balance_change,
-                )
-            })
-            .collect::<Result<Vec<RaindexVaultBalanceChange>, RaindexError>>()?;
-
-        let balance_changes = if let Some(ref filters) = filter_types {
-            let raindex_types: Vec<_> = filters.iter().map(|f| f.to_raindex_type()).collect();
-            balance_changes
-                .into_iter()
-                .filter(|change| raindex_types.contains(&change.r#type))
-                .collect()
-        } else {
-            balance_changes
-        };
-
-        Ok(balance_changes)
+        let subgraph_source = SubgraphVaults::new(&self.raindex_client);
+        subgraph_source
+            .balance_changes_list(self, page, filter_types.as_deref())
+            .await
     }
 
     fn validate_amount(&self, amount: &Float) -> Result<(), RaindexError> {
@@ -654,6 +635,19 @@ impl TryFrom<String> for RaindexVaultBalanceChangeType {
     }
 }
 
+impl RaindexVaultBalanceChangeType {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Deposit => "Deposit",
+            Self::Withdrawal => "Withdrawal",
+            Self::TakeOrder => "Take order",
+            Self::Clear => "Clear",
+            Self::ClearBounty => "Clear Bounty",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub enum VaultBalanceChangeFilter {
@@ -715,6 +709,10 @@ impl RaindexVaultBalanceChange {
     pub fn type_getter(&self) -> RaindexVaultBalanceChangeType {
         self.r#type.clone()
     }
+    #[wasm_bindgen(getter = typeDisplayName)]
+    pub fn type_display_name(&self) -> String {
+        self.r#type.display_name().to_string()
+    }
     #[wasm_bindgen(getter = vaultId)]
     pub fn vault_id(&self) -> Result<BigInt, RaindexError> {
         BigInt::from_str(&self.vault_id.to_string())
@@ -766,6 +764,9 @@ impl RaindexVaultBalanceChange {
 impl RaindexVaultBalanceChange {
     pub fn r#type(&self) -> RaindexVaultBalanceChangeType {
         self.r#type.clone()
+    }
+    pub fn type_display_name(&self) -> &'static str {
+        self.r#type.display_name()
     }
     pub fn vault_id(&self) -> U256 {
         self.vault_id
@@ -1390,28 +1391,45 @@ impl RaindexClient {
         )]
         chain_ids: Option<ChainIds>,
     ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
-        let multi_subgraph_args =
-            self.get_multi_subgraph_args(chain_ids.map(|ids| ids.0.to_vec()))?;
-        let client = MultiOrderbookSubgraphClient::new(
-            multi_subgraph_args.values().flatten().cloned().collect(),
-        );
+        let subgraph_source = SubgraphVaults::new(self);
 
-        let token_list = client.tokens_list().await;
-        let tokens = token_list
-            .iter()
-            .map(|v| {
-                let chain_id = multi_subgraph_args
-                    .iter()
-                    .find(|(_, args)| args.iter().any(|arg| arg.name == v.subgraph_name))
-                    .map(|(chain_id, _)| *chain_id)
-                    .ok_or(RaindexError::SubgraphNotFound(
-                        v.subgraph_name.clone(),
-                        v.token.address.0.clone(),
-                    ))?;
-                let token = RaindexVaultToken::try_from_sg_erc20(chain_id, v.token.clone())?;
-                Ok(token)
-            })
-            .collect::<Result<Vec<RaindexVaultToken>, RaindexError>>()?;
+        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
+            return subgraph_source.tokens_list(None).await;
+        };
+
+        if ids.is_empty() {
+            return subgraph_source.tokens_list(None).await;
+        }
+
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
+
+        for id in ids.drain(..) {
+            if is_chain_supported_local_db(id) {
+                local_ids.push(id);
+            } else {
+                sg_ids.push(id);
+            }
+        }
+
+        let mut tokens: Vec<RaindexVaultToken> = Vec::new();
+
+        if self.local_db().is_none() {
+            sg_ids.append(&mut local_ids);
+        }
+
+        if let Some(local_db) = self.local_db() {
+            if !local_ids.is_empty() {
+                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+                let local_tokens = local_source.tokens_list(Some(local_ids)).await?;
+                tokens.extend(local_tokens);
+            }
+        }
+
+        if !sg_ids.is_empty() {
+            let sg_tokens = subgraph_source.tokens_list(Some(sg_ids)).await?;
+            tokens.extend(sg_tokens);
+        }
 
         Ok(tokens)
     }
@@ -1515,6 +1533,70 @@ impl VaultsDataSource for SubgraphVaults<'_> {
 
         let vault = RaindexVault::try_from_sg_vault(raindex_client, ob_id.chain_id, vault, None)?;
         Ok(Some(vault))
+    }
+
+    async fn balance_changes_list(
+        &self,
+        vault: &RaindexVault,
+        page: Option<u16>,
+        filter_types: Option<&[VaultBalanceChangeFilter]>,
+    ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
+        let client = self.client.get_orderbook_client(vault.orderbook)?;
+
+        let filter_typenames: Option<Vec<&str>> = filter_types.map(|filters| {
+            filters
+                .iter()
+                .flat_map(|f| f.to_kind().to_subgraph_typenames())
+                .copied()
+                .collect()
+        });
+
+        let balance_changes = client
+            .vault_balance_changes_list(
+                Id::new(vault.id.to_string()),
+                SgPaginationArgs {
+                    page: page.unwrap_or(1),
+                    page_size: 1000,
+                },
+                filter_typenames.as_deref(),
+            )
+            .await?;
+
+        balance_changes
+            .into_iter()
+            .map(|balance_change| {
+                RaindexVaultBalanceChange::try_from_sg_balance_change_type(
+                    vault.chain_id,
+                    balance_change,
+                )
+            })
+            .collect()
+    }
+
+    async fn tokens_list(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
+        let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
+        let client = MultiOrderbookSubgraphClient::new(
+            multi_subgraph_args.values().flatten().cloned().collect(),
+        );
+
+        let token_list = client.tokens_list().await;
+        token_list
+            .iter()
+            .map(|v| {
+                let chain_id = multi_subgraph_args
+                    .iter()
+                    .find(|(_, args)| args.iter().any(|arg| arg.name == v.subgraph_name))
+                    .map(|(chain_id, _)| *chain_id)
+                    .ok_or(RaindexError::SubgraphNotFound(
+                        v.subgraph_name.clone(),
+                        v.token.address.0.clone(),
+                    ))?;
+                RaindexVaultToken::try_from_sg_erc20(chain_id, v.token.clone())
+            })
+            .collect()
     }
 }
 
@@ -1702,6 +1784,19 @@ impl RaindexVaultToken {
             symbol: erc20.symbol,
             decimals,
         })
+    }
+
+    pub(crate) fn from_local_db_token(
+        token: crate::local_db::query::fetch_all_tokens::LocalDbToken,
+    ) -> Self {
+        Self {
+            chain_id: token.chain_id,
+            id: token.token_address.to_string(),
+            address: token.token_address,
+            name: Some(token.name),
+            symbol: Some(token.symbol),
+            decimals: token.decimals,
+        }
     }
 }
 impl TryFrom<RaindexVaultToken> for SgErc20 {

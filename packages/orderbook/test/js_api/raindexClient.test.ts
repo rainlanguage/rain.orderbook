@@ -944,6 +944,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					.forPost('/sg1')
 					.once()
 					.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+				await mockServer
+					.forPost('/sg1')
+					.once()
+					.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 				await mockServer.forPost('/sg1').thenReply(
 					200,
 					JSON.stringify({
@@ -1120,6 +1124,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			});
 
 			it('should get trade count', async function () {
+				await mockServer
+					.forPost('/sg1')
+					.once()
+					.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 				await mockServer
 					.forPost('/sg1')
 					.once()

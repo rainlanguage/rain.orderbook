@@ -416,7 +416,7 @@ mod tests {
         scenario::ScenarioCfg,
         spec_version::SpecVersion,
         token::TokenCfg,
-        yaml::default_document,
+        yaml::{default_document, default_documents},
     };
     use rain_orderbook_test_fixtures::LocalEvm;
     use std::{
@@ -619,6 +619,7 @@ price: 2e18;
         let deployer_arc = Arc::new(deployer);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            documents: default_documents(),
             key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
@@ -739,6 +740,7 @@ _ _: 0 0;
         let deployer_arc = Arc::new(deployer);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            documents: default_documents(),
             key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
@@ -900,6 +902,7 @@ _ _: 0 0;
         let deployer_arc = Arc::new(deployer);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            documents: default_documents(),
             key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,
@@ -1241,6 +1244,7 @@ _ _: 16 52;
         let deployer_arc = Arc::new(deployer);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            documents: default_documents(),
             key: "test-scenario".to_string(),
             bindings: HashMap::new(),
             runs: None,

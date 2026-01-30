@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
-	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import { RaindexOrder, type OrderbookCfg } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
@@ -12,24 +11,9 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { QKEY_ORDERS, QKEY_TOKENS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
-	import {
-		Badge,
-		Button,
-		Dropdown,
-		DropdownItem,
-		TableBodyCell,
-		TableHeadCell
-	} from 'flowbite-svelte';
+	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-	import { getAllContexts } from 'svelte';
-
-	const context = getAllContexts();
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export let handleOrderRemoveModal: any = undefined;
-	// End of optional props
-
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
@@ -40,7 +24,7 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
 
-	const { matchesAccount, account } = useAccount();
+	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	$: owners =
@@ -151,43 +135,54 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="head">
-		<TableHeadCell data-testid="orderListHeadingNetwork" padding="p-4">Network</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingActive" padding="p-4">Active</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingOrderbook" padding="p-4">Orderbook</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingLastAdded" padding="p-4">Last Added</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
+		<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
+			>Order Info</TableHeadCell
+		>
+		<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[20%]"
+			>Addresses</TableHeadCell
+		>
+		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[27.5%]"
 			>Input Token(s)</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4"
+		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[27.5%]"
 			>Output Token(s)</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4">Trades</TableHeadCell>
+		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
+			>Trades</TableHeadCell
+		>
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
-		<TableBodyCell data-testid="orderListRowNetwork" tdClass="px-4 py-2">
-			{getNetworkName(Number(item.chainId))}
+		<TableBodyCell data-testid="orderListRowOrderInfo" tdClass="px-4 py-2">
+			<div class="flex flex-col gap-1">
+				<div class="flex items-center gap-2">
+					<span class="text-sm font-medium">{getNetworkName(Number(item.chainId))}</span>
+					{#if item.active}
+						<Badge color="green">Active</Badge>
+					{:else}
+						<Badge color="yellow">Inactive</Badge>
+					{/if}
+				</div>
+				<span class="text-xs text-gray-500 dark:text-gray-400">
+					Added: {formatTimestampSecondsAsLocal(item.timestampAdded)}
+				</span>
+			</div>
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowActive" tdClass="px-4 py-2">
-			{#if item.active}
-				<Badge color="green">Active</Badge>
-			{:else}
-				<Badge color="yellow">Inactive</Badge>
-			{/if}
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4">
-			<Hash type={HashType.Identifier} value={item.orderHash} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Wallet} value={item.owner} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Identifier} value={item.orderbook} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
-			{formatTimestampSecondsAsLocal(item.timestampAdded)}
+		<TableBodyCell data-testid="orderListRowAddresses" tdClass="px-4 py-2">
+			<div class="flex flex-col gap-1 text-sm">
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Order:</span>
+					<Hash type={HashType.Identifier} value={item.orderHash} />
+				</div>
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Owner:</span>
+					<Hash type={HashType.Wallet} value={item.owner} />
+				</div>
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Orderbook:</span>
+					<Hash type={HashType.Identifier} value={item.orderbook} />
+				</div>
+			</div>
 		</TableBodyCell>
 
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="p-2 whitespace-normal">
@@ -219,36 +214,5 @@
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2">
 			{item.tradesCount > 99 ? '>99' : item.tradesCount}
 		</TableBodyCell>
-		{#if matchesAccount(item.owner) && handleOrderRemoveModal}
-			<div data-testid="wallet-actions">
-				<TableBodyCell tdClass="px-0 text-right">
-					{#if item.active}
-						<Button
-							color="alternative"
-							outline={false}
-							data-testid={`order-menu-${item.id}`}
-							id={`order-menu-${item.id}`}
-							class="mr-2 border-none px-2"
-							on:click={(e) => {
-								e.stopPropagation();
-							}}
-						>
-							<DotsVerticalOutline class="dark:text-white" />
-						</Button>
-					{/if}
-				</TableBodyCell>
-
-				{#if item.active}
-					<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
-						<DropdownItem
-							on:click={(e) => {
-								e.stopPropagation();
-								handleOrderRemoveModal(item, $query.refetch, context);
-							}}>Remove</DropdownItem
-						>
-					</Dropdown>
-				{/if}
-			</div>
-		{/if}
 	</svelte:fragment>
 </AppTable>

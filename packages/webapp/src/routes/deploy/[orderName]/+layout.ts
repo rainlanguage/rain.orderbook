@@ -1,32 +1,37 @@
 import type { LayoutLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
-import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook';
+import type { NameAndDescriptionCfg, DotrainRegistry } from '@rainlanguage/orderbook';
+import type { InvalidOrderDetail, ValidOrderDetail } from '@rainlanguage/ui-components';
+
+type ParentData = {
+	validOrders: ValidOrderDetail[];
+	invalidOrders: InvalidOrderDetail[];
+	registry: DotrainRegistry | null;
+};
+
 export const load: LayoutLoad = async ({ params, parent }) => {
 	const { orderName } = params;
-	const { registryDotrains, validOrders } = await parent();
+	const { validOrders, registry } = (await parent()) as ParentData;
 
-	let dotrain: string;
-	let orderDetail: NameAndDescriptionCfg;
+	if (!registry) {
+		throw redirect(307, '/deploy');
+	}
 
-	try {
-		const _dotrain = registryDotrains.find((dotrain) => dotrain.name === orderName)?.dotrain;
-		if (!_dotrain) {
-			throw redirect(307, '/deploy');
-		}
-		dotrain = _dotrain;
-		const _orderDetail = validOrders.find((detail) => detail.name === orderName)?.details;
-		if (!_orderDetail) {
-			throw redirect(307, '/deploy');
-		}
-		orderDetail = _orderDetail;
-	} catch {
+	const orderDetail = validOrders.find((detail) => detail.name === orderName)?.details;
+	if (!orderDetail) {
+		throw redirect(307, '/deploy');
+	}
+
+	const deploymentsResult = registry.getDeploymentDetails(orderName);
+	if (deploymentsResult.error) {
 		throw redirect(307, '/deploy');
 	}
 
 	return {
-		dotrain,
 		orderName,
-		orderDetail,
+		orderDetail: orderDetail as NameAndDescriptionCfg,
+		deployments: deploymentsResult.value,
+		registry,
 		pageName: orderName
 	};
 };
