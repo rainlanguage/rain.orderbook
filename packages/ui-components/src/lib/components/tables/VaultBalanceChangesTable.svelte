@@ -61,9 +61,9 @@
 	</svelte:fragment>
 	<svelte:fragment slot="head">
 		<TableHeadCell padding="p-4" class="w-[18%]">Info</TableHeadCell>
-		<TableHeadCell padding="p-4" class="w-[28%]">Transaction</TableHeadCell>
-		<TableHeadCell padding="p-2" class="w-[27%]">Balance Change</TableHeadCell>
-		<TableHeadCell padding="p-2" class="w-[27%]">New Balance</TableHeadCell>
+		<TableHeadCell padding="p-4" class="w-[22%]">Transaction</TableHeadCell>
+		<TableHeadCell padding="p-2" class="w-[30%]">Balance Change</TableHeadCell>
+		<TableHeadCell padding="p-2" class="w-[30%]">New Balance</TableHeadCell>
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>

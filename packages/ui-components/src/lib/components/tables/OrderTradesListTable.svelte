@@ -76,11 +76,11 @@
 		<TableTimeFilters bind:startTimestamp bind:endTimestamp />
 	</svelte:fragment>
 	<svelte:fragment slot="head">
-		<TableHeadCell padding="p-4" class="w-[12%]">Date</TableHeadCell>
+		<TableHeadCell padding="p-4" class="w-[15%]">Date</TableHeadCell>
 		<TableHeadCell padding="p-4" class="w-[20%]">Transaction</TableHeadCell>
-		<TableHeadCell padding="p-2" class="w-[20%]">Input</TableHeadCell>
-		<TableHeadCell padding="p-2" class="w-[20%]">Output</TableHeadCell>
-		<TableHeadCell padding="p-2" class="w-[24%]">IO Ratio</TableHeadCell>
+		<TableHeadCell padding="p-2" class="w-[18%]">Input</TableHeadCell>
+		<TableHeadCell padding="p-2" class="w-[18%]">Output</TableHeadCell>
+		<TableHeadCell padding="p-2" class="w-[25%]">IO Ratio</TableHeadCell>
 		<TableHeadCell padding="p-0" class="w-[4%]"><span class="sr-only">Actions</span></TableHeadCell>
 	</svelte:fragment>
 
