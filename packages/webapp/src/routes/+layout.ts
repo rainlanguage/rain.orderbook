@@ -227,7 +227,7 @@ if (import.meta.vitest) {
 				value: { client: true, setDbCallback: vi.fn() }
 			});
 			mockLocalDbNew.mockReturnValue({
-				value: { db: true, query: vi.fn() }
+				value: { db: true, query: vi.fn(), wipeAndRecreate: vi.fn() }
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
