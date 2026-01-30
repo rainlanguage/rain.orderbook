@@ -44,15 +44,15 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
 
     OrderBookV6 internal orderBook;
     RaindexRouterOrderBookV6Arb internal router;
-    
+
     address internal alice;
     address internal bob;
     address internal arber;
-    
+
     address internal tokenA;
     address internal tokenB;
     address internal tokenC;
-    
+
     uint256 internal constant INITIAL_BALANCE = 1000e18;
     bytes32 internal constant VAULT_ID = keccak256("vault");
 
@@ -86,33 +86,29 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
     function setUp() public {
         // Deploy core contracts
         orderBook = new OrderBookV6();
-        
+
         // Create test accounts
         alice = makeAddr("alice");
         bob = makeAddr("bob");
         arber = makeAddr("arber");
-        
+
         // Deploy mock ERC20 tokens
         tokenA = address(new Token("Token A", "TKNA"));
         tokenB = address(new Token("Token B", "TKNB"));
         tokenC = address(new Token("Token C", "TKNC"));
-        
+
         // Setup router
         OrderBookV6ArbConfig memory config = OrderBookV6ArbConfig({
             orderBook: address(orderBook),
             task: TaskV2({
-                evaluable: EvaluableV4({
-                    interpreter: iInterpreter,
-                    store: iStore,
-                    bytecode: new bytes(0)
-                }),
+                evaluable: EvaluableV4({interpreter: iInterpreter, store: iStore, bytecode: new bytes(0)}),
                 signedContext: new SignedContextV1[](0)
             }),
             implementationData: new bytes(0)
         });
-        
+
         router = new RaindexRouterOrderBookV6Arb(config);
-        
+
         // Fund accounts
         deal(tokenA, alice, INITIAL_BALANCE);
         deal(tokenB, bob, INITIAL_BALANCE);
@@ -135,7 +131,7 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
             tokenA, // output
             "_ _: 100 0.2;:;"
         );
-        
+
         // Bob creates order: sell tokenB for tokenA at 1:0.99 ratio
         OrderV4 memory bobOrder = createOrder(
             bob,
@@ -143,41 +139,29 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
             tokenB, // output
             "_ _: 100 0.5;:;"
         );
-        
+
         // Deposit tokens into vaults
         vm.startPrank(alice);
         IERC20(tokenA).approve(address(orderBook), type(uint256).max);
         orderBook.deposit4(
-            tokenA,
-            VAULT_ID,
-            LibDecimalFloat.fromFixedDecimalLosslessPacked(100000000000000000000, 18),
-            new TaskV2[](0)
+            tokenA, VAULT_ID, LibDecimalFloat.fromFixedDecimalLosslessPacked(100000000000000000000, 18), new TaskV2[](0)
         );
         vm.stopPrank();
-        
+
         vm.startPrank(bob);
         IERC20(tokenB).approve(address(orderBook), type(uint256).max);
         orderBook.deposit4(
-            tokenB,
-            VAULT_ID,
-            LibDecimalFloat.fromFixedDecimalLosslessPacked(100000000000000000000, 18),
-            new TaskV2[](0)
+            tokenB, VAULT_ID, LibDecimalFloat.fromFixedDecimalLosslessPacked(100000000000000000000, 18), new TaskV2[](0)
         );
         vm.stopPrank();
-        
+
         // Add orders
         vm.prank(alice);
-        orderBook.addOrder4(
-            createOrderConfig(aliceOrder),
-            new TaskV2[](0)
-        );
-        
+        orderBook.addOrder4(createOrderConfig(aliceOrder), new TaskV2[](0));
+
         vm.prank(bob);
-        orderBook.addOrder4(
-            createOrderConfig(bobOrder),
-            new TaskV2[](0)
-        );
-        
+        orderBook.addOrder4(createOrderConfig(bobOrder), new TaskV2[](0));
+
         // Create take orders configs for arbitrage
         TakeOrdersConfigV5 memory startTakeOrders = createTakeOrdersConfig(
             aliceOrder,
@@ -187,7 +171,7 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
             LibDecimalFloat.FLOAT_MAX_POSITIVE_VALUE, // maximumIORatio
             false // IOIsInput
         );
-        
+
         TakeOrdersConfigV5 memory endTakeOrders = createTakeOrdersConfig(
             bobOrder,
             0, // inputIOIndex
@@ -199,13 +183,9 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
         TakeOrdersConfigV5[] memory takeOrders = new TakeOrdersConfigV5[](2);
         takeOrders[0] = startTakeOrders;
         takeOrders[1] = endTakeOrders;
-        
+
         TaskV2 memory task = TaskV2({
-            evaluable: EvaluableV4({
-                interpreter: iInterpreter,
-                store: iStore,
-                bytecode: new bytes(0)
-            }),
+            evaluable: EvaluableV4({interpreter: iInterpreter, store: iStore, bytecode: new bytes(0)}),
             signedContext: new SignedContextV1[](0)
         });
 
@@ -216,7 +196,7 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
             data: abi.encode(tokenA, tokenC, new bytes(0))
         });
         bytes memory exchangeData = abi.encode(routeLegs);
-        
+
         // Record balances before
         uint256 orderBookTokenABefore = IERC20(tokenA).balanceOf(address(orderBook));
         uint256 orderBookTokenBBefore = IERC20(tokenB).balanceOf(address(orderBook));
@@ -224,16 +204,11 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
         uint256 arberTokenABefore = IERC20(tokenA).balanceOf(arber);
         uint256 arberTokenBBefore = IERC20(tokenB).balanceOf(arber);
         uint256 arberTokenCBefore = IERC20(tokenC).balanceOf(arber);
-        
+
         // Execute arbitrage
         vm.prank(arber);
-        router.arb4(
-            orderBook,
-            takeOrders,
-            exchangeData,
-            task
-        );
-        
+        router.arb4(orderBook, takeOrders, exchangeData, task);
+
         // Verify balances changed
         uint256 orderBookTokenAAfter = IERC20(tokenA).balanceOf(address(orderBook));
         uint256 orderBookTokenBAfter = IERC20(tokenB).balanceOf(address(orderBook));
@@ -241,19 +216,19 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
         uint256 arberTokenAAfter = IERC20(tokenA).balanceOf(arber);
         uint256 arberTokenBAfter = IERC20(tokenB).balanceOf(arber);
         uint256 arberTokenCAfter = IERC20(tokenC).balanceOf(arber);
-        
+
         assertNotEq(orderBookTokenABefore, orderBookTokenAAfter, "TokenA balance should change");
         assertNotEq(orderBookTokenBBefore, orderBookTokenBAfter, "TokenB balance should change");
         assertNotEq(orderBookTokenCBefore, orderBookTokenCAfter, "TokenC balance should change");
 
         assertEq(arberTokenABefore, arberTokenAAfter, "arber TokenA balance should NOT change");
-        
+
         assertNotEq(arberTokenBBefore, arberTokenBAfter, "arber TokenB balance should change");
         assertNotEq(arberTokenCBefore, arberTokenCAfter, "arber TokenC balance should change");
 
         assertEq(arberTokenBAfter, 8e19, "expected 80 token B for arber bounty");
         assertEq(arberTokenCAfter, 5e19, "expected 50 token C for arber bounty");
-        
+
         Float aliceOutputVaultBalanceFloat = orderBook.vaultBalance2(alice, tokenA, VAULT_ID);
         Float aliceInputVaultBalanceFloat = orderBook.vaultBalance2(alice, tokenB, VAULT_ID);
         uint256 aliceOutputVaultBalance = LibDecimalFloat.toFixedDecimalLossless(aliceOutputVaultBalanceFloat, 18);
@@ -270,42 +245,27 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
     }
 
     // Helper functions
-    function createOrder(
-        address owner,
-        address inputToken,
-        address outputToken,
-        string memory rl
-    ) internal view returns (OrderV4 memory) {
+    function createOrder(address owner, address inputToken, address outputToken, string memory rl)
+        internal
+        view
+        returns (OrderV4 memory)
+    {
         IOV2[] memory validInputs = new IOV2[](1);
-        validInputs[0] = IOV2({
-            token: inputToken,
-            vaultId: VAULT_ID
-        });
-        
+        validInputs[0] = IOV2({token: inputToken, vaultId: VAULT_ID});
+
         IOV2[] memory validOutputs = new IOV2[](1);
-        validOutputs[0] = IOV2({
-            token: outputToken,
-            vaultId: VAULT_ID
-        });
-        
+        validOutputs[0] = IOV2({token: outputToken, vaultId: VAULT_ID});
+
         return OrderV4({
             owner: owner,
-            evaluable: EvaluableV4({
-                interpreter: iInterpreter,
-                store: iStore,
-                bytecode: iParserV2.parse2(bytes(rl))
-            }),
+            evaluable: EvaluableV4({interpreter: iInterpreter, store: iStore, bytecode: iParserV2.parse2(bytes(rl))}),
             validInputs: validInputs,
             validOutputs: validOutputs,
             nonce: bytes32(0)
         });
     }
-    
-    function createOrderConfig(OrderV4 memory order) 
-        internal 
-        pure 
-        returns (OrderConfigV4 memory) 
-    {
+
+    function createOrderConfig(OrderV4 memory order) internal pure returns (OrderConfigV4 memory) {
         return OrderConfigV4({
             validInputs: order.validInputs,
             validOutputs: order.validOutputs,
@@ -315,7 +275,7 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
             secret: bytes32(0)
         });
     }
-    
+
     function createTakeOrdersConfig(
         OrderV4 memory order,
         uint256 inputIOIndex,
@@ -331,7 +291,7 @@ contract RaindexRouterOrderBookV6ArbTest is Test {
             outputIOIndex: outputIOIndex,
             signedContext: new SignedContextV1[](0)
         });
-        
+
         return TakeOrdersConfigV5({
             minimumIO: Float.wrap(0),
             maximumIO: maximumIO,

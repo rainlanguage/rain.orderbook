@@ -38,7 +38,7 @@ error SwapFailed();
 /// For example consider circuit:
 ///
 /// start input = DAI
-/// start output = USDC 
+/// start output = USDC
 /// external source router = USDC -> USDT
 /// end input = USDT
 /// end output = DAI
@@ -128,13 +128,14 @@ abstract contract OrderBookV6RaindexRouter is IERC3156FlashBorrower, ReentrancyG
 
         require(takeOrders.length == 2, "Unexpected take orders config length");
 
-        address startTakeOrdersInputToken = takeOrders[0].orders[0].order.validInputs[takeOrders[0].orders[0].inputIOIndex].token;
-        address endTakeOrdersInputToken = takeOrders[1].orders[0].order.validInputs[takeOrders[1].orders[0].inputIOIndex].token;
+        address startTakeOrdersInputToken =
+            takeOrders[0].orders[0].order.validInputs[takeOrders[0].orders[0].inputIOIndex].token;
+        address endTakeOrdersInputToken =
+            takeOrders[1].orders[0].order.validInputs[takeOrders[1].orders[0].inputIOIndex].token;
 
         require(
-            startTakeOrdersInputToken == takeOrders[1].orders[0].order.validOutputs[
-                takeOrders[1].orders[0].outputIOIndex
-            ].token,
+            startTakeOrdersInputToken
+                == takeOrders[1].orders[0].order.validOutputs[takeOrders[1].orders[0].outputIOIndex].token,
             "start and end orders IO do NOT close the route circuit"
         );
 
@@ -174,6 +175,8 @@ abstract contract OrderBookV6RaindexRouter is IERC3156FlashBorrower, ReentrancyG
         }
         IERC20(startTakeOrdersInputToken).forceApprove(address(orderBook), 0);
 
-        LibOrderBookArb.finalizeArb(task, endTakeOrdersInputToken, endInputDecimals, startTakeOrdersInputToken, startInputDecimals);
+        LibOrderBookArb.finalizeArb(
+            task, endTakeOrdersInputToken, endInputDecimals, startTakeOrdersInputToken, startInputDecimals
+        );
     }
 }

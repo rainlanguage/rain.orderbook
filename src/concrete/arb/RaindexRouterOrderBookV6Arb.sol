@@ -39,13 +39,14 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
 
     /// @inheritdoc OrderBookV6RaindexRouter
     function _exchange(TakeOrdersConfigV5[] memory takeOrders, bytes memory exchangeData) internal virtual override {
-
-        address prevLegTokenAddress = takeOrders[0].orders[0].order.validOutputs[takeOrders[0].orders[0].outputIOIndex].token;
+        address prevLegTokenAddress =
+            takeOrders[0].orders[0].order.validOutputs[takeOrders[0].orders[0].outputIOIndex].token;
         (Float startLegTotalOutput, Float startLegTotalInput) = IOrderBookV6(msg.sender).takeOrders4(takeOrders[0]);
         (startLegTotalInput);
 
         Float prevLegOutputAmount = startLegTotalOutput;
 
+        //slither-disable-start calls-loop
         if (exchangeData.length > 0) {
             RouteLeg[] memory routeLegs = abi.decode(exchangeData, (RouteLeg[]));
 
@@ -53,7 +54,8 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
                 RouteLeg memory leg = routeLegs[i];
 
                 if (leg.routeLegType == RouteLegType.SUSHI) {
-                    (prevLegOutputAmount, prevLegTokenAddress) = _processSushiLeg(leg, prevLegOutputAmount, prevLegTokenAddress);
+                    (prevLegOutputAmount, prevLegTokenAddress) =
+                        _processSushiLeg(leg, prevLegOutputAmount, prevLegTokenAddress);
                 } else if (leg.routeLegType == RouteLegType.RAINDEX) {
                     revert("raindex route leg type is not yet implemented");
                 } else if (leg.routeLegType == RouteLegType.BALANCER) {
@@ -63,8 +65,10 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
                 }
             }
         }
+        //slither-disable-end
 
-        address endTakeOrdersInputToken = takeOrders[1].orders[0].order.validInputs[takeOrders[1].orders[0].inputIOIndex].token;
+        address endTakeOrdersInputToken =
+            takeOrders[1].orders[0].order.validInputs[takeOrders[1].orders[0].inputIOIndex].token;
         IERC20(endTakeOrdersInputToken).forceApprove(msg.sender, 0);
         IERC20(endTakeOrdersInputToken).forceApprove(msg.sender, type(uint256).max);
 
@@ -81,13 +85,12 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
     }
 
     //slither-disable-next-line no-unused-vars
-    function _processSushiLeg(
-        RouteLeg memory routeLeg,
-        Float prevLegOutputAmount,
-        address prevLegTokenAddress
-    ) internal returns (Float, address) {
+    function _processSushiLeg(RouteLeg memory routeLeg, Float prevLegOutputAmount, address prevLegTokenAddress)
+        internal
+        returns (Float, address)
+    {
         (address fromToken, address toToken, bytes memory route) = abi.decode(routeLeg.data, (address, address, bytes));
-        
+
         require(prevLegTokenAddress == fromToken, "token mismatch");
 
         (uint256 fromTokenAmount, bool losslessInputAmount) =
@@ -95,7 +98,8 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
         (losslessInputAmount);
 
         uint8 toTokenDecimals = IERC20Metadata(toToken).decimals();
-        (uint256 toTokenAmount, bool lossless) = LibDecimalFloat.toFixedDecimalLossy(LibDecimalFloat.FLOAT_ZERO, toTokenDecimals);
+        (uint256 toTokenAmount, bool lossless) =
+            LibDecimalFloat.toFixedDecimalLossy(LibDecimalFloat.FLOAT_ZERO, toTokenDecimals);
         if (!lossless) {
             toTokenAmount++;
         }
