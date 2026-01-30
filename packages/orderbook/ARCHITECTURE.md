@@ -2,7 +2,7 @@
 
 This package is the JavaScript/TypeScript SDK that exposes Rain Orderbook functionality to web and Node.js consumers. It packages the Rust WASM crate surface (primarily `rain_orderbook_js_api`, plus re‑exports from sibling crates) into a single, installable NPM module with CJS and ESM entry points.
 
-The SDK is designed to work in browsers, Node.js, and hybrid runtimes (e.g., Tauri). It embeds the compiled `.wasm` bytes directly in the published bundle so consumers do not need network fetches or filesystem access at runtime.
+The SDK is designed to work in browsers, Node.js, and hybrid runtimes. It embeds the compiled `.wasm` bytes directly in the published bundle so consumers do not need network fetches or filesystem access at runtime.
 
 
 ## Overview
@@ -83,8 +83,8 @@ The package re‑exports the WASM‑bound API from the Rust crates. Representati
 - High‑level classes (selected)
   - `RaindexClient` — orderbook queries (orders, trades, vaults, quotes, transactions) across configured networks/subgraphs.
   - `RaindexOrder`, `RaindexVault`, `RaindexTrade`, `RaindexTransaction`, `RaindexVaultsList`, etc.
-  - `DotrainOrder`, `DotrainOrderGui`, `DotrainRegistry` — dotrain parsing, GUI orchestration, registry fetching, and deployment calldata.
-  - `OrderbookYaml` — typed access to networks, tokens, orderbooks, subgraphs, deployers, accounts, metaboards.
+  - `DotrainOrder`, `DotrainOrderGui`, `DotrainRegistry` — dotrain parsing, GUI orchestration, registry fetching (including `getOrderbookYaml()` for token queries), and deployment calldata.
+  - `OrderbookYaml` — typed access to networks, tokens (via `getTokens()`), orderbooks, subgraphs, deployers, accounts, metaboards.
   - `Float` — arbitrary‑precision float utilities used across the API.
 - Errors & results
   - Most methods return `WasmEncodedResult<T>` with either `{ value }` or `{ error: { msg, readableMsg } }` for ergonomic, user‑readable error handling in JS.

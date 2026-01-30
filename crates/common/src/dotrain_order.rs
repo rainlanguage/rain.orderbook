@@ -10,7 +10,8 @@ use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
-    dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+    context::ContextProfile, dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError,
+    YamlParsable,
 };
 use rain_orderbook_app_settings::{
     remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
@@ -295,6 +296,15 @@ impl DotrainOrder {
         )]
         settings: Option<Vec<String>>,
     ) -> Result<DotrainOrder, DotrainOrderError> {
+        Self::create_with_profile(dotrain, settings, ContextProfile::Strict).await
+    }
+
+    #[wasm_export(skip)]
+    pub async fn create_with_profile(
+        dotrain: String,
+        settings: Option<Vec<String>>,
+        profile: ContextProfile,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
@@ -306,15 +316,12 @@ impl DotrainOrder {
 
         let mut orderbook_yaml =
             OrderbookYaml::new(sources.clone(), OrderbookYamlValidation::default())?;
-        let spec_version = orderbook_yaml.get_spec_version()?;
-        if !SpecVersion::is_current(&spec_version) {
-            return Err(DotrainOrderError::SpecVersionMismatch(
-                SpecVersion::current().to_string(),
-                spec_version.to_string(),
-            ));
-        }
 
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
+        let mut dotrain_yaml = DotrainYaml::new_with_profile(
+            sources.clone(),
+            DotrainYamlValidation::default(),
+            profile,
+        )?;
 
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
@@ -811,6 +818,7 @@ _ _: 00;
 
         let settings = format!(
             r#"
+version: {spec_version}
 networks:
     mainnet:
         rpcs:
@@ -819,6 +827,7 @@ networks:
         network-id: 1
         currency: ETH"#,
             rpc_url = server.url("/rpc-mainnet"),
+            spec_version = SpecVersion::current(),
         );
 
         let dotrain_order =
@@ -1401,13 +1410,12 @@ _ _: 0 0;
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            DotrainOrderError::SpecVersionMismatch(
-                ref expected,
-                ref got
-            ) if expected == &SpecVersion::current() && got == "2"
-        ));
+        assert!(
+            matches!(err, DotrainOrderError::YamlError(YamlError::Field {
+            kind: FieldErrorKind::InvalidValue { field, .. },
+            location,
+        }) if field == "version" && location == "root")
+        );
     }
 
     #[tokio::test]

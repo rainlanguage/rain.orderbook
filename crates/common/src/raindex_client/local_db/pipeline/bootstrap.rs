@@ -87,6 +87,13 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
     where
         DB: LocalDbQueryExecutor + ?Sized,
     {
+        let is_healthy = self.check_integrity(db).await.unwrap_or(false);
+        if !is_healthy {
+            db.wipe_and_recreate().await?;
+            self.reset_db(db, db_schema_version).await?;
+            return Ok(());
+        }
+
         let BootstrapState {
             has_required_tables,
             ..
@@ -168,6 +175,16 @@ mod tests {
                 .iter()
                 .fold(self, |db, stmt| db.with_text(stmt, "ok"))
         }
+
+        fn with_healthy_integrity(self) -> Self {
+            use crate::local_db::query::integrity_check::{
+                integrity_check_stmt, IntegrityCheckRow,
+            };
+            let row = IntegrityCheckRow {
+                quick_check: "ok".to_string(),
+            };
+            self.with_json(&integrity_check_stmt(), json!([row]))
+        }
     }
 
     #[async_trait(?Send)]
@@ -198,6 +215,10 @@ mod tests {
                 return Err(LocalDbQueryError::database("no text for sql"));
             };
             Ok(body.clone())
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
         }
     }
 
@@ -258,6 +279,7 @@ mod tests {
         };
 
         let db = MockDb::default()
+            .with_healthy_integrity()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_meta_row]))
             .with_text(&clear_tables_stmt(), "ok")
@@ -298,6 +320,7 @@ mod tests {
         .unwrap();
 
         let db = MockDb::default()
+            .with_healthy_integrity()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([])) // triggers reset
             // inspect_state will look for watermark since table exists
@@ -347,6 +370,7 @@ mod tests {
         };
 
         let db = MockDb::default()
+            .with_healthy_integrity()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]))
             .with_json(&fetch_db_metadata_stmt(), json!([mismatched_row]))
@@ -395,6 +419,7 @@ mod tests {
         };
 
         let db = MockDb::default()
+            .with_healthy_integrity()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(&fetch_db_metadata_stmt(), json!([db_row]))
             .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]));
@@ -404,7 +429,10 @@ mod tests {
             .await
             .unwrap();
 
-        assert!(db.calls().is_empty());
+        assert!(
+            db.calls().is_empty(),
+            "no text queries should be called when schema is ok"
+        );
     }
 
     #[tokio::test]
@@ -412,7 +440,10 @@ mod tests {
         let adapter = ClientBootstrapAdapter::new();
         let tables_json = required_tables_json();
 
-        let db = MockDb::default().with_json(&fetch_tables_stmt(), tables_json);
+        let db = MockDb::default()
+            .with_healthy_integrity()
+            .with_json(&fetch_tables_stmt(), tables_json)
+            .with_json(&fetch_target_watermark_stmt(&runner_ob_id()), json!([]));
 
         let err = adapter
             .runner_run(&db, Some(DB_SCHEMA_VERSION))
@@ -579,6 +610,266 @@ mod tests {
         let err = adapter.engine_run(&db, &cfg).await.unwrap_err();
         match err {
             LocalDbError::LocalDbQueryError(..) => {}
+            other => panic!("unexpected error: {other:?}"),
+        }
+    }
+
+    struct CorruptedDb {
+        json_map: HashMap<String, String>,
+        text_map: HashMap<String, String>,
+        calls_text: Mutex<Vec<String>>,
+        wipe_called: Mutex<bool>,
+    }
+
+    impl CorruptedDb {
+        fn new() -> Self {
+            use crate::local_db::query::integrity_check::{
+                integrity_check_stmt, IntegrityCheckRow,
+            };
+
+            let mut db = Self {
+                json_map: HashMap::new(),
+                text_map: HashMap::new(),
+                calls_text: Mutex::new(Vec::new()),
+                wipe_called: Mutex::new(false),
+            };
+            let corrupted_row = IntegrityCheckRow {
+                quick_check: "database disk image is malformed".to_string(),
+            };
+            db.json_map.insert(
+                integrity_check_stmt().sql().to_string(),
+                json!([corrupted_row]).to_string(),
+            );
+            db.text_map
+                .insert(clear_tables_stmt().sql().to_string(), "ok".to_string());
+            db.text_map
+                .insert(create_tables_stmt().sql().to_string(), "ok".to_string());
+            db.text_map.insert(
+                insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string(),
+                "ok".to_string(),
+            );
+            for stmt in create_views_batch().statements() {
+                db.text_map.insert(stmt.sql().to_string(), "ok".to_string());
+            }
+            db
+        }
+
+        fn calls(&self) -> Vec<String> {
+            self.calls_text.lock().unwrap().clone()
+        }
+
+        fn was_wipe_called(&self) -> bool {
+            *self.wipe_called.lock().unwrap()
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LocalDbQueryExecutor for CorruptedDb {
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            for stmt in batch {
+                let _ = self.query_text(stmt).await?;
+            }
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            let sql = stmt.sql();
+            let Some(body) = self.json_map.get(sql) else {
+                return Err(LocalDbQueryError::database("no json for sql"));
+            };
+            serde_json::from_str::<T>(body)
+                .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
+        }
+
+        async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            let sql = stmt.sql();
+            self.calls_text.lock().unwrap().push(sql.to_string());
+            self.text_map
+                .get(sql)
+                .cloned()
+                .ok_or_else(|| LocalDbQueryError::database("no text for sql"))
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            *self.wipe_called.lock().unwrap() = true;
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn runner_run_resets_on_corrupted_database() {
+        let adapter = ClientBootstrapAdapter::new();
+        let db = CorruptedDb::new();
+
+        adapter
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
+            .await
+            .expect("runner_run should succeed after resetting corrupted db");
+
+        assert!(db.was_wipe_called(), "should have called wipe_and_recreate");
+
+        let calls = db.calls();
+        let expected_views: Vec<String> = create_views_batch()
+            .statements()
+            .iter()
+            .map(|s| s.sql().to_string())
+            .collect();
+        assert!(
+            calls.contains(&clear_tables_stmt().sql().to_string()),
+            "should have cleared tables"
+        );
+        assert!(
+            calls.contains(&create_tables_stmt().sql().to_string()),
+            "should have created tables"
+        );
+        assert!(
+            calls.contains(&insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string()),
+            "should have inserted db metadata"
+        );
+        assert!(
+            expected_views.iter().all(|stmt| calls.contains(stmt)),
+            "missing view creation statements"
+        );
+    }
+
+    struct IntegrityCheckFailsDb {
+        text_map: HashMap<String, String>,
+        calls_text: Mutex<Vec<String>>,
+        wipe_called: Mutex<bool>,
+    }
+
+    impl IntegrityCheckFailsDb {
+        fn new() -> Self {
+            let mut db = Self {
+                text_map: HashMap::new(),
+                calls_text: Mutex::new(Vec::new()),
+                wipe_called: Mutex::new(false),
+            };
+            db.text_map
+                .insert(clear_tables_stmt().sql().to_string(), "ok".to_string());
+            db.text_map
+                .insert(create_tables_stmt().sql().to_string(), "ok".to_string());
+            db.text_map.insert(
+                insert_db_metadata_stmt(DB_SCHEMA_VERSION).sql().to_string(),
+                "ok".to_string(),
+            );
+            for stmt in create_views_batch().statements() {
+                db.text_map.insert(stmt.sql().to_string(), "ok".to_string());
+            }
+            db
+        }
+
+        fn calls(&self) -> Vec<String> {
+            self.calls_text.lock().unwrap().clone()
+        }
+
+        fn was_wipe_called(&self) -> bool {
+            *self.wipe_called.lock().unwrap()
+        }
+    }
+
+    #[async_trait(?Send)]
+    impl LocalDbQueryExecutor for IntegrityCheckFailsDb {
+        async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            for stmt in batch {
+                let _ = self.query_text(stmt).await?;
+            }
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            Err(LocalDbQueryError::database(
+                "malformed database schema (db_metadata)",
+            ))
+        }
+
+        async fn query_text(&self, stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            let sql = stmt.sql();
+            self.calls_text.lock().unwrap().push(sql.to_string());
+            self.text_map
+                .get(sql)
+                .cloned()
+                .ok_or_else(|| LocalDbQueryError::database("no text for sql"))
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            *self.wipe_called.lock().unwrap() = true;
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn runner_run_resets_when_integrity_check_fails_with_error() {
+        let adapter = ClientBootstrapAdapter::new();
+        let db = IntegrityCheckFailsDb::new();
+
+        adapter
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
+            .await
+            .expect("runner_run should succeed after resetting when integrity check errors");
+
+        assert!(
+            db.was_wipe_called(),
+            "should have called wipe_and_recreate when integrity check errors"
+        );
+
+        let calls = db.calls();
+        assert!(
+            calls.contains(&clear_tables_stmt().sql().to_string()),
+            "should have cleared tables when integrity check errors"
+        );
+        assert!(
+            calls.contains(&create_tables_stmt().sql().to_string()),
+            "should have created tables"
+        );
+    }
+
+    struct WipeFailsDb;
+
+    #[async_trait(?Send)]
+    impl LocalDbQueryExecutor for WipeFailsDb {
+        async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
+            Ok(())
+        }
+
+        async fn query_json<T>(&self, _stmt: &SqlStatement) -> Result<T, LocalDbQueryError>
+        where
+            T: FromDbJson,
+        {
+            Err(LocalDbQueryError::database(
+                "malformed database schema (db_metadata)",
+            ))
+        }
+
+        async fn query_text(&self, _stmt: &SqlStatement) -> Result<String, LocalDbQueryError> {
+            Ok("ok".to_string())
+        }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::database("wipe failed"))
+        }
+    }
+
+    #[tokio::test]
+    async fn runner_run_propagates_wipe_error() {
+        let adapter = ClientBootstrapAdapter::new();
+        let db = WipeFailsDb;
+
+        let err = adapter
+            .runner_run(&db, Some(DB_SCHEMA_VERSION))
+            .await
+            .unwrap_err();
+
+        match err {
+            LocalDbError::LocalDbQueryError(inner) => {
+                assert!(inner.to_string().contains("wipe failed"));
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }
