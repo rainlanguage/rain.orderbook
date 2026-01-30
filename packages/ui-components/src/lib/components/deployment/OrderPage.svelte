@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { DotrainOrderGui } from '@rainlanguage/orderbook';
+	import type { NameAndDescriptionCfg } from '@rainlanguage/orderbook';
 	import DeploymentsSection from './DeploymentsSection.svelte';
 	import SvelteMarkdown from 'svelte-markdown';
+	import { onMount } from 'svelte';
 
 	export let orderName: string = '';
-	export let dotrain: string = '';
+	export let orderDetail: NameAndDescriptionCfg;
+	export let deployments: Map<string, NameAndDescriptionCfg> | [string, NameAndDescriptionCfg][] =
+		[];
+
 	let markdownContent: string = '';
 	let error: string | undefined;
 
@@ -24,30 +28,19 @@
 		}
 	};
 
-	const getOrderWithMarkdown = async () => {
-		try {
-			const result = await DotrainOrderGui.getOrderDetails(dotrain);
-			if (result.error) {
-				throw new Error(result.error.msg);
-			}
-			const orderDetails = result.value;
-
-			if (orderDetails.description && isMarkdownUrl(orderDetails.description)) {
-				await fetchMarkdownContent(orderDetails.description);
-			}
-			return orderDetails;
-		} catch {
-			throw new Error('Failed to get order details');
+	onMount(async () => {
+		if (orderDetail?.description && isMarkdownUrl(orderDetail.description)) {
+			await fetchMarkdownContent(orderDetail.description);
 		}
-	};
+	});
 </script>
 
-{#await getOrderWithMarkdown() then orderDetails}
+{#if orderDetail}
 	<div>
 		<div in:fade class="flex flex-col gap-8">
 			<div class="flex max-w-2xl flex-col gap-3 text-start lg:gap-6">
 				<h1 class="text-4xl font-semibold text-gray-900 lg:text-6xl dark:text-white">
-					{orderDetails.name}
+					{orderDetail.name ?? orderName}
 				</h1>
 				{#if markdownContent}
 					<div data-testid="markdown-content" class="prose dark:prose-invert">
@@ -62,19 +55,19 @@
 							data-testid="plain-description"
 							class="text-base text-gray-600 lg:text-lg dark:text-gray-400"
 						>
-							{orderDetails.description}
+							{orderDetail.description}
 						</p>
 					</div>
 				{/if}
 			</div>
 			<div class="u flex flex-col gap-4">
 				<h2 class="text-3xl font-semibold text-gray-900 dark:text-white">Deployments</h2>
-				<DeploymentsSection {dotrain} {orderName} />
+				<DeploymentsSection {deployments} {orderName} />
 			</div>
 		</div>
 	</div>
-{:catch error}
+{:else}
 	<div>
-		<p class="text-red-500">{error}</p>
+		<p class="text-red-500">Failed to load order details.</p>
 	</div>
-{/await}
+{/if}

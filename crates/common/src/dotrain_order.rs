@@ -337,6 +337,9 @@ impl DotrainOrder {
         if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
             let networks = orderbook_yaml.get_networks()?;
             let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
+            orderbook_yaml
+                .cache
+                .update_remote_tokens(remote_tokens.clone());
             dotrain_yaml.cache.update_remote_tokens(remote_tokens);
         }
 

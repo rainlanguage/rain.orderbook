@@ -1086,7 +1086,7 @@ mod tests {
     use super::*;
     use crate::{
         test::{mock_deployer, mock_network, mock_token},
-        yaml::tests::get_document,
+        yaml::{default_documents, tests::get_document},
         OrderCfg, ScenarioCfg,
     };
     use alloy::primitives::Address;
@@ -1180,7 +1180,8 @@ mod tests {
             )]),
         };
         let scenario = ScenarioCfg {
-            document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
+            document: default_document(),
+            documents: default_documents(),
             key: "scenario1".into(),
             bindings: HashMap::new(),
             deployer: mock_deployer(),
