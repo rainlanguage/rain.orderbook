@@ -10,7 +10,7 @@ use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
 use rain_orderbook_app_settings::yaml::{
     clone_section_entry, context::ContextProfile, dotrain::DotrainYaml, orderbook::OrderbookYaml,
-    YamlError, YamlParsable,
+    FieldErrorKind, YamlError, YamlParsable,
 };
 use rain_orderbook_app_settings::{
     remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
@@ -645,10 +645,15 @@ impl DotrainOrder {
         let order_key = order_cfg.key.clone();
         let deployment_key = deployment.key.clone();
 
-        let metaboard_key = orderbook_yaml
-            .get_metaboard(&network_key)
-            .ok()
-            .map(|cfg| cfg.key.clone());
+        let metaboard_key = match orderbook_yaml.get_metaboard(&network_key) {
+            Ok(cfg) => Some(cfg.key.clone()),
+            Err(YamlError::KeyNotFound(_)) => None,
+            Err(YamlError::Field {
+                kind: FieldErrorKind::Missing(_),
+                ..
+            }) => None,
+            Err(err) => return Err(err.into()),
+        };
 
         let documents = dotrain_yaml.documents.clone();
 

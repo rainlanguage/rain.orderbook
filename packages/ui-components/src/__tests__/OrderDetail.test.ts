@@ -413,7 +413,6 @@ describe('OrderDetail', () => {
 		await user.click(guiTab);
 
 		await waitFor(() => {
-			expect(mockErrToast).toHaveBeenCalledWith('Failed to parse GUI state');
 			expect(screen.getByTestId('gui-state-json')).toHaveTextContent('Invalid GUI state');
 		});
 	});

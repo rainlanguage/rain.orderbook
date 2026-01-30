@@ -173,7 +173,7 @@ impl DotrainOrderGui {
                 Ok((
                     k.clone(),
                     ValueCfg {
-                        // Preserve preset linkage if applicable; otherwise leave blank
+                        // Preserve preset linkage if applicable; otherwise use the binding key
                         id: if v.is_preset {
                             v.value.clone()
                         } else {
