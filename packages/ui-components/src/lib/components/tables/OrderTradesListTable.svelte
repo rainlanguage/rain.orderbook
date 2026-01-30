@@ -85,6 +85,11 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
+		{@const inputAmt = Number(item.inputVaultBalanceChange.formattedAmount)}
+		{@const outputAmt = Number(item.outputVaultBalanceChange.formattedAmount)}
+		{@const ioRatio = Math.abs(inputAmt / outputAmt)}
+		{@const oiRatio = Math.abs(outputAmt / inputAmt)}
+		{@const validRatio = Number.isFinite(ioRatio) && Number.isFinite(oiRatio)}
 		<TableBodyCell tdClass="px-4 py-2">
 			{formatTimestampSecondsAsLocal(BigInt(item.timestamp))}
 		</TableBodyCell>
@@ -126,26 +131,19 @@
 		</TableBodyCell>
 		<TableBodyCell tdClass="p-2" data-testid="io-ratio">
 			<div id={`io-ratio-${item.id}`} class="truncate">
-				{Math.abs(
-					Number(item.inputVaultBalanceChange.formattedAmount) /
-						Number(item.outputVaultBalanceChange.formattedAmount)
-				)}
-				<span class="text-gray-400">
-					({Math.abs(
-						Number(item.outputVaultBalanceChange.formattedAmount) /
-							Number(item.inputVaultBalanceChange.formattedAmount)
-					)})
-				</span>
+				{#if validRatio}
+					{ioRatio}
+					<span class="text-gray-400">({oiRatio})</span>
+				{:else}
+					-
+				{/if}
 			</div>
 			<Tooltip triggeredBy={`#io-ratio-${item.id}`}>
-				{Math.abs(
-					Number(item.inputVaultBalanceChange.formattedAmount) /
-						Number(item.outputVaultBalanceChange.formattedAmount)
-				)}
-				({Math.abs(
-					Number(item.outputVaultBalanceChange.formattedAmount) /
-						Number(item.inputVaultBalanceChange.formattedAmount)
-				)})
+				{#if validRatio}
+					{ioRatio} ({oiRatio})
+				{:else}
+					-
+				{/if}
 			</Tooltip>
 		</TableBodyCell>
 		<TableBodyCell tdClass="py-2">
