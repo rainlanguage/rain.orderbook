@@ -98,7 +98,7 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	}
 
 	if (localDb && raindexClient) {
-		raindexClient.setDbCallback(localDb.query.bind(localDb));
+		raindexClient.setDbCallback(localDb.query.bind(localDb), localDb.wipeAndRecreate.bind(localDb));
 	}
 
 	return {
