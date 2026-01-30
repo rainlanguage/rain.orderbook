@@ -4,16 +4,14 @@
 - Solidity contracts: `src/`, tests in `test/` with fixtures in `test-resources/`.
 - Rust workspace: `crates/*` (e.g., `cli`, `common`, `bindings`, `js_api`, `quote`, `subgraph`, `settings`, `math`, `integration_tests`).
 - JavaScript/Svelte: `packages/*` — `webapp`, `ui-components`, `orderbook` (wasm wrapper published to npm).
-- Desktop app: `tauri-app` (Rust + Svelte; `src-tauri` excluded from Cargo workspace).
 - Subgraph and tooling: `subgraph/`, `script/`, helper scripts like `prep-all.sh`.
 
 ## Build, Test, and Development Commands
-- Run every command through `nix develop -c <cmd>`; avoid entering an interactive Nix shell. Use shell attrs when needed (e.g., `nix develop .#tauri-shell`).
+- Run every command through `nix develop -c <cmd>`; avoid entering an interactive Nix shell.
 - Bootstrap: `./prep-all.sh` (installs deps and builds workspaces).
 - Rust: `nix develop -c cargo build --workspace`; tests: `nix develop -c cargo test`.
 - Solidity (Foundry): `nix develop -c forge build`; tests: `nix develop -c forge test`.
 - Webapp: `cd packages/webapp && nix develop -c npm run dev`.
-- Tauri: `nix develop .#tauri-shell --command cargo tauri dev`.
 - JS workspaces (top-level): `nix develop -c npm run test`, `nix develop -c npm run build:ui`, `nix develop -c npm run build:orderbook`.
 - WASM bundle: `nix develop -c rainix-wasm-artifacts`.
 
@@ -32,7 +30,7 @@
 - Quick preflight: `nix develop -c npm run lint-format-check:all && nix develop -c rainix-rs-static`.
 
 ## Security & Configuration Tips
-- Never commit secrets. Copy `.env.example` files (root, `packages/webapp`, `tauri-app`) and populate `PUBLIC_WALLETCONNECT_PROJECT_ID` / `VITE_WALLETCONNECT_PROJECT_ID` as required.
+- Never commit secrets. Copy `.env.example` files (root, `packages/webapp`) and populate `PUBLIC_WALLETCONNECT_PROJECT_ID` as required.
 
 ## Agent-Specific Instructions
 - Prefer syntax-aware search with ast-grep: Rust `sg --lang rust -p '<pattern>'`; TS `sg --lang ts -p '<pattern>'`. Use Nix shells for tool parity.

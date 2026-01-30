@@ -91,6 +91,11 @@ query SgOrderDetailByIdQuery($id: ID!) {
           orderbook {
             id
           }
+          trade {
+            tradeEvent {
+              __typename
+            }
+          }
         }
         ... on Deposit {
           id
@@ -232,6 +237,11 @@ query SgOrderDetailByIdQuery($id: ID!) {
           }
           orderbook {
             id
+          }
+          trade {
+            tradeEvent {
+              __typename
+            }
           }
         }
         ... on Deposit {
