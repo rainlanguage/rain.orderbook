@@ -603,6 +603,10 @@ mod tests {
                 None => Ok("ok".to_string()),
             }
         }
+
+        async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+            Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+        }
     }
 
     #[derive(Clone)]

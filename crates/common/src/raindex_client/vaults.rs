@@ -1828,7 +1828,7 @@ mod tests {
 
             let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
-                .set_local_db_callback(callback)
+                .set_local_db_callback(callback, None)
                 .expect("setting callback succeeds");
 
             let vaults = client
@@ -1974,7 +1974,7 @@ mod tests {
 
             let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
             client
-                .set_local_db_callback(callback)
+                .set_local_db_callback(callback, None)
                 .expect("setting callback succeeds");
 
             let filters = GetVaultsFilters {

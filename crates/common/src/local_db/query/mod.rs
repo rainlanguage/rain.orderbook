@@ -47,6 +47,9 @@ pub enum LocalDbQueryError {
 
     #[error("SQL build failed: {source}")]
     SqlBuild { source: SqlBuildError },
+
+    #[error("Operation not implemented: {operation}")]
+    NotImplemented { operation: String },
 }
 
 impl LocalDbQueryError {
@@ -63,6 +66,12 @@ impl LocalDbQueryError {
     pub fn deserialization(message: impl Into<String>) -> Self {
         Self::Deserialization {
             message: message.into(),
+        }
+    }
+
+    pub fn not_implemented(operation: impl Into<String>) -> Self {
+        Self::NotImplemented {
+            operation: operation.into(),
         }
     }
 }
