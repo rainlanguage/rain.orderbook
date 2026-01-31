@@ -1,11 +1,10 @@
+use super::orders::{OrdersDataSource, SubgraphOrders};
 use super::*;
-use crate::raindex_client::orders::RaindexOrder;
+use crate::local_db::is_chain_supported_local_db;
+use crate::raindex_client::local_db::orders::LocalDbOrders;
+use crate::raindex_client::orders::{fetch_orders_dotrain_sources, RaindexOrder};
 use crate::retry::{retry_with_constant_interval, RetryError};
-use crate::{
-    local_db::is_chain_supported_local_db, raindex_client::local_db::orders::LocalDbOrders,
-};
 use alloy::primitives::B256;
-use rain_orderbook_subgraph_client::{types::Id, OrderbookSubgraphClientError};
 use std::rc::Rc;
 
 const DEFAULT_ADD_ORDER_POLL_ATTEMPTS: usize = 10;
@@ -90,21 +89,19 @@ impl RaindexClient {
         interval_ms: Option<u64>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = Rc::new(self.clone());
-        let client = self.get_orderbook_client(orderbook_address)?;
 
         let attempts = max_attempts
             .unwrap_or(DEFAULT_ADD_ORDER_POLL_ATTEMPTS)
             .max(1);
         let interval_ms = interval_ms.unwrap_or(DEFAULT_ADD_ORDER_POLL_INTERVAL_MS);
 
-        // Phase 1: give the local DB the full polling window before touching subgraph
         if let Some(local_db) = self.local_db() {
             if is_chain_supported_local_db(chain_id) {
                 let local_source = LocalDbOrders::new(&local_db, raindex_client.clone());
                 let local_result = retry_with_constant_interval(
                     || async {
                         let orders = local_source
-                            .get_by_tx_hash(chain_id, orderbook_address, tx_hash)
+                            .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
                             .await
                             .map_err(PollError::Inner)?;
                         if orders.is_empty() {
@@ -120,7 +117,10 @@ impl RaindexClient {
                 .await;
 
                 match local_result {
-                    Ok(orders) => return Ok(orders),
+                    Ok(orders) => {
+                        let orders = fetch_orders_dotrain_sources(orders).await?;
+                        return Ok(orders);
+                    }
                     Err(RetryError::Operation(PollError::Inner(e))) => return Err(e),
                     Err(RetryError::InvalidMaxAttempts) => {
                         return Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
@@ -132,31 +132,19 @@ impl RaindexClient {
             }
         }
 
-        // Phase 2: fall back to subgraph polling
+        let subgraph_source = SubgraphOrders::new(self);
         let subgraph_result = retry_with_constant_interval(
             || async {
-                let sg_orders = match client
-                    .transaction_add_orders(Id::new(tx_hash.to_string()))
+                let orders = match subgraph_source
+                    .get_added_by_tx_hash(chain_id, orderbook_address, tx_hash)
                     .await
                 {
-                    Ok(v) => v,
-                    Err(OrderbookSubgraphClientError::Empty) => return Err(PollError::Empty),
-                    Err(e) => return Err(PollError::Inner(e.into())),
+                    Ok(orders) => orders,
+                    Err(RaindexError::OrderbookSubgraphClientError(
+                        rain_orderbook_subgraph_client::OrderbookSubgraphClientError::Empty,
+                    )) => return Err(PollError::Empty),
+                    Err(e) => return Err(PollError::Inner(e)),
                 };
-
-                let orders = sg_orders
-                    .into_iter()
-                    .map(|value| {
-                        RaindexOrder::try_from_sg_order(
-                            raindex_client.clone(),
-                            chain_id,
-                            value.order,
-                            Some(value.transaction.try_into()?),
-                        )
-                    })
-                    .collect::<Result<Vec<RaindexOrder>, RaindexError>>()
-                    .map_err(PollError::Inner)?;
-
                 if orders.is_empty() {
                     Err(PollError::Empty)
                 } else {
@@ -170,7 +158,10 @@ impl RaindexClient {
         .await;
 
         match subgraph_result {
-            Ok(orders) => Ok(orders),
+            Ok(orders) => {
+                let orders = fetch_orders_dotrain_sources(orders).await?;
+                Ok(orders)
+            }
             Err(RetryError::Operation(PollError::Inner(e))) => Err(e),
             Err(RetryError::Operation(PollError::Empty)) | Err(RetryError::InvalidMaxAttempts) => {
                 Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })

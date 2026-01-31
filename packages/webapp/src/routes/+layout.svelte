@@ -12,20 +12,23 @@
 		WalletProvider,
 		FixedBottomTransaction,
 		RaindexClientProvider,
-		LocalDbProvider
+		LocalDbProvider,
+		DotrainRegistryProvider,
+		RegistryManager
 	} from '@rainlanguage/ui-components';
 	import { signerAddress } from '$lib/stores/wagmi';
 	import { validChainIds } from '$lib/stores/settings';
 	import ErrorPage from '$lib/components/ErrorPage.svelte';
 	import TransactionProviderWrapper from '$lib/components/TransactionProviderWrapper.svelte';
 	import { initWallet } from '$lib/services/handleWalletInitialization';
+	import { REGISTRY_URL } from '$lib/constants';
 	import { onDestroy, onMount } from 'svelte';
 	import { updateStatus } from '$lib/stores/localDbStatus';
 	import type { RaindexClient } from '@rainlanguage/orderbook';
 
-	const { errorMessage, localDb, raindexClient, settingsYamlText } = $page.data;
+	const { errorMessage, localDb, raindexClient, registry } = $page.data;
+	const registryManager = new RegistryManager(REGISTRY_URL);
 
-	// Query client for caching
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -37,9 +40,9 @@
 	let walletInitError: string | null = null;
 
 	onMount(() => {
-		if (!browser || !raindexClient || !localDb) return;
+		if (!browser || !raindexClient || !localDb || !registry) return;
 		let client = raindexClient as RaindexClient;
-		client.startLocalDbScheduler(settingsYamlText, updateStatus);
+		client.startLocalDbScheduler(registry.settings as string, updateStatus);
 
 		const uniqueChainIds = client.getUniqueChainIds();
 		if (!uniqueChainIds.error) {
@@ -76,21 +79,23 @@
 					{:else if errorMessage}
 						<ErrorPage />
 					{:else}
-						<LocalDbProvider {localDb}>
-							<RaindexClientProvider {raindexClient}>
-								<div
-									data-testid="layout-container"
-									class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
-								>
-									<Sidebar {colorTheme} page={$page} />
-									<main
-										class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8"
+						<DotrainRegistryProvider {registry} error={errorMessage} manager={registryManager}>
+							<LocalDbProvider {localDb}>
+								<RaindexClientProvider {raindexClient}>
+									<div
+										data-testid="layout-container"
+										class="flex min-h-screen w-full justify-start bg-white dark:bg-gray-900 dark:text-gray-400"
 									>
-										<slot />
-									</main>
-								</div>
-							</RaindexClientProvider>
-						</LocalDbProvider>
+										<Sidebar {colorTheme} page={$page} />
+										<main
+											class="mx-auto h-full w-full grow overflow-x-auto px-4 pt-14 lg:ml-64 lg:p-8"
+										>
+											<slot />
+										</main>
+									</div>
+								</RaindexClientProvider>
+							</LocalDbProvider>
+						</DotrainRegistryProvider>
 					{/if}
 					<FixedBottomTransaction />
 				</LoadingWrapper>
