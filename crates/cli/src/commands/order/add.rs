@@ -80,7 +80,7 @@ mod tests {
     use super::*;
     use alloy::primitives::{address, Address, B256, U256};
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IOrderBookV5::IOV2;
+    use rain_orderbook_bindings::IOrderBookV6::IOV2;
     use std::{collections::HashMap, str::FromStr};
     use tempfile::NamedTempFile;
 

@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrderBook} from "./LibOrderBook.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";

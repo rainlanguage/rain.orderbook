@@ -6,7 +6,7 @@ use crate::raindex_client::orders::{fetch_orders_dotrain_sources, RaindexOrder};
 use crate::retry::{retry_with_constant_interval, RetryError};
 use alloy::primitives::{hex::decode, Bytes, B256};
 use alloy::sol_types::{SolCall, SolValue};
-use rain_orderbook_bindings::IOrderBookV5::{removeOrder3Call, OrderV4};
+use rain_orderbook_bindings::IOrderBookV6::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::order_detail_traits::OrderDetailError;
 use std::rc::Rc;
 

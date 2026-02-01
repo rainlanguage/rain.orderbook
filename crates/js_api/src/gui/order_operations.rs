@@ -14,7 +14,7 @@ use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
 };
 use rain_orderbook_bindings::{
-    IOrderBookV5::deposit3Call, OrderBook::multicallCall, IERC20::approveCall,
+    IOrderBookV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
 };
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
@@ -486,7 +486,7 @@ impl DotrainOrderGui {
                 vault_id: vault_id.into(),
                 decimals,
             };
-            let calldata = deposit3Call::try_from(deposit_args)
+            let calldata = deposit4Call::try_from(deposit_args)
                 .map_err(rain_orderbook_common::deposit::DepositError::from)?
                 .abi_encode();
             calldatas.push(Bytes::copy_from_slice(&calldata));

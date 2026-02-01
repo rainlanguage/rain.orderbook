@@ -13,7 +13,7 @@ use url::Url;
 use wasm_bindgen_utils::{add_ts_content, impl_wasm_traits, prelude::*};
 
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV5::{quote2Return, OrderV4, QuoteV2, SignedContextV1};
+use rain_orderbook_bindings::IOrderBookV6::{quote2Return, OrderV4, QuoteV2, SignedContextV1};
 use rain_orderbook_subgraph_client::{
     types::{common::SgBytes, Id},
     utils::make_order_id,
@@ -319,7 +319,7 @@ mod tests {
     use alloy::transports::TransportError;
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::AbiDecodedErrorType;
-    use rain_orderbook_bindings::IOrderBookV5::{quote2Call, QuoteV2, IOV2};
+    use rain_orderbook_bindings::IOrderBookV6::{quote2Call, QuoteV2, IOV2};
     use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
     use serde_json::{json, Value};
 

@@ -23,7 +23,7 @@ use alloy::{
 };
 use async_trait::async_trait;
 use rain_math_float::Float;
-use rain_orderbook_bindings::{IOrderBookV5::deposit3Call, IERC20::approveCall};
+use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
@@ -411,7 +411,7 @@ impl RaindexVault {
     ) -> Result<Bytes, RaindexError> {
         self.validate_amount(amount)?;
         let (deposit_args, _) = self.get_deposit_and_transaction_args(amount).await?;
-        let call = deposit3Call::try_from(deposit_args)?;
+        let call = deposit4Call::try_from(deposit_args)?;
         Ok(Bytes::copy_from_slice(&call.abi_encode()))
     }
 
@@ -2148,7 +2148,7 @@ mod tests {
         use httpmock::MockServer;
         use rain_orderbook_bindings::IERC20::decimalsCall;
         use rain_orderbook_bindings::{
-            IOrderBookV5::{deposit3Call, withdraw3Call},
+            IOrderBookV6::{deposit4Call, withdraw4Call},
             IERC20::approveCall,
         };
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -2995,7 +2995,7 @@ mod tests {
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
-                    &deposit3Call {
+                    &deposit4Call {
                         token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
@@ -3060,7 +3060,7 @@ mod tests {
             assert_eq!(
                 result,
                 Bytes::copy_from_slice(
-                    &withdraw3Call {
+                    &withdraw4Call {
                         token: Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d")
                             .unwrap(),
                         vaultId: B256::from(U256::from_str("0x0123").unwrap()),
