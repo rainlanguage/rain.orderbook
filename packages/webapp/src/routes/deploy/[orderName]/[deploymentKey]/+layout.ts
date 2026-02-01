@@ -1,23 +1,37 @@
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
-import type { LayoutLoad } from '../$types';
+import type { LayoutLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
+import type { DotrainRegistry, NameAndDescriptionCfg } from '@rainlanguage/orderbook';
 
-interface LayoutParentData {
-	dotrain: string;
-}
+type ParentData = {
+	orderName: string;
+	deployments: Map<string, NameAndDescriptionCfg>;
+	registry: DotrainRegistry | null;
+	orderDetail?: NameAndDescriptionCfg;
+};
 
 export const load: LayoutLoad = async ({ params, parent }) => {
 	const { deploymentKey } = params;
-	const { dotrain } = (await parent()) as unknown as LayoutParentData;
+	const { orderName, deployments, registry, orderDetail } = (await parent()) as ParentData;
 
-	const result = await DotrainOrderGui.getDeploymentDetail(dotrain, deploymentKey || '');
-	if (result.error) {
-		throw new Error(result.error.msg);
+	if (!registry || !deploymentKey) {
+		throw redirect(307, '/deploy');
 	}
-	const { name, description } = result.value;
+
+	const deploymentDetails = deployments.get(deploymentKey);
+
+	if (!deploymentDetails) {
+		throw redirect(307, '/deploy');
+	}
 
 	return {
-		deployment: { key: deploymentKey, name, description },
-		dotrain,
+		deployment: {
+			key: deploymentKey,
+			name: deploymentDetails.name,
+			description: deploymentDetails.description
+		},
+		orderName,
+		orderDetail,
+		registry,
 		pageName: deploymentKey
 	};
 };

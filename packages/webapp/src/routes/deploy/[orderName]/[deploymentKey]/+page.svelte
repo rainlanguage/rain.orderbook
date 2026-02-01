@@ -10,13 +10,13 @@
 	} from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDisclaimerModal } from '$lib/services/modal';
-	import { DotrainOrderGui, RaindexClient } from '@rainlanguage/orderbook';
+	import { RaindexClient, DotrainOrderGui } from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
-	import { handleGuiInitialization } from '$lib/services/handleGuiInitialization';
 	import { handleAddOrder } from '$lib/services/handleAddOrder';
 	import { handleTransactionConfirmationModal } from '$lib/services/modal';
+	import { pushGuiStateToUrlHistory } from '$lib/services/handleUpdateGuiState';
 
-	const { dotrain, deployment, orderDetail } = $page.data;
+	const { orderName, deployment, orderDetail, registry } = $page.data;
 	const stateFromUrl = $page.url.searchParams?.get('state') || '';
 
 	const { account } = useAccount();
@@ -26,22 +26,27 @@
 	let gui: DotrainOrderGui | null = null;
 	let getGuiError: string | null = null;
 
-	if (!dotrain || !deployment) {
-		setTimeout(() => {
-			goto('/deploy');
-		}, 5000);
-	}
-
 	onMount(async () => {
-		if (dotrain && deployment) {
-			const { gui: initializedGui, error } = await handleGuiInitialization(
-				dotrain,
-				deployment.key,
-				stateFromUrl
-			);
-			gui = initializedGui;
-			getGuiError = error;
+		if (!deployment || !registry || !orderName) {
+			setTimeout(() => {
+				goto('/deploy');
+			}, 5000);
+			return;
 		}
+
+		const serializedState = stateFromUrl || undefined;
+		const guiResult = await registry.getGui(
+			orderName,
+			deployment.key,
+			serializedState,
+			pushGuiStateToUrlHistory
+		);
+		if (guiResult.error) {
+			getGuiError = guiResult.error.readableMsg ?? guiResult.error.msg;
+			return;
+		}
+
+		gui = guiResult.value;
 	});
 
 	const onDeploy = (raindexClient: RaindexClient, gui: DotrainOrderGui) => {
@@ -61,7 +66,7 @@
 	};
 </script>
 
-{#if !dotrain || !deployment}
+{#if !deployment || !registry}
 	<div>Deployment not found. Redirecting to deployments page...</div>
 {:else if gui}
 	<div data-testid="gui-provider">

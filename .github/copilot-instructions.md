@@ -71,7 +71,7 @@ nix develop -c bash -c '(cd lib/rain.interpreter && rainix-sol-prelude && rainix
 nix develop -c bash -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-sol-prelude && rainix-rs-prelude)'
 nix develop -c bash -c '(cd lib/rain.interpreter/lib/rain.metadata && rainix-sol-prelude && rainix-rs-prelude)'
 nix develop -c rainix-sol-prelude && nix develop -c rainix-rs-prelude && nix develop -c raindex-prelude
-nix develop .#tauri-shell -c ob-tauri-prelude && nix develop .#tauri-shell -c ob-ui-components-prelude
+nix develop -c ob-ui-components-prelude
 nix develop -c npm run build -w @rainlanguage/orderbook
 nix develop -c npm run build -w @rainlanguage/ui-components
 nix develop -c npm run build -w @rainlanguage/webapp

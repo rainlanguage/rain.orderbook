@@ -4,7 +4,7 @@ use crate::raindex_client::RaindexError;
 use alloy::primitives::Address;
 use futures::StreamExt;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV5::OrderV4;
+use rain_orderbook_bindings::IOrderBookV6::OrderV4;
 
 const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
 
@@ -143,7 +143,7 @@ mod tests {
     use alloy::sol_types::{SolCall, SolValue};
     use rain_math_float::Float;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IOrderBookV5::{EvaluableV4, OrderV4, IOV2};
+    use rain_orderbook_bindings::IOrderBookV6::{EvaluableV4, OrderV4, IOV2};
     use rain_orderbook_quote::Pair;
     use rain_orderbook_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgVault,
@@ -387,7 +387,7 @@ amount price: 100 2;
             .dotrain_yaml()
             .get_deployment("test-deployment")
             .unwrap();
-        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
             .await
             .unwrap()
             .try_into_call(vec![setup.local_evm.url()])

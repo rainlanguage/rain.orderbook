@@ -1,8 +1,8 @@
-<!-- <script lang="ts">
+<script lang="ts">
 	import { createInfiniteQuery } from '@tanstack/svelte-query';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { QKEY_VAULTS_VOL_LIST } from '../../queries/keys';
-	import { RaindexVaultVolume, type RaindexOrder } from '@rainlanguage/orderbook';
+	import { type RaindexVaultVolume, type RaindexOrder } from '@rainlanguage/orderbook';
 	import { TableBodyCell, TableHeadCell } from 'flowbite-svelte';
 	import Hash, { HashType } from '../Hash.svelte';
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
@@ -25,14 +25,11 @@
 		initialPageParam: 0,
 		getNextPageParam: () => undefined
 	});
+
+	const AppTable = TanstackAppTable<RaindexVaultVolume>;
 </script>
 
-<TanstackAppTable
-	query={vaultsVol}
-	emptyMessage="No trades found"
-	rowHoverable={false}
-	queryKey={order.id}
->
+<AppTable query={vaultsVol} emptyMessage="No trades found" rowHoverable={false} queryKey={order.id}>
 	<svelte:fragment slot="timeFilter">
 		<TableTimeFilters bind:startTimestamp bind:endTimestamp />
 	</svelte:fragment>
@@ -62,12 +59,10 @@
 			{item.details.formattedTotalOut}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="net-vol">
-			{(item.details.totalIn >= item.details.totalOut ? '' : '-') + item.details.formattedNetVol}
+			{item.details.formattedNetVol}
 		</TableBodyCell>
 		<TableBodyCell tdClass="break-all py-2" data-testid="total-vol">
 			{item.details.formattedTotalVol}
 		</TableBodyCell>
 	</svelte:fragment>
-</TanstackAppTable> -->
-
-<div>TODO: Issue #1989</div>
+</AppTable>

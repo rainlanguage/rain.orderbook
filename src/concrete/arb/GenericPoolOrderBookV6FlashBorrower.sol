@@ -37,7 +37,6 @@ contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
 
         address borrowedToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
-        IERC20(borrowedToken).forceApprove(spender, 0);
         IERC20(borrowedToken).forceApprove(spender, type(uint256).max);
         bytes memory returnData = pool.functionCallWithValue(encodedFunctionCall, address(this).balance);
         // Nothing can be done with returnData as 3156 does not support it.

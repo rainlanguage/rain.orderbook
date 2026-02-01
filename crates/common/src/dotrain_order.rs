@@ -4,13 +4,13 @@ use crate::{
 };
 use alloy::primitives::Address;
 use alloy_ethers_typecast::{ReadableClient, ReadableClientError};
-use dotrain::{error::ComposeError, RainDocument};
+use dotrain::{error::ComposeError, types::patterns::FRONTMATTER_SEPARATOR, RainDocument};
 use futures::future::join_all;
 use rain_interpreter_parser::{ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::spec_version::SpecVersion;
 use rain_orderbook_app_settings::yaml::{
-    dotrain::DotrainYaml, orderbook::OrderbookYaml, YamlError, YamlParsable,
+    clone_section_entry, context::ContextProfile, dotrain::DotrainYaml, orderbook::OrderbookYaml,
+    FieldErrorKind, YamlError, YamlParsable,
 };
 use rain_orderbook_app_settings::{
     remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
@@ -20,7 +20,10 @@ use rain_orderbook_app_settings::{
     remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg},
     yaml::orderbook::OrderbookYamlValidation,
 };
+use rain_orderbook_app_settings::{scenario::ScenarioCfg, spec_version::SpecVersion};
 use serde::{Deserialize, Serialize};
+use std::sync::{Arc, RwLock};
+use strict_yaml_rust::{strict_yaml::Hash as StrictYamlHash, StrictYaml, StrictYamlLoader};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
 
@@ -295,6 +298,15 @@ impl DotrainOrder {
         )]
         settings: Option<Vec<String>>,
     ) -> Result<DotrainOrder, DotrainOrderError> {
+        Self::create_with_profile(dotrain, settings, ContextProfile::Strict).await
+    }
+
+    #[wasm_export(skip)]
+    pub async fn create_with_profile(
+        dotrain: String,
+        settings: Option<Vec<String>>,
+        profile: ContextProfile,
+    ) -> Result<DotrainOrder, DotrainOrderError> {
         let frontmatter = RainDocument::get_front_matter(&dotrain)
             .unwrap_or("")
             .to_string();
@@ -306,15 +318,12 @@ impl DotrainOrder {
 
         let mut orderbook_yaml =
             OrderbookYaml::new(sources.clone(), OrderbookYamlValidation::default())?;
-        let spec_version = orderbook_yaml.get_spec_version()?;
-        if !SpecVersion::is_current(&spec_version) {
-            return Err(DotrainOrderError::SpecVersionMismatch(
-                SpecVersion::current().to_string(),
-                spec_version.to_string(),
-            ));
-        }
 
-        let mut dotrain_yaml = DotrainYaml::new(sources.clone(), DotrainYamlValidation::default())?;
+        let mut dotrain_yaml = DotrainYaml::new_with_profile(
+            sources.clone(),
+            DotrainYamlValidation::default(),
+            profile,
+        )?;
 
         let remote_networks =
             RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
@@ -330,6 +339,9 @@ impl DotrainOrder {
         if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
             let networks = orderbook_yaml.get_networks()?;
             let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
+            orderbook_yaml
+                .cache
+                .update_remote_tokens(remote_tokens.clone());
             dotrain_yaml.cache.update_remote_tokens(remote_tokens);
         }
 
@@ -613,6 +625,251 @@ impl DotrainOrder {
 
         Ok(())
     }
+
+    pub fn generate_dotrain_for_deployment(
+        &self,
+        deployment_key: &str,
+    ) -> Result<String, DotrainOrderError> {
+        let dotrain_yaml = self.dotrain_yaml();
+        let orderbook_yaml = self.orderbook_yaml();
+        let deployment = dotrain_yaml.get_deployment(deployment_key)?;
+        let order_cfg = deployment.order.clone();
+        let scenario_cfg = deployment.scenario.clone();
+        let deployer_cfg = scenario_cfg.deployer.clone();
+
+        let network_key = order_cfg.network.key.clone();
+        let deployer_key = deployer_cfg.key.clone();
+        let orderbook_key = order_cfg.orderbook.as_ref().map(|ob| ob.key.clone());
+        let subgraph_key = order_cfg
+            .orderbook
+            .as_ref()
+            .map(|ob| ob.subgraph.key.clone());
+
+        let order_key = order_cfg.key.clone();
+        let deployment_key = deployment.key.clone();
+
+        let metaboard_key = match orderbook_yaml.get_metaboard(&network_key) {
+            Ok(cfg) => Some(cfg.key.clone()),
+            Err(YamlError::KeyNotFound(_)) => None,
+            Err(YamlError::Field {
+                kind: FieldErrorKind::Missing(_),
+                ..
+            }) => None,
+            Err(err) => return Err(err.into()),
+        };
+
+        let documents = dotrain_yaml.documents.clone();
+
+        let spec_version = orderbook_yaml.get_spec_version()?;
+
+        let mut root_hash = StrictYamlHash::new();
+        root_hash.insert(
+            StrictYaml::String("version".to_string()),
+            StrictYaml::String(spec_version.to_string()),
+        );
+
+        let network_value = clone_section_entry(&documents, "networks", &network_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        let mut networks_hash = StrictYamlHash::new();
+        networks_hash.insert(StrictYaml::String(network_key.clone()), network_value);
+        root_hash.insert(
+            StrictYaml::String("networks".to_string()),
+            StrictYaml::Hash(networks_hash),
+        );
+
+        let deployer_value = clone_section_entry(&documents, "deployers", &deployer_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        let mut deployers_hash = StrictYamlHash::new();
+        deployers_hash.insert(StrictYaml::String(deployer_key.clone()), deployer_value);
+        root_hash.insert(
+            StrictYaml::String("deployers".to_string()),
+            StrictYaml::Hash(deployers_hash),
+        );
+
+        if let Some(orderbook_key) = orderbook_key {
+            let orderbook_value = clone_section_entry(&documents, "orderbooks", &orderbook_key)
+                .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+            let mut orderbooks_hash = StrictYamlHash::new();
+            orderbooks_hash.insert(StrictYaml::String(orderbook_key.clone()), orderbook_value);
+            root_hash.insert(
+                StrictYaml::String("orderbooks".to_string()),
+                StrictYaml::Hash(orderbooks_hash),
+            );
+        }
+
+        if let Some(subgraph_key) = subgraph_key {
+            let subgraph_value = clone_section_entry(&documents, "subgraphs", &subgraph_key)
+                .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+            let mut subgraphs_hash = StrictYamlHash::new();
+            subgraphs_hash.insert(StrictYaml::String(subgraph_key.clone()), subgraph_value);
+            root_hash.insert(
+                StrictYaml::String("subgraphs".to_string()),
+                StrictYaml::Hash(subgraphs_hash),
+            );
+        }
+
+        if let Some(metaboard_key) = metaboard_key {
+            let metaboard_value = clone_section_entry(&documents, "metaboards", &metaboard_key)
+                .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+            let mut metaboards_hash = StrictYamlHash::new();
+            metaboards_hash.insert(StrictYaml::String(metaboard_key.clone()), metaboard_value);
+            root_hash.insert(
+                StrictYaml::String("metaboards".to_string()),
+                StrictYaml::Hash(metaboards_hash),
+            );
+        }
+
+        let mut order_value = clone_section_entry(&documents, "orders", &order_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        Self::strip_vault_ids_from_order(&mut order_value);
+        let mut orders_hash = StrictYamlHash::new();
+        orders_hash.insert(StrictYaml::String(order_key.clone()), order_value);
+        root_hash.insert(
+            StrictYaml::String("orders".to_string()),
+            StrictYaml::Hash(orders_hash),
+        );
+
+        let deployment_value = clone_section_entry(&documents, "deployments", &deployment_key)
+            .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
+        let mut deployments_hash = StrictYamlHash::new();
+        deployments_hash.insert(StrictYaml::String(deployment_key.clone()), deployment_value);
+        root_hash.insert(
+            StrictYaml::String("deployments".to_string()),
+            StrictYaml::Hash(deployments_hash),
+        );
+
+        if let Some(gui_yaml) = Self::clone_gui_for_deployment(&documents, deployment_key.as_str())?
+        {
+            root_hash.insert(StrictYaml::String("gui".to_string()), gui_yaml);
+        }
+        let scenario_yaml = Self::scenario_to_yaml(&scenario_cfg)?;
+        let mut scenarios_hash = StrictYamlHash::new();
+        scenarios_hash.insert(StrictYaml::String(scenario_cfg.key.clone()), scenario_yaml);
+        root_hash.insert(
+            StrictYaml::String("scenarios".to_string()),
+            StrictYaml::Hash(scenarios_hash),
+        );
+
+        let pruned_doc = Arc::new(RwLock::new(StrictYaml::Hash(root_hash)));
+        let yaml_frontmatter = DotrainYaml::get_yaml_string(pruned_doc.clone())?;
+
+        let rain_document = RainDocument::create(self.dotrain.clone(), None, None, None);
+        let dotrain = format!(
+            "{}\n{}\n{}",
+            yaml_frontmatter,
+            FRONTMATTER_SEPARATOR,
+            rain_document.body()
+        );
+
+        Ok(dotrain)
+    }
+
+    fn clone_gui_for_deployment(
+        documents: &[Arc<RwLock<StrictYaml>>],
+        deployment_key: &str,
+    ) -> Result<Option<StrictYaml>, DotrainOrderError> {
+        let mut gui_value: Option<StrictYaml> = None;
+
+        for document in documents {
+            let document_read = document.read().map_err(|_| {
+                DotrainOrderError::CleanUnusedFrontmatterError(
+                    "Failed to read YAML document while cloning gui section".to_string(),
+                )
+            })?;
+
+            if let StrictYaml::Hash(root_hash) = &*document_read {
+                if let Some(gui) = root_hash.get(&StrictYaml::String("gui".to_string())) {
+                    gui_value = Some(gui.clone());
+                    break;
+                }
+            }
+        }
+
+        let Some(StrictYaml::Hash(mut gui_hash)) = gui_value else {
+            return Ok(None);
+        };
+
+        let Some(deployments_yaml) = gui_hash
+            .get(&StrictYaml::String("deployments".to_string()))
+            .cloned()
+        else {
+            return Ok(None);
+        };
+
+        let StrictYaml::Hash(deployments_hash) = deployments_yaml else {
+            return Err(DotrainOrderError::CleanUnusedFrontmatterError(
+                "Gui deployments section is not a map".to_string(),
+            ));
+        };
+
+        let Some(deployment_yaml) = deployments_hash
+            .get(&StrictYaml::String(deployment_key.to_string()))
+            .cloned()
+        else {
+            return Ok(None);
+        };
+
+        let mut filtered_deployments = StrictYamlHash::new();
+        filtered_deployments.insert(
+            StrictYaml::String(deployment_key.to_string()),
+            deployment_yaml,
+        );
+
+        gui_hash.insert(
+            StrictYaml::String("deployments".to_string()),
+            StrictYaml::Hash(filtered_deployments),
+        );
+
+        Ok(Some(StrictYaml::Hash(gui_hash)))
+    }
+
+    fn strip_vault_ids_from_order(order_yaml: &mut StrictYaml) {
+        if let StrictYaml::Hash(order_hash) = order_yaml {
+            for section in ["inputs", "outputs"] {
+                let section_key = StrictYaml::String(section.to_string());
+                if let Some(StrictYaml::Array(io_entries)) = order_hash.get_mut(&section_key) {
+                    for entry in io_entries.iter_mut() {
+                        if let StrictYaml::Hash(io_hash) = entry {
+                            io_hash.remove(&StrictYaml::String("vault-id".to_string()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn scenario_to_yaml(scenario: &ScenarioCfg) -> Result<StrictYaml, DotrainOrderError> {
+        let mut scenario_hash = StrictYamlHash::new();
+        scenario_hash.insert(
+            StrictYaml::String("deployer".to_string()),
+            StrictYaml::String(scenario.deployer.key.clone()),
+        );
+
+        if let Some(runs) = scenario.runs {
+            scenario_hash.insert(
+                StrictYaml::String("runs".to_string()),
+                StrictYaml::String(runs.to_string()),
+            );
+        }
+
+        if let Some(blocks) = &scenario.blocks {
+            let blocks_yaml = serde_yaml::to_string(blocks).map_err(|err| {
+                DotrainOrderError::CleanUnusedFrontmatterError(format!(
+                    "Failed to serialise blocks: {err}"
+                ))
+            })?;
+            let blocks_docs = StrictYamlLoader::load_from_str(&blocks_yaml).map_err(|err| {
+                DotrainOrderError::CleanUnusedFrontmatterError(format!(
+                    "Failed to parse blocks YAML: {err}"
+                ))
+            })?;
+            if let Some(blocks_doc) = blocks_docs.into_iter().next() {
+                scenario_hash.insert(StrictYaml::String("blocks".to_string()), blocks_doc);
+            }
+        }
+
+        Ok(StrictYaml::Hash(scenario_hash))
+    }
 }
 
 #[cfg(all(test, not(target_family = "wasm")))]
@@ -624,6 +881,7 @@ mod tests {
     use rain_orderbook_app_settings::yaml::FieldErrorKind;
     use serde_bytes::ByteBuf;
     use serde_json::json;
+    use strict_yaml_rust::{strict_yaml::Hash as StrictYamlHash, StrictYaml, StrictYamlLoader};
 
     sol!(
         struct AuthoringMetaV2Sol {
@@ -634,6 +892,15 @@ mod tests {
     sol!(
         struct PragmaV1 { address[] usingWordsFrom; }
     );
+
+    // Normalize Rainlang strings so assertions ignore trailing whitespace changes.
+    fn normalize_rainlang(value: &str) -> String {
+        value
+            .split('\n')
+            .map(str::trim_end)
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
 
     #[tokio::test]
     async fn test_config_parse() {
@@ -727,13 +994,314 @@ _ _: 0 0;
             .unwrap();
 
         assert_eq!(
-            rainlang,
-            r#"/* 0. calculate-io */ 
+            normalize_rainlang(&rainlang),
+            normalize_rainlang(
+                r#"/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;"#
+            )
         );
+    }
+
+    fn split_frontmatter_and_body(dotrain: &str) -> (String, String) {
+        dotrain
+            .split_once(&format!("\n{sep}\n", sep = FRONTMATTER_SEPARATOR))
+            .map(|(frontmatter, body)| (frontmatter.to_string(), body.to_string()))
+            .expect("Dotrain string should contain frontmatter separator")
+    }
+
+    fn get_root_hash(frontmatter: &str) -> StrictYamlHash {
+        let docs = StrictYamlLoader::load_from_str(frontmatter).expect("frontmatter should parse");
+        let StrictYaml::Hash(root) = docs.first().expect("yaml doc exists") else {
+            panic!("frontmatter root is not a hash")
+        };
+        root.clone()
+    }
+
+    fn assert_no_vault_ids(entries: &[StrictYaml]) {
+        for entry in entries {
+            let StrictYaml::Hash(io_hash) = entry else {
+                panic!("io entry is not a hash");
+            };
+            assert!(
+                !io_hash.contains_key(&StrictYaml::String("vault-id".to_string())),
+                "vault-id should be stripped from io entry"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_generate_dotrain_for_deployment_strips_vault_ids_and_unused_sections() {
+        let dotrain = format!(
+            r#"
+version: {spec_version}
+networks:
+  polygon:
+    rpcs:
+      - http://example.com
+    chain-id: 137
+    network-id: 137
+    currency: MATIC
+deployers:
+  polygon:
+    address: 0x1234567890123456789012345678901234567890
+tokens:
+  t1:
+    network: polygon
+    address: 0x1111111111111111111111111111111111111111
+  t2:
+    network: polygon
+    address: 0x2222222222222222222222222222222222222222
+orders:
+  polygon-order:
+    network: polygon
+    inputs:
+      - token: t1
+        vault-id: 1
+    outputs:
+      - token: t2
+        vault-id: 2
+deployments:
+  polygon-deployment:
+    scenario: polygon
+    order: polygon-order
+scenarios:
+  polygon:
+    deployer: polygon
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#,
+            spec_version = SpecVersion::current()
+        );
+
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
+        let generated = dotrain_order
+            .generate_dotrain_for_deployment("polygon-deployment")
+            .unwrap();
+
+        let (frontmatter, body) = split_frontmatter_and_body(&generated);
+        let root = get_root_hash(&frontmatter);
+
+        assert!(root
+            .get(&StrictYaml::String("tokens".to_string()))
+            .is_none());
+
+        let StrictYaml::Hash(orders_hash) = root
+            .get(&StrictYaml::String("orders".to_string()))
+            .expect("orders present")
+            .clone()
+        else {
+            panic!("orders section not a hash");
+        };
+        let StrictYaml::Hash(order) = orders_hash
+            .get(&StrictYaml::String("polygon-order".to_string()))
+            .expect("order exists")
+            .clone()
+        else {
+            panic!("order is not a hash");
+        };
+
+        let StrictYaml::Array(inputs) = order
+            .get(&StrictYaml::String("inputs".to_string()))
+            .expect("inputs exist")
+            .clone()
+        else {
+            panic!("inputs not an array");
+        };
+        let StrictYaml::Array(outputs) = order
+            .get(&StrictYaml::String("outputs".to_string()))
+            .expect("outputs exist")
+            .clone()
+        else {
+            panic!("outputs not an array");
+        };
+
+        assert_no_vault_ids(&inputs);
+        assert_no_vault_ids(&outputs);
+
+        assert!(
+            normalize_rainlang(body.trim())
+                == normalize_rainlang(
+                    r#"#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#
+                )
+        );
+    }
+
+    #[tokio::test]
+    async fn test_generate_dotrain_for_deployment_includes_only_referenced_entries() {
+        let dotrain = format!(
+            r#"
+version: {spec_version}
+networks:
+  polygon:
+    rpcs:
+      - http://example.com
+    chain-id: 137
+    network-id: 137
+    currency: MATIC
+deployers:
+  polygon:
+    address: 0x1234567890123456789012345678901234567890
+    network: polygon
+orderbooks:
+  primary:
+    address: 0x0101010101010101010101010101010101010101
+    network: polygon
+    subgraph: sg-primary
+    deployment-block: 1
+  unused:
+    address: 0x0202020202020202020202020202020202020202
+    network: polygon
+    subgraph: sg-unused
+    deployment-block: 2
+subgraphs:
+  sg-primary: https://example.com/sg-primary
+  sg-unused: https://example.com/sg-unused
+tokens:
+  t1:
+    network: polygon
+    address: 0x1111111111111111111111111111111111111111
+orders:
+  polygon-order:
+    network: polygon
+    orderbook: primary
+    inputs:
+      - token: t1
+        vault-id: 1
+    outputs:
+      - token: t1
+        vault-id: 2
+deployments:
+  polygon-deployment:
+    scenario: polygon
+    order: polygon-order
+scenarios:
+  polygon:
+    deployer: polygon
+gui:
+  deployments:
+    polygon-deployment:
+      name: Used deployment
+      fields: []
+    unused-deployment:
+      name: Unused deployment
+      fields: []
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;"#,
+            spec_version = SpecVersion::current()
+        );
+
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
+        let generated = dotrain_order
+            .generate_dotrain_for_deployment("polygon-deployment")
+            .unwrap();
+
+        let (frontmatter, _) = split_frontmatter_and_body(&generated);
+        let root = get_root_hash(&frontmatter);
+
+        let StrictYaml::Hash(orderbooks) = root
+            .get(&StrictYaml::String("orderbooks".to_string()))
+            .expect("orderbooks present")
+            .clone()
+        else {
+            panic!("orderbooks not a hash");
+        };
+        assert!(orderbooks.contains_key(&StrictYaml::String("primary".to_string())));
+        assert!(!orderbooks.contains_key(&StrictYaml::String("unused".to_string())));
+
+        let StrictYaml::Hash(subgraphs) = root
+            .get(&StrictYaml::String("subgraphs".to_string()))
+            .expect("subgraphs present")
+            .clone()
+        else {
+            panic!("subgraphs not a hash");
+        };
+        assert!(subgraphs.contains_key(&StrictYaml::String("sg-primary".to_string())));
+        assert!(!subgraphs.contains_key(&StrictYaml::String("sg-unused".to_string())));
+
+        let StrictYaml::Hash(gui) = root
+            .get(&StrictYaml::String("gui".to_string()))
+            .expect("gui present")
+            .clone()
+        else {
+            panic!("gui not a hash");
+        };
+        let StrictYaml::Hash(deployments) = gui
+            .get(&StrictYaml::String("deployments".to_string()))
+            .expect("gui deployments present")
+            .clone()
+        else {
+            panic!("gui deployments not a hash");
+        };
+        assert!(deployments.contains_key(&StrictYaml::String("polygon-deployment".to_string())));
+        assert!(!deployments.contains_key(&StrictYaml::String("unused-deployment".to_string())));
+    }
+
+    #[tokio::test]
+    async fn test_generate_dotrain_for_deployment_missing_key() {
+        let dotrain = format!(
+            r#"
+version: {spec_version}
+networks:
+  polygon:
+    rpcs:
+      - http://example.com
+    chain-id: 137
+deployers:
+  polygon:
+    address: 0x1234567890123456789012345678901234567890
+scenarios:
+  polygon:
+    deployer: polygon
+orders:
+  polygon:
+    network: polygon
+    inputs:
+      - token: t1
+    outputs:
+      - token: t1
+tokens:
+  t1:
+    network: polygon
+    address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+deployments:
+  polygon:
+    scenario: polygon
+    order: polygon
+---
+#calculate-io
+:;"#,
+            spec_version = SpecVersion::current()
+        );
+
+        let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
+            .await
+            .unwrap();
+
+        let err = dotrain_order
+            .generate_dotrain_for_deployment("does-not-exist")
+            .unwrap_err();
+
+        assert!(matches!(
+            err,
+            DotrainOrderError::YamlError(YamlError::KeyNotFound(ref key)) if key == "does-not-exist"
+        ));
     }
 
     #[tokio::test]
@@ -780,9 +1348,11 @@ _ _: 1 2;
             .unwrap();
 
         assert_eq!(
-            rainlang,
-            r#"/* 0. handle-add-order */ 
+            normalize_rainlang(&rainlang),
+            normalize_rainlang(
+                r#"/* 0. handle-add-order */
 _ _: 1 2;"#
+            )
         );
     }
 
@@ -811,6 +1381,7 @@ _ _: 00;
 
         let settings = format!(
             r#"
+version: {spec_version}
 networks:
     mainnet:
         rpcs:
@@ -819,6 +1390,7 @@ networks:
         network-id: 1
         currency: ETH"#,
             rpc_url = server.url("/rpc-mainnet"),
+            spec_version = SpecVersion::current(),
         );
 
         let dotrain_order =
@@ -1401,13 +1973,12 @@ _ _: 0 0;
             .await
             .unwrap_err();
 
-        assert!(matches!(
-            err,
-            DotrainOrderError::SpecVersionMismatch(
-                ref expected,
-                ref got
-            ) if expected == &SpecVersion::current() && got == "2"
-        ));
+        assert!(
+            matches!(err, DotrainOrderError::YamlError(YamlError::Field {
+            kind: FieldErrorKind::InvalidValue { field, .. },
+            location,
+        }) if field == "version" && location == "root")
+        );
     }
 
     #[tokio::test]
@@ -1474,12 +2045,14 @@ _ _: 0 0;
             .unwrap();
 
         assert_eq!(
-            rainlang,
-            r#"/* 0. calculate-io */ 
+            normalize_rainlang(&rainlang),
+            normalize_rainlang(
+                r#"/* 0. calculate-io */
 _ _: 0 0;
 
-/* 1. handle-io */ 
+/* 1. handle-io */
 :;"#
+            )
         );
     }
 }
