@@ -170,6 +170,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
+            orderbooks: vec![],
         }
     }
 
@@ -499,6 +500,8 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
+            orderbooks: vec![],
+            only_active_orders: false,
         }
     }
 

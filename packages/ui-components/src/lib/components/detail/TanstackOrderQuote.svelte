@@ -135,13 +135,31 @@
 					{#if item.success && item.data}
 						<TableBodyRow data-testid="bodyRow">
 							<TableBodyCell>{item.pair.pairName}</TableBodyCell>
-							<TableBodyCell>{item.data.formattedMaxOutput}</TableBodyCell>
-							<TableBodyCell
-								>{item.data.formattedRatio}
-								<span class="text-gray-400">({item.data.formattedInverseRatio})</span
-								></TableBodyCell
-							>
-							<TableBodyCell>{item.data.formattedMaxInput}</TableBodyCell>
+							<TableBodyCell>
+								<span id={`max-output-${index}`} class="block max-w-[150px] truncate"
+									>{item.data.formattedMaxOutput}</span
+								>
+								<Tooltip triggeredBy={`#max-output-${index}`}>
+									{item.data.formattedMaxOutput}
+								</Tooltip>
+							</TableBodyCell>
+							<TableBodyCell>
+								<span id={`ratio-${index}`} class="block max-w-[200px] truncate"
+									>{item.data.formattedRatio}
+									<span class="text-gray-400">({item.data.formattedInverseRatio})</span></span
+								>
+								<Tooltip triggeredBy={`#ratio-${index}`}>
+									{item.data.formattedRatio} ({item.data.formattedInverseRatio})
+								</Tooltip>
+							</TableBodyCell>
+							<TableBodyCell>
+								<span id={`max-input-${index}`} class="block max-w-[150px] truncate"
+									>{item.data.formattedMaxInput}</span
+								>
+								<Tooltip triggeredBy={`#max-input-${index}`}>
+									{item.data.formattedMaxInput}
+								</Tooltip>
+							</TableBodyCell>
 							<TableBodyCell>
 								{#if handleQuoteDebugModal}
 									<button

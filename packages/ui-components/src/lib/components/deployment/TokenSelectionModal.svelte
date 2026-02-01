@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { Input, Button, Modal } from 'flowbite-svelte';
 	import { SearchOutline, CheckCircleSolid, ChevronDownSolid } from 'flowbite-svelte-icons';
-	import type { TokenInfo } from '@rainlanguage/orderbook';
+	import type { ExtendedTokenInfo } from '@rainlanguage/orderbook';
 	import { useGui } from '$lib/hooks/useGui';
 	import { onMount, tick } from 'svelte';
 
-	export let selectedToken: TokenInfo | null = null;
-	export let onSelect: (token: TokenInfo) => void;
+	export let selectedToken: ExtendedTokenInfo | null = null;
+	export let onSelect: (token: ExtendedTokenInfo) => void;
 
 	let modalOpen = false;
 	let searchQuery = '';
-	let tokens: TokenInfo[] = [];
+	let tokens: ExtendedTokenInfo[] = [];
 	let isSearching = false;
+	let failedImages: Set<string> = new Set();
 
 	const gui = useGui();
 
@@ -40,9 +41,13 @@
 		return `${address.slice(0, 6)}...${address.slice(-4)}`;
 	}
 
-	function handleTokenSelect(token: TokenInfo) {
+	function handleTokenSelect(token: ExtendedTokenInfo) {
 		onSelect(token);
 		modalOpen = false;
+	}
+
+	function handleImageError(address: string) {
+		failedImages = new Set([...failedImages, address]);
 	}
 
 	$: displayText = selectedToken
@@ -108,6 +113,22 @@
 							role="button"
 							tabindex="0"
 						>
+							{#if token.logoUri && !failedImages.has(token.address)}
+								<img
+									src={token.logoUri}
+									alt="{token.symbol} logo"
+									class="mr-3 h-8 w-8 rounded-full object-cover"
+									on:error={() => handleImageError(token.address)}
+								/>
+							{:else}
+								<div
+									class="mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-600"
+								>
+									<span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+										{token.symbol?.slice(0, 2) || '??'}
+									</span>
+								</div>
+							{/if}
 							<div class="token-info flex-grow">
 								<div class="token-name font-medium text-gray-900 dark:text-white">
 									{token.name}

@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/vault_test.rs
+assertion_line: 13
 expression: request_body.query
 ---
 query SgVaultDetailQuery($id: ID!) {
@@ -84,6 +85,11 @@ query SgVaultDetailQuery($id: ID!) {
         }
         orderbook {
           id
+        }
+        trade {
+          tradeEvent {
+            __typename
+          }
         }
       }
       ... on Deposit {

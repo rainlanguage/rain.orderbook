@@ -1,6 +1,6 @@
 # rain_orderbook_common — Architecture & Reference
 
-This crate provides the shared core for the Rain Orderbook toolchain across native (CLI, services) and WebAssembly (browser/tauri) targets. It bundles higher‑level orchestration around:
+This crate provides the shared core for the Rain Orderbook toolchain across native (CLI, services) and WebAssembly (browser) targets. It bundles higher‑level orchestration around:
 
 - Parsing and composing Rain language (Rainlang) and DOTRAIN YAML frontmatter.
 - Building and executing Orderbook contract calls (add/remove orders, deposit, withdraw), including Ledger support on native.

@@ -44,7 +44,8 @@ impl Execute for AddOrderCalldata {
             .get_deployment(&self.deployment)?;
 
         let add_order_args =
-            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone()).await?;
+            AddOrderArgs::new_from_deployment(dotrain_string, config_deployment.clone(), None)
+                .await?;
 
         let rpcs = config_deployment
             .scenario
@@ -380,8 +381,8 @@ test: test
         assert_eq!(
             err.to_string(),
             YamlError::Field {
-                kind: FieldErrorKind::Missing("some-deployment".to_string()),
-                location: "deployments".to_string()
+                kind: FieldErrorKind::Missing("deployments".to_string()),
+                location: "root".to_string()
             }
             .to_string()
         );

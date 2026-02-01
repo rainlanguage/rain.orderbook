@@ -8,7 +8,7 @@
 	import CardProperty from '../CardProperty.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ButtonVaultLink from '../ButtonVaultLink.svelte';
-	// import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
+	import OrderVaultsVolTable from '../tables/OrderVaultsVolTable.svelte';
 	import { QKEY_ORDER } from '../../queries/keys';
 	import CodeMirrorRainlang from '../CodeMirrorRainlang.svelte';
 	import { createQuery, useQueryClient } from '@tanstack/svelte-query';
@@ -21,8 +21,10 @@
 	import {
 		ArrowDownToBracketOutline,
 		ArrowUpFromBracketOutline,
-		InfoCircleOutline
+		InfoCircleOutline,
+		WalletOutline
 	} from 'flowbite-svelte-icons';
+	import { getExplorerLink } from '$lib/services/getExplorerLink';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import {
 		RaindexClient,
@@ -37,7 +39,6 @@
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
-	export let colorTheme;
 	export let codeMirrorTheme;
 	export let lightweightChartsTheme;
 	export let orderbookAddress: Address;
@@ -76,7 +77,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: orderDetailQuery = createQuery<RaindexOrder>({
-		queryKey: [orderHash, QKEY_ORDER + orderHash],
+		queryKey: [QKEY_ORDER, orderHash],
 		queryFn: async () => {
 			const result = await raindexClient.getOrderByHash(chainId, orderbookAddress, orderHash);
 			if (result.error) throw new Error(result.error.readableMsg);
@@ -109,6 +110,14 @@
 			getter: 'inputsOutputsList'
 		}
 	] as const;
+
+	const formatGuiState = (guiState: string) => {
+		try {
+			return JSON.stringify(JSON.parse(guiState), null, 2);
+		} catch {
+			return 'Invalid GUI state';
+		}
+	};
 </script>
 
 <TanstackPageContentDetail query={orderDetailQuery} emptyMessage="Order not found">
@@ -155,7 +164,20 @@
 			<CardProperty>
 				<svelte:fragment slot="key">Owner</svelte:fragment>
 				<svelte:fragment slot="value">
-					<Hash type={HashType.Wallet} shorten={false} value={data.owner} />
+					{@const explorerLink = getExplorerLink(data.owner, chainId, 'address')}
+					{#if explorerLink}
+						<a
+							href={explorerLink}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="flex items-center justify-start space-x-2 text-left text-blue-500 hover:underline"
+						>
+							<WalletOutline size="sm" />
+							<span>{data.owner}</span>
+						</a>
+					{:else}
+						<Hash type={HashType.Wallet} shorten={false} value={data.owner} />
+					{/if}
 				</svelte:fragment>
 			</CardProperty>
 
@@ -246,7 +268,7 @@
 		</div>
 	</svelte:fragment>
 	<svelte:fragment slot="chart" let:data>
-		<OrderTradesChart order={data} {lightweightChartsTheme} {colorTheme} />
+		<OrderTradesChart order={data} {lightweightChartsTheme} />
 	</svelte:fragment>
 	<svelte:fragment slot="below" let:data>
 		<TanstackOrderQuote order={data} {handleQuoteDebugModal} />
@@ -255,22 +277,44 @@
 			contentClass="mt-4"
 			defaultClass="flex flex-wrap space-x-2 rtl:space-x-reverse mt-4 list-none"
 		>
-			<TabItem title="Rainlang source">
+			{#if data.dotrainSource}
+				<TabItem title="Dotrain">
+					<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
+						<CodeMirrorRainlang
+							rainlangText={data.dotrainSource}
+							codeMirrorTheme={$codeMirrorTheme}
+							{codeMirrorDisabled}
+							{codeMirrorStyles}
+						></CodeMirrorRainlang>
+					</div>
+				</TabItem>
+			{/if}
+			<TabItem title="On-chain Rainlang">
 				<div class="mb-8 overflow-hidden rounded-lg border dark:border-none">
 					<CodeMirrorRainlang
-						order={data}
+						rainlangText={data.rainlang}
 						codeMirrorTheme={$codeMirrorTheme}
 						{codeMirrorDisabled}
 						{codeMirrorStyles}
 					></CodeMirrorRainlang>
 				</div>
 			</TabItem>
+			{#if data.dotrainGuiState}
+				<TabItem title="Gui State">
+					<div class="mb-4">
+						<div class="overflow-auto rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+							<pre class="text-sm" data-testid="gui-state-json">
+								{formatGuiState(data.dotrainGuiState)}
+							</pre>
+						</div>
+					</div>
+				</TabItem>
+			{/if}
 			<TabItem open title="Trades">
 				<OrderTradesListTable order={data} {handleDebugTradeModal} {rpcs} />
 			</TabItem>
 			<TabItem title="Volume">
-				<div>TODO: Issue #1989</div>
-				<!-- <OrderVaultsVolTable order={data} /> -->
+				<OrderVaultsVolTable order={data} />
 			</TabItem>
 			<TabItem title="APY">
 				<div>TODO: Issue #1989</div>
