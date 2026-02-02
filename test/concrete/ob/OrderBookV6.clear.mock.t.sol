@@ -834,7 +834,11 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
         checkClearStruct.bobAmount = LibDecimalFloat.packLossless(1, 0);
         checkClearStruct.expression = expression;
 
+        // Ratio is bound above so save to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float aliceIORatio = LibDecimalFloat.packLossless(int256(aliceIORatio18), -18);
+        // Ratio is bound above so save to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float bobIORatio = LibDecimalFloat.packLossless(int256(bobIORatio18), -18);
 
         Float aliceOutput = LibDecimalFloat.packLossless(1, 0);

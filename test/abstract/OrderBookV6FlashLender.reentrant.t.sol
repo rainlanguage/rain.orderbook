@@ -76,6 +76,8 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
     function testReenterDeposit(uint256 vaultId, uint256 loanAmount, uint256 depositAmount18) external {
         vm.assume(vaultId != 0);
         depositAmount18 = bound(depositAmount18, 1, uint256(int256(type(int224).max)));
+        // depositAmount18 is bound above so safe to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float depositAmount = LibDecimalFloat.packLossless(int256(depositAmount18), -18);
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();
@@ -98,6 +100,8 @@ contract OrderBookV6FlashLenderReentrant is OrderBookV6ExternalRealTest {
     function testReenterWithdraw(uint256 vaultId, uint256 loanAmount, uint256 withdrawAmount18) external {
         vm.assume(vaultId != 0);
         withdrawAmount18 = bound(withdrawAmount18, 1, uint256(int256(type(int224).max)));
+        // withdrawAmount18 is bound above so safe to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float withdrawAmount = LibDecimalFloat.packLossless(int256(withdrawAmount18), 0);
         // Create a flash borrower.
         Reenteroor borrower = new Reenteroor();

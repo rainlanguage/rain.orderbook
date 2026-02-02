@@ -62,6 +62,9 @@ library LibOrderBookArb {
             // See https://github.com/crytic/slither/issues/1658
             uint256 gasBalance = address(this).balance;
             Address.sendValue(payable(msg.sender), gasBalance);
+            // gasBalance can't overflow int256 because there isn't enough gas
+            // in existence for that to happen on every production chain.
+            // forge-lint: disable-next-line(unsafe-typecast)
             col[2] = Float.unwrap(LibDecimalFloat.packLossless(int256(gasBalance), -18));
         }
 
