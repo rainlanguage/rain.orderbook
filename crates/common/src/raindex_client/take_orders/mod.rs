@@ -36,6 +36,7 @@ impl RaindexClient {
                 inputs: Some(vec![sell_token]),
                 outputs: Some(vec![buy_token]),
             }),
+            orderbook_addresses: None,
         };
 
         let orders = self

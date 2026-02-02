@@ -43,8 +43,8 @@
 	}
 </script>
 
-<Label>{label}</Label>
-<div>
+<div class="flex flex-col items-center gap-2">
+	<Label>{label}</Label>
 	<Button
 		color="alternative"
 		class="flex w-full justify-between overflow-hidden pl-2 pr-0 text-left"

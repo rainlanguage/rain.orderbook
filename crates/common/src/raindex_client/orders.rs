@@ -1,31 +1,36 @@
 use super::local_db::orders::LocalDbOrders;
+use super::local_db::query::fetch_order_vaults_volume::fetch_order_vaults_volume;
+use super::trades::RaindexTrade;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
-use crate::local_db::OrderbookIdentifier;
+use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
+use crate::parsed_meta::ParsedMeta;
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
         transactions::RaindexTransaction,
-        vaults::{RaindexVault, RaindexVaultType},
+        vaults::{RaindexVault, RaindexVaultType, RaindexVaultVolume},
     },
 };
 use alloy::primitives::{b256, keccak256, Address, Bytes, B256, U256};
 use async_trait::async_trait;
 use csv::{ReaderBuilder, Terminator};
+use futures::{stream, StreamExt, TryStreamExt};
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
+use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
+use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
+use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
 use rain_orderbook_subgraph_client::{
-    // performance::{vol::VaultVolume, OrderPerformance},
     types::{
         common::{
             SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs,
             SgOrdersTokensFilterArgs, SgVault,
         },
-        // Id,
+        Id,
     },
-    MultiOrderbookSubgraphClient,
-    OrderbookSubgraphClient,
-    OrderbookSubgraphClientError,
+    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
 use serde::{Deserialize, Serialize};
@@ -35,6 +40,8 @@ use tsify::Tsify;
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
 const DEFAULT_PAGE_SIZE: u16 = 100;
+// Limit concurrent dotrain source fetches to avoid overwhelming the subgraph/metaboard.
+const MAX_CONCURRENT_DOTRAIN_SOURCE_FETCHES: usize = 5;
 
 pub(crate) struct SubgraphOrders<'a> {
     client: &'a RaindexClient,
@@ -59,6 +66,37 @@ pub(crate) trait OrdersDataSource {
         ob_id: &OrderbookIdentifier,
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError>;
+
+    async fn get_added_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError>;
+
+    async fn get_removed_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError>;
+
+    async fn trades_list(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexTrade>, RaindexError>;
+
+    async fn trades_count(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<u64, RaindexError>;
 }
 
 /// A single order representation within a given orderbook.
@@ -86,6 +124,7 @@ pub struct RaindexOrder {
     active: bool,
     timestamp_added: U256,
     meta: Option<Bytes>,
+    parsed_meta: Vec<ParsedMeta>,
     rainlang: Option<String>,
     transaction: Option<RaindexTransaction>,
     trades_count: u16,
@@ -145,9 +184,19 @@ impl RaindexOrder {
             orderbook: order.orderbook_address,
             active: order.active,
             timestamp_added: U256::from(order.block_timestamp),
-            meta: order.meta,
+            meta: order.meta.clone(),
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .and_then(|meta| ParsedMeta::parse_from_bytes(meta).ok())
+                .unwrap_or_default(),
             rainlang,
-            transaction: None,
+            transaction: Some(RaindexTransaction::from_local_parts(
+                order.transaction_hash,
+                order.owner,
+                order.block_number,
+                order.block_timestamp,
+            )?),
             trades_count: order.trade_count as u16,
         })
     }
@@ -193,9 +242,27 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<String> {
         self.meta.clone().map(|meta| meta.to_string())
     }
+    #[wasm_bindgen(getter = parsedMeta)]
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
     #[wasm_bindgen(getter)]
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
+    }
+    #[wasm_bindgen(getter = dotrainSource)]
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    #[wasm_bindgen(getter = dotrainGuiState)]
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
     }
     #[wasm_bindgen(getter)]
     pub fn transaction(&self) -> Option<RaindexTransaction> {
@@ -255,8 +322,23 @@ impl RaindexOrder {
     pub fn meta(&self) -> Option<Bytes> {
         self.meta.clone()
     }
+    pub fn parsed_meta(&self) -> Vec<ParsedMeta> {
+        self.parsed_meta.clone()
+    }
     pub fn rainlang(&self) -> Option<String> {
         self.rainlang.clone()
+    }
+    pub fn dotrain_source(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainSourceV1(source) => Some(source.0),
+            _ => None,
+        })
+    }
+    pub fn dotrain_gui_state(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::DotrainGuiStateV1(state) => serde_json::to_string(&state).ok(),
+            _ => None,
+        })
     }
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
@@ -326,57 +408,78 @@ impl RaindexOrder {
     pub fn get_rpc_urls(&self) -> Result<Vec<Url>, RaindexError> {
         self.raindex_client.get_rpc_urls_for_chain(self.chain_id)
     }
+    #[wasm_export(skip)]
+    pub fn get_metaboard_client(&self) -> Result<Option<MetaboardSubgraphClient>, RaindexError> {
+        let raindex_client = self.get_raindex_client();
+        let network = raindex_client
+            .orderbook_yaml
+            .get_network_by_chain_id(self.chain_id)?;
+        let metaboard = match raindex_client.orderbook_yaml.get_metaboard(&network.key) {
+            Ok(metaboard) => metaboard,
+            Err(YamlError::KeyNotFound(_) | YamlError::NotFound(_)) => return Ok(None),
+            Err(err) => return Err(err.into()),
+        };
+        Ok(Some(MetaboardSubgraphClient::new(metaboard.url.clone())))
+    }
 
-    // /// Retrieves volume data for all vaults associated with this order over a specified time period
-    // ///
-    // /// Queries historical volume information across all vaults that belong to this order,
-    // /// allowing analysis of trading activity and liquidity patterns over time.
-    // ///
-    // /// ## Examples
-    // ///
-    // /// ```javascript
-    // /// const result = await order.getVaultsVolume(
-    // ///   Math.floor(Date.now() / 1000) - 86400, // 24 hours ago
-    // ///   Math.floor(Date.now() / 1000)
-    // /// );
-    // /// if (result.error) {
-    // ///   console.error("Error fetching volume:", result.error.readableMsg);
-    // ///   return;
-    // /// }
-    // /// const volumes = result.value;
-    // /// // Do something with volumes
-    // /// ```
-    // #[wasm_export(
-    //     js_name = "getVaultsVolume",
-    //     return_description = "Volume data for each vault over the specified period",
-    //     unchecked_return_type = "RaindexVaultVolume[]",
-    //     preserve_js_class
-    // )]
-    // pub async fn get_vaults_volume(
-    //     &self,
-    //     #[wasm_export(
-    //         js_name = "startTimestamp",
-    //         param_description = "Unix timestamp for the start of the query period (optional)"
-    //     )]
-    //     start_timestamp: Option<u64>,
-    //     #[wasm_export(
-    //         js_name = "endTimestamp",
-    //         param_description = "Unix timestamp for the end of the query period (optional)"
-    //     )]
-    //     end_timestamp: Option<u64>,
-    // ) -> Result<Vec<RaindexVaultVolume>, RaindexError> {
-    //     let client = self.get_orderbook_client()?;
+    #[wasm_export(
+        js_name = "getVaultsVolume",
+        return_description = "Volume data for each vault over the specified period",
+        unchecked_return_type = "RaindexVaultVolume[]",
+        preserve_js_class
+    )]
+    pub async fn get_vaults_volume(
+        &self,
+        #[wasm_export(
+            js_name = "startTimestamp",
+            param_description = "Unix timestamp for the start of the query period (optional)"
+        )]
+        start_timestamp: Option<u64>,
+        #[wasm_export(
+            js_name = "endTimestamp",
+            param_description = "Unix timestamp for the end of the query period (optional)"
+        )]
+        end_timestamp: Option<u64>,
+    ) -> Result<Vec<RaindexVaultVolume>, RaindexError> {
+        let chain_id = self.chain_id();
+        #[cfg(target_family = "wasm")]
+        let orderbook = Address::from_str(&self.orderbook())?;
+        #[cfg(not(target_family = "wasm"))]
+        let orderbook = self.orderbook();
 
-    //     let mut result_volumes = Vec::new();
-    //     let volumes = client
-    //         .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
-    //         .await?;
-    //     for volume in volumes {
-    //         let volume = RaindexVaultVolume::try_from_vault_volume(self.chain_id, volume)?;
-    //         result_volumes.push(volume);
-    //     }
-    //     Ok(result_volumes)
-    // }
+        if is_chain_supported_local_db(chain_id) {
+            let raindex_client = self.get_raindex_client();
+            if let Some(local_db) = raindex_client.local_db() {
+                #[cfg(target_family = "wasm")]
+                let order_hash = B256::from_str(&self.order_hash())?;
+                #[cfg(not(target_family = "wasm"))]
+                let order_hash = B256::from_str(&self.order_hash().to_string())?;
+
+                let volumes = fetch_order_vaults_volume(
+                    &local_db,
+                    &OrderbookIdentifier::new(chain_id, orderbook),
+                    order_hash,
+                    start_timestamp,
+                    end_timestamp,
+                )
+                .await?;
+
+                return volumes
+                    .into_iter()
+                    .map(|v| RaindexVaultVolume::try_from_local_db_vault_volume(chain_id, v))
+                    .collect();
+            }
+        }
+
+        let client = self.get_orderbook_client()?;
+        let volumes = client
+            .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
+            .await?;
+        volumes
+            .into_iter()
+            .map(|v| RaindexVaultVolume::try_from_vault_volume(self.chain_id, v))
+            .collect()
+    }
 
     // /// Gets comprehensive performance metrics and analytics for this order over a specified time period
     // ///
@@ -590,11 +693,17 @@ impl RaindexClient {
 
         if let Some(local_db) = self.local_db() {
             let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-            return local_source.list(ids, &filters, None).await;
+            let orders = local_source.list(ids, &filters, None).await?;
+            let orders = fetch_orders_dotrain_sources(orders).await?;
+            return Ok(orders);
         }
 
         let subgraph_source = SubgraphOrders::new(self);
-        subgraph_source.list(ids, &filters, Some(page_number)).await
+        let orders = subgraph_source
+            .list(ids, &filters, Some(page_number))
+            .await?;
+        let orders = fetch_orders_dotrain_sources(orders).await?;
+        Ok(orders)
     }
 
     /// Retrieves a specific order by its hash from a particular blockchain network
@@ -718,6 +827,108 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         let order = RaindexOrder::try_from_sg_order(raindex_client, ob_id.chain_id, order, None)?;
         Ok(Some(order))
     }
+
+    async fn get_added_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(orderbook)?;
+        let sg_orders = client
+            .transaction_add_orders(Id::new(tx_hash.to_string()))
+            .await?;
+        sg_orders
+            .into_iter()
+            .map(|value| {
+                let transaction = value.transaction.try_into()?;
+                RaindexOrder::try_from_sg_order(
+                    raindex_client.clone(),
+                    chain_id,
+                    value.order,
+                    Some(transaction),
+                )
+            })
+            .collect()
+    }
+
+    async fn get_removed_by_tx_hash(
+        &self,
+        chain_id: u32,
+        orderbook: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let raindex_client = Rc::new(self.client.clone());
+        let client = self.client.get_orderbook_client(orderbook)?;
+        let sg_orders = client
+            .transaction_remove_orders(Id::new(tx_hash.to_string()))
+            .await?;
+        sg_orders
+            .into_iter()
+            .map(|value| {
+                let transaction = value.transaction.try_into()?;
+                RaindexOrder::try_from_sg_order(
+                    raindex_client.clone(),
+                    chain_id,
+                    value.order,
+                    Some(transaction),
+                )
+            })
+            .collect()
+    }
+
+    async fn trades_list(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+        page: Option<u16>,
+    ) -> Result<Vec<RaindexTrade>, RaindexError> {
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
+
+        let trades = client
+            .order_trades_list(
+                Id::new(order.id.0.clone()),
+                SgPaginationArgs {
+                    page: page.unwrap_or(1),
+                    page_size: DEFAULT_PAGE_SIZE,
+                },
+                start_timestamp,
+                end_timestamp,
+            )
+            .await?;
+
+        trades
+            .into_iter()
+            .map(|trade| RaindexTrade::try_from_sg_trade(ob_id.chain_id, trade))
+            .collect()
+    }
+
+    async fn trades_count(
+        &self,
+        ob_id: &OrderbookIdentifier,
+        order_hash: &B256,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
+    ) -> Result<u64, RaindexError> {
+        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+
+        let order = client
+            .order_detail_by_hash(SgBytes(order_hash.to_string()))
+            .await?;
+
+        let trades = client
+            .order_trades_list_all(Id::new(order.id.0.clone()), start_timestamp, end_timestamp)
+            .await?;
+
+        Ok(trades.len() as u64)
+    }
 }
 
 impl RaindexClient {
@@ -736,12 +947,13 @@ impl RaindexClient {
 
         if let Some(local_db) = self.local_db() {
             let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-            if let Some(order) = local_source.get_by_hash(ob_id, &order_hash).await? {
+            if let Some(mut order) = local_source.get_by_hash(ob_id, &order_hash).await? {
+                order.fetch_dotrain_source().await?;
                 return Ok(order);
             }
         }
 
-        SubgraphOrders::new(self)
+        let mut order = SubgraphOrders::new(self)
             .get_by_hash(ob_id, &order_hash)
             .await?
             .ok_or_else(|| {
@@ -750,7 +962,9 @@ impl RaindexClient {
                     ob_id.chain_id,
                     order_hash,
                 )
-            })
+            })?;
+        order.fetch_dotrain_source().await?;
+        Ok(order)
     }
 }
 
@@ -765,6 +979,8 @@ pub struct GetOrdersFilters {
     pub order_hash: Option<B256>,
     #[tsify(optional)]
     pub tokens: Option<GetOrdersTokenFilter>,
+    #[tsify(optional, type = "Address[]")]
+    pub orderbook_addresses: Option<Vec<Address>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -809,11 +1025,74 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .order_hash
                 .map(|order_hash| SgBytes(order_hash.to_string())),
             tokens: tokens.flatten(),
+            orderbooks: filters
+                .orderbook_addresses
+                .map(|addrs| {
+                    addrs
+                        .into_iter()
+                        .map(|addr| addr.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
         })
     }
 }
 
 impl RaindexOrder {
+    pub async fn fetch_dotrain_source(&mut self) -> Result<(), RaindexError> {
+        if self
+            .parsed_meta
+            .iter()
+            .any(|meta| matches!(meta, ParsedMeta::DotrainSourceV1(_)))
+        {
+            return Ok(());
+        }
+
+        let dotrain_gui_state = match self.parsed_meta.iter().find_map(|meta| {
+            if let ParsedMeta::DotrainGuiStateV1(state) = meta {
+                Some(state.clone())
+            } else {
+                None
+            }
+        }) {
+            Some(state) => state,
+            None => return Ok(()),
+        };
+
+        let client = match self.get_metaboard_client()? {
+            Some(client) => client,
+            None => return Ok(()),
+        };
+
+        let subject_hash = dotrain_gui_state.dotrain_hash();
+
+        let metabytes = match client
+            .get_metabytes_by_subject(&MetaBigInt(alloy::hex::encode_prefixed(subject_hash)))
+            .await
+        {
+            Ok(bytes) => bytes,
+            Err(_) => return Ok(()),
+        };
+
+        for meta_bytes in metabytes {
+            let documents = match RainMetaDocumentV1Item::cbor_decode(&meta_bytes) {
+                Ok(documents) => documents,
+                Err(_) => continue,
+            };
+
+            for document in documents {
+                if document.magic == KnownMagic::DotrainSourceV1 {
+                    if let Ok(source) = DotrainSourceV1::try_from(document) {
+                        self.parsed_meta.push(ParsedMeta::DotrainSourceV1(source));
+                        return Ok(());
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn try_from_sg_order(
         raindex_client: Rc<RaindexClient>,
         chain_id: u32,
@@ -865,8 +1144,15 @@ impl RaindexOrder {
             timestamp_added: U256::from_str(&order.timestamp_added.0)?,
             meta: order
                 .meta
+                .clone()
                 .map(|meta| Bytes::from_str(&meta.0))
                 .transpose()?,
+            parsed_meta: order
+                .meta
+                .as_ref()
+                .and_then(|meta| alloy::hex::decode(&meta.0).ok())
+                .and_then(|bytes| ParsedMeta::parse_from_bytes(&bytes).ok())
+                .unwrap_or_default(),
             rainlang,
             transaction,
             trades_count: order.trades.len() as u16,
@@ -909,14 +1195,24 @@ impl RaindexOrder {
     }
 }
 
+/// Fetch dotrain sources for a batch of orders with bounded concurrency.
+pub(crate) async fn fetch_orders_dotrain_sources(
+    orders: Vec<RaindexOrder>,
+) -> Result<Vec<RaindexOrder>, RaindexError> {
+    stream::iter(orders.into_iter().map(|mut order| async move {
+        order.fetch_dotrain_source().await?;
+        Ok::<_, RaindexError>(order)
+    }))
+    .buffered(MAX_CONCURRENT_DOTRAIN_SOURCE_FETCHES)
+    .try_collect::<Vec<_>>()
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     #[cfg(not(target_family = "wasm"))]
-    use super::*;
-
-    #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
-        use super::*;
+        use super::super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use crate::{
             local_db::query::{
@@ -926,20 +1222,316 @@ mod tests {
             raindex_client::local_db::LocalDb,
         };
         use alloy::primitives::{address, b256, U256};
+        use httpmock::Method::POST;
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_subgraph_client::utils::float::*;
-        use rain_orderbook_subgraph_client::{
-            // performance::{
-            //     apy::APYDetails, vol::VolumeDetails, DenominatedPerformance, VaultPerformance,
-            // },
-            types::common::{
-                SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
-                SgVault,
-            },
+        use rain_metadata::types::dotrain::{
+            gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1,
         };
+        use rain_metadata::{
+            ContentEncoding, ContentLanguage, ContentType, KnownMagic, RainMetaDocumentV1Item,
+        };
+        use rain_orderbook_subgraph_client::types::common::{
+            SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
+            SgVault,
+        };
+        use rain_orderbook_subgraph_client::utils::float::*;
+        use serde_bytes::ByteBuf;
         use serde_json::{json, Value};
+        use std::collections::BTreeMap;
+
+        fn sample_dotrain_source() -> DotrainSourceV1 {
+            DotrainSourceV1("sample dotrain source".to_string())
+        }
+
+        fn sample_dotrain_gui_state(source: &DotrainSourceV1) -> DotrainGuiStateV1 {
+            DotrainGuiStateV1 {
+                dotrain_hash: source.hash(),
+                field_values: BTreeMap::new(),
+                deposits: BTreeMap::new(),
+                select_tokens: BTreeMap::new(),
+                vault_ids: BTreeMap::new(),
+                selected_deployment: "0".to_string(),
+            }
+        }
+
+        fn encode_meta_items_hex(items: Vec<RainMetaDocumentV1Item>) -> String {
+            let encoded =
+                RainMetaDocumentV1Item::cbor_encode_seq(&items, KnownMagic::RainMetaDocumentV1)
+                    .expect("meta encoding should succeed");
+            format!("0x{}", alloy::hex::encode(encoded))
+        }
         use std::str::FromStr;
+
+        fn build_client_with_metaboard(metaboard_url: &str, subgraph_url: &str) -> RaindexClient {
+            let yaml = get_test_yaml(
+                subgraph_url,
+                subgraph_url,
+                "http://localhost:8545",
+                "http://localhost:9545",
+            );
+            let yaml = yaml
+                .replace("https://api.thegraph.com/subgraphs/name/xyz", metaboard_url)
+                .replace(
+                    "https://api.thegraph.com/subgraphs/name/polygon",
+                    metaboard_url,
+                );
+            RaindexClient::new(vec![yaml], None).unwrap()
+        }
+
+        #[test]
+        fn try_from_sg_order_populates_parsed_meta() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let meta_hex = encode_meta_items_hex(vec![
+                RainMetaDocumentV1Item::from(source.clone()),
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(meta_hex));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let order =
+                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 2);
+            assert_eq!(order.dotrain_source(), Some(source.0));
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
+
+        #[test]
+        fn from_local_db_order_populates_parsed_meta() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let meta_hex = encode_meta_items_hex(vec![
+                RainMetaDocumentV1Item::from(source.clone()),
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+            let meta_bytes =
+                alloy::hex::decode(meta_hex.strip_prefix("0x").unwrap_or(&meta_hex)).unwrap();
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let local_order = LocalDbOrder {
+                chain_id: 1,
+                order_hash: b256!(
+                    "0000000000000000000000000000000000000000000000000000000000000abc"
+                ),
+                owner: address!("0x0000000000000000000000000000000000000001"),
+                block_timestamp: 1,
+                block_number: 1,
+                orderbook_address: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                order_bytes: Bytes::from_str("0x01").unwrap(),
+                transaction_hash: b256!(
+                    "0000000000000000000000000000000000000000000000000000000000000002"
+                ),
+                inputs: None,
+                outputs: None,
+                trade_count: 0,
+                active: true,
+                meta: Some(Bytes::from(meta_bytes)),
+            };
+
+            let order =
+                RaindexOrder::from_local_db_order(Rc::new(client), local_order, vec![], vec![])
+                    .unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 2);
+            assert_eq!(order.dotrain_source(), Some(source.0));
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_skips_when_source_already_present() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let meta_hex = encode_meta_items_hex(vec![
+                RainMetaDocumentV1Item::from(source.clone()),
+                RainMetaDocumentV1Item::try_from(gui_state).unwrap(),
+            ]);
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(meta_hex));
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+            order.fetch_dotrain_source().await.unwrap();
+            assert_eq!(order.parsed_meta().len(), 2);
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_returns_ok_without_gui_state() {
+            let mut sg_order = get_order1();
+            sg_order.meta = None;
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    "http://localhost:3000/sg1",
+                    "http://localhost:3000/sg2",
+                    "http://localhost:3000/rpc1",
+                    "http://localhost:3000/rpc2",
+                )],
+                None,
+            )
+            .unwrap();
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+            order.fetch_dotrain_source().await.unwrap();
+            assert!(order.parsed_meta().is_empty());
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_adds_source_from_metaboard() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let rainlang_meta = RainMetaDocumentV1Item {
+                payload: ByteBuf::from("sample rainlang source".as_bytes()),
+                magic: KnownMagic::RainlangSourceV1,
+                content_type: ContentType::OctetStream,
+                content_encoding: ContentEncoding::None,
+                content_language: ContentLanguage::None,
+            };
+            let order_meta_hex = encode_meta_items_hex(vec![
+                rainlang_meta,
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+
+            let server = MockServer::start_async().await;
+            let meta_bytes = RainMetaDocumentV1Item::cbor_encode_seq(
+                &vec![RainMetaDocumentV1Item::from(source.clone())],
+                KnownMagic::RainMetaDocumentV1,
+            )
+            .unwrap();
+            let metaboard_meta_hex = format!("0x{}", alloy::hex::encode(meta_bytes));
+
+            server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "metaV1S": [
+                            {
+                                "meta": metaboard_meta_hex,
+                                "metaHash": "0x01",
+                                "sender": "0x0000000000000000000000000000000000000000",
+                                "id": "0x01",
+                                "metaBoard": { "address": "0x0000000000000000000000000000000000000000" },
+                                "subject": gui_state.dotrain_hash().to_string()
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            let client = Rc::new(build_client_with_metaboard(
+                &server.url("/"),
+                &server.url("/sg"),
+            ));
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(order_meta_hex));
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::clone(&client), 1, sg_order, None).unwrap();
+
+            order.fetch_dotrain_source().await.unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 2);
+            assert_eq!(order.dotrain_source(), Some(source.0));
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
+
+        #[tokio::test]
+        async fn fetch_dotrain_source_handles_invalid_meta_bytes() {
+            let source = sample_dotrain_source();
+            let gui_state = sample_dotrain_gui_state(&source);
+            let rainlang_meta = RainMetaDocumentV1Item {
+                payload: ByteBuf::from("sample rainlang source".as_bytes()),
+                magic: KnownMagic::RainlangSourceV1,
+                content_type: ContentType::OctetStream,
+                content_encoding: ContentEncoding::None,
+                content_language: ContentLanguage::None,
+            };
+            let meta_hex = encode_meta_items_hex(vec![
+                rainlang_meta,
+                RainMetaDocumentV1Item::try_from(gui_state.clone()).unwrap(),
+            ]);
+
+            let server = MockServer::start_async().await;
+
+            server.mock(|when, then| {
+                when.method(POST).path("/");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "metaV1S": [
+                            {
+                                "meta": "0xzz",
+                                "metaHash": "0x01",
+                                "sender": "0x0000000000000000000000000000000000000000",
+                                "id": "0x01",
+                                "metaBoard": { "address": "0x0000000000000000000000000000000000000000" },
+                                "subject": gui_state.dotrain_hash().to_string()
+                            }
+                        ]
+                    }
+                }));
+            });
+
+            let client = Rc::new(build_client_with_metaboard(
+                &server.url("/"),
+                &server.url("/sg"),
+            ));
+
+            let mut sg_order = get_order1();
+            sg_order.meta = Some(SgBytes(meta_hex));
+
+            let mut order =
+                RaindexOrder::try_from_sg_order(Rc::clone(&client), 1, sg_order, None).unwrap();
+
+            order.fetch_dotrain_source().await.unwrap();
+
+            assert_eq!(order.parsed_meta().len(), 1);
+            let parsed_gui_state: DotrainGuiStateV1 =
+                serde_json::from_str(&order.dotrain_gui_state().unwrap()).unwrap();
+            assert_eq!(parsed_gui_state, gui_state);
+        }
 
         #[derive(Clone)]
         struct StaticJsonExec {
@@ -967,6 +1559,10 @@ mod tests {
                 Err(LocalDbQueryError::database(
                     "query_text not supported in StaticJsonExec",
                 ))
+            }
+
+            async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+                Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
             }
         }
 
@@ -1043,6 +1639,76 @@ mod tests {
                 }
                 _ => panic!("expected JsError"),
             }
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_maps_orderbook_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![
+                    address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+                    address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
+                ]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            );
+            assert_eq!(
+                sg_filter_args.orderbooks[1],
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            );
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_empty_orderbook_addresses() {
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: None,
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert!(sg_filter_args.orderbooks.is_empty());
+        }
+
+        #[test]
+        fn get_orders_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
+            use alloy::primitives::address;
+            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+
+            let filters = GetOrdersFilters {
+                owners: vec![],
+                active: None,
+                order_hash: None,
+                tokens: None,
+                orderbook_addresses: Some(vec![address!(
+                    "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
+                )]),
+            };
+
+            let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
+
+            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(
+                sg_filter_args.orderbooks[0],
+                "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+            );
         }
 
         fn get_order1_json() -> Value {
@@ -1368,6 +2034,7 @@ mod tests {
                 active: None,
                 order_hash: None,
                 tokens: None,
+                orderbook_addresses: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
@@ -1977,230 +2644,182 @@ mod tests {
             assert_eq!(order.chain_id, 137);
         }
 
-        // TODO: Issue #1989
-        // #[tokio::test]
-        // async fn test_order_vaults_volume() {
-        //     let sg_server = MockServer::start_async().await;
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1")
-        //             .body_contains("\"first\":200")
-        //             .body_contains("\"skip\":0");
-        //         then.status(200).json_body_obj(&json!({
-        //           "data": {
-        //             "trades": get_trades_json()
-        //           }
-        //         }));
-        //     });
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1")
-        //             .body_contains("\"first\":200")
-        //             .body_contains("\"skip\":200");
-        //         then.status(200).json_body_obj(&json!({
-        //             "data": { "trades": [] }
-        //         }));
-        //     });
-        //     sg_server.mock(|when, then| {
-        //         when.path("/sg1");
-        //         then.status(200).json_body_obj(&json!({
-        //             "data": {
-        //                 "orders": [get_order1_json()]
-        //             }
-        //         }));
-        //     });
+        fn get_trades_json() -> Vec<Value> {
+            let float50 = Float::parse("50".to_string()).unwrap().as_hex();
+            let float100 = Float::parse("100".to_string()).unwrap().as_hex();
+            vec![json!({
+                "id": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+                "timestamp": "1632000000",
+                "tradeEvent": {
+                    "sender": "0x0000000000000000000000000000000000000000",
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "from": "0x0000000000000000000000000000000000000000",
+                        "timestamp": "1632000000",
+                        "blockNumber": "0"
+                    }
+                },
+                "order": {
+                    "id": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4",
+                    "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
+                },
+                "orderbook": {
+                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+                },
+                "inputVaultBalanceChange": {
+                    "id": "input-change-1",
+                    "__typename": "TradeVaultBalanceChange",
+                    "amount": float50,
+                    "newVaultBalance": float50,
+                    "oldVaultBalance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "timestamp": "1632000000",
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "from": "0x0000000000000000000000000000000000000000",
+                        "timestamp": "1632000000",
+                        "blockNumber": "0"
+                    },
+                    "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                    "vault": {
+                        "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                        "vaultId": "0x1234",
+                        "token": {
+                            "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                            "address": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
+                            "name": "Wrapped Flare",
+                            "symbol": "WFLR",
+                            "decimals": "18"
+                        }
+                    },
+                    "trade": {
+                        "tradeEvent": {
+                            "__typename": "TradeEvent"
+                        }
+                    }
+                },
+                "outputVaultBalanceChange": {
+                    "id": "output-change-1",
+                    "__typename": "TradeVaultBalanceChange",
+                    "amount": float100,
+                    "newVaultBalance": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "oldVaultBalance": float100,
+                    "timestamp": "1632000000",
+                    "transaction": {
+                        "id": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "from": "0x0000000000000000000000000000000000000000",
+                        "timestamp": "1632000000",
+                        "blockNumber": "0"
+                    },
+                    "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                    "vault": {
+                        "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                        "vaultId": "0x5678",
+                        "token": {
+                            "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                            "address": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
+                            "name": "Staked FLR",
+                            "symbol": "sFLR",
+                            "decimals": "18"
+                        }
+                    },
+                    "trade": {
+                        "tradeEvent": {
+                            "__typename": "TradeEvent"
+                        }
+                    }
+                }
+            })]
+        }
 
-        //     let raindex_client = RaindexClient::new(
-        //         vec![get_test_yaml(
-        //             &sg_server.url("/sg1"),
-        //             &sg_server.url("/sg2"),
-        //             // not used
-        //             &sg_server.url("/rpc1"),
-        //             &sg_server.url("/rpc2"),
-        //         )],
-        //         None,
-        //     )
-        //     .unwrap();
-        //     let order = raindex_client
-        //         .get_order_by_hash(
-        //             1,
-        //             Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-        //             Bytes::from_str("0x0123").unwrap(),
-        //         )
+        #[tokio::test]
+        async fn test_order_vaults_volume() {
+            let sg_server = MockServer::start_async().await;
 
-        //     let volume1 = res[0].clone();
-        //     assert_eq!(volume1.id(), Bytes::from_str("0x10").unwrap());
-        //     assert_eq!(
-        //         volume1.token().address(),
-        //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
-        //     );
-        //     assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
-        //     assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
-        //     assert_eq!(volume1.token().decimals(), U256::from(18));
-        //     assert_eq!(volume1.details().total_in(), U256::from(1));
-        //     assert_eq!(volume1.details().total_out(), U256::from(0));
-        //     assert_eq!(volume1.details().total_vol(), U256::from(1));
-        //     assert_eq!(volume1.details().net_vol(), U256::from(1));
+            sg_server.mock(|when, then| {
+                when.path("/sg1").body_contains("orders");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
 
-        // TODO: Issue #1989
-        //     let volume1 = res[0].clone();
-        //     assert_eq!(volume1.id(), U256::from_str("0x10").unwrap());
-        //     assert_eq!(
-        //         volume1.token().address(),
-        //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
-        //     );
-        //     assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
-        //     assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
-        //     assert_eq!(volume1.token().decimals(), U256::from(18));
-        //     assert_eq!(volume1.details().total_in(), U256::from(1));
-        //     assert_eq!(volume1.details().total_out(), U256::from(0));
-        //     assert_eq!(volume1.details().total_vol(), U256::from(1));
-        //     assert_eq!(volume1.details().net_vol(), U256::from(1));
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("trades")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":0");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "trades": get_trades_json()
+                    }
+                }));
+            });
 
-        //     let volume2 = res[1].clone();
-        //     assert_eq!(volume2.id(), U256::from_str("0x10").unwrap());
-        //     assert_eq!(
-        //         volume2.token().address(),
-        //         Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
-        //     );
-        //     assert_eq!(volume2.token().name(), Some("Staked FLR".to_string()));
-        //     assert_eq!(volume2.token().symbol(), Some("sFLR".to_string()));
-        //     assert_eq!(volume2.token().decimals(), U256::from(18));
-        //     assert_eq!(volume2.details().total_in(), U256::from(0));
-        //     assert_eq!(volume2.details().total_out(), U256::from(2));
-        //     assert_eq!(volume2.details().total_vol(), U256::from(2));
-        //     assert_eq!(volume2.details().net_vol(), U256::from(2));
+            sg_server.mock(|when, then| {
+                when.path("/sg1")
+                    .body_contains("trades")
+                    .body_contains("\"first\":200")
+                    .body_contains("\"skip\":200");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "trades": [] }
+                }));
+            });
 
-        //     let volume3 = res[2].clone();
-        //     assert_eq!(volume3.id(), U256::from_str("0x20").unwrap());
-        //     assert_eq!(
-        //         volume3.token().address(),
-        //         Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
-        //     );
-        //     assert_eq!(volume3.token().name(), Some("Wrapped Flare".to_string()));
-        //     assert_eq!(volume3.token().symbol(), Some("WFLR".to_string()));
-        //     assert_eq!(volume3.token().decimals(), U256::from(18));
-        //     assert_eq!(volume3.details().total_in(), U256::from(2));
-        //     assert_eq!(volume3.details().total_out(), U256::from(0));
-        //     assert_eq!(volume3.details().total_vol(), U256::from(2));
-        //     assert_eq!(volume3.details().net_vol(), U256::from(2));
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
 
-        //     let volume4 = res[3].clone();
-        //     assert_eq!(volume4.id(), U256::from_str("0x20").unwrap());
-        //     assert_eq!(
-        //         volume4.token().address(),
-        //         Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
-        //     );
-        //     assert_eq!(volume4.token().name(), Some("Staked FLR".to_string()));
-        //     assert_eq!(volume4.token().symbol(), Some("sFLR".to_string()));
-        //     assert_eq!(volume4.token().decimals(), U256::from(18));
-        //     assert_eq!(volume4.details().total_in(), U256::from(0));
-        //     assert_eq!(volume4.details().total_out(), U256::from(5));
-        //     assert_eq!(volume4.details().total_vol(), U256::from(5));
-        //     assert_eq!(volume4.details().net_vol(), U256::from(5));
-        // }
+            let order = raindex_client
+                .get_order_by_hash(
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
+                    b256!("0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"),
+                )
+                .await
+                .unwrap();
 
-        //     let raindex_client = RaindexClient::new(
-        //         vec![get_test_yaml(
-        //             &sg_server.url("/sg1"),
-        //             &sg_server.url("/sg2"),
-        //             // not used
-        //             &sg_server.url("/rpc1"),
-        //             &sg_server.url("/rpc2"),
-        //         )],
-        //         None,
-        //     )
-        //     .unwrap();
-        //     let order = raindex_client
-        //         .get_order_by_hash(
-        //             1,
-        //             Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-        //             Bytes::from_str("0x0123").unwrap(),
-        //         )
-        //         .await
-        //         .unwrap();
-        //     let res = order
-        //         .get_performance(Some(1632000000), Some(1734571449))
-        //         .await
-        //         .unwrap();
+            let res = order.get_vaults_volume(None, None).await.unwrap();
 
-        //     assert_eq!(res.order_id, "order1");
-        //     assert_eq!(res.order_hash, "0x1");
-        //     assert_eq!(res.orderbook, "0x0000000000000000000000000000000000000000");
-        //     assert_eq!(
-        //         res.denominated_performance,
-        //         Some(DenominatedPerformance {
-        //             token: SgErc20 {
-        //                 id: SgBytes("token-2".to_string()),
-        //                 address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
-        //                 name: Some("Token Two".to_string()),
-        //                 symbol: Some("TK2".to_string()),
-        //                 decimals: Some(SgBigInt("18".to_string())),
-        //             },
-        //             apy: U256::from(0),
-        //             apy_is_neg: false,
-        //             net_vol: U256::from(0),
-        //             net_vol_is_neg: false,
-        //             starting_capital: U256::from(600),
-        //         })
-        //     );
-        //     assert_eq!(res.start_time, 1632000000);
-        //     assert_eq!(res.end_time, 1734571449);
-        //     assert_eq!(res.inputs_vaults.len(), 1);
-        //     assert_eq!(
-        //         res.inputs_vaults[0],
-        //         VaultPerformance {
-        //             id: "2".to_string(),
-        //             token: SgErc20 {
-        //                 id: SgBytes("token-2".to_string()),
-        //                 address: SgBytes("0x2222222222222222222222222222222222222222".to_string()),
-        //                 name: Some("Token Two".to_string()),
-        //                 symbol: Some("TK2".to_string()),
-        //                 decimals: Some(SgBigInt("18".to_string())),
-        //             },
-        //             vol_details: VolumeDetails {
-        //                 total_in: U256::from(50000000000000000000u128),
-        //                 total_out: U256::from(0u8),
-        //                 total_vol: U256::from(50000000000000000000u128),
-        //                 net_vol: U256::from(50000000000000000000u128),
-        //             },
-        //             apy_details: Some(APYDetails {
-        //                 start_time: 1632000000,
-        //                 end_time: 1734571449,
-        //                 net_vol: U256::from(50000000000000000000u128),
-        //                 capital: U256::from(150u8),
-        //                 apy: Some(U256::from(102484659254448087225972733172491493u128)),
-        //                 is_neg: false,
-        //             }),
-        //         }
-        //     );
-        //     assert_eq!(res.outputs_vaults.len(), 1);
-        //     assert_eq!(
-        //         res.outputs_vaults[0],
-        //         VaultPerformance {
-        //             id: "1".to_string(),
-        //             token: SgErc20 {
-        //                 id: SgBytes("token-1".to_string()),
-        //                 address: SgBytes("0x1111111111111111111111111111111111111111".to_string()),
-        //                 name: Some("Token One".to_string()),
-        //                 symbol: Some("TK1".to_string()),
-        //                 decimals: Some(SgBigInt("18".to_string())),
-        //             },
-        //             vol_details: VolumeDetails {
-        //                 total_in: U256::from(0),
-        //                 total_out: U256::from(100000000000000000000u128),
-        //                 total_vol: U256::from(100000000000000000000u128),
-        //                 net_vol: U256::from(100000000000000000000u128),
-        //             },
-        //             apy_details: Some(APYDetails {
-        //                 start_time: 1632000000,
-        //                 end_time: 1734571449,
-        //                 net_vol: U256::from(100000000000000000000u128),
-        //                 capital: U256::from(900u16),
-        //                 apy: Some(U256::from(34161553084816029075324244390830497u128)),
-        //                 is_neg: true,
-        //             }),
-        //         }
-        //     );
-        // }
+            assert_eq!(res.len(), 2);
+
+            let volume1 = &res[0];
+            assert_eq!(volume1.id(), U256::from_str("0x1234").unwrap());
+            assert_eq!(
+                volume1.token().address(),
+                Address::from_str("0x1d80c49bbbcd1c0911346656b529df9e5c2f783d").unwrap()
+            );
+            assert_eq!(volume1.token().name(), Some("Wrapped Flare".to_string()));
+            assert_eq!(volume1.token().symbol(), Some("WFLR".to_string()));
+            assert_eq!(volume1.token().decimals(), 18u8);
+            assert_eq!(volume1.details().formatted_total_in(), "50");
+            assert_eq!(volume1.details().formatted_total_out(), "0");
+            assert_eq!(volume1.details().formatted_total_vol(), "50");
+            assert_eq!(volume1.details().formatted_net_vol(), "50");
+
+            let volume2 = &res[1];
+            assert_eq!(volume2.id(), U256::from_str("0x5678").unwrap());
+            assert_eq!(
+                volume2.token().address(),
+                Address::from_str("0x12e605bc104e93b45e1ad99f9e555f659051c2bb").unwrap()
+            );
+            assert_eq!(volume2.token().name(), Some("Staked FLR".to_string()));
+            assert_eq!(volume2.token().symbol(), Some("sFLR".to_string()));
+            assert_eq!(volume2.token().decimals(), 18u8);
+            assert_eq!(volume2.details().formatted_total_in(), "100");
+            assert_eq!(volume2.details().formatted_total_out(), "0");
+            assert_eq!(volume2.details().formatted_total_vol(), "100");
+            assert_eq!(volume2.details().formatted_net_vol(), "100");
+        }
 
         // TODO: Issue #1989
         // #[tokio::test]

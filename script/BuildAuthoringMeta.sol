@@ -10,6 +10,6 @@ import {LibOrderBookSubParser} from "../src/lib/LibOrderBookSubParser.sol";
 /// wrapped in CBOR and emitted on metaboard.
 contract BuildAuthoringMeta is Script {
     function run() external {
-        vm.writeFileBinary("meta/OrderBookSubParserAuthoringMeta.rain.meta", LibOrderBookSubParser.authoringMetaV2());
+        vm.writeFileBinary("meta/OrderBookV6SubParserAuthoringMeta.rain.meta", LibOrderBookSubParser.authoringMetaV2());
     }
 }

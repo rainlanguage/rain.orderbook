@@ -40,7 +40,8 @@ impl OrderbookSubgraphClient {
 
         let has_basic_filters = !filter_args.owners.is_empty()
             || filter_args.active.is_some()
-            || filter_args.order_hash.is_some();
+            || filter_args.order_hash.is_some()
+            || !filter_args.orderbooks.is_empty();
         let tokens = filter_args.tokens.as_ref();
         let has_input_tokens = tokens.is_some_and(|tokens| !tokens.inputs.is_empty());
         let has_output_tokens = tokens.is_some_and(|tokens| !tokens.outputs.is_empty());
@@ -53,6 +54,7 @@ impl OrderbookSubgraphClient {
                 order_hash: filter_args.order_hash.clone(),
                 inputs_: None,
                 outputs_: None,
+                orderbook_in: filter_args.orderbooks.clone(),
             };
 
             let or_filters = if has_input_tokens && has_output_tokens {
@@ -121,6 +123,7 @@ impl OrderbookSubgraphClient {
                         active: None,
                         order_hash: None,
                         tokens: None,
+                        orderbooks: vec![],
                     },
                     SgPaginationArgs {
                         page,
@@ -485,6 +488,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -518,6 +522,7 @@ mod tests {
             active: Some(true),
             order_hash: None,
             tokens: None,
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -549,6 +554,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -574,6 +580,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -745,6 +752,7 @@ mod tests {
                 inputs: vec![token_address.clone()],
                 outputs: vec![],
             }),
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -780,6 +788,7 @@ mod tests {
                 inputs: vec![],
                 outputs: vec![token_address.clone()],
             }),
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -816,6 +825,7 @@ mod tests {
                 inputs: vec![token1.clone()],
                 outputs: vec![token2.clone()],
             }),
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -855,6 +865,7 @@ mod tests {
                 inputs: vec![token_address.clone()],
                 outputs: vec![],
             }),
+            orderbooks: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -877,5 +888,110 @@ mod tests {
         assert!(result.is_ok());
         let orders = result.unwrap();
         assert_eq!(orders.len(), expected_orders.len());
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_with_orderbook_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let orderbook_address = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string();
+        let filter_args = SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbooks: vec![orderbook_address.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_orders = vec![default_sg_order()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"orderbook_in\":[\"{}\"]", orderbook_address));
+            then.status(200)
+                .json_body(json!({"data": {"orders": expected_orders}}));
+        });
+
+        let result = client.orders_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), expected_orders.len());
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_with_multiple_orderbook_filters() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let ob1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
+        let ob2 = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string();
+        let filter_args = SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbooks: vec![ob1.clone(), ob2.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_orders = vec![default_sg_order()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"orderbook_in\":[\"{}\",\"{}\"]", ob1, ob2));
+            then.status(200)
+                .json_body(json!({"data": {"orders": expected_orders}}));
+        });
+
+        let result = client.orders_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), expected_orders.len());
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_empty_orderbook_filter_omits_field() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let filter_args = SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbooks: vec![],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_orders = vec![default_sg_order()];
+
+        let mock = sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .matches(|req: &httpmock::prelude::HttpMockRequest| {
+                    if let Some(body) = &req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        !body_str.contains("orderbook_in")
+                    } else {
+                        true
+                    }
+                });
+            then.status(200)
+                .json_body(json!({"data": {"orders": expected_orders}}));
+        });
+
+        let result = client.orders_list(filter_args, pagination_args).await;
+        assert!(
+            result.is_ok(),
+            "Request failed - orderbook_in was likely present in request body when it should be omitted"
+        );
+        mock.assert();
     }
 }

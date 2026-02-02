@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/vaults_test.rs
+assertion_line: 15
 expression: request_body.query
 ---
 query SgVaultsListQuery($first: Int, $skip: Int, $filters: Vault_filter) {
@@ -84,6 +85,11 @@ query SgVaultsListQuery($first: Int, $skip: Int, $filters: Vault_filter) {
         }
         orderbook {
           id
+        }
+        trade {
+          tradeEvent {
+            __typename
+          }
         }
       }
       ... on Deposit {
