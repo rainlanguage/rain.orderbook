@@ -26,6 +26,7 @@ pub struct SgOrdersListFilterArgs {
     pub order_hash: Option<SgBytes>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub tokens: Option<SgOrdersTokensFilterArgs>,
+    pub orderbooks: Vec<String>,
 }
 impl_wasm_traits!(SgOrdersListFilterArgs);
 
@@ -50,6 +51,8 @@ pub struct SgOrdersListQueryFilters {
     pub inputs_: Option<SgVaultTokenFilter>,
     #[cynic(rename = "outputs_", skip_serializing_if = "Option::is_none")]
     pub outputs_: Option<SgVaultTokenFilter>,
+    #[cynic(rename = "orderbook_in", skip_serializing_if = "Vec::is_empty")]
+    pub orderbook_in: Vec<String>,
 }
 
 #[derive(cynic::InputObject, Debug, Clone, Tsify)]
@@ -160,10 +163,12 @@ pub struct SgVaultsListFilterArgs {
     pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
     pub tokens: Vec<String>,
+    pub orderbooks: Vec<String>,
+    pub only_active_orders: bool,
 }
 impl_wasm_traits!(SgVaultsListFilterArgs);
 
-#[derive(cynic::InputObject, Debug, Clone, Tsify)]
+#[derive(cynic::InputObject, Debug, Clone, Tsify, Default)]
 #[cynic(graphql_type = "Vault_filter")]
 pub struct SgVaultsListQueryFilters {
     #[cynic(rename = "owner_in", skip_serializing_if = "Vec::is_empty")]
@@ -173,6 +178,17 @@ pub struct SgVaultsListQueryFilters {
     pub balance_not: Option<SgBytes>,
     #[cynic(rename = "token_in", skip_serializing_if = "Vec::is_empty")]
     pub token_in: Vec<String>,
+    #[cynic(rename = "orderbook_in", skip_serializing_if = "Vec::is_empty")]
+    pub orderbook_in: Vec<String>,
+    #[cynic(rename = "ordersAsInput_", skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub orders_as_input_: Option<Box<SgOrdersListQueryFilters>>,
+    #[cynic(rename = "ordersAsOutput_", skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub orders_as_output_: Option<Box<SgOrdersListQueryFilters>>,
+    #[cynic(rename = "or", skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub or: Option<Vec<SgVaultsListQueryFilters>>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
@@ -250,6 +266,58 @@ pub enum SgVaultBalanceChangeType {
     Unknown,
 }
 
+impl SgVaultBalanceChangeType {
+    pub fn typename(&self) -> &str {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => &w.__typename,
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => &t.__typename,
+            SgVaultBalanceChangeType::Deposit(d) => &d.__typename,
+            SgVaultBalanceChangeType::ClearBounty(c) => &c.__typename,
+            SgVaultBalanceChangeType::Unknown => "Unknown",
+        }
+    }
+
+    pub fn timestamp(&self) -> Option<&SgBigInt> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.timestamp),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.timestamp),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.timestamp),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.timestamp),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+
+    pub fn amount(&self) -> Option<&SgBytes> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.amount),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.amount),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.amount),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.amount),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+
+    pub fn new_vault_balance(&self) -> Option<&SgBytes> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.new_vault_balance),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.new_vault_balance),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.new_vault_balance),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.new_vault_balance),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+
+    pub fn transaction(&self) -> Option<&SgTransaction> {
+        match self {
+            SgVaultBalanceChangeType::Withdrawal(w) => Some(&w.transaction),
+            SgVaultBalanceChangeType::TradeVaultBalanceChange(t) => Some(&t.transaction),
+            SgVaultBalanceChangeType::Deposit(d) => Some(&d.transaction),
+            SgVaultBalanceChangeType::ClearBounty(c) => Some(&c.transaction),
+            SgVaultBalanceChangeType::Unknown => None,
+        }
+    }
+}
+
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[cynic(graphql_type = "Deposit")]
@@ -296,6 +364,7 @@ pub struct SgTradeVaultBalanceChange {
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
     pub orderbook: SgOrderbook,
+    pub trade: SgTradeRef,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
@@ -320,6 +389,21 @@ pub struct SgClearBounty {
 pub struct SgTradeEvent {
     pub transaction: SgTransaction,
     pub sender: SgBytes,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[cynic(graphql_type = "TradeEvent")]
+pub struct SgTradeEventTypename {
+    #[serde(rename = "__typename")]
+    pub __typename: String,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[cynic(graphql_type = "Trade")]
+pub struct SgTradeRef {
+    pub trade_event: SgTradeEventTypename,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
@@ -725,4 +809,6 @@ mod impls {
     impl_wasm_traits!(SgTrade);
     impl_wasm_traits!(SgTradeStructPartialOrder);
     impl_wasm_traits!(SgTradeEvent);
+    impl_wasm_traits!(SgTradeEventTypename);
+    impl_wasm_traits!(SgTradeRef);
 }

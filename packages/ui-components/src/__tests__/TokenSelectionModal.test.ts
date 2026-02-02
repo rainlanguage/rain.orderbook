@@ -3,25 +3,29 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenSelectionModal from '../lib/components/deployment/TokenSelectionModal.svelte';
 import type { ComponentProps } from 'svelte';
-import type { TokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { ExtendedTokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 
 type TokenSelectionModalProps = ComponentProps<TokenSelectionModal>;
 
-const mockTokens: TokenInfo[] = [
+const mockTokens: ExtendedTokenInfo[] = [
 	{
 		key: 'token1',
 		address: '0x1234567890123456789012345678901234567890',
 		name: 'Test Token 1',
 		symbol: 'TEST1',
-		decimals: 18
+		decimals: 18,
+		chainId: 1,
+		logoUri: 'https://example.com/token1-logo.png'
 	},
 	{
 		key: 'token2',
 		address: '0x0987654321098765432109876543210987654321',
 		name: 'Another Token',
 		symbol: 'ANOTHER',
-		decimals: 6
+		decimals: 6,
+		chainId: 1,
+		logoUri: undefined
 	}
 ];
 
@@ -254,6 +258,102 @@ describe('TokenSelectionModal', () => {
 		await waitFor(() => {
 			const searchInput = screen.getByPlaceholderText('Search tokens...');
 			expect(searchInput).toHaveFocus();
+		});
+	});
+
+	it('displays token logo image when logoUri is provided', async () => {
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		await waitFor(() => {
+			const logoImage = screen.getByAltText('TEST1 logo');
+			expect(logoImage).toBeInTheDocument();
+			expect(logoImage).toHaveAttribute('src', 'https://example.com/token1-logo.png');
+		});
+	});
+
+	it('does not display logo image when logoUri is not provided', async () => {
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		await waitFor(() => {
+			expect(screen.getByText('Another Token')).toBeInTheDocument();
+		});
+
+		expect(screen.queryByAltText('ANOTHER logo')).not.toBeInTheDocument();
+	});
+
+	it('displays symbol fallback for tokens without logo', async () => {
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		await waitFor(() => {
+			expect(screen.getByText('AN')).toBeInTheDocument();
+		});
+	});
+
+	it('includes logoUri in token data when selecting a token with logo', async () => {
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		await waitFor(() => {
+			expect(screen.getByText('Test Token 1')).toBeInTheDocument();
+		});
+
+		const tokenItem = screen.getByText('Test Token 1');
+		await user.click(tokenItem);
+
+		expect(mockOnSelect).toHaveBeenCalledWith(
+			expect.objectContaining({
+				logoUri: 'https://example.com/token1-logo.png'
+			})
+		);
+	});
+
+	it('falls back to symbol initials when image fails to load', async () => {
+		const user = userEvent.setup();
+		render(TokenSelectionModal, {
+			...defaultProps,
+			onSelect: mockOnSelect
+		});
+
+		const button = screen.getByRole('button');
+		await user.click(button);
+
+		await waitFor(() => {
+			expect(screen.getByAltText('TEST1 logo')).toBeInTheDocument();
+		});
+
+		const logoImage = screen.getByAltText('TEST1 logo');
+		logoImage.dispatchEvent(new Event('error'));
+
+		await waitFor(() => {
+			expect(screen.queryByAltText('TEST1 logo')).not.toBeInTheDocument();
+			expect(screen.getByText('TE')).toBeInTheDocument();
 		});
 	});
 });

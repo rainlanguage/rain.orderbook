@@ -195,7 +195,7 @@ mod tests {
                     "outputVaultBalanceChange": {
                         "id": encode_prefixed(B256::random()),
                         "amount": F0,
-                        "__typename": "Withdraw",
+                        "__typename": "TradeVaultBalanceChange",
                         "vault": {
                             "id": encode_prefixed(B256::random()),
                             "vaultId": encode_prefixed(B256::random()),
@@ -219,11 +219,16 @@ mod tests {
                         "orderbook": {
                             "id": encode_prefixed(B256::random()),
                         },
+                        "trade": {
+                            "tradeEvent": {
+                                "__typename": "TakeOrder"
+                            }
+                        },
                     },
                     "inputVaultBalanceChange": {
                         "id": encode_prefixed(B256::random()),
                         "amount": F0,
-                        "__typename": "Withdraw",
+                        "__typename": "TradeVaultBalanceChange",
                         "vault": {
                             "id": encode_prefixed(B256::random()),
                             "vaultId": encode_prefixed(B256::random()),
@@ -246,6 +251,11 @@ mod tests {
                         },
                         "orderbook": {
                             "id": encode_prefixed(B256::random()),
+                        },
+                        "trade": {
+                            "tradeEvent": {
+                                "__typename": "TakeOrder"
+                            }
                         },
                     },
                     "timestamp": "0",

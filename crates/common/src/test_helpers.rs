@@ -1,5 +1,9 @@
-pub const TEST_DOTRAIN: &str = r#"
-version: 4
+use rain_orderbook_app_settings::spec_version::SpecVersion;
+
+pub fn test_dotrain() -> String {
+    format!(
+        r#"
+version: {version}
 networks:
     mainnet:
         rpcs:
@@ -165,7 +169,10 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;
-"#;
+"#,
+        version = SpecVersion::current()
+    )
+}
 
 #[cfg(not(target_family = "wasm"))]
 pub mod local_evm {
@@ -454,7 +461,7 @@ pub mod orders {
                 .dotrain_yaml()
                 .get_deployment("test-deployment")
                 .unwrap();
-            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
                 .await
                 .unwrap()
                 .try_into_call(vec![setup.local_evm.url()])
@@ -486,7 +493,7 @@ pub mod orders {
                 .dotrain_yaml()
                 .get_deployment("test-deployment")
                 .unwrap();
-            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
                 .await
                 .unwrap()
                 .try_into_call(vec![setup.local_evm.url()])
