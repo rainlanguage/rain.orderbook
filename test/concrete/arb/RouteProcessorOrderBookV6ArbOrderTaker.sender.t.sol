@@ -32,16 +32,16 @@ contract RouteProcessorOrderBookV6ArbOrderTakerSenderTest is RouteProcessorOrder
             .arb5(
                 iOrderBook,
                 TakeOrdersConfigV5({
-                    minimumIO: LibDecimalFloat.packLossless(0, 0),
-                    maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
-                    maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
-                    IOIsInput: true,
-                    orders: orders,
-                    data: abi.encode(bytes("0x00"))
-                }),
+                minimumIO: LibDecimalFloat.packLossless(0, 0),
+                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+                IOIsInput: true,
+                orders: orders,
+                data: abi.encode(bytes("0x00"))
+            }),
                 TaskV2({
-                    evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)
-                })
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)
+            })
             );
     }
 }

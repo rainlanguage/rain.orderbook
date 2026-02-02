@@ -55,13 +55,13 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
             .arb5(
                 iOrderBook,
                 TakeOrdersConfigV5({
-                    minimumIO: LibDecimalFloat.packLossless(0, 0),
-                    maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
-                    maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
-                    IOIsInput: true,
-                    orders: orders,
-                    data: abi.encode(iRefundoor, iRefundoor, "")
-                }),
+                minimumIO: LibDecimalFloat.packLossless(0, 0),
+                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+                IOIsInput: true,
+                orders: orders,
+                data: abi.encode(iRefundoor, iRefundoor, "")
+            }),
                 TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
             );
     }
@@ -96,17 +96,17 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
             .arb5(
                 iOrderBook,
                 TakeOrdersConfigV5({
-                    minimumIO: LibDecimalFloat.packLossless(0, 0),
-                    maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
-                    maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
-                    IOIsInput: true,
-                    orders: orders,
-                    data: abi.encode(iRefundoor, iRefundoor, "")
-                }),
+                minimumIO: LibDecimalFloat.packLossless(0, 0),
+                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+                IOIsInput: true,
+                orders: orders,
+                data: abi.encode(iRefundoor, iRefundoor, "")
+            }),
                 TaskV2({
-                    evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
-                    signedContext: new SignedContextV1[](0)
-                })
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
+                signedContext: new SignedContextV1[](0)
+            })
             );
     }
 }
