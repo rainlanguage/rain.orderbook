@@ -2103,6 +2103,41 @@ mod tests {
             assert!(has_owner, "owner missing in params");
             assert!(has_token, "token missing in params");
         }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_vault_tokens_uses_local_db_when_available() {
+            use crate::local_db::query::fetch_all_tokens::LocalDbToken;
+
+            let token = LocalDbToken {
+                chain_id: 42161,
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
+                token_address: address!("0x00000000000000000000000000000000000000aa"),
+                name: "Test Token".to_string(),
+                symbol: "TST".to_string(),
+                decimals: 18,
+            };
+
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let json = serde_json::to_string(&vec![token]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+
+            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+
+            let tokens = client.get_all_vault_tokens(None).await.unwrap();
+
+            let sql = captured_sql.borrow();
+            assert!(
+                !sql.0.is_empty(),
+                "SQL should be captured, proving local DB was used"
+            );
+            assert!(
+                sql.0.contains("erc20_tokens"),
+                "Should query erc20_tokens table"
+            );
+
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].symbol(), Some("TST".to_string()));
+        }
     }
 
     #[cfg(not(target_family = "wasm"))]
