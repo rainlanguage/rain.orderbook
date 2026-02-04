@@ -56,7 +56,7 @@ jobs:
       - run: >
           (cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && nix develop -c rainix-sol-prelude)
       - run: >
-          (cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/forge-std && nix develop -c forge build)
+          (nix develop -c bash -c "cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/forge-std && forge build")
 
       - run: nix develop -c bash -c rainix-sol-prelude
 
