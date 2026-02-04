@@ -94,7 +94,7 @@ export function handleVaultlessBalance(): void {
   const multicall3 = Multicall3.bind(Address.fromString(MUTLICALL3_ADDRESS));
 
   // Load all vaults from the store
-  const BATCH_SIZE = 100;
+  const BATCH_SIZE = 1000;
   const vaultList = getVaultList().vaults.load();
   const vaultlessVaultsBatch: Vault[][] = [[]];
 
