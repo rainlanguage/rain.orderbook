@@ -79,7 +79,7 @@ contract OrderBookV6TakeOrderVaultlessTest is Test {
 
         // Deploy mock ERC20 tokens
         tokenA = address(new Token("Token A", "TKNA"));
-        tokenB = address(new Token2("Token B", "TKNB"));
+        tokenB = address(new Token("Token B", "TKNB"));
 
         // Fund alice and taker wallets
         deal(tokenA, alice, INITIAL_BALANCE);
@@ -218,14 +218,4 @@ contract Token is ERC20 {
     function mint(address receiver, uint256 amount) external {
         _mint(receiver, amount);
     }
-}
-
-contract Token2 is ERC20 {
-    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
-
-    function mint(address receiver, uint256 amount) external {
-        _mint(receiver, amount);
-    }
-
-    function a() external {}
 }
