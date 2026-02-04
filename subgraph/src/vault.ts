@@ -102,9 +102,7 @@ export function handleVaultlessBalance(): void {
     const vault = vaultList[i];
 
     // skip non vautless vaults
-    if (vault.vaultId.notEqual(Bytes.fromHexString(ZERO_BYTES_32))) {
-      continue;
-    }
+    if (vault.vaultId.notEqual(Bytes.fromHexString(ZERO_BYTES_32))) continue;
 
     if (vaultlessVaultsBatch[vaultlessVaultsBatch.length - 1].length < BATCH_SIZE) {
       vaultlessVaultsBatch[vaultlessVaultsBatch.length - 1].push(vault)
@@ -149,23 +147,18 @@ export function handleVaultlessBalance(): void {
       [ethereum.Value.fromTupleArray(batchCalls[i])]
     );
     
-    if (result.reverted) {
-      return;
-    }
+    if (result.reverted) continue;
     const results = result.value[0].toTupleArray<ethereum.Tuple>();
-    if (results.length !== vaultlessVaultsBatch[i].length) {
-      return;
-    }
+    if (results.length !== vaultlessVaultsBatch[i].length) continue;
 
     for (let j = 0; j < vaultlessVaultsBatch[i].length; j++) {
       const success = results[j][0].toBoolean();
       const returnData = results[j][1].toBytes();
-      if (success) {
-        const decoded = ethereum.decode('bytes32', returnData);
-        if (decoded) {
-          vaultlessVaultsBatch[i][j].balance = decoded.toBytes();
-          vaultlessVaultsBatch[i][j].save();
-        }
+      if (!success) continue;
+      const decoded = ethereum.decode('bytes32', returnData);
+      if (decoded) {
+        vaultlessVaultsBatch[i][j].balance = decoded.toBytes();
+        vaultlessVaultsBatch[i][j].save();
       }
     }
   }
