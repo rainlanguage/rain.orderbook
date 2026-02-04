@@ -40,6 +40,13 @@ type Vault @entity {
   balance: Bytes!
   "All balance changes for this vault"
   balanceChanges: [VaultBalanceChange!]! @derivedFrom(field: "vault")
+  "reference VaultList singleton record to derive the vaults list from"
+  vaultList: VaultList!
+}
+
+type VaultList @entity {
+  id: String!
+  vaults: [Vault!]! @derivedFrom(field: "vaultList") # list of all vaults
 }
 
 interface VaultBalanceChange {

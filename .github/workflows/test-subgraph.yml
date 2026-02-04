@@ -45,6 +45,8 @@ jobs:
 
       - run: |
           (cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && nix develop -c rainix-sol-prelude)
+      - run: >
+          (cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/forge-std && nix develop -c forge build)
 
       - name: Build subgraph
         run: nix develop -c subgraph-build
