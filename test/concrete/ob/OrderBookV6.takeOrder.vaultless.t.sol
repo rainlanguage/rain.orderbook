@@ -84,6 +84,10 @@ contract OrderBookV6TakeOrderVaultlessTest is Test {
         // Fund alice and taker wallets
         deal(tokenA, alice, INITIAL_BALANCE);
         deal(tokenB, taker, INITIAL_BALANCE);
+
+        // uncomment to set some initial balance for
+        // orderbook which will cause the test to pass
+        // deal(tokenB, address(orderBook), INITIAL_BALANCE);
     }
 
     /// @dev Test taking vaultless order
@@ -139,14 +143,14 @@ contract OrderBookV6TakeOrderVaultlessTest is Test {
         // alice token A and B balances should change
         assertNotEq(aliceTokenABefore, aliceTokenAAfter, "alice TokenA balance should change");
         assertNotEq(aliceTokenBBefore, aliceTokenBAfter, "alice TokenB balance should change");
-        assertEq(aliceTokenAAfter, INITIAL_BALANCE - 100e18); // alice sold 100 token A
-        assertEq(aliceTokenBAfter, INITIAL_BALANCE + 20e18); // alice bought 20 token B
+        assertEq(aliceTokenAAfter, INITIAL_BALANCE - 100e18, "unexpected alice TokenA balance"); // alice sold 100 token A
+        assertEq(aliceTokenBAfter, 20e18, "unexpected alice TokenB balance"); // alice bought 20 token B
 
         // taker token A and B balances should change
         assertNotEq(takerTokenABefore, takerTokenAAfter, "taker TokenA balance should change");
         assertNotEq(takerTokenBBefore, takerTokenBAfter, "taker TokenB balance should change");
-        assertEq(takerTokenAAfter, INITIAL_BALANCE + 100e18); // taker bought 100 token A
-        assertEq(takerTokenBAfter, INITIAL_BALANCE - 20e18); // taker sold 20 token B
+        assertEq(takerTokenAAfter, 100e18, "unexpected taker TokenA balance"); // taker bought 100 token A
+        assertEq(takerTokenBAfter, INITIAL_BALANCE - 20e18, "unexpected taker TokenA balance"); // taker sold 20 token B
     }
 
     // Helper functions
