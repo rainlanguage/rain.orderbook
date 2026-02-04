@@ -22,6 +22,8 @@ import {
 } from "./clear";
 import { createTransactionEntity } from "./transaction";
 import { createOrderbookEntity } from "./orderbook";
+import { ethereum } from "@graphprotocol/graph-ts";
+import { handleVaultlessBalance } from "./vault";
 
 export function handleDeposit(event: DepositV2): void {
   createTransactionEntity(event);
@@ -69,4 +71,8 @@ export function handleAfterClear(event: AfterClearV2): void {
   createTransactionEntity(event);
   createOrderbookEntity(event);
   _handleAfterClear(event);
+}
+
+export function vaultBlockHandler(_block: ethereum.Block): void {
+  handleVaultlessBalance();
 }
