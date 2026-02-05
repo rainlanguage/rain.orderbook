@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: LicenseRef-DCL-1.0
+// SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
+pragma solidity =0.8.25;
+
+import {RouteProcessorOrderBookV6ArbOrderTakerTest} from
+    "test/util/abstract/RouteProcessorOrderBookV6ArbOrderTakerTest.sol";
+import {
+    OrderV4,
+    EvaluableV4,
+    TakeOrderConfigV4,
+    TakeOrdersConfigV5,
+    IInterpreterV4,
+    IInterpreterStoreV3,
+    TaskV2,
+    SignedContextV1
+} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {
+    RouteProcessorOrderBookV6ArbOrderTaker,
+    OrderBookV6ArbConfig
+} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+
+contract RouteProcessorOrderBookV6ArbOrderTakerSenderTest is RouteProcessorOrderBookV6ArbOrderTakerTest {
+    /// forge-config: default.fuzz.runs = 100
+    function testRouteProcessorTakeOrdersSender(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex)
+        public
+    {
+        TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
+
+        RouteProcessorOrderBookV6ArbOrderTaker(iArb).arb5(
+            iOrderBook,
+            TakeOrdersConfigV5({
+                minimumIO: LibDecimalFloat.packLossless(0, 0),
+                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
+                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
+                IOIsInput: true,
+                orders: orders,
+                data: abi.encode(bytes("0x00"))
+            }),
+            TaskV2({
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
+                signedContext: new SignedContextV1[](0)
+            })
+        );
+    }
+}

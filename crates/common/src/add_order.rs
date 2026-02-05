@@ -27,8 +27,8 @@ use rain_metadata::{
 };
 use rain_metadata_bindings::MetaBoard::emitMetaCall;
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
-use rain_orderbook_bindings::IOrderBookV5::{
-    addOrder3Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
+use rain_orderbook_bindings::IOrderBookV6::{
+    addOrder4Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
@@ -212,7 +212,7 @@ impl AddOrderArgs {
     pub async fn try_into_call(
         &self,
         rpcs: Vec<String>,
-    ) -> Result<addOrder3Call, AddOrderArgsError> {
+    ) -> Result<addOrder4Call, AddOrderArgsError> {
         let rainlang = self.compose_to_rainlang()?;
         let bytecode = self
             .try_parse_rainlang(rpcs.clone(), rainlang.clone())
@@ -242,7 +242,7 @@ impl AddOrderArgs {
             signedContext: vec![],
         };
 
-        Ok(addOrder3Call {
+        Ok(addOrder4Call {
             config: OrderConfigV4 {
                 validInputs: self.inputs.clone(),
                 validOutputs: self.outputs.clone(),
@@ -295,7 +295,7 @@ impl AddOrderArgs {
     pub async fn get_add_order_call_parameters(
         &self,
         transaction_args: TransactionArgs,
-    ) -> Result<WriteContractParameters<addOrder3Call>, AddOrderArgsError> {
+    ) -> Result<WriteContractParameters<addOrder4Call>, AddOrderArgsError> {
         let add_order_call = self.try_into_call(transaction_args.clone().rpcs).await?;
         let params = transaction_args.try_into_write_contract_parameters(
             add_order_call,
@@ -305,7 +305,7 @@ impl AddOrderArgs {
     }
 
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute<S: Fn(WriteTransactionStatus<addOrder3Call>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<addOrder4Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
@@ -1610,7 +1610,7 @@ _ _: 0 0;
             additional_meta: None,
         };
 
-        let add_order_call = addOrder3Call {
+        let add_order_call = addOrder4Call {
             config: OrderConfigV4 {
                 evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),
@@ -1700,7 +1700,7 @@ _ _: 0 0;
             .unwrap()
             .into();
 
-        let expected_bytes: Bytes = addOrder3Call {
+        let expected_bytes: Bytes = addOrder4Call {
             config: OrderConfigV4 {
                 evaluable: EvaluableV4 {
                     interpreter: *local_evm.interpreter.address(),

@@ -8,7 +8,7 @@ use alloy::{
     },
     sol_types::SolCall,
 };
-use rain_orderbook_bindings::IOrderBookV5::{takeOrders3Call, OrderV4, TakeOrdersConfigV4};
+use rain_orderbook_bindings::IOrderBookV6::{takeOrders4Call, OrderV4, TakeOrdersConfigV5};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
@@ -60,13 +60,13 @@ pub fn get_order_hash(
     unchecked_return_type = "TakeOrdersCalldata",
     return_description = "Encoded calldata ready for blockchain submission"
 )]
-pub fn get_take_orders3_calldata(
+pub fn get_take_orders4_calldata(
     #[wasm_export(
-        param_description = "Complete configuration for order execution including minimumInput, maximumInput, maximumIORatio, orders array, and additional data"
+        param_description = "Complete configuration for order execution including minimumIO, maximumIO, maximumIORatio, orders array, IOIsInput, and additional data"
     )]
-    take_orders_config: TakeOrdersConfigV4,
+    take_orders_config: TakeOrdersConfigV5,
 ) -> Result<TakeOrdersCalldata, Error> {
-    let calldata = takeOrders3Call {
+    let calldata = takeOrders4Call {
         config: take_orders_config,
     }
     .abi_encode();
@@ -169,9 +169,9 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn test_take_orders_calldata() {
-        let take_orders_config = TakeOrdersConfigV4::default();
-        let result = get_take_orders3_calldata(take_orders_config.clone()).unwrap();
-        let expected = takeOrders3Call {
+        let take_orders_config = TakeOrdersConfigV5::default();
+        let result = get_take_orders4_calldata(take_orders_config.clone()).unwrap();
+        let expected = takeOrders4Call {
             config: take_orders_config,
         }
         .abi_encode();

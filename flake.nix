@@ -23,12 +23,12 @@
               mkdir -p meta;
               forge script --silent ./script/BuildAuthoringMeta.sol;
               rain meta build \
-                -i <(cat ./meta/OrderBookSubParserAuthoringMeta.rain.meta) \
+                -i <(cat ./meta/OrderBookV6SubParserAuthoringMeta.rain.meta) \
                 -m authoring-meta-v2 \
                 -t cbor \
                 -e deflate \
                 -l none \
-                -o meta/OrderBookSubParser.rain.meta \
+                -o meta/OrderBookV6SubParser.rain.meta \
                 ;
             '';
           };

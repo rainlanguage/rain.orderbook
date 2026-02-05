@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.18;
 
-import {OrderV4} from "rain.orderbook.interface/interface/unstable/IOrderBookV5.sol";
+import {OrderV4} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 
 /// @title LibOrder
 /// @notice Consistent handling of `OrderV4` for where it matters w.r.t.

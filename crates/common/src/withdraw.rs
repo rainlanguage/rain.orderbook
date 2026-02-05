@@ -8,7 +8,7 @@ use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use serde::{Deserialize, Serialize};
 
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV5::withdraw3Call;
+use rain_orderbook_bindings::IOrderBookV6::withdraw4Call;
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct WithdrawArgs {
@@ -17,9 +17,9 @@ pub struct WithdrawArgs {
     pub target_amount: Float,
 }
 
-impl From<WithdrawArgs> for withdraw3Call {
+impl From<WithdrawArgs> for withdraw4Call {
     fn from(val: WithdrawArgs) -> Self {
-        withdraw3Call {
+        withdraw4Call {
             token: val.token,
             vaultId: val.vault_id,
             targetAmount: val.target_amount.get_inner(),
@@ -31,14 +31,14 @@ impl From<WithdrawArgs> for withdraw3Call {
 impl WithdrawArgs {
     /// Execute OrderbookV3 withdraw call
     #[cfg(not(target_family = "wasm"))]
-    pub async fn execute<S: Fn(WriteTransactionStatus<withdraw3Call>)>(
+    pub async fn execute<S: Fn(WriteTransactionStatus<withdraw4Call>)>(
         &self,
         transaction_args: TransactionArgs,
         transaction_status_changed: S,
     ) -> Result<(), WritableTransactionExecuteError> {
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
-        let withdraw_call: withdraw3Call = self.clone().into();
+        let withdraw_call: withdraw4Call = self.clone().into();
         let params = transaction_args.try_into_write_contract_parameters(
             withdraw_call,
             transaction_args.orderbook_address,
@@ -52,7 +52,7 @@ impl WithdrawArgs {
     }
 
     pub async fn get_withdraw_calldata(&self) -> Result<Vec<u8>, WritableTransactionExecuteError> {
-        let withdraw_call: withdraw3Call = self.clone().into();
+        let withdraw_call: withdraw4Call = self.clone().into();
         Ok(withdraw_call.abi_encode())
     }
 }
@@ -74,7 +74,7 @@ mod tests {
             target_amount: amount,
         };
 
-        let withdraw_call: withdraw3Call = args.into();
+        let withdraw_call: withdraw4Call = args.into();
         assert_eq!(
             withdraw_call.token,
             address!("1234567890abcdef1234567890abcdef12345678")
@@ -93,7 +93,7 @@ mod tests {
         };
         let calldata = args.get_withdraw_calldata().await.unwrap();
 
-        let expected_calldata = withdraw3Call {
+        let expected_calldata = withdraw4Call {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
             vaultId: B256::from(U256::from(42)),
             targetAmount: amount.get_inner(),
@@ -117,7 +117,7 @@ mod tests {
         };
 
         let amount = Float::parse("456".to_string()).unwrap().get_inner();
-        let withdraw_call = withdraw3Call {
+        let withdraw_call = withdraw4Call {
             token: Address::from_str("0x1234567890abcdef1234567890abcdef12345678").unwrap(),
             vaultId: B256::from(U256::from(123)),
             targetAmount: amount,

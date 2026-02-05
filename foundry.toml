@@ -6,7 +6,7 @@ libs = ['lib']
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
 solc = "0.8.25"
-evm_version = "paris"
+evm_version = "cancun"
 
 # optimizer settings for debugging
 # via_ir = false
@@ -31,7 +31,7 @@ fs_permissions = [
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterStoreNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2" },
-  { access = "read-write", path = "./meta/OrderBookSubParserAuthoringMeta.rain.meta"},
+  { access = "read-write", path = "./meta/OrderBookV6SubParserAuthoringMeta.rain.meta"},
   { access = "read-write", path = "src/generated" },
 ]
 
