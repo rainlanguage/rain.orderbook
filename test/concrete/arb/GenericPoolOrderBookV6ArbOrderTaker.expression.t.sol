@@ -26,7 +26,8 @@ import {
 } from "src/abstract/OrderBookV6ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBookV6.sol";
 import {
-    StateNamespace, FullyQualifiedNamespace
+    StateNamespace,
+    FullyQualifiedNamespace
 } from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
@@ -50,9 +51,10 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        GenericPoolOrderBookV6ArbOrderTaker(iArb).arb5(
-            iOrderBook,
-            TakeOrdersConfigV5({
+        GenericPoolOrderBookV6ArbOrderTaker(iArb)
+            .arb5(
+                iOrderBook,
+                TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -60,8 +62,8 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
                 orders: orders,
                 data: abi.encode(iRefundoor, iRefundoor, "")
             }),
-            TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
-        );
+                TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
+            );
     }
 
     /// forge-config: default.fuzz.runs = 10
@@ -90,9 +92,10 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
             vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV3.set.selector, ns, kvs));
         }
 
-        GenericPoolOrderBookV6ArbOrderTaker(iArb).arb5(
-            iOrderBook,
-            TakeOrdersConfigV5({
+        GenericPoolOrderBookV6ArbOrderTaker(iArb)
+            .arb5(
+                iOrderBook,
+                TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -100,10 +103,10 @@ contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBo
                 orders: orders,
                 data: abi.encode(iRefundoor, iRefundoor, "")
             }),
-            TaskV2({
+                TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)
             })
-        );
+            );
     }
 }

@@ -21,6 +21,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     /// Tests that we can deposit some amount and view the new vault balance.
     /// forge-config: default.fuzz.runs = 100
     function testDepositSimple(address depositor, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)) / 10);
         vm.prank(depositor);
         vm.mockCall(
@@ -38,6 +39,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     /// Depositing zero should revert.
     /// forge-config: default.fuzz.runs = 100
     function testDepositZero(address depositor, bytes32 vaultId) external {
+        vm.assume(vaultId != bytes32(0));
         vm.prank(depositor);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -45,6 +47,14 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             )
         );
         iOrderbook.deposit4(address(iToken0), vaultId, LibDecimalFloat.packLossless(0, 0), new TaskV2[](0));
+    }
+
+    /// Depositing vaultID of zero should revert.
+    function testDepositZeroVaultId(address depositor, address token, Float amount) external {
+        vm.assume(amount.gt(Float.wrap(0)));
+        vm.prank(depositor);
+        vm.expectRevert(abi.encodeWithSelector(IOrderBookV6.ZeroVaultId.selector, address(depositor), address(token)));
+        iOrderbook.deposit4(token, bytes32(0), amount, new TaskV2[](0));
     }
 
     /// Test a warm deposit, which is the best case scenario for gas. In this
@@ -58,14 +68,18 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
-        iOrderbook.deposit4(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
+        iOrderbook.deposit4(
+            address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(1, -18), new TaskV2[](0)
+        );
         vm.mockCall(
             address(iToken0),
             abi.encodeWithSelector(IERC20.transferFrom.selector, address(this), address(iOrderbook), 1),
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit4(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
+        iOrderbook.deposit4(
+            address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(1, -18), new TaskV2[](0)
+        );
     }
 
     /// Test a cold deposit, which is the worst case scenario for gas. In this
@@ -80,12 +94,15 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             abi.encode(true)
         );
         vm.resumeGasMetering();
-        iOrderbook.deposit4(address(iToken0), 0, LibDecimalFloat.packLossless(1, -18), new TaskV2[](0));
+        iOrderbook.deposit4(
+            address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(1, -18), new TaskV2[](0)
+        );
     }
 
     /// Any failure in the deposit should revert the entire transaction.
     /// forge-config: default.fuzz.runs = 100
     function testDepositFail(address depositor, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)) / 10);
         Float amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(amount18, 18);
 
@@ -125,12 +142,16 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     function testDepositMany(Action[] memory actions) external {
         vm.assume(actions.length > 0);
         for (uint256 i = 0; i < actions.length; i++) {
+            if (actions[i].vaultId == bytes32(0)) {
+                actions[i].vaultId = bytes32(uint256(0x01 + i));
+            }
             // Deposit amounts must be non-zero.
             actions[i].amount18 = bound(actions[i].amount18, 1, uint256(int256(type(int224).max)) / 10);
             actions[i].amount = LibDecimalFloat.fromFixedDecimalLosslessPacked(actions[i].amount18, 18);
             // Avoid errors from attempting to etch precompiles.
             vm.assume(uint160(actions[i].token) < 1 || 10 < uint160(actions[i].token));
-            vm.assume(actions[i].token.code.length != 0);
+            vm.assume(actions[i].token.code.length == 0);
+            vm.assume(actions[i].token != CONSOLE_ADDRESS);
         }
 
         for (uint256 i = 0; i < actions.length; i++) {
@@ -166,9 +187,8 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             // // - vault balance x1
             assertTrue(writes.length == 4 || writes.length == 3, "writes");
             assertTrue(
-                iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId).eq(
-                    actions[i].amount.add(vaultBalanceBefore)
-                ),
+                iOrderbook.vaultBalance2(actions[i].depositor, actions[i].token, actions[i].vaultId)
+                    .eq(actions[i].amount.add(vaultBalanceBefore)),
                 "vault balance"
             );
         }
@@ -177,6 +197,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     /// Depositing should emit an event with the sender and all deposit details.
     /// forge-config: default.fuzz.runs = 100
     function testDepositEvent(address depositor, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)) / 10);
         vm.prank(depositor);
         vm.mockCall(
@@ -200,6 +221,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
         bytes32 reVaultId,
         uint256 reAmount18
     ) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)) / 10);
         reAmount18 = bound(reAmount18, 1, uint256(int256(type(int224).max)) / 10);
         vm.prank(depositor);

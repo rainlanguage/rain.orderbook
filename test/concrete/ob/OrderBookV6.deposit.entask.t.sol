@@ -45,6 +45,7 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
         uint256 expectedReads,
         uint256 expectedWrites
     ) internal {
+        vm.assume(vaultId != bytes32(0));
         uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, decimals);
         vm.startPrank(owner);
         vm.mockCall(
@@ -101,6 +102,8 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
     /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEvalWriteStateSingle(address alice, bytes32 vaultId, uint256 amount18) external {
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
+        // amount18 is bound above so safe to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float amount = LibDecimalFloat.packLossless(int256(amount18), -18);
 
         bytes[] memory evals = new bytes[](1);
@@ -115,6 +118,8 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
     /// forge-config: default.fuzz.runs = 10
     function testOrderBookDepositEvalWriteStateSequential(address alice, bytes32 vaultId, uint256 amount18) external {
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
+        // amount18 is bound above so safe to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float amount = LibDecimalFloat.packLossless(int256(amount18), -18);
 
         bytes[] memory evals0 = new bytes[](4);
@@ -141,7 +146,8 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
     ) external {
         vm.assume(alice != bob);
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
-
+        // amount18 is bound above so safe to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float amount = LibDecimalFloat.packLossless(int256(amount18), -18);
 
         bytes[] memory evals0 = new bytes[](4);
@@ -176,10 +182,15 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
         uint256 preDepositAmount18,
         uint256 depositAmount18
     ) external {
+        vm.assume(vaultId != bytes32(0));
         preDepositAmount18 = bound(preDepositAmount18, 1, uint256(int256(type(int128).max)));
         depositAmount18 = bound(depositAmount18, 1, uint256(int256(type(int128).max)));
 
+        // pre deposit amount is bound above so safe to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float preDepositAmount = LibDecimalFloat.packLossless(int256(preDepositAmount18), -6);
+        // deposit amount is bound above so safe to typecast.
+        // forge-lint: disable-next-line(unsafe-typecast)
         Float depositAmount = LibDecimalFloat.packLossless(int256(depositAmount18), -6);
 
         vm.mockCall(address(iToken0), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(6));
@@ -241,6 +252,7 @@ contract OrderBookV6DepositEnactTest is OrderBookV6ExternalRealTest {
     /// A revert in the action prevents the deposit from being enacted.
     /// forge-config: default.fuzz.runs = 10
     function testDepositRevertInAction(address alice, bytes32 vaultId, uint256 amount18) external {
+        vm.assume(vaultId != bytes32(0));
         amount18 = bound(amount18, 1, uint256(int256(type(int224).max)));
         vm.startPrank(alice);
         vm.mockCall(

@@ -26,7 +26,7 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
     using LibDecimalFloat for Float;
 
     function checkTakeOrderHandleIO(bytes[] memory configs, bytes memory err, Float maxInput) internal {
-        bytes32 vaultId = 0;
+        bytes32 vaultId = bytes32(uint256(0x01));
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 
@@ -54,9 +54,8 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
         }
         iOrderbook.deposit4(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0));
         assertTrue(
-            iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(
-                LibDecimalFloat.packLossless(type(int224).max, -18)
-            )
+            iOrderbook.vaultBalance2(address(this), outputToken, vaultId)
+                .eq(LibDecimalFloat.packLossless(type(int224).max, -18))
         );
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](configs.length);

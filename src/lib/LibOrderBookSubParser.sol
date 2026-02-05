@@ -98,11 +98,7 @@ uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
 
-    function subParserSender(uint256, uint256, OperandV2)
-        internal
-        pure
-        returns (bool, bytes memory, bytes32[] memory)
-    {
+    function subParserSender(uint256, uint256, OperandV2) internal pure returns (bool, bytes memory, bytes32[] memory) {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_SENDER);
     }
@@ -286,9 +282,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE
+            );
     }
 
     function subParserDepositVaultBalanceAfter(uint256, uint256, OperandV2)
@@ -297,9 +294,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER
+            );
     }
 
     function subParserWithdrawToken(uint256, uint256, OperandV2)
@@ -327,9 +325,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE
+            );
     }
 
     function subParserWithdrawVaultBalanceAfter(uint256, uint256, OperandV2)
@@ -338,9 +337,10 @@ library LibOrderBookSubParser {
         returns (bool, bytes memory, bytes32[] memory)
     {
         //slither-disable-next-line unused-return
-        return LibSubParse.subParserContext(
-            CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER
-        );
+        return
+            LibSubParse.subParserContext(
+                CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER
+            );
     }
 
     function subParserWithdrawTargetAmount(uint256, uint256, OperandV2)
@@ -374,75 +374,135 @@ library LibOrderBookSubParser {
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(
+            // constant WORD_ORDER_CLEARER defined above is less than 32 bytes,
+            // so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_ORDER_CLEARER),
             "The order clearer is the address that submitted the transaction that is causing the order to execute. This MAY be the counterparty, e.g. when an order is being taken directly, but it MAY NOT be the counterparty if a third party is clearing two orders against each other."
         );
         contextBaseMeta[CONTEXT_BASE_ROW_CALLING_CONTRACT] =
-            AuthoringMetaV2(bytes32(WORD_ORDERBOOK), "The address of the orderbook that the order is being run on.");
+        // constant WORD_ORDERBOOK defined above is less than 32 bytes, so
+        // this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_ORDERBOOK), "The address of the orderbook that the order is being run on.");
 
         AuthoringMetaV2[] memory contextCallingContextMeta = new AuthoringMetaV2[](CONTEXT_CALLING_CONTEXT_ROWS);
         contextCallingContextMeta[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] =
-            AuthoringMetaV2(bytes32(WORD_ORDER_HASH), "The hash of the order that is being cleared.");
+        // constant WORD_ORDER_HASH defined above is less than 32 bytes, so
+        // this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_ORDER_HASH), "The hash of the order that is being cleared.");
         contextCallingContextMeta[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] =
-            AuthoringMetaV2(bytes32(WORD_ORDER_OWNER), "The address of the order owner.");
+        // constant  WORD_ORDER_OWNER defined above is less than 32 bytes, so
+        // this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_ORDER_OWNER), "The address of the order owner.");
         contextCallingContextMeta[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] = AuthoringMetaV2(
+            // constant WORD_ORDER_COUNTERPARTY defined above is less than 32
+            // bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_ORDER_COUNTERPARTY),
             "The address of the owner of the counterparty order. Will be the order taker if there is no counterparty order."
         );
 
         AuthoringMetaV2[] memory contextCalculationsMeta = new AuthoringMetaV2[](CONTEXT_CALCULATIONS_ROWS);
         contextCalculationsMeta[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = AuthoringMetaV2(
+            // constant WORD_CALCULATED_MAX_OUTPUT defined above is less than
+            // 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_CALCULATED_MAX_OUTPUT),
             "The maximum output of the order, i.e. the maximum amount of the output token that the order will send. This is 0 before calculations have been run."
         );
         contextCalculationsMeta[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = AuthoringMetaV2(
+            // constant WORD_CALCULATED_IO_RATIO defined above is less than
+            // 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_CALCULATED_IO_RATIO),
             "The ratio of the input to output token, i.e. the amount of the input token that the order will receive for each unit of the output token that it sends. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextVaultInputsMeta = new AuthoringMetaV2[](CONTEXT_VAULT_IO_ROWS);
         contextVaultInputsMeta[CONTEXT_VAULT_IO_TOKEN] =
-            AuthoringMetaV2(bytes32(WORD_INPUT_TOKEN), "The address of the input token for the vault input.");
+        // constant WORD_INPUT_TOKEN defined above is less than 32 bytes, so this
+        // conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_INPUT_TOKEN), "The address of the input token for the vault input.");
         contextVaultInputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] =
-            AuthoringMetaV2(bytes32(WORD_INPUT_TOKEN_DECIMALS), "The decimals of the input token for the vault input.");
+        // constant WORD_INPUT_TOKEN_DECIMALS defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_INPUT_TOKEN_DECIMALS), "The decimals of the input token for the vault input.");
         contextVaultInputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = AuthoringMetaV2(
-            bytes32(WORD_INPUT_VAULT_ID), "The ID of the input vault that incoming tokens are received into."
+            // constant WORD_INPUT_VAULT_ID defined above is less than 32 bytes,
+            // so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
+            bytes32(WORD_INPUT_VAULT_ID),
+            "The ID of the input vault that incoming tokens are received into."
         );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
+            // constant WORD_INPUT_VAULT_BALANCE_BEFORE defined above is less
+            // than 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_INPUT_VAULT_BALANCE_BEFORE),
             "The balance of the input vault before the order is cleared as a uint256 value."
         );
         contextVaultInputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
+            // constant WORD_INPUT_VAULT_BALANCE_INCREASE defined above is less
+            // than 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_INPUT_VAULT_BALANCE_INCREASE),
             "The difference in the balance of the input vault after the order is cleared as a uint256 value. This is always positive so it must be added to the input balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextVaultOutputsMeta = new AuthoringMetaV2[](CONTEXT_VAULT_IO_ROWS);
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN] =
-            AuthoringMetaV2(bytes32(WORD_OUTPUT_TOKEN), "The address of the output token for the vault output.");
+        // constant WORD_OUTPUT_TOKEN defined above is less than 32 bytes, so
+        // this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_OUTPUT_TOKEN), "The address of the output token for the vault output.");
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = AuthoringMetaV2(
-            bytes32(WORD_OUTPUT_TOKEN_DECIMALS), "The decimals of the output token for the vault output."
+            // constant WORD_OUTPUT_TOKEN_DECIMALS defined above is less than
+            // 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
+            bytes32(WORD_OUTPUT_TOKEN_DECIMALS),
+            "The decimals of the output token for the vault output."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_VAULT_ID] = AuthoringMetaV2(
-            bytes32(WORD_OUTPUT_VAULT_ID), "The ID of the output vault that outgoing tokens are sent from."
+            // constant WORD_OUTPUT_VAULT_ID defined above is less than 32 bytes,
+            // so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
+            bytes32(WORD_OUTPUT_VAULT_ID),
+            "The ID of the output vault that outgoing tokens are sent from."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_BEFORE] = AuthoringMetaV2(
+            // constant WORD_OUTPUT_VAULT_BALANCE_BEFORE defined above is less
+            // than 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_OUTPUT_VAULT_BALANCE_BEFORE),
             "The balance of the output vault before the order is cleared as a uint256 value."
         );
         contextVaultOutputsMeta[CONTEXT_VAULT_IO_BALANCE_DIFF] = AuthoringMetaV2(
+            // constant WORD_OUTPUT_VAULT_BALANCE_DECREASE defined above is less
+            // than 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_OUTPUT_VAULT_BALANCE_DECREASE),
             "The difference in the balance of the output vault after the order is cleared as a uint256 value. This is always positive so it must be subtracted from the output balance before to get the final vault balance. This is 0 before calculations have been run."
         );
 
         AuthoringMetaV2[] memory contextSignersMeta = new AuthoringMetaV2[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
         contextSignersMeta[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = AuthoringMetaV2(
+            // string literal "signer" is less than 32 bytes, so this
+            // conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("signer"),
             "The addresses of the signers of the signed context. The indexes of the signers matches the column they signed in the signed context grid."
         );
 
         AuthoringMetaV2[] memory contextSignedMeta = new AuthoringMetaV2[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
         contextSignedMeta[CONTEXT_SIGNED_CONTEXT_START_ROW] = AuthoringMetaV2(
+            // string literal "signed-context" is less than 32 bytes, so this
+            // conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("signed-context"),
             "Signed context is provided by the order clearer/taker and can be signed by anyone. Orderbook will check the signature, but the expression author much authorize the signer's public key."
         );
@@ -457,32 +517,67 @@ library LibOrderBookSubParser {
 
         AuthoringMetaV2[] memory depositMeta = new AuthoringMetaV2[](DEPOSIT_WORDS_LENGTH);
         depositMeta[0] =
-            AuthoringMetaV2(bytes32(WORD_DEPOSITOR), "The address of the depositor that is depositing the token.");
+        // constant WORD_DEPOSITOR defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_DEPOSITOR), "The address of the depositor that is depositing the token.");
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN + 1] =
-            AuthoringMetaV2(bytes32(WORD_DEPOSIT_TOKEN), "The address of the token that is being deposited.");
+        // constant WORD_DEPOSIT_TOKEN defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_DEPOSIT_TOKEN), "The address of the token that is being deposited.");
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
-            bytes32(WORD_DEPOSIT_VAULT_ID), "The ID of the vault that the token is being deposited into."
+            // constant WORD_DEPOSIT_VAULT_ID defined above is less than
+            // 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
+            bytes32(WORD_DEPOSIT_VAULT_ID),
+            "The ID of the vault that the token is being deposited into."
         );
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE + 1] =
-            AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_BEFORE), "The balance of the vault before the deposit.");
+        // constant WORD_DEPOSIT_VAULT_BEFORE defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_BEFORE), "The balance of the vault before the deposit.");
         depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER + 1] =
-            AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_AFTER), "The balance of the vault after deposit.");
+        // constant WORD_DEPOSIT_VAULT_AFTER defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_AFTER), "The balance of the vault after deposit.");
 
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositMeta;
 
         AuthoringMetaV2[] memory withdrawMeta = new AuthoringMetaV2[](WITHDRAW_WORDS_LENGTH);
         withdrawMeta[WITHDRAW_WORD_WITHDRAWER] =
-            AuthoringMetaV2(bytes32(WORD_WITHDRAWER), "The address of the withdrawer that is withdrawing the token.");
+        // constant WORD_WITHDRAWER defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_WITHDRAWER), "The address of the withdrawer that is withdrawing the token.");
         withdrawMeta[WITHDRAW_WORD_TOKEN] =
-            AuthoringMetaV2(bytes32(WORD_WITHDRAW_TOKEN), "The address of the token that is being withdrawn.");
+        // constant WORD_WITHDRAW_TOKEN defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_WITHDRAW_TOKEN), "The address of the token that is being withdrawn.");
         withdrawMeta[WITHDRAW_WORD_VAULT_ID] = AuthoringMetaV2(
-            bytes32(WORD_WITHDRAW_VAULT_ID), "The ID of the vault that the token is being withdrawn from."
+            // constant WORD_WITHDRAW_VAULT_ID defined above is less than
+            // 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
+            bytes32(WORD_WITHDRAW_VAULT_ID),
+            "The ID of the vault that the token is being withdrawn from."
         );
         withdrawMeta[WITHDRAW_WORD_VAULT_BEFORE] =
-            AuthoringMetaV2(bytes32(WORD_WITHDRAW_VAULT_BEFORE), "The balance of the vault before the withdrawal.");
+        // constant WORD_WITHDRAW_VAULT_BEFORE defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_WITHDRAW_VAULT_BEFORE), "The balance of the vault before the withdrawal.");
         withdrawMeta[WITHDRAW_WORD_VAULT_AFTER] =
-            AuthoringMetaV2(bytes32(WORD_WITHDRAW_VAULT_AFTER), "The balance of the vault after withdrawal.");
+        // constant WORD_WITHDRAW_VAULT_AFTER defined above is less than
+        // 32 bytes, so this conversion is safe.
+        // forge-lint: disable-next-line(unsafe-typecast)
+        AuthoringMetaV2(bytes32(WORD_WITHDRAW_VAULT_AFTER), "The balance of the vault after withdrawal.");
         withdrawMeta[WITHDRAW_WORD_TARGET_AMOUNT] = AuthoringMetaV2(
+            // constant WORD_WITHDRAW_TARGET_AMOUNT defined above is less than
+            // 32 bytes, so this conversion is safe.
+            // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_WITHDRAW_TARGET_AMOUNT),
             "The target amount of the token that the withdrawer is trying to withdraw. This is the amount that the withdrawer is trying to withdraw, but it MAY NOT be the amount that the withdrawer actually receives."
         );

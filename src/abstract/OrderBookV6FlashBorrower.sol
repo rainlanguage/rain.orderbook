@@ -91,10 +91,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     function _exchange(TakeOrdersConfigV5 memory takeOrders, bytes memory exchangeData) internal virtual {}
 
     /// @inheritdoc IERC3156FlashBorrower
-    function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data)
-        external
-        returns (bytes32)
-    {
+    function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data) external returns (bytes32) {
         // As per reference implementation.
         if (initiator != address(this)) {
             revert BadInitiator(initiator);
