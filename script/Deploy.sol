@@ -8,6 +8,7 @@ import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol
 import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {RouteProcessorOrderBookV6ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 import {GenericPoolOrderBookV6FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {RaindexRouterOrderBookV6Arb} from "src/concrete/arb/RaindexRouterOrderBookV6Arb.sol";
 import {OrderBookV6ArbConfig} from "src/abstract/OrderBookV6ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
@@ -121,6 +122,18 @@ contract Deploy is Script {
 
             // Flash borrowers.
             new GenericPoolOrderBookV6FlashBorrower(
+                OrderBookV6ArbConfig(
+                    raindex,
+                    TaskV2({
+                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
+                        signedContext: new SignedContextV1[](0)
+                    }),
+                    ""
+                )
+            );
+
+            // Raindex Router Arb.
+            new RaindexRouterOrderBookV6Arb(
                 OrderBookV6ArbConfig(
                     raindex,
                     TaskV2({
