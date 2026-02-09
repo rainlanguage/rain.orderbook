@@ -307,7 +307,7 @@ mod tests {
         let input_display = "-1.234567890123456789".to_string();
         let input_amount = Float::parse(input_display.clone()).unwrap();
 
-        let output_display = "-0.98765432".to_string();
+        let output_display = "-9.8765432e-1".to_string();
         let output_amount = Float::parse(output_display.clone()).unwrap();
 
         trade_data.input_vault_balance_change.amount = SgBytes(input_amount.as_hex());
