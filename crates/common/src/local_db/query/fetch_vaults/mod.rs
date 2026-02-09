@@ -224,4 +224,30 @@ mod tests {
         assert!(stmt.sql.contains("o.token IN ("));
         assert!(stmt.sql.contains("rvb.chain_id IN ("));
     }
+
+    #[test]
+    fn owner_filtering_threaded_through_query() {
+        let args = mk_args();
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
+
+        assert!(stmt
+            .sql
+            .contains("SELECT DISTINCT chain_id, orderbook_address, owner, token, vault_id"));
+        assert!(stmt.sql.contains("rv.owner = oe.order_owner"));
+        assert!(stmt
+            .sql
+            .contains("GROUP BY chain_id, orderbook_address, owner, token, vault_id, io_type"));
+        assert!(stmt
+            .sql
+            .contains("GROUP BY chain_id, orderbook_address, owner, token, vault_id\n"));
+        assert!(stmt.sql.contains("vol.owner = o.owner"));
+    }
+
+    #[test]
+    fn active_orders_filters_by_owner() {
+        let mut args = mk_args();
+        args.only_active_orders = true;
+        let stmt = build_fetch_vaults_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("oii.owner = o.owner"));
+    }
 }
