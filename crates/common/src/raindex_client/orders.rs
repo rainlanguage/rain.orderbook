@@ -968,6 +968,36 @@ impl RaindexClient {
     }
 }
 
+impl RaindexClient {
+    pub(crate) async fn fetch_orders_for_pair(
+        &self,
+        chain_id: u32,
+        sell_token: Address,
+        buy_token: Address,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let filters = GetOrdersFilters {
+            owners: vec![],
+            active: Some(true),
+            order_hash: None,
+            tokens: Some(GetOrdersTokenFilter {
+                inputs: Some(vec![sell_token]),
+                outputs: Some(vec![buy_token]),
+            }),
+            orderbook_addresses: None,
+        };
+
+        let orders = self
+            .get_orders(Some(ChainIds(vec![chain_id])), Some(filters), None)
+            .await?;
+
+        if orders.is_empty() {
+            return Err(RaindexError::NoLiquidity);
+        }
+
+        Ok(orders)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct GetOrdersFilters {
@@ -2932,5 +2962,75 @@ mod tests {
 
         //     assert_eq!(result.len(), 1);
         // }
+
+        #[tokio::test]
+        async fn test_fetch_orders_for_pair_returns_orders() {
+            let sg_server = MockServer::start_async().await;
+
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let sell = address!("1d80c49bbbcd1c0911346656b529df9e5c2f783d");
+            let buy = address!("12e605bc104e93b45e1ad99f9e555f659051c2bb");
+            let result = client.fetch_orders_for_pair(1, sell, buy).await.unwrap();
+            assert_eq!(result.len(), 1);
+        }
+
+        #[tokio::test]
+        async fn test_fetch_orders_for_pair_no_liquidity() {
+            let sg_server = MockServer::start_async().await;
+
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let sell = address!("1d80c49bbbcd1c0911346656b529df9e5c2f783d");
+            let buy = address!("12e605bc104e93b45e1ad99f9e555f659051c2bb");
+            let result = client.fetch_orders_for_pair(1, sell, buy).await;
+            assert!(matches!(result, Err(RaindexError::NoLiquidity)));
+        }
     }
 }
