@@ -1,6 +1,6 @@
 use super::candidates::TakeOrderCandidate;
-use super::price::cmp_float;
 use crate::raindex_client::RaindexError;
+use crate::utils::float::cmp_float;
 use rain_math_float::Float;
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -29,7 +29,7 @@ fn sort_candidates_by_price(candidates: &mut [TakeOrderCandidate]) -> Result<(),
         match cmp_float(&a.ratio, &b.ratio) {
             Ok(ord) => ord,
             Err(e) => {
-                *comparison_error.borrow_mut() = Some(e);
+                *comparison_error.borrow_mut() = Some(e.into());
                 Ordering::Equal
             }
         }

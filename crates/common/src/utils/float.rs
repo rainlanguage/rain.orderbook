@@ -1,8 +1,7 @@
-use crate::raindex_client::RaindexError;
-use rain_math_float::Float;
+use rain_math_float::{Float, FloatError};
 use std::cmp::Ordering;
 
-pub fn cmp_float(a: &Float, b: &Float) -> Result<Ordering, RaindexError> {
+pub fn cmp_float(a: &Float, b: &Float) -> Result<Ordering, FloatError> {
     if a.lt(*b)? {
         Ok(Ordering::Less)
     } else if a.gt(*b)? {

@@ -1,9 +1,10 @@
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::RaindexError;
 use crate::take_orders::{
-    build_take_order_candidates_for_pair, cmp_float, simulate_buy_over_candidates,
+    build_take_order_candidates_for_pair, simulate_buy_over_candidates,
     simulate_spend_over_candidates, ParsedTakeOrdersMode, SimulationResult, TakeOrderCandidate,
 };
+use crate::utils::float::cmp_float;
 use alloy::primitives::Address;
 use rain_math_float::Float;
 use std::collections::HashMap;
