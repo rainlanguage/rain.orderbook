@@ -4,12 +4,13 @@
 	import VaultBalanceChart from '../charts/VaultBalanceChart.svelte';
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
-	import { QKEY_VAULT } from '../../queries/keys';
+	import { QKEY_VAULT, QKEY_VAULT_CHANGES } from '../../queries/keys';
 	import {
 		RaindexClient,
 		type Address,
 		type Hex,
-		type RaindexVault
+		type RaindexVault,
+		type RaindexVaultBalanceChange
 	} from '@rainlanguage/orderbook';
 	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { toHex } from 'viem';
@@ -53,6 +54,20 @@
 		queryFn: async () => {
 			const result = await raindexClient.getVault(chainId, orderbookAddress, id);
 			if (result.error) throw new Error(result.error.readableMsg);
+			return result.value;
+		}
+	});
+
+	$: balanceChangesQuery = createQuery<RaindexVaultBalanceChange[]>({
+		queryKey: [
+			$vaultDetailQuery.data?.id ?? '',
+			QKEY_VAULT_CHANGES + ($vaultDetailQuery.data?.id ?? ''),
+			QKEY_VAULT_CHANGES
+		],
+		enabled: !!$vaultDetailQuery.data,
+		queryFn: async () => {
+			const result = await $vaultDetailQuery.data!.getBalanceChanges(1);
+			if (result.error) throw new Error(result.error.msg);
 			return result.value;
 		}
 	});
@@ -177,8 +192,10 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="chart" let:data>
-		<VaultBalanceChart vault={data} {lightweightChartsTheme} />
+		<VaultBalanceChart vault={data} query={balanceChangesQuery} {lightweightChartsTheme} />
 	</svelte:fragment>
 
-	<svelte:fragment slot="below" let:data><VaultBalanceChangesTable vault={data} /></svelte:fragment>
+	<svelte:fragment slot="below">
+		<VaultBalanceChangesTable data={$balanceChangesQuery.data} />
+	</svelte:fragment>
 </TanstackPageContentDetail>
