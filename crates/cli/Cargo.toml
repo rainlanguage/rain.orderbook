@@ -13,7 +13,9 @@ alloy = { workspace = true }
 rain_orderbook_common = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
 anyhow = { workspace = true }
+async-trait = { workspace = true }
 clap = { workspace = true }
+serde = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ['env-filter'] }
 rain-math-float.workspace = true
@@ -35,5 +37,5 @@ tokio = { workspace = true, features = [
 ] }
 
 [dev-dependencies]
-async-trait = { workspace = true }
+rain-metadata = { workspace = true }
 tempfile.workspace = true
