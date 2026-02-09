@@ -66,11 +66,34 @@
 		],
 		enabled: !!$vaultDetailQuery.data,
 		queryFn: async () => {
+			// eslint-disable-next-line no-console
+			console.log('[VaultDetail] fetching balance changes, vault:', $vaultDetailQuery.data?.id);
 			const result = await $vaultDetailQuery.data!.getBalanceChanges(1);
+			// eslint-disable-next-line no-console
+			console.log(
+				'[VaultDetail] result:',
+				result,
+				'value length:',
+				result.value?.length,
+				'error:',
+				result.error
+			);
 			if (result.error) throw new Error(result.error.msg);
 			return result.value;
 		}
 	});
+
+	// eslint-disable-next-line no-console
+	$: console.log(
+		'[VaultDetail] vaultData:',
+		!!$vaultDetailQuery.data,
+		'bcData:',
+		$balanceChangesQuery?.data?.length,
+		'bcLoading:',
+		$balanceChangesQuery?.isLoading,
+		'bcError:',
+		$balanceChangesQuery?.error
+	);
 
 	const interval = setInterval(async () => {
 		invalidateTanstackQueries(queryClient, [id, QKEY_VAULT + id]);
