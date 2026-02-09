@@ -50,6 +50,7 @@ const ONLY_ACTIVE_ORDERS_BODY: &str = "\nAND EXISTS (
   SELECT 1 FROM order_io_items oii
   WHERE oii.chain_id = o.chain_id
     AND oii.orderbook_address = o.orderbook_address
+    AND oii.owner = o.owner
     AND oii.token = o.token
     AND oii.vault_id = o.vault_id
     AND substr(oii.item, -1) = '1'
