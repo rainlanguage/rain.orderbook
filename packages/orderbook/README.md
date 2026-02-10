@@ -60,7 +60,9 @@ networks:
     currency: ETH
 
 metaboards:
-  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/metadata-base/2025-07-06-594f/gn
+  base:
+    url: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/metadata-base/2025-07-06-594f/gn
+    address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 
 subgraphs:
   base: https://example.com/subgraph

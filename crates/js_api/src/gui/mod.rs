@@ -931,7 +931,9 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test:
+      url: https://metaboard.com
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 deployers:
     some-deployer:
         network: some-network
@@ -1993,7 +1995,9 @@ gui:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test:
+      url: https://metaboard.com
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 deployers:
     some-deployer:
         network: some-network

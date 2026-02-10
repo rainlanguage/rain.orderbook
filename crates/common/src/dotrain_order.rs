@@ -1479,7 +1479,9 @@ _ _: 0 0;
             bindings:
                 key1: 10
     metaboards:
-        sepolia: {metaboard_url}
+        sepolia:
+          url: {metaboard_url}
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
     ---
     #key1 !Test binding
     #calculate-io
@@ -1530,7 +1532,9 @@ _ _: 0 0;
             bindings:
                 key1: 10
     metaboards:
-        sepolia: {metaboard_url}
+        sepolia:
+          url: {metaboard_url}
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
     ---
     #key1 !Test binding
     #calculate-io
@@ -1586,7 +1590,9 @@ _ _: 0 0;
             bindings:
                 key1: 10
     metaboards:
-        sepolia: {metaboard_url}
+        sepolia:
+          url: {metaboard_url}
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
     ---
     #calculate-io
     using-words-from 0xbc609623F5020f6Fc7481024862cD5EE3FFf52D7
@@ -1642,7 +1648,9 @@ _ _: 0 0;
             bindings:
                 key1: 10
     metaboards:
-        sepolia: {metaboard_url}
+        sepolia:
+          url: {metaboard_url}
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
     ---
     #key1 !Test binding
     #calculate-io
@@ -1722,7 +1730,9 @@ _ _: 0 0;
             bindings:
                 key1: 40
     metaboards:
-        sepolia: {metaboard_url}
+        sepolia:
+          url: {metaboard_url}
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
     ---
     #key1 !Test binding
     #calculate-io

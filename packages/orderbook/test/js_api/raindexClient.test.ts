@@ -41,7 +41,9 @@ subgraphs:
     some-sg: http://localhost:8230/sg1
     other-sg: http://localhost:8230/sg2
 metaboards:
-    test: https://metaboard.com
+    test:
+      url: https://metaboard.com
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 deployers:
     some-deployer:
         network: some-network

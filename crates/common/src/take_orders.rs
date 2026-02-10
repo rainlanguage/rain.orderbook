@@ -248,7 +248,9 @@ networks:
 subgraphs:
     test-sg: http://localhost:0/notused
 metaboards:
-    test-mb: http://localhost:0/notused
+    test-mb:
+      url: http://localhost:0/notused
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 deployers:
     test-deployer:
         address: {deployer}

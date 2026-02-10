@@ -377,8 +377,11 @@ impl OrderbookYaml {
         let context = self.build_context();
         MetaboardCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
-    pub fn add_metaboard(&self, key: &str, value: &str) -> Result<(), YamlError> {
-        MetaboardCfg::add_record_to_yaml(self.documents[0].clone(), key, value)
+    pub fn add_metaboard(&self, key: &str, url: &str, address: &str) -> Result<(), YamlError> {
+        MetaboardCfg::add_record_to_yaml(self.documents[0].clone(), key, url, address)
+    }
+    pub fn set_metaboard(&self, key: &str, url: &str, address: &str) -> Result<(), YamlError> {
+        MetaboardCfg::set_record_to_yaml(self.documents[0].clone(), key, url, address)
     }
 
     pub fn get_deployer_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -618,8 +621,12 @@ mod tests {
     local-db-remotes:
         mainnet: https://example.com/localdb/mainnet
     metaboards:
-        board1: https://meta.example.com/board1
-        board2: https://meta.example.com/board2
+        board1:
+            url: https://meta.example.com/board1
+            address: 0x1111111111111111111111111111111111111111
+        board2:
+            url: https://meta.example.com/board2
+            address: 0x2222222222222222222222222222222222222222
     orderbooks:
         orderbook1:
             address: 0x0000000000000000000000000000000000000002
@@ -657,7 +664,9 @@ mod tests {
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
     metaboards:
-        board1: https://meta.example.com/board1
+        board1:
+            url: https://meta.example.com/board1
+            address: 0x1111111111111111111111111111111111111111
     orderbooks:
         orderbook1:
             address: 0x1234567890abcdef
@@ -754,8 +763,16 @@ mod tests {
             Url::parse("https://meta.example.com/board1").unwrap()
         );
         assert_eq!(
+            ob_yaml.get_metaboard("board1").unwrap().address,
+            Address::from_str("0x1111111111111111111111111111111111111111").unwrap()
+        );
+        assert_eq!(
             ob_yaml.get_metaboard("board2").unwrap().url,
             Url::parse("https://meta.example.com/board2").unwrap()
+        );
+        assert_eq!(
+            ob_yaml.get_metaboard("board2").unwrap().address,
+            Address::from_str("0x2222222222222222222222222222222222222222").unwrap()
         );
 
         assert_eq!(ob_yaml.get_deployer_keys().unwrap().len(), 1);
@@ -910,7 +927,11 @@ test: test
         let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
 
         ob_yaml
-            .add_metaboard("test-metaboard", "https://test-metaboard.com")
+            .add_metaboard(
+                "test-metaboard",
+                "https://test-metaboard.com",
+                "0x59401c9302e79eb8ac6aea659b8b3ae475715e86",
+            )
             .unwrap();
 
         assert_eq!(
@@ -920,6 +941,10 @@ test: test
         assert_eq!(
             ob_yaml.get_metaboard("test-metaboard").unwrap().url,
             Url::parse("https://test-metaboard.com").unwrap()
+        );
+        assert_eq!(
+            ob_yaml.get_metaboard("test-metaboard").unwrap().address,
+            Address::from_str("0x59401c9302e79eb8ac6aea659b8b3ae475715e86").unwrap()
         );
     }
 
