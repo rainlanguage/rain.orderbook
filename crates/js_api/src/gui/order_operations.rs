@@ -10,6 +10,7 @@ use rain_metaboard_subgraph::metaboard_client::{
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::RainMetaDocumentV1Item;
 use rain_orderbook_app_settings::{
+    metaboard::MetaboardCfg,
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
 };
@@ -822,16 +823,12 @@ impl DotrainOrderGui {
             Bytes::copy_from_slice(&multicallCall { data: calls }.abi_encode());
 
         let emit_meta_call = if self.should_emit_meta_call().await? {
-            let client = self.get_metaboard_client()?;
-            let addresses = client.get_metaboard_addresses(None, None).await?;
-            let metaboard_address = addresses
-                .first()
-                .ok_or_else(|| GuiError::NoAddressInMetaboardSubgraph)?;
+            let metaboard_cfg = self.get_metaboard_cfg()?;
 
             let calldata = add_order_args.try_into_emit_meta_call()?;
             match calldata {
                 Some(calldata) => Some(ExternalCall {
-                    to: *metaboard_address,
+                    to: metaboard_cfg.address,
                     calldata: Bytes::copy_from_slice(&calldata.abi_encode()),
                 }),
                 None => None,
@@ -855,11 +852,16 @@ impl DotrainOrderGui {
         })
     }
 
-    fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, GuiError> {
+    fn get_metaboard_cfg(&self) -> Result<MetaboardCfg, GuiError> {
         let deployment = self.get_current_deployment()?;
         let orderbook_yaml = self.dotrain_order.orderbook_yaml();
-        let metaboard_cfg =
-            orderbook_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
+        orderbook_yaml
+            .get_metaboard(&deployment.deployment.order.network.key)
+            .map_err(Into::into)
+    }
+
+    fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, GuiError> {
+        let metaboard_cfg = self.get_metaboard_cfg()?;
         Ok(MetaboardSubgraphClient::new(metaboard_cfg.url.clone()))
     }
 
