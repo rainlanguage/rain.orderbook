@@ -153,9 +153,11 @@ impl Execute for Words {
                     .clone();
                 let metaboard_address =
                     resolve_metaboard_address(&dotrain_order, network_name, v).await?;
-                dotrain_order
-                    .orderbook_yaml()
-                    .set_metaboard(network_name, v, &metaboard_address)?;
+                dotrain_order.orderbook_yaml().set_metaboard(
+                    network_name,
+                    v,
+                    &metaboard_address,
+                )?;
             }
             if self.deployer_only {
                 match dotrain_order
@@ -202,9 +204,11 @@ impl Execute for Words {
                 let network_key = deployment.scenario.deployer.network.key.clone();
                 let metaboard_address =
                     resolve_metaboard_address(&dotrain_order, &network_key, v).await?;
-                dotrain_order
-                    .orderbook_yaml()
-                    .set_metaboard(&network_key, v, &metaboard_address)?;
+                dotrain_order.orderbook_yaml().set_metaboard(
+                    &network_key,
+                    v,
+                    &metaboard_address,
+                )?;
             }
             let result = dotrain_order.get_all_words_for_scenario(scenario).await?;
             let mut words = vec![];
