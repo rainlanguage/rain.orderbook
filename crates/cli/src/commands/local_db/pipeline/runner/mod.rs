@@ -62,7 +62,7 @@ where
         environment: RunnerEnvironment<B, W, E, T, A, S>,
     ) -> Result<Self, LocalDbError> {
         let settings = parse_runner_settings(&settings_yaml)?;
-        let targets = build_runner_targets(&settings.orderbooks, &settings.syncs)?;
+        let targets = build_runner_targets(&settings.orderbooks, &settings.syncs, &settings.metaboards)?;
 
         let mut target_lookup = HashMap::with_capacity(targets.len());
         for target in &targets {
@@ -815,6 +815,17 @@ mod tests {
             Ok(Vec::new())
         }
 
+        async fn fetch_metaboard(
+            &self,
+            _metaboard_address: Address,
+            _from_block: u64,
+            _to_block: u64,
+            _cfg: &FetchConfig,
+        ) -> Result<Vec<rain_orderbook_common::rpc_client::LogEntryResponse>, LocalDbError>
+        {
+            Ok(Vec::new())
+        }
+
         async fn block_hash(&self, _block_number: u64) -> Result<B256, LocalDbError> {
             Ok(B256::ZERO)
         }
@@ -1281,7 +1292,7 @@ orderbooks:
 
     fn build_targets(yaml: &str) -> Vec<RunnerTarget> {
         let parsed = parse_settings(yaml);
-        build_runner_targets(&parsed.orderbooks, &parsed.syncs).expect("targets")
+        build_runner_targets(&parsed.orderbooks, &parsed.syncs, &parsed.metaboards).expect("targets")
     }
 
     #[test]

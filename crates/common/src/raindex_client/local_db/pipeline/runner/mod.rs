@@ -62,7 +62,7 @@ where
         leadership: L,
     ) -> Result<Self, LocalDbError> {
         let settings = parse_runner_settings(&settings_yaml)?;
-        let base_targets = build_runner_targets(&settings.orderbooks, &settings.syncs)?;
+        let base_targets = build_runner_targets(&settings.orderbooks, &settings.syncs, &settings.metaboards)?;
 
         Ok(Self {
             network_key: None,
@@ -769,6 +769,16 @@ mod tests {
         async fn fetch_stores(
             &self,
             _store_addresses: &[Address],
+            _from_block: u64,
+            _to_block: u64,
+            _cfg: &FetchConfig,
+        ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+            Ok(Vec::new())
+        }
+
+        async fn fetch_metaboard(
+            &self,
+            _metaboard_address: Address,
             _from_block: u64,
             _to_block: u64,
             _cfg: &FetchConfig,

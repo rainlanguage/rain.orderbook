@@ -58,4 +58,6 @@ pub mod topics {
     ];
 
     pub const STORE_SET_TOPICS: [B256; 1] = [Set::SIGNATURE_HASH];
+
+    pub const METABOARD_TOPICS: [B256; 1] = [MetaV1_2::SIGNATURE_HASH];
 }

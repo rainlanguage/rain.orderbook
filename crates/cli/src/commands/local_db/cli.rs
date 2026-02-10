@@ -220,6 +220,7 @@ mod tests {
             dump_str: None,
             block_number_threshold: 10000,
             manifest_end_block: 1,
+            metaboard_address: None,
         };
         let runner_target = RunnerTarget {
             orderbook_key: "test".to_string(),

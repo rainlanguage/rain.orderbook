@@ -190,7 +190,7 @@ orderbooks:
 
     fn sample_runner_target() -> (RunnerTarget, ManifestMap) {
         let parsed = parsed_settings();
-        let targets = build_runner_targets(&parsed.orderbooks, &parsed.syncs).unwrap();
+        let targets = build_runner_targets(&parsed.orderbooks, &parsed.syncs, &parsed.metaboards).unwrap();
         let target = targets
             .into_iter()
             .find(|t| t.orderbook_key == "ob-a")

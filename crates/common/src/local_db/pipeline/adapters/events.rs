@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use url::Url;
 
 use crate::local_db::decode::{decode_events, DecodedEvent, DecodedEventData};
-use crate::local_db::fetch::{fetch_orderbook_events, fetch_store_events};
+use crate::local_db::fetch::{fetch_metaboard_events, fetch_orderbook_events, fetch_store_events};
 use crate::local_db::pipeline::EventsPipeline;
 use crate::local_db::{FetchConfig, LocalDbError};
 use crate::rpc_client::{LogEntryResponse, RpcClient};
@@ -76,6 +76,17 @@ impl EventsPipeline for DefaultEventsPipeline {
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
         fetch_store_events(&self.rpc_client, store_addresses, from_block, to_block, cfg).await
+    }
+
+    async fn fetch_metaboard(
+        &self,
+        metaboard_address: Address,
+        from_block: u64,
+        to_block: u64,
+        cfg: &FetchConfig,
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+        fetch_metaboard_events(&self.rpc_client, metaboard_address, from_block, to_block, cfg)
+            .await
     }
 
     fn decode(

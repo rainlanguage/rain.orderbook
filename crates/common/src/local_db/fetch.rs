@@ -6,7 +6,7 @@ use crate::{
 use alloy::primitives::{Address, U256};
 use alloy::rpc::types::Filter;
 use futures::{StreamExt, TryStreamExt};
-use rain_orderbook_bindings::topics::{ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
+use rain_orderbook_bindings::topics::{METABOARD_TOPICS, ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
@@ -149,6 +149,21 @@ pub async fn fetch_store_events(
         .from_block(from_block)
         .to_block(to_block)
         .event_signature(STORE_SET_TOPICS.to_vec());
+    collect_logs(rpc_client, &filter, config).await
+}
+
+pub async fn fetch_metaboard_events(
+    rpc_client: &RpcClient,
+    address: Address,
+    from_block: u64,
+    to_block: u64,
+    config: &FetchConfig,
+) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+    let filter = Filter::new()
+        .address(address)
+        .from_block(from_block)
+        .to_block(to_block)
+        .event_signature(METABOARD_TOPICS.to_vec());
     collect_logs(rpc_client, &filter, config).await
 }
 

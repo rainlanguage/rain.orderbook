@@ -89,6 +89,8 @@ pub enum SyncPhase {
     DecodingOrderbookLogs,
     FetchingStoreLogs,
     DecodingStoreLogs,
+    FetchingMetaboardLogs,
+    DecodingMetaboardLogs,
     FetchingTokenMetadata,
     BuildingSqlBatch,
     PersistingToDatabase,
@@ -108,6 +110,8 @@ impl SyncPhase {
             Self::DecodingOrderbookLogs => "Decoding orderbook logs",
             Self::FetchingStoreLogs => "Fetching interpreter store logs",
             Self::DecodingStoreLogs => "Decoding interpreter store logs",
+            Self::FetchingMetaboardLogs => "Fetching metaboard logs",
+            Self::DecodingMetaboardLogs => "Decoding metaboard logs",
             Self::FetchingTokenMetadata => "Fetching missing token metadata",
             Self::BuildingSqlBatch => "Building SQL batch",
             Self::PersistingToDatabase => "Persisting to database",
@@ -185,6 +189,15 @@ pub trait EventsPipeline {
     async fn fetch_stores(
         &self,
         store_addresses: &[Address],
+        from_block: u64,
+        to_block: u64,
+        cfg: &FetchConfig,
+    ) -> Result<Vec<LogEntryResponse>, LocalDbError>;
+
+    /// Fetches MetaV1_2 logs from the metaboard contract.
+    async fn fetch_metaboard(
+        &self,
+        metaboard_address: Address,
         from_block: u64,
         to_block: u64,
         cfg: &FetchConfig,

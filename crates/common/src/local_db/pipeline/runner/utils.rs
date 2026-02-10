@@ -4,6 +4,7 @@ use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use itertools::Itertools;
 use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
+use rain_orderbook_app_settings::metaboard::MetaboardCfg;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use rain_orderbook_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
 use rain_orderbook_app_settings::yaml::YamlParsable;
@@ -15,6 +16,7 @@ use url::Url;
 pub struct ParsedRunnerSettings {
     pub orderbooks: HashMap<String, OrderbookCfg>,
     pub syncs: HashMap<String, LocalDbSyncCfg>,
+    pub metaboards: HashMap<String, MetaboardCfg>,
 }
 
 /// Scheduling metadata for a single engine invocation.
@@ -34,8 +36,13 @@ pub fn parse_runner_settings(settings_yaml: &str) -> Result<ParsedRunnerSettings
     )?;
     let orderbooks = orderbook_yaml.get_orderbooks()?;
     let syncs = orderbook_yaml.get_local_db_syncs()?;
+    let metaboards = orderbook_yaml.get_metaboards().unwrap_or_default();
 
-    Ok(ParsedRunnerSettings { orderbooks, syncs })
+    Ok(ParsedRunnerSettings {
+        orderbooks,
+        syncs,
+        metaboards,
+    })
 }
 
 pub(crate) fn map_sync_to_engine(
@@ -57,6 +64,7 @@ pub(crate) fn map_sync_to_engine(
 pub fn build_runner_targets(
     orderbooks: &HashMap<String, OrderbookCfg>,
     syncs: &HashMap<String, LocalDbSyncCfg>,
+    metaboards: &HashMap<String, MetaboardCfg>,
 ) -> Result<Vec<RunnerTarget>, LocalDbError> {
     let mut targets = Vec::with_capacity(orderbooks.len());
     for (key, orderbook) in orderbooks {
@@ -68,6 +76,7 @@ pub fn build_runner_targets(
                     network: network_key.clone(),
                 })?;
         let (fetch, finality) = map_sync_to_engine(sync_cfg)?;
+        let metaboard_address = metaboards.get(&network_key).map(|mb| mb.address);
         let inputs = SyncInputs {
             ob_id: OrderbookIdentifier::new(orderbook.network.chain_id, orderbook.address),
             metadata_rpcs: orderbook.network.rpcs.clone(),
@@ -80,6 +89,7 @@ pub fn build_runner_targets(
             dump_str: None,
             block_number_threshold: sync_cfg.bootstrap_block_threshold,
             manifest_end_block: 0,
+            metaboard_address,
         };
 
         let remote = orderbook.local_db_remote.as_ref().ok_or_else(|| {
@@ -102,7 +112,7 @@ pub fn build_runner_targets(
 /// Convenience helper retained for existing tests/utilities.
 pub fn build_sync_inputs_from_yaml(settings_yaml: &str) -> Result<Vec<SyncInputs>, LocalDbError> {
     let parsed = parse_runner_settings(settings_yaml)?;
-    let targets = build_runner_targets(&parsed.orderbooks, &parsed.syncs)?;
+    let targets = build_runner_targets(&parsed.orderbooks, &parsed.syncs, &parsed.metaboards)?;
     Ok(targets.into_iter().map(|target| target.inputs).collect())
 }
 
@@ -313,7 +323,8 @@ orderbooks:
     fn build_runner_targets_success() {
         let parsed = parsed_settings();
         let targets =
-            build_runner_targets(&parsed.orderbooks, &parsed.syncs).expect("targets build");
+            build_runner_targets(&parsed.orderbooks, &parsed.syncs, &parsed.metaboards)
+                .expect("targets build");
 
         assert_eq!(targets.len(), 3);
 
@@ -347,7 +358,7 @@ orderbooks:
         let mut syncs = parsed.syncs.clone();
         syncs.remove("network-a");
 
-        let err = build_runner_targets(&parsed.orderbooks, &syncs).unwrap_err();
+        let err = build_runner_targets(&parsed.orderbooks, &syncs, &parsed.metaboards).unwrap_err();
         match err {
             LocalDbError::MissingLocalDbSyncForNetwork { network } => {
                 assert_eq!(network, "network-a")
@@ -364,7 +375,7 @@ orderbooks:
             sync.batch_size = 0;
         }
 
-        let err = build_runner_targets(&parsed.orderbooks, &syncs).unwrap_err();
+        let err = build_runner_targets(&parsed.orderbooks, &syncs, &parsed.metaboards).unwrap_err();
         match err {
             LocalDbError::FetchConfigError(FetchConfigError::ChunkSizeZero(0)) => {}
             other => panic!("expected fetch config error, got {other:?}"),
@@ -402,7 +413,8 @@ orderbooks:
     #[test]
     fn group_targets_by_network_groups_correctly() {
         let parsed = parsed_settings();
-        let targets = build_runner_targets(&parsed.orderbooks, &parsed.syncs).unwrap();
+        let targets =
+            build_runner_targets(&parsed.orderbooks, &parsed.syncs, &parsed.metaboards).unwrap();
         let grouped = group_targets_by_network(&targets);
 
         assert_eq!(grouped.len(), 2);
