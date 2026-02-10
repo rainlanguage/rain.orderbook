@@ -145,8 +145,8 @@ All core configs implement `YamlParsableHash` unless noted, and each instance ca
 
 ### Metaboards (`metaboard.rs`)
 
-- `MetaboardCfg { key, url }` from `metaboards:` map of key → URL.
-- `add_record_to_yaml(document, key, url)` to append entries.
+- `MetaboardCfg { key, url, address }` from `metaboards:` map of key → `{ url, address }`.
+- `add_record_to_yaml(document, key, url, address)` to append entries.
 
 ### Spec Version and Sentry
 
@@ -334,7 +334,7 @@ When building for `wasm32`, many types derive `Tsify` and implement WASM trait h
   - `tokens: { key: { network, address, decimals?, label?, symbol? } }`
   - `subgraphs: { key: url }`
   - `orderbooks: { key: { address, network?, subgraph?, label?, deployment-block } }`
-  - `metaboards: { key: url }`
+  - `metaboards: { key: { url, address } }`
   - `deployers: { key: { address, network? } }`
   - `accounts: { key: address }`
   - `orders: { key: { inputs: [{ token, vault-id? }, ...], outputs: [...], deployer?, orderbook? } }`
