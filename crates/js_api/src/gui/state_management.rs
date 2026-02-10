@@ -555,7 +555,7 @@ mod tests {
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDdtaWl0JMUeir0B3TJJrE0K_TQQouQmoYivYrG1SSuuyGuX_FP-JMlOhsxOId5b_a9nRmmgY5xBzhM5CiRE2IjE1eANqV1k4PhgaKKGXIDqNWUS_dSt8vO8-oeqrmacSK5Xql8av49AcZaZ23LEioaiFjNdduj3quVZxFZ5GJbOnCZsRn91es8AG22_te7WsJNfAtyr9zh2cXXpvYDFzXQKc6WtasJNmO4rjqV6jD2ApR0fEbDwksL7-_jOx0m3da4Hyx-0uIzLH7f_DAWmyXPg4nqvj-aU3DBI00OTcmIZ0JtZlzqPZbVzufJAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QXUvDMBRNpiiCT0PwSfAHGJq0E9OBj-JEmBNDFV-ktsHNpUltM_f1J_aTR7ebjpXdh3vOzTm593JbaBtngN8jnY70D2HIxREgo7Rp8jE8UFQzR04ArRlLHRzqdti5X51DVZpMEi3t1BRj9-8KcGht3vU8ZZJYDU1pu5zyW6_IEzIp1LJy4CpjN_pB9C6AtjvRbNVIuI1PQRbVDtcBPnb1cz9ALbSLvWVZPYGFIW6qfq36YXgD9CX67Bcf7zL7m_13fP77KtIvxhd5JMpYUMHfBj3D4sfB5O7p_tKdQiqZWLJpSlKZKzPPpLZr250X_ckBAAA=";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
@@ -698,7 +698,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
-            version: 4
+            version: 5
             networks:
                 test:
                     rpcs:
