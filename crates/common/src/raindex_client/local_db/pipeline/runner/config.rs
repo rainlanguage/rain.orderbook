@@ -3,6 +3,7 @@ use crate::local_db::pipeline::runner::utils::{
 };
 use crate::local_db::LocalDbError;
 use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
+use rain_orderbook_app_settings::metaboard::MetaboardCfg;
 use rain_orderbook_app_settings::orderbook::OrderbookCfg;
 use std::collections::HashMap;
 
@@ -50,18 +51,26 @@ impl NetworkRunnerConfig {
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
 
+        let filtered_metaboards: HashMap<String, MetaboardCfg> = global
+            .metaboards
+            .iter()
+            .filter(|(k, _)| *k == network_key)
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+
         Ok(Self {
             network_key: network_key.to_string(),
             chain_id,
             settings: ParsedRunnerSettings {
                 orderbooks: filtered_orderbooks,
                 syncs: filtered_syncs,
+                metaboards: filtered_metaboards,
             },
         })
     }
 
     pub fn build_targets(&self) -> Result<Vec<RunnerTarget>, LocalDbError> {
-        build_runner_targets(&self.settings.orderbooks, &self.settings.syncs)
+        build_runner_targets(&self.settings.orderbooks, &self.settings.syncs, &self.settings.metaboards)
     }
 }
 

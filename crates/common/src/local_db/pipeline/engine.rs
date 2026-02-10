@@ -37,6 +37,7 @@ pub struct SyncInputs {
     pub dump_str: Option<String>,
     pub block_number_threshold: u32,
     pub manifest_end_block: u64,
+    pub metaboard_address: Option<Address>,
 }
 
 impl<B, W, E, T, A, S> SyncEngine<B, W, E, T, A, S>
@@ -83,7 +84,14 @@ where
         let mut all_raw_logs = orderbook_logs;
         let mut decoded_events = decoded_orderbook_events;
 
-        let (store_logs, mut decoded_store_events, existing_tokens, token_addresses) = self
+        let (
+            store_logs,
+            mut decoded_store_events,
+            metaboard_logs,
+            mut decoded_metaboard_events,
+            existing_tokens,
+            token_addresses,
+        ) = self
             .load_store_logs_and_existing_tokens(
                 db,
                 input,
@@ -93,9 +101,16 @@ where
             )
             .await?;
 
+        let has_auxiliary = !store_logs.is_empty() || !metaboard_logs.is_empty();
         if !store_logs.is_empty() {
             all_raw_logs.extend(store_logs);
             decoded_events.append(&mut decoded_store_events);
+        }
+        if !metaboard_logs.is_empty() {
+            all_raw_logs.extend(metaboard_logs);
+            decoded_events.append(&mut decoded_metaboard_events);
+        }
+        if has_auxiliary {
             sort_decoded_events_by_block_and_log(&mut decoded_events);
         }
 
@@ -221,6 +236,8 @@ where
         (
             Vec<LogEntryResponse>,
             Vec<DecodedEventData<DecodedEvent>>,
+            Vec<LogEntryResponse>,
+            Vec<DecodedEventData<DecodedEvent>>,
             Vec<Erc20TokenRow>,
             BTreeSet<Address>,
         ),
@@ -268,13 +285,39 @@ where
             }
         };
 
-        let (existing_tokens_res, store_pair_res) = tokio::join!(tokens_fut, store_fetch_fut);
+        let metaboard_fetch_fut = async {
+            if let Some(metaboard_address) = input.metaboard_address {
+                self.status.send(SyncPhase::FetchingMetaboardLogs).await?;
+                let logs = self
+                    .events
+                    .fetch_metaboard(
+                        metaboard_address,
+                        start_block,
+                        target_block,
+                        &input.cfg.fetch,
+                    )
+                    .await?;
+                self.status.send(SyncPhase::DecodingMetaboardLogs).await?;
+                let decoded = self.events.decode(&logs)?;
+                Ok::<(Vec<LogEntryResponse>, Vec<DecodedEventData<DecodedEvent>>), LocalDbError>((
+                    logs, decoded,
+                ))
+            } else {
+                Ok((Vec::new(), Vec::new()))
+            }
+        };
+
+        let (existing_tokens_res, store_pair_res, metaboard_pair_res) =
+            tokio::join!(tokens_fut, store_fetch_fut, metaboard_fetch_fut);
         let existing_tokens = existing_tokens_res?;
         let (store_logs, decoded_store_events) = store_pair_res?;
+        let (metaboard_logs, decoded_metaboard_events) = metaboard_pair_res?;
 
         Ok((
             store_logs,
             decoded_store_events,
+            metaboard_logs,
+            decoded_metaboard_events,
             existing_tokens,
             token_addresses,
         ))
@@ -507,6 +550,7 @@ mod tests {
             dump_str: None,
             block_number_threshold: 10_000,
             manifest_end_block: 1,
+            metaboard_address: None,
         }
     }
 
@@ -700,6 +744,8 @@ mod tests {
         block_hashes: Mutex<VecDeque<Result<B256, LocalDbError>>>,
         orderbook_calls: Mutex<Vec<(Address, u64, u64)>>,
         store_calls: Mutex<Vec<(Vec<Address>, u64, u64)>>,
+        metaboard_results: Mutex<VecDeque<Result<Vec<LogEntryResponse>, LocalDbError>>>,
+        metaboard_calls: Mutex<Vec<(Address, u64, u64)>>,
         store_barrier: Mutex<Option<Arc<Barrier>>>,
         store_completed: Mutex<bool>,
     }
@@ -738,6 +784,14 @@ mod tests {
 
         fn store_calls(&self) -> Vec<(Vec<Address>, u64, u64)> {
             self.inner.store_calls.lock().unwrap().clone()
+        }
+
+        fn push_metaboard_result(&self, result: Result<Vec<LogEntryResponse>, LocalDbError>) {
+            self.inner
+                .metaboard_results
+                .lock()
+                .unwrap()
+                .push_back(result);
         }
 
         fn set_store_barrier(&self, barrier: Arc<Barrier>) {
@@ -802,6 +856,26 @@ mod tests {
             *self.inner.store_completed.lock().unwrap() = true;
             self.inner
                 .store_results
+                .lock()
+                .unwrap()
+                .pop_front()
+                .unwrap_or(Ok(Vec::new()))
+        }
+
+        async fn fetch_metaboard(
+            &self,
+            metaboard_address: Address,
+            from_block: u64,
+            to_block: u64,
+            _cfg: &FetchConfig,
+        ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
+            self.inner.metaboard_calls.lock().unwrap().push((
+                metaboard_address,
+                from_block,
+                to_block,
+            ));
+            self.inner
+                .metaboard_results
                 .lock()
                 .unwrap()
                 .pop_front()

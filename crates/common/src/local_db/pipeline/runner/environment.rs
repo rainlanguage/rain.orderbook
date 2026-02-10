@@ -196,6 +196,7 @@ mod tests {
                 dump_str: None,
                 block_number_threshold: 100,
                 manifest_end_block: 1,
+                metaboard_address: None,
             },
         }
     }
@@ -351,6 +352,16 @@ mod tests {
             Vec<crate::local_db::decode::DecodedEventData<crate::local_db::decode::DecodedEvent>>,
             LocalDbError,
         > {
+            Ok(Vec::new())
+        }
+
+        async fn fetch_metaboard(
+            &self,
+            _metaboard_address: Address,
+            _from_block: u64,
+            _to_block: u64,
+            _cfg: &crate::local_db::FetchConfig,
+        ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
             Ok(Vec::new())
         }
 
