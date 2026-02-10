@@ -2,8 +2,10 @@ use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args, Parser};
 use csv::Writer;
+use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
 use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, WordsResult};
 use std::{fs::read_to_string, path::PathBuf};
+use url::Url;
 
 /// Get words of a deployer contract from the given inputs
 #[derive(Debug, Parser)]
@@ -77,6 +79,24 @@ pub struct Source {
     pub deployment: Option<String>,
 }
 
+async fn resolve_metaboard_address(
+    dotrain_order: &DotrainOrder,
+    network_key: &str,
+    metaboard_url: &str,
+) -> Result<String> {
+    if let Ok(metaboard) = dotrain_order.orderbook_yaml().get_metaboard(network_key) {
+        return Ok(metaboard.address.to_string());
+    }
+
+    let client = MetaboardSubgraphClient::new(Url::parse(metaboard_url)?);
+    let addresses = client.get_metaboard_addresses(None, None).await?;
+    let address = addresses.first().ok_or(anyhow!(
+        "could not resolve metaboard contract address from the provided metaboard subgraph url"
+    ))?;
+
+    Ok(address.to_string())
+}
+
 impl Execute for Words {
     async fn execute(&self) -> Result<()> {
         let dotrain = self
@@ -131,9 +151,11 @@ impl Execute for Words {
                     .network
                     .key
                     .clone();
+                let metaboard_address =
+                    resolve_metaboard_address(&dotrain_order, network_name, v).await?;
                 dotrain_order
                     .orderbook_yaml()
-                    .add_metaboard(network_name, v)?;
+                    .set_metaboard(network_name, v, &metaboard_address)?;
             }
             if self.deployer_only {
                 match dotrain_order
@@ -178,9 +200,11 @@ impl Execute for Words {
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
                 let network_key = deployment.scenario.deployer.network.key.clone();
+                let metaboard_address =
+                    resolve_metaboard_address(&dotrain_order, &network_key, v).await?;
                 dotrain_order
                     .orderbook_yaml()
-                    .add_metaboard(&network_key, v)?;
+                    .set_metaboard(&network_key, v, &metaboard_address)?;
             }
             let result = dotrain_order.get_all_words_for_scenario(scenario).await?;
             let mut words = vec![];
@@ -260,7 +284,9 @@ networks:
         currency: ETH
 
 metaboards:
-    some-network: {}
+    some-network:
+      url: {}
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 
 deployers:
     some-deployer:
@@ -307,7 +333,9 @@ deployers:
             "
 version: {spec_version}
 metaboards:
-    some-network: {}
+    some-network:
+      url: {}
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 ---
 #binding\n:;",
             server.url("/sg"),
@@ -431,7 +459,9 @@ _ _: 1 2;
             "
 version: {spec_version}
 metaboards:
-    some-network: {}
+    some-network:
+      url: {}
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 ---
 #binding\n:;",
             server.url("/sg"),
@@ -630,7 +660,9 @@ networks:
         currency: ETH
 
 metaboards:
-    some-network: {}
+    some-network:
+      url: {}
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 
 deployers:
     some-deployer:
@@ -709,9 +741,21 @@ deployers:
             }));
         });
 
-        // mock sg query
+        // mock metaboard addresses query
         server.mock(|when, then| {
-            when.path("/sg");
+            when.path("/sg").body_contains("metaBoards");
+            then.status(200).json_body_obj(&serde_json::json!({
+                "data": {
+                    "metaBoards": [{
+                        "address": "0x59401c9302e79eb8ac6aea659b8b3ae475715e86"
+                    }]
+                }
+            }));
+        });
+
+        // mock words query
+        server.mock(|when, then| {
+            when.path("/sg").body_contains("metaV1S");
             then.status(200).json_body_obj(&serde_json::json!({
                 "data": {
                     "metaV1S": [{

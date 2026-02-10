@@ -16,6 +16,7 @@ rain_orderbook_bindings = { workspace = true }
 rain_orderbook_common = { workspace = true }
 rain_orderbook_app_settings = { workspace = true }
 rain_orderbook_quote = { workspace = true }
+rain-metaboard-subgraph = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 clap = { workspace = true }
