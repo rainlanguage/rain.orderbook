@@ -83,7 +83,9 @@ networks:
 subgraphs:
   flare: "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-flare/2024-12-13-9dc7/gn"
 metaboards:
-  flare: "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn"
+  flare:
+    url: "https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn"
+    address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 orderbooks:
   flare:
     address: {orderbook}

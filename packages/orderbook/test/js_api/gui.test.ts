@@ -152,8 +152,12 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: http://localhost:8085/metaboard
-    some-network: http://localhost:8085/metaboard
+    test:
+      url: http://localhost:8085/metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
+    some-network:
+      url: http://localhost:8085/metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 
 deployers:
     some-deployer:
@@ -232,8 +236,12 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: http://localhost:8085/metaboard
-    some-network: http://localhost:8085/metaboard
+    test:
+      url: http://localhost:8085/metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
+    some-network:
+      url: http://localhost:8085/metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 
 deployers:
     some-deployer:
@@ -305,7 +313,9 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: http://localhost:8085/metaboard
+    test:
+      url: http://localhost:8085/metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 
 deployers:
     some-deployer:
@@ -393,8 +403,12 @@ subgraphs:
     some-sg: https://www.some-sg.com
     other-sg: https://www.other-sg.com
 metaboards:
-    test: http://localhost:8085/metaboard
-    some-network: http://localhost:8085/metaboard
+    test:
+      url: http://localhost:8085/metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
+    some-network:
+      url: http://localhost:8085/metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 deployers:
     some-deployer:
         network: remote-network
@@ -1020,7 +1034,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QT0vDMBRvqiiIBxGvguDV2ixZwzbmQUScFPyDRcTb1sa1NEtKklXED-HRq19g-Am8evPziDcpJnVle4f8kvf7vV_ee8D5i02DmirtjTKeZHwMTA46G_NsOWRT6prMmmVETnnLsbFqMICHpCFBtWTFYAtCsMwMNV-2QSUm1ONUPwqZ27pdg6nWRc_3mYiHLBVK9zqwE_iyiL2pZM-VAlQnsF-fRoMdc33pf8_2v_qzj9fg_efORd3Ptxhsg3VDR1UPewjYsSPkuM5_NLdQ-xNCwMJYNYsxPrB2A1hkKinD68uzk6vb_GGEw252fxHj4zK8OZdJGBDVbuMxUUdbpkbolEovoQUTTxPK9S-tddtKygEAAA==';
+			'H4sIAAAAAAAA_21QwUoDMRBNVlEQDyJeBcGrcdOs2dZSbwoqrKIuYr2UdRvdpWmyTVKl-hEevfoDxS_w6s3vEW-ymKwu-g55k3lvJjOB4BuLlg3TBl3lop-LG2hzGCz8Vm8TPmaezcw5RQ6YaACHWcsUb4Y1C6ksM5YbGMP_mpH6zQ2o5ZAhwcydVANXt2o5M6Zo-z6XacIzqU27hVvUV0WKxoo_lA5YntA9vRfvr9jwsfMxXX_vTF-f6MvnhUe2355TuAznrRyXM6wR6NaOCfDAD-q_UPUPwxD-WatSgyDYsOFRczc5ibPoIMoT1cWjcxros3x0qItmF20pRq8vj3v3E3Xai3aWbI00GVOozwouJ0MmzBdWqK-OygEAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -1917,7 +1931,7 @@ ${dotrainWithoutVaultIds}`;
 
 			const emitMetaCall = result.emitMetaCall;
 			assert.ok(emitMetaCall);
-			assert.equal(emitMetaCall?.to, '0x0000000000000000000000000000000000000000');
+			assert.equal(emitMetaCall?.to, '0x59401c9302e79eb8ac6aea659b8b3ae475715e86');
 			const decoded = decodeFunctionData({
 				abi: metaBoardAbi,
 				data: emitMetaCall!.calldata as `0x${string}`
@@ -1942,7 +1956,10 @@ ${dotrainWithoutVaultIds}`;
 
 			const emitMetaCallAfterUnset = result.emitMetaCall;
 			assert.ok(emitMetaCallAfterUnset);
-			assert.equal(emitMetaCallAfterUnset?.to, '0x0000000000000000000000000000000000000000');
+			assert.equal(
+				emitMetaCallAfterUnset?.to,
+				'0x59401c9302e79eb8ac6aea659b8b3ae475715e86'
+			);
 			const decodedAfterUnset = decodeFunctionData({
 				abi: metaBoardAbi,
 				data: emitMetaCallAfterUnset!.calldata as `0x${string}`

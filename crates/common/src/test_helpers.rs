@@ -17,8 +17,12 @@ subgraphs:
     mainnet: https://mainnet-subgraph.com
     testnet: https://testnet-subgraph.com
 metaboards:
-    mainnet: https://mainnet-metaboard.com
-    testnet: https://testnet-metaboard.com
+    mainnet:
+      url: https://mainnet-metaboard.com
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
+    testnet:
+      url: https://testnet-metaboard.com
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 orderbooks:
     mainnet:
         address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266

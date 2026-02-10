@@ -542,8 +542,12 @@ subgraphs:
     mainnet: {subgraph1}
     polygon: {subgraph2}
 metaboards:
-    mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    polygon: https://api.thegraph.com/subgraphs/name/polygon
+    mainnet:
+      url: https://api.thegraph.com/subgraphs/name/xyz
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
+    polygon:
+      url: https://api.thegraph.com/subgraphs/name/polygon
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 orderbooks:
     mainnet-orderbook:
         address: 0x1234567890123456789012345678901234567890
@@ -611,7 +615,9 @@ networks:
 subgraphs:
     arbitrum: https://arb.subgraph
 metaboards:
-    arbitrum: https://arb.metaboard
+    arbitrum:
+      url: https://arb.metaboard
+      address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
 orderbooks:
     arbitrum-orderbook:
         address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
@@ -845,7 +851,9 @@ accounts:
     subgraphs:
         test: https://test.subgraph
     metaboards:
-        test: https://test.metaboard
+        test:
+          url: https://test.metaboard
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
     tokens:
         test-token:
             network: isolated

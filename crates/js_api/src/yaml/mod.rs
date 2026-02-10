@@ -231,8 +231,12 @@ mod tests {
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
         secondary: https://api.thegraph.com/subgraphs/name/abc
     metaboards:
-        board1: https://meta.example.com/board1
-        board2: https://meta.example.com/board2
+        board1:
+          url: https://meta.example.com/board1
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
+        board2:
+          url: https://meta.example.com/board2
+          address: 0x59401c9302e79eb8ac6aea659b8b3ae475715e86
     orderbooks:
         orderbook1:
             address: 0x0000000000000000000000000000000000000002

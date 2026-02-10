@@ -555,7 +555,7 @@ mod tests {
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Qy2rDMBCU0tJS6CkUeir0Ayos2S5YgR7bmjb4UEIOvQRHURJjRTLOmrx-Ip8cnEgOMdnDzo5mtLtsB53iweI405NMzwhDLm4sMkrbJh_bB4qayhV3FsHkUgfXul13XrJHy5ZmIYmWsDJl7v69WJwDFD3PU0akam6W0Ito9O6VhSBVqXa1A9cZu9Gfg_jJlt1wuN63Eu7ieysP6h1eA3zr-G8SoA46x8WyrJnAOMdt1W9Un_M3ZwQq6JDwUI03f6zaQtzPov80qfTPV5jqeDTVZb_4TiqRfzy7U0glBZBjUzKRhTKbhdRwAGw0tlzJAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTWvCQBDdtaWl0JMUeir0B3TJJrE0K_TQQouQmoYivYrG1SSuuyGuX_FP-JMlOhsxOId5b_a9nRmmgY5xBzhM5CiRE2IjE1eANqV1k4PhgaKKGXIDqNWUS_dSt8vO8-oeqrmacSK5Xql8av49AcZaZ23LEioaiFjNdduj3quVZxFZ5GJbOnCZsRn91es8AG22_te7WsJNfAtyr9zh2cXXpvYDFzXQKc6WtasJNmO4rjqV6jD2ApR0fEbDwksL7-_jOx0m3da4Hyx-0uIzLH7f_DAWmyXPg4nqvj-aU3DBI00OTcmIZ0JtZlzqPZbVzufJAQAA";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
