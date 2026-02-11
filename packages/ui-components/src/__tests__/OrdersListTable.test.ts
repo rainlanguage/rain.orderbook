@@ -370,7 +370,6 @@ describe('OrdersListTable', () => {
 	});
 
 	it('shows inactive badge for inactive orders', async () => {
-		mockMatchesAccount.mockReturnValue(true);
 		const inactiveOrder = {
 			...mockOrder,
 			active: false
@@ -419,7 +418,6 @@ describe('OrdersListTable', () => {
 		}));
 
 		const gotoMock = await import('$app/navigation');
-		mockMatchesAccount.mockReturnValue(true);
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
@@ -454,8 +452,6 @@ describe('OrdersListTable', () => {
 	});
 
 	it('handles large number of trades display', async () => {
-		mockMatchesAccount.mockReturnValue(true);
-
 		const orderWithManyTrades = {
 			...mockOrder,
 			tradesCount: 100

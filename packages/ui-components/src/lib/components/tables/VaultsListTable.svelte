@@ -66,7 +66,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: ownerAddress = $ownerFilter?.trim() || '';
-	$: owners = ownerAddress ? [ownerAddress] : [];
+	$: owners = ownerAddress ? [ownerAddress as `0x${string}`] : ([] as `0x${string}`[]);
 
 	$: tokensQuery = createQuery({
 		queryKey: [QKEY_TOKENS, $selectedChainIds],

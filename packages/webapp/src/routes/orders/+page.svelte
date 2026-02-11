@@ -11,10 +11,7 @@
 		ownerFilter
 	} from '$lib/stores/settings';
 
-	const {
-		hideZeroBalanceVaults,
-		hideInactiveOrdersVaults
-	}: AppStoresInterface = $page.data.stores;
+	const { hideZeroBalanceVaults, hideInactiveOrdersVaults }: AppStoresInterface = $page.data.stores;
 </script>
 
 <PageHeader title={'Orders'} pathname={$page.url.pathname} />
