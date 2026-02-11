@@ -191,7 +191,7 @@ mod tests {
         let result = VaultBalanceChangeFlattened::try_from(val);
         assert!(result.is_ok());
         let flattened = result.unwrap();
-        assert_eq!(flattened.amount_display_signed, "-5e-1");
+        assert_eq!(flattened.amount_display_signed, "-0.5");
     }
 
     #[test]
