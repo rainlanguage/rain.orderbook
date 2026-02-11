@@ -547,6 +547,21 @@ impl DotrainRegistry {
         Ok(yaml)
     }
 
+    /// Creates a RaindexClient instance from the registry's shared settings.
+    ///
+    /// This method provides access to the RaindexClient SDK, allowing you to query
+    /// orders, vaults, and other onchain data from the shared settings YAML.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const clientResult = registry.getRaindexClient();
+    /// if (clientResult.error) {
+    ///   console.error("Failed to get RaindexClient:", clientResult.error.readableMsg);
+    ///   return;
+    /// }
+    /// const raindexClient = clientResult.value;
+    /// ```
     #[wasm_export(
         js_name = "getRaindexClient",
         preserve_js_class,
