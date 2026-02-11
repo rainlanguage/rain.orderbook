@@ -43,7 +43,7 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 		return errToast('Could not deploy: ' + result.error.msg);
 	}
 
-	const { approvals, deploymentCalldata, orderbookAddress, chainId } = result.value;
+	const { approvals, deploymentCalldata, orderbookAddress, chainId, emitMetaCall } = result.value;
 
 	for (const approval of approvals) {
 		try {
@@ -73,6 +73,33 @@ export const handleAddOrder = async (deps: HandleAddOrderDependencies) => {
 			}
 		} catch (error) {
 			return errToast('Approval failed: ' + (error as Error).message);
+		}
+	}
+
+	if (emitMetaCall) {
+		try {
+			const metaResult = await deps.handleTransactionConfirmationModal({
+				open: true,
+				modalTitle: 'Publishing metadata',
+				args: {
+					toAddress: emitMetaCall.to as Hex,
+					chainId,
+					calldata: emitMetaCall.calldata as `0x${string}`,
+					onConfirm: (hash: Hex) => {
+						deps.manager.createMetaTransaction({
+							chainId,
+							txHash: hash,
+							queryKey: QKEY_ORDERS
+						});
+					}
+				}
+			});
+
+			if (!metaResult.success) {
+				return errToast('Metadata publication was cancelled or failed');
+			}
+		} catch (error) {
+			return errToast('Metadata publication failed: ' + (error as Error).message);
 		}
 	}
 

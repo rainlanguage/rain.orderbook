@@ -1,5 +1,6 @@
 ---
 source: crates/subgraph/tests/order_trades_test.rs
+assertion_line: 19
 expression: request_body.query
 ---
 query SgOrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte: BigInt, $timestampLte: BigInt) {
@@ -41,6 +42,11 @@ query SgOrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte
       orderbook {
         id
       }
+      trade {
+        tradeEvent {
+          __typename
+        }
+      }
     }
     order {
       id
@@ -72,6 +78,11 @@ query SgOrderTradesListQuery($first: Int, $id: Bytes!, $skip: Int, $timestampGte
       }
       orderbook {
         id
+      }
+      trade {
+        tradeEvent {
+          __typename
+        }
       }
     }
     timestamp

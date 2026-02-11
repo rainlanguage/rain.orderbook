@@ -5,7 +5,6 @@ import OrdersListTable from '../lib/components/tables/OrdersListTable.svelte';
 import { readable } from 'svelte/store';
 import { RaindexOrder } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
-import userEvent from '@testing-library/user-event';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
 vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
@@ -18,6 +17,12 @@ vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
 vi.mock('$lib/providers/wallet/useAccount', () => ({
 	useAccount: vi.fn()
 }));
+
+vi.mock('$lib/hooks/useRaindexClient', () => ({
+	useRaindexClient: vi.fn()
+}));
+
+import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
@@ -92,7 +97,9 @@ const {
 	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
 	mockShowMyItemsOnlyStore,
-	mockSelectedChainIdsStore
+	mockSelectedChainIdsStore,
+	mockActiveTokensStore,
+	mockActiveOrderbookAddressesStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 type OrdersListTableProps = ComponentProps<OrdersListTable>;
@@ -105,10 +112,16 @@ const defaultProps: OrdersListTableProps = {
 	showMyItemsOnly: mockShowMyItemsOnlyStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
-	selectedChainIds: mockSelectedChainIdsStore
+	selectedChainIds: mockSelectedChainIdsStore,
+	activeTokens: mockActiveTokensStore,
+	activeOrderbookAddresses: mockActiveOrderbookAddressesStore
 } as unknown as OrdersListTableProps;
 
 const mockMatchesAccount = vi.fn();
+
+const mockGetOrders = vi.fn();
+const mockGetTokens = vi.fn();
+const mockGetAllOrderbooks = vi.fn();
 
 describe('OrdersListTable', () => {
 	beforeEach(() => {
@@ -117,6 +130,25 @@ describe('OrdersListTable', () => {
 			account: mockAccountStore,
 			matchesAccount: mockMatchesAccount
 		});
+		(useRaindexClient as Mock).mockReturnValue({
+			getOrders: mockGetOrders,
+			getTokens: mockGetTokens,
+			getAllOrderbooks: mockGetAllOrderbooks.mockReturnValue({
+				value: new Map([
+					[
+						'orderbook1',
+						{
+							key: 'orderbook1',
+							address: '0x1111111111111111111111111111111111111111',
+							network: { chainId: 1 }
+						}
+					]
+				]),
+				error: undefined
+			})
+		});
+		mockGetOrders.mockResolvedValue({ value: [], error: undefined });
+		mockGetTokens.mockResolvedValue({ value: [], error: undefined });
 	});
 
 	it('displays order information correctly', async () => {
@@ -135,8 +167,16 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 
-		expect(screen.getByTestId('orderListRowNetwork')).toHaveTextContent('Ethereum');
-		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Active');
+		const orderInfoCell = screen.getByTestId('orderListRowOrderInfo');
+		expect(orderInfoCell).toHaveTextContent('Ethereum');
+		expect(orderInfoCell).toHaveTextContent('Active');
+		expect(orderInfoCell).toHaveTextContent('Added:');
+
+		const addressesCell = screen.getByTestId('orderListRowAddresses');
+		expect(addressesCell).toBeInTheDocument();
+		expect(addressesCell).toHaveTextContent('Order:');
+		expect(addressesCell).toHaveTextContent('Owner:');
+		expect(addressesCell).toHaveTextContent('Orderbook:');
 
 		// Check that vault cards are rendered with correct content
 		const vaultCards = screen.getAllByTestId('vault-card');
@@ -345,69 +385,6 @@ describe('OrdersListTable', () => {
 		expect(screen.getByText('0.05')).toBeInTheDocument();
 	});
 
-	it('shows remove button when order is active and user is owner', async () => {
-		mockMatchesAccount.mockReturnValue(true);
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { pages: [[mockOrder]] },
-					status: 'success',
-					isFetching: false,
-					isFetched: true,
-					refetch: vi.fn()
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-
-		render(OrdersListTable, {
-			...defaultProps,
-			handleOrderRemoveModal: vi.fn()
-		} as OrdersListTableProps);
-
-		await waitFor(() => {
-			const menuButton = screen.getByTestId(`order-menu-${mockOrder.id}`);
-			userEvent.click(menuButton);
-			expect(screen.getByText('Remove')).toBeInTheDocument();
-		});
-	});
-
-	it('handles remove action', async () => {
-		mockMatchesAccount.mockReturnValue(true);
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		const mockRefetch = vi.fn();
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { pages: [[mockOrder]] },
-					status: 'success',
-					isFetching: false,
-					isFetched: true,
-					refetch: mockRefetch
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-
-		const handleOrderRemoveModal = vi.fn();
-
-		render(OrdersListTable, {
-			...defaultProps,
-			handleOrderRemoveModal
-		} as OrdersListTableProps);
-
-		const menuButton = screen.getByTestId(`order-menu-${mockOrder.id}`);
-		await userEvent.click(menuButton);
-
-		const removeButton = screen.getByText('Remove');
-		await userEvent.click(removeButton);
-
-		expect(handleOrderRemoveModal).toHaveBeenCalledWith(mockOrder, mockRefetch, new Map());
-	});
-
 	it('shows inactive badge for inactive orders', async () => {
 		mockMatchesAccount.mockReturnValue(true);
 		const inactiveOrder = {
@@ -429,37 +406,8 @@ describe('OrdersListTable', () => {
 		})) as Mock;
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 
-		expect(screen.getByTestId('orderListRowActive')).toHaveTextContent('Inactive');
-	});
-
-	it('does not show action menu for inactive orders', async () => {
-		mockMatchesAccount.mockReturnValue(true);
-		const inactiveOrder = {
-			...mockOrder,
-			active: false
-		};
-		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
-			subscribe: (fn: (value: any) => void) => {
-				fn({
-					data: { pages: [[inactiveOrder]] },
-					status: 'success',
-					isFetching: false,
-					isFetched: true
-				});
-				return { unsubscribe: () => {} };
-			}
-		})) as Mock;
-
-		const handleOrderRemoveModal = vi.fn();
-
-		render(OrdersListTable, {
-			...defaultProps,
-			handleOrderRemoveModal
-		} as OrdersListTableProps);
-
-		expect(screen.queryByTestId(`order-menu-${mockOrder.id}`)).not.toBeInTheDocument();
+		const orderInfoCell = screen.getByTestId('orderListRowOrderInfo');
+		expect(orderInfoCell).toHaveTextContent('Inactive');
 	});
 
 	it('displays empty state when no orders are found', async () => {
@@ -545,5 +493,77 @@ describe('OrdersListTable', () => {
 
 		render(OrdersListTable, defaultProps as OrdersListTableProps);
 		expect(screen.getByTestId('orderListRowTrades')).toHaveTextContent('>99');
+	});
+
+	it('passes orderbookAddresses filter to getOrders when orderbooks are selected', async () => {
+		const orderbookAddress = '0x1111111111111111111111111111111111111111';
+
+		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([orderbookAddress]);
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockQuery.createInfiniteQuery = vi.fn((options: any) => {
+			if (options.queryFn) {
+				options.queryFn({ pageParam: 0 });
+			}
+			return {
+				subscribe: (fn: (value: any) => void) => {
+					fn({
+						data: { pages: [[]] },
+						status: 'success',
+						isFetching: false,
+						isFetched: true
+					});
+					return { unsubscribe: () => {} };
+				}
+			};
+		}) as Mock;
+
+		render(OrdersListTable, defaultProps as OrdersListTableProps);
+
+		await waitFor(() => {
+			expect(mockGetOrders).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					orderbookAddresses: [orderbookAddress]
+				}),
+				expect.anything()
+			);
+		});
+	});
+
+	it('does not pass orderbookAddresses filter when no orderbooks are selected', async () => {
+		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([]);
+
+		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		mockQuery.createInfiniteQuery = vi.fn((options: any) => {
+			if (options.queryFn) {
+				options.queryFn({ pageParam: 0 });
+			}
+			return {
+				subscribe: (fn: (value: any) => void) => {
+					fn({
+						data: { pages: [[]] },
+						status: 'success',
+						isFetching: false,
+						isFetched: true
+					});
+					return { unsubscribe: () => {} };
+				}
+			};
+		}) as Mock;
+
+		render(OrdersListTable, defaultProps as OrdersListTableProps);
+
+		await waitFor(() => {
+			expect(mockGetOrders).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					orderbookAddresses: undefined
+				}),
+				expect.anything()
+			);
+		});
 	});
 });

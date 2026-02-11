@@ -1,96 +1,49 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { load } from './+layout';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
-vi.mock('@rainlanguage/orderbook', () => ({
-	DotrainOrderGui: {
-		getDeploymentDetail: vi.fn()
-	}
-}));
+const deploymentMap = new Map([
+	['test-deployment', { name: 'Test Deployment', description: 'This is a test deployment' }]
+]);
 
 describe('Layout load function', () => {
-	const mockDeploymentKey = 'test-deployment';
-	const mockDotrain = 'https://dotrain.example.com';
 	const mockParent = vi.fn();
 
 	beforeEach(() => {
 		vi.resetAllMocks();
-
-		mockParent.mockResolvedValue({ dotrain: mockDotrain });
+		mockParent.mockResolvedValue({
+			orderName: 'test-order',
+			deployments: deploymentMap,
+			registry: {} // non-null placeholder
+		});
 	});
 
 	it('should load deployment details successfully', async () => {
-		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
-			error: null,
-			value: {
-				name: 'Test Deployment',
-				description: 'This is a test deployment'
-			}
-		});
-
 		const result = await load({
-			params: { deploymentKey: mockDeploymentKey, orderName: 'test-order' },
+			params: { deploymentKey: 'test-deployment', orderName: 'test-order' },
 			parent: mockParent
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} as any);
 
-		expect(mockParent).toHaveBeenCalled();
-		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(
-			mockDotrain,
-			mockDeploymentKey
-		);
-
 		expect(result).toEqual({
 			deployment: {
-				key: mockDeploymentKey,
+				key: 'test-deployment',
 				name: 'Test Deployment',
 				description: 'This is a test deployment'
 			},
-			dotrain: mockDotrain,
-			pageName: mockDeploymentKey
+			orderName: 'test-order',
+			orderDetail: undefined,
+			registry: {},
+			pageName: 'test-deployment'
 		});
 	});
 
-	it('should handle empty deploymentKey', async () => {
-		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
-			error: null,
-			value: {
-				name: 'Empty Deployment',
-				description: ''
-			}
-		});
-
-		const result = await load({
-			params: {},
-			parent: mockParent
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		} as any);
-
-		expect(DotrainOrderGui.getDeploymentDetail).toHaveBeenCalledWith(mockDotrain, '');
-
-		expect(result).toEqual({
-			deployment: {
-				key: undefined,
-				name: 'Empty Deployment',
-				description: ''
-			},
-			dotrain: mockDotrain,
-			pageName: undefined
-		});
-	});
-
-	it('should throw an error when getDeploymentDetail returns an error', async () => {
-		(DotrainOrderGui.getDeploymentDetail as Mock).mockResolvedValue({
-			error: { msg: 'Deployment not found' },
-			value: null
-		});
-
+	it('should redirect when deployment is missing', async () => {
 		await expect(
 			load({
-				params: { deploymentKey: 'error-key' },
+				params: { deploymentKey: 'missing', orderName: 'test-order' },
 				parent: mockParent
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} as any)
-		).rejects.toThrow('Deployment not found');
+		).rejects.toMatchObject({ status: 307, location: '/deploy' });
 	});
 });

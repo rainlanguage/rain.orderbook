@@ -1,9 +1,10 @@
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::RaindexError;
 use crate::take_orders::{
-    build_take_order_candidates_for_pair, cmp_float, simulate_buy_over_candidates,
+    build_take_order_candidates_for_pair, simulate_buy_over_candidates,
     simulate_spend_over_candidates, ParsedTakeOrdersMode, SimulationResult, TakeOrderCandidate,
 };
+use crate::utils::float::cmp_float;
 use alloy::primitives::Address;
 use rain_math_float::Float;
 use std::collections::HashMap;
@@ -68,20 +69,12 @@ pub(crate) fn select_best_orderbook_simulation(
             continue;
         }
 
-        let achieved = if is_buy_mode {
-            sim.total_output
-        } else {
-            sim.total_input
-        };
+        let achieved = sim.total_output;
 
         let is_better = match &best_result {
             None => true,
             Some((best_addr, best_sim)) => {
-                let best_achieved = if is_buy_mode {
-                    best_sim.total_output
-                } else {
-                    best_sim.total_input
-                };
+                let best_achieved = best_sim.total_output;
 
                 if achieved.gt(best_achieved)? {
                     true
@@ -343,6 +336,39 @@ mod tests {
         assert!(!sim.legs.is_empty());
         assert!(sim.total_input.eq(spend_budget).unwrap());
         let expected_output = Float::parse("50".to_string()).unwrap();
+        assert!(sim.total_output.eq(expected_output).unwrap());
+    }
+
+    #[test]
+    fn test_select_best_orderbook_spend_mode_prefers_higher_output() {
+        let ob_bad_rate = Address::from([0x11u8; 20]);
+        let ob_good_rate = Address::from([0x22u8; 20]);
+
+        let bad_rate_max_output = Float::parse("50".to_string()).unwrap();
+        let bad_rate_ratio = Float::parse("2".to_string()).unwrap();
+        let bad_rate_candidate = make_candidate(ob_bad_rate, bad_rate_max_output, bad_rate_ratio);
+
+        let good_rate_max_output = Float::parse("90".to_string()).unwrap();
+        let good_rate_ratio = Float::parse("1".to_string()).unwrap();
+        let good_rate_candidate =
+            make_candidate(ob_good_rate, good_rate_max_output, good_rate_ratio);
+
+        let candidates = vec![bad_rate_candidate, good_rate_candidate];
+        let spend_budget = Float::parse("100".to_string()).unwrap();
+
+        let result = select_best_orderbook_simulation(
+            candidates,
+            spend_up_to(spend_budget),
+            high_price_cap(),
+        );
+
+        assert!(result.is_ok());
+        let (winner, sim) = result.unwrap();
+        assert_eq!(
+            winner, ob_good_rate,
+            "Should pick orderbook with higher output (90) over one that can absorb more input but yields less output (50)"
+        );
+        let expected_output = Float::parse("90".to_string()).unwrap();
         assert!(sim.total_output.eq(expected_output).unwrap());
     }
 }

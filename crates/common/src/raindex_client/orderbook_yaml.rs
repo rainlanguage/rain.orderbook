@@ -175,6 +175,33 @@ impl RaindexClient {
     pub fn get_all_accounts(&self) -> Result<HashMap<String, AccountCfg>, RaindexError> {
         Ok(self.orderbook_yaml.get_accounts()?)
     }
+
+    /// Retrieves all orderbooks from the orderbook YAML configuration
+    ///
+    /// Returns a map of orderbook configurations where the keys are orderbook names
+    /// and the values are `OrderbookCfg` objects.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = client.getAllOrderbooks();
+    /// if (result.error) {
+    ///   console.error("Error getting orderbooks:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const orderbooks = result.value;
+    /// for (const [name, orderbook] of orderbooks) {
+    ///   console.log(`Orderbook: ${name}, Address: ${orderbook.address}, Chain: ${orderbook.network.chainId}`);
+    /// }
+    /// ```
+    #[wasm_export(
+        js_name = "getAllOrderbooks",
+        return_description = "Returns the list of orderbooks from the orderbook YAML configuration.",
+        unchecked_return_type = "Map<string, OrderbookCfg>"
+    )]
+    pub fn get_all_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, RaindexError> {
+        Ok(self.orderbook_yaml.get_orderbooks()?)
+    }
 }
 impl RaindexClient {
     pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, RaindexError> {
@@ -336,5 +363,37 @@ mod tests {
             charlie.address,
             Address::from_str("0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5").unwrap()
         );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_all_orderbooks() {
+        let yaml = get_test_yaml(
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "http://localhost:3004",
+        );
+        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let result = client.get_all_orderbooks().unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(result.contains_key("mainnet-orderbook"));
+        assert!(result.contains_key("polygon-orderbook"));
+
+        let mainnet_ob = result.get("mainnet-orderbook").unwrap();
+        assert_eq!(
+            mainnet_ob.address,
+            Address::from_str("0x1234567890123456789012345678901234567890").unwrap()
+        );
+        assert_eq!(mainnet_ob.network.chain_id, 1);
+        assert_eq!(mainnet_ob.label, Some("Primary Orderbook".to_string()));
+
+        let polygon_ob = result.get("polygon-orderbook").unwrap();
+        assert_eq!(
+            polygon_ob.address,
+            Address::from_str("0x0987654321098765432109876543210987654321").unwrap()
+        );
+        assert_eq!(polygon_ob.network.chain_id, 137);
+        assert_eq!(polygon_ob.label, Some("Polygon Orderbook".to_string()));
     }
 }

@@ -1,3 +1,4 @@
+import { decodeFunctionData, hexToBytes } from 'viem';
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import {
@@ -16,8 +17,11 @@ import {
 	TokenInfo,
 	AllGuiConfig,
 	WasmEncodedResult,
-	FieldValue
+	FieldValue,
+	OrderbookYaml
 } from '../../dist/cjs';
+
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 import { getLocal } from 'mockttp';
 
 const guiConfig = `
@@ -136,7 +140,7 @@ gui:
 `;
 
 const dotrain = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -148,7 +152,8 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
+    some-network: http://localhost:8085/metaboard
 
 deployers:
     some-deployer:
@@ -215,7 +220,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutVaultIds = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -227,7 +232,8 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
+    some-network: http://localhost:8085/metaboard
 
 deployers:
     some-deployer:
@@ -287,7 +293,7 @@ _ _: 0 0;
 :;
 `;
 const dotrainWithoutTokens = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -299,7 +305,7 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
 
 deployers:
     some-deployer:
@@ -343,8 +349,12 @@ _ _: 0 0;
 #handle-add-order
 :;
 `;
+const dotrainWithTokensMismatch = dotrain.replace(
+	'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6',
+	'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A7'
+);
 const dotrainForRemotes = `
-version: 4
+version: ${SPEC_VERSION}
 gui:
   name: Test
   description: Fixed limit order
@@ -383,7 +393,8 @@ subgraphs:
     some-sg: https://www.some-sg.com
     other-sg: https://www.other-sg.com
 metaboards:
-    test: https://metaboard.com
+    test: http://localhost:8085/metaboard
+    some-network: http://localhost:8085/metaboard
 deployers:
     some-deployer:
         network: remote-network
@@ -486,12 +497,25 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		return result.value;
 	};
 
+	const metaBoardAbi = [
+		{
+			type: 'function',
+			name: 'emitMeta',
+			inputs: [
+				{ name: 'subject', type: 'bytes32' },
+				{ name: 'meta', type: 'bytes' }
+			],
+			outputs: [],
+			stateMutability: 'nonpayable'
+		}
+	] as const;
+
 	it('should return available deployments', async () => {
 		const result = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
 		const deployments = extractWasmEncodedData<string[]>(result);
 		assert.equal(deployments.length, 2);
-		assert.equal(deployments[0], 'some-deployment');
-		assert.equal(deployments[1], 'other-deployment');
+		assert.ok(deployments.includes('some-deployment'));
+		assert.ok(deployments.includes('other-deployment'));
 	});
 
 	it('should initialize gui object', async () => {
@@ -503,7 +527,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 			);
 
-		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+		const result = await DotrainOrderGui.newWithDeployment(
+			dotrainWithGui,
+			undefined,
+			'some-deployment'
+		);
 		const gui = extractWasmEncodedData(result);
 
 		const guiConfig = extractWasmEncodedData<GuiCfg>(gui.getGuiConfig());
@@ -516,6 +544,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 		const result = await DotrainOrderGui.newWithDeployment(
 			dotrainWithGui,
+			undefined,
 			'some-deployment',
 			stateUpdateCallback
 		);
@@ -526,7 +555,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get order details', async () => {
-		const result = await DotrainOrderGui.getOrderDetails(dotrainWithGui);
+		const result = DotrainOrderGui.getOrderDetails(dotrainWithGui, undefined);
 		const orderDetails = extractWasmEncodedData<NameAndDescriptionCfg>(result);
 		assert.equal(orderDetails.name, 'Fixed limit');
 		assert.equal(orderDetails.description, 'Fixed limit order');
@@ -534,7 +563,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment details', async () => {
-		const result = await DotrainOrderGui.getDeploymentDetails(dotrainWithGui);
+		const result = DotrainOrderGui.getDeploymentDetails(dotrainWithGui, undefined);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
 		assert.equal(entries[0][0], 'other-deployment');
@@ -546,14 +575,22 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment detail', async () => {
-		const result = await DotrainOrderGui.getDeploymentDetail(dotrainWithGui, 'other-deployment');
+		const result = DotrainOrderGui.getDeploymentDetail(
+			dotrainWithGui,
+			undefined,
+			'other-deployment'
+		);
 		const deploymentDetail = extractWasmEncodedData<NameAndDescriptionCfg>(result);
 		assert.equal(deploymentDetail.name, 'Test test');
 		assert.equal(deploymentDetail.description, 'Test test test');
 	});
 
 	it('should get current deployment details', async () => {
-		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+		const result = await DotrainOrderGui.newWithDeployment(
+			dotrainWithGui,
+			undefined,
+			'some-deployment'
+		);
 		const gui = extractWasmEncodedData(result);
 
 		mockServer
@@ -595,7 +632,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
     ${dotrain}
     `;
-		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'other-deployment');
+		const result = await DotrainOrderGui.newWithDeployment(
+			dotrainWithGui,
+			undefined,
+			'other-deployment'
+		);
 		const gui = extractWasmEncodedData(result);
 
 		const token1TokenInfo = extractWasmEncodedData<TokenInfo>(await gui.getTokenInfo('token1'));
@@ -631,7 +672,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
     ${dotrain}
     `;
-		const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'other-deployment');
+		const result = await DotrainOrderGui.newWithDeployment(
+			dotrainWithGui,
+			undefined,
+			'other-deployment'
+		);
 		const gui = extractWasmEncodedData(result);
 
 		const allTokenInfos = extractWasmEncodedData<TokenInfo[]>(await gui.getAllTokenInfos());
@@ -660,6 +705,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				);
 			const result = await DotrainOrderGui.newWithDeployment(
 				dotrainWithGui,
+				undefined,
 				'some-deployment',
 				stateUpdateCallback
 			);
@@ -763,6 +809,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				);
 			const result = await DotrainOrderGui.newWithDeployment(
 				dotrainWithGui,
+				undefined,
 				'some-deployment',
 				stateUpdateCallback
 			);
@@ -919,7 +966,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const result = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrainWithGui,
+				undefined,
+				'some-deployment'
+			);
 			gui = extractWasmEncodedData(result);
 		});
 
@@ -969,7 +1020,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21Qy0rEMBTtraIgLkTcCoJba9MwteMwrnxQRHBTZXQjM53YlKZJaZMO4ke4dOsPDH6BW3d-j7iTYuJMmbmLnOSec5NzAtZfbWqUpJLOKOXjlCege8jamGfrIVPE1p01w4iMcM8ytarRR4dHLQn-l6xo9BCCZZfh9skYrEROHE7kRJSZmdvVSKUseq7LRDxkVFSy10Vd3y2L2FEle24U0Kxgnj6Pwh29fel_T_e_-tOPV__9Z2Dj48-3GLZhXdNR42EPg4kdYduaVfsTwNjyYCHTjDsweVKlqLx3itMsGdCL64R3gqBWQZJ3rkY30e2kvgv9h_Dx8kycbOkZISkpnTEpmHjKCZe_KJd7OsUBAAA=';
+			'H4sIAAAAAAAA_21QT0vDMBRvqiiIBxGvguDV2ixZwzbmQUScFPyDRcTb1sa1NEtKklXED-HRq19g-Am8evPziDcpJnVle4f8kvf7vV_ee8D5i02DmirtjTKeZHwMTA46G_NsOWRT6prMmmVETnnLsbFqMICHpCFBtWTFYAtCsMwMNV-2QSUm1ONUPwqZ27pdg6nWRc_3mYiHLBVK9zqwE_iyiL2pZM-VAlQnsF-fRoMdc33pf8_2v_qzj9fg_efORd3Ptxhsg3VDR1UPewjYsSPkuM5_NLdQ-xNCwMJYNYsxPrB2A1hkKinD68uzk6vb_GGEw252fxHj4zK8OZdJGBDVbuMxUUdbpkbolEovoQUTTxPK9S-tddtKygEAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
@@ -990,7 +1041,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			dotrain3 = `${guiConfig3}
 
 ${dotrain}`;
-			const result = await DotrainOrderGui.newWithDeployment(dotrain3, 'other-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrain3,
+				undefined,
+				'other-deployment'
+			);
 			gui = extractWasmEncodedData(result);
 
 			gui.setFieldValue(
@@ -1012,7 +1067,7 @@ ${dotrain}`;
 		});
 
 		it('should deserialize gui state', async () => {
-			const guiResult = await DotrainOrderGui.newFromState(dotrain3, serializedState);
+			const guiResult = await DotrainOrderGui.newFromState(dotrain3, undefined, serializedState);
 			const gui = extractWasmEncodedData(guiResult);
 
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
@@ -1036,15 +1091,15 @@ ${dotrain}`;
 
 			const result = gui.getCurrentDeployment();
 			const guiDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
-			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x1');
-			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x1');
+			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
+			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
 		});
 
 		it('should throw error if given dotrain is different', async () => {
 			let testDotrain = `${guiConfig}
 
-${dotrainWithoutTokens}`;
-			const result = await DotrainOrderGui.newFromState(testDotrain, serializedState);
+${dotrainWithTokensMismatch}`;
+			const result = await DotrainOrderGui.newFromState(testDotrain, undefined, serializedState);
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deserialized dotrain mismatch');
 			expect(result.error.readableMsg).toBe(
@@ -1065,7 +1120,11 @@ ${guiConfig2}
 
 ${dotrainWithoutVaultIds}
 	  `;
-			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			let result = await DotrainOrderGui.newWithDeployment(
+				testDotrain,
+				undefined,
+				'other-deployment'
+			);
 			gui = extractWasmEncodedData(result);
 
 			let deployment1 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
@@ -1073,7 +1132,7 @@ ${dotrainWithoutVaultIds}
 			assert.equal(deployment1.deployment.order.outputs[0].vaultId, undefined);
 
 			let serializedState = extractWasmEncodedData<string>(gui.serializeState());
-			const guiResult = await DotrainOrderGui.newFromState(testDotrain, serializedState);
+			const guiResult = await DotrainOrderGui.newFromState(testDotrain, undefined, serializedState);
 			gui = extractWasmEncodedData(guiResult);
 
 			let deployment2 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
@@ -1097,7 +1156,11 @@ ${dotrainWithoutVaultIds}
 			dotrain3 = `${guiConfig}
 
 ${dotrain}`;
-			const result = await DotrainOrderGui.newWithDeployment(dotrain3, 'some-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrain3,
+				undefined,
+				'some-deployment'
+			);
 			const gui = extractWasmEncodedData(result);
 
 			const {
@@ -1151,7 +1214,11 @@ ${dotrain}`;
 
       ${dotrain}
       `;
-			const result = await DotrainOrderGui.newWithDeployment(dotrain2, 'other-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrain2,
+				undefined,
+				'other-deployment'
+			);
 			gui = extractWasmEncodedData(result);
 		});
 
@@ -1339,7 +1406,7 @@ ${dotrain}`;
 			gui.setFieldValue('test-binding', '10');
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 2186);
+			assert.equal(addOrderCalldata.length, 2634);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1374,7 +1441,7 @@ ${dotrain}`;
 				);
 
 			const addOrderCalldata = extractWasmEncodedData<string>(await gui.generateAddOrderCalldata());
-			assert.equal(addOrderCalldata.length, 2186);
+			assert.equal(addOrderCalldata.length, 2634);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1416,7 +1483,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 3594);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1459,7 +1526,7 @@ ${dotrain}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 3658);
 
 			let result = gui.getCurrentDeployment();
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
@@ -1488,7 +1555,11 @@ ${dotrain}`;
 			let testDotrain = `${guiConfig2}
 
 ${dotrainWithoutVaultIds}`;
-			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			let result = await DotrainOrderGui.newWithDeployment(
+				testDotrain,
+				undefined,
+				'other-deployment'
+			);
 			const gui = extractWasmEncodedData(result);
 
 			await mockServer
@@ -1519,7 +1590,7 @@ ${dotrainWithoutVaultIds}`;
 			const calldata = extractWasmEncodedData<string>(
 				await gui.generateDepositAndAddOrderCalldatas()
 			);
-			assert.equal(calldata.length, 3018);
+			assert.equal(calldata.length, 3914);
 
 			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
 				gui.getCurrentDeployment()
@@ -1536,7 +1607,11 @@ ${dotrainWithoutVaultIds}`;
 
       ${dotrainWithoutTokens}
       `;
-			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			let result = await DotrainOrderGui.newWithDeployment(
+				testDotrain,
+				undefined,
+				'other-deployment'
+			);
 			const testGui = extractWasmEncodedData(result);
 
 			let result1 = await testGui.checkAllowances('0x1234567890abcdef1234567890abcdef12345678');
@@ -1607,7 +1682,11 @@ gui:
 			let testDotrain = `${guiConfig}
 
 ${dotrainWithoutVaultIds}`;
-			let result = await DotrainOrderGui.newWithDeployment(testDotrain, 'other-deployment');
+			let result = await DotrainOrderGui.newWithDeployment(
+				testDotrain,
+				undefined,
+				'other-deployment'
+			);
 			const gui = extractWasmEncodedData(result);
 
 			await gui.setDeposit('token1', '1000');
@@ -1655,6 +1734,7 @@ ${dotrainWithoutVaultIds}`;
           `;
 			let guiResult = await DotrainOrderGui.newWithDeployment(
 				testDotrain,
+				undefined,
 				'other-deployment',
 				stateUpdateCallback
 			);
@@ -1776,6 +1856,30 @@ ${dotrainWithoutVaultIds}`;
 					'0x00000000000000000000000000000000000000000000003635C9ADC5DEA00000'
 				);
 			await mockServer
+				.forPost('/metaboard')
+				.withBodyIncluding('metaV1S')
+				.thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							metaV1S: []
+						}
+					}),
+					{ 'Content-Type': 'application/json' }
+				);
+			await mockServer
+				.forPost('/metaboard')
+				.withBodyIncluding('metaBoards')
+				.thenReply(
+					200,
+					JSON.stringify({
+						data: {
+							metaBoards: [{ address: '0x0000000000000000000000000000000000000000' }]
+						}
+					}),
+					{ 'Content-Type': 'application/json' }
+				);
+			await mockServer
 				.forPost('/rpc-url')
 				.withBodyIncluding('0x56fb83e9')
 				.thenSendJsonRpcResult(`0x${'0'.repeat(24) + '1'.repeat(40)}`);
@@ -1807,9 +1911,24 @@ ${dotrainWithoutVaultIds}`;
 				'0x095ea7b3000000000000000000000000c95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a600000000000000000000000000000000000000000000010f0cf064dd59200000'
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
-			assert.equal(result.deploymentCalldata.length, 3018);
+			assert.equal(result.deploymentCalldata.length, 3594);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
+
+			const emitMetaCall = result.emitMetaCall;
+			assert.ok(emitMetaCall);
+			assert.equal(emitMetaCall?.to, '0x0000000000000000000000000000000000000000');
+			const decoded = decodeFunctionData({
+				abi: metaBoardAbi,
+				data: emitMetaCall!.calldata as `0x${string}`
+			});
+			assert.equal(decoded.functionName, 'emitMeta');
+			const [subject, metaBytes] = decoded.args as [`0x${string}`, `0x${string}`];
+			assert.match(subject, /^0x[0-9a-f]{64}$/);
+			assert.notStrictEqual(subject, `0x${'0'.repeat(64)}`);
+			assert.ok(metaBytes.startsWith('0xff0a89c674ee7874'));
+			const metaText = new TextDecoder().decode(hexToBytes(metaBytes).slice(8));
+			assert.ok(metaText.includes('\n#handle-add-order'));
 
 			gui.unsetDeposit('token2');
 			result = extractWasmEncodedData<DeploymentTransactionArgs>(
@@ -1817,9 +1936,27 @@ ${dotrainWithoutVaultIds}`;
 			);
 
 			assert.equal(result.approvals.length, 0);
-			assert.equal(result.deploymentCalldata.length, 2506);
+			assert.equal(result.deploymentCalldata.length, 2954);
 			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
+
+			const emitMetaCallAfterUnset = result.emitMetaCall;
+			assert.ok(emitMetaCallAfterUnset);
+			assert.equal(emitMetaCallAfterUnset?.to, '0x0000000000000000000000000000000000000000');
+			const decodedAfterUnset = decodeFunctionData({
+				abi: metaBoardAbi,
+				data: emitMetaCallAfterUnset!.calldata as `0x${string}`
+			});
+			assert.equal(decodedAfterUnset.functionName, 'emitMeta');
+			const [subjectAfterUnset, metaBytesAfterUnset] = decodedAfterUnset.args as [
+				`0x${string}`,
+				`0x${string}`
+			];
+			assert.match(subjectAfterUnset, /^0x[0-9a-f]{64}$/);
+			assert.notStrictEqual(subjectAfterUnset, `0x${'0'.repeat(64)}`);
+			assert.ok(metaBytesAfterUnset.startsWith('0xff0a89c674ee7874'));
+			const metaTextAfterUnset = new TextDecoder().decode(hexToBytes(metaBytesAfterUnset).slice(8));
+			assert.ok(metaTextAfterUnset.includes('\n#handle-add-order'));
 		});
 	});
 
@@ -1836,6 +1973,7 @@ ${dotrainWithoutVaultIds}`;
       `;
 			const result = await DotrainOrderGui.newWithDeployment(
 				dotrain3,
+				undefined,
 				'other-deployment',
 				stateUpdateCallback
 			);
@@ -1857,7 +1995,11 @@ ${dotrainWithoutVaultIds}`;
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			let guiResult = await DotrainOrderGui.newWithDeployment(dotrainWithGui, 'some-deployment');
+			let guiResult = await DotrainOrderGui.newWithDeployment(
+				dotrainWithGui,
+				undefined,
+				'some-deployment'
+			);
 			const testGui = extractWasmEncodedData(guiResult);
 
 			assert.equal(
@@ -1987,6 +2129,7 @@ ${dotrainWithoutVaultIds}`;
       `;
 			let result = await DotrainOrderGui.newWithDeployment(
 				dotrain3,
+				undefined,
 				'other-deployment',
 				stateUpdateCallback
 			);
@@ -2124,7 +2267,11 @@ ${dotrainWithoutVaultIds}`;
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrainForRemotes,
+				undefined,
+				'test-deployment'
+			);
 			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
 		});
@@ -2164,7 +2311,11 @@ ${dotrainWithoutVaultIds}`;
 					}
 				]);
 
-			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrainForRemotes,
+				undefined,
+				'test-deployment'
+			);
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
 				"Conflicting remote network in response, a network with key 'remote-network' already exists"
@@ -2224,7 +2375,11 @@ ${dotrainWithoutVaultIds}`;
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'test-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrainForRemotes,
+				undefined,
+				'test-deployment'
+			);
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Remote network key shadowing: some-network');
 			expect(result.error.readableMsg).toBe(
@@ -2280,7 +2435,11 @@ ${dotrainWithoutVaultIds}`;
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(dotrainForRemotes, 'other-deployment');
+			const result = await DotrainOrderGui.newWithDeployment(
+				dotrainForRemotes,
+				undefined,
+				'other-deployment'
+			);
 			const gui = extractWasmEncodedData(result);
 			assert.ok(gui.getCurrentDeployment());
 		});

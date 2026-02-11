@@ -1,4 +1,2 @@
 export const REGISTRY_URL =
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/160d2c7119d6423c22737db1eb9ca71190120775/registry';
-export const REMOTE_SETTINGS_URL =
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/160d2c7119d6423c22737db1eb9ca71190120775/settings.yaml';
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/e7e60182eb4cc350ec59be41f33588af7967e7e2/registry';

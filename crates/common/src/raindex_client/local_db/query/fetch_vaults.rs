@@ -7,10 +7,11 @@ impl FetchVaultsArgs {
     pub fn from_filters(filters: GetVaultsFilters) -> Self {
         FetchVaultsArgs {
             chain_ids: Vec::new(),
-            orderbook_addresses: Vec::new(),
+            orderbook_addresses: filters.orderbook_addresses.unwrap_or_default(),
             owners: filters.owners,
             tokens: filters.tokens.unwrap_or_default(),
             hide_zero_balance: filters.hide_zero_balance,
+            only_active_orders: filters.only_active_orders,
         }
     }
 }
@@ -38,24 +39,70 @@ mod tests {
     fn from_filters_builds_args() {
         let owner = address!("0x0123456789ABCDEF0123456789ABCDEF01234567");
         let token = address!("0x89ABCDEF0123456789ABCDEF0123456789ABCDEF");
+        let orderbook1 = address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let orderbook2 = address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         let filters = GetVaultsFilters {
             owners: vec![owner],
             hide_zero_balance: true,
             tokens: Some(vec![token]),
+            orderbook_addresses: Some(vec![orderbook1, orderbook2]),
+            only_active_orders: false,
         };
         let args = FetchVaultsArgs::from_filters(filters);
-        // Owners lowered
         assert_eq!(
             args.owners,
             vec![address!("0x0123456789abcdef0123456789abcdef01234567")]
         );
-        // Tokens lowered
         assert_eq!(
             args.tokens,
             vec![address!("0x89abcdef0123456789abcdef0123456789abcdef")]
         );
-        // Hide zero balance
         assert!(args.hide_zero_balance);
+        assert_eq!(args.orderbook_addresses.len(), 2);
+        assert_eq!(args.orderbook_addresses[0], orderbook1);
+        assert_eq!(args.orderbook_addresses[1], orderbook2);
+        assert!(!args.only_active_orders);
+    }
+
+    #[test]
+    fn from_filters_none_orderbook_addresses_becomes_empty_vec() {
+        let filters = GetVaultsFilters {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: None,
+            orderbook_addresses: None,
+            only_active_orders: false,
+        };
+        let args = FetchVaultsArgs::from_filters(filters);
+        assert!(args.orderbook_addresses.is_empty());
+    }
+
+    #[test]
+    fn from_filters_single_orderbook_address() {
+        let orderbook = address!("0xDEADBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF");
+        let filters = GetVaultsFilters {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: None,
+            orderbook_addresses: Some(vec![orderbook]),
+            only_active_orders: false,
+        };
+        let args = FetchVaultsArgs::from_filters(filters);
+        assert_eq!(args.orderbook_addresses.len(), 1);
+        assert_eq!(args.orderbook_addresses[0], orderbook);
+    }
+
+    #[test]
+    fn from_filters_maps_only_active_orders() {
+        let filters = GetVaultsFilters {
+            owners: vec![],
+            hide_zero_balance: false,
+            tokens: None,
+            orderbook_addresses: None,
+            only_active_orders: true,
+        };
+        let args = FetchVaultsArgs::from_filters(filters);
+        assert!(args.only_active_orders);
     }
 
     #[cfg(target_family = "wasm")]
