@@ -6815,29 +6815,16 @@ name = "rain_orderbook_cli"
 version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
- "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
  "anyhow",
  "async-trait",
- "chrono",
  "clap",
- "comfy-table",
- "csv",
  "flate2",
- "futures",
- "httpmock",
- "itertools 0.14.0",
  "rain-math-float",
  "rain-metadata 0.0.2-alpha.6",
  "rain_orderbook_app_settings",
- "rain_orderbook_bindings",
  "rain_orderbook_common",
- "rain_orderbook_quote",
- "rain_orderbook_subgraph_client",
- "rain_orderbook_test_fixtures",
  "rusqlite",
- "rust-bigint",
  "serde",
- "serde_bytes",
  "serde_json",
  "tempfile",
  "tokio",
@@ -6961,12 +6948,9 @@ version = "0.0.0-alpha.0"
 dependencies = [
  "alloy",
  "alloy-ethers-typecast 0.2.0 (git+https://github.com/rainlanguage/alloy-ethers-typecast?rev=bcc3a04394aefe191fef4ae8e6e94381a419c99a)",
- "anyhow",
  "async-trait",
- "clap",
  "getrandom 0.2.16",
  "httpmock",
- "once_cell",
  "rain-error-decoding 0.1.0 (git+https://github.com/rainlanguage/rain.error?rev=3d2ed70fb2f7c6156706846e10f163d1e493a8d3)",
  "rain-interpreter-eval",
  "rain-math-float",
@@ -6975,14 +6959,11 @@ dependencies = [
  "rain_orderbook_common",
  "rain_orderbook_subgraph_client",
  "rain_orderbook_test_fixtures",
- "reqwest 0.12.20",
  "serde",
  "serde_json",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",
- "tracing",
- "tracing-subscriber 0.3.19",
  "url",
  "wasm-bindgen-test",
  "wasm-bindgen-utils 0.0.10 (git+https://github.com/rainlanguage/rain.wasm?rev=06990d85a0b7c55378a1c8cca4dd9e2bc34a596a)",
@@ -7829,29 +7810,6 @@ dependencies = [
  "hashlink",
  "libsqlite3-sys",
  "smallvec",
-]
-
-[[package]]
-name = "rust-bigint"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe1d6964d886b707f3e2cec76ac5b0e887661a6699f695ed0d3d5bb4852d6959"
-dependencies = [
- "getrandom 0.2.16",
- "rust-gmp-kzen",
- "serde",
- "serde_derive",
-]
-
-[[package]]
-name = "rust-gmp-kzen"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e654bb304958a567aefa09e83cc313251388202c40bfc245fac19a0e2dd8d08"
-dependencies = [
- "libc",
- "num-traits",
- "serde",
 ]
 
 [[package]]

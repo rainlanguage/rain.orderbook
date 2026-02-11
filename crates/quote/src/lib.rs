@@ -1,5 +1,3 @@
-#[cfg(not(target_family = "wasm"))]
-pub mod cli;
 pub mod error;
 mod quote;
 #[cfg(not(target_family = "wasm"))]

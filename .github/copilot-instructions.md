@@ -8,7 +8,7 @@ Always run commands via Nix: `nix develop -c <command>`. Never cancel long-runni
 ```bash
 nix develop -c cargo build
 nix develop -c cargo build --target wasm32-unknown-unknown --lib -r --workspace \
-  --exclude rain_orderbook_cli --exclude rain_orderbook_integration_tests
+  --exclude rain_orderbook_integration_tests
 nix develop -c npm install
 nix develop -c npm run build:orderbook
 nix develop -c npm run build:ui
