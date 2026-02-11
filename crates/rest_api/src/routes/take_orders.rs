@@ -1,5 +1,7 @@
 use crate::error::ApiError;
-use rain_orderbook_common::raindex_client::take_orders::TakeOrdersRequest;
+use rain_orderbook_common::raindex_client::take_orders::{
+    TakeOrdersCalldataResult, TakeOrdersRequest,
+};
 use rain_orderbook_common::raindex_client::RaindexClient;
 use rocket::serde::json::Json;
 use rocket::{post, Route};
@@ -15,13 +17,30 @@ pub struct TakeOrdersApiRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TakeOrdersApiResponse {
+pub struct ApprovalApiResponse {
+    pub token: String,
+    pub spender: String,
+    pub amount: String,
+    pub formatted_amount: String,
+    pub calldata: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TakeOrdersReadyResponse {
     pub orderbook: String,
     pub calldata: String,
     pub effective_price: String,
     pub prices: Vec<String>,
     pub expected_sell: String,
     pub max_sell_cap: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "status", content = "data")]
+pub enum TakeOrdersApiResponse {
+    NeedsApproval(ApprovalApiResponse),
+    Ready(TakeOrdersReadyResponse),
 }
 
 async fn execute_take_orders(
@@ -32,44 +51,63 @@ async fn execute_take_orders(
 
     let result = client.get_take_orders_calldata(request).await?;
 
-    let effective_price = result.effective_price.format().map_err(|e| {
-        ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-            e,
-        ))
-    })?;
-
-    let prices: Result<Vec<String>, _> = result
-        .prices
-        .iter()
-        .map(|p| {
-            p.format().map_err(|e| {
+    match result {
+        TakeOrdersCalldataResult::NeedsApproval(approval_info) => {
+            let amount = approval_info.amount.format().map_err(|e| {
                 ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
                     e,
                 ))
-            })
-        })
-        .collect();
+            })?;
 
-    let expected_sell = result.expected_sell.format().map_err(|e| {
-        ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-            e,
-        ))
-    })?;
+            Ok(TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
+                token: approval_info.token.to_string(),
+                spender: approval_info.spender.to_string(),
+                amount,
+                formatted_amount: approval_info.formatted_amount,
+                calldata: approval_info.calldata.to_string(),
+            }))
+        }
+        TakeOrdersCalldataResult::Ready(take_orders_info) => {
+            let effective_price = take_orders_info.effective_price.format().map_err(|e| {
+                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                    e,
+                ))
+            })?;
 
-    let max_sell_cap = result.max_sell_cap.format().map_err(|e| {
-        ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-            e,
-        ))
-    })?;
+            let prices: Result<Vec<String>, _> = take_orders_info
+                .prices
+                .iter()
+                .map(|p| {
+                    p.format().map_err(|e| {
+                        ApiError::Raindex(
+                            rain_orderbook_common::raindex_client::RaindexError::Float(e),
+                        )
+                    })
+                })
+                .collect();
 
-    Ok(TakeOrdersApiResponse {
-        orderbook: result.orderbook.to_string(),
-        calldata: result.calldata.to_string(),
-        effective_price,
-        prices: prices?,
-        expected_sell,
-        max_sell_cap,
-    })
+            let expected_sell = take_orders_info.expected_sell.format().map_err(|e| {
+                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                    e,
+                ))
+            })?;
+
+            let max_sell_cap = take_orders_info.max_sell_cap.format().map_err(|e| {
+                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                    e,
+                ))
+            })?;
+
+            Ok(TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
+                orderbook: take_orders_info.orderbook.to_string(),
+                calldata: take_orders_info.calldata.to_string(),
+                effective_price,
+                prices: prices?,
+                expected_sell,
+                max_sell_cap,
+            }))
+        }
+    }
 }
 
 #[post("/take-orders", data = "<request>")]
@@ -194,23 +232,44 @@ mod tests {
     }
 
     #[test]
-    fn test_response_serialization() {
-        let response = TakeOrdersApiResponse {
+    fn test_ready_response_serialization() {
+        let response = TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
             orderbook: "0x1234567890123456789012345678901234567890".to_string(),
             calldata: "0xabcdef".to_string(),
             effective_price: "1.5".to_string(),
             prices: vec!["1.4".to_string(), "1.6".to_string()],
             expected_sell: "150".to_string(),
             max_sell_cap: "200".to_string(),
-        };
+        });
 
         let json = serde_json::to_string(&response).unwrap();
 
+        assert!(json.contains("\"status\":\"ready\""));
         assert!(json.contains("\"orderbook\":"));
         assert!(json.contains("\"calldata\":"));
         assert!(json.contains("\"effectivePrice\":"));
         assert!(json.contains("\"prices\":"));
         assert!(json.contains("\"expectedSell\":"));
         assert!(json.contains("\"maxSellCap\":"));
+    }
+
+    #[test]
+    fn test_needs_approval_response_serialization() {
+        let response = TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
+            token: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            spender: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+            amount: "1000".to_string(),
+            formatted_amount: "1000".to_string(),
+            calldata: "0xabcdef".to_string(),
+        });
+
+        let json = serde_json::to_string(&response).unwrap();
+
+        assert!(json.contains("\"status\":\"needsApproval\""));
+        assert!(json.contains("\"token\":"));
+        assert!(json.contains("\"spender\":"));
+        assert!(json.contains("\"amount\":"));
+        assert!(json.contains("\"formattedAmount\":"));
+        assert!(json.contains("\"calldata\":"));
     }
 }
