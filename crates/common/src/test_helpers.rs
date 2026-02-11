@@ -244,8 +244,63 @@ pub mod local_evm {
             .await;
     }
 
+    pub async fn fund_taker(setup: &TestSetup, token: Address, taker: Address, amount: U256) {
+        let token_contract = setup
+            .local_evm
+            .tokens
+            .iter()
+            .find(|t| *t.address() == token)
+            .expect("Token should exist in setup.local_evm.tokens");
+
+        token_contract
+            .transfer(taker, amount)
+            .from(setup.owner)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    }
+
+    pub async fn approve_taker(
+        setup: &TestSetup,
+        token: Address,
+        taker: Address,
+        spender: Address,
+        amount: U256,
+    ) {
+        let token_contract = setup
+            .local_evm
+            .tokens
+            .iter()
+            .find(|t| *t.address() == token)
+            .expect("Token should exist in setup.local_evm.tokens");
+
+        token_contract
+            .approve(spender, amount)
+            .from(taker)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    }
+
     pub async fn fund_and_approve_taker(
         setup: &TestSetup,
+        token: Address,
+        taker: Address,
+        spender: Address,
+        amount: U256,
+    ) {
+        fund_taker(setup, token, taker, amount).await;
+        approve_taker(setup, token, taker, spender, U256::MAX).await;
+    }
+
+    pub async fn fund_and_approve_taker_multi_orderbook(
+        setup: &MultiOrderbookTestSetup,
         token: Address,
         taker: Address,
         spender: Address,
@@ -269,7 +324,7 @@ pub mod local_evm {
             .unwrap();
 
         token_contract
-            .approve(spender, amount)
+            .approve(spender, U256::MAX)
             .from(taker)
             .send()
             .await
