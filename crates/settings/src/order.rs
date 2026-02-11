@@ -11,7 +11,6 @@ use thiserror::Error;
 
 const ALLOWED_ORDER_KEYS: [&str; 4] = ["deployer", "inputs", "orderbook", "outputs"];
 const ALLOWED_ORDER_IO_KEYS: [&str; 2] = ["token", "vault-id"];
-#[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
     context::{Context, GuiContextTrait, SelectTokensContext},
@@ -19,14 +18,12 @@ use yaml::{
     YamlParsableHash,
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub enum VaultType {
     Input,
     Output,
 }
-#[cfg(target_family = "wasm")]
 impl_wasm_traits!(VaultType);
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

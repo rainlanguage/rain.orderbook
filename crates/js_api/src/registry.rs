@@ -724,10 +724,12 @@ orderbooks:
     address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
     network: flare
     subgraph: flare
+    deployment-block: 0
   base:
     address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7
     network: base
     subgraph: base
+    deployment-block: 0
 deployers:
   flare:
     address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
