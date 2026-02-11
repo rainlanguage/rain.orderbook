@@ -35,15 +35,14 @@
 	const context = getAllContexts();
 	const { errToast } = useToasts();
 
-	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
 	export let hideInactiveOrdersVaults: AppStoresInterface['hideInactiveOrdersVaults'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
-	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
+	export let ownerFilter: AppStoresInterface['ownerFilter'];
 	export let handleDepositModal:
 		| ((
 				vault: RaindexVault,
@@ -66,12 +65,8 @@
 	const { account } = useAccount();
 	const raindexClient = useRaindexClient();
 
-	$: owners =
-		$activeAccountsItems && Object.values($activeAccountsItems).length > 0
-			? Object.values($activeAccountsItems)
-			: $showMyItemsOnly && $account
-				? [$account]
-				: [];
+	$: ownerAddress = $ownerFilter?.trim() || '';
+	$: owners = ownerAddress ? [ownerAddress] : [];
 
 	$: tokensQuery = createQuery({
 		queryKey: [QKEY_TOKENS, $selectedChainIds],
@@ -109,7 +104,7 @@
 			$hideZeroBalanceVaults,
 			$hideInactiveOrdersVaults,
 			$selectedChainIds,
-			owners,
+			ownerAddress,
 			selectedTokens,
 			selectedOrderbookAddresses
 		],
@@ -221,8 +216,6 @@
 {#if $query}
 	<ListViewOrderbookFilters
 		{selectedChainIds}
-		{activeAccountsItems}
-		{showMyItemsOnly}
 		{showInactiveOrders}
 		{orderHash}
 		{hideZeroBalanceVaults}
@@ -232,6 +225,7 @@
 		{selectedTokens}
 		{activeOrderbookAddresses}
 		{selectedOrderbookAddresses}
+		{ownerFilter}
 	/>
 	<AppTable
 		{query}

@@ -2,10 +2,8 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import OrdersListTable from '../lib/components/tables/OrdersListTable.svelte';
-import { readable } from 'svelte/store';
 import { RaindexOrder } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
-import { useAccount } from '$lib/providers/wallet/useAccount';
 
 vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
@@ -14,17 +12,11 @@ vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
 	};
 });
 
-vi.mock('$lib/providers/wallet/useAccount', () => ({
-	useAccount: vi.fn()
-}));
-
 vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
 }));
 
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-
-const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
 
 const mockVaultsList = () => ({
 	items: [],
@@ -94,30 +86,26 @@ const {
 	mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
 	mockOrderHashStore,
-	mockActiveAccountsItemsStore,
 	mockShowInactiveOrdersStore,
-	mockShowMyItemsOnlyStore,
 	mockSelectedChainIdsStore,
 	mockActiveTokensStore,
-	mockActiveOrderbookAddressesStore
+	mockActiveOrderbookAddressesStore,
+	mockOwnerFilterStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
 type OrdersListTableProps = ComponentProps<OrdersListTable>;
 
 const defaultProps: OrdersListTableProps = {
-	activeAccountsItems: mockActiveAccountsItemsStore,
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	orderHash: mockOrderHashStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
-	showMyItemsOnly: mockShowMyItemsOnlyStore,
 	activeNetworkRef: mockActiveNetworkRefStore,
 	activeOrderbookRef: mockActiveOrderbookRefStore,
 	selectedChainIds: mockSelectedChainIdsStore,
 	activeTokens: mockActiveTokensStore,
-	activeOrderbookAddresses: mockActiveOrderbookAddressesStore
+	activeOrderbookAddresses: mockActiveOrderbookAddressesStore,
+	ownerFilter: mockOwnerFilterStore
 } as unknown as OrdersListTableProps;
-
-const mockMatchesAccount = vi.fn();
 
 const mockGetOrders = vi.fn();
 const mockGetTokens = vi.fn();
@@ -126,10 +114,6 @@ const mockGetAllOrderbooks = vi.fn();
 describe('OrdersListTable', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		(useAccount as Mock).mockReturnValue({
-			account: mockAccountStore,
-			matchesAccount: mockMatchesAccount
-		});
 		(useRaindexClient as Mock).mockReturnValue({
 			getOrders: mockGetOrders,
 			getTokens: mockGetTokens,
