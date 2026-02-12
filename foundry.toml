@@ -31,7 +31,7 @@ fs_permissions = [
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterStoreNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterNPE2" },
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2" },
-  { access = "read-write", path = "./meta/OrderBookSubParserAuthoringMeta.rain.meta"},
+  { access = "read-write", path = "./meta/OrderBookV6SubParserAuthoringMeta.rain.meta"},
   { access = "read-write", path = "src/generated" },
 ]
 

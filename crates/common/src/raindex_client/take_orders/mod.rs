@@ -9,46 +9,15 @@ mod e2e_tests;
 pub use request::TakeOrdersRequest;
 pub use result::{ApprovalInfo, TakeOrdersCalldataResult, TakeOrdersInfo};
 
-use super::orders::{GetOrdersFilters, GetOrdersTokenFilter, RaindexOrder};
-use super::{ChainIds, RaindexClient, RaindexError};
+use super::{RaindexClient, RaindexError};
 use crate::rpc_client::RpcClient;
 use crate::take_orders::{
     build_take_orders_config_from_simulation, find_failing_order_index, simulate_take_orders,
 };
-use alloy::primitives::Address;
 use approval::{check_approval_needed, ApprovalCheckParams};
 use rain_orderbook_bindings::provider::mk_read_provider;
 use wasm_bindgen_utils::prelude::*;
 use wasm_bindgen_utils::wasm_export;
-
-impl RaindexClient {
-    async fn fetch_orders_for_pair(
-        &self,
-        chain_id: u32,
-        sell_token: Address,
-        buy_token: Address,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let filters = GetOrdersFilters {
-            owners: vec![],
-            active: Some(true),
-            order_hash: None,
-            tokens: Some(GetOrdersTokenFilter {
-                inputs: Some(vec![sell_token]),
-                outputs: Some(vec![buy_token]),
-            }),
-        };
-
-        let orders = self
-            .get_orders(Some(ChainIds(vec![chain_id])), Some(filters), None)
-            .await?;
-
-        if orders.is_empty() {
-            return Err(RaindexError::NoLiquidity);
-        }
-
-        Ok(orders)
-    }
-}
 
 #[wasm_export]
 impl RaindexClient {

@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn test_response_serialization_ready() {
+    fn test_ready_response_serialization() {
         let response = TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
             orderbook: "0x1234567890123456789012345678901234567890".to_string(),
             calldata: "0xabcdef".to_string(),
@@ -366,13 +366,13 @@ mod tests {
     }
 
     #[test]
-    fn test_response_serialization_needs_approval() {
+    fn test_needs_approval_response_serialization() {
         let response = TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
-            token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913".to_string(),
-            spender: "0xd2938e7c9fe3597f78832ce780feb61945c377d7".to_string(),
+            token: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            spender: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
             amount: "1000".to_string(),
             formatted_amount: "1000".to_string(),
-            calldata: "0x095ea7b3...".to_string(),
+            calldata: "0xabcdef".to_string(),
         });
 
         let json = serde_json::to_string(&response).unwrap();

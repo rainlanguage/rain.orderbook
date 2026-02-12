@@ -1,6 +1,6 @@
 use super::candidates::TakeOrderCandidate;
-use super::price::cmp_float;
 use crate::raindex_client::RaindexError;
+use crate::utils::float::cmp_float;
 use rain_math_float::Float;
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -29,7 +29,7 @@ fn sort_candidates_by_price(candidates: &mut [TakeOrderCandidate]) -> Result<(),
         match cmp_float(&a.ratio, &b.ratio) {
             Ok(ord) => ord,
             Err(e) => {
-                *comparison_error.borrow_mut() = Some(e);
+                *comparison_error.borrow_mut() = Some(e.into());
                 Ordering::Equal
             }
         }
@@ -75,6 +75,17 @@ fn take_leg_for_spend(
     let price = candidate.ratio;
     let max_output = candidate.max_output;
 
+    if price.eq(zero)? {
+        if max_output.lte(zero)? {
+            return Ok(None);
+        }
+        return Ok(Some(SelectedTakeOrderLeg {
+            candidate,
+            input: zero,
+            output: max_output,
+        }));
+    }
+
     let max_input_for_candidate = max_output.mul(price)?;
 
     let input = if max_input_for_candidate.lte(remaining_input)? {
@@ -87,11 +98,7 @@ fn take_leg_for_spend(
         return Ok(None);
     }
 
-    let output = if price.eq(zero)? {
-        max_output.min(remaining_input.div(Float::parse("0.000001".to_string())?)?)?
-    } else {
-        input.div(price)?
-    };
+    let output = input.div(price)?;
 
     Ok(Some(SelectedTakeOrderLeg {
         candidate,
@@ -829,5 +836,40 @@ mod tests {
         assert!(result.legs.is_empty());
         assert!(result.total_input.eq(Float::zero().unwrap()).unwrap());
         assert!(result.total_output.eq(Float::zero().unwrap()).unwrap());
+    }
+
+    #[test]
+    fn test_simulate_spend_zero_price_candidate_included() {
+        let zero_ratio = Float::zero().unwrap();
+        let ratio_2 = Float::parse("2".to_string()).unwrap();
+        let max_output = Float::parse("100".to_string()).unwrap();
+
+        let zero_price_candidate = make_simulation_candidate(max_output, zero_ratio);
+        let normal_candidate = make_simulation_candidate(max_output, ratio_2);
+
+        let candidates = vec![normal_candidate, zero_price_candidate];
+        let spend_budget = Float::parse("100".to_string()).unwrap();
+
+        let result =
+            simulate_spend_over_candidates(candidates, spend_budget, high_price_cap()).unwrap();
+
+        assert_eq!(result.legs.len(), 2, "Both candidates should be used");
+        assert!(
+            result.legs[0].candidate.ratio.eq(zero_ratio).unwrap(),
+            "First leg should be zero-price (sorted first)"
+        );
+        assert!(
+            result.legs[1].candidate.ratio.eq(ratio_2).unwrap(),
+            "Second leg should be normal candidate with ratio=2"
+        );
+        let expected_total_output = Float::parse("150".to_string()).unwrap();
+        assert!(
+            result.total_output.eq(expected_total_output).unwrap(),
+            "total_output should be 150 (100 free + 50 from spending 100 at ratio 2)"
+        );
+        assert!(
+            result.total_input.eq(spend_budget).unwrap(),
+            "total_input should be 100 (0 for zero-price + 100 for normal)"
+        );
     }
 }

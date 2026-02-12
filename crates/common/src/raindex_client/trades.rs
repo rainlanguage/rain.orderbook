@@ -1,23 +1,19 @@
+use super::local_db::orders::LocalDbOrders;
+use super::orders::{OrdersDataSource, SubgraphOrders};
 use super::*;
 use crate::local_db::query::fetch_order_trades::LocalDbOrderTrade;
 use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
-use crate::raindex_client::local_db::query::fetch_order_trades::fetch_order_trades;
-use crate::raindex_client::local_db::query::fetch_order_trades_count::fetch_order_trades_count;
 use crate::raindex_client::{
     orders::RaindexOrder,
     transactions::RaindexTransaction,
     vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
-use rain_orderbook_subgraph_client::{
-    types::{common::SgTrade, Id},
-    SgPaginationArgs,
-};
+use rain_orderbook_subgraph_client::types::{common::SgTrade, Id};
+use std::rc::Rc;
 use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
-
-const DEFAULT_PAGE_SIZE: u16 = 100;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -136,50 +132,27 @@ impl RaindexOrder {
         #[cfg(not(target_family = "wasm"))]
         let orderbook = self.orderbook();
 
+        #[cfg(target_family = "wasm")]
+        let order_hash = B256::from_str(&self.order_hash())?;
+        #[cfg(not(target_family = "wasm"))]
+        let order_hash = B256::from_str(&self.order_hash().to_string())?;
+
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook);
+        let raindex_client = self.get_raindex_client();
+
         if is_chain_supported_local_db(chain_id) {
-            let raindex_client = self.get_raindex_client();
             if let Some(local_db) = raindex_client.local_db() {
-                #[cfg(target_family = "wasm")]
-                let order_hash = B256::from_str(&self.order_hash())?;
-                #[cfg(not(target_family = "wasm"))]
-                let order_hash = B256::from_str(&self.order_hash().to_string())?;
-
-                let local_trades = fetch_order_trades(
-                    &local_db,
-                    &OrderbookIdentifier::new(chain_id, orderbook),
-                    order_hash,
-                    start_timestamp,
-                    end_timestamp,
-                )
-                .await?;
-
-                let trades = local_trades
-                    .into_iter()
-                    .map(|trade| RaindexTrade::try_from_local_db_trade(chain_id, trade))
-                    .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
-
-                return Ok(trades);
+                let local_source = LocalDbOrders::new(&local_db, Rc::clone(&raindex_client));
+                return local_source
+                    .trades_list(&ob_id, &order_hash, start_timestamp, end_timestamp, page)
+                    .await;
             }
         }
 
-        let client = self.get_orderbook_client()?;
-        let trades = client
-            .order_trades_list(
-                Id::new(self.id().to_string()),
-                SgPaginationArgs {
-                    page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
-                },
-                start_timestamp,
-                end_timestamp,
-            )
-            .await?;
-
-        let trades = trades
-            .into_iter()
-            .map(|trade| RaindexTrade::try_from_sg_trade(self.chain_id(), trade))
-            .collect::<Result<Vec<RaindexTrade>, RaindexError>>()?;
-        Ok(trades)
+        let subgraph_source = SubgraphOrders::new(&raindex_client);
+        subgraph_source
+            .trades_list(&ob_id, &order_hash, start_timestamp, end_timestamp, page)
+            .await
     }
 
     /// Fetches detailed information for a specific trade
@@ -256,35 +229,27 @@ impl RaindexOrder {
         #[cfg(not(target_family = "wasm"))]
         let orderbook = self.orderbook();
 
-        if is_chain_supported_local_db(chain_id) {
-            let raindex_client = self.get_raindex_client();
-            if let Some(local_db) = raindex_client.local_db() {
-                #[cfg(target_family = "wasm")]
-                let order_hash = B256::from_str(&self.order_hash())?;
-                #[cfg(not(target_family = "wasm"))]
-                let order_hash = self.order_hash();
+        #[cfg(target_family = "wasm")]
+        let order_hash = B256::from_str(&self.order_hash())?;
+        #[cfg(not(target_family = "wasm"))]
+        let order_hash = self.order_hash();
 
-                let count = fetch_order_trades_count(
-                    &local_db,
-                    &OrderbookIdentifier::new(chain_id, orderbook),
-                    order_hash,
-                    start_timestamp,
-                    end_timestamp,
-                )
-                .await?;
-                return Ok(count);
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook);
+        let raindex_client = self.get_raindex_client();
+
+        if is_chain_supported_local_db(chain_id) {
+            if let Some(local_db) = raindex_client.local_db() {
+                let local_source = LocalDbOrders::new(&local_db, Rc::clone(&raindex_client));
+                return local_source
+                    .trades_count(&ob_id, &order_hash, start_timestamp, end_timestamp)
+                    .await;
             }
         }
 
-        let client = self.get_orderbook_client()?;
-        let trades_count = client
-            .order_trades_list_all(
-                Id::new(self.id().to_string()),
-                start_timestamp,
-                end_timestamp,
-            )
-            .await?;
-        Ok(trades_count.len() as u64)
+        let subgraph_source = SubgraphOrders::new(&raindex_client);
+        subgraph_source
+            .trades_count(&ob_id, &order_hash, start_timestamp, end_timestamp)
+            .await
     }
 }
 impl RaindexOrder {
@@ -345,6 +310,7 @@ impl RaindexTrade {
             LocalTradeBalanceInfo {
                 delta: trade.input_delta.clone(),
                 running_balance: trade.input_running_balance.clone(),
+                trade_kind: trade.trade_kind.clone(),
             },
             trade.block_timestamp,
         )?;
@@ -363,6 +329,7 @@ impl RaindexTrade {
             LocalTradeBalanceInfo {
                 delta: trade.output_delta.clone(),
                 running_balance: trade.output_running_balance.clone(),
+                trade_kind: trade.trade_kind.clone(),
             },
             trade.block_timestamp,
         )?;
@@ -951,6 +918,11 @@ mod test_helpers {
                 },
                 "orderbook": {
                   "id": "0x1234567890abcdef1234567890abcdef12345678"
+                },
+                "trade": {
+                  "tradeEvent": {
+                    "__typename": "TakeOrder"
+                  }
                 }
               },
               "order": {
@@ -983,6 +955,11 @@ mod test_helpers {
                 },
                 "orderbook": {
                   "id": "0x1234567890abcdef1234567890abcdef12345678"
+                },
+                "trade": {
+                  "tradeEvent": {
+                    "__typename": "TakeOrder"
+                  }
                 }
               },
               "timestamp": "0",
@@ -1031,6 +1008,11 @@ mod test_helpers {
                   },
                   "orderbook": {
                     "id": "0x1234567890abcdef1234567890abcdef12345679"
+                  },
+                  "trade": {
+                    "tradeEvent": {
+                      "__typename": "TakeOrder"
+                    }
                   }
                 },
                 "order": {
@@ -1063,6 +1045,11 @@ mod test_helpers {
                   },
                   "orderbook": {
                     "id": "0x1234567890abcdef1234567890abcdef12345679"
+                  },
+                  "trade": {
+                    "tradeEvent": {
+                      "__typename": "TakeOrder"
+                    }
                   }
                 },
                 "timestamp": "1700086400",

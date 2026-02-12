@@ -164,6 +164,10 @@ impl LocalDbQueryExecutor for RusqliteExecutor {
         serde_json::from_value::<T>(json_value)
             .map_err(|e| LocalDbQueryError::deserialization(e.to_string()))
     }
+
+    async fn wipe_and_recreate(&self) -> Result<(), LocalDbQueryError> {
+        Err(LocalDbQueryError::not_implemented("wipe_and_recreate"))
+    }
 }
 
 #[cfg(test)]

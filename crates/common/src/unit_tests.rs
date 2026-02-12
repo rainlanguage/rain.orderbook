@@ -449,6 +449,7 @@ mod tests {
         let local_evm = LocalEvm::new().await;
         let test_dotrain = format!(
             r#"
+version: {spec_version}
 test:
     # calculate-entrypoint: some-custom-entrypoint
     # handle-entrypoint: some-custom-entrypoint
@@ -478,7 +479,8 @@ using-words-from orderbook-subparser
 /* handle io stack */
 :ensure(equal-to(output-vault-decrease() 10) "output cap should be 10");
     "#,
-            orderbook_subparser = local_evm.orderbook_subparser.address()
+            orderbook_subparser = local_evm.orderbook_subparser.address(),
+            spec_version = SpecVersion::current()
         );
         let dotrain = format!(
             r#"

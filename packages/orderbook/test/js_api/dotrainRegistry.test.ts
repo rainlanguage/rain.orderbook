@@ -1,7 +1,9 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
-import { WasmEncodedResult, DotrainRegistry } from '../../dist/cjs';
+import { WasmEncodedResult, DotrainRegistry, OrderbookYaml } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
+
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
 	if (result.error) {
@@ -14,7 +16,7 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 };
 
 const MOCK_SETTINGS_CONTENT = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
   flare:
     rpcs:
@@ -62,6 +64,7 @@ tokens:
 `;
 
 const MOCK_DOTRAIN_PREFIX = `
+version: ${SPEC_VERSION}
 gui:
   name: Test gui
   description: Test description
@@ -210,6 +213,24 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 			const result = await DotrainRegistry.new('http://localhost:8231/registry.txt');
 			assert(result.error);
 		});
+
+		it('should validate registry format without fetching orders', async () => {
+			const registryContent = `http://localhost:8231/settings.yaml
+fixed-limit http://localhost:8231/fixed-limit.rain`;
+
+			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+
+			const result = await DotrainRegistry.validate('http://localhost:8231/registry.txt');
+			const value = extractWasmEncodedData(result);
+			assert.strictEqual(value, undefined);
+		});
+
+		it('should fail validation for invalid registry format', async () => {
+			await mockServer.forGet('/invalid-registry.txt').thenReply(200, 'invalid');
+
+			const result = await DotrainRegistry.validate('http://localhost:8231/invalid-registry.txt');
+			assert(result.error);
+		});
 	});
 
 	describe('DotrainRegistry Order Management', () => {
@@ -240,15 +261,39 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 		it('should get all order details', () => {
 			const orderDetails = extractWasmEncodedData(registry.getAllOrderDetails());
 
-			assert.strictEqual(orderDetails.size, 2);
-			assert(orderDetails.has('fixed-limit'));
-			assert(orderDetails.has('auction-dca'));
+			assert.strictEqual(orderDetails.valid.size, 2);
+			assert.strictEqual(orderDetails.invalid.size, 0);
+			assert(orderDetails.valid.has('fixed-limit'));
+			assert(orderDetails.valid.has('auction-dca'));
 
-			const fixedLimitDetails = orderDetails.get('fixed-limit');
+			const fixedLimitDetails = orderDetails.valid.get('fixed-limit');
 			assert(fixedLimitDetails);
 			assert.strictEqual(fixedLimitDetails.name, 'Test gui');
 			assert.strictEqual(fixedLimitDetails.description, 'Test description');
 			assert.strictEqual(fixedLimitDetails.short_description, 'Test short description');
+		});
+
+		it('should handle mixed valid and invalid orders', async () => {
+			mockServer.reset();
+
+			const registryContent = `http://localhost:8231/settings.yaml
+valid-order http://localhost:8231/valid.rain
+invalid-order http://localhost:8231/invalid.rain`;
+
+			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_CONTENT);
+			await mockServer.forGet('/valid.rain').thenReply(200, FIRST_DOTRAIN_CONTENT);
+			await mockServer.forGet('/invalid.rain').thenReply(200, 'not a dotrain file');
+
+			const registryResult = await DotrainRegistry.new('http://localhost:8231/registry.txt');
+			const mixedRegistry = extractWasmEncodedData(registryResult);
+
+			const orderDetails = extractWasmEncodedData(mixedRegistry.getAllOrderDetails());
+
+			assert.strictEqual(orderDetails.valid.size, 1);
+			assert.strictEqual(orderDetails.invalid.size, 1);
+			assert(orderDetails.valid.has('valid-order'));
+			assert(orderDetails.invalid.has('invalid-order'));
 		});
 
 		it('should get deployment details for specific order', () => {
@@ -337,6 +382,98 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 			const result = await registry.getGui('non-existent', 'flare', null, null);
 			assert(result.error);
 			assert(result.error.readableMsg.includes("order key 'non-existent' was not found"));
+		});
+	});
+
+	describe('DotrainRegistry getOrderbookYaml', () => {
+		const MOCK_SETTINGS_WITH_TOKENS = `
+version: ${SPEC_VERSION}
+networks:
+  mainnet:
+    rpcs:
+      - https://mainnet.infura.io
+    chain-id: 1
+    currency: ETH
+tokens:
+  weth:
+    network: mainnet
+    address: 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+    decimals: 18
+    label: Wrapped Ether
+    symbol: WETH
+  usdc:
+    network: mainnet
+    address: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+    decimals: 6
+    label: USD Coin
+    symbol: USDC
+orderbooks:
+  mainnet:
+    address: 0x1234567890123456789012345678901234567890
+    network: mainnet
+deployers:
+  mainnet:
+    address: 0x1234567890123456789012345678901234567890
+    network: mainnet
+`;
+
+		const MOCK_DOTRAIN_SIMPLE = `
+gui:
+  name: Test Order
+  description: Test description
+  deployments:
+    mainnet:
+      name: Mainnet Order
+      description: Mainnet deployment
+      deposits:
+        - token: weth
+          presets:
+            - "0"
+      fields:
+        - binding: test-binding
+          name: Test binding
+          presets:
+            - value: "0xbeef"
+scenarios:
+  mainnet:
+    deployer: mainnet
+    runs: 1
+orders:
+  mainnet:
+    orderbook: mainnet
+    inputs:
+      - token: weth
+    outputs:
+      - token: usdc
+deployments:
+  mainnet:
+    scenario: mainnet
+    order: mainnet
+---
+#calculate-io
+_ _: 0 0;
+#handle-io
+:;
+`;
+
+		it('should return OrderbookYaml instance from settings', async () => {
+			const registryContent = `http://localhost:8231/settings.yaml
+test-order http://localhost:8231/order.rain`;
+
+			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_WITH_TOKENS);
+			await mockServer.forGet('/order.rain').thenReply(200, MOCK_DOTRAIN_SIMPLE);
+
+			const registry = extractWasmEncodedData(
+				await DotrainRegistry.new('http://localhost:8231/registry.txt')
+			);
+
+			const orderbookYamlResult = registry.getOrderbookYaml();
+			const orderbookYaml = extractWasmEncodedData(orderbookYamlResult);
+
+			assert.ok(orderbookYaml, 'OrderbookYaml instance should be returned');
+			assert.strictEqual(typeof orderbookYaml.getTokens, 'function');
+			assert.strictEqual(typeof orderbookYaml.getOrderbookByAddress, 'function');
 		});
 	});
 });
