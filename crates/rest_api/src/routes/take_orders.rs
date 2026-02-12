@@ -1,7 +1,5 @@
 use crate::error::{ApiError, ApiErrorResponse};
-use rain_orderbook_common::raindex_client::take_orders::{
-    TakeOrdersCalldataResult, TakeOrdersRequest,
-};
+use rain_orderbook_common::raindex_client::take_orders::TakeOrdersRequest;
 use rain_orderbook_common::raindex_client::RaindexClient;
 use rain_orderbook_common::take_orders::TakeOrdersMode;
 use rocket::serde::json::Json;
@@ -148,62 +146,61 @@ async fn execute_take_orders(
 
     let result = client.get_take_orders_calldata(request).await?;
 
-    match result {
-        TakeOrdersCalldataResult::NeedsApproval(approval_info) => {
-            let amount = approval_info.amount.format().map_err(|e| {
-                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-                    e,
-                ))
-            })?;
+    if let Some(approval_info) = result.approval_info() {
+        let amount = approval_info.amount().format().map_err(|e| {
+            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                e,
+            ))
+        })?;
 
-            Ok(TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
-                token: approval_info.token.to_string(),
-                spender: approval_info.spender.to_string(),
-                amount,
-                formatted_amount: approval_info.formatted_amount,
-                calldata: approval_info.calldata.to_string(),
-            }))
-        }
-        TakeOrdersCalldataResult::Ready(take_orders_info) => {
-            let effective_price = take_orders_info.effective_price.format().map_err(|e| {
-                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-                    e,
-                ))
-            })?;
+        Ok(TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
+            token: approval_info.token().to_string(),
+            spender: approval_info.spender().to_string(),
+            amount,
+            formatted_amount: approval_info.formatted_amount().to_string(),
+            calldata: approval_info.calldata().to_string(),
+        }))
+    } else if let Some(take_orders_info) = result.take_orders_info() {
+        let effective_price = take_orders_info.effective_price().format().map_err(|e| {
+            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                e,
+            ))
+        })?;
 
-            let prices: Result<Vec<String>, _> = take_orders_info
-                .prices
-                .iter()
-                .map(|p| {
-                    p.format().map_err(|e| {
-                        ApiError::Raindex(
-                            rain_orderbook_common::raindex_client::RaindexError::Float(e),
-                        )
-                    })
+        let prices: Result<Vec<String>, _> = take_orders_info
+            .prices()
+            .iter()
+            .map(|p| {
+                p.format().map_err(|e| {
+                    ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                        e,
+                    ))
                 })
-                .collect();
+            })
+            .collect();
 
-            let expected_sell = take_orders_info.expected_sell.format().map_err(|e| {
-                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-                    e,
-                ))
-            })?;
+        let expected_sell = take_orders_info.expected_sell().format().map_err(|e| {
+            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                e,
+            ))
+        })?;
 
-            let max_sell_cap = take_orders_info.max_sell_cap.format().map_err(|e| {
-                ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
-                    e,
-                ))
-            })?;
+        let max_sell_cap = take_orders_info.max_sell_cap().format().map_err(|e| {
+            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                e,
+            ))
+        })?;
 
-            Ok(TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
-                orderbook: take_orders_info.orderbook.to_string(),
-                calldata: take_orders_info.calldata.to_string(),
-                effective_price,
-                prices: prices?,
-                expected_sell,
-                max_sell_cap,
-            }))
-        }
+        Ok(TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
+            orderbook: take_orders_info.orderbook().to_string(),
+            calldata: take_orders_info.calldata().to_string(),
+            effective_price,
+            prices: prices?,
+            expected_sell,
+            max_sell_cap,
+        }))
+    } else {
+        unreachable!("TakeOrdersCalldataResult must be either NeedsApproval or Ready")
     }
 }
 
