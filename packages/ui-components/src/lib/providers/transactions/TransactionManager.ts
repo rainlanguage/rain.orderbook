@@ -544,6 +544,11 @@ export class TransactionManager {
 				label: 'View on explorer'
 			}
 		];
+		const awaitIndexingFn = createSdkIndexingFn({
+			call: () => raindexClient.getTransaction(chainId, orderbook, txHash),
+			isSuccess: (tx) => !!tx
+		});
+
 		return this.createTransaction({
 			...args,
 			name,
@@ -551,15 +556,7 @@ export class TransactionManager {
 			successMessage,
 			queryKey,
 			toastLinks,
-			awaitSubgraphConfig: {
-				chainId,
-				orderbook,
-				txHash,
-				successMessage,
-				fetchEntityFn: (_chainId: number, orderbook: Address, txHash: Hex) =>
-					raindexClient.getTransaction(orderbook, txHash),
-				isSuccess: (data) => !!data
-			}
+			awaitIndexingFn
 		});
 	}
 

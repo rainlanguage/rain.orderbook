@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import OrdersListTable from '../lib/components/tables/OrdersListTable.svelte';
 import { readable } from 'svelte/store';
 import { RaindexOrder } from '@rainlanguage/orderbook';

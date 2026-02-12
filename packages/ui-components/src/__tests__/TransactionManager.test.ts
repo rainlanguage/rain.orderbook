@@ -1066,7 +1066,7 @@ describe('TransactionManager', () => {
 			);
 		});
 
-		it('should include awaitSubgraphConfig for order tracking', async () => {
+		it('should use SDK-based indexing via createSdkIndexingFn for order tracking', async () => {
 			const mockTransaction = { execute: vi.fn() };
 			vi.mocked(TransactionStore).mockImplementation(
 				() => mockTransaction as unknown as TransactionStore
@@ -1074,27 +1074,32 @@ describe('TransactionManager', () => {
 
 			await manager.createTakeOrderTransaction(takeOrderMockArgs);
 
-			expect(TransactionStore).toHaveBeenCalledWith(
-				expect.objectContaining({
-					awaitSubgraphConfig: expect.objectContaining({
-						chainId: takeOrderMockArgs.chainId,
-						orderbook: takeOrderMockArgs.entity.orderbook,
-						txHash: takeOrderMockArgs.txHash,
-						successMessage: 'Order taken successfully.',
-						fetchEntityFn: expect.any(Function),
-						isSuccess: expect.any(Function)
-					})
-				}),
-				expect.any(Function),
-				expect.any(Function)
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				value: { id: '0x0123', from: '0xowner', blockNumber: 123n, timestamp: 1700000000n }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			expect(mockRaindexClient.getTransaction).toHaveBeenCalledWith(
+				takeOrderMockArgs.chainId,
+				takeOrderMockArgs.entity.orderbook,
+				takeOrderMockArgs.txHash
 			);
 
-			const takeOrderCallArgs = vi.mocked(TransactionStore).mock.calls[0][0];
-			const takeOrderIsSuccessFn = takeOrderCallArgs.awaitSubgraphConfig!.isSuccess;
-
-			expect(takeOrderIsSuccessFn({ id: '0x0123' } as unknown as RaindexTransaction)).toBe(true);
-			expect(takeOrderIsSuccessFn(null as unknown as RaindexTransaction)).toBe(false);
-			expect(takeOrderIsSuccessFn(undefined as unknown as RaindexTransaction)).toBe(false);
+			expect(mockContext.onSuccess).toHaveBeenCalled();
 		});
 
 		it('should handle successful transaction completion', async () => {
