@@ -110,6 +110,11 @@ mod tests {
                 orderbook: SgOrderbook {
                     id: SgBytes("orderbookVBCIn001".to_string()),
                 },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TakeOrder".to_string(),
+                    },
+                },
             },
             output_vault_balance_change: SgTradeVaultBalanceChange {
                 id: SgBytes("outputVBC001".to_string()),
@@ -137,6 +142,11 @@ mod tests {
                 },
                 orderbook: SgOrderbook {
                     id: SgBytes("orderbookVBCOut001".to_string()),
+                },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TakeOrder".to_string(),
+                    },
                 },
             },
             orderbook: SgOrderbook {
@@ -297,7 +307,7 @@ mod tests {
         let input_display = "-1.234567890123456789".to_string();
         let input_amount = Float::parse(input_display.clone()).unwrap();
 
-        let output_display = "-9.8765432e-1".to_string();
+        let output_display = "-0.98765432".to_string();
         let output_amount = Float::parse(output_display.clone()).unwrap();
 
         trade_data.input_vault_balance_change.amount = SgBytes(input_amount.as_hex());

@@ -498,7 +498,8 @@ const registry = registryResult.value;
 
 const orderMenuResult = registry.getAllOrderDetails();
 if (orderMenuResult.error) throw new Error(orderMenuResult.error.readableMsg);
-const orderMenu = orderMenuResult.value; // Map<orderKey, { name, description, short_description }>
+const orderMenu = orderMenuResult.value.valid; // Map<orderKey, { name, description, short_description }>
+const invalidOrders = orderMenuResult.value.invalid; // Map<orderKey, WasmEncodedError>
 
 const deploymentsResult = registry.getDeploymentDetails('fixed-limit');
 if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
@@ -513,7 +514,21 @@ fixed-limit https://example.com/orders/fixed-limit.rain
 dca https://example.com/orders/dca.rain
 ```
 
-The SDK merges the shared settings YAML with each order’s `.rain` content before you ever build a GUI.
+The SDK merges the shared settings YAML with each order's `.rain` content before you ever build a GUI.
+
+#### Access tokens from registry settings
+
+Use `getOrderbookYaml()` to access the shared settings as an `OrderbookYaml` instance, then query tokens, networks, or orderbooks:
+
+```ts
+const orderbookYamlResult = registry.getOrderbookYaml();
+if (orderbookYamlResult.error) throw new Error(orderbookYamlResult.error.readableMsg);
+const orderbookYaml = orderbookYamlResult.value;
+
+const tokensResult = await orderbookYaml.getTokens();
+if (tokensResult.error) throw new Error(tokensResult.error.readableMsg);
+const tokens = tokensResult.value; // TokenInfo[] with chain_id, address, decimals, symbol, name
+```
 
 ### Build a deployment GUI
 
@@ -525,12 +540,32 @@ With that single source string (read from disk or built dynamically) you can dri
 import { DotrainOrderGui } from '@rainlanguage/orderbook';
 
 const dotrainWithGui = FIXED_LIMIT_SOURCE;
+const SAMPLE_YAML = `
+...
+deployers:
+    deployer1:
+        network: mainnet
+        address: 0x...
+orderbooks:
+    orderbook1:
+        address: 0x...
+        network: mainnet
+...
+`
+const additionalSettings = [SAMPLE_YAML]; // optional extra YAML strings
 
-const deploymentsResult = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
+const deploymentsResult = await DotrainOrderGui.getDeploymentKeys(
+  dotrainWithGui,
+  additionalSettings
+);
 if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
 const [firstDeployment] = deploymentsResult.value;
 
-const guiResult = await DotrainOrderGui.newWithDeployment(dotrainWithGui, firstDeployment);
+const guiResult = await DotrainOrderGui.newWithDeployment(
+  dotrainWithGui,
+  additionalSettings,
+  firstDeployment
+);
 if (guiResult.error) throw new Error(guiResult.error.readableMsg);
 const gui = guiResult.value;
 
@@ -580,7 +615,7 @@ if (!serializedStateResult.error) {
 }
 ```
 
-Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(dotrainText, serializedState, callback)` if you want to skip re-entering form choices.
+Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(dotrainText, additionalSettings, serializedState, callback)` if you want to skip re-entering form choices.
 
 #### Deploy with wallet + fetch your order
 
@@ -663,6 +698,7 @@ if (!postTaskResult.error) console.log(postTaskResult.value);
 
 - `getOrderHash`, `keccak256`, `keccak256HexString` – deterministic hashing helpers for Rain orders or arbitrary payloads.
 - `Float` – arbitrary-precision arithmetic with parsing, formatting, comparisons, math ops, fixed-decimal conversions, and helpers like `Float.zero()` or `.formatWithRange(...)`.
+- `OrderbookYaml.getTokens()` – async method returning all tokens from YAML configuration with `chain_id`, `address`, `decimals`, `symbol`, and `name`. Automatically fetches remote tokens from `using-tokens-from` URLs.
 - `RaindexClient.getAllAccounts()` / `getAllVaultTokens()` – introspect accounts and ERC20 metadata defined in your YAML or discovered via subgraphs.
 - `clearTables`, `getSyncStatus`, `RaindexClient.syncLocalDatabase`, `RaindexClient.setDbCallback` – plug in a persistent cache for offline apps.
 - `RaindexVaultsList.getWithdrawCalldata()` – multicall builder that withdraws every vault with a balance.

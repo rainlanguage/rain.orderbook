@@ -288,7 +288,7 @@ amount price: context<3 0>() context<4 0>();
             .dotrain_yaml()
             .get_deployment("some-key")
             .unwrap();
-        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment)
+        let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
             .await
             .unwrap()
             .try_into_call(vec![setup.local_evm.url()])

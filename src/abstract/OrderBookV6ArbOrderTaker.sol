@@ -69,7 +69,6 @@ abstract contract OrderBookV6ArbOrderTaker is
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
-        IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
         IERC20(ordersInputToken).forceApprove(address(orderBook), type(uint256).max);
         (Float totalTakerInput, Float totalTakerOutput) = orderBook.takeOrders4(takeOrders);
         (totalTakerInput, totalTakerOutput);

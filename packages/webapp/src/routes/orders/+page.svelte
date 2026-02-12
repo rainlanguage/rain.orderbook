@@ -14,14 +14,19 @@
 		showMyItemsOnly,
 		showInactiveOrders,
 		activeTokens,
-		selectedChainIds
+		selectedChainIds,
+		activeOrderbookAddresses
 	} from '$lib/stores/settings';
 	import { handleTransactionConfirmationModal, handleTakeOrderModal } from '$lib/services/modal';
 	import { handleTakeOrder } from '$lib/services/handleTakeOrder';
 	import type { RaindexOrder } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
 
-	const { activeAccountsItems, hideZeroBalanceVaults }: AppStoresInterface = $page.data.stores;
+	const {
+		activeAccountsItems,
+		hideZeroBalanceVaults,
+		hideInactiveOrdersVaults
+	}: AppStoresInterface = $page.data.stores;
 
 	const { manager } = useTransactions();
 	const { account } = useAccount();
@@ -51,6 +56,8 @@
 	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{hideInactiveOrdersVaults}
 	{activeTokens}
+	{activeOrderbookAddresses}
 	handleTakeOrderModal={onTakeOrderCallback}
 />

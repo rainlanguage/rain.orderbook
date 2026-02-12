@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
-	import { RaindexOrder } from '@rainlanguage/orderbook';
+	import { RaindexOrder, type OrderbookCfg } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
@@ -30,15 +30,16 @@
 	export let handleOrderRemoveModal: any = undefined;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	export let handleTakeOrderModal: any = undefined;
-	// End of optional props
 
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let activeAccountsItems: AppStoresInterface['activeAccountsItems'] | undefined;
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
 	export let hideZeroBalanceVaults: AppStoresInterface['hideZeroBalanceVaults'];
+	export let hideInactiveOrdersVaults: AppStoresInterface['hideInactiveOrdersVaults'];
 	export let showMyItemsOnly: AppStoresInterface['showMyItemsOnly'];
 	export let activeTokens: AppStoresInterface['activeTokens'];
+	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
 
 	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
@@ -65,6 +66,21 @@
 			(address) => !$tokensQuery.data || $tokensQuery.data.some((t) => t.address === address)
 		) ?? [];
 
+	$: orderbooksMap = raindexClient.getAllOrderbooks()?.value ?? new Map<string, OrderbookCfg>();
+	$: availableOrderbookAddresses = (() => {
+		const addrs: string[] = [];
+		orderbooksMap.forEach((cfg: OrderbookCfg) => {
+			if ($selectedChainIds.length === 0 || $selectedChainIds.includes(cfg.network.chainId)) {
+				addrs.push(cfg.address.toLowerCase());
+			}
+		});
+		return addrs;
+	})();
+	$: selectedOrderbookAddresses =
+		$activeOrderbookAddresses?.filter((address) =>
+			availableOrderbookAddresses.includes(address.toLowerCase())
+		) ?? [];
+
 	$: query = createInfiniteQuery({
 		queryKey: [
 			QKEY_ORDERS,
@@ -72,7 +88,8 @@
 			owners,
 			$showInactiveOrders,
 			$orderHash,
-			selectedTokens
+			selectedTokens,
+			selectedOrderbookAddresses
 		],
 		queryFn: async ({ pageParam }) => {
 			const result = await raindexClient.getOrders(
@@ -84,7 +101,9 @@
 					tokens:
 						selectedTokens.length > 0
 							? { inputs: selectedTokens, outputs: selectedTokens }
-							: undefined
+							: undefined,
+					orderbookAddresses:
+						selectedOrderbookAddresses.length > 0 ? selectedOrderbookAddresses : undefined
 				},
 				pageParam + 1
 			);
@@ -109,9 +128,12 @@
 	{showInactiveOrders}
 	{orderHash}
 	{hideZeroBalanceVaults}
+	{hideInactiveOrdersVaults}
 	{tokensQuery}
 	{activeTokens}
 	{selectedTokens}
+	{activeOrderbookAddresses}
+	{selectedOrderbookAddresses}
 />
 
 <AppTable
@@ -130,19 +152,21 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="head">
-		<TableHeadCell data-testid="orderListHeadingNetwork" padding="p-4">Network</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingActive" padding="p-4">Active</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingID" padding="p-4">Order</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingOwner" padding="p-4">Owner</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingOrderbook" padding="p-4">Orderbook</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingLastAdded" padding="p-4">Last Added</TableHeadCell>
-		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4"
+		<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
+			>Order Info</TableHeadCell
+		>
+		<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[20%]"
+			>Addresses</TableHeadCell
+		>
+		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[27.5%]"
 			>Input Token(s)</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4"
+		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[27.5%]"
 			>Output Token(s)</TableHeadCell
 		>
-		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4">Trades</TableHeadCell>
+		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
+			>Trades</TableHeadCell
+		>
 		{#if $account && (handleTakeOrderModal || handleOrderRemoveModal)}
 			<TableHeadCell data-testid="orderListHeadingActions" padding="px-2 py-4"
 				>Actions</TableHeadCell
@@ -151,27 +175,36 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
-		<TableBodyCell data-testid="orderListRowNetwork" tdClass="px-4 py-2">
-			{getNetworkName(Number(item.chainId))}
+		<TableBodyCell data-testid="orderListRowOrderInfo" tdClass="px-4 py-2">
+			<div class="flex flex-col gap-1">
+				<div class="flex items-center gap-2">
+					<span class="text-sm font-medium">{getNetworkName(Number(item.chainId))}</span>
+					{#if item.active}
+						<Badge color="green">Active</Badge>
+					{:else}
+						<Badge color="yellow">Inactive</Badge>
+					{/if}
+				</div>
+				<span class="text-xs text-gray-500 dark:text-gray-400">
+					Added: {formatTimestampSecondsAsLocal(item.timestampAdded)}
+				</span>
+			</div>
 		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowActive" tdClass="px-4 py-2">
-			{#if item.active}
-				<Badge color="green">Active</Badge>
-			{:else}
-				<Badge color="yellow">Inactive</Badge>
-			{/if}
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowID" tdClass="break-all px-4 py-4">
-			<Hash type={HashType.Identifier} value={item.orderHash} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOwner" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Wallet} value={item.owner} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowOrderbook" tdClass="break-all px-4 py-2">
-			<Hash type={HashType.Identifier} value={item.orderbook} />
-		</TableBodyCell>
-		<TableBodyCell data-testid="orderListRowLastAdded" tdClass="break-word px-4 py-2">
-			{formatTimestampSecondsAsLocal(item.timestampAdded)}
+		<TableBodyCell data-testid="orderListRowAddresses" tdClass="px-4 py-2">
+			<div class="flex flex-col gap-1 text-sm">
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Order:</span>
+					<Hash type={HashType.Identifier} value={item.orderHash} />
+				</div>
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Owner:</span>
+					<Hash type={HashType.Wallet} value={item.owner} />
+				</div>
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500 dark:text-gray-400">Orderbook:</span>
+					<Hash type={HashType.Identifier} value={item.orderbook} />
+				</div>
+			</div>
 		</TableBodyCell>
 
 		<TableBodyCell data-testid="orderListRowInputs" tdClass="p-2 whitespace-normal">

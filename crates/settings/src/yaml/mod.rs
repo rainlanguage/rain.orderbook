@@ -1,6 +1,7 @@
 pub mod cache;
 pub mod context;
 pub mod dotrain;
+pub mod emitter;
 pub mod orderbook;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
-use context::{Context, ContextError};
+use context::{Context, ContextError, ContextProfile};
 use dotrain::DotrainYaml;
 use orderbook::OrderbookYaml;
 use std::collections::HashMap;
@@ -78,6 +79,10 @@ pub trait YamlParsableHash: Sized + Clone {
             .ok_or_else(|| YamlError::KeyNotFound(key.to_string()))
             .cloned()
     }
+
+    fn sanitize_documents(_documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+        Ok(())
+    }
 }
 
 pub trait YamlParsableVector: Sized {
@@ -85,7 +90,7 @@ pub trait YamlParsableVector: Sized {
 }
 
 pub trait YamlParsableString {
-    fn parse_from_yaml(document: Arc<RwLock<StrictYaml>>) -> Result<String, YamlError>;
+    fn parse_from_yaml(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Result<String, YamlError>;
 
     fn parse_from_yaml_optional(
         document: Arc<RwLock<StrictYaml>>,
@@ -117,16 +122,10 @@ pub trait ContextProvider {
     fn expand_context_with_remote_tokens(&self, context: &mut Context) {
         context.set_remote_tokens(self.get_remote_tokens_from_cache());
     }
-    fn get_remote_tokens_from_cache(&self) -> HashMap<String, TokenCfg>;
+    fn get_remote_tokens_from_cache(&self) -> HashMap<String, crate::TokenCfg>;
 
-    fn expand_context_with_current_deployment(
-        &self,
-        context: &mut Context,
-        current_deployment: Option<String>,
-    ) {
-        if let Some(deployment) = current_deployment {
-            context.add_current_deployment(deployment);
-        }
+    fn expand_context_with_current_deployment(&self, context: &mut Context, deployment: &str) {
+        context.add_current_deployment(deployment.to_string());
     }
 
     fn expand_context_with_current_order(
@@ -187,6 +186,7 @@ pub enum YamlError {
 
     #[error("Error while converting to YAML string")]
     ConvertError,
+
     #[error("Invalid trait function")]
     InvalidTraitFunction,
 
@@ -485,6 +485,63 @@ pub fn default_document() -> Arc<RwLock<StrictYaml>> {
     Arc::new(RwLock::new(StrictYaml::String("".to_string())))
 }
 
+pub fn clone_section_entry(
+    documents: &[Arc<RwLock<StrictYaml>>],
+    section: &str,
+    key: &str,
+) -> Result<StrictYaml, YamlError> {
+    let section_key = StrictYaml::String(section.to_string());
+    let entry_key = StrictYaml::String(key.to_string());
+
+    for document in documents {
+        let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
+        if let StrictYaml::Hash(root_hash) = &*document_read {
+            if let Some(StrictYaml::Hash(section_hash)) = root_hash.get(&section_key) {
+                if let Some(value) = section_hash.get(&entry_key) {
+                    return Ok(value.clone());
+                }
+            }
+        }
+    }
+
+    Err(YamlError::NotFound(format!("{} -> {}", section, key)))
+}
+
+pub fn clone_section_entries<'a, I>(
+    documents: &[Arc<RwLock<StrictYaml>>],
+    section: &str,
+    keys: I,
+) -> Result<Hash, YamlError>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    let mut result = Hash::new();
+    for key in keys {
+        let value = clone_section_entry(documents, section, key)?;
+        result.insert(StrictYaml::String(key.to_string()), value);
+    }
+    Ok(result)
+}
+
+pub fn default_documents() -> Arc<Vec<Arc<RwLock<StrictYaml>>>> {
+    Arc::new(Vec::new())
+}
+
+pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
+    crate::ChartCfg::sanitize_documents(documents)?;
+    crate::DeployerCfg::sanitize_documents(documents)?;
+    crate::DeploymentCfg::sanitize_documents(documents)?;
+    crate::GuiCfg::sanitize_documents(documents)?;
+    crate::LocalDbSyncCfg::sanitize_documents(documents)?;
+    crate::NetworkCfg::sanitize_documents(documents)?;
+    crate::OrderCfg::sanitize_documents(documents)?;
+    crate::OrderbookCfg::sanitize_documents(documents)?;
+    crate::RemoteNetworksCfg::sanitize_documents(documents)?;
+    crate::ScenarioCfg::sanitize_documents(documents)?;
+    crate::TokenCfg::sanitize_documents(documents)?;
+    Ok(())
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -492,5 +549,148 @@ pub mod tests {
     pub fn get_document(yaml: &str) -> Arc<RwLock<StrictYaml>> {
         let document = StrictYamlLoader::load_from_str(yaml).unwrap()[0].clone();
         Arc::new(RwLock::new(document))
+    }
+
+    #[test]
+    fn clone_section_entry_finds_across_documents() {
+        let docs = vec![
+            get_document(
+                r#"
+    networks:
+        mainnet:
+            chain-id: 1
+    "#,
+            ),
+            get_document(
+                r#"
+    tokens:
+        usdc:
+            network: mainnet
+            address: 0x0000000000000000000000000000000000000001
+    "#,
+            ),
+        ];
+
+        let network = clone_section_entry(&docs, "networks", "mainnet").unwrap();
+        assert!(network.as_hash().is_some());
+
+        let token = clone_section_entry(&docs, "tokens", "usdc").unwrap();
+        assert!(token.as_hash().is_some());
+    }
+
+    #[test]
+    fn clone_section_entries_collects_multiple_keys() {
+        let docs = vec![
+            get_document(
+                r#"
+    tokens:
+        usdc:
+            network: mainnet
+            address: 0x000
+    "#,
+            ),
+            get_document(
+                r#"
+    tokens:
+        dai:
+            network: mainnet
+            address: 0x001
+    "#,
+            ),
+        ];
+
+        let entries = clone_section_entries(&docs, "tokens", ["usdc", "dai"]).unwrap();
+
+        assert_eq!(entries.len(), 2);
+        assert!(entries.contains_key(&StrictYaml::String("usdc".to_string())));
+        assert!(entries.contains_key(&StrictYaml::String("dai".to_string())));
+    }
+
+    #[test]
+    fn clone_section_entries_missing_key_errors() {
+        let docs = vec![get_document(
+            r#"
+    tokens:
+        usdc:
+            network: mainnet
+            address: 0x000
+    "#,
+        )];
+
+        let err = clone_section_entries(&docs, "tokens", ["usdc", "dai"]).unwrap_err();
+        assert!(matches!(err, YamlError::NotFound(msg) if msg.contains("tokens -> dai")));
+    }
+
+    #[test]
+    fn clone_section_entry_skips_non_hash_sections() {
+        let docs = vec![get_document(
+            r#"
+    tokens: []
+    "#,
+        )];
+
+        let err = clone_section_entry(&docs, "tokens", "usdc").unwrap_err();
+        assert!(matches!(err, YamlError::NotFound(msg) if msg.contains("tokens -> usdc")));
+    }
+
+    #[test]
+    fn clone_section_entry_returns_independent_clone() {
+        let docs = vec![get_document(
+            r#"
+    tokens:
+        usdc:
+            network: mainnet
+            address: 0x000
+    "#,
+        )];
+
+        let mut cloned = clone_section_entry(&docs, "tokens", "usdc").unwrap();
+        if let StrictYaml::Hash(ref mut hash) = cloned {
+            hash.insert(
+                StrictYaml::String("address".to_string()),
+                StrictYaml::String("0xDEAD".to_string()),
+            );
+        } else {
+            panic!("Expected hash");
+        }
+
+        let doc = docs[0].read().unwrap();
+        let original_address = doc["tokens"]["usdc"]["address"]
+            .as_str()
+            .expect("address should be present");
+        assert_eq!(original_address, "0x000");
+    }
+
+    #[test]
+    fn clone_section_entry_prefers_first_document_on_duplicates() {
+        let docs = vec![
+            get_document(
+                r#"
+    tokens:
+        usdc:
+            network: mainnet
+            address: 0x000
+    "#,
+            ),
+            get_document(
+                r#"
+    tokens:
+        usdc:
+            network: mainnet
+            address: 0x999
+    "#,
+            ),
+        ];
+
+        let cloned = clone_section_entry(&docs, "tokens", "usdc").unwrap();
+        let address = cloned["address"].as_str().unwrap();
+        assert_eq!(address, "0x000");
+    }
+
+    #[test]
+    fn clone_section_entry_not_found() {
+        let docs = vec![get_document("networks: {}\n")];
+        let err = clone_section_entry(&docs, "tokens", "usdc").unwrap_err();
+        assert!(matches!(err, YamlError::NotFound(_)));
     }
 }

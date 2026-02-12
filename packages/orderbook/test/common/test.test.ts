@@ -1,10 +1,12 @@
 import { describe, it } from 'vitest';
-import { DotrainOrder } from '../../dist/cjs';
+import { DotrainOrder, OrderbookYaml } from '../../dist/cjs';
 import { assert } from 'chai';
+
+const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 
 describe('Rain Orderbook Common Package Bindgen Tests', async function () {
 	const dotrain = `
-version: 4
+version: ${SPEC_VERSION}
 networks:
     some-network:
         rpcs:
@@ -89,6 +91,7 @@ _ _: 0 0;
 
 	it('should compose scenario to rainlang with config', async () => {
 		const config = `
+version: ${SPEC_VERSION}
 scenarios:
     config-scenario:
         network: some-network

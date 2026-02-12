@@ -195,7 +195,7 @@
 		data-testid="tanstackTableContainer"
 		bind:this={tableContainerElement}
 	>
-		<Table divClass="min-w-full" hoverable={rowHoverable}>
+		<Table divClass="min-w-full" class="w-full table-fixed" hoverable={rowHoverable}>
 			<TableHead data-testid="head">
 				<slot name="head" />
 			</TableHead>
