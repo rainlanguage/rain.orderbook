@@ -5,7 +5,7 @@ export { default as TanstackAppTable } from './components/TanstackAppTable.svelt
 export { default as DropdownCheckbox } from './components/dropdown/DropdownCheckbox.svelte';
 export { default as DropdownTokensFilter } from './components/dropdown/DropdownTokensFilter.svelte';
 export { default as DropdownOrderbooksFilter } from './components/dropdown/DropdownOrderbooksFilter.svelte';
-export { default as DropdownOrderListAccounts } from './components/dropdown/DropdownOrderListAccounts.svelte';
+export { default as InputOwnerFilter } from './components/input/InputOwnerFilter.svelte';
 export { default as DropdownRadio } from './components/dropdown/DropdownRadio.svelte';
 export { default as Refresh } from './components/icon/Refresh.svelte';
 export { default as CheckboxActiveOrders } from './components/checkbox/CheckboxActiveOrders.svelte';
