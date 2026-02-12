@@ -32,11 +32,12 @@ export const hideZeroBalanceVaults = cachedWritableStore<boolean>(
  * @default '' - Empty string means no owner filtering
  * @returns A writable store containing an address string
  */
-export const ownerFilter = cachedWritableStore<string>(
+export const ownerFilter = cachedWritableStore<Address>(
 	'settings.ownerFilter',
+	// @ts-expect-error initially the value is empty
 	'',
 	(value) => value,
-	(str) => str || ''
+	(str) => (str || '') as Address
 );
 
 /**

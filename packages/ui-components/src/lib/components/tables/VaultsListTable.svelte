@@ -22,6 +22,7 @@
 		RaindexClient,
 		RaindexVault,
 		RaindexVaultsList,
+		type Address,
 		type OrderbookCfg
 	} from '@rainlanguage/orderbook';
 	import { QKEY_TOKENS, QKEY_VAULTS } from '../../queries/keys';
@@ -66,7 +67,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: ownerAddress = $ownerFilter?.trim() || '';
-	$: owners = ownerAddress ? [ownerAddress as `0x${string}`] : ([] as `0x${string}`[]);
+	$: owners = ownerAddress ? [ownerAddress as Address] : ([] as Address[]);
 
 	$: tokensQuery = createQuery({
 		queryKey: [QKEY_TOKENS, $selectedChainIds],

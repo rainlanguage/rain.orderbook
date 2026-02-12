@@ -9,5 +9,5 @@ export interface AppStoresInterface {
 	hideInactiveOrdersVaults: Writable<boolean>;
 	activeTokens: Writable<Address[]>;
 	activeOrderbookAddresses: Writable<Address[]>;
-	ownerFilter: Writable<string>;
+	ownerFilter: Writable<Address>;
 }

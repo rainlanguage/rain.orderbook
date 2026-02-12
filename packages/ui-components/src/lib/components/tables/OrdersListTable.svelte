@@ -2,7 +2,7 @@
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
-	import { RaindexOrder, type OrderbookCfg } from '@rainlanguage/orderbook';
+	import { RaindexOrder, type OrderbookCfg, type Address } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
 	import { formatTimestampSecondsAsLocal } from '../../services/time';
 	import ListViewOrderbookFilters from '../ListViewOrderbookFilters.svelte';
@@ -25,7 +25,7 @@
 	const raindexClient = useRaindexClient();
 
 	$: ownerAddress = $ownerFilter?.trim() || '';
-	$: owners = ownerAddress ? [ownerAddress as `0x${string}`] : ([] as `0x${string}`[]);
+	$: owners = ownerAddress ? [ownerAddress as Address] : ([] as Address[]);
 
 	$: tokensQuery = createQuery({
 		queryKey: [QKEY_TOKENS, $selectedChainIds],

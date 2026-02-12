@@ -51,7 +51,7 @@ describe('ListViewOrderbookFilters', () => {
 		} as QueryObserverResult<RaindexVaultToken[], Error>),
 		activeOrderbookAddresses: writable<Address[]>([]),
 		selectedOrderbookAddresses: [],
-		ownerFilter: writable('')
+		ownerFilter: writable<Address>('' as unknown as Address)
 	} as ListViewOrderbookFiltersProps;
 
 	beforeEach(() => {

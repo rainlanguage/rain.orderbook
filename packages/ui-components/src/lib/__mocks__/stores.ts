@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import type { Address } from '@rainlanguage/orderbook';
 import { type Config } from '@wagmi/core';
 import { mockWeb3Config } from './mockWeb3Config';
 
@@ -56,7 +57,7 @@ const mockWagmiConfigWritable = writable<Config>(mockWeb3Config);
 const mockSelectedChainIdsWritable = writable<number[]>([]);
 const mockActiveTokensWritable = writable<string[]>([]);
 const mockActiveOrderbookAddressesWritable = writable<string[]>([]);
-const mockOwnerFilterWritable = writable<string>('');
+const mockOwnerFilterWritable = writable<Address>('' as Address);
 
 export const mockShowInactiveOrdersStore = {
 	subscribe: mockShowInactiveOrdersWritable.subscribe,
@@ -160,5 +161,5 @@ export const mockActiveOrderbookAddressesStore = {
 export const mockOwnerFilterStore = {
 	subscribe: mockOwnerFilterWritable.subscribe,
 	set: mockOwnerFilterWritable.set,
-	mockSetSubscribeValue: (value: string): void => mockOwnerFilterWritable.set(value)
+	mockSetSubscribeValue: (value: Address): void => mockOwnerFilterWritable.set(value)
 };

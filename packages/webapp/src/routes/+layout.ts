@@ -105,7 +105,8 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			hideInactiveOrdersVaults: writable<boolean>(false),
 			activeTokens: writable<Address[]>([]),
 			activeOrderbookAddresses: writable<Address[]>([]),
-			ownerFilter: writable<string>('')
+			// @ts-expect-error initially the value is empty
+			ownerFilter: writable<Address>('')
 		},
 		registry,
 		localDb,

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, Label } from 'flowbite-svelte';
+	import type { Address } from '@rainlanguage/orderbook';
 	import type { AppStoresInterface } from '$lib/types/appStores';
 	import { useAccount } from '$lib/providers/wallet/useAccount';
 
@@ -7,21 +8,22 @@
 
 	const { account } = useAccount();
 
+	let value: string = '';
 	$: value = $ownerFilter;
 
 	function handleChange(event: Event) {
 		const input = event.target as HTMLInputElement;
 		value = input.value;
-		$ownerFilter = value;
+		ownerFilter.set(value as unknown as Address);
 	}
 
 	function handleMyItems() {
 		if (!$account) return;
 		if ($ownerFilter.toLowerCase() === $account.toLowerCase()) {
-			$ownerFilter = '';
+			ownerFilter.set('' as unknown as Address);
 			value = '';
 		} else {
-			$ownerFilter = $account;
+			ownerFilter.set($account);
 			value = $account;
 		}
 	}
