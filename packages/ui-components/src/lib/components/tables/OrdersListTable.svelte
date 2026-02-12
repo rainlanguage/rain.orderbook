@@ -152,24 +152,40 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="head">
-		<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
-			>Order Info</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[20%]"
-			>Addresses</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[27.5%]"
-			>Input Token(s)</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[27.5%]"
-			>Output Token(s)</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
-			>Trades</TableHeadCell
-		>
 		{#if $account && (handleTakeOrderModal || handleOrderRemoveModal)}
-			<TableHeadCell data-testid="orderListHeadingActions" padding="px-2 py-4"
+			<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
+				>Order Info</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[18%]"
+				>Addresses</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[23.5%]"
+				>Input Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[23.5%]"
+				>Output Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
+				>Trades</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingActions" padding="px-2 py-4" class="w-[10%]"
 				>Actions</TableHeadCell
+			>
+		{:else}
+			<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
+				>Order Info</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[20%]"
+				>Addresses</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[27.5%]"
+				>Input Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[27.5%]"
+				>Output Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
+				>Trades</TableHeadCell
 			>
 		{/if}
 	</svelte:fragment>
@@ -248,7 +264,7 @@
 								handleTakeOrderModal(item, $query.refetch, context);
 							}}
 						>
-							Take
+							Take Order
 						</Button>
 					{/if}
 					{#if matchesAccount(item.owner) && handleOrderRemoveModal}
