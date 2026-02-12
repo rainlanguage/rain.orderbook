@@ -8,6 +8,8 @@ export interface AppStoresInterface {
 	showInactiveOrders: Writable<boolean>;
 	orderHash: Writable<Hex>;
 	hideZeroBalanceVaults: Writable<boolean>;
+	hideInactiveOrdersVaults: Writable<boolean>;
 	activeTokens: Writable<Address[]>;
 	showMyItemsOnly: Writable<boolean>;
+	activeOrderbookAddresses: Writable<Address[]>;
 }

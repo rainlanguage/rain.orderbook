@@ -79,6 +79,7 @@ mod tests {
             decimals: Some(decimals),
             label: Some(format!("Test Token {}", key)),
             symbol: Some(key.to_uppercase()),
+            logo_uri: None,
         }
     }
 
