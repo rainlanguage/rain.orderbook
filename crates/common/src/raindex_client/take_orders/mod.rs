@@ -13,9 +13,7 @@ use super::{RaindexClient, RaindexError};
 use crate::rpc_client::RpcClient;
 use crate::take_orders::{
     build_take_orders_config_from_simulation, find_failing_order_index, simulate_take_orders,
-    TakeOrdersMode,
 };
-use alloy::primitives::Address;
 use approval::{check_approval_needed, ApprovalCheckParams};
 use rain_orderbook_bindings::provider::mk_read_provider;
 use wasm_bindgen_utils::prelude::*;
