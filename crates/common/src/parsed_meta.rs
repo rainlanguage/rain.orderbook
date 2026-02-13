@@ -1,5 +1,8 @@
 use rain_metadata::{
-    types::dotrain::{gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1},
+    types::{
+        dotrain::{gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1},
+        signed_context_oracle::SignedContextOracleV1,
+    },
     KnownMagic, RainMetaDocumentV1Item,
 };
 use serde::{Deserialize, Serialize};
@@ -13,6 +16,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 pub enum ParsedMeta {
     DotrainGuiStateV1(DotrainGuiStateV1),
     DotrainSourceV1(DotrainSourceV1),
+    SignedContextOracleV1(SignedContextOracleV1),
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ParsedMeta);
@@ -33,6 +37,10 @@ impl ParsedMeta {
             KnownMagic::DotrainSourceV1 => {
                 let source = DotrainSourceV1::try_from(item.clone())?;
                 Ok(Some(ParsedMeta::DotrainSourceV1(source)))
+            }
+            KnownMagic::SignedContextOracleV1 => {
+                let oracle = SignedContextOracleV1::try_from(item.clone())?;
+                Ok(Some(ParsedMeta::SignedContextOracleV1(oracle)))
             }
             // Filter out all other metadata types - they're not needed for the frontend
             _ => Ok(None),
