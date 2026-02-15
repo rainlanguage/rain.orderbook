@@ -676,6 +676,7 @@ impl RaindexOrder {
             &rpc_urls,
             Some(block_number),
             sell_token,
+            self.oracle_url(),
         )
         .await
     }

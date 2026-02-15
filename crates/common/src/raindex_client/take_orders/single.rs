@@ -54,6 +54,7 @@ pub fn build_candidate_from_quote(
         output_io_index,
         max_output: data.max_output,
         ratio: data.ratio,
+        signed_context: vec![],
     }))
 }
 
@@ -110,7 +111,19 @@ pub async fn execute_single_take(
     rpc_urls: &[Url],
     block_number: Option<u64>,
     sell_token: Address,
+    oracle_url: Option<String>,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
+    // Fetch signed context from oracle if URL provided
+    let mut candidate = candidate;
+    if let Some(url) = oracle_url {
+        match crate::oracle::fetch_signed_context(&url).await {
+            Ok(ctx) => candidate.signed_context = vec![ctx],
+            Err(e) => {
+                tracing::warn!("Failed to fetch oracle data from {}: {}", url, e);
+            }
+        }
+    }
+
     let zero = Float::zero()?;
 
     if candidate.ratio.gt(price_cap)? {

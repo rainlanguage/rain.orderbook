@@ -3,7 +3,7 @@ use crate::raindex_client::RaindexError;
 use alloy::primitives::{Bytes, U256};
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV6::{
-    SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV5,
+    TakeOrderConfigV4, TakeOrdersConfigV5,
 };
 use serde::{Deserialize, Serialize};
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -93,7 +93,7 @@ pub fn build_take_orders_config_from_simulation(
             order: leg.candidate.order.clone(),
             inputIOIndex: U256::from(leg.candidate.input_io_index),
             outputIOIndex: U256::from(leg.candidate.output_io_index),
-            signedContext: vec![] as Vec<SignedContextV1>,
+            signedContext: leg.candidate.signed_context.clone(),
         })
         .collect();
 

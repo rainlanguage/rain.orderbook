@@ -4,7 +4,7 @@ use crate::raindex_client::RaindexError;
 use alloy::primitives::Address;
 use futures::StreamExt;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV6::OrderV4;
+use rain_orderbook_bindings::IOrderBookV6::{OrderV4, SignedContextV1};
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
 
@@ -41,6 +41,8 @@ pub struct TakeOrderCandidate {
     pub output_io_index: u32,
     pub max_output: Float,
     pub ratio: Float,
+    /// Signed context data fetched from the order's oracle endpoint (if any).
+    pub signed_context: Vec<SignedContextV1>,
 }
 
 fn get_orderbook_address(order: &RaindexOrder) -> Result<Address, RaindexError> {
@@ -59,13 +61,23 @@ fn build_candidates_for_order(
     quotes: Vec<RaindexOrderQuote>,
     input_token: Address,
     output_token: Address,
+    signed_context: Vec<SignedContextV1>,
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
     let order_v4: OrderV4 = order.try_into()?;
     let orderbook = get_orderbook_address(order)?;
 
     quotes
         .iter()
-        .map(|quote| try_build_candidate(orderbook, &order_v4, quote, input_token, output_token))
+        .map(|quote| {
+            try_build_candidate(
+                orderbook,
+                &order_v4,
+                quote,
+                input_token,
+                output_token,
+                signed_context.clone(),
+            )
+        })
         .collect::<Result<Vec<_>, _>>()
         .map(|opts| opts.into_iter().flatten().collect())
 }
@@ -79,10 +91,15 @@ pub async fn build_take_order_candidates_for_pair(
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
     let gas_string = gas.map(|g| g.to_string());
 
-    let quote_results: Vec<Result<_, RaindexError>> =
+    // Fetch quotes and oracle data concurrently for each order
+    let results: Vec<(Result<Vec<RaindexOrderQuote>, RaindexError>, Vec<SignedContextV1>)> =
         futures::stream::iter(orders.iter().map(|order| {
             let gas_string = gas_string.clone();
-            async move { order.get_quotes(block_number, gas_string).await }
+            async move {
+                let quotes = order.get_quotes(block_number, gas_string).await;
+                let signed_context = fetch_oracle_for_order(order).await;
+                (quotes, signed_context)
+            }
         }))
         .buffered(DEFAULT_QUOTE_CONCURRENCY)
         .collect()
@@ -90,12 +107,42 @@ pub async fn build_take_order_candidates_for_pair(
 
     orders
         .iter()
-        .zip(quote_results)
-        .map(|(order, quotes_result)| {
-            build_candidates_for_order(order, quotes_result?, input_token, output_token)
+        .zip(results)
+        .map(|(order, (quotes_result, signed_context))| {
+            build_candidates_for_order(
+                order,
+                quotes_result?,
+                input_token,
+                output_token,
+                signed_context,
+            )
         })
         .collect::<Result<Vec<_>, _>>()
         .map(|vecs| vecs.into_iter().flatten().collect())
+}
+
+/// Fetch signed context from an order's oracle endpoint, if it has one.
+/// Returns empty vec if no oracle URL or if fetch fails (best-effort).
+async fn fetch_oracle_for_order(order: &RaindexOrder) -> Vec<SignedContextV1> {
+    #[cfg(target_family = "wasm")]
+    let url = order.oracle_url();
+    #[cfg(not(target_family = "wasm"))]
+    let url = order.oracle_url();
+
+    match url {
+        Some(oracle_url) => match crate::oracle::fetch_signed_context(&oracle_url).await {
+            Ok(ctx) => vec![ctx],
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to fetch oracle data from {}: {}",
+                    oracle_url,
+                    e
+                );
+                vec![]
+            }
+        },
+        None => vec![],
+    }
 }
 
 fn try_build_candidate(
@@ -104,6 +151,7 @@ fn try_build_candidate(
     quote: &RaindexOrderQuote,
     input_token: Address,
     output_token: Address,
+    signed_context: Vec<SignedContextV1>,
 ) -> Result<Option<TakeOrderCandidate>, RaindexError> {
     let data = match (quote.success, &quote.data) {
         (true, Some(d)) => d,
@@ -138,6 +186,7 @@ fn try_build_candidate(
         output_io_index,
         max_output: data.max_output,
         ratio: data.ratio,
+        signed_context,
     }))
 }
 
@@ -263,7 +312,7 @@ mod tests {
         let f1 = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(f1, f1, f1)), true);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_b, token_a).unwrap();
+        let result = try_build_candidate(orderbook, &order, &quote, token_b, token_a, vec![]).unwrap();
 
         assert!(result.is_none());
     }
@@ -279,7 +328,7 @@ mod tests {
         let f1 = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(zero, zero, f1)), true);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b).unwrap();
+        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
 
         assert!(result.is_none());
     }
@@ -295,7 +344,7 @@ mod tests {
         let f2 = Float::parse("2".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(f2, f1, f1)), true);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b).unwrap();
+        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
 
         assert!(result.is_some());
         let candidate = result.unwrap();
@@ -314,7 +363,7 @@ mod tests {
         let order = make_basic_order(token_a, token_b);
         let quote = make_quote(0, 0, None, false);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b);
+        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]);
 
         assert!(
             result.is_ok(),
@@ -338,7 +387,7 @@ mod tests {
 
         let quote_bad_input_index = make_quote(99, 0, Some(make_quote_value(f1, f1, f1)), true);
         let result =
-            try_build_candidate(orderbook, &order, &quote_bad_input_index, token_a, token_b);
+            try_build_candidate(orderbook, &order, &quote_bad_input_index, token_a, token_b, vec![]);
         assert!(
             result.is_ok(),
             "Out-of-bounds input index must not cause an error"
@@ -350,7 +399,7 @@ mod tests {
 
         let quote_bad_output_index = make_quote(0, 99, Some(make_quote_value(f1, f1, f1)), true);
         let result =
-            try_build_candidate(orderbook, &order, &quote_bad_output_index, token_a, token_b);
+            try_build_candidate(orderbook, &order, &quote_bad_output_index, token_a, token_b, vec![]);
         assert!(
             result.is_ok(),
             "Out-of-bounds output index must not cause an error"
