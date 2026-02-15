@@ -103,6 +103,7 @@ pub fn estimate_take_order(
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn execute_single_take(
     candidate: TakeOrderCandidate,
     mode: ParsedTakeOrdersMode,

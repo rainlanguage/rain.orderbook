@@ -66,13 +66,8 @@ pub async fn fetch_signed_context(url: &str) -> Result<SignedContextV1, OracleEr
 /// Returns a vec of results - one per URL. Failed fetches return errors
 /// rather than failing the entire batch, so callers can decide how to handle
 /// partial failures.
-pub async fn fetch_signed_contexts(
-    urls: &[String],
-) -> Vec<Result<SignedContextV1, OracleError>> {
-    let futures: Vec<_> = urls
-        .iter()
-        .map(|url| fetch_signed_context(url))
-        .collect();
+pub async fn fetch_signed_contexts(urls: &[String]) -> Vec<Result<SignedContextV1, OracleError>> {
+    let futures: Vec<_> = urls.iter().map(|url| fetch_signed_context(url)).collect();
 
     futures::future::join_all(futures).await
 }

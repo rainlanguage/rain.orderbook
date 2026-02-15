@@ -91,19 +91,23 @@ pub async fn build_take_order_candidates_for_pair(
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
     let gas_string = gas.map(|g| g.to_string());
 
+    type QuoteWithContext = (
+        Result<Vec<RaindexOrderQuote>, RaindexError>,
+        Vec<SignedContextV1>,
+    );
+
     // Fetch quotes and oracle data concurrently for each order
-    let results: Vec<(Result<Vec<RaindexOrderQuote>, RaindexError>, Vec<SignedContextV1>)> =
-        futures::stream::iter(orders.iter().map(|order| {
-            let gas_string = gas_string.clone();
-            async move {
-                let quotes = order.get_quotes(block_number, gas_string).await;
-                let signed_context = fetch_oracle_for_order(order).await;
-                (quotes, signed_context)
-            }
-        }))
-        .buffered(DEFAULT_QUOTE_CONCURRENCY)
-        .collect()
-        .await;
+    let results: Vec<QuoteWithContext> = futures::stream::iter(orders.iter().map(|order| {
+        let gas_string = gas_string.clone();
+        async move {
+            let quotes = order.get_quotes(block_number, gas_string).await;
+            let signed_context = fetch_oracle_for_order(order).await;
+            (quotes, signed_context)
+        }
+    }))
+    .buffered(DEFAULT_QUOTE_CONCURRENCY)
+    .collect()
+    .await;
 
     orders
         .iter()
@@ -133,11 +137,7 @@ async fn fetch_oracle_for_order(order: &RaindexOrder) -> Vec<SignedContextV1> {
         Some(oracle_url) => match crate::oracle::fetch_signed_context(&oracle_url).await {
             Ok(ctx) => vec![ctx],
             Err(e) => {
-                tracing::warn!(
-                    "Failed to fetch oracle data from {}: {}",
-                    oracle_url,
-                    e
-                );
+                tracing::warn!("Failed to fetch oracle data from {}: {}", oracle_url, e);
                 vec![]
             }
         },
@@ -312,7 +312,8 @@ mod tests {
         let f1 = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(f1, f1, f1)), true);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_b, token_a, vec![]).unwrap();
+        let result =
+            try_build_candidate(orderbook, &order, &quote, token_b, token_a, vec![]).unwrap();
 
         assert!(result.is_none());
     }
@@ -328,7 +329,8 @@ mod tests {
         let f1 = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(zero, zero, f1)), true);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
+        let result =
+            try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
 
         assert!(result.is_none());
     }
@@ -344,7 +346,8 @@ mod tests {
         let f2 = Float::parse("2".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(f2, f1, f1)), true);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
+        let result =
+            try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
 
         assert!(result.is_some());
         let candidate = result.unwrap();
@@ -386,8 +389,14 @@ mod tests {
         let f1 = Float::parse("1".to_string()).unwrap();
 
         let quote_bad_input_index = make_quote(99, 0, Some(make_quote_value(f1, f1, f1)), true);
-        let result =
-            try_build_candidate(orderbook, &order, &quote_bad_input_index, token_a, token_b, vec![]);
+        let result = try_build_candidate(
+            orderbook,
+            &order,
+            &quote_bad_input_index,
+            token_a,
+            token_b,
+            vec![],
+        );
         assert!(
             result.is_ok(),
             "Out-of-bounds input index must not cause an error"
@@ -398,8 +407,14 @@ mod tests {
         );
 
         let quote_bad_output_index = make_quote(0, 99, Some(make_quote_value(f1, f1, f1)), true);
-        let result =
-            try_build_candidate(orderbook, &order, &quote_bad_output_index, token_a, token_b, vec![]);
+        let result = try_build_candidate(
+            orderbook,
+            &order,
+            &quote_bad_output_index,
+            token_a,
+            token_b,
+            vec![],
+        );
         assert!(
             result.is_ok(),
             "Out-of-bounds output index must not cause an error"
