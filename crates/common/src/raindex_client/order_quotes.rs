@@ -1,7 +1,9 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use rain_math_float::Float;
-use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
+use rain_orderbook_quote::{
+    get_order_quotes_with_context, BatchOrderQuotesResponse, OrderQuoteValue, Pair,
+};
 use rain_orderbook_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
 
@@ -120,11 +122,25 @@ impl RaindexOrder {
     ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
         let gas_amount = gas.map(|v| v.parse::<u64>()).transpose()?;
         let rpcs = self.get_rpc_urls()?;
-        let order_quotes = get_order_quotes(
+
+        // Fetch signed context from oracle if this order has one
+        let signed_context = match self.oracle_url() {
+            Some(url) => match crate::oracle::fetch_signed_context(&url).await {
+                Ok(ctx) => vec![ctx],
+                Err(e) => {
+                    tracing::warn!("Failed to fetch oracle data from {}: {}", url, e);
+                    vec![]
+                }
+            },
+            None => vec![],
+        };
+
+        let order_quotes = get_order_quotes_with_context(
             vec![self.clone().into_sg_order()?],
             block_number,
             rpcs.iter().map(|s| s.to_string()).collect(),
             gas_amount,
+            signed_context,
         )
         .await?;
 

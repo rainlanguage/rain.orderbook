@@ -5,7 +5,7 @@ use crate::{
 };
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::ReadableClient;
-use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2};
+use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2, SignedContextV1};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -43,6 +43,18 @@ pub async fn get_order_quotes(
     block_number: Option<u64>,
     rpcs: Vec<String>,
     gas: Option<u64>,
+) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
+    get_order_quotes_with_context(orders, block_number, rpcs, gas, vec![]).await
+}
+
+/// Get order quotes with optional signed context data.
+/// The signed_context is applied to all quote targets for all orders.
+pub async fn get_order_quotes_with_context(
+    orders: Vec<SgOrder>,
+    block_number: Option<u64>,
+    rpcs: Vec<String>,
+    gas: Option<u64>,
+    signed_context: Vec<SignedContextV1>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
@@ -95,7 +107,7 @@ pub async fn get_order_quotes(
                         order: order_struct.clone(),
                         inputIOIndex: U256::from(input_index),
                         outputIOIndex: U256::from(output_index),
-                        signedContext: vec![],
+                        signedContext: signed_context.clone(),
                     },
                 };
 
