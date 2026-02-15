@@ -356,6 +356,13 @@ impl RaindexOrder {
             _ => None,
         })
     }
+    /// Returns the signed context oracle URL if this order has oracle metadata.
+    pub fn oracle_url(&self) -> Option<String> {
+        self.parsed_meta().into_iter().find_map(|meta| match meta {
+            ParsedMeta::SignedContextOracleV1(oracle) => Some(oracle.0),
+            _ => None,
+        })
+    }
     pub fn transaction(&self) -> Option<RaindexTransaction> {
         self.transaction.clone()
     }

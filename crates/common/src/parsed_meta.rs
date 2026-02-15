@@ -206,4 +206,61 @@ mod tests {
         assert!(matches!(&parsed[0], ParsedMeta::DotrainSourceV1(s) if s.0 == source.0));
         assert!(matches!(&parsed[1], ParsedMeta::DotrainGuiStateV1(g) if g == &gui));
     }
+
+    #[test]
+    fn test_from_meta_item_signed_context_oracle_v1() {
+        let oracle = SignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd")
+            .unwrap();
+        let item = oracle.to_meta_item();
+        let result = ParsedMeta::from_meta_item(&item).unwrap();
+        match result.unwrap() {
+            ParsedMeta::SignedContextOracleV1(parsed_oracle) => {
+                assert_eq!(parsed_oracle.url(), "https://oracle.example.com/prices/eth-usd");
+            }
+            _ => panic!("Expected SignedContextOracleV1"),
+        }
+    }
+
+    #[test]
+    fn test_parse_multiple_with_oracle() {
+        let source = get_default_dotrain_source();
+        let oracle = SignedContextOracleV1::parse("https://oracle.example.com/feed").unwrap();
+
+        let items = vec![
+            RainMetaDocumentV1Item::from(source.clone()),
+            oracle.to_meta_item(),
+        ];
+
+        let results = ParsedMeta::parse_multiple(&items).unwrap();
+        assert_eq!(results.len(), 2);
+
+        match &results[0] {
+            ParsedMeta::DotrainSourceV1(parsed_source) => {
+                assert_eq!(parsed_source.0, source.0);
+            }
+            _ => panic!("Expected DotrainSourceV1"),
+        }
+
+        match &results[1] {
+            ParsedMeta::SignedContextOracleV1(parsed_oracle) => {
+                assert_eq!(parsed_oracle.url(), "https://oracle.example.com/feed");
+            }
+            _ => panic!("Expected SignedContextOracleV1"),
+        }
+    }
+
+    #[test]
+    fn test_parse_from_bytes_with_oracle() {
+        let oracle =
+            SignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd").unwrap();
+        let items = vec![oracle.to_meta_item()];
+        let bytes = RainMetaDocumentV1Item::cbor_encode_seq(&items, KnownMagic::RainMetaDocumentV1)
+            .unwrap();
+
+        let parsed = ParsedMeta::parse_from_bytes(&bytes).unwrap();
+        assert_eq!(parsed.len(), 1);
+        assert!(
+            matches!(&parsed[0], ParsedMeta::SignedContextOracleV1(o) if o.url() == "https://oracle.example.com/prices/eth-usd")
+        );
+    }
 }
