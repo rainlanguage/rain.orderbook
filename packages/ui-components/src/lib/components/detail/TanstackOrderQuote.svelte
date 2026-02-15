@@ -15,15 +15,8 @@
 		TableHead,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import {
-		BugOutline,
-		ClipboardOutline,
-		PauseSolid,
-		PlaySolid,
-		DatabaseOutline
-	} from 'flowbite-svelte-icons';
+	import { BugOutline, ClipboardOutline, PauseSolid, PlaySolid } from 'flowbite-svelte-icons';
 	import Tooltip from '../Tooltip.svelte';
-	import { Badge } from 'flowbite-svelte';
 
 	export let order: RaindexOrder;
 	export let handleQuoteDebugModal:
@@ -88,20 +81,7 @@
 
 <div class="mt-4">
 	<div class="mb-4 flex items-center justify-between">
-		<div class="flex items-center gap-x-2">
-			<h2 class="text-lg font-semibold">Order quotes</h2>
-			{#if order.oracleUrl}
-				<span id="oracle-badge">
-					<Badge color="purple" class="flex items-center gap-1">
-						<DatabaseOutline size="xs" />
-						Oracle
-					</Badge>
-				</span>
-				<Tooltip triggeredBy="#oracle-badge">
-					Quotes include signed context data from oracle
-				</Tooltip>
-			{/if}
-		</div>
+		<h2 class="text-lg font-semibold">Order quotes</h2>
 		<div class="flex items-center gap-x-1">
 			{#if $orderQuoteQuery.data && $orderQuoteQuery.data.length > 0 && isHex($orderQuoteQuery.data[0].blockNumber)}
 				<EditableSpan
