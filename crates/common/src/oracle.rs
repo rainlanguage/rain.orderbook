@@ -2,7 +2,6 @@ use alloy::primitives::{Address, Bytes, FixedBytes};
 use rain_orderbook_bindings::IOrderBookV6::SignedContextV1;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
 /// Error types for oracle fetching
 #[derive(Debug, thiserror::Error)]
@@ -39,16 +38,15 @@ impl From<OracleResponse> for SignedContextV1 {
     }
 }
 
-const DEFAULT_TIMEOUT_SECS: u64 = 10;
-
 /// Fetch signed context from an oracle endpoint.
 ///
 /// The endpoint must respond to a GET request with a JSON body matching
 /// `OracleResponse` (signer, context, signature).
 pub async fn fetch_signed_context(url: &str) -> Result<SignedContextV1, OracleError> {
-    let client = Client::builder()
-        .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECS))
-        .build()?;
+    let builder = Client::builder();
+    #[cfg(not(target_family = "wasm"))]
+    let builder = builder.timeout(std::time::Duration::from_secs(10));
+    let client = builder.build()?;
 
     let response: OracleResponse = client
         .get(url)
