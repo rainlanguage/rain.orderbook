@@ -338,6 +338,12 @@ pub enum RaindexError {
     NegativePriceCap,
     #[error(transparent)]
     RpcClientError(#[from] crate::rpc_client::RpcClientError),
+    #[error("Preflight check failed: {0}")]
+    PreflightError(String),
+    #[error("Quote data is missing")]
+    QuoteDataMissing,
+    #[error("Invalid input index: {0}")]
+    InvalidInputIndex(u32),
     #[error("Cannot parse metadata: {0}")]
     ParseMetaError(#[from] rain_metadata::Error),
     #[error("No metaboards configured for any chain")]
@@ -512,6 +518,18 @@ impl RaindexError {
             RaindexError::NonPositiveAmount => "Amount must be positive".to_string(),
             RaindexError::NegativePriceCap => "Price cap cannot be negative".to_string(),
             RaindexError::RpcClientError(err) => format!("RPC client error: {}", err),
+            RaindexError::PreflightError(err) => {
+                format!("Preflight check failed: {err}")
+            }
+            RaindexError::QuoteDataMissing => {
+                "Quote data is missing. Please ensure the quote was successful.".to_string()
+            }
+            RaindexError::InvalidInputIndex(index) => {
+                format!(
+                    "Invalid input index: {}. The order does not have an input at this index.",
+                    index
+                )
+            }
             RaindexError::ParseMetaError(err) => format!("Cannot parse metadata: {err}"),
             RaindexError::NoMetaboardsConfigured => {
                 "No metaboards configured for any chain. Please check your configuration."

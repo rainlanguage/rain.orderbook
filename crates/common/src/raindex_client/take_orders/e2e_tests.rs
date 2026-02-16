@@ -1,3 +1,4 @@
+use crate::raindex_client::take_orders::TakeOrdersRequest;
 use crate::raindex_client::tests::get_test_yaml;
 use crate::raindex_client::RaindexClient;
 use crate::raindex_client::RaindexError;
@@ -7,9 +8,9 @@ use crate::test_helpers::dotrain::{
     create_dotrain_config_with_vault_and_ratio,
 };
 use crate::test_helpers::local_evm::{
-    create_vault, create_vault_for_orderbook, deposit_to_orderbook, fund_and_approve_taker,
-    fund_standard_two_token_vault, setup_multi_orderbook_test, setup_test as base_setup_test,
-    standard_deposit_amount,
+    approve_taker, create_vault, create_vault_for_orderbook, deposit_to_orderbook,
+    fund_and_approve_taker, fund_and_approve_taker_multi_orderbook, fund_standard_two_token_vault,
+    fund_taker, setup_multi_orderbook_test, setup_test as base_setup_test, standard_deposit_amount,
 };
 use crate::test_helpers::orders::deploy::{deploy_order, deploy_order_to_orderbook};
 use crate::test_helpers::subgraph::{
@@ -17,7 +18,7 @@ use crate::test_helpers::subgraph::{
     get_multi_orderbook_yaml,
 };
 use alloy::network::TransactionBuilder;
-use alloy::primitives::{B256, U256};
+use alloy::primitives::{Address, B256, U256};
 use alloy::rpc::types::TransactionRequest;
 use alloy::serde::WithOtherFields;
 use alloy::sol_types::SolCall;
@@ -29,6 +30,10 @@ use std::ops::{Mul, Sub};
 
 fn high_price_cap() -> String {
     "1000000".to_string()
+}
+
+fn test_taker() -> String {
+    Address::ZERO.to_string()
 }
 
 #[tokio::test]
@@ -64,14 +69,15 @@ async fn test_get_take_orders_calldata_no_orders_returns_no_liquidity() {
     .unwrap();
 
     let res = client
-        .get_take_orders_calldata(
-            1,
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "1".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 1,
+            taker: test_taker(),
+            sell_token: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            buy_token: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "1".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await;
 
     assert!(
@@ -120,14 +126,15 @@ async fn test_get_take_orders_calldata_no_candidates_returns_no_liquidity() {
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
     let res = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "10".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: test_taker(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "10".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await;
 
     assert!(
@@ -177,24 +184,38 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "100".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("Should succeed with funded vault and valid order");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook,
+        result.orderbook(),
+        setup.orderbook,
         "Orderbook address should match"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -209,20 +230,20 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
     );
 
     assert!(
-        !result.prices.is_empty(),
+        !result.prices().is_empty(),
         "Should have at least one price in result"
     );
 
     let expected_ratio = Float::parse("2".to_string()).unwrap();
     assert!(
-        result.prices[0].eq(expected_ratio).unwrap(),
+        result.prices()[0].eq(expected_ratio).unwrap(),
         "Price should match expected ratio of 2, got: {:?}",
-        result.prices[0].format()
+        result.prices()[0].format()
     );
 
     let zero = Float::zero().unwrap();
     assert!(
-        result.effective_price.gt(zero).unwrap(),
+        result.effective_price().gt(zero).unwrap(),
         "Effective price should be > 0"
     );
 }
@@ -267,38 +288,60 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let buy_target = "50".to_string();
     let price_cap = "5".to_string();
     let result_partial = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            buy_target.clone(),
-            price_cap.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: buy_target.clone(),
+            price_cap: price_cap.clone(),
+        })
         .await
         .expect("BuyUpTo mode should succeed");
+    assert!(
+        result_partial.is_ready(),
+        "Expected Ready variant for BuyUpTo"
+    );
+    let result_partial = result_partial.take_orders_info().unwrap();
 
     let result_exact = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyExact,
-            buy_target.clone(),
-            price_cap.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyExact,
+            amount: buy_target.clone(),
+            price_cap: price_cap.clone(),
+        })
         .await
         .expect("BuyExact mode should succeed");
+    assert!(
+        result_exact.is_ready(),
+        "Expected Ready variant for BuyExact"
+    );
+    let result_exact = result_exact.take_orders_info().unwrap();
 
-    let decoded_partial = takeOrders4Call::abi_decode(&result_partial.calldata)
+    let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
     let config_partial = decoded_partial.config;
 
     let decoded_exact =
-        takeOrders4Call::abi_decode(&result_exact.calldata).expect("Should decode exact calldata");
+        takeOrders4Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
     let config_exact = decoded_exact.config;
 
     let expected_buy_target = Float::parse(buy_target).unwrap().get_inner();
@@ -376,14 +419,15 @@ async fn test_get_take_orders_calldata_wrong_direction_returns_no_liquidity() {
 
     let fake_token = "0xcccccccccccccccccccccccccccccccccccccccc";
     let res = client
-        .get_take_orders_calldata(
-            123,
-            fake_token.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "10".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: test_taker(),
+            sell_token: fake_token.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "10".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await;
 
     assert!(
@@ -433,19 +477,32 @@ async fn test_min_receive_mode_exact_returns_error_when_insufficient_liquidity()
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let result_partial = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "100".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("BuyUpTo mode calldata build should succeed");
+    assert!(result_partial.is_ready(), "Expected Ready variant");
+    let result_partial = result_partial.take_orders_info().unwrap();
 
-    let decoded_partial = takeOrders4Call::abi_decode(&result_partial.calldata)
+    let decoded_partial = takeOrders4Call::abi_decode(result_partial.calldata())
         .expect("Should decode partial calldata");
     let config_partial = decoded_partial.config;
 
@@ -456,14 +513,15 @@ async fn test_min_receive_mode_exact_returns_error_when_insufficient_liquidity()
     );
 
     let result_exact = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyExact,
-            "100".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyExact,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await;
 
     assert!(
@@ -538,21 +596,34 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let buy_target = "100".to_string();
     let price_cap = "2".to_string();
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            buy_target.clone(),
-            price_cap.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: buy_target.clone(),
+            price_cap: price_cap.clone(),
+        })
         .await
         .expect("Should build calldata with both orders");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
 
     assert_eq!(
@@ -568,15 +639,18 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         "maximumIORatio should equal price_cap (2)"
     );
 
-    assert_eq!(result.prices.len(), 2, "Should have 2 prices");
+    assert_eq!(result.prices().len(), 2, "Should have 2 prices");
     let cheap_price = Float::parse("1".to_string()).unwrap();
     let expensive_price = Float::parse("2".to_string()).unwrap();
     assert!(
-        result.prices.iter().any(|p| p.eq(cheap_price).unwrap()),
+        result.prices().iter().any(|p| p.eq(cheap_price).unwrap()),
         "Should have price 1 in the list"
     );
     assert!(
-        result.prices.iter().any(|p| p.eq(expensive_price).unwrap()),
+        result
+            .prices()
+            .iter()
+            .any(|p| p.eq(expensive_price).unwrap()),
         "Should have price 2 in the list"
     );
 
@@ -594,10 +668,6 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         config: modified_config,
     }
     .abi_encode();
-
-    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
-    let taker_balance = U256::from(10).pow(U256::from(22));
-    fund_and_approve_taker(&setup, setup.token1, taker, setup.orderbook, taker_balance).await;
 
     let tx = WithOtherFields::new(
         TransactionRequest::default()
@@ -745,21 +815,34 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let buy_target_2 = "100".to_string();
     let price_cap_2 = "2".to_string();
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            buy_target_2.clone(),
-            price_cap_2.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: buy_target_2.clone(),
+            price_cap: price_cap_2.clone(),
+        })
         .await
         .expect("Should build calldata with both orders");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let original_config = decoded.config;
 
     let expected_price_cap_2 = Float::parse(price_cap_2.clone()).unwrap();
@@ -792,13 +875,9 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
     let dotrain_worsened = create_dotrain_config_with_vault_and_ratio(&setup, "0x03", "50", "3");
     let (_, _) = deploy_order(&setup, dotrain_worsened).await;
 
-    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
-    let taker_balance = U256::from(10).pow(U256::from(22));
-    fund_and_approve_taker(&setup, setup.token1, taker, setup.orderbook, taker_balance).await;
-
     let tx = WithOtherFields::new(
         TransactionRequest::default()
-            .with_input(result.calldata.to_vec())
+            .with_input(result.calldata().to_vec())
             .with_to(setup.orderbook)
             .with_from(taker),
     );
@@ -952,24 +1031,38 @@ async fn test_cross_orderbook_selection_picks_best_book() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker_multi_orderbook(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook_b,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let buy_target_cross = "8".to_string();
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            buy_target_cross.clone(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: buy_target_cross.clone(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("Should succeed with orders from multiple orderbooks");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert_eq!(
-        result.orderbook, setup.orderbook_b,
+        result.orderbook(),
+        setup.orderbook_b,
         "Should select orderbook B (max_output=8 > max_output=5)"
     );
 
@@ -992,20 +1085,20 @@ async fn test_cross_orderbook_selection_picks_best_book() {
 
     let expected_ratio = Float::parse("2".to_string()).unwrap();
     assert!(
-        result.prices[0].eq(expected_ratio).unwrap(),
+        result.prices()[0].eq(expected_ratio).unwrap(),
         "Price should be 2 (orderbook B's ratio)"
     );
 
     let tolerance = Float::parse("0.0001".to_string()).unwrap();
-    let diff = if result.effective_price.gt(expected_ratio).unwrap() {
-        result.effective_price.sub(expected_ratio).unwrap()
+    let diff = if result.effective_price().gt(expected_ratio).unwrap() {
+        result.effective_price().sub(expected_ratio).unwrap()
     } else {
-        expected_ratio.sub(result.effective_price).unwrap()
+        expected_ratio.sub(result.effective_price()).unwrap()
     };
     assert!(
         diff.lte(tolerance).unwrap(),
         "Effective price should be ~2 (sell/buy ratio), got: {:?}",
-        result.effective_price.format()
+        result.effective_price().format()
     );
 }
 
@@ -1090,25 +1183,39 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker_multi_orderbook(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook_a,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let buy_target_flip = "10".to_string();
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            buy_target_flip.clone(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: buy_target_flip.clone(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("Should succeed with flipped economics");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook_a,
+        result.orderbook(),
+        setup.orderbook_a,
         "Should select orderbook A (max_output=10 > max_output=3)"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1218,25 +1325,38 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker_multi_orderbook(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook_a,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let buy_target_yield = "5".to_string();
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            buy_target_yield.clone(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: buy_target_yield.clone(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("Should succeed with orders from multiple orderbooks");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook_a,
+        result.orderbook(), setup.orderbook_a,
         "Should select orderbook A (can fill 5 buy at ratio 1.0) over B (can fill 5 buy but at worse price 1.5)"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1257,27 +1377,27 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
     }
 
     assert_eq!(
-        result.prices.len(),
+        result.prices().len(),
         1,
         "Should have exactly one price (from orderbook A only)"
     );
     let expected_ratio = Float::parse("1".to_string()).unwrap();
     assert!(
-        result.prices[0].eq(expected_ratio).unwrap(),
+        result.prices()[0].eq(expected_ratio).unwrap(),
         "Price should be 1.0 (orderbook A's ratio), got: {:?}",
-        result.prices[0].format()
+        result.prices()[0].format()
     );
 
     let tolerance = Float::parse("0.0001".to_string()).unwrap();
-    let diff = if result.effective_price.gt(expected_ratio).unwrap() {
-        result.effective_price.sub(expected_ratio).unwrap()
+    let diff = if result.effective_price().gt(expected_ratio).unwrap() {
+        result.effective_price().sub(expected_ratio).unwrap()
     } else {
-        expected_ratio.sub(result.effective_price).unwrap()
+        expected_ratio.sub(result.effective_price()).unwrap()
     };
     assert!(
         diff.lte(tolerance).unwrap(),
         "Effective price should be ~1.0 (total_sell/total_buy), got: {:?}",
-        result.effective_price.format()
+        result.effective_price().format()
     );
 }
 
@@ -1295,14 +1415,15 @@ async fn test_get_take_orders_calldata_invalid_address_returns_from_hex_error() 
     .unwrap();
 
     let res = client
-        .get_take_orders_calldata(
-            1,
-            "not-an-address".to_string(),
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "1".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 1,
+            taker: test_taker(),
+            sell_token: "not-an-address".to_string(),
+            buy_token: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "1".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await;
 
     assert!(
@@ -1326,14 +1447,15 @@ async fn test_get_take_orders_calldata_invalid_float_returns_float_error() {
     .unwrap();
 
     let res = client
-        .get_take_orders_calldata(
-            1,
-            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
-            "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "not-a-float".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 1,
+            taker: test_taker(),
+            sell_token: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string(),
+            buy_token: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "not-a-float".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await;
 
     assert!(
@@ -1405,43 +1527,60 @@ async fn test_prices_sorted_best_to_worst_matching_config_orders() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            "200".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "200".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("Should build calldata with both orders");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
-    assert_eq!(result.prices.len(), 2, "Should have 2 prices for 2 orders");
+    assert_eq!(
+        result.prices().len(),
+        2,
+        "Should have 2 prices for 2 orders"
+    );
     assert_eq!(config.orders.len(), 2, "Should have 2 orders in config");
 
     let cheap_price = Float::parse("1".to_string()).unwrap();
     let expensive_price = Float::parse("2".to_string()).unwrap();
 
     assert!(
-        result.prices[0].eq(cheap_price).unwrap(),
+        result.prices()[0].eq(cheap_price).unwrap(),
         "First price should be cheap (1), got: {:?}",
-        result.prices[0].format()
+        result.prices()[0].format()
     );
     assert!(
-        result.prices[1].eq(expensive_price).unwrap(),
+        result.prices()[1].eq(expensive_price).unwrap(),
         "Second price should be expensive (2), got: {:?}",
-        result.prices[1].format()
+        result.prices()[1].format()
     );
 
     assert!(
-        result.prices[0].lt(result.prices[1]).unwrap(),
+        result.prices()[0].lt(result.prices()[1]).unwrap(),
         "Prices should be sorted best (lowest) to worst: {:?} < {:?}",
-        result.prices[0].format(),
-        result.prices[1].format()
+        result.prices()[0].format(),
+        result.prices()[1].format()
     );
 
     use alloy::primitives::keccak256;
@@ -1499,24 +1638,38 @@ async fn test_spend_up_to_mode_happy_path() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::SpendUpTo,
-            "100".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::SpendUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("Should succeed with funded vault and valid order in spend mode");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
     assert_eq!(
-        result.orderbook, setup.orderbook,
+        result.orderbook(),
+        setup.orderbook,
         "Orderbook address should match"
     );
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
     assert!(
@@ -1524,7 +1677,10 @@ async fn test_spend_up_to_mode_happy_path() {
         "Should have at least one order in config"
     );
 
-    assert!(config.IOIsInput, "IOIsInput should be true for spend mode");
+    assert!(
+        !config.IOIsInput,
+        "IOIsInput should be false for spend mode"
+    );
 
     assert_eq!(
         config.minimumIO,
@@ -1540,13 +1696,13 @@ async fn test_spend_up_to_mode_happy_path() {
     );
 
     assert!(
-        !result.prices.is_empty(),
+        !result.prices().is_empty(),
         "Should have at least one price in result"
     );
 
     let zero = Float::zero().unwrap();
     assert!(
-        result.effective_price.gt(zero).unwrap(),
+        result.effective_price().gt(zero).unwrap(),
         "Effective price should be > 0"
     );
 }
@@ -1591,51 +1747,73 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let spend_budget = "50".to_string();
     let price_cap = "5".to_string();
 
     let result_up_to = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::SpendUpTo,
-            spend_budget.clone(),
-            price_cap.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::SpendUpTo,
+            amount: spend_budget.clone(),
+            price_cap: price_cap.clone(),
+        })
         .await
         .expect("SpendUpTo mode should succeed");
+    assert!(
+        result_up_to.is_ready(),
+        "Expected Ready variant for SpendUpTo"
+    );
+    let result_up_to = result_up_to.take_orders_info().unwrap();
 
     let result_exact = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::SpendExact,
-            spend_budget.clone(),
-            price_cap.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::SpendExact,
+            amount: spend_budget.clone(),
+            price_cap: price_cap.clone(),
+        })
         .await
         .expect("SpendExact mode should succeed");
+    assert!(
+        result_exact.is_ready(),
+        "Expected Ready variant for SpendExact"
+    );
+    let result_exact = result_exact.take_orders_info().unwrap();
 
     let decoded_up_to =
-        takeOrders4Call::abi_decode(&result_up_to.calldata).expect("Should decode up_to calldata");
+        takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
     let config_up_to = decoded_up_to.config;
 
     let decoded_exact =
-        takeOrders4Call::abi_decode(&result_exact.calldata).expect("Should decode exact calldata");
+        takeOrders4Call::abi_decode(result_exact.calldata()).expect("Should decode exact calldata");
     let config_exact = decoded_exact.config;
 
     let expected_spend_budget = Float::parse(spend_budget).unwrap().get_inner();
     let expected_price_cap = Float::parse(price_cap).unwrap().get_inner();
 
     assert!(
-        config_up_to.IOIsInput,
-        "IOIsInput should be true for SpendUpTo mode"
+        !config_up_to.IOIsInput,
+        "IOIsInput should be false for SpendUpTo mode"
     );
     assert!(
-        config_exact.IOIsInput,
-        "IOIsInput should be true for SpendExact mode"
+        !config_exact.IOIsInput,
+        "IOIsInput should be false for SpendExact mode"
     );
 
     assert_eq!(
@@ -1707,20 +1885,33 @@ async fn test_spend_exact_mode_insufficient_liquidity() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let result_up_to = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::SpendUpTo,
-            "200".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::SpendUpTo,
+            amount: "200".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("SpendUpTo mode calldata build should succeed even with insufficient liquidity");
+    assert!(result_up_to.is_ready(), "Expected Ready variant");
+    let result_up_to = result_up_to.take_orders_info().unwrap();
 
     let decoded_up_to =
-        takeOrders4Call::abi_decode(&result_up_to.calldata).expect("Should decode up_to calldata");
+        takeOrders4Call::abi_decode(result_up_to.calldata()).expect("Should decode up_to calldata");
     let config_up_to = decoded_up_to.config;
 
     assert_eq!(
@@ -1730,14 +1921,15 @@ async fn test_spend_exact_mode_insufficient_liquidity() {
     );
 
     let result_exact = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::SpendExact,
-            "200".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::SpendExact,
+            amount: "200".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await;
 
     assert!(
@@ -1790,51 +1982,70 @@ async fn test_spend_mode_max_sell_cap_equals_spend_budget() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let spend_budget = "50".to_string();
     let price_cap = "10".to_string();
 
     let result_spend = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::SpendUpTo,
-            spend_budget.clone(),
-            price_cap.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::SpendUpTo,
+            amount: spend_budget.clone(),
+            price_cap: price_cap.clone(),
+        })
         .await
         .expect("Spend mode should succeed");
+    assert!(
+        result_spend.is_ready(),
+        "Expected Ready variant for SpendUpTo"
+    );
+    let result_spend = result_spend.take_orders_info().unwrap();
 
     let result_buy = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::BuyUpTo,
-            spend_budget.clone(),
-            price_cap.clone(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: spend_budget.clone(),
+            price_cap: price_cap.clone(),
+        })
         .await
         .expect("Buy mode should succeed");
+    assert!(result_buy.is_ready(), "Expected Ready variant for BuyUpTo");
+    let result_buy = result_buy.take_orders_info().unwrap();
 
     let spend_budget_float = Float::parse(spend_budget.clone()).unwrap();
     let price_cap_float = Float::parse(price_cap).unwrap();
 
     assert!(
-        result_spend.max_sell_cap.eq(spend_budget_float).unwrap(),
+        result_spend.max_sell_cap().eq(spend_budget_float).unwrap(),
         "In spend mode, max_sell_cap should equal spend_budget ({}), got: {:?}",
         spend_budget,
-        result_spend.max_sell_cap.format()
+        result_spend.max_sell_cap().format()
     );
 
     let expected_buy_max_sell_cap = spend_budget_float.mul(price_cap_float).unwrap();
     assert!(
         result_buy
-            .max_sell_cap
+            .max_sell_cap()
             .eq(expected_buy_max_sell_cap)
             .unwrap(),
         "In buy mode, max_sell_cap should equal buy_target * price_cap, got: {:?}",
-        result_buy.max_sell_cap.format()
+        result_buy.max_sell_cap().format()
     );
 }
 
@@ -1919,25 +2130,42 @@ async fn test_spend_mode_cross_orderbook_selection() {
 
     let client = RaindexClient::new(vec![yaml], None).unwrap();
 
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_and_approve_taker_multi_orderbook(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook_b,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
     let result = client
-        .get_take_orders_calldata(
-            123,
-            setup.token1.to_string(),
-            setup.token2.to_string(),
-            TakeOrdersMode::SpendUpTo,
-            "160".to_string(),
-            high_price_cap(),
-        )
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::SpendUpTo,
+            amount: "160".to_string(),
+            price_cap: high_price_cap(),
+        })
         .await
         .expect("Should succeed with spend mode across multiple orderbooks");
+    assert!(result.is_ready(), "Expected Ready variant");
+    let result = result.take_orders_info().unwrap();
 
-    let decoded = takeOrders4Call::abi_decode(&result.calldata).expect("Should decode calldata");
+    let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
     let config = decoded.config;
 
-    assert!(config.IOIsInput, "IOIsInput should be true for spend mode");
+    assert!(
+        !config.IOIsInput,
+        "IOIsInput should be false for spend mode"
+    );
 
     assert_eq!(
-        result.orderbook, setup.orderbook_b,
+        result.orderbook(),
+        setup.orderbook_b,
         "Should select orderbook B (can spend more: 80*2=160 vs 50*2=100)"
     );
 
@@ -1948,4 +2176,270 @@ async fn test_spend_mode_cross_orderbook_selection() {
             "All orders should be from orderbook B"
         );
     }
+}
+
+#[tokio::test]
+async fn test_get_take_orders_calldata_returns_approval_when_no_allowance() {
+    let setup = base_setup_test().await;
+    let sg_server = MockServer::start_async().await;
+
+    let vault_id = B256::from(U256::from(1u64));
+    fund_standard_two_token_vault(&setup, vault_id).await;
+
+    let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+    let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+    let dotrain = create_dotrain_config_with_params(&setup, "100", "2");
+    let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+    let order_json = create_sg_order_json(
+        &setup,
+        &order_bytes,
+        order_hash,
+        vec![vault1.clone(), vault2.clone()],
+        vec![vault1.clone(), vault2.clone()],
+    );
+
+    sg_server.mock(|when, then| {
+        when.path("/sg");
+        then.status(200).json_body_obj(&json!({
+            "data": {
+                "orders": [order_json]
+            }
+        }));
+    });
+
+    let yaml = get_minimal_yaml_for_chain(
+        123,
+        &setup.local_evm.url().to_string(),
+        &sg_server.url("/sg"),
+        &setup.orderbook.to_string(),
+    );
+
+    let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_taker(
+        &setup,
+        setup.token1,
+        taker,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
+    let result = client
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
+        .await
+        .expect("Should succeed with approval result");
+
+    assert!(
+        result.is_needs_approval(),
+        "Expected NeedsApproval variant when taker has no allowance"
+    );
+    let approval = result.approval_info().unwrap();
+
+    assert_eq!(
+        approval.token(),
+        setup.token1,
+        "Approval token should be sell_token"
+    );
+    assert_eq!(
+        approval.spender(),
+        setup.orderbook,
+        "Approval spender should be orderbook"
+    );
+    assert!(
+        !approval.calldata().is_empty(),
+        "Approval calldata should not be empty"
+    );
+}
+
+#[tokio::test]
+async fn test_get_take_orders_calldata_returns_approval_when_insufficient_allowance() {
+    let setup = base_setup_test().await;
+    let sg_server = MockServer::start_async().await;
+
+    let vault_id = B256::from(U256::from(1u64));
+    fund_standard_two_token_vault(&setup, vault_id).await;
+
+    let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+    let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+    let dotrain = create_dotrain_config_with_params(&setup, "100", "2");
+    let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+    let order_json = create_sg_order_json(
+        &setup,
+        &order_bytes,
+        order_hash,
+        vec![vault1.clone(), vault2.clone()],
+        vec![vault1.clone(), vault2.clone()],
+    );
+
+    sg_server.mock(|when, then| {
+        when.path("/sg");
+        then.status(200).json_body_obj(&json!({
+            "data": {
+                "orders": [order_json]
+            }
+        }));
+    });
+
+    let yaml = get_minimal_yaml_for_chain(
+        123,
+        &setup.local_evm.url().to_string(),
+        &sg_server.url("/sg"),
+        &setup.orderbook.to_string(),
+    );
+
+    let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_taker(
+        &setup,
+        setup.token1,
+        taker,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
+    let insufficient_allowance = U256::from(10).pow(U256::from(18));
+    approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        insufficient_allowance,
+    )
+    .await;
+
+    let result = client
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
+        .await
+        .expect("Should succeed with approval result");
+
+    assert!(
+        result.is_needs_approval(),
+        "Expected NeedsApproval variant when allowance < max_sell_cap"
+    );
+    let approval = result.approval_info().unwrap();
+
+    assert_eq!(
+        approval.token(),
+        setup.token1,
+        "Approval token should be sell_token"
+    );
+    assert_eq!(
+        approval.spender(),
+        setup.orderbook,
+        "Approval spender should be orderbook"
+    );
+}
+
+#[tokio::test]
+async fn test_get_take_orders_calldata_returns_take_orders_when_sufficient_allowance() {
+    let setup = base_setup_test().await;
+    let sg_server = MockServer::start_async().await;
+
+    let vault_id = B256::from(U256::from(1u64));
+    fund_standard_two_token_vault(&setup, vault_id).await;
+
+    let vault1 = create_vault(vault_id, &setup, &setup.token1_sg);
+    let vault2 = create_vault(vault_id, &setup, &setup.token2_sg);
+
+    let dotrain = create_dotrain_config_with_params(&setup, "100", "2");
+    let (order_bytes, order_hash) = deploy_order(&setup, dotrain).await;
+
+    let order_json = create_sg_order_json(
+        &setup,
+        &order_bytes,
+        order_hash,
+        vec![vault1.clone(), vault2.clone()],
+        vec![vault1.clone(), vault2.clone()],
+    );
+
+    sg_server.mock(|when, then| {
+        when.path("/sg");
+        then.status(200).json_body_obj(&json!({
+            "data": {
+                "orders": [order_json]
+            }
+        }));
+    });
+
+    let yaml = get_minimal_yaml_for_chain(
+        123,
+        &setup.local_evm.url().to_string(),
+        &sg_server.url("/sg"),
+        &setup.orderbook.to_string(),
+    );
+
+    let client = RaindexClient::new(vec![yaml], None).unwrap();
+
+    let taker = setup.local_evm.signer_wallets[1].default_signer().address();
+    fund_taker(
+        &setup,
+        setup.token1,
+        taker,
+        U256::from(10).pow(U256::from(22)),
+    )
+    .await;
+
+    let buy_target = Float::parse("100".to_string()).unwrap();
+    let price_cap = Float::parse(high_price_cap()).unwrap();
+    let max_sell_cap = buy_target.mul(price_cap).unwrap();
+    let sufficient_allowance = max_sell_cap.to_fixed_decimal(18).unwrap();
+    approve_taker(
+        &setup,
+        setup.token1,
+        taker,
+        setup.orderbook,
+        sufficient_allowance,
+    )
+    .await;
+
+    let result = client
+        .get_take_orders_calldata(TakeOrdersRequest {
+            chain_id: 123,
+            taker: taker.to_string(),
+            sell_token: setup.token1.to_string(),
+            buy_token: setup.token2.to_string(),
+            mode: TakeOrdersMode::BuyUpTo,
+            amount: "100".to_string(),
+            price_cap: high_price_cap(),
+        })
+        .await
+        .expect("Should succeed with take_orders result");
+
+    assert!(
+        result.is_ready(),
+        "Expected Ready variant when allowance is sufficient"
+    );
+    let take_orders = result.take_orders_info().unwrap();
+
+    assert_eq!(
+        take_orders.orderbook(),
+        setup.orderbook,
+        "Orderbook address should match"
+    );
+    assert!(
+        !take_orders.calldata().is_empty(),
+        "Calldata should not be empty"
+    );
 }

@@ -37,7 +37,8 @@ export enum TransactionName {
 	WITHDRAWAL = 'Vault Withdrawal',
 	WITHDRAWAL_MULTIPLE = 'Vaults Withdrawal',
 	APPROVAL = 'Token Approval',
-	DEPOSIT = 'Vault Deposit'
+	DEPOSIT = 'Vault Deposit',
+	TAKE_ORDER = 'Take Order'
 }
 
 export enum TransactionStatusMessage {

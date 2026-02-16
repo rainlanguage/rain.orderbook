@@ -19,7 +19,7 @@ vault_balances AS (
     /*ORDERBOOKS_CLAUSE*/
 ),
 relevant_vaults AS (
-  SELECT DISTINCT chain_id, orderbook_address, token, vault_id
+  SELECT DISTINCT chain_id, orderbook_address, owner, token, vault_id
   FROM vault_balances
 ),
 latest_owner_events AS (
@@ -54,6 +54,7 @@ order_io_items AS (
   SELECT
     io.chain_id,
     io.orderbook_address,
+    rv.owner,
     io.token,
     io.vault_id,
     io.io_type,
@@ -70,6 +71,7 @@ order_io_items AS (
    AND rv.orderbook_address = io.orderbook_address
    AND rv.token = io.token
    AND rv.vault_id = io.vault_id
+   AND rv.owner = oe.order_owner
   LEFT JOIN latest_owner_events loe
     ON loe.chain_id = oe.chain_id
    AND loe.orderbook_address = oe.orderbook_address
@@ -80,6 +82,7 @@ vault_order_lists AS (
   SELECT
     chain_id,
     orderbook_address,
+    owner,
     token,
     vault_id,
     MAX(CASE WHEN io_type = 'input' THEN orders END) AS input_orders,
@@ -88,14 +91,15 @@ vault_order_lists AS (
     SELECT
       chain_id,
       orderbook_address,
+      owner,
       token,
       vault_id,
       io_type,
       GROUP_CONCAT(DISTINCT item) AS orders
     FROM order_io_items
-    GROUP BY chain_id, orderbook_address, token, vault_id, io_type
+    GROUP BY chain_id, orderbook_address, owner, token, vault_id, io_type
   ) AS per_type
-  GROUP BY chain_id, orderbook_address, token, vault_id
+  GROUP BY chain_id, orderbook_address, owner, token, vault_id
 )
 SELECT
   o.chain_id AS chainId,
@@ -113,6 +117,7 @@ FROM vault_balances o
 LEFT JOIN vault_order_lists vol
   ON vol.chain_id = o.chain_id
  AND vol.orderbook_address = o.orderbook_address
+ AND vol.owner = o.owner
  AND vol.token = o.token
  AND vol.vault_id = o.vault_id
 JOIN erc20_tokens et
