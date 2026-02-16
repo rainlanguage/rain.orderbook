@@ -148,7 +148,7 @@ describe('OrdersListTable', () => {
 				error: undefined
 			})
 		});
-		mockGetOrders.mockResolvedValue({ value: [], error: undefined });
+		mockGetOrders.mockResolvedValue({ value: { orders: [], totalCount: 0 }, error: undefined });
 		mockGetTokens.mockResolvedValue({ value: [], error: undefined });
 	});
 
@@ -158,7 +158,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrder]] },
+					data: { pages: [{ orders: [mockOrder], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -196,7 +196,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrder]] },
+					data: { pages: [{ orders: [mockOrder], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -276,7 +276,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[orderWithMultipleTokens]] },
+					data: { pages: [{ orders: [orderWithMultipleTokens], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -359,7 +359,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[orderWithMultipleTokens]] },
+					data: { pages: [{ orders: [orderWithMultipleTokens], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -397,7 +397,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[inactiveOrder]] },
+					data: { pages: [{ orders: [inactiveOrder], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -417,7 +417,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[]] },
+					data: { pages: [{ orders: [], totalCount: 0 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -442,7 +442,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrder]] },
+					data: { pages: [{ orders: [mockOrder], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -483,7 +483,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[orderWithManyTrades]] },
+					data: { pages: [{ orders: [orderWithManyTrades], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -502,7 +502,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrder]] },
+					data: { pages: [{ orders: [mockOrder], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -530,7 +530,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[inactiveOrder]] },
+					data: { pages: [{ orders: [inactiveOrder], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true
@@ -554,7 +554,7 @@ describe('OrdersListTable', () => {
 		mockQuery.createInfiniteQuery = vi.fn((__options, _queryClient) => ({
 			subscribe: (fn: (value: any) => void) => {
 				fn({
-					data: { pages: [[mockOrder]] },
+					data: { pages: [{ orders: [mockOrder], totalCount: 1 }] },
 					status: 'success',
 					isFetching: false,
 					isFetched: true,
@@ -591,7 +591,7 @@ describe('OrdersListTable', () => {
 			return {
 				subscribe: (fn: (value: any) => void) => {
 					fn({
-						data: { pages: [[]] },
+						data: { pages: [{ orders: [], totalCount: 0 }] },
 						status: 'success',
 						isFetching: false,
 						isFetched: true
@@ -626,7 +626,7 @@ describe('OrdersListTable', () => {
 			return {
 				subscribe: (fn: (value: any) => void) => {
 					fn({
-						data: { pages: [[]] },
+						data: { pages: [{ orders: [], totalCount: 0 }] },
 						status: 'success',
 						isFetching: false,
 						isFetched: true
