@@ -683,6 +683,7 @@ price: 2e18;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -803,6 +804,7 @@ _ _: 0 0;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -966,6 +968,7 @@ _ _: 0 0;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -1307,6 +1310,7 @@ _ _: 16 52;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         DeploymentCfg {
             document: default_document(),
