@@ -70,6 +70,20 @@ impl MultiOrderbookSubgraphClient {
         all_orders
     }
 
+    pub async fn orders_count(&self, filter_args: SgOrdersListFilterArgs) -> u32 {
+        let futures = self.subgraphs.iter().map(|subgraph| {
+            let url = subgraph.url.clone();
+            let filter_args = filter_args.clone();
+            async move {
+                let client = self.get_orderbook_subgraph_client(url);
+                client.orders_count(filter_args).await.unwrap_or(0)
+            }
+        });
+
+        let results = join_all(futures).await;
+        results.into_iter().sum()
+    }
+
     pub async fn vaults_list(
         &self,
         filter_args: SgVaultsListFilterArgs,
@@ -456,6 +470,142 @@ mod tests {
                 || (order_ids_sorted[2] == order_e.id && order_ids_sorted[3] == order_a.id)
         );
         assert_eq!(order_ids_sorted[4], order_d.id);
+    }
+
+    #[tokio::test]
+    async fn test_orders_count_no_subgraphs() {
+        let client = MultiOrderbookSubgraphClient::new(vec![]);
+        let count = client.orders_count(default_filter_args()).await;
+        assert_eq!(count, 0);
+    }
+
+    #[tokio::test]
+    async fn test_orders_count_one_subgraph() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+
+        let orders: Vec<_> = (0..3)
+            .map(|i| sample_sg_order(&format!("c_{}", i), "100"))
+            .collect();
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": orders}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+            url: sg1_url,
+            name: "sg_one".to_string(),
+        }]);
+
+        let count = client.orders_count(default_filter_args()).await;
+        assert_eq!(count, 3);
+    }
+
+    #[tokio::test]
+    async fn test_orders_count_multiple_subgraphs_sums() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+
+        let orders_s1: Vec<_> = (0..2)
+            .map(|i| sample_sg_order(&format!("s1_{}", i), "100"))
+            .collect();
+        let orders_s2: Vec<_> = (0..5)
+            .map(|i| sample_sg_order(&format!("s2_{}", i), "200"))
+            .collect();
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": orders_s1}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": orders_s2}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: "sg_one".to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: "sg_two".to_string(),
+            },
+        ]);
+
+        let count = client.orders_count(default_filter_args()).await;
+        assert_eq!(count, 7);
+    }
+
+    #[tokio::test]
+    async fn test_orders_count_one_subgraph_errors_returns_partial() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+
+        let orders_s1: Vec<_> = (0..4)
+            .map(|i| sample_sg_order(&format!("s1_{}", i), "100"))
+            .collect();
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"orders": orders_s1}}));
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: "sg_one".to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: "sg_two_err".to_string(),
+            },
+        ]);
+
+        let count = client.orders_count(default_filter_args()).await;
+        assert_eq!(count, 4);
+    }
+
+    #[tokio::test]
+    async fn test_orders_count_all_subgraphs_error() {
+        let server1 = MockServer::start_async().await;
+        let sg1_url = Url::parse(&server1.url("")).unwrap();
+        let server2 = MockServer::start_async().await;
+        let sg2_url = Url::parse(&server2.url("")).unwrap();
+
+        server1.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+        server2.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![
+            MultiSubgraphArgs {
+                url: sg1_url,
+                name: "sg_one_err".to_string(),
+            },
+            MultiSubgraphArgs {
+                url: sg2_url,
+                name: "sg_two_err".to_string(),
+            },
+        ]);
+
+        let count = client.orders_count(default_filter_args()).await;
+        assert_eq!(count, 0);
     }
 
     fn sample_sg_erc20(id_suffix: &str) -> SgErc20 {
