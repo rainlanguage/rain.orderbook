@@ -308,4 +308,5 @@ GROUP BY
   l.order_nonce,
   l.event_type,
   la.transaction_hash
-ORDER BY fa.block_timestamp DESC;
+ORDER BY fa.block_timestamp DESC
+/*PAGINATION_CLAUSE*/;
