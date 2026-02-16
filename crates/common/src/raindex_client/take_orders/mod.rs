@@ -1,21 +1,24 @@
-mod approval;
+pub(crate) mod approval;
 mod request;
-mod result;
+pub(crate) mod result;
 mod selection;
+pub mod single;
 
 #[cfg(all(test, not(target_family = "wasm")))]
 mod e2e_tests;
 
+#[cfg(all(test, not(target_family = "wasm")))]
+mod single_tests;
+
 pub use request::TakeOrdersRequest;
-pub use result::{ApprovalInfo, TakeOrdersCalldataResult, TakeOrdersInfo};
+pub use result::{ApprovalInfo, TakeOrderEstimate, TakeOrdersCalldataResult, TakeOrdersInfo};
+pub use single::{build_candidate_from_quote, estimate_take_order, execute_single_take};
 
 use super::{RaindexClient, RaindexError};
 use crate::rpc_client::RpcClient;
 use crate::take_orders::{
     build_take_orders_config_from_simulation, find_failing_order_index, simulate_take_orders,
-    TakeOrdersMode,
 };
-use alloy::primitives::Address;
 use approval::{check_approval_needed, ApprovalCheckParams};
 use rain_orderbook_bindings::provider::mk_read_provider;
 use wasm_bindgen_utils::prelude::*;
@@ -64,7 +67,8 @@ impl RaindexClient {
     #[wasm_export(
         js_name = "getTakeOrdersCalldata",
         return_description = "Encoded takeOrders4 calldata and price information",
-        unchecked_return_type = "TakeOrdersCalldataResult"
+        unchecked_return_type = "TakeOrdersCalldataResult",
+        preserve_js_class
     )]
     pub async fn get_take_orders_calldata(
         &self,
