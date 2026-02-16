@@ -1,6 +1,7 @@
 use crate::gui::{DotrainOrderGui, GuiError};
 use crate::yaml::{OrderbookYaml, OrderbookYamlError};
 use rain_orderbook_app_settings::gui::NameAndDescriptionCfg;
+use rain_orderbook_common::raindex_client::{RaindexClient, RaindexError as RaindexClientError};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -147,6 +148,8 @@ pub enum DotrainRegistryError {
     GuiError(#[from] GuiError),
     #[error(transparent)]
     OrderbookYamlError(#[from] OrderbookYamlError),
+    #[error(transparent)]
+    RaindexClientError(#[from] RaindexClientError),
 }
 
 impl DotrainRegistryError {
@@ -178,6 +181,7 @@ impl DotrainRegistryError {
             }
             DotrainRegistryError::GuiError(err) => err.to_readable_msg(),
             DotrainRegistryError::OrderbookYamlError(err) => err.to_readable_msg(),
+            DotrainRegistryError::RaindexClientError(err) => err.to_readable_msg(),
         }
     }
 }
@@ -541,6 +545,32 @@ impl DotrainRegistry {
     pub fn get_orderbook_yaml(&self) -> Result<OrderbookYaml, DotrainRegistryError> {
         let yaml = OrderbookYaml::new(vec![self.settings.clone()], None)?;
         Ok(yaml)
+    }
+
+    /// Creates a RaindexClient instance from the registry's shared settings.
+    ///
+    /// This method provides access to the RaindexClient SDK, allowing you to query
+    /// orders, vaults, and other onchain data from the shared settings YAML.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const clientResult = registry.getRaindexClient();
+    /// if (clientResult.error) {
+    ///   console.error("Failed to get RaindexClient:", clientResult.error.readableMsg);
+    ///   return;
+    /// }
+    /// const raindexClient = clientResult.value;
+    /// ```
+    #[wasm_export(
+        js_name = "getRaindexClient",
+        preserve_js_class,
+        unchecked_return_type = "RaindexClient",
+        return_description = "RaindexClient instance from registry settings"
+    )]
+    pub fn get_raindex_client(&self) -> Result<RaindexClient, DotrainRegistryError> {
+        let client = RaindexClient::new(vec![self.settings.clone()], None)?;
+        Ok(client)
     }
 }
 
@@ -1569,6 +1599,39 @@ _ _: 0 0;
 
             let orderbook_yaml = registry.get_orderbook_yaml();
             assert!(orderbook_yaml.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_get_raindex_client_returns_valid_instance() {
+            let server = MockServer::start_async().await;
+
+            let test_registry_content = format!(
+                "{}/settings.yaml\ntest-order {}/order.rain",
+                server.url(""),
+                server.url("")
+            );
+
+            server.mock(|when, then| {
+                when.method("GET").path("/registry.txt");
+                then.status(200).body(test_registry_content.clone());
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/settings.yaml");
+                then.status(200).body(mock_settings_with_tokens());
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/order.rain");
+                then.status(200).body(MOCK_DOTRAIN_SIMPLE);
+            });
+
+            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+                .await
+                .unwrap();
+
+            let raindex_client = registry.get_raindex_client();
+            assert!(raindex_client.is_ok());
         }
     }
 }

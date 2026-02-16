@@ -530,6 +530,19 @@ if (tokensResult.error) throw new Error(tokensResult.error.readableMsg);
 const tokens = tokensResult.value; // TokenInfo[] with chain_id, address, decimals, symbol, name
 ```
 
+#### Get a RaindexClient from registry settings
+
+Use `getRaindexClient()` to create a `RaindexClient` directly from the registry's shared settings, without manually bridging through `OrderbookYaml`:
+
+```ts
+const clientResult = registry.getRaindexClient();
+if (clientResult.error) throw new Error(clientResult.error.readableMsg);
+const client = clientResult.value;
+
+// Use the client to query orders, vaults, etc.
+const ordersResult = await client.getOrders([8453]);
+```
+
 ### Build a deployment GUI
 
 Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `DotrainOrderGui`. The `FIXED_LIMIT_SOURCE` constant declared earlier already includes the required networks/tokens/deployers plus a full `gui` definition, so you can reference it directly (or trim it to your own bindings) instead of copying pieces of `settings.yaml` inline in this guide. Always cross-check the source you feed in with the latest definitions in [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies); that repository tracks the real configurations our UI ships with.
