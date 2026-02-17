@@ -367,10 +367,7 @@ fn should_retry_local_db_error(error: &LocalDbError) -> bool {
 }
 
 fn is_rate_limited_local_db_error(error: &LocalDbError) -> bool {
-    matches!(
-        error,
-        LocalDbError::Rpc(RpcClientError::RateLimited { .. })
-    )
+    matches!(error, LocalDbError::Rpc(RpcClientError::RateLimited { .. }))
 }
 
 #[cfg(test)]

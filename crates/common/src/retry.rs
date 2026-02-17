@@ -92,6 +92,7 @@ where
         .retry(backoff)
         .when(|e: &RetryError<E>| matches!(e, RetryError::Operation(err) if should_retry(err)))
         .adjust(|e: &RetryError<E>, dur| {
+            dur?;
             if let RetryError::Operation(err) = e {
                 if rate_limit_delay_ms > 0 && is_rate_limited(err) {
                     return Some(Duration::from_millis(rate_limit_delay_ms));
