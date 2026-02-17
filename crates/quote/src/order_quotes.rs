@@ -5,7 +5,7 @@ use crate::{
 };
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::ReadableClient;
-use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2, SignedContextV1};
+use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -38,40 +38,15 @@ pub struct Pair {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(Pair);
 
+/// Get order quotes, automatically fetching signed oracle context from order meta.
+///
+/// For each order, if the meta contains a `RaindexSignedContextOracleV1` entry,
+/// the oracle URL is extracted and signed context is fetched per IO pair via POST.
 pub async fn get_order_quotes(
     orders: Vec<SgOrder>,
     block_number: Option<u64>,
     rpcs: Vec<String>,
     gas: Option<u64>,
-) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
-    get_order_quotes_with_context(orders, block_number, rpcs, gas, vec![]).await
-}
-
-/// Get order quotes with optional signed context data.
-/// The signed_context is applied to all quote targets for all orders.
-pub async fn get_order_quotes_with_context(
-    orders: Vec<SgOrder>,
-    block_number: Option<u64>,
-    rpcs: Vec<String>,
-    gas: Option<u64>,
-    signed_context: Vec<SignedContextV1>,
-) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
-    // Build a closure that returns the same context for every pair
-    let context_fn = |_order: &OrderV4, _input_index: usize, _output_index: usize| {
-        signed_context.clone()
-    };
-    get_order_quotes_with_context_fn(orders, block_number, rpcs, gas, context_fn).await
-}
-
-/// Get order quotes with a per-pair signed context function.
-/// The context_fn is called for each (order, inputIOIndex, outputIOIndex) to produce
-/// the signed context for that specific quote target.
-pub async fn get_order_quotes_with_context_fn(
-    orders: Vec<SgOrder>,
-    block_number: Option<u64>,
-    rpcs: Vec<String>,
-    gas: Option<u64>,
-    context_fn: impl Fn(&OrderV4, usize, usize) -> Vec<SignedContextV1>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
@@ -89,6 +64,7 @@ pub async fn get_order_quotes_with_context_fn(
         let mut quote_targets: Vec<QuoteTarget> = Vec::new();
         let order_struct: OrderV4 = order.clone().try_into()?;
         let orderbook = Address::from_str(&order.orderbook.id.0)?;
+        let oracle_url = crate::oracle::extract_oracle_url(order);
 
         for (input_index, input) in order_struct.validInputs.iter().enumerate() {
             for (output_index, output) in order_struct.validOutputs.iter().enumerate() {
@@ -118,14 +94,41 @@ pub async fn get_order_quotes_with_context_fn(
                         .unwrap_or("UNKNOWN".to_string())
                 );
 
-                let pair_context = context_fn(&order_struct, input_index, output_index);
+                // Fetch signed oracle context for this pair if oracle URL is present
+                let signed_context = if let Some(ref url) = oracle_url {
+                    if input.token != output.token {
+                        let body = crate::oracle::encode_oracle_body(
+                            &order_struct,
+                            input_index as u32,
+                            output_index as u32,
+                            Address::ZERO, // counterparty unknown at quote time
+                        );
+                        match crate::oracle::fetch_signed_context(url, body).await {
+                            Ok(ctx) => vec![ctx],
+                            Err(e) => {
+                                tracing::warn!(
+                                    "Failed to fetch oracle for pair ({}, {}): {}",
+                                    input_index,
+                                    output_index,
+                                    e
+                                );
+                                vec![]
+                            }
+                        }
+                    } else {
+                        vec![]
+                    }
+                } else {
+                    vec![]
+                };
+
                 let quote_target = QuoteTarget {
                     orderbook,
                     quote_config: QuoteV2 {
                         order: order_struct.clone(),
                         inputIOIndex: U256::from(input_index),
                         outputIOIndex: U256::from(output_index),
-                        signedContext: pair_context,
+                        signedContext: signed_context,
                     },
                 };
 
