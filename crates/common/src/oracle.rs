@@ -45,27 +45,19 @@ impl From<OracleResponse> for SignedContextV1 {
 /// `abi.encode(OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)`
 ///
 /// The endpoint must respond with a JSON body matching `OracleResponse`.
-///
-/// If `body` is None, falls back to a GET request (for simple oracles that
-/// don't need order details).
 pub async fn fetch_signed_context(
     url: &str,
-    body: Option<Vec<u8>>,
+    body: Vec<u8>,
 ) -> Result<SignedContextV1, OracleError> {
     let builder = Client::builder();
     #[cfg(not(target_family = "wasm"))]
     let builder = builder.timeout(std::time::Duration::from_secs(10));
     let client = builder.build()?;
 
-    let request = match body {
-        Some(data) => client
-            .post(url)
-            .header("Content-Type", "application/octet-stream")
-            .body(data),
-        None => client.get(url),
-    };
-
-    let response: OracleResponse = request
+    let response: OracleResponse = client
+        .post(url)
+        .header("Content-Type", "application/octet-stream")
+        .body(body)
         .send()
         .await?
         .error_for_status()?
@@ -82,7 +74,7 @@ pub async fn fetch_signed_context(
 /// partial failures.
 pub async fn fetch_signed_contexts(
     urls: &[String],
-    body: Option<Vec<u8>>,
+    body: Vec<u8>,
 ) -> Vec<Result<SignedContextV1, OracleError>> {
     let futures: Vec<_> = urls
         .iter()
@@ -118,13 +110,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_signed_context_invalid_url() {
-        let result = fetch_signed_context("not-a-url", None).await;
+        let result = fetch_signed_context("not-a-url", vec![]).await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_fetch_signed_context_unreachable() {
-        let result = fetch_signed_context("http://127.0.0.1:1/oracle", None).await;
+        let result = fetch_signed_context("http://127.0.0.1:1/oracle", vec![]).await;
         assert!(result.is_err());
     }
 }

@@ -134,7 +134,7 @@ async fn fetch_oracle_for_order(order: &RaindexOrder) -> Vec<SignedContextV1> {
     let url = order.oracle_url();
 
     match url {
-        Some(oracle_url) => match crate::oracle::fetch_signed_context(&oracle_url, None).await {
+        Some(oracle_url) => match crate::oracle::fetch_signed_context(&oracle_url, vec![]).await {
             Ok(ctx) => vec![ctx],
             Err(e) => {
                 tracing::warn!("Failed to fetch oracle data from {}: {}", oracle_url, e);
