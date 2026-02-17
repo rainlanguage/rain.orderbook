@@ -1,7 +1,7 @@
 use rain_metadata::{
     types::{
         dotrain::{gui_state_v1::DotrainGuiStateV1, source_v1::DotrainSourceV1},
-        signed_context_oracle::SignedContextOracleV1,
+        raindex_signed_context_oracle::RaindexSignedContextOracleV1,
     },
     KnownMagic, RainMetaDocumentV1Item,
 };
@@ -16,7 +16,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 pub enum ParsedMeta {
     DotrainGuiStateV1(DotrainGuiStateV1),
     DotrainSourceV1(DotrainSourceV1),
-    SignedContextOracleV1(SignedContextOracleV1),
+    RaindexSignedContextOracleV1(RaindexSignedContextOracleV1),
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ParsedMeta);
@@ -38,9 +38,9 @@ impl ParsedMeta {
                 let source = DotrainSourceV1::try_from(item.clone())?;
                 Ok(Some(ParsedMeta::DotrainSourceV1(source)))
             }
-            KnownMagic::SignedContextOracleV1 => {
-                let oracle = SignedContextOracleV1::try_from(item.clone())?;
-                Ok(Some(ParsedMeta::SignedContextOracleV1(oracle)))
+            KnownMagic::RaindexSignedContextOracleV1 => {
+                let oracle = RaindexSignedContextOracleV1::try_from(item.clone())?;
+                Ok(Some(ParsedMeta::RaindexSignedContextOracleV1(oracle)))
             }
             // Filter out all other metadata types - they're not needed for the frontend
             _ => Ok(None),
@@ -208,23 +208,23 @@ mod tests {
     }
 
     #[test]
-    fn test_from_meta_item_signed_context_oracle_v1() {
-        let oracle = SignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd")
+    fn test_from_meta_item_raindex_signed_context_oracle_v1() {
+        let oracle = RaindexSignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd")
             .unwrap();
         let item = oracle.to_meta_item();
         let result = ParsedMeta::from_meta_item(&item).unwrap();
         match result.unwrap() {
-            ParsedMeta::SignedContextOracleV1(parsed_oracle) => {
+            ParsedMeta::RaindexSignedContextOracleV1(parsed_oracle) => {
                 assert_eq!(parsed_oracle.url(), "https://oracle.example.com/prices/eth-usd");
             }
-            _ => panic!("Expected SignedContextOracleV1"),
+            _ => panic!("Expected RaindexSignedContextOracleV1"),
         }
     }
 
     #[test]
     fn test_parse_multiple_with_oracle() {
         let source = get_default_dotrain_source();
-        let oracle = SignedContextOracleV1::parse("https://oracle.example.com/feed").unwrap();
+        let oracle = RaindexSignedContextOracleV1::parse("https://oracle.example.com/feed").unwrap();
 
         let items = vec![
             RainMetaDocumentV1Item::from(source.clone()),
@@ -242,17 +242,17 @@ mod tests {
         }
 
         match &results[1] {
-            ParsedMeta::SignedContextOracleV1(parsed_oracle) => {
+            ParsedMeta::RaindexSignedContextOracleV1(parsed_oracle) => {
                 assert_eq!(parsed_oracle.url(), "https://oracle.example.com/feed");
             }
-            _ => panic!("Expected SignedContextOracleV1"),
+            _ => panic!("Expected RaindexSignedContextOracleV1"),
         }
     }
 
     #[test]
     fn test_parse_from_bytes_with_oracle() {
         let oracle =
-            SignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd").unwrap();
+            RaindexSignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd").unwrap();
         let items = vec![oracle.to_meta_item()];
         let bytes = RainMetaDocumentV1Item::cbor_encode_seq(&items, KnownMagic::RainMetaDocumentV1)
             .unwrap();
@@ -260,7 +260,7 @@ mod tests {
         let parsed = ParsedMeta::parse_from_bytes(&bytes).unwrap();
         assert_eq!(parsed.len(), 1);
         assert!(
-            matches!(&parsed[0], ParsedMeta::SignedContextOracleV1(o) if o.url() == "https://oracle.example.com/prices/eth-usd")
+            matches!(&parsed[0], ParsedMeta::RaindexSignedContextOracleV1(o) if o.url() == "https://oracle.example.com/prices/eth-usd")
         );
     }
 }

@@ -276,7 +276,7 @@ impl RaindexOrder {
     #[wasm_bindgen(getter = oracleUrl)]
     pub fn oracle_url(&self) -> Option<String> {
         self.parsed_meta().into_iter().find_map(|meta| match meta {
-            ParsedMeta::SignedContextOracleV1(oracle) => Some(oracle.0),
+            ParsedMeta::RaindexSignedContextOracleV1(oracle) => Some(oracle.0),
             _ => None,
         })
     }
@@ -359,7 +359,7 @@ impl RaindexOrder {
     /// Returns the signed context oracle URL if this order has oracle metadata.
     pub fn oracle_url(&self) -> Option<String> {
         self.parsed_meta().into_iter().find_map(|meta| match meta {
-            ParsedMeta::SignedContextOracleV1(oracle) => Some(oracle.0),
+            ParsedMeta::RaindexSignedContextOracleV1(oracle) => Some(oracle.0),
             _ => None,
         })
     }
