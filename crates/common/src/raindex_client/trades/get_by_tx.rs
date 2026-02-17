@@ -176,8 +176,7 @@ mod tests {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
                 when.path("/sg");
-                then.status(200)
-                    .json_body_obj(&sample_trades_response());
+                then.status(200).json_body_obj(&sample_trades_response());
             });
 
             let raindex_client = RaindexClient::new(
@@ -208,8 +207,10 @@ mod tests {
             );
             assert_eq!(
                 trade.order_hash(),
-                Bytes::from_str("0x00000000000000000000000000000000000000000000000000000000000abc01")
-                    .unwrap()
+                Bytes::from_str(
+                    "0x00000000000000000000000000000000000000000000000000000000000abc01"
+                )
+                .unwrap()
             );
             assert_eq!(
                 trade.orderbook(),
@@ -231,8 +232,7 @@ mod tests {
             let sg_server = MockServer::start_async().await;
             sg_server.mock(|when, then| {
                 when.path("/sg");
-                then.status(200)
-                    .json_body_obj(&empty_trades_response());
+                then.status(200).json_body_obj(&empty_trades_response());
             });
 
             let raindex_client = RaindexClient::new(

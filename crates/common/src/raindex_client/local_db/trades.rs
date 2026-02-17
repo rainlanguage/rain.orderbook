@@ -36,7 +36,7 @@ mod tests {
         use super::*;
         use crate::raindex_client::local_db::executor::JsCallbackExecutor;
         use crate::raindex_client::local_db::LocalDb;
-        use alloy::primitives::{address, b256, U256};
+        use alloy::primitives::{address, b256};
         use serde_json::json;
         use wasm_bindgen_test::wasm_bindgen_test;
         use wasm_bindgen_utils::prelude::*;
@@ -47,19 +47,16 @@ mod tests {
                 value: json_str,
                 error: None,
             };
-            let payload =
-                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&result).unwrap())
-                    .unwrap()
-                    .as_string()
-                    .unwrap();
+            let payload = js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&result).unwrap())
+                .unwrap()
+                .as_string()
+                .unwrap();
 
             let closure =
-                Closure::wrap(
-                    Box::new(move |_sql: String, _params: JsValue| -> JsValue {
-                        js_sys::JSON::parse(&payload).unwrap()
-                    })
-                        as Box<dyn Fn(String, JsValue) -> JsValue>,
-                );
+                Closure::wrap(Box::new(move |_sql: String, _params: JsValue| -> JsValue {
+                    js_sys::JSON::parse(&payload).unwrap()
+                })
+                    as Box<dyn Fn(String, JsValue) -> JsValue>);
 
             closure.into_js_value().dyn_into().unwrap()
         }
@@ -122,9 +119,18 @@ mod tests {
             assert_eq!(trades.len(), 1);
 
             let trade = &trades[0];
-            assert_eq!(trade.transaction().id(), tx_hash);
-            assert_eq!(trade.orderbook(), orderbook);
-            assert_eq!(trade.timestamp(), U256::from(1700000000u64));
+            assert_eq!(trade.transaction().id(), tx_hash.to_string());
+            assert_eq!(trade.orderbook(), orderbook.to_string());
+            assert_eq!(
+                trade
+                    .timestamp()
+                    .unwrap()
+                    .to_string(10)
+                    .unwrap()
+                    .as_string()
+                    .unwrap(),
+                "1700000000"
+            );
         }
 
         #[wasm_bindgen_test]

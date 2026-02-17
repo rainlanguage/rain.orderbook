@@ -484,8 +484,7 @@ mod tests {
 
         sg_server.mock(|when, then| {
             when.method(POST).path("/");
-            then.status(200)
-                .json_body(json!({"data": {"trades": []}}));
+            then.status(200).json_body(json!({"data": {"trades": []}}));
         });
 
         let result = client.transaction_trades(tx_id).await;

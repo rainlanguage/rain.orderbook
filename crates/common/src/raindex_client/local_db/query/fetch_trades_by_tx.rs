@@ -28,8 +28,7 @@ mod wasm_tests {
     async fn wrapper_uses_builder_sql_exactly() {
         let chain_id = 111;
         let orderbook = Address::from([0x77; 20]);
-        let tx_hash =
-            b256!("0x000000000000000000000000000000000000000000000000000000000000abcd");
+        let tx_hash = b256!("0x000000000000000000000000000000000000000000000000000000000000abcd");
 
         let expected_stmt = build_fetch_trades_by_tx_stmt(
             &OrderbookIdentifier::new(chain_id, orderbook),
