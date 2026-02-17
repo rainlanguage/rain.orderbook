@@ -44,44 +44,70 @@ impl From<RetryError<ERC20Error>> for ERC20Error {
 }
 
 #[cfg(not(target_family = "wasm"))]
-pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry>(
+pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry, IsRateLimited>(
     operation: F,
     max_attempts: usize,
+    base_delay_ms: u64,
+    rate_limit_delay_ms: u64,
     should_retry: ShouldRetry,
+    is_rate_limited: IsRateLimited,
 ) -> Result<T, RetryError<E>>
 where
     F: Fn() -> Fut,
     Fut: Future<Output = Result<T, E>>,
     ShouldRetry: Fn(&E) -> bool,
+    IsRateLimited: Fn(&E) -> bool,
 {
     ensure_max_attempts::<E>(max_attempts)?;
 
+    let delay = if base_delay_ms > 0 {
+        base_delay_ms
+    } else {
+        DEFAULT_BASE_DELAY_MILLIS
+    };
+
     let backoff = ExponentialBuilder::default()
-        .with_min_delay(Duration::from_millis(DEFAULT_BASE_DELAY_MILLIS))
+        .with_min_delay(Duration::from_millis(delay))
         .with_max_times(max_attempts.saturating_sub(1));
 
     let retryable = || async { operation().await.map_err(RetryError::Operation) };
 
     retryable
-        .retry(&backoff)
-        .when(|error: &RetryError<E>| matches!(error, RetryError::Operation(err) if should_retry(err)))
+        .retry(backoff)
+        .when(|e: &RetryError<E>| matches!(e, RetryError::Operation(err) if should_retry(err)))
+        .adjust(|e: &RetryError<E>, dur| {
+            if let RetryError::Operation(err) = e {
+                if rate_limit_delay_ms > 0 && is_rate_limited(err) {
+                    return Some(Duration::from_millis(rate_limit_delay_ms));
+                }
+            }
+            dur
+        })
         .await
 }
 
 #[cfg(target_family = "wasm")]
-pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry>(
+pub async fn retry_with_backoff<T, F, Fut, E, ShouldRetry, IsRateLimited>(
     operation: F,
     max_attempts: usize,
+    base_delay_ms: u64,
+    rate_limit_delay_ms: u64,
     should_retry: ShouldRetry,
+    is_rate_limited: IsRateLimited,
 ) -> Result<T, RetryError<E>>
 where
     F: Fn() -> Fut,
     Fut: Future<Output = Result<T, E>>,
     ShouldRetry: Fn(&E) -> bool,
+    IsRateLimited: Fn(&E) -> bool,
 {
     ensure_max_attempts::<E>(max_attempts)?;
 
-    let mut delay_ms = DEFAULT_BASE_DELAY_MILLIS;
+    let mut delay_ms = if base_delay_ms > 0 {
+        base_delay_ms
+    } else {
+        DEFAULT_BASE_DELAY_MILLIS
+    };
 
     for attempt in 0..max_attempts {
         match operation().await {
@@ -91,9 +117,13 @@ where
                     return Err(RetryError::Operation(err));
                 }
 
-                let delay = delay_ms.min(u64::from(u32::MAX)) as u32;
+                let is_rl = rate_limit_delay_ms > 0 && is_rate_limited(&err);
+                let sleep_ms = if is_rl { rate_limit_delay_ms } else { delay_ms };
+                let delay = sleep_ms.min(u64::from(u32::MAX)) as u32;
                 TimeoutFuture::new(delay).await;
-                delay_ms = delay_ms.saturating_mul(2);
+                if !is_rl {
+                    delay_ms = delay_ms.saturating_mul(2);
+                }
             }
         }
     }
@@ -122,7 +152,7 @@ where
     let retryable = || async { operation().await.map_err(RetryError::Operation) };
 
     retryable
-        .retry(&backoff)
+        .retry(backoff)
         .when(|error: &RetryError<E>| matches!(error, RetryError::Operation(err) if should_retry(err)))
         .await
 }
@@ -167,6 +197,7 @@ mod tests {
     enum TestError {
         Rpc,
         Json,
+        RateLimit,
     }
 
     #[tokio::test]
@@ -182,7 +213,10 @@ mod tests {
                 }
             },
             3,
+            0,
+            0,
             |err| matches!(err, TestError::Rpc),
+            |_| false,
         )
         .await;
 
@@ -200,7 +234,10 @@ mod tests {
                 Err::<(), _>(TestError::Rpc)
             },
             2,
+            0,
+            0,
             |err| matches!(err, TestError::Rpc),
+            |_| false,
         )
         .await
         .unwrap_err();
@@ -221,7 +258,10 @@ mod tests {
                 Err::<(), _>(TestError::Json)
             },
             3,
+            0,
+            0,
             |err| matches!(err, TestError::Rpc),
+            |_| false,
         )
         .await
         .unwrap_err();
@@ -242,7 +282,10 @@ mod tests {
                 Ok::<u32, TestError>(1)
             },
             0,
+            0,
+            0,
             |_err| true,
+            |_| false,
         )
         .await
         .unwrap_err();
@@ -263,6 +306,57 @@ mod tests {
     #[test]
     fn ensure_max_attempts_allows_positive_values() {
         assert!(super::ensure_max_attempts::<TestError>(1).is_ok());
+    }
+
+    #[tokio::test]
+    async fn rate_limited_error_uses_fixed_delay() {
+        let attempts = AtomicUsize::new(0);
+
+        let result = retry_with_backoff(
+            || async {
+                attempts.fetch_add(1, Ordering::SeqCst);
+                Err::<(), _>(TestError::RateLimit)
+            },
+            3,
+            1,
+            1,
+            |err| matches!(err, TestError::RateLimit),
+            |err| matches!(err, TestError::RateLimit),
+        )
+        .await;
+
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            RetryError::Operation(TestError::RateLimit) => {}
+            other => panic!("expected RateLimit error, got {other:?}"),
+        }
+        assert_eq!(attempts.load(Ordering::SeqCst), 3);
+    }
+
+    #[tokio::test]
+    async fn rate_limited_error_with_mixed_errors() {
+        let attempts = AtomicUsize::new(0);
+
+        let result = retry_with_backoff(
+            || async {
+                let current = attempts.fetch_add(1, Ordering::SeqCst);
+                match current {
+                    0 => Err(TestError::RateLimit),
+                    1 => Err(TestError::Rpc),
+                    _ => Ok(42u32),
+                }
+            },
+            5,
+            1,
+            1,
+            |err| matches!(err, TestError::Rpc | TestError::RateLimit),
+            |err| matches!(err, TestError::RateLimit),
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
+        assert_eq!(attempts.load(Ordering::SeqCst), 3);
     }
 
     #[tokio::test]
@@ -389,7 +483,10 @@ mod wasm_tests {
                 }
             },
             3,
+            0,
+            0,
             |err| matches!(err, TestError::Rpc),
+            |_| false,
         )
         .await;
 
@@ -413,7 +510,10 @@ mod wasm_tests {
                 }
             },
             2,
+            0,
+            0,
             |err| matches!(err, TestError::Rpc),
+            |_| false,
         )
         .await
         .unwrap_err();
@@ -440,7 +540,10 @@ mod wasm_tests {
                 }
             },
             3,
+            0,
+            0,
             |err| matches!(err, TestError::Rpc),
+            |_| false,
         )
         .await
         .unwrap_err();

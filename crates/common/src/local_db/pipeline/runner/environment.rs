@@ -176,7 +176,7 @@ mod tests {
     }
 
     fn sample_target() -> RunnerTarget {
-        let fetch = FetchConfig::new(1, 1, 1, 1).expect("fetch config");
+        let fetch = FetchConfig::new(1, 1, 1, 1, 0, 0).expect("fetch config");
         RunnerTarget {
             orderbook_key: "sample".to_string(),
             manifest_url: Url::parse("https://example.com/manifest.yaml").unwrap(),
