@@ -33,3 +33,17 @@ pub struct SgOrderTradeDetailQuery {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub trade: Option<SgTrade>,
 }
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct TransactionTradesVariables {
+    pub id: SgBytes,
+}
+
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+#[cynic(graphql_type = "Query", variables = "TransactionTradesVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct SgTransactionTradesQuery {
+    #[arguments(where: { tradeEvent_: { transaction_: { id: $id } } })]
+    pub trades: Vec<SgTrade>,
+}
