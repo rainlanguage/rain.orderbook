@@ -56,32 +56,6 @@ fn get_orderbook_address(order: &RaindexOrder) -> Result<Address, RaindexError> 
     }
 }
 
-fn build_candidates_for_order(
-    order: &RaindexOrder,
-    quotes: Vec<RaindexOrderQuote>,
-    input_token: Address,
-    output_token: Address,
-    signed_context: Vec<SignedContextV1>,
-) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
-    let order_v4: OrderV4 = order.try_into()?;
-    let orderbook = get_orderbook_address(order)?;
-
-    quotes
-        .iter()
-        .map(|quote| {
-            try_build_candidate(
-                orderbook,
-                &order_v4,
-                quote,
-                input_token,
-                output_token,
-                signed_context.clone(),
-            )
-        })
-        .collect::<Result<Vec<_>, _>>()
-        .map(|opts| opts.into_iter().flatten().collect())
-}
-
 pub async fn build_take_order_candidates_for_pair(
     orders: &[RaindexOrder],
     input_token: Address,
@@ -91,57 +65,81 @@ pub async fn build_take_order_candidates_for_pair(
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
     let gas_string = gas.map(|g| g.to_string());
 
-    type QuoteWithContext = (
-        Result<Vec<RaindexOrderQuote>, RaindexError>,
-        Vec<SignedContextV1>,
-    );
+    // Fetch quotes for each order (oracle context fetched per-pair inside get_quotes)
+    let results: Vec<Result<Vec<RaindexOrderQuote>, RaindexError>> =
+        futures::stream::iter(orders.iter().map(|order| {
+            let gas_string = gas_string.clone();
+            async move { order.get_quotes(block_number, gas_string).await }
+        }))
+        .buffered(DEFAULT_QUOTE_CONCURRENCY)
+        .collect()
+        .await;
 
-    // Fetch quotes and oracle data concurrently for each order
-    let results: Vec<QuoteWithContext> = futures::stream::iter(orders.iter().map(|order| {
-        let gas_string = gas_string.clone();
-        async move {
-            let quotes = order.get_quotes(block_number, gas_string).await;
-            let signed_context = fetch_oracle_for_order(order).await;
-            (quotes, signed_context)
-        }
-    }))
-    .buffered(DEFAULT_QUOTE_CONCURRENCY)
-    .collect()
-    .await;
+    // Build candidates — oracle context for take-order will be fetched per-pair
+    let mut all_candidates = vec![];
+    for (order, quotes_result) in orders.iter().zip(results) {
+        let quotes = quotes_result?;
+        let order_v4: OrderV4 = order.try_into()?;
+        let orderbook = get_orderbook_address(order)?;
+        let oracle_url = {
+            #[cfg(target_family = "wasm")]
+            { order.oracle_url() }
+            #[cfg(not(target_family = "wasm"))]
+            { order.oracle_url() }
+        };
 
-    orders
-        .iter()
-        .zip(results)
-        .map(|(order, (quotes_result, signed_context))| {
-            build_candidates_for_order(
-                order,
-                quotes_result?,
+        for quote in &quotes {
+            let signed_context = match &oracle_url {
+                Some(url) => {
+                    fetch_oracle_for_pair(
+                        url,
+                        &order_v4,
+                        quote.pair.input_index,
+                        quote.pair.output_index,
+                        Address::ZERO, // counterparty unknown at candidate building time
+                    )
+                    .await
+                }
+                None => vec![],
+            };
+
+            if let Some(candidate) = try_build_candidate(
+                orderbook,
+                &order_v4,
+                quote,
                 input_token,
                 output_token,
                 signed_context,
-            )
-        })
-        .collect::<Result<Vec<_>, _>>()
-        .map(|vecs| vecs.into_iter().flatten().collect())
+            )? {
+                all_candidates.push(candidate);
+            }
+        }
+    }
+
+    Ok(all_candidates)
 }
 
-/// Fetch signed context from an order's oracle endpoint, if it has one.
+/// Fetch signed context from an order's oracle endpoint for a specific IO pair.
 /// Returns empty vec if no oracle URL or if fetch fails (best-effort).
-async fn fetch_oracle_for_order(order: &RaindexOrder) -> Vec<SignedContextV1> {
-    #[cfg(target_family = "wasm")]
-    let url = order.oracle_url();
-    #[cfg(not(target_family = "wasm"))]
-    let url = order.oracle_url();
-
-    match url {
-        Some(oracle_url) => match crate::oracle::fetch_signed_context(&oracle_url, vec![]).await {
-            Ok(ctx) => vec![ctx],
-            Err(e) => {
-                tracing::warn!("Failed to fetch oracle data from {}: {}", oracle_url, e);
-                vec![]
-            }
-        },
-        None => vec![],
+async fn fetch_oracle_for_pair(
+    oracle_url: &str,
+    order: &OrderV4,
+    input_io_index: u32,
+    output_io_index: u32,
+    counterparty: Address,
+) -> Vec<SignedContextV1> {
+    let body = crate::oracle::encode_oracle_body(order, input_io_index, output_io_index, counterparty);
+    match crate::oracle::fetch_signed_context(oracle_url, body).await {
+        Ok(ctx) => vec![ctx],
+        Err(e) => {
+            tracing::warn!(
+                "Failed to fetch oracle for pair ({}, {}): {}",
+                input_io_index,
+                output_io_index,
+                e
+            );
+            vec![]
+        }
     }
 }
 

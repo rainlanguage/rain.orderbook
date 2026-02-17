@@ -1,5 +1,6 @@
-use alloy::primitives::{Address, Bytes, FixedBytes};
-use rain_orderbook_bindings::IOrderBookV6::SignedContextV1;
+use alloy::primitives::{Address, Bytes, FixedBytes, U256};
+use alloy::sol_types::SolValue;
+use rain_orderbook_bindings::IOrderBookV6::{OrderV4, SignedContextV1};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
@@ -36,6 +37,24 @@ impl From<OracleResponse> for SignedContextV1 {
             signature: resp.signature,
         }
     }
+}
+
+/// Encode the POST body for an oracle request.
+///
+/// The body is `abi.encode(OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)`.
+pub fn encode_oracle_body(
+    order: &OrderV4,
+    input_io_index: u32,
+    output_io_index: u32,
+    counterparty: Address,
+) -> Vec<u8> {
+    (
+        order.clone(),
+        U256::from(input_io_index),
+        U256::from(output_io_index),
+        counterparty,
+    )
+        .abi_encode()
 }
 
 /// Fetch signed context from an oracle endpoint via POST.

@@ -117,7 +117,13 @@ pub async fn execute_single_take(
     // Fetch signed context from oracle if URL provided
     let mut candidate = candidate;
     if let Some(url) = oracle_url {
-        match crate::oracle::fetch_signed_context(&url, vec![]).await {
+        let body = crate::oracle::encode_oracle_body(
+            &candidate.order,
+            candidate.input_io_index,
+            candidate.output_io_index,
+            taker,
+        );
+        match crate::oracle::fetch_signed_context(&url, body).await {
             Ok(ctx) => candidate.signed_context = vec![ctx],
             Err(e) => {
                 tracing::warn!("Failed to fetch oracle data from {}: {}", url, e);

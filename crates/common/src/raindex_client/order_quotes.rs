@@ -1,8 +1,10 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use rain_math_float::Float;
+use alloy::primitives::Address;
+use rain_orderbook_bindings::IOrderBookV6::OrderV4;
 use rain_orderbook_quote::{
-    get_order_quotes_with_context, BatchOrderQuotesResponse, OrderQuoteValue, Pair,
+    get_order_quotes_with_context_fn, BatchOrderQuotesResponse, OrderQuoteValue, Pair,
 };
 use rain_orderbook_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
@@ -122,25 +124,65 @@ impl RaindexOrder {
     ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
         let gas_amount = gas.map(|v| v.parse::<u64>()).transpose()?;
         let rpcs = self.get_rpc_urls()?;
+        let oracle_url = self.oracle_url();
+        let sg_order = self.clone().into_sg_order()?;
+        let order_v4: OrderV4 = sg_order.clone().try_into()?;
 
-        // Fetch signed context from oracle if this order has one
-        let signed_context = match self.oracle_url() {
-            Some(url) => match crate::oracle::fetch_signed_context(&url, vec![]).await {
-                Ok(ctx) => vec![ctx],
-                Err(e) => {
-                    tracing::warn!("Failed to fetch oracle data from {}: {}", url, e);
-                    vec![]
+        // Pre-fetch oracle context for each IO pair concurrently
+        let mut pair_contexts: std::collections::HashMap<(usize, usize), Vec<SignedContextV1>> =
+            std::collections::HashMap::new();
+
+        if let Some(ref url) = oracle_url {
+            let mut fetch_futures = vec![];
+            for input_index in 0..order_v4.validInputs.len() {
+                for output_index in 0..order_v4.validOutputs.len() {
+                    if order_v4.validInputs[input_index].token
+                        != order_v4.validOutputs[output_index].token
+                    {
+                        let body = crate::oracle::encode_oracle_body(
+                            &order_v4,
+                            input_index as u32,
+                            output_index as u32,
+                            Address::ZERO, // counterparty unknown at quote time
+                        );
+                        let url = url.clone();
+                        fetch_futures.push(async move {
+                            let result = crate::oracle::fetch_signed_context(&url, body).await;
+                            (input_index, output_index, result)
+                        });
+                    }
                 }
-            },
-            None => vec![],
-        };
+            }
 
-        let order_quotes = get_order_quotes_with_context(
-            vec![self.clone().into_sg_order()?],
+            let results = futures::future::join_all(fetch_futures).await;
+            for (input_index, output_index, result) in results {
+                match result {
+                    Ok(ctx) => {
+                        pair_contexts.insert((input_index, output_index), vec![ctx]);
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            "Failed to fetch oracle for pair ({}, {}): {}",
+                            input_index,
+                            output_index,
+                            e
+                        );
+                    }
+                }
+            }
+        }
+
+        let order_quotes = get_order_quotes_with_context_fn(
+            vec![sg_order],
             block_number,
             rpcs.iter().map(|s| s.to_string()).collect(),
             gas_amount,
-            signed_context,
+            |_order, input_index, output_index| {
+                pair_contexts
+                    .get(&(input_index, output_index))
+                    .cloned()
+                    .unwrap_or_default()
+            },
         )
         .await?;
 

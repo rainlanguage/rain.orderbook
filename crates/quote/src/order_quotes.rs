@@ -56,6 +56,23 @@ pub async fn get_order_quotes_with_context(
     gas: Option<u64>,
     signed_context: Vec<SignedContextV1>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
+    // Build a closure that returns the same context for every pair
+    let context_fn = |_order: &OrderV4, _input_index: usize, _output_index: usize| {
+        signed_context.clone()
+    };
+    get_order_quotes_with_context_fn(orders, block_number, rpcs, gas, context_fn).await
+}
+
+/// Get order quotes with a per-pair signed context function.
+/// The context_fn is called for each (order, inputIOIndex, outputIOIndex) to produce
+/// the signed context for that specific quote target.
+pub async fn get_order_quotes_with_context_fn(
+    orders: Vec<SgOrder>,
+    block_number: Option<u64>,
+    rpcs: Vec<String>,
+    gas: Option<u64>,
+    context_fn: impl Fn(&OrderV4, usize, usize) -> Vec<SignedContextV1>,
+) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     let req_block_number = match block_number {
@@ -101,13 +118,14 @@ pub async fn get_order_quotes_with_context(
                         .unwrap_or("UNKNOWN".to_string())
                 );
 
+                let pair_context = context_fn(&order_struct, input_index, output_index);
                 let quote_target = QuoteTarget {
                     orderbook,
                     quote_config: QuoteV2 {
                         order: order_struct.clone(),
                         inputIOIndex: U256::from(input_index),
                         outputIOIndex: U256::from(output_index),
-                        signedContext: signed_context.clone(),
+                        signedContext: pair_context,
                     },
                 };
 
