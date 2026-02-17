@@ -125,7 +125,7 @@ impl RaindexOrder {
 
         // Fetch signed context from oracle if this order has one
         let signed_context = match self.oracle_url() {
-            Some(url) => match crate::oracle::fetch_signed_context(&url).await {
+            Some(url) => match crate::oracle::fetch_signed_context(&url, None).await {
                 Ok(ctx) => vec![ctx],
                 Err(e) => {
                     tracing::warn!("Failed to fetch oracle data from {}: {}", url, e);

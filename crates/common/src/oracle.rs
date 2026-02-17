@@ -38,18 +38,34 @@ impl From<OracleResponse> for SignedContextV1 {
     }
 }
 
-/// Fetch signed context from an oracle endpoint.
+/// Fetch signed context from an oracle endpoint via POST.
 ///
-/// The endpoint must respond to a GET request with a JSON body matching
-/// `OracleResponse` (signer, context, signature).
-pub async fn fetch_signed_context(url: &str) -> Result<SignedContextV1, OracleError> {
+/// The endpoint receives an ABI-encoded body containing the order details
+/// that will be used for calculateOrderIO:
+/// `abi.encode(OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)`
+///
+/// The endpoint must respond with a JSON body matching `OracleResponse`.
+///
+/// If `body` is None, falls back to a GET request (for simple oracles that
+/// don't need order details).
+pub async fn fetch_signed_context(
+    url: &str,
+    body: Option<Vec<u8>>,
+) -> Result<SignedContextV1, OracleError> {
     let builder = Client::builder();
     #[cfg(not(target_family = "wasm"))]
     let builder = builder.timeout(std::time::Duration::from_secs(10));
     let client = builder.build()?;
 
-    let response: OracleResponse = client
-        .get(url)
+    let request = match body {
+        Some(data) => client
+            .post(url)
+            .header("Content-Type", "application/octet-stream")
+            .body(data),
+        None => client.get(url),
+    };
+
+    let response: OracleResponse = request
         .send()
         .await?
         .error_for_status()?
@@ -64,8 +80,14 @@ pub async fn fetch_signed_context(url: &str) -> Result<SignedContextV1, OracleEr
 /// Returns a vec of results - one per URL. Failed fetches return errors
 /// rather than failing the entire batch, so callers can decide how to handle
 /// partial failures.
-pub async fn fetch_signed_contexts(urls: &[String]) -> Vec<Result<SignedContextV1, OracleError>> {
-    let futures: Vec<_> = urls.iter().map(|url| fetch_signed_context(url)).collect();
+pub async fn fetch_signed_contexts(
+    urls: &[String],
+    body: Option<Vec<u8>>,
+) -> Vec<Result<SignedContextV1, OracleError>> {
+    let futures: Vec<_> = urls
+        .iter()
+        .map(|url| fetch_signed_context(url, body.clone()))
+        .collect();
 
     futures::future::join_all(futures).await
 }
@@ -96,13 +118,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_signed_context_invalid_url() {
-        let result = fetch_signed_context("not-a-url").await;
+        let result = fetch_signed_context("not-a-url", None).await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_fetch_signed_context_unreachable() {
-        let result = fetch_signed_context("http://127.0.0.1:1/oracle").await;
+        let result = fetch_signed_context("http://127.0.0.1:1/oracle", None).await;
         assert!(result.is_err());
     }
 }
