@@ -25,6 +25,22 @@ fn ensure_max_attempts<E>(max_attempts: usize) -> Result<(), RetryError<E>> {
     }
 }
 
+#[inline]
+fn compute_sleep_and_next_delay_ms(
+    current_delay_ms: u64,
+    rate_limit_delay_ms: u64,
+    is_rate_limited: bool,
+) -> (u32, u64) {
+    let sleep_ms = if is_rate_limited && rate_limit_delay_ms > 0 {
+        rate_limit_delay_ms
+    } else {
+        current_delay_ms
+    };
+    let delay = sleep_ms.min(u64::from(u32::MAX)) as u32;
+    let next_delay_ms = current_delay_ms.saturating_mul(2);
+    (delay, next_delay_ms)
+}
+
 impl From<RetryError<LocalDbError>> for LocalDbError {
     fn from(err: RetryError<LocalDbError>) -> Self {
         match err {
@@ -117,13 +133,11 @@ where
                     return Err(RetryError::Operation(err));
                 }
 
-                let is_rl = rate_limit_delay_ms > 0 && is_rate_limited(&err);
-                let sleep_ms = if is_rl { rate_limit_delay_ms } else { delay_ms };
-                let delay = sleep_ms.min(u64::from(u32::MAX)) as u32;
+                let is_rl = is_rate_limited(&err);
+                let (delay, next_delay_ms) =
+                    compute_sleep_and_next_delay_ms(delay_ms, rate_limit_delay_ms, is_rl);
                 TimeoutFuture::new(delay).await;
-                if !is_rl {
-                    delay_ms = delay_ms.saturating_mul(2);
-                }
+                delay_ms = next_delay_ms;
             }
         }
     }
@@ -306,6 +320,13 @@ mod tests {
     #[test]
     fn ensure_max_attempts_allows_positive_values() {
         assert!(super::ensure_max_attempts::<TestError>(1).is_ok());
+    }
+
+    #[test]
+    fn compute_sleep_and_next_delay_uses_rate_limit_delay_and_doubles_backoff() {
+        let (sleep, next_delay_ms) = super::compute_sleep_and_next_delay_ms(200, 100, true);
+        assert_eq!(sleep, 100);
+        assert_eq!(next_delay_ms, 400);
     }
 
     #[tokio::test]
