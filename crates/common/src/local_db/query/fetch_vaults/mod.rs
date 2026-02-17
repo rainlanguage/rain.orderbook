@@ -61,6 +61,11 @@ const INNER_CHAIN_IDS_BODY: &str = "AND chain_id IN ({list})";
 const INNER_ORDERBOOKS_CLAUSE: &str = "/*INNER_ORDERBOOKS_CLAUSE*/";
 const INNER_ORDERBOOKS_BODY: &str = "AND orderbook_address IN ({list})";
 
+const OIO_CHAIN_IDS_CLAUSE: &str = "/*OIO_CHAIN_IDS_CLAUSE*/";
+const OIO_CHAIN_IDS_BODY: &str = "AND io.chain_id IN ({list})";
+const OIO_ORDERBOOKS_CLAUSE: &str = "/*OIO_ORDERBOOKS_CLAUSE*/";
+const OIO_ORDERBOOKS_BODY: &str = "AND io.orderbook_address IN ({list})";
+
 pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
 
@@ -74,6 +79,11 @@ pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, S
         INNER_CHAIN_IDS_BODY,
         chain_ids_iter(),
     )?;
+    stmt.bind_list_clause(
+        OIO_CHAIN_IDS_CLAUSE,
+        OIO_CHAIN_IDS_BODY,
+        chain_ids_iter(),
+    )?;
 
     let mut orderbooks = args.orderbook_addresses.clone();
     orderbooks.sort();
@@ -83,6 +93,11 @@ pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, S
     stmt.bind_list_clause(
         INNER_ORDERBOOKS_CLAUSE,
         INNER_ORDERBOOKS_BODY,
+        orderbooks_iter(),
+    )?;
+    stmt.bind_list_clause(
+        OIO_ORDERBOOKS_CLAUSE,
+        OIO_ORDERBOOKS_BODY,
         orderbooks_iter(),
     )?;
 
