@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event';
 import OrdersListTable from '../lib/components/tables/OrdersListTable.svelte';
 import { RaindexOrder } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
+import { readable } from 'svelte/store';
+import { useAccount } from '$lib/providers/wallet/useAccount';
 
 vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
@@ -13,11 +15,18 @@ vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
 	};
 });
 
+vi.mock('$lib/providers/wallet/useAccount', () => ({
+	useAccount: vi.fn()
+}));
+
 vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
 }));
 
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+
+const mockAccountStore = readable('0xabcdef1234567890abcdef1234567890abcdef12');
+const mockMatchesAccount = vi.fn();
 
 const mockVaultsList = () => ({
 	items: [],
@@ -83,9 +92,8 @@ vi.mock('@tanstack/svelte-query');
 
 // Hoisted mock stores
 const {
-	mockActiveNetworkRefStore,
-	mockActiveOrderbookRefStore,
 	mockHideZeroBalanceVaultsStore,
+	mockHideInactiveOrdersVaultsStore,
 	mockOrderHashStore,
 	mockShowInactiveOrdersStore,
 	mockSelectedChainIdsStore,
@@ -100,8 +108,7 @@ const defaultProps: OrdersListTableProps = {
 	showInactiveOrders: mockShowInactiveOrdersStore,
 	orderHash: mockOrderHashStore,
 	hideZeroBalanceVaults: mockHideZeroBalanceVaultsStore,
-	activeNetworkRef: mockActiveNetworkRefStore,
-	activeOrderbookRef: mockActiveOrderbookRefStore,
+	hideInactiveOrdersVaults: mockHideInactiveOrdersVaultsStore,
 	selectedChainIds: mockSelectedChainIdsStore,
 	activeTokens: mockActiveTokensStore,
 	activeOrderbookAddresses: mockActiveOrderbookAddressesStore,
@@ -115,6 +122,10 @@ const mockGetAllOrderbooks = vi.fn();
 describe('OrdersListTable', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		(useAccount as Mock).mockReturnValue({
+			account: mockAccountStore,
+			matchesAccount: mockMatchesAccount
+		});
 		(useRaindexClient as Mock).mockReturnValue({
 			getOrders: mockGetOrders,
 			getTokens: mockGetTokens,
