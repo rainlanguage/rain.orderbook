@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { goto } from '$app/navigation';
+	import { DotsVerticalOutline } from 'flowbite-svelte-icons';
 	import { createInfiniteQuery, createQuery } from '@tanstack/svelte-query';
 	import { RaindexOrder, type OrderbookCfg, type Address } from '@rainlanguage/orderbook';
 	import TanstackAppTable from '../TanstackAppTable.svelte';
@@ -11,8 +12,25 @@
 	import { DEFAULT_PAGE_SIZE, DEFAULT_REFRESH_INTERVAL } from '../../queries/constants';
 	import { QKEY_ORDERS, QKEY_TOKENS } from '../../queries/keys';
 	import type { AppStoresInterface } from '../../types/appStores';
-	import { Badge, TableBodyCell, TableHeadCell } from 'flowbite-svelte';
+	import {
+		Badge,
+		Button,
+		Dropdown,
+		DropdownItem,
+		TableBodyCell,
+		TableHeadCell
+	} from 'flowbite-svelte';
+	import { useAccount } from '$lib/providers/wallet/useAccount';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import { getAllContexts } from 'svelte';
+
+	const context = getAllContexts();
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	export let handleOrderRemoveModal: any = undefined;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	export let handleTakeOrderModal: any = undefined;
+
 	export let selectedChainIds: AppStoresInterface['selectedChainIds'];
 	export let showInactiveOrders: AppStoresInterface['showInactiveOrders'];
 	export let orderHash: AppStoresInterface['orderHash'];
@@ -22,6 +40,7 @@
 	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
 	export let ownerFilter: AppStoresInterface['ownerFilter'];
 
+	const { matchesAccount, account } = useAccount();
 	const raindexClient = useRaindexClient();
 
 	$: ownerAddress = $ownerFilter?.trim() || '';
@@ -127,21 +146,42 @@
 	</svelte:fragment>
 
 	<svelte:fragment slot="head">
-		<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
-			>Order Info</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[20%]"
-			>Addresses</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[27.5%]"
-			>Input Token(s)</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[27.5%]"
-			>Output Token(s)</TableHeadCell
-		>
-		<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
-			>Trades</TableHeadCell
-		>
+		{#if $account && (handleTakeOrderModal || handleOrderRemoveModal)}
+			<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
+				>Order Info</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[18%]"
+				>Addresses</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[23.5%]"
+				>Input Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[23.5%]"
+				>Output Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
+				>Trades</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingActions" padding="px-2 py-4" class="w-[10%]"
+				>Actions</TableHeadCell
+			>
+		{:else}
+			<TableHeadCell data-testid="orderListHeadingOrderInfo" padding="p-4" class="w-[15%]"
+				>Order Info</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingAddresses" padding="p-4" class="w-[20%]"
+				>Addresses</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingInputs" padding="px-2 py-4" class="w-[27.5%]"
+				>Input Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingOutputs" padding="px-2 py-4" class="w-[27.5%]"
+				>Output Token(s)</TableHeadCell
+			>
+			<TableHeadCell data-testid="orderListHeadingTrades" padding="px-2 py-4" class="w-[10%]"
+				>Trades</TableHeadCell
+			>
+		{/if}
 	</svelte:fragment>
 
 	<svelte:fragment slot="bodyRow" let:item>
@@ -206,5 +246,47 @@
 		<TableBodyCell data-testid="orderListRowTrades" tdClass="break-word p-2">
 			{item.tradesCount > 99 ? '>99' : item.tradesCount}
 		</TableBodyCell>
+		{#if $account && (handleTakeOrderModal || handleOrderRemoveModal)}
+			<TableBodyCell data-testid="orderListRowActions" tdClass="px-2 py-2">
+				{#if item.active}
+					{#if handleTakeOrderModal}
+						<Button
+							size="xs"
+							data-testid={`order-take-${item.id}`}
+							on:click={(e) => {
+								e.stopPropagation();
+								handleTakeOrderModal(item, $query.refetch, context);
+							}}
+						>
+							Take Order
+						</Button>
+					{/if}
+					{#if matchesAccount(item.owner) && handleOrderRemoveModal}
+						<div data-testid="wallet-actions">
+							<Button
+								color="alternative"
+								outline={false}
+								data-testid={`order-menu-${item.id}`}
+								id={`order-menu-${item.id}`}
+								class="border-none px-2"
+								on:click={(e) => {
+									e.stopPropagation();
+								}}
+							>
+								<DotsVerticalOutline class="dark:text-white" />
+							</Button>
+							<Dropdown placement="bottom-end" triggeredBy={`#order-menu-${item.id}`}>
+								<DropdownItem
+									on:click={(e) => {
+										e.stopPropagation();
+										handleOrderRemoveModal(item, $query.refetch, context);
+									}}>Remove</DropdownItem
+								>
+							</Dropdown>
+						</div>
+					{/if}
+				{/if}
+			</TableBodyCell>
+		{/if}
 	</svelte:fragment>
 </AppTable>

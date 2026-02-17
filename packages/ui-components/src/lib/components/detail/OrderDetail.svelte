@@ -68,6 +68,13 @@
 		| ((raindexClient: RaindexClient, vaultsList: RaindexVaultsList) => void)
 		| undefined = undefined;
 
+	/** Callback function when take order action is triggered
+	 * @param order The order to take
+	 */
+	export let onTakeOrder:
+		| ((raindexClient: RaindexClient, order: RaindexOrder) => void)
+		| undefined = undefined;
+
 	let codeMirrorDisabled = true;
 	let codeMirrorStyles = {};
 
@@ -134,14 +141,19 @@
 			</div>
 
 			<div class="flex items-center gap-2">
-				{#if matchesAccount(data.owner)}
-					{#if data.active}
-						<Button
-							on:click={() => onRemove(raindexClient, data)}
-							data-testid="remove-button"
-							aria-label="Remove order">Remove</Button
-						>
-					{/if}
+				{#if matchesAccount(data.owner) && data.active}
+					<Button
+						on:click={() => onRemove(raindexClient, data)}
+						data-testid="remove-button"
+						aria-label="Remove order">Remove</Button
+					>
+				{/if}
+				{#if data.active && onTakeOrder}
+					<Button
+						on:click={() => onTakeOrder(raindexClient, data)}
+						data-testid="take-order-button"
+						aria-label="Take order">Take Order</Button
+					>
 				{/if}
 
 				<Refresh

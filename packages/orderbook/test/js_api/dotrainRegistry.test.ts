@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
-import { WasmEncodedResult, DotrainRegistry, OrderbookYaml } from '../../dist/cjs';
+import { WasmEncodedResult, DotrainRegistry, OrderbookYaml, RaindexClient } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
 const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
@@ -385,8 +385,7 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 		});
 	});
 
-	describe('DotrainRegistry getOrderbookYaml', () => {
-		const MOCK_SETTINGS_WITH_TOKENS = `
+	const MOCK_SETTINGS_WITH_TOKENS = `
 version: ${SPEC_VERSION}
 networks:
   mainnet:
@@ -417,7 +416,7 @@ deployers:
     network: mainnet
 `;
 
-		const MOCK_DOTRAIN_SIMPLE = `
+	const MOCK_DOTRAIN_SIMPLE = `
 gui:
   name: Test Order
   description: Test description
@@ -456,6 +455,7 @@ _ _: 0 0;
 :;
 `;
 
+	describe('DotrainRegistry getOrderbookYaml', () => {
 		it('should return OrderbookYaml instance from settings', async () => {
 			const registryContent = `http://localhost:8231/settings.yaml
 test-order http://localhost:8231/order.rain`;
@@ -474,6 +474,26 @@ test-order http://localhost:8231/order.rain`;
 			assert.ok(orderbookYaml, 'OrderbookYaml instance should be returned');
 			assert.strictEqual(typeof orderbookYaml.getTokens, 'function');
 			assert.strictEqual(typeof orderbookYaml.getOrderbookByAddress, 'function');
+		});
+	});
+
+	describe('DotrainRegistry getRaindexClient', () => {
+		it('should return RaindexClient instance from settings', async () => {
+			const registryContent = `http://localhost:8231/settings.yaml
+test-order http://localhost:8231/order.rain`;
+
+			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_WITH_TOKENS);
+			await mockServer.forGet('/order.rain').thenReply(200, MOCK_DOTRAIN_SIMPLE);
+
+			const registry = extractWasmEncodedData(
+				await DotrainRegistry.new('http://localhost:8231/registry.txt')
+			);
+
+			const raindexClientResult = registry.getRaindexClient();
+			const raindexClient = extractWasmEncodedData(raindexClientResult);
+
+			assert.ok(raindexClient, 'RaindexClient instance should be returned');
 		});
 	});
 });
