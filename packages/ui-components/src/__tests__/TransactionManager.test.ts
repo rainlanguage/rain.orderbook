@@ -1000,6 +1000,150 @@ describe('TransactionManager', () => {
 			});
 		});
 	});
+
+	describe('createTakeOrderTransaction', () => {
+		const takeOrderMockArgs: InternalTransactionArgs & {
+			raindexClient: RaindexClient;
+			entity: RaindexOrder;
+		} = {
+			txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef' as `0x${string}`,
+			chainId: 1,
+			queryKey: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+			entity: mockSgOrderEntity,
+			raindexClient: mockRaindexClient
+		};
+
+		beforeEach(() => {
+			vi.mocked(getExplorerLink).mockResolvedValue(
+				'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+			);
+		});
+
+		it('should create transaction with correct name and messages', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createTakeOrderTransaction(takeOrderMockArgs);
+
+			expect(TransactionStore).toHaveBeenCalledWith(
+				expect.objectContaining({
+					name: TransactionName.TAKE_ORDER,
+					errorMessage: 'Take order failed.',
+					successMessage: 'Order taken successfully.',
+					queryKey: takeOrderMockArgs.queryKey
+				}),
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+
+		it('should call getExplorerLink with correct params', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createTakeOrderTransaction(takeOrderMockArgs);
+
+			expect(getExplorerLink).toHaveBeenCalledWith(
+				takeOrderMockArgs.txHash,
+				takeOrderMockArgs.chainId,
+				'tx'
+			);
+			expect(TransactionStore).toHaveBeenCalledWith(
+				expect.objectContaining({
+					toastLinks: [
+						{
+							link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+							label: 'View on explorer'
+						}
+					]
+				}),
+				expect.any(Function),
+				expect.any(Function)
+			);
+		});
+
+		it('should use SDK-based indexing via createSdkIndexingFn for order tracking', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			vi.mocked(TransactionStore).mockImplementation(
+				() => mockTransaction as unknown as TransactionStore
+			);
+
+			await manager.createTakeOrderTransaction(takeOrderMockArgs);
+
+			const callArgs = vi.mocked(TransactionStore).mock.calls[0][0];
+			expect(callArgs.awaitIndexingFn).toBeDefined();
+			expect(typeof callArgs.awaitIndexingFn).toBe('function');
+
+			const mockContext: IndexingContext = {
+				updateState: vi.fn(),
+				onSuccess: vi.fn(),
+				onError: vi.fn(),
+				links: []
+			};
+
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			vi.mocked(mockRaindexClient.getTransaction).mockResolvedValueOnce({
+				value: { id: '0x0123', from: '0xowner', blockNumber: 123n, timestamp: 1700000000n }
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			} as any);
+
+			await callArgs.awaitIndexingFn!(mockContext);
+
+			expect(mockRaindexClient.getTransaction).toHaveBeenCalledWith(
+				takeOrderMockArgs.chainId,
+				takeOrderMockArgs.entity.orderbook,
+				takeOrderMockArgs.txHash
+			);
+
+			expect(mockContext.onSuccess).toHaveBeenCalled();
+		});
+
+		it('should handle successful transaction completion', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onSuccess: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success) => {
+				onSuccess = success;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createTakeOrderTransaction(takeOrderMockArgs);
+
+			onSuccess!();
+
+			expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
+				queryKey: [takeOrderMockArgs.queryKey]
+			});
+		});
+
+		it('should handle transaction failure', async () => {
+			const mockTransaction = { execute: vi.fn() };
+			let onError: () => void;
+			vi.mocked(TransactionStore).mockImplementation((args, success, error) => {
+				onError = error;
+				return mockTransaction as unknown as TransactionStore;
+			});
+
+			await manager.createTakeOrderTransaction(takeOrderMockArgs);
+
+			onError!();
+
+			expect(mockAddToast).toHaveBeenCalledWith({
+				message: 'Take order failed.',
+				type: 'error',
+				color: 'red',
+				links: [
+					{
+						link: 'https://explorer.example.com/tx/0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+						label: 'View on explorer'
+					}
+				]
+			});
+		});
+	});
 });
 
 describe('createSdkIndexingFn', () => {

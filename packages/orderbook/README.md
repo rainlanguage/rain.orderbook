@@ -20,6 +20,7 @@ This SDK provides Rust-powered WebAssembly bindings for orderbook functionality,
 
 - **Query Orders & Trades**: Search orders across multiple networks, fetch order details, and track trade history
 - **Execute Quotes**: Get real-time quotes for trading pairs with maximum output amounts and IO ratios
+- **Take Orders**: Generate calldata for executing trades against orders, with auto-discovery by token pair or targeting specific orders
 - **Manage Vaults**: Query vault balances, generate deposit/withdraw calldata, and track vault activity
 - **Parse Configurations**: Validate YAML files defining networks, tokens, orderbooks, and subgraph endpoints
 - **Generate Transactions**: Create ABI-encoded calldata for adding/removing orders and vault operations
@@ -358,7 +359,7 @@ if (balanceChangesResult.error) throw new Error(balanceChangesResult.error.reada
 
 ### 4. Generate quotes & calldata
 
-Once you have hydrated orders, you typically need deterministic hashes plus calldata builders. The snippet below hashes an order struct, generates take-orders calldata, asks an order for its removal calldata, and fetches quotes—mirroring the usual “inspect -> prepare transaction -> submit” flow.
+Once you have hydrated orders, you typically need deterministic hashes plus calldata builders. The snippet below hashes an order struct, generates take-orders calldata, asks an order for its removal calldata, and fetches quotes—mirroring the usual "inspect -> prepare transaction -> submit" flow.
 
 ```ts
 import { getOrderHash, getTakeOrders3Calldata } from '@rainlanguage/orderbook';
@@ -378,6 +379,109 @@ if (quotesResult.error) throw new Error(quotesResult.error.readableMsg);
 ```
 
 Every `RaindexOrder` exposes `vaultsList`, `inputsList`, `outputsList`, and `inputsOutputsList`, so you can quickly scope which vault IDs map to which IO leg before building calldata.
+
+### 5. Take orders
+
+The SDK provides two approaches for executing `takeOrders4` transactions: auto-discovery by token pair or targeting a specific known order.
+
+#### Take orders by token pair (auto-discovery)
+
+Use `client.getTakeOrdersCalldata()` to discover and aggregate liquidity across all active orders for a given token pair:
+
+```ts
+import type { TakeOrdersRequest } from '@rainlanguage/orderbook';
+
+const request: TakeOrdersRequest = {
+  chainId: 137,
+  taker: '0xYourAddress...',
+  sellToken: '0xUSDC...', // Token you will GIVE
+  buyToken: '0xWETH...',  // Token you will RECEIVE
+  mode: 'BuyUpTo',        // BuyExact | BuyUpTo | SpendExact | SpendUpTo
+  amount: '10',           // Target amount (buy tokens for buy modes, sell tokens for spend modes)
+  priceCap: '1.2'         // Maximum price (sell per 1 buy)
+};
+
+const takeResult = await client.getTakeOrdersCalldata(request);
+if (takeResult.error) throw new Error(takeResult.error.readableMsg);
+
+const {
+  orderbook,      // Contract address to call
+  calldata,       // ABI-encoded takeOrders4 calldata
+  effectivePrice, // Blended price from simulation
+  prices,         // Per-leg ratios (best to worst)
+  expectedSell,   // Simulated sell amount at current quotes
+  maxSellCap      // Worst-case spend cap
+} = takeResult.value;
+```
+
+**Take order modes:**
+- `BuyExact` – Buy exactly `amount` of buy token (reverts if insufficient liquidity)
+- `BuyUpTo` – Buy up to `amount` of buy token (partial fills allowed)
+- `SpendExact` – Spend exactly `amount` of sell token (reverts if insufficient liquidity)
+- `SpendUpTo` – Spend up to `amount` of sell token (partial fills allowed)
+
+#### Take a specific order
+
+When you already have a `RaindexOrder` instance, use `order.getTakeCalldata()` to target that specific order:
+
+```ts
+const order = orders[0];
+
+const takeResult = await order.getTakeCalldata(
+  0,              // inputIndex - index in order's validInputs array
+  0,              // outputIndex - index in order's validOutputs array
+  '0xTaker...',   // taker address
+  'BuyUpTo',      // mode
+  '10',           // amount
+  '1.2'           // priceCap
+);
+if (takeResult.error) throw new Error(takeResult.error.readableMsg);
+
+const { calldata, orderbook, effectivePrice, expectedSell, maxSellCap } = takeResult.value;
+```
+
+#### Estimate take order amounts
+
+Before executing, estimate what you'll spend/receive for a given amount:
+
+```ts
+const quotesResult = await order.getQuotes();
+if (quotesResult.error) throw new Error(quotesResult.error.readableMsg);
+const quote = quotesResult.value[0]; // Pick the quote for your desired pair
+
+const estimateResult = order.estimateTakeOrder(
+  quote,
+  true,   // isBuy - true for buying output token, false for selling input token
+  '10'    // amount as decimal string
+);
+if (estimateResult.error) throw new Error(estimateResult.error.readableMsg);
+
+const {
+  expectedSpend,   // How much sell token you'll give
+  expectedReceive, // How much buy token you'll get
+  isPartial        // True if order can't fully fill your amount
+} = estimateResult.value;
+```
+
+#### Filter orders by input/output tokens
+
+Use directional token filters to find orders matching specific trading pairs:
+
+```ts
+import type { GetOrdersFilters, GetOrdersTokenFilter } from '@rainlanguage/orderbook';
+
+const tokenFilter: GetOrdersTokenFilter = {
+  inputs: ['0xUSDC...'],  // Orders that accept USDC as input
+  outputs: ['0xWETH...']  // Orders that output WETH
+};
+
+const filters: GetOrdersFilters = {
+  tokens: tokenFilter,
+  active: true
+};
+
+const ordersResult = await client.getOrders([137], filters, 1);
+```
 
 ## Dotrain authoring & deployment flows
 
@@ -424,6 +528,19 @@ const orderbookYaml = orderbookYamlResult.value;
 const tokensResult = await orderbookYaml.getTokens();
 if (tokensResult.error) throw new Error(tokensResult.error.readableMsg);
 const tokens = tokensResult.value; // TokenInfo[] with chain_id, address, decimals, symbol, name
+```
+
+#### Get a RaindexClient from registry settings
+
+Use `getRaindexClient()` to create a `RaindexClient` directly from the registry's shared settings, without manually bridging through `OrderbookYaml`:
+
+```ts
+const clientResult = registry.getRaindexClient();
+if (clientResult.error) throw new Error(clientResult.error.readableMsg);
+const client = clientResult.value;
+
+// Use the client to query orders, vaults, etc.
+const ordersResult = await client.getOrders([8453]);
 ```
 
 ### Build a deployment GUI
@@ -599,6 +716,8 @@ if (!postTaskResult.error) console.log(postTaskResult.value);
 - `clearTables`, `getSyncStatus`, `RaindexClient.syncLocalDatabase`, `RaindexClient.setDbCallback` – plug in a persistent cache for offline apps.
 - `RaindexVaultsList.getWithdrawCalldata()` – multicall builder that withdraws every vault with a balance.
 - `RaindexOrder.convertToSgOrder()` – convert WASM order representations back into the raw subgraph schema when you need to interop with other tooling.
+- `TakeOrdersRequest`, `TakeOrdersCalldataResult`, `TakeOrderEstimate` – types for the take orders API.
+- `GetOrdersTokenFilter` – directional token filter with `inputs` and `outputs` arrays for precise order discovery.
 
 ## Error handling pattern
 
