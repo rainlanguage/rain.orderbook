@@ -122,11 +122,10 @@ abstract contract OrderBookV6RaindexRouter is IERC3156FlashBorrower, ReentrancyG
         TaskV2 calldata task
     ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
+        require(takeOrders.length == 2, "Unexpected take orders config length");
         if (takeOrders[0].orders.length == 0 || takeOrders[1].orders.length == 0) {
             revert IOrderBookV6.NoOrders();
         }
-
-        require(takeOrders.length == 2, "Unexpected take orders config length");
 
         address startTakeOrdersInputToken =
             takeOrders[0].orders[0].order.validInputs[takeOrders[0].orders[0].inputIOIndex].token;

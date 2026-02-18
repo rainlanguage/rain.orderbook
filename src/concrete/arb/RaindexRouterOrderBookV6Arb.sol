@@ -98,16 +98,11 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
         (losslessInputAmount);
 
         uint8 toTokenDecimals = IERC20Metadata(toToken).decimals();
-        (uint256 toTokenAmount, bool lossless) =
-            LibDecimalFloat.toFixedDecimalLossy(LibDecimalFloat.FLOAT_ZERO, toTokenDecimals);
-        if (!lossless) {
-            toTokenAmount++;
-        }
 
         IERC20(fromToken).forceApprove(routeLeg.destination, 0);
         IERC20(fromToken).forceApprove(routeLeg.destination, type(uint256).max);
         uint256 amountOut = IRouteProcessor(routeLeg.destination).processRoute(
-            fromToken, fromTokenAmount, toToken, toTokenAmount, address(this), route
+            fromToken, fromTokenAmount, toToken, 0, address(this), route
         );
         IERC20(fromToken).forceApprove(address(routeLeg.destination), 0);
 
@@ -118,6 +113,4 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
 
     /// Allow receiving gas.
     fallback() external {}
-
-    function a(RouteLeg calldata x) external {}
 }
