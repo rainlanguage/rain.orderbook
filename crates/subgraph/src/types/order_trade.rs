@@ -36,7 +36,7 @@ pub struct SgOrderTradeDetailQuery {
 
 #[derive(cynic::QueryVariables, Debug)]
 pub struct TransactionTradesVariables {
-    pub id: SgBytes,
+    pub id: String,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize)]
@@ -44,6 +44,6 @@ pub struct TransactionTradesVariables {
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct SgTransactionTradesQuery {
-    #[arguments(where: { tradeEvent_: { transaction_: { id: $id } } })]
+    #[arguments(where: { tradeEvent_: { transaction: $id } })]
     pub trades: Vec<SgTrade>,
 }

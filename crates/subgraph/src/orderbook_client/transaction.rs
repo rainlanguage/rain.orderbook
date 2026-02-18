@@ -41,7 +41,7 @@ impl OrderbookSubgraphClient {
         let data = self
             .query::<SgTransactionTradesQuery, TransactionTradesVariables>(
                 TransactionTradesVariables {
-                    id: SgBytes(id.inner().to_string()),
+                    id: id.inner().to_string(),
                 },
             )
             .await?;
