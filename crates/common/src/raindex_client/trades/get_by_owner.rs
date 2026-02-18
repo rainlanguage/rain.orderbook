@@ -3,7 +3,7 @@ use super::RaindexTradesListResult;
 use super::SubgraphTrades;
 use super::*;
 use crate::local_db::is_chain_supported_local_db;
-use crate::local_db::OrderbookIdentifier;
+use crate::raindex_client::types::{OrderbookIdentifierParams, PaginationParams, TimeFilter};
 use alloy::primitives::Address;
 use std::str::FromStr;
 
@@ -17,14 +17,11 @@ impl RaindexClient {
     )]
     pub async fn get_trades_for_owner(
         &self,
-        #[wasm_export(js_name = "chainId", param_description = "Chain ID for the network")]
-        chain_id: u32,
         #[wasm_export(
-            js_name = "orderbookAddress",
-            param_description = "Orderbook contract address",
-            unchecked_param_type = "Address"
+            js_name = "orderbookIdentifier",
+            param_description = "Orderbook identifier (chain ID and orderbook address)"
         )]
-        orderbook_address: String,
+        orderbook_identifier: OrderbookIdentifierParams,
         #[wasm_export(
             js_name = "owner",
             param_description = "Owner address to filter trades by",
@@ -32,20 +29,28 @@ impl RaindexClient {
         )]
         owner: String,
         #[wasm_export(
-            js_name = "page",
-            param_description = "Optional page number (defaults to 1)"
+            js_name = "pagination",
+            param_description = "Pagination parameters (page and pageSize)"
         )]
-        page: Option<u16>,
+        pagination: PaginationParams,
+        #[wasm_export(
+            js_name = "timeFilter",
+            param_description = "Time filter parameters (start and end timestamps)"
+        )]
+        time_filter: TimeFilter,
     ) -> Result<RaindexTradesListResult, RaindexError> {
-        let orderbook_address = Address::from_str(&orderbook_address)?;
+        let ob_id = orderbook_identifier.try_into_ob_id()?;
         let owner = Address::from_str(&owner)?;
-        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
 
-        if is_chain_supported_local_db(chain_id) {
+        if is_chain_supported_local_db(ob_id.chain_id) {
             if let Some(local_db) = self.local_db() {
                 let local_source = LocalDbTrades::new(&local_db);
-                let trades = local_source.get_by_owner(&ob_id, owner, page).await?;
-                let total_count = local_source.count_by_owner(&ob_id, owner).await?;
+                let trades = local_source
+                    .get_by_owner(&ob_id, owner, &pagination, &time_filter)
+                    .await?;
+                let total_count = local_source
+                    .count_by_owner(&ob_id, owner, &time_filter)
+                    .await?;
                 return Ok(RaindexTradesListResult {
                     trades,
                     total_count,
@@ -54,8 +59,12 @@ impl RaindexClient {
         }
 
         let sg_source = SubgraphTrades::new(self);
-        let trades = sg_source.get_by_owner(&ob_id, owner, page).await?;
-        let total_count = sg_source.count_by_owner(&ob_id, owner).await?;
+        let trades = sg_source
+            .get_by_owner(&ob_id, owner, &pagination, &time_filter)
+            .await?;
+        let total_count = sg_source
+            .count_by_owner(&ob_id, owner, &time_filter)
+            .await?;
         Ok(RaindexTradesListResult {
             trades,
             total_count,
@@ -69,6 +78,9 @@ mod tests {
     mod non_wasm {
         use super::super::super::super::*;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::raindex_client::types::{
+            OrderbookIdentifierParams, PaginationParams, TimeFilter,
+        };
         use alloy::primitives::{Address, Bytes, U256};
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -195,10 +207,13 @@ mod tests {
 
             let result = raindex_client
                 .get_trades_for_owner(
-                    1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    OrderbookIdentifierParams {
+                        chain_id: 1,
+                        orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    },
                     "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string(),
-                    None,
+                    PaginationParams::default(),
+                    TimeFilter::default(),
                 )
                 .await
                 .unwrap();
@@ -240,10 +255,13 @@ mod tests {
 
             let result = raindex_client
                 .get_trades_for_owner(
-                    1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    OrderbookIdentifierParams {
+                        chain_id: 1,
+                        orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    },
                     "0x0000000000000000000000000000000000000099".to_string(),
-                    None,
+                    PaginationParams::default(),
+                    TimeFilter::default(),
                 )
                 .await
                 .unwrap();
@@ -273,10 +291,13 @@ mod tests {
 
             let result = raindex_client
                 .get_trades_for_owner(
-                    1,
-                    CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    OrderbookIdentifierParams {
+                        chain_id: 1,
+                        orderbook_address: CHAIN_ID_1_ORDERBOOK_ADDRESS.to_string(),
+                    },
                     "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11".to_string(),
-                    None,
+                    PaginationParams::default(),
+                    TimeFilter::default(),
                 )
                 .await;
 
