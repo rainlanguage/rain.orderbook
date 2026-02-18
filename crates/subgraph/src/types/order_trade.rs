@@ -53,6 +53,8 @@ pub struct OwnerTradesVariables {
     pub owner: SgBytes,
     pub first: Option<i32>,
     pub skip: Option<i32>,
+    pub timestamp_gte: Option<SgBigInt>,
+    pub timestamp_lte: Option<SgBigInt>,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize)]
@@ -65,7 +67,11 @@ pub struct SgOwnerTradesListQuery {
         first: $first,
         orderBy: "timestamp",
         orderDirection: "desc",
-        where: { order_: { owner: $owner } }
+        where: {
+            order_: { owner: $owner },
+            timestamp_gte: $timestamp_gte,
+            timestamp_lte: $timestamp_lte
+        }
     )]
     pub trades: Vec<SgTrade>,
 }
@@ -84,7 +90,11 @@ pub struct SgOwnerTradesCountQuery {
     #[arguments(
         skip: $skip,
         first: $first,
-        where: { order_: { owner: $owner } }
+        where: {
+            order_: { owner: $owner },
+            timestamp_gte: $timestamp_gte,
+            timestamp_lte: $timestamp_lte
+        }
     )]
     pub trades: Vec<SgTradeId>,
 }

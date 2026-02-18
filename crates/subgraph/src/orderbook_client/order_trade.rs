@@ -79,6 +79,8 @@ impl OrderbookSubgraphClient {
         &self,
         owner: SgBytes,
         pagination_args: SgPaginationArgs,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
     ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
@@ -86,6 +88,13 @@ impl OrderbookSubgraphClient {
                 owner,
                 first: pagination_variables.first,
                 skip: pagination_variables.skip,
+                timestamp_gte: Some(
+                    start_timestamp.map_or(SgBigInt("0".to_string()), |v| SgBigInt(v.to_string())),
+                ),
+                timestamp_lte: Some(
+                    end_timestamp
+                        .map_or(SgBigInt(u64::MAX.to_string()), |v| SgBigInt(v.to_string())),
+                ),
             })
             .await?;
         Ok(data.trades)
@@ -94,6 +103,8 @@ impl OrderbookSubgraphClient {
     pub async fn owner_trades_count(
         &self,
         owner: SgBytes,
+        start_timestamp: Option<u64>,
+        end_timestamp: Option<u64>,
     ) -> Result<u64, OrderbookSubgraphClientError> {
         let mut total: u64 = 0;
         let mut page: u16 = 1;
@@ -107,6 +118,14 @@ impl OrderbookSubgraphClient {
                     owner: owner.clone(),
                     first: pagination_variables.first,
                     skip: pagination_variables.skip,
+                    timestamp_gte: Some(
+                        start_timestamp
+                            .map_or(SgBigInt("0".to_string()), |v| SgBigInt(v.to_string())),
+                    ),
+                    timestamp_lte: Some(
+                        end_timestamp
+                            .map_or(SgBigInt(u64::MAX.to_string()), |v| SgBigInt(v.to_string())),
+                    ),
                 })
                 .await?;
             let count = data.trades.len() as u64;
@@ -570,6 +589,8 @@ mod tests {
                     page: 1,
                     page_size: 10,
                 },
+                None,
+                None,
             )
             .await;
         assert!(result.is_ok());
@@ -598,6 +619,8 @@ mod tests {
                     page: 1,
                     page_size: 10,
                 },
+                None,
+                None,
             )
             .await;
         assert!(result.is_ok());
@@ -623,7 +646,7 @@ mod tests {
             then.status(200).json_body(json!({"data": {"trades": []}}));
         });
 
-        let result = client.owner_trades_count(owner).await;
+        let result = client.owner_trades_count(owner, None, None).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 5);
     }
@@ -639,7 +662,7 @@ mod tests {
             then.status(200).json_body(json!({"data": {"trades": []}}));
         });
 
-        let result = client.owner_trades_count(owner).await;
+        let result = client.owner_trades_count(owner, None, None).await;
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 0);
     }
@@ -662,6 +685,8 @@ mod tests {
                     page: 1,
                     page_size: 10,
                 },
+                None,
+                None,
             )
             .await;
         assert!(matches!(
