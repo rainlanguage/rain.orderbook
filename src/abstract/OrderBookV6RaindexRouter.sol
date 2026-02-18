@@ -12,7 +12,8 @@ import {
     IOrderBookV6,
     TakeOrdersConfigV5,
     TaskV2,
-    Float
+    Float,
+    QuoteV2
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {OrderBookV6ArbConfig, OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
@@ -146,24 +147,39 @@ abstract contract OrderBookV6RaindexRouter is IERC3156FlashBorrower, ReentrancyG
         // flash loan, cover the orders and remain in profit.
         //
         // We take all the current balance of orderbook divided by 2 as loan,
-        // that's because its the max possible crealable amount, because the loan is
-        // taken before any takeOrders4() is processed, the loan goes for the input
-        // amount of first order of the circuit, and orderbook needs to have balance
-        // left to finish the last takeOrders4(), all this while the flash loan is
-        // still open (not repaid), after the last takeOrder4() is processed then
-        // the flash loan can be repaid, in order words half of the orderbook token
-        // balance is used for completing the first takeOrders4() as a flash loan
-        // and half for the last as flash loan repay
-        // Ofcourse if the half value exceeds max IO, the first order can be cleared
-        // in its full capacity
+        // that's because its the max possible crealable amount by flash loan,
+        // because the loan is taken before any takeOrders4() is processed, the
+        // loan goes for the input amount of first order of the circuit, and
+        // orderbook needs to have balance left to finish the last takeOrders4(),
+        // all this while the flash loan is still open (not repaid), after the
+        // last takeOrder4() is processed then the flash loan can be repaid, in
+        // order words half of the orderbook token balance is used for completing
+        // the first takeOrders4() as a flash loan and half for the last as flash
+        // loan repay
         uint256 flashLoanAmount = IERC20(startTakeOrdersInputToken).balanceOf(address(orderBook)) / 2;
         Float flashLoanAmountFloat = LibDecimalFloat.fromFixedDecimalLosslessPacked(flashLoanAmount, startInputDecimals);
+
+        // getting the last order's maxOuput, as the first order cannot clear
+        // more than the maxOutput of the last order, the max possible clear
+        // amount is min of maxOutput and flashLoanAmount
+        //slither-disable-next-line unused-return
+        (, Float maxOutput,) = orderBook.quote2(
+            QuoteV2({
+                order: takeOrders[1].orders[0].order,
+                inputIOIndex: takeOrders[1].orders[0].inputIOIndex,
+                outputIOIndex: takeOrders[1].orders[0].outputIOIndex,
+                signedContext: takeOrders[1].orders[0].signedContext
+            })
+        );
 
         IERC20(startTakeOrdersInputToken).forceApprove(address(orderBook), 0);
         IERC20(startTakeOrdersInputToken).forceApprove(address(orderBook), type(uint256).max);
 
-        if (LibDecimalFloat.gt(takeOrders[0].maximumIO, flashLoanAmountFloat)) {
+        // set max io
+        if (LibDecimalFloat.gt(maxOutput, flashLoanAmountFloat)) {
             takeOrders[0].maximumIO = flashLoanAmountFloat;
+        } else {
+            takeOrders[0].maximumIO = maxOutput;
         }
         takeOrders[0].IOIsInput = false; // must always be false
 
