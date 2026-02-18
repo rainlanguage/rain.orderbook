@@ -2,15 +2,17 @@ use crate::local_db::query::fetch_order_trades::LocalDbOrderTrade;
 use crate::local_db::query::fetch_owner_trades::build_fetch_owner_trades_stmt;
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
 use crate::local_db::OrderbookIdentifier;
+use crate::raindex_client::types::{PaginationParams, TimeFilter};
 use alloy::primitives::Address;
 
 pub async fn fetch_owner_trades<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     ob_id: &OrderbookIdentifier,
     owner: Address,
-    page: Option<u16>,
+    pagination: &PaginationParams,
+    time_filter: &TimeFilter,
 ) -> Result<Vec<LocalDbOrderTrade>, LocalDbQueryError> {
-    let stmt = build_fetch_owner_trades_stmt(ob_id, owner, page)?;
+    let stmt = build_fetch_owner_trades_stmt(ob_id, owner, pagination, time_filter)?;
     exec.query_json(&stmt).await
 }
 
@@ -27,14 +29,22 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
+        use crate::raindex_client::types::{PaginationParams, TimeFilter};
+
         let chain_id = 111;
         let orderbook = Address::from([0x77; 20]);
         let owner = Address::from([0x88; 20]);
 
+        let pagination = PaginationParams {
+            page: Some(2),
+            ..Default::default()
+        };
+
         let expected_stmt = build_fetch_owner_trades_stmt(
             &OrderbookIdentifier::new(chain_id, orderbook),
             owner,
-            Some(2),
+            &pagination,
+            &TimeFilter::default(),
         )
         .unwrap();
 
@@ -49,7 +59,8 @@ mod wasm_tests {
             &exec,
             &OrderbookIdentifier::new(chain_id, orderbook),
             owner,
-            Some(2),
+            &pagination,
+            &TimeFilter::default(),
         )
         .await;
         assert!(res.is_ok());

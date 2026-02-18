@@ -1,6 +1,7 @@
 use super::RaindexTrade;
 use super::*;
 use crate::local_db::OrderbookIdentifier;
+use crate::raindex_client::types::{PaginationParams, TimeFilter};
 use alloy::primitives::{Address, B256};
 use rain_orderbook_subgraph_client::types::common::SgBytes;
 use rain_orderbook_subgraph_client::types::Id;
@@ -36,18 +37,21 @@ impl<'a> SubgraphTrades<'a> {
         &self,
         ob_id: &OrderbookIdentifier,
         owner: Address,
-        page: Option<u16>,
+        pagination: &PaginationParams,
+        time_filter: &TimeFilter,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
         let owner_bytes = SgBytes(owner.to_string());
-        let page_num = page.unwrap_or(1);
+        let page_num = pagination.page.unwrap_or(1);
         let sg_trades = client
             .owner_trades_list(
                 owner_bytes,
                 SgPaginationArgs {
                     page: page_num,
-                    page_size: DEFAULT_PAGE_SIZE,
+                    page_size: pagination.page_size.unwrap_or(DEFAULT_PAGE_SIZE),
                 },
+                time_filter.start,
+                time_filter.end,
             )
             .await?;
         sg_trades
@@ -60,10 +64,13 @@ impl<'a> SubgraphTrades<'a> {
         &self,
         ob_id: &OrderbookIdentifier,
         owner: Address,
+        time_filter: &TimeFilter,
     ) -> Result<u64, RaindexError> {
         let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
         let owner_bytes = SgBytes(owner.to_string());
-        Ok(client.owner_trades_count(owner_bytes).await?)
+        Ok(client
+            .owner_trades_count(owner_bytes, time_filter.start, time_filter.end)
+            .await?)
     }
 }
 
@@ -74,6 +81,7 @@ mod tests {
         use super::super::*;
         use crate::local_db::OrderbookIdentifier;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::raindex_client::types::{PaginationParams, TimeFilter};
         use alloy::primitives::{b256, Address, Bytes, U256};
         use httpmock::MockServer;
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -355,7 +363,8 @@ mod tests {
                 .get_by_owner(
                     &ob_id,
                     Address::from_str("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11").unwrap(),
-                    None,
+                    &PaginationParams::default(),
+                    &TimeFilter::default(),
                 )
                 .await
                 .unwrap();
@@ -394,7 +403,8 @@ mod tests {
                 .get_by_owner(
                     &ob_id,
                     Address::from_str("0x0000000000000000000000000000000000000099").unwrap(),
-                    None,
+                    &PaginationParams::default(),
+                    &TimeFilter::default(),
                 )
                 .await
                 .unwrap();
@@ -435,6 +445,7 @@ mod tests {
                 .count_by_owner(
                     &ob_id,
                     Address::from_str("0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11").unwrap(),
+                    &TimeFilter::default(),
                 )
                 .await
                 .unwrap();

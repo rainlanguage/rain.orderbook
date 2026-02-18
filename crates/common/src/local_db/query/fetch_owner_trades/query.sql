@@ -344,5 +344,8 @@ LEFT JOIN erc20_tokens tok_out
   ON tok_out.chain_id = tws.chain_id
  AND tok_out.orderbook_address = tws.orderbook_address
  AND tok_out.token_address = tws.output_token
+WHERE 1 = 1
+/*START_TS_CLAUSE*/
+/*END_TS_CLAUSE*/
 ORDER BY tws.block_timestamp DESC, tws.block_number DESC, tws.log_index DESC, tws.trade_kind
 LIMIT ?4 OFFSET ?5;

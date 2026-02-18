@@ -4,6 +4,7 @@ use crate::raindex_client::local_db::query::fetch_owner_trades::fetch_owner_trad
 use crate::raindex_client::local_db::query::fetch_owner_trades_count::fetch_owner_trades_count;
 use crate::raindex_client::local_db::query::fetch_trades_by_tx::fetch_trades_by_tx;
 use crate::raindex_client::local_db::LocalDb;
+use crate::raindex_client::types::{PaginationParams, TimeFilter};
 use crate::raindex_client::RaindexError;
 use alloy::primitives::{Address, B256};
 
@@ -32,9 +33,11 @@ impl<'a> LocalDbTrades<'a> {
         &self,
         ob_id: &OrderbookIdentifier,
         owner: Address,
-        page: Option<u16>,
+        pagination: &PaginationParams,
+        time_filter: &TimeFilter,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let local_trades = fetch_owner_trades(self.db, ob_id, owner, page).await?;
+        let local_trades =
+            fetch_owner_trades(self.db, ob_id, owner, pagination, time_filter).await?;
         local_trades
             .into_iter()
             .map(|trade| RaindexTrade::try_from_local_db_trade(ob_id.chain_id, trade))
@@ -45,8 +48,9 @@ impl<'a> LocalDbTrades<'a> {
         &self,
         ob_id: &OrderbookIdentifier,
         owner: Address,
+        time_filter: &TimeFilter,
     ) -> Result<u64, RaindexError> {
-        Ok(fetch_owner_trades_count(self.db, ob_id, owner).await?)
+        Ok(fetch_owner_trades_count(self.db, ob_id, owner, time_filter).await?)
     }
 }
 
@@ -227,7 +231,14 @@ mod tests {
             let trades = LocalDbTrades::new(&local_db);
             let ob_id = OrderbookIdentifier::new(42161, orderbook);
 
-            let result = trades.get_by_owner(&ob_id, owner, None).await;
+            let result = trades
+                .get_by_owner(
+                    &ob_id,
+                    owner,
+                    &PaginationParams::default(),
+                    &TimeFilter::default(),
+                )
+                .await;
 
             assert!(result.is_ok());
             let trades = result.unwrap();
@@ -259,7 +270,14 @@ mod tests {
             let trades = LocalDbTrades::new(&local_db);
             let ob_id = OrderbookIdentifier::new(42161, orderbook);
 
-            let result = trades.get_by_owner(&ob_id, owner, None).await;
+            let result = trades
+                .get_by_owner(
+                    &ob_id,
+                    owner,
+                    &PaginationParams::default(),
+                    &TimeFilter::default(),
+                )
+                .await;
 
             assert!(result.is_ok());
             assert!(result.unwrap().is_empty());
@@ -277,7 +295,9 @@ mod tests {
             let trades = LocalDbTrades::new(&local_db);
             let ob_id = OrderbookIdentifier::new(42161, orderbook);
 
-            let result = trades.count_by_owner(&ob_id, owner).await;
+            let result = trades
+                .count_by_owner(&ob_id, owner, &TimeFilter::default())
+                .await;
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), 7);

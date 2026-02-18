@@ -1,6 +1,6 @@
 SELECT COUNT(*) AS trade_count
 FROM (
-  SELECT t.transaction_hash, t.log_index
+  SELECT t.transaction_hash, t.log_index, t.block_timestamp
   FROM take_orders t
   JOIN order_events oe
     ON oe.chain_id = ?1
@@ -37,7 +37,7 @@ FROM (
 
   UNION ALL
 
-  SELECT c.transaction_hash, c.log_index
+  SELECT c.transaction_hash, c.log_index, c.block_timestamp
   FROM clear_v3_events c
   JOIN order_events oe
     ON oe.chain_id = ?1
@@ -71,7 +71,7 @@ FROM (
 
   UNION ALL
 
-  SELECT c.transaction_hash, c.log_index
+  SELECT c.transaction_hash, c.log_index, c.block_timestamp
   FROM clear_v3_events c
   JOIN order_events oe
     ON oe.chain_id = ?1
@@ -102,4 +102,7 @@ FROM (
    )
   WHERE c.chain_id = ?1
     AND c.orderbook_address = ?2
-) AS combined_trades;
+) AS combined_trades
+WHERE 1=1
+/*START_TS_CLAUSE*/
+/*END_TS_CLAUSE*/;
