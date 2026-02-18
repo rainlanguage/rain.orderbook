@@ -23,7 +23,7 @@ enum RouteLegType {
     STABULL
 }
 
-// data and destination address of a route leg
+// data and destination address of a route leg (usually the router address)
 // the data field needs to be decoded based on the type
 struct RouteLeg {
     RouteLegType routeLegType;
@@ -104,7 +104,7 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
         uint256 amountOut = IRouteProcessor(routeLeg.destination).processRoute(
             fromToken, fromTokenAmount, toToken, 0, address(this), route
         );
-        IERC20(fromToken).forceApprove(address(routeLeg.destination), 0);
+        IERC20(fromToken).forceApprove(routeLeg.destination, 0);
 
         Float amountOutFloat = LibDecimalFloat.fromFixedDecimalLosslessPacked(amountOut, toTokenDecimals);
 
