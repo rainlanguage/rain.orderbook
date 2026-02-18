@@ -47,3 +47,44 @@ pub struct SgTransactionTradesQuery {
     #[arguments(where: { tradeEvent_: { transaction: $id } })]
     pub trades: Vec<SgTrade>,
 }
+
+#[derive(cynic::QueryVariables, Debug)]
+pub struct OwnerTradesVariables {
+    pub owner: SgBytes,
+    pub first: Option<i32>,
+    pub skip: Option<i32>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+#[cynic(graphql_type = "Query", variables = "OwnerTradesVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct SgOwnerTradesListQuery {
+    #[arguments(
+        skip: $skip,
+        first: $first,
+        orderBy: "timestamp",
+        orderDirection: "desc",
+        where: { order_: { owner: $owner } }
+    )]
+    pub trades: Vec<SgTrade>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cynic(graphql_type = "Trade")]
+pub struct SgTradeId {
+    pub id: SgBytes,
+}
+
+#[derive(cynic::QueryFragment, Debug, Serialize)]
+#[cynic(graphql_type = "Query", variables = "OwnerTradesVariables")]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+#[serde(rename_all = "camelCase")]
+pub struct SgOwnerTradesCountQuery {
+    #[arguments(
+        skip: $skip,
+        first: $first,
+        where: { order_: { owner: $owner } }
+    )]
+    pub trades: Vec<SgTradeId>,
+}
