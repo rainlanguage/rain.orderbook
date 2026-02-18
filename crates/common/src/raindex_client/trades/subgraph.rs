@@ -41,7 +41,7 @@ impl<'a> SubgraphTrades<'a> {
         time_filter: &TimeFilter,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
-        let owner_bytes = SgBytes(owner.to_string());
+        let owner_bytes = SgBytes(format!("{:#x}", owner));
         let page_num = pagination.page.unwrap_or(1);
         let sg_trades = client
             .owner_trades_list(
@@ -67,7 +67,7 @@ impl<'a> SubgraphTrades<'a> {
         time_filter: &TimeFilter,
     ) -> Result<u64, RaindexError> {
         let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
-        let owner_bytes = SgBytes(owner.to_string());
+        let owner_bytes = SgBytes(format!("{:#x}", owner));
         Ok(client
             .owner_trades_count(owner_bytes, time_filter.start, time_filter.end)
             .await?)
