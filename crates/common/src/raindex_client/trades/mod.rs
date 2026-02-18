@@ -113,6 +113,12 @@ impl RaindexTradesListResult {
 }
 #[cfg(not(target_family = "wasm"))]
 impl RaindexTradesListResult {
+    pub fn new(trades: Vec<RaindexTrade>, total_count: u64) -> Self {
+        Self {
+            trades,
+            total_count,
+        }
+    }
     pub fn trades(&self) -> Vec<RaindexTrade> {
         self.trades.clone()
     }

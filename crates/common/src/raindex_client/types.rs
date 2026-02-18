@@ -10,7 +10,6 @@ pub struct PaginationParams {
     pub(crate) page_size: Option<u16>,
 }
 
-#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl PaginationParams {
     #[wasm_bindgen(constructor)]
@@ -26,7 +25,6 @@ pub struct TimeFilter {
     pub(crate) end: Option<u64>,
 }
 
-#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl TimeFilter {
     #[wasm_bindgen(constructor)]
@@ -42,7 +40,6 @@ pub struct OrderbookIdentifierParams {
     pub(crate) orderbook_address: String,
 }
 
-#[cfg(target_family = "wasm")]
 #[wasm_bindgen]
 impl OrderbookIdentifierParams {
     #[wasm_bindgen(constructor)]
