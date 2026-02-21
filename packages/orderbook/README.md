@@ -736,6 +736,36 @@ if (result.error) {
 console.log(result.value);
 ```
 
+## Network-specific notes
+
+### Subgraph indexing delays
+
+Subgraphs typically run 1-3 blocks behind the chain head:
+
+| Network | Wait After TX |
+|---------|---------------|
+| Base | 10-30 seconds |
+| Polygon | 10-30 seconds |
+| Arbitrum | 5-15 seconds |
+| Ethereum | 30-60 seconds |
+
+Use `client.getAddOrdersForTransaction()` with polling for reliable order discovery after deployment.
+
+### Gas estimates
+
+| Operation | Approximate Gas |
+|-----------|----------------|
+| Add Order | 300,000-500,000 |
+| Remove Order | 50,000-100,000 |
+| Deposit | 100,000-150,000 |
+| Withdraw | 80,000-120,000 |
+| Take Order | 200,000-400,000 |
+
+### Canonical settings
+
+Always pull network configurations from the official source:
+https://github.com/rainlanguage/rain.strategies/blob/main/settings.yaml
+
 ## Contributing
 
 This SDK is part of the Rain Language ecosystem. For contributions and issues, please visit the [GitHub repository](https://github.com/rainlanguage/rain.orderbook).
