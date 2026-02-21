@@ -736,6 +736,90 @@ if (result.error) {
 console.log(result.value);
 ```
 
+## Troubleshooting
+
+### Subgraph query errors
+
+**"error decoding response body"**
+
+The subgraph returned malformed data. Common causes:
+- Subgraph is syncing or temporarily unavailable
+- Network connectivity issues
+- Query timeout
+
+Solutions:
+1. Wait 30 seconds and retry
+2. Check subgraph status at your provider's dashboard
+3. Try a simpler query to isolate the issue
+
+**Empty results when orders exist**
+
+Subgraph indexing runs 1-3 blocks behind. After submitting a transaction, wait before querying:
+```ts
+// Poll for order after deployment
+const order = await waitForOrderFromTx(client, { chainId, orderbookAddress, txHash });
+```
+
+### WASM initialization
+
+**"Cannot read properties of undefined"**
+
+The WASM module hasn't initialized. For ESM builds:
+- Ensure your bundler supports top-level await
+- Import the module before using exports
+
+**"Buffer is not defined" (browser)**
+
+The SDK includes a Buffer polyfill, but some bundlers may need configuration:
+```ts
+import { Buffer } from 'buffer';
+globalThis.Buffer = Buffer;
+```
+
+### Dotrain parsing
+
+**"deployment-block is required"**
+
+Add required metadata to your dotrain frontmatter:
+```yaml
+deployments:
+  my-deployment:
+    order: my-order
+    scenario: default
+    deployment-block: 12345678
+    description: "My strategy"
+```
+
+**"Unknown binding"**
+
+The Rainlang references a binding not defined in `scenarios.bindings`:
+```yaml
+scenarios:
+  default:
+    bindings:
+      my-binding: 0x1234...
+```
+
+### Float precision
+
+**"LossyConversionToFloat"**
+
+A numeric value cannot be precisely represented. Use `Float.parse()` for arbitrary precision:
+```ts
+const amount = Float.parse('1000000000000000000');
+if (amount.error) throw new Error(amount.error.readableMsg);
+```
+
+### Transaction failures
+
+**"execution reverted"**
+
+Common causes:
+- Insufficient token approval (call `vault.getApprovalCalldata()` first)
+- Insufficient vault balance for withdrawals
+- Order already removed
+- Stale calldata (regenerate immediately before execution)
+
 ## Contributing
 
 This SDK is part of the Rain Language ecosystem. For contributions and issues, please visit the [GitHub repository](https://github.com/rainlanguage/rain.orderbook).
