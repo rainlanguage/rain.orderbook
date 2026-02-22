@@ -209,13 +209,17 @@ mod tests {
 
     #[test]
     fn test_from_meta_item_raindex_signed_context_oracle_v1() {
-        let oracle = RaindexSignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd")
-            .unwrap();
+        let oracle =
+            RaindexSignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd")
+                .unwrap();
         let item = oracle.to_meta_item();
         let result = ParsedMeta::from_meta_item(&item).unwrap();
         match result.unwrap() {
             ParsedMeta::RaindexSignedContextOracleV1(parsed_oracle) => {
-                assert_eq!(parsed_oracle.url(), "https://oracle.example.com/prices/eth-usd");
+                assert_eq!(
+                    parsed_oracle.url(),
+                    "https://oracle.example.com/prices/eth-usd"
+                );
             }
             _ => panic!("Expected RaindexSignedContextOracleV1"),
         }
@@ -224,7 +228,8 @@ mod tests {
     #[test]
     fn test_parse_multiple_with_oracle() {
         let source = get_default_dotrain_source();
-        let oracle = RaindexSignedContextOracleV1::parse("https://oracle.example.com/feed").unwrap();
+        let oracle =
+            RaindexSignedContextOracleV1::parse("https://oracle.example.com/feed").unwrap();
 
         let items = vec![
             RainMetaDocumentV1Item::from(source.clone()),
@@ -252,7 +257,8 @@ mod tests {
     #[test]
     fn test_parse_from_bytes_with_oracle() {
         let oracle =
-            RaindexSignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd").unwrap();
+            RaindexSignedContextOracleV1::parse("https://oracle.example.com/prices/eth-usd")
+                .unwrap();
         let items = vec![oracle.to_meta_item()];
         let bytes = RainMetaDocumentV1Item::cbor_encode_seq(&items, KnownMagic::RainMetaDocumentV1)
             .unwrap();
