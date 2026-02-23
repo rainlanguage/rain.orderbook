@@ -1,4 +1,4 @@
-use crate::gui::{DotrainOrderGui, GuiError};
+use crate::raindex_order_builder::{RaindexOrderBuilder, RaindexOrderBuilderWasmError};
 use crate::yaml::{OrderbookYaml, OrderbookYamlError};
 use rain_orderbook_app_settings::gui::NameAndDescriptionCfg;
 use rain_orderbook_common::raindex_client::{RaindexClient, RaindexError as RaindexClientError};
@@ -44,7 +44,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 /// 1. **Registry Creation** → Fetches and parses registry file
 /// 2. **List Orders** → Get available order strategies with metadata
 /// 3. **List Deployments** → Get deployment options for selected order
-/// 4. **Create GUI** → Instantiate DotrainOrderGui with merged content
+/// 4. **Create GUI** → Instantiate RaindexOrderBuilder with merged content
 ///
 /// ## Examples
 ///
@@ -145,7 +145,7 @@ pub enum DotrainRegistryError {
     #[error("Invalid URL: {0}")]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
-    GuiError(#[from] GuiError),
+    BuilderError(#[from] RaindexOrderBuilderWasmError),
     #[error(transparent)]
     OrderbookYamlError(#[from] OrderbookYamlError),
     #[error(transparent)]
@@ -179,7 +179,7 @@ impl DotrainRegistryError {
             DotrainRegistryError::UrlParseError(err) => {
                 format!("Invalid URL format: {}. Please ensure the URL is properly formatted.", err)
             }
-            DotrainRegistryError::GuiError(err) => err.to_readable_msg(),
+            DotrainRegistryError::BuilderError(err) => err.to_readable_msg(),
             DotrainRegistryError::OrderbookYamlError(err) => err.to_readable_msg(),
             DotrainRegistryError::RaindexClientError(err) => err.to_readable_msg(),
         }
@@ -327,7 +327,7 @@ impl DotrainRegistry {
         let settings = self.settings_sources();
 
         for (order_key, dotrain) in &self.orders {
-            match DotrainOrderGui::get_order_details(dotrain.clone(), settings.clone()) {
+            match RaindexOrderBuilder::get_order_details(dotrain.clone(), settings.clone()) {
                 Ok(details) => {
                     valid.insert(order_key.clone(), details);
                 }
@@ -408,11 +408,11 @@ impl DotrainRegistry {
             .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
         let settings = self.settings_sources();
         let deployment_details =
-            DotrainOrderGui::get_deployment_details(dotrain.clone(), settings.clone())?;
+            RaindexOrderBuilder::get_deployment_details(dotrain.clone(), settings.clone())?;
         Ok(deployment_details)
     }
 
-    /// Creates a DotrainOrderGui instance for a specific order and deployment.
+    /// Creates a RaindexOrderBuilder instance for a specific order and deployment.
     ///
     /// This is a convenience method that combines getting a DotrainOrder and creating a GUI.
     ///
@@ -450,8 +450,8 @@ impl DotrainRegistry {
     #[wasm_export(
         js_name = "getGui",
         preserve_js_class,
-        unchecked_return_type = "DotrainOrderGui",
-        return_description = "DotrainOrderGui instance for the specified order and deployment"
+        unchecked_return_type = "RaindexOrderBuilder",
+        return_description = "RaindexOrderBuilder instance for the specified order and deployment"
     )]
     pub async fn get_gui(
         &self,
@@ -477,16 +477,16 @@ impl DotrainRegistry {
             This is useful for auto-saving the state of the GUI across sessions."
         )]
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<DotrainOrderGui, DotrainRegistryError> {
+    ) -> Result<RaindexOrderBuilder, DotrainRegistryError> {
         let dotrain = self
             .orders
             .get(&order_key)
             .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
         let settings = self.settings_sources();
 
-        let gui_result = match serialized_state {
+        let result = match serialized_state {
             Some(serialized_state) => {
-                match DotrainOrderGui::new_from_state(
+                match RaindexOrderBuilder::new_from_state(
                     dotrain.clone(),
                     settings.clone(),
                     serialized_state,
@@ -494,9 +494,9 @@ impl DotrainRegistry {
                 )
                 .await
                 {
-                    Ok(gui) => Ok(gui),
+                    Ok(builder) => Ok(builder),
                     Err(_) => {
-                        DotrainOrderGui::new_with_deployment(
+                        RaindexOrderBuilder::new_with_deployment(
                             dotrain.clone(),
                             settings.clone(),
                             deployment_key,
@@ -507,7 +507,7 @@ impl DotrainRegistry {
                 }
             }
             None => {
-                DotrainOrderGui::new_with_deployment(
+                RaindexOrderBuilder::new_with_deployment(
                     dotrain.clone(),
                     settings.clone(),
                     deployment_key,
@@ -517,8 +517,8 @@ impl DotrainRegistry {
             }
         };
 
-        let gui = gui_result.map_err(DotrainRegistryError::GuiError)?;
-        Ok(gui)
+        let builder = result.map_err(DotrainRegistryError::BuilderError)?;
+        Ok(builder)
     }
 
     /// Creates an OrderbookYaml instance from the registry's shared settings.

@@ -1,36 +1,12 @@
-use alloy::primitives::Address;
-use alloy_ethers_typecast::ReadableClientError;
-use base64::{engine::general_purpose::URL_SAFE, Engine};
-use flate2::{read::GzDecoder, write::GzEncoder, Compression};
-use rain_math_float::FloatError;
-use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClientError;
-use rain_orderbook_app_settings::{
-    deployment::DeploymentCfg,
-    gui::{
-        GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
-        ParseGuiConfigSourceError,
-    },
-    order::OrderCfg,
-    yaml::{
-        context::ContextProfile,
-        dotrain::{DotrainYaml, DotrainYamlValidation},
-        emitter, YamlError, YamlParsable,
-    },
+use rain_orderbook_app_settings::gui::{
+    GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, NameAndDescriptionCfg,
 };
 pub use rain_orderbook_common::erc20::ExtendedTokenInfo;
-use rain_orderbook_common::{
-    dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
-    dotrain_order::{DotrainOrder, DotrainOrderError},
-    erc20::ERC20,
-    utils::amount_formatter::AmountFormatterError,
+use rain_orderbook_common::raindex_order_builder::{
+    RaindexOrderBuilder as RaindexOrderBuilderInner, RaindexOrderBuilderError,
 };
 use serde::{Deserialize, Serialize};
-use std::io::prelude::*;
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, RwLock},
-};
-use strict_yaml_rust::StrictYaml;
+use std::collections::BTreeMap;
 use thiserror::Error;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
@@ -39,34 +15,17 @@ mod field_values;
 mod order_operations;
 mod select_tokens;
 mod state_management;
-mod validation;
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[wasm_bindgen]
-pub struct DotrainOrderGui {
-    dotrain_order: DotrainOrder,
-    selected_deployment: String,
-    field_values: BTreeMap<String, field_values::PairValue>,
-    deposits: BTreeMap<String, field_values::PairValue>,
-    dotrain_hash: String,
+pub struct RaindexOrderBuilder {
+    pub(crate) inner: RaindexOrderBuilderInner,
     #[serde(skip)]
     state_update_callback: Option<js_sys::Function>,
 }
-impl Default for DotrainOrderGui {
-    fn default() -> Self {
-        Self {
-            dotrain_order: DotrainOrder::dummy(),
-            selected_deployment: "".to_string(),
-            field_values: BTreeMap::new(),
-            deposits: BTreeMap::new(),
-            dotrain_hash: "".to_string(),
-            state_update_callback: None,
-        }
-    }
-}
 
 #[wasm_export]
-impl DotrainOrderGui {
+impl RaindexOrderBuilder {
     /// Lists all available gui deployment keys from a dotrain YAML file.
     ///
     /// This function parses the gui section of the YAML frontmatter to extract deployment keys that can be used
@@ -84,7 +43,7 @@ impl DotrainOrderGui {
     ///       name: "Test order"
     /// `;
     ///
-    /// const result = await DotrainOrderGui.getDeploymentKeys(dotrain);
+    /// const result = await RaindexOrderBuilder.getDeploymentKeys(dotrain);
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -106,9 +65,8 @@ impl DotrainOrderGui {
             param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
         )]
         settings: Option<Vec<String>>,
-    ) -> Result<Vec<String>, GuiError> {
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings)?;
-        Ok(GuiCfg::parse_deployment_keys(documents)?)
+    ) -> Result<Vec<String>, RaindexOrderBuilderWasmError> {
+        Ok(RaindexOrderBuilderInner::get_deployment_keys(dotrain, settings).await?)
     }
 
     /// Creates a new GUI instance for managing a specific deployment configuration.
@@ -126,7 +84,7 @@ impl DotrainOrderGui {
     ///
     /// ```javascript
     /// // Basic initialization
-    /// const result = await DotrainOrderGui.newWithDeployment(dotrainYaml, "mainnet-order");
+    /// const result = await RaindexOrderBuilder.newWithDeployment(dotrainYaml, "mainnet-order");
     /// if (result.error) {
     ///   console.error("Init failed:", result.error.readableMsg);
     ///   return;
@@ -134,7 +92,7 @@ impl DotrainOrderGui {
     /// const gui = result.value;
     ///
     /// // With state persistence
-    /// const result = await DotrainOrderGui.newWithDeployment(
+    /// const result = await RaindexOrderBuilder.newWithDeployment(
     ///   dotrainYaml,
     ///   "mainnet-order",
     ///   (serializedState) => {
@@ -166,29 +124,12 @@ impl DotrainOrderGui {
             After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
             This is useful for auto-saving the state of the GUI across sessions.")]
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<DotrainOrderGui, GuiError> {
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings.clone())?;
-
-        let keys = GuiCfg::parse_deployment_keys(documents.clone())?;
-        if !keys.contains(&selected_deployment) {
-            return Err(GuiError::DeploymentNotFound(selected_deployment.clone()));
-        }
-
-        let dotrain_order = DotrainOrder::create_with_profile(
-            dotrain.clone(),
-            settings,
-            ContextProfile::gui(selected_deployment.clone()),
-        )
-        .await?;
-
-        let dotrain_hash = DotrainOrderGui::compute_state_hash(&dotrain_order)?;
-
-        Ok(DotrainOrderGui {
-            dotrain_order,
-            selected_deployment,
-            field_values: BTreeMap::new(),
-            deposits: BTreeMap::new(),
-            dotrain_hash,
+    ) -> Result<RaindexOrderBuilder, RaindexOrderBuilderWasmError> {
+        let inner =
+            RaindexOrderBuilderInner::new_with_deployment(dotrain, settings, selected_deployment)
+                .await?;
+        Ok(RaindexOrderBuilder {
+            inner,
             state_update_callback,
         })
     }
@@ -214,16 +155,8 @@ impl DotrainOrderGui {
         unchecked_return_type = "GuiCfg",
         return_description = "Complete GUI configuration with name, description, and deployments"
     )]
-    pub fn get_gui_config(&self) -> Result<GuiCfg, GuiError> {
-        if !GuiCfg::check_gui_key_exists(self.dotrain_order.dotrain_yaml().documents.clone())? {
-            return Err(GuiError::GuiConfigNotFound);
-        }
-        let gui = self
-            .dotrain_order
-            .dotrain_yaml()
-            .get_gui(&self.selected_deployment)?
-            .ok_or(GuiError::GuiConfigNotFound)?;
-        Ok(gui)
+    pub fn get_gui_config(&self) -> Result<GuiCfg, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_gui_config()?)
     }
 
     /// Gets the active deployment's configuration including fields, deposits, and tokens.
@@ -254,16 +187,8 @@ impl DotrainOrderGui {
         unchecked_return_type = "GuiDeploymentCfg",
         return_description = "Active deployment with all configuration details"
     )]
-    pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, GuiError> {
-        let gui = self.get_gui_config()?;
-        let (_, gui_deployment) = gui
-            .deployments
-            .into_iter()
-            .find(|(name, _)| name == &self.selected_deployment)
-            .ok_or(GuiError::DeploymentNotFound(
-                self.selected_deployment.clone(),
-            ))?;
-        Ok(gui_deployment.clone())
+    pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_current_deployment()?)
     }
 
     /// Retrieves detailed token information from YAML configuration or blockchain.
@@ -297,9 +222,8 @@ impl DotrainOrderGui {
         &self,
         #[wasm_export(param_description = "Token identifier from the YAML tokens section")]
         key: String,
-    ) -> Result<ExtendedTokenInfo, GuiError> {
-        let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
-        Ok(ExtendedTokenInfo::from_token_cfg(&token).await?)
+    ) -> Result<ExtendedTokenInfo, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_token_info(key).await?)
     }
 
     /// Gets information for all tokens used in the current deployment's order.
@@ -329,31 +253,10 @@ impl DotrainOrderGui {
         unchecked_return_type = "ExtendedTokenInfo[]",
         return_description = "Array of complete token information"
     )]
-    pub async fn get_all_token_infos(&self) -> Result<Vec<ExtendedTokenInfo>, GuiError> {
-        let select_tokens = self.get_select_tokens()?;
-
-        let token_keys = match select_tokens.is_empty() {
-            true => {
-                let order_key = DeploymentCfg::parse_order_key(
-                    self.dotrain_order.dotrain_yaml().documents,
-                    &self.selected_deployment,
-                )?;
-                OrderCfg::parse_io_token_keys(
-                    self.dotrain_order.dotrain_yaml().documents,
-                    &order_key,
-                )?
-            }
-            false => select_tokens
-                .iter()
-                .map(|token| token.key.clone())
-                .collect(),
-        };
-
-        let mut result = Vec::new();
-        for key in token_keys.iter() {
-            result.push(self.get_token_info(key.clone()).await?);
-        }
-        Ok(result)
+    pub async fn get_all_token_infos(
+        &self,
+    ) -> Result<Vec<ExtendedTokenInfo>, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_all_token_infos().await?)
     }
 
     /// Extracts order-level metadata from a dotrain configuration.
@@ -390,9 +293,10 @@ impl DotrainOrderGui {
             param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
         )]
         settings: Option<Vec<String>>,
-    ) -> Result<NameAndDescriptionCfg, GuiError> {
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings)?;
-        Ok(GuiCfg::parse_order_details(documents)?)
+    ) -> Result<NameAndDescriptionCfg, RaindexOrderBuilderWasmError> {
+        Ok(RaindexOrderBuilderInner::get_order_details(
+            dotrain, settings,
+        )?)
     }
 
     /// Gets metadata for all deployments defined in the configuration.
@@ -433,9 +337,10 @@ impl DotrainOrderGui {
             param_description = "Optional additional YAML configuration strings to merge with the frontmatter"
         )]
         settings: Option<Vec<String>>,
-    ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, GuiError> {
-        let documents = DotrainOrderGui::get_yaml_documents(&dotrain, settings)?;
-        Ok(GuiCfg::parse_deployment_details(documents)?)
+    ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, RaindexOrderBuilderWasmError> {
+        Ok(RaindexOrderBuilderInner::get_deployment_details(
+            dotrain, settings,
+        )?)
     }
 
     /// Gets metadata for a specific deployment by key.
@@ -466,12 +371,10 @@ impl DotrainOrderGui {
         )]
         settings: Option<Vec<String>>,
         #[wasm_export(param_description = "Deployment identifier to look up")] key: String,
-    ) -> Result<NameAndDescriptionCfg, GuiError> {
-        let deployment_details = DotrainOrderGui::get_deployment_details(dotrain, settings)?;
-        let deployment_detail = deployment_details
-            .get(&key)
-            .ok_or(GuiError::DeploymentNotFound(key))?;
-        Ok(deployment_detail.clone())
+    ) -> Result<NameAndDescriptionCfg, RaindexOrderBuilderWasmError> {
+        Ok(RaindexOrderBuilderInner::get_deployment_detail(
+            dotrain, settings, key,
+        )?)
     }
 
     /// Gets metadata for the currently active deployment.
@@ -495,15 +398,10 @@ impl DotrainOrderGui {
         unchecked_return_type = "NameAndDescriptionCfg",
         return_description = "Current deployment's metadata"
     )]
-    pub fn get_current_deployment_details(&self) -> Result<NameAndDescriptionCfg, GuiError> {
-        let deployment_details =
-            GuiCfg::parse_deployment_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
-        Ok(deployment_details
-            .get(&self.selected_deployment)
-            .ok_or(GuiError::DeploymentNotFound(
-                self.selected_deployment.clone(),
-            ))?
-            .clone())
+    pub fn get_current_deployment_details(
+        &self,
+    ) -> Result<NameAndDescriptionCfg, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_current_deployment_details()?)
     }
 
     /// Exports the current configuration as a complete dotrain text file.
@@ -539,15 +437,8 @@ impl DotrainOrderGui {
         unchecked_return_type = "string",
         return_description = "Complete dotrain content with YAML frontmatter separator"
     )]
-    pub fn generate_dotrain_text(&self) -> Result<String, GuiError> {
-        let rain_document = RainDocument::create(self.dotrain_order.dotrain()?, None, None, None);
-        let dotrain = format!(
-            "{}\n{}\n{}",
-            emitter::emit_documents(&self.dotrain_order.dotrain_yaml().documents)?,
-            FRONTMATTER_SEPARATOR,
-            rain_document.body()
-        );
-        Ok(dotrain)
+    pub fn generate_dotrain_text(&self) -> Result<String, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.generate_dotrain_text()?)
     }
 
     /// Composes the final Rainlang code with all bindings and scenarios applied.
@@ -575,241 +466,39 @@ impl DotrainOrderGui {
         unchecked_return_type = "string",
         return_description = "Composed Rainlang code with comments for each entrypoint"
     )]
-    pub async fn get_composed_rainlang(&mut self) -> Result<String, GuiError> {
-        self.update_scenario_bindings()?;
-        let dotrain = self.generate_dotrain_text()?;
-        let deployment = self.get_current_deployment()?;
-        let dotrain_order = DotrainOrder::create_with_profile(
-            dotrain.clone(),
-            None,
-            ContextProfile::gui(deployment.deployment.key.clone()),
-        )
-        .await?;
-        let rainlang = dotrain_order
-            .compose_deployment_to_rainlang(self.selected_deployment.clone())
-            .await?;
-        Ok(rainlang)
-    }
-}
-impl DotrainOrderGui {
-    pub fn get_yaml_documents(
-        dotrain: &str,
-        settings: Option<Vec<String>>,
-    ) -> Result<Vec<Arc<RwLock<StrictYaml>>>, GuiError> {
-        let frontmatter = RainDocument::get_front_matter(dotrain)
-            .unwrap_or("")
-            .to_string();
-        let mut sources = vec![frontmatter];
-        if let Some(settings) = settings {
-            sources.extend(settings);
-        }
-
-        let dotrain_yaml = DotrainYaml::new(sources, DotrainYamlValidation::default())?;
-        Ok(dotrain_yaml.documents)
+    pub async fn get_composed_rainlang(&mut self) -> Result<String, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_composed_rainlang().await?)
     }
 }
 
 #[derive(Error, Debug)]
-pub enum GuiError {
-    #[error("Gui config not found")]
-    GuiConfigNotFound,
-    #[error("Deployment not found: {0}")]
-    DeploymentNotFound(String),
-    #[error("Field binding not found: {0}")]
-    FieldBindingNotFound(String),
-    #[error("Missing field value: {0}")]
-    FieldValueNotSet(String),
-    #[error("Deposit token not found in gui config: {0}")]
-    DepositTokenNotFound(String),
-    #[error("Missing deposit with token: {0}")]
-    DepositNotSet(String),
-    #[error("Missing deposit token for current deployment: {0}")]
-    MissingDepositToken(String),
-    #[error("Deposit amount cannot be an empty string")]
-    DepositAmountCannotBeEmpty,
-    #[error("Orderbook not found")]
-    OrderbookNotFound,
-    #[error("Order not found: {0}")]
-    OrderNotFound(String),
-    #[error("Deserialized dotrain mismatch")]
-    DotrainMismatch,
-    #[error("Vault id not found for output index: {0}")]
-    VaultIdNotFound(String),
-    #[error("Deployer not found")]
-    DeployerNotFound,
-    #[error("Token not found {0}")]
-    TokenNotFound(String),
-    #[error("Invalid preset")]
-    InvalidPreset,
-    #[error("Presets not set")]
-    PresetsNotSet,
-    #[error("Select tokens not set")]
-    SelectTokensNotSet,
-    #[error("Token must be selected: {0}")]
-    TokenMustBeSelected(String),
-    #[error("Binding has no presets: {0}")]
-    BindingHasNoPresets(String),
-    #[error("Token not in select tokens: {0}")]
-    TokenNotInSelectTokens(String),
+pub enum RaindexOrderBuilderWasmError {
+    #[error(transparent)]
+    BuilderError(#[from] RaindexOrderBuilderError),
     #[error("JavaScript error: {0}")]
     JsError(String),
     #[error(transparent)]
-    DotrainOrderError(#[from] DotrainOrderError),
-    #[error(transparent)]
-    ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
-    #[error(transparent)]
-    IoError(#[from] std::io::Error),
-    #[error(transparent)]
-    BincodeError(#[from] bincode::Error),
-    #[error(transparent)]
-    Base64Error(#[from] base64::DecodeError),
-    #[error(transparent)]
-    FromHexError(#[from] alloy::hex::FromHexError),
-    #[error(transparent)]
-    ReadableClientError(#[from] ReadableClientError),
-    #[error(transparent)]
-    DepositError(#[from] rain_orderbook_common::deposit::DepositError),
-    #[error(transparent)]
-    ParseError(#[from] alloy::primitives::ruint::ParseError),
-    #[error(transparent)]
-    ReadContractParametersBuilderError(
-        #[from] alloy_ethers_typecast::ReadContractParametersBuilderError,
-    ),
-    #[error(transparent)]
-    UnitsError(#[from] alloy::primitives::utils::UnitsError),
-    #[error(transparent)]
-    WritableTransactionExecuteError(
-        #[from] rain_orderbook_common::transaction::WritableTransactionExecuteError,
-    ),
-    #[error(transparent)]
-    AddOrderArgsError(#[from] rain_orderbook_common::add_order::AddOrderArgsError),
-    #[error(transparent)]
-    ERC20Error(#[from] rain_orderbook_common::erc20::Error),
-    #[error(transparent)]
-    SolTypesError(#[from] alloy::sol_types::Error),
-    #[error(transparent)]
     SerdeWasmBindgenError(#[from] serde_wasm_bindgen::Error),
-    #[error(transparent)]
-    YamlError(#[from] YamlError),
-    #[error(transparent)]
-    ValidationError(#[from] validation::GuiValidationError),
-    #[error(transparent)]
-    UrlParseError(#[from] url::ParseError),
-    #[error(transparent)]
-    AmountFormatterError(#[from] AmountFormatterError),
-    #[error(transparent)]
-    FloatError(#[from] FloatError),
-    #[error(transparent)]
-    RainMetadataError(#[from] rain_metadata::Error),
-    #[error("No address found in metaboard subgraph")]
-    NoAddressInMetaboardSubgraph,
-    #[error(transparent)]
-    MetaboardSubgraphClientError(#[from] MetaboardSubgraphClientError),
 }
 
-impl GuiError {
+impl RaindexOrderBuilderWasmError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            GuiError::GuiConfigNotFound =>
-                "The GUI configuration could not be found. Please check your YAML configuration file.".to_string(),
-            GuiError::DeploymentNotFound(name) =>
-                format!("The deployment '{}' could not be found. Please select a valid deployment from your YAML configuration.", name),
-            GuiError::FieldBindingNotFound(field) =>
-                format!("The field binding '{}' could not be found in the YAML configuration.", field),
-            GuiError::FieldValueNotSet(field) =>
-                format!("The value for field '{}' is required but has not been set.", field),
-            GuiError::DepositTokenNotFound(token) =>
-                format!("The deposit token '{}' was not found in the YAML configuration.", token),
-            GuiError::DepositNotSet(token) =>
-                format!("A deposit for token '{}' is required but has not been set.", token),
-            GuiError::MissingDepositToken(deployment) =>
-                format!("A deposit for token is required but has not been set for deployment '{}'.", deployment),
-            GuiError::DepositAmountCannotBeEmpty =>
-                "The deposit amount cannot be an empty string. Please set a valid amount.".to_string(),
-            GuiError::OrderbookNotFound =>
-                "The orderbook configuration could not be found. Please check your YAML configuration.".to_string(),
-            GuiError::OrderNotFound(order) =>
-                format!("The order '{}' could not be found in the YAML configuration.", order),
-            GuiError::DotrainMismatch =>
-                "There was a mismatch in the dotrain configuration. Please check your YAML configuration for consistency.".to_string(),
-            GuiError::VaultIdNotFound(index) =>
-                format!("The vault ID for output index '{}' could not be found in the YAML configuration.", index),
-            GuiError::DeployerNotFound =>
-                "The deployer configuration could not be found. Please check your YAML configuration.".to_string(),
-            GuiError::TokenNotFound(token) =>
-                format!("The token '{}' could not be found in the YAML configuration.", token),
-            GuiError::InvalidPreset =>
-                "The selected preset is invalid. Please choose a different preset from your YAML configuration.".to_string(),
-            GuiError::PresetsNotSet =>
-                "No presets have been configured. Please check your YAML configuration.".to_string(),
-            GuiError::SelectTokensNotSet =>
-                "No tokens have been configured for selection. Please check your YAML configuration.".to_string(),
-            GuiError::TokenMustBeSelected(token) =>
-                format!("The token '{}' must be selected to proceed.", token),
-            GuiError::BindingHasNoPresets(binding) =>
-                format!("The binding '{}' does not have any presets configured in the YAML configuration.", binding),
-            GuiError::TokenNotInSelectTokens(token) =>
-                format!("The token '{}' is not in the list of selectable tokens defined in the YAML configuration.", token),
-            GuiError::JsError(msg) =>
-                format!("A JavaScript error occurred: {}", msg),
-            GuiError::DotrainOrderError(err) =>
-                format!("Order configuration error in YAML: {}", err),
-            GuiError::ParseGuiConfigSourceError(err) =>
-                format!("Failed to parse YAML GUI configuration: {}", err),
-            GuiError::IoError(err) =>
-                format!("I/O error: {}", err),
-            GuiError::BincodeError(err) =>
-                format!("Data serialization error: {}", err),
-            GuiError::Base64Error(err) =>
-                format!("Base64 encoding/decoding error: {}", err),
-            GuiError::FromHexError(err) =>
-                format!("Invalid hexadecimal value: {}", err),
-            GuiError::ReadableClientError(err) =>
-                format!("Network client error: {}", err),
-            GuiError::DepositError(err) =>
-                format!("Deposit error: {}", err),
-            GuiError::ParseError(err) =>
-                format!("Number parsing error: {}", err),
-            GuiError::ReadContractParametersBuilderError(err) =>
-                format!("Contract parameter error: {}", err),
-            GuiError::UnitsError(err) =>
-                format!("Unit conversion error: {}", err),
-            GuiError::WritableTransactionExecuteError(err) =>
-                format!("Transaction execution error: {}", err),
-            GuiError::AddOrderArgsError(err) =>
-                format!("Invalid order arguments: {}", err),
-            GuiError::ERC20Error(err) =>
-                format!("ERC20 token error: {}", err),
-            GuiError::SolTypesError(err) =>
-                format!("Solidity type error: {}", err),
-            GuiError::SerdeWasmBindgenError(err) =>
-                format!("Data serialization error: {}", err),
-            GuiError::YamlError(err) => format!("YAML configuration error: {}", err),
-            GuiError::ValidationError(err) => format!("Validation error: {}", err),
-            GuiError::UrlParseError(err) => format!("URL parsing error: {err}"),
-            GuiError::AmountFormatterError(err) =>
-                format!("There was a problem formatting the amount: {err}"),
-            GuiError::FloatError(err) => {
-                format!("There was a problem with the float value: {err}")
-            }
-            GuiError::RainMetadataError(err) =>
-                format!("There was a problem with the rain metadata: {err}"),
-            GuiError::NoAddressInMetaboardSubgraph =>
-                "No address was found in the metaboard subgraph response.".to_string(),
-            GuiError::MetaboardSubgraphClientError(err) =>
-                format!("There was a problem with the metaboard subgraph client: {err}"),
+            Self::BuilderError(err) => err.to_readable_msg(),
+            Self::JsError(msg) => format!("A JavaScript error occurred: {}", msg),
+            Self::SerdeWasmBindgenError(err) => format!("Data serialization error: {}", err),
         }
     }
 }
 
-impl From<GuiError> for JsValue {
-    fn from(value: GuiError) -> Self {
+impl From<RaindexOrderBuilderWasmError> for JsValue {
+    fn from(value: RaindexOrderBuilderWasmError) -> Self {
         JsError::new(&value.to_string()).into()
     }
 }
 
-impl From<GuiError> for WasmEncodedError {
-    fn from(value: GuiError) -> Self {
+impl From<RaindexOrderBuilderWasmError> for WasmEncodedError {
+    fn from(value: RaindexOrderBuilderWasmError) -> Self {
         WasmEncodedError {
             msg: value.to_string(),
             readable_msg: value.to_readable_msg(),
@@ -820,8 +509,9 @@ impl From<GuiError> for WasmEncodedError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rain_orderbook_app_settings::gui::GuiPresetCfg;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_app_settings::yaml::FieldErrorKind;
+    use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     pub fn get_yaml() -> String {
@@ -1241,8 +931,8 @@ _ _: 0 0;
         )
     }
 
-    pub async fn initialize_gui(deployment_name: Option<String>) -> DotrainOrderGui {
-        DotrainOrderGui::new_with_deployment(
+    pub async fn initialize_gui(deployment_name: Option<String>) -> RaindexOrderBuilder {
+        RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             deployment_name.unwrap_or("some-deployment".to_string()),
@@ -1252,8 +942,8 @@ _ _: 0 0;
         .unwrap()
     }
 
-    pub async fn initialize_gui_with_select_tokens() -> DotrainOrderGui {
-        DotrainOrderGui::new_with_deployment(
+    pub async fn initialize_gui_with_select_tokens() -> RaindexOrderBuilder {
+        RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "select-token-deployment".to_string(),
@@ -1263,8 +953,8 @@ _ _: 0 0;
         .unwrap()
     }
 
-    pub async fn initialize_validation_gui() -> DotrainOrderGui {
-        DotrainOrderGui::new_with_deployment(
+    pub async fn initialize_validation_gui() -> RaindexOrderBuilder {
+        RaindexOrderBuilder::new_with_deployment(
             get_yaml_with_validation(),
             None,
             "validation-deployment".to_string(),
@@ -1276,7 +966,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_deployment_keys() {
-        let deployment_keys = DotrainOrderGui::get_deployment_keys(get_yaml(), None)
+        let deployment_keys = RaindexOrderBuilder::get_deployment_keys(get_yaml(), None)
             .await
             .unwrap();
         assert_eq!(
@@ -1291,7 +981,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_new_with_deployment() {
-        let res = DotrainOrderGui::new_with_deployment(
+        let res = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1300,7 +990,7 @@ _ _: 0 0;
         .await;
         assert!(res.is_ok());
 
-        let err = DotrainOrderGui::new_with_deployment(
+        let err = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "invalid-deployment".to_string(),
@@ -1310,14 +1000,15 @@ _ _: 0 0;
         .unwrap_err();
         assert_eq!(
             err.to_string(),
-            GuiError::DeploymentNotFound("invalid-deployment".to_string()).to_string()
+            RaindexOrderBuilderError::DeploymentNotFound("invalid-deployment".to_string())
+                .to_string()
         );
         assert_eq!(err.to_readable_msg(), "The deployment 'invalid-deployment' could not be found. Please select a valid deployment from your YAML configuration.");
     }
 
     #[wasm_bindgen_test]
     async fn test_get_gui_config() {
-        let gui = DotrainOrderGui::new_with_deployment(
+        let gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1402,7 +1093,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_current_deployment() {
-        let gui = DotrainOrderGui::new_with_deployment(
+        let gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1483,7 +1174,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_token_info_local() {
-        let gui = DotrainOrderGui::new_with_deployment(
+        let gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1526,7 +1217,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_all_token_infos_local() {
-        let gui = DotrainOrderGui::new_with_deployment(
+        let gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1555,7 +1246,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     fn test_get_order_details() {
-        let order_details = DotrainOrderGui::get_order_details(get_yaml(), None).unwrap();
+        let order_details = RaindexOrderBuilder::get_order_details(get_yaml(), None).unwrap();
         assert_eq!(order_details.name, "Fixed limit");
         assert_eq!(order_details.description, "Fixed limit order");
         assert_eq!(
@@ -1578,7 +1269,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_order_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1607,7 +1298,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_order_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1637,7 +1328,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_order_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_order_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1654,7 +1345,8 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     fn test_get_deployment_details() {
-        let deployment_details = DotrainOrderGui::get_deployment_details(get_yaml(), None).unwrap();
+        let deployment_details =
+            RaindexOrderBuilder::get_deployment_details(get_yaml(), None).unwrap();
         assert_eq!(deployment_details.len(), 3);
         let deployment_detail = deployment_details.get("some-deployment").unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
@@ -1692,7 +1384,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let details = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap();
+        let details = RaindexOrderBuilder::get_deployment_details(yaml.to_string(), None).unwrap();
         assert_eq!(details.len(), 0);
 
         let yaml = format!(
@@ -1710,7 +1402,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1739,7 +1431,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1772,7 +1464,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1805,7 +1497,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let details = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap();
+        let details = RaindexOrderBuilder::get_deployment_details(yaml.to_string(), None).unwrap();
         assert_eq!(details.len(), 0);
 
         let yaml = format!(
@@ -1825,7 +1517,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1856,7 +1548,7 @@ _ _: 0 0;
 "#,
             spec_version = SpecVersion::current()
         );
-        let err = DotrainOrderGui::get_deployment_details(yaml.to_string(), None).unwrap_err();
+        let err = RaindexOrderBuilder::get_deployment_details(yaml.to_string(), None).unwrap_err();
         assert_eq!(
             err.to_string(),
             YamlError::Field {
@@ -1873,9 +1565,12 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     fn test_get_deployment_detail() {
-        let deployment_detail =
-            DotrainOrderGui::get_deployment_detail(get_yaml(), None, "some-deployment".to_string())
-                .unwrap();
+        let deployment_detail = RaindexOrderBuilder::get_deployment_detail(
+            get_yaml(),
+            None,
+            "some-deployment".to_string(),
+        )
+        .unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
         assert_eq!(
             deployment_detail.description,
@@ -1889,7 +1584,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_current_deployment_detail() {
-        let gui = DotrainOrderGui::new_with_deployment(
+        let gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1912,7 +1607,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_generate_dotrain_text() {
-        let gui = DotrainOrderGui::new_with_deployment(
+        let gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1923,7 +1618,7 @@ _ _: 0 0;
         let original_current_deployment = gui.get_current_deployment_details().unwrap();
 
         let dotrain_text = gui.generate_dotrain_text().unwrap();
-        let gui = DotrainOrderGui::new_with_deployment(
+        let gui = RaindexOrderBuilder::new_with_deployment(
             dotrain_text,
             None,
             "some-deployment".to_string(),
@@ -1938,7 +1633,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_composed_rainlang() {
-        let mut gui = DotrainOrderGui::new_with_deployment(
+        let mut gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -2067,7 +1762,7 @@ networks:
                         }));
                     });
 
-            let mut gui = DotrainOrderGui::new_with_deployment(
+            let mut gui = RaindexOrderBuilder::new_with_deployment(
                 yaml.to_string(),
                 None,
                 "some-deployment".to_string(),
