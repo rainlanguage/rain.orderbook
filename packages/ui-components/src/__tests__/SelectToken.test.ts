@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import SelectToken from '../lib/components/deployment/SelectToken.svelte';
 import type { ComponentProps } from 'svelte';
-import { Float, type AccountBalance, type DotrainOrderGui } from '@rainlanguage/orderbook';
+import { Float, type AccountBalance, type RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 import type { TokenBalance } from '$lib/types/tokenBalance';
 
 type SelectTokenComponentProps = ComponentProps<SelectToken>;
 
-const mockGui: DotrainOrderGui = {
+const mockGui: RaindexOrderBuilder = {
 	setSelectToken: vi.fn(),
 	isSelectTokenSet: vi.fn(),
 	unsetSelectToken: vi.fn(),
@@ -39,7 +39,7 @@ const mockGui: DotrainOrderGui = {
 			}
 		]
 	})
-} as unknown as DotrainOrderGui;
+} as unknown as RaindexOrderBuilder;
 
 vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 	return {
@@ -89,7 +89,7 @@ describe('SelectToken', () => {
 		const mockGuiWithNoToken = {
 			...mockGui,
 			getTokenInfo: vi.fn().mockResolvedValue({ value: null })
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		(useGui as Mock).mockReturnValue(mockGuiWithNoToken);
 
@@ -116,7 +116,7 @@ describe('SelectToken', () => {
 		const mockGuiWithError = {
 			...mockGui,
 			setSelectToken: vi.fn().mockRejectedValue(new Error('Invalid address'))
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		(useGui as Mock).mockReturnValue(mockGuiWithError);
 
@@ -139,7 +139,7 @@ describe('SelectToken', () => {
 		const mockGuiWithTokenSet = {
 			...mockGui,
 			isSelectTokenSet: vi.fn().mockResolvedValue(true)
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		(useGui as Mock).mockReturnValue(mockGuiWithTokenSet);
 
@@ -232,7 +232,7 @@ describe('SelectToken', () => {
 			const mockGuiNoToken = {
 				...mockGui,
 				getTokenInfo: vi.fn().mockResolvedValue({ value: null })
-			} as unknown as DotrainOrderGui;
+			} as unknown as RaindexOrderBuilder;
 
 			(useGui as Mock).mockReturnValue(mockGuiNoToken);
 
@@ -276,7 +276,7 @@ describe('SelectToken', () => {
 			const mockGuiNoToken = {
 				...mockGui,
 				getTokenInfo: vi.fn().mockResolvedValue({ value: null })
-			} as unknown as DotrainOrderGui;
+			} as unknown as RaindexOrderBuilder;
 
 			(useGui as Mock).mockReturnValue(mockGuiNoToken);
 

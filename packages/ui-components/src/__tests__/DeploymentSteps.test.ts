@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import DeploymentSteps from '../lib/components/deployment/DeploymentSteps.svelte';
-import { DotrainOrderGui, type ScenarioCfg } from '@rainlanguage/orderbook';
+import { RaindexOrderBuilder, type ScenarioCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
@@ -13,7 +13,7 @@ import type { Account } from '$lib/types/account';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	DotrainOrderGui: vi.fn()
+	RaindexOrderBuilder: vi.fn()
 }));
 
 const { mockConnectedStore } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
@@ -97,8 +97,8 @@ const defaultProps: DeploymentStepsProps = {
 } as DeploymentStepsProps;
 
 describe('DeploymentSteps', () => {
-	let guiInstance: DotrainOrderGui;
-	let mockGui: DotrainOrderGui;
+	let guiInstance: RaindexOrderBuilder;
+	let mockGui: RaindexOrderBuilder;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -151,7 +151,7 @@ describe('DeploymentSteps', () => {
 			getAccountBalance: vi.fn().mockResolvedValue({
 				value: '1000000000000000000'
 			})
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		mockGui = guiInstance;
 		vi.mocked(useGui).mockReturnValue(mockGui);

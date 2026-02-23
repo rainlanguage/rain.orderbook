@@ -1,6 +1,6 @@
 import type {
 	Address,
-	DotrainOrderGui,
+	RaindexOrderBuilder,
 	RaindexClient,
 	RaindexVault,
 	RaindexVaultToken
@@ -25,7 +25,7 @@ export type HandleAddOrderDependencies = {
 	handleTransactionConfirmationModal: HandleTransactionConfirmationModal;
 	errToast: (message: string) => void;
 	manager: TransactionManager;
-	gui: DotrainOrderGui;
+	gui: RaindexOrderBuilder;
 	raindexClient: RaindexClient;
 	account: Hex | null;
 };

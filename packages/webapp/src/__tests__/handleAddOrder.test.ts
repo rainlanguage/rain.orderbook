@@ -3,7 +3,7 @@ import { handleAddOrder } from '../lib/services/handleAddOrder';
 import type { HandleAddOrderDependencies } from '../lib/services/handleAddOrder';
 import type {
 	DeploymentTransactionArgs,
-	DotrainOrderGui,
+	RaindexOrderBuilder,
 	RaindexClient
 } from '@rainlanguage/orderbook';
 import type { TransactionManager } from '@rainlanguage/ui-components';
@@ -30,7 +30,7 @@ const MOCKED_ACCOUNT = '0xmockAccount' as Hex;
 
 const mockGui = {
 	getDeploymentTransactionArgs: mockGetDeploymentTransactionArgs
-} as unknown as DotrainOrderGui;
+} as unknown as RaindexOrderBuilder;
 
 const mockRaindexClient = {} as unknown as RaindexClient;
 

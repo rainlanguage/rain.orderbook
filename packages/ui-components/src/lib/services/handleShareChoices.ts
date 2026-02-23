@@ -1,8 +1,8 @@
-import type { DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import { page } from '$app/stores';
 import { get } from 'svelte/store';
 
-export async function handleShareChoices(gui: DotrainOrderGui, registryUrl: string) {
+export async function handleShareChoices(gui: RaindexOrderBuilder, registryUrl: string) {
 	// get the current url
 	const url = get(page).url;
 

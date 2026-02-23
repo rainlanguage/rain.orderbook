@@ -10,7 +10,7 @@
 	} from '@rainlanguage/ui-components';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
 	import { handleDisclaimerModal } from '$lib/services/modal';
-	import { RaindexClient, DotrainOrderGui } from '@rainlanguage/orderbook';
+	import { RaindexClient, RaindexOrderBuilder } from '@rainlanguage/orderbook';
 	import { onMount } from 'svelte';
 	import { handleAddOrder } from '$lib/services/handleAddOrder';
 	import { handleTransactionConfirmationModal } from '$lib/services/modal';
@@ -23,7 +23,7 @@
 	const { manager } = useTransactions();
 	const { errToast } = useToasts();
 
-	let gui: DotrainOrderGui | null = null;
+	let gui: RaindexOrderBuilder | null = null;
 	let getGuiError: string | null = null;
 
 	onMount(async () => {
@@ -49,7 +49,7 @@
 		gui = guiResult.value;
 	});
 
-	const onDeploy = (raindexClient: RaindexClient, gui: DotrainOrderGui) => {
+	const onDeploy = (raindexClient: RaindexClient, gui: RaindexOrderBuilder) => {
 		handleDisclaimerModal({
 			open: true,
 			onAccept: () => {

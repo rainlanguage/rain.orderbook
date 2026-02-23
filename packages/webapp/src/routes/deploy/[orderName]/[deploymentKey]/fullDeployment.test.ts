@@ -371,8 +371,8 @@ describe('Full Deployment Tests', () => {
 	// 		);
 
 	// 		const getDeploymentArgs = async () => {
-	// 			const gui = (await DotrainOrderGui.newWithDeployment(auctionOrder, 'base'))
-	// 				.value as DotrainOrderGui;
+	// 			const gui = (await RaindexOrderBuilder.newWithDeployment(auctionOrder, 'base'))
+	// 				.value as RaindexOrderBuilder;
 	// 			await gui.setSelectToken('input', '0x000000000000012def132e61759048be5b5c6033');
 	// 			await gui.setSelectToken('output', '0x00000000000007c8612ba63df8ddefd9e6077c97');
 	// 			gui.setVaultId('output', 'output', '0x123');
@@ -519,8 +519,8 @@ describe('Full Deployment Tests', () => {
 	// 		);
 
 	// 		const getDeploymentArgs = async () => {
-	// 			const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadOrder, 'base'))
-	// 				.value as DotrainOrderGui;
+	// 			const gui = (await RaindexOrderBuilder.newWithDeployment(dynamicSpreadOrder, 'base'))
+	// 				.value as RaindexOrderBuilder;
 	// 			await gui.setSelectToken('token1', '0x000000000000012def132e61759048be5b5c6033');
 	// 			await gui.setSelectToken('token2', '0x00000000000007c8612ba63df8ddefd9e6077c97');
 	// 			gui.setVaultId('output', 'token2', '0x123');

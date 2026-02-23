@@ -3,12 +3,12 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import DepositInput from '../lib/components/deployment/DepositInput.svelte';
 import type { GuiDepositCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 type DepositInputProps = ComponentProps<DepositInput>;
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	DotrainOrderGui: vi.fn()
+	RaindexOrderBuilder: vi.fn()
 }));
 
 vi.mock('$lib/hooks/useGui', () => ({
@@ -17,7 +17,7 @@ vi.mock('$lib/hooks/useGui', () => ({
 
 describe('DepositInput', () => {
 	let mockStateUpdateCallback: Mock;
-	let guiInstance: DotrainOrderGui;
+	let guiInstance: RaindexOrderBuilder;
 
 	const mockDeposit: GuiDepositCfg = {
 		token: { address: '0x123', key: 'TEST', symbol: 'TEST' },
@@ -35,7 +35,7 @@ describe('DepositInput', () => {
 				mockStateUpdateCallback();
 			}),
 			getTokenInfo: vi.fn()
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		mockStateUpdateCallback = vi.fn();
 		(useGui as Mock).mockReturnValue(guiInstance);

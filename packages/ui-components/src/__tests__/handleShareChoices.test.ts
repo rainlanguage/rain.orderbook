@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { handleShareChoices } from '../lib/services/handleShareChoices';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	DotrainOrderGui: vi.fn()
+	RaindexOrderBuilder: vi.fn()
 }));
 
 describe('handleShareChoices', () => {
-	let guiInstance: DotrainOrderGui;
+	let guiInstance: RaindexOrderBuilder;
 	const mockRegistryUrl = 'https://example.com/registry';
 
 	beforeEach(() => {
 		guiInstance = {
 			serializeState: vi.fn()
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		Object.assign(navigator, {
 			clipboard: {

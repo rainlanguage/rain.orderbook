@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenSelectionModal from '../lib/components/deployment/TokenSelectionModal.svelte';
 import type { ComponentProps } from 'svelte';
-import type { ExtendedTokenInfo, DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { ExtendedTokenInfo, RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 
 type TokenSelectionModalProps = ComponentProps<TokenSelectionModal>;
@@ -29,11 +29,11 @@ const mockTokens: ExtendedTokenInfo[] = [
 	}
 ];
 
-const mockGui: DotrainOrderGui = {
+const mockGui: RaindexOrderBuilder = {
 	getAllTokens: vi.fn().mockResolvedValue({
 		value: mockTokens
 	})
-} as unknown as DotrainOrderGui;
+} as unknown as RaindexOrderBuilder;
 
 vi.mock('../lib/hooks/useGui', () => ({
 	useGui: vi.fn()
@@ -174,7 +174,7 @@ describe('TokenSelectionModal', () => {
 				.mockImplementation(
 					() => new Promise((resolve) => setTimeout(() => resolve({ value: mockTokens }), 100))
 				)
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		(useGui as Mock).mockReturnValue(mockGuiWithDelay);
 
@@ -196,7 +196,7 @@ describe('TokenSelectionModal', () => {
 	it('shows no results message when search returns empty', async () => {
 		const mockGuiNoResults = {
 			getAllTokens: vi.fn().mockResolvedValue({ value: [] })
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		(useGui as Mock).mockReturnValue(mockGuiNoResults);
 
@@ -220,7 +220,7 @@ describe('TokenSelectionModal', () => {
 				.fn()
 				.mockResolvedValueOnce({ value: [] })
 				.mockResolvedValueOnce({ value: mockTokens })
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		(useGui as Mock).mockReturnValue(mockGuiNoResults);
 

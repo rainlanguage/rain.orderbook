@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useGui } from '$lib/hooks/useGui';
 import type { ComponentProps } from 'svelte';
@@ -9,7 +9,7 @@ import type { ComponentProps } from 'svelte';
 type FieldDefinitionInputProps = ComponentProps<FieldDefinitionInput>;
 
 vi.mock('@rainlanguage/orderbook', () => ({
-	DotrainOrderGui: vi.fn()
+	RaindexOrderBuilder: vi.fn()
 }));
 
 vi.mock('$lib/hooks/useGui', () => ({
@@ -17,7 +17,7 @@ vi.mock('$lib/hooks/useGui', () => ({
 }));
 
 describe('FieldDefinitionInput', () => {
-	let guiInstance: DotrainOrderGui;
+	let guiInstance: RaindexOrderBuilder;
 	let mockStateUpdateCallback: Mock;
 
 	const mockFieldDefinition = {
@@ -38,7 +38,7 @@ describe('FieldDefinitionInput', () => {
 			setFieldValue: vi.fn().mockImplementation(() => {
 				mockStateUpdateCallback();
 			})
-		} as unknown as DotrainOrderGui;
+		} as unknown as RaindexOrderBuilder;
 
 		(useGui as Mock).mockReturnValue(guiInstance);
 	});

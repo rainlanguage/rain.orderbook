@@ -9,7 +9,7 @@
 		type GuiFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
 		type OrderIOCfg,
-		DotrainOrderGui,
+		RaindexOrderBuilder,
 		RaindexClient,
 		AccountBalance,
 		Float
@@ -43,7 +43,7 @@
 	/** Strategy details containing name and description configuration */
 	export let orderDetail: NameAndDescriptionCfg;
 	/** Handlers for deployment modals */
-	export let onDeploy: (raindexClient: RaindexClient, gui: DotrainOrderGui) => void;
+	export let onDeploy: (raindexClient: RaindexClient, gui: RaindexOrderBuilder) => void;
 	export let wagmiConnected: Writable<boolean>;
 	export let appKitModal: Writable<AppKit>;
 	export let account: Account;

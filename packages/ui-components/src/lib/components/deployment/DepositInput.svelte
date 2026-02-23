@@ -25,7 +25,7 @@
 		if (deposits.error) {
 			throw new Error(deposits.error.msg);
 		}
-		return deposits.value.find((d) => d.token === deposit.token?.key);
+		return deposits.value.find((d: TokenDeposit) => d.token === deposit.token?.key);
 	};
 
 	const setCurrentDeposit = () => {

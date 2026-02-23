@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import ComposedRainlangModal from '../lib/components/deployment/ComposedRainlangModal.svelte';
-import type { DotrainOrderGui } from '@rainlanguage/orderbook';
+import type { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import { useGui } from '$lib/hooks/useGui';
 
 vi.mock('svelte-codemirror-editor', async () => {
@@ -15,7 +15,7 @@ vi.mock('$lib/hooks/useGui', () => ({
 
 const mockGui = {
 	getComposedRainlang: vi.fn(() => Promise.resolve('mocked rainlang text'))
-} as unknown as DotrainOrderGui;
+} as unknown as RaindexOrderBuilder;
 
 describe('ComposedRainlangModal', () => {
 	beforeEach(() => {

@@ -1067,7 +1067,11 @@ ${dotrain}`;
 		});
 
 		it('should deserialize gui state', async () => {
-			const guiResult = await RaindexOrderBuilder.newFromState(dotrain3, undefined, serializedState);
+			const guiResult = await RaindexOrderBuilder.newFromState(
+				dotrain3,
+				undefined,
+				serializedState
+			);
 			const gui = extractWasmEncodedData(guiResult);
 
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
@@ -1099,7 +1103,11 @@ ${dotrain}`;
 			let testDotrain = `${guiConfig}
 
 ${dotrainWithTokensMismatch}`;
-			const result = await RaindexOrderBuilder.newFromState(testDotrain, undefined, serializedState);
+			const result = await RaindexOrderBuilder.newFromState(
+				testDotrain,
+				undefined,
+				serializedState
+			);
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deserialized dotrain mismatch');
 			expect(result.error.readableMsg).toBe(
@@ -1132,7 +1140,11 @@ ${dotrainWithoutVaultIds}
 			assert.equal(deployment1.deployment.order.outputs[0].vaultId, undefined);
 
 			let serializedState = extractWasmEncodedData<string>(gui.serializeState());
-			const guiResult = await RaindexOrderBuilder.newFromState(testDotrain, undefined, serializedState);
+			const guiResult = await RaindexOrderBuilder.newFromState(
+				testDotrain,
+				undefined,
+				serializedState
+			);
 			gui = extractWasmEncodedData(guiResult);
 
 			let deployment2 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
