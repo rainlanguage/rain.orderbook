@@ -53,15 +53,10 @@ impl RaindexOrderBuilder {
             FieldValuePair,
         >,
     ) -> Result<(), RaindexOrderBuilderWasmError> {
-        let inner_fvs = field_values
-            .into_iter()
-            .map(|fv| inner_fv::FieldValuePair {
-                field: fv.field,
-                value: fv.value,
-            })
-            .collect();
-        self.inner.set_field_values(inner_fvs)?;
-        self.execute_state_update_callback()?;
+        for fv in field_values {
+            self.inner.set_field_value(fv.field, fv.value)?;
+            self.execute_state_update_callback()?;
+        }
         Ok(())
     }
 

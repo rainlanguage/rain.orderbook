@@ -2,7 +2,7 @@ import { decodeFunctionData, hexToBytes } from 'viem';
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import {
-	DotrainOrderGui,
+	RaindexOrderBuilder,
 	ApprovalCalldataResult,
 	DeploymentTransactionArgs,
 	DepositCalldataResult,
@@ -511,7 +511,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	] as const;
 
 	it('should return available deployments', async () => {
-		const result = await DotrainOrderGui.getDeploymentKeys(dotrainWithGui);
+		const result = await RaindexOrderBuilder.getDeploymentKeys(dotrainWithGui);
 		const deployments = extractWasmEncodedData<string[]>(result);
 		assert.equal(deployments.length, 2);
 		assert.ok(deployments.includes('some-deployment'));
@@ -527,7 +527,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 			);
 
-		const result = await DotrainOrderGui.newWithDeployment(
+		const result = await RaindexOrderBuilder.newWithDeployment(
 			dotrainWithGui,
 			undefined,
 			'some-deployment'
@@ -542,7 +542,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	it('should initialize gui object with state update callback', async () => {
 		const stateUpdateCallback = vi.fn();
 
-		const result = await DotrainOrderGui.newWithDeployment(
+		const result = await RaindexOrderBuilder.newWithDeployment(
 			dotrainWithGui,
 			undefined,
 			'some-deployment',
@@ -555,7 +555,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get order details', async () => {
-		const result = DotrainOrderGui.getOrderDetails(dotrainWithGui, undefined);
+		const result = RaindexOrderBuilder.getOrderDetails(dotrainWithGui, undefined);
 		const orderDetails = extractWasmEncodedData<NameAndDescriptionCfg>(result);
 		assert.equal(orderDetails.name, 'Fixed limit');
 		assert.equal(orderDetails.description, 'Fixed limit order');
@@ -563,7 +563,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment details', async () => {
-		const result = DotrainOrderGui.getDeploymentDetails(dotrainWithGui, undefined);
+		const result = RaindexOrderBuilder.getDeploymentDetails(dotrainWithGui, undefined);
 		const deploymentDetails = extractWasmEncodedData<Map<string, NameAndDescriptionCfg>>(result);
 		const entries = Array.from(deploymentDetails.entries());
 		assert.equal(entries[0][0], 'other-deployment');
@@ -575,7 +575,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get deployment detail', async () => {
-		const result = DotrainOrderGui.getDeploymentDetail(
+		const result = RaindexOrderBuilder.getDeploymentDetail(
 			dotrainWithGui,
 			undefined,
 			'other-deployment'
@@ -586,7 +586,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	it('should get current deployment details', async () => {
-		const result = await DotrainOrderGui.newWithDeployment(
+		const result = await RaindexOrderBuilder.newWithDeployment(
 			dotrainWithGui,
 			undefined,
 			'some-deployment'
@@ -632,7 +632,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
     ${dotrain}
     `;
-		const result = await DotrainOrderGui.newWithDeployment(
+		const result = await RaindexOrderBuilder.newWithDeployment(
 			dotrainWithGui,
 			undefined,
 			'other-deployment'
@@ -672,7 +672,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 
     ${dotrain}
     `;
-		const result = await DotrainOrderGui.newWithDeployment(
+		const result = await RaindexOrderBuilder.newWithDeployment(
 			dotrainWithGui,
 			undefined,
 			'other-deployment'
@@ -693,7 +693,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('deposit tests', async () => {
-		let gui: DotrainOrderGui;
+		let gui: RaindexOrderBuilder;
 		let stateUpdateCallback: Mock;
 		beforeEach(async () => {
 			stateUpdateCallback = vi.fn();
@@ -703,7 +703,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrainWithGui,
 				undefined,
 				'some-deployment',
@@ -797,7 +797,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('field value tests', async () => {
-		let gui: DotrainOrderGui;
+		let gui: RaindexOrderBuilder;
 		let stateUpdateCallback: Mock;
 		beforeEach(async () => {
 			stateUpdateCallback = vi.fn();
@@ -807,7 +807,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrainWithGui,
 				undefined,
 				'some-deployment',
@@ -958,7 +958,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 	});
 
 	describe('field definition tests', async () => {
-		let gui: DotrainOrderGui;
+		let gui: RaindexOrderBuilder;
 		beforeAll(async () => {
 			mockServer
 				.forPost('/rpc-url')
@@ -966,7 +966,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrainWithGui,
 				undefined,
 				'some-deployment'
@@ -1022,7 +1022,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 		let serializedState =
 			'H4sIAAAAAAAA_21QT0vDMBRvqiiIBxGvguDV2ixZwzbmQUScFPyDRcTb1sa1NEtKklXED-HRq19g-Am8evPziDcpJnVle4f8kvf7vV_ee8D5i02DmirtjTKeZHwMTA46G_NsOWRT6prMmmVETnnLsbFqMICHpCFBtWTFYAtCsMwMNV-2QSUm1ONUPwqZ27pdg6nWRc_3mYiHLBVK9zqwE_iyiL2pZM-VAlQnsF-fRoMdc33pf8_2v_qzj9fg_efORd3Ptxhsg3VDR1UPewjYsSPkuM5_NLdQ-xNCwMJYNYsxPrB2A1hkKinD68uzk6vb_GGEw252fxHj4zK8OZdJGBDVbuMxUUdbpkbolEovoQUTTxPK9S-tddtKygEAAA==';
 		let dotrain3: string;
-		let gui: DotrainOrderGui;
+		let gui: RaindexOrderBuilder;
 		beforeAll(async () => {
 			mockServer
 				.forPost('/rpc-url')
@@ -1041,7 +1041,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () 
 			dotrain3 = `${guiConfig3}
 
 ${dotrain}`;
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrain3,
 				undefined,
 				'other-deployment'
@@ -1067,7 +1067,7 @@ ${dotrain}`;
 		});
 
 		it('should deserialize gui state', async () => {
-			const guiResult = await DotrainOrderGui.newFromState(dotrain3, undefined, serializedState);
+			const guiResult = await RaindexOrderBuilder.newFromState(dotrain3, undefined, serializedState);
 			const gui = extractWasmEncodedData(guiResult);
 
 			const fieldValues = extractWasmEncodedData<FieldValue[]>(gui.getAllFieldValues());
@@ -1099,7 +1099,7 @@ ${dotrain}`;
 			let testDotrain = `${guiConfig}
 
 ${dotrainWithTokensMismatch}`;
-			const result = await DotrainOrderGui.newFromState(testDotrain, undefined, serializedState);
+			const result = await RaindexOrderBuilder.newFromState(testDotrain, undefined, serializedState);
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Deserialized dotrain mismatch');
 			expect(result.error.readableMsg).toBe(
@@ -1120,7 +1120,7 @@ ${guiConfig2}
 
 ${dotrainWithoutVaultIds}
 	  `;
-			let result = await DotrainOrderGui.newWithDeployment(
+			let result = await RaindexOrderBuilder.newWithDeployment(
 				testDotrain,
 				undefined,
 				'other-deployment'
@@ -1132,7 +1132,7 @@ ${dotrainWithoutVaultIds}
 			assert.equal(deployment1.deployment.order.outputs[0].vaultId, undefined);
 
 			let serializedState = extractWasmEncodedData<string>(gui.serializeState());
-			const guiResult = await DotrainOrderGui.newFromState(testDotrain, undefined, serializedState);
+			const guiResult = await RaindexOrderBuilder.newFromState(testDotrain, undefined, serializedState);
 			gui = extractWasmEncodedData(guiResult);
 
 			let deployment2 = extractWasmEncodedData<GuiDeploymentCfg>(gui.getCurrentDeployment());
@@ -1156,7 +1156,7 @@ ${dotrainWithoutVaultIds}
 			dotrain3 = `${guiConfig}
 
 ${dotrain}`;
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrain3,
 				undefined,
 				'some-deployment'
@@ -1189,7 +1189,7 @@ ${dotrain}`;
 	});
 
 	describe('order operations tests', async () => {
-		let gui: DotrainOrderGui;
+		let gui: RaindexOrderBuilder;
 
 		beforeEach(async () => {
 			// token1 info
@@ -1214,7 +1214,7 @@ ${dotrain}`;
 
       ${dotrain}
       `;
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrain2,
 				undefined,
 				'other-deployment'
@@ -1555,7 +1555,7 @@ ${dotrain}`;
 			let testDotrain = `${guiConfig2}
 
 ${dotrainWithoutVaultIds}`;
-			let result = await DotrainOrderGui.newWithDeployment(
+			let result = await RaindexOrderBuilder.newWithDeployment(
 				testDotrain,
 				undefined,
 				'other-deployment'
@@ -1607,7 +1607,7 @@ ${dotrainWithoutVaultIds}`;
 
       ${dotrainWithoutTokens}
       `;
-			let result = await DotrainOrderGui.newWithDeployment(
+			let result = await RaindexOrderBuilder.newWithDeployment(
 				testDotrain,
 				undefined,
 				'other-deployment'
@@ -1682,7 +1682,7 @@ gui:
 			let testDotrain = `${guiConfig}
 
 ${dotrainWithoutVaultIds}`;
-			let result = await DotrainOrderGui.newWithDeployment(
+			let result = await RaindexOrderBuilder.newWithDeployment(
 				testDotrain,
 				undefined,
 				'other-deployment'
@@ -1732,7 +1732,7 @@ ${dotrainWithoutVaultIds}`;
 
           ${dotrainWithoutVaultIds}
           `;
-			let guiResult = await DotrainOrderGui.newWithDeployment(
+			let guiResult = await RaindexOrderBuilder.newWithDeployment(
 				testDotrain,
 				undefined,
 				'other-deployment',
@@ -1961,7 +1961,7 @@ ${dotrainWithoutVaultIds}`;
 	});
 
 	describe('select tokens tests', async () => {
-		let gui: DotrainOrderGui;
+		let gui: RaindexOrderBuilder;
 		let stateUpdateCallback: Mock;
 
 		beforeEach(async () => {
@@ -1971,7 +1971,7 @@ ${dotrainWithoutVaultIds}`;
 
       ${dotrainWithoutTokens}
       `;
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrain3,
 				undefined,
 				'other-deployment',
@@ -1995,7 +1995,7 @@ ${dotrainWithoutVaultIds}`;
 				.thenSendJsonRpcResult(
 					'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e000000000000000000000000000000000000000000000000000000000000001a0000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000007546f6b656e203100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000025431000000000000000000000000000000000000000000000000000000000000'
 				);
-			let guiResult = await DotrainOrderGui.newWithDeployment(
+			let guiResult = await RaindexOrderBuilder.newWithDeployment(
 				dotrainWithGui,
 				undefined,
 				'some-deployment'
@@ -2127,7 +2127,7 @@ ${dotrainWithoutVaultIds}`;
 
       ${dotrainWithoutTokens}
       `;
-			let result = await DotrainOrderGui.newWithDeployment(
+			let result = await RaindexOrderBuilder.newWithDeployment(
 				dotrain3,
 				undefined,
 				'other-deployment',
@@ -2267,7 +2267,7 @@ ${dotrainWithoutVaultIds}`;
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrainForRemotes,
 				undefined,
 				'test-deployment'
@@ -2311,7 +2311,7 @@ ${dotrainWithoutVaultIds}`;
 					}
 				]);
 
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrainForRemotes,
 				undefined,
 				'test-deployment'
@@ -2375,7 +2375,7 @@ ${dotrainWithoutVaultIds}`;
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrainForRemotes,
 				undefined,
 				'test-deployment'
@@ -2389,7 +2389,7 @@ ${dotrainWithoutVaultIds}`;
 	});
 
 	describe('remote tokens tests', () => {
-		let gui: DotrainOrderGui;
+		let gui: RaindexOrderBuilder;
 
 		it('should fetch remote tokens', async () => {
 			mockServer
@@ -2435,7 +2435,7 @@ ${dotrainWithoutVaultIds}`;
 					logoURI: 'http://localhost.com'
 				});
 
-			const result = await DotrainOrderGui.newWithDeployment(
+			const result = await RaindexOrderBuilder.newWithDeployment(
 				dotrainForRemotes,
 				undefined,
 				'other-deployment'

@@ -12,7 +12,13 @@ pub struct AllGuiConfig {
 }
 impl_wasm_traits!(AllGuiConfig);
 
+#[wasm_export]
 impl RaindexOrderBuilder {
+    #[wasm_export(
+        js_name = "executeStateUpdateCallback",
+        unchecked_return_type = "void",
+        return_description = "Callback executed successfully or no callback registered"
+    )]
     pub fn execute_state_update_callback(&self) -> Result<(), RaindexOrderBuilderWasmError> {
         if let Some(callback) = &self.state_update_callback {
             let serialized = self.inner.serialize_state()?;

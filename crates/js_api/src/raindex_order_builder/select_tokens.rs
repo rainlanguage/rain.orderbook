@@ -81,7 +81,8 @@ impl RaindexOrderBuilder {
     #[wasm_export(
         js_name = "getAccountBalance",
         unchecked_return_type = "AccountBalance",
-        return_description = "Token balance for the specified account"
+        return_description = "Token balance for the specified account",
+        preserve_js_class
     )]
     pub async fn get_account_balance(
         &self,
