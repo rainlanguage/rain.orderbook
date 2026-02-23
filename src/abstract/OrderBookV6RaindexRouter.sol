@@ -158,6 +158,7 @@ abstract contract OrderBookV6RaindexRouter is IERC3156FlashBorrower, ReentrancyG
         // loan repay
         uint256 flashLoanAmount = IERC20(startTakeOrdersInputToken).balanceOf(address(orderBook)) / 2;
         Float flashLoanAmountFloat = LibDecimalFloat.fromFixedDecimalLosslessPacked(flashLoanAmount, startInputDecimals);
+        require (!LibDecimalFloat.isZero(flashLoanAmountFloat), "zero flash loan amount");
 
         // getting the last order's maxOuput, as the first order cannot clear
         // more than the maxOutput of the last order, the max possible clear
