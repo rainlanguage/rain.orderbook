@@ -61,9 +61,7 @@ pub fn encode_oracle_body(
 /// Encode the POST body for a batch oracle request.
 ///
 /// The body is `abi.encode((OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)[])`.
-pub fn encode_oracle_body_batch(
-    requests: Vec<(&OrderV4, u32, u32, Address)>,
-) -> Vec<u8> {
+pub fn encode_oracle_body_batch(requests: Vec<(&OrderV4, u32, u32, Address)>) -> Vec<u8> {
     let tuples: Vec<_> = requests
         .into_iter()
         .map(|(order, input_io_index, output_io_index, counterparty)| {
@@ -75,7 +73,7 @@ pub fn encode_oracle_body_batch(
             )
         })
         .collect();
-    
+
     tuples.abi_encode()
 }
 
@@ -86,7 +84,7 @@ pub fn encode_oracle_body_batch(
 /// `abi.encode(OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)`
 ///
 /// The endpoint must respond with a JSON body matching a single `OracleResponse`.
-/// 
+///
 /// NOTE: This is a legacy function. The batch format is preferred.
 pub async fn fetch_signed_context(
     url: &str,
@@ -107,13 +105,14 @@ pub async fn fetch_signed_context(
         .error_for_status()?
         .json()
         .await?;
-    
+
     if response.len() != 1 {
-        return Err(OracleError::InvalidResponse(
-            format!("Expected 1 response, got {}", response.len())
-        ));
+        return Err(OracleError::InvalidResponse(format!(
+            "Expected 1 response, got {}",
+            response.len()
+        )));
     }
-    
+
     Ok(response.into_iter().next().unwrap().into())
 }
 
@@ -189,7 +188,12 @@ mod tests {
     #[test]
     fn test_encode_oracle_body_single() {
         let order = create_test_order();
-        let body = encode_oracle_body(&order, 1, 2, address!("0x1111111111111111111111111111111111111111"));
+        let body = encode_oracle_body(
+            &order,
+            1,
+            2,
+            address!("0x1111111111111111111111111111111111111111"),
+        );
         assert!(!body.is_empty());
     }
 
@@ -197,17 +201,32 @@ mod tests {
     fn test_encode_oracle_body_batch() {
         let order1 = create_test_order();
         let order2 = create_test_order();
-        
+
         let requests = vec![
-            (&order1, 1, 2, address!("0x1111111111111111111111111111111111111111")),
-            (&order2, 3, 4, address!("0x2222222222222222222222222222222222222222")),
+            (
+                &order1,
+                1,
+                2,
+                address!("0x1111111111111111111111111111111111111111"),
+            ),
+            (
+                &order2,
+                3,
+                4,
+                address!("0x2222222222222222222222222222222222222222"),
+            ),
         ];
-        
+
         let body = encode_oracle_body_batch(requests);
         assert!(!body.is_empty());
-        
+
         // Batch encoding should be different from single encoding
-        let single_body = encode_oracle_body(&order1, 1, 2, address!("0x1111111111111111111111111111111111111111"));
+        let single_body = encode_oracle_body(
+            &order1,
+            1,
+            2,
+            address!("0x1111111111111111111111111111111111111111"),
+        );
         assert_ne!(body, single_body);
     }
 
