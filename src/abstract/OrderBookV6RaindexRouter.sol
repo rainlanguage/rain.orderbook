@@ -176,9 +176,10 @@ abstract contract OrderBookV6RaindexRouter is IERC3156FlashBorrower, ReentrancyG
         IERC20(startTakeOrdersInputToken).forceApprove(address(orderBook), type(uint256).max);
 
         // set max io
-        if (LibDecimalFloat.gt(maxOutput, flashLoanAmountFloat)) {
+        if (LibDecimalFloat.gt(takeOrders[0].maximumIO, flashLoanAmountFloat)) {
             takeOrders[0].maximumIO = flashLoanAmountFloat;
-        } else {
+        }
+        if (LibDecimalFloat.gt(takeOrders[0].maximumIO, maxOutput)) {
             takeOrders[0].maximumIO = maxOutput;
         }
         takeOrders[0].IOIsInput = false; // must always be false
