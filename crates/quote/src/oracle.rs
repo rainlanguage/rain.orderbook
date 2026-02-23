@@ -40,7 +40,7 @@ impl From<OracleResponse> for SignedContextV1 {
     }
 }
 
-/// Encode the POST body for an oracle request.
+/// Encode the POST body for a single oracle request.
 ///
 /// The body is `abi.encode(OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)`.
 pub fn encode_oracle_body(
@@ -58,13 +58,36 @@ pub fn encode_oracle_body(
         .abi_encode()
 }
 
-/// Fetch signed context from an oracle endpoint via POST.
+/// Encode the POST body for a batch oracle request.
+///
+/// The body is `abi.encode((OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)[])`.
+pub fn encode_oracle_body_batch(
+    requests: Vec<(&OrderV4, u32, u32, Address)>,
+) -> Vec<u8> {
+    let tuples: Vec<_> = requests
+        .into_iter()
+        .map(|(order, input_io_index, output_io_index, counterparty)| {
+            (
+                order.clone(),
+                U256::from(input_io_index),
+                U256::from(output_io_index),
+                counterparty,
+            )
+        })
+        .collect();
+    
+    tuples.abi_encode()
+}
+
+/// Fetch signed context from an oracle endpoint via POST (single request).
 ///
 /// The endpoint receives an ABI-encoded body containing the order details
 /// that will be used for calculateOrderIO:
 /// `abi.encode(OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)`
 ///
-/// The endpoint must respond with a JSON body matching `OracleResponse`.
+/// The endpoint must respond with a JSON body matching a single `OracleResponse`.
+/// 
+/// NOTE: This is a legacy function. The batch format is preferred.
 pub async fn fetch_signed_context(
     url: &str,
     body: Vec<u8>,
@@ -74,7 +97,43 @@ pub async fn fetch_signed_context(
     let builder = builder.timeout(std::time::Duration::from_secs(10));
     let client = builder.build()?;
 
-    let response: OracleResponse = client
+    // For single requests, we still expect a JSON array response but with one item
+    let response: Vec<OracleResponse> = client
+        .post(url)
+        .header("Content-Type", "application/octet-stream")
+        .body(body)
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    
+    if response.len() != 1 {
+        return Err(OracleError::InvalidResponse(
+            format!("Expected 1 response, got {}", response.len())
+        ));
+    }
+    
+    Ok(response.into_iter().next().unwrap().into())
+}
+
+/// Fetch signed context from an oracle endpoint via POST (batch request).
+///
+/// The endpoint receives an ABI-encoded body containing an array of order details:
+/// `abi.encode((OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)[])`
+///
+/// The endpoint must respond with a JSON array of `OracleResponse` objects.
+/// The response array length must match the request array length.
+pub async fn fetch_signed_context_batch(
+    url: &str,
+    body: Vec<u8>,
+) -> Result<Vec<SignedContextV1>, OracleError> {
+    let builder = Client::builder();
+    #[cfg(not(target_family = "wasm"))]
+    let builder = builder.timeout(std::time::Duration::from_secs(10));
+    let client = builder.build()?;
+
+    let response: Vec<OracleResponse> = client
         .post(url)
         .header("Content-Type", "application/octet-stream")
         .body(body)
@@ -84,7 +143,7 @@ pub async fn fetch_signed_context(
         .json()
         .await?;
 
-    Ok(response.into())
+    Ok(response.into_iter().map(|resp| resp.into()).collect())
 }
 
 /// Extract the oracle URL from an SgOrder's meta, if present.
@@ -106,6 +165,7 @@ pub fn extract_oracle_url(order: &SgOrder) -> Option<String> {
 mod tests {
     use super::*;
     use alloy::primitives::{address, FixedBytes};
+    use rain_orderbook_bindings::IOrderBookV6::{EvaluableV4, IOV2, OrderV4};
 
     #[test]
     fn test_oracle_response_to_signed_context() {
@@ -126,6 +186,31 @@ mod tests {
         assert_eq!(signed.signature, Bytes::from(vec![0xaa, 0xbb, 0xcc]));
     }
 
+    #[test]
+    fn test_encode_oracle_body_single() {
+        let order = create_test_order();
+        let body = encode_oracle_body(&order, 1, 2, address!("0x1111111111111111111111111111111111111111"));
+        assert!(!body.is_empty());
+    }
+
+    #[test]
+    fn test_encode_oracle_body_batch() {
+        let order1 = create_test_order();
+        let order2 = create_test_order();
+        
+        let requests = vec![
+            (&order1, 1, 2, address!("0x1111111111111111111111111111111111111111")),
+            (&order2, 3, 4, address!("0x2222222222222222222222222222222222222222")),
+        ];
+        
+        let body = encode_oracle_body_batch(requests);
+        assert!(!body.is_empty());
+        
+        // Batch encoding should be different from single encoding
+        let single_body = encode_oracle_body(&order1, 1, 2, address!("0x1111111111111111111111111111111111111111"));
+        assert_ne!(body, single_body);
+    }
+
     #[tokio::test]
     async fn test_fetch_signed_context_invalid_url() {
         let result = fetch_signed_context("not-a-url", vec![]).await;
@@ -136,5 +221,37 @@ mod tests {
     async fn test_fetch_signed_context_unreachable() {
         let result = fetch_signed_context("http://127.0.0.1:1/oracle", vec![]).await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fetch_signed_context_batch_invalid_url() {
+        let result = fetch_signed_context_batch("not-a-url", vec![]).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_fetch_signed_context_batch_unreachable() {
+        let result = fetch_signed_context_batch("http://127.0.0.1:1/oracle", vec![]).await;
+        assert!(result.is_err());
+    }
+
+    fn create_test_order() -> OrderV4 {
+        OrderV4 {
+            owner: address!("0x0000000000000000000000000000000000000000"),
+            evaluable: EvaluableV4 {
+                interpreter: address!("0x0000000000000000000000000000000000000000"),
+                store: address!("0x0000000000000000000000000000000000000000"),
+                bytecode: Bytes::new(),
+            },
+            validInputs: vec![IOV2 {
+                token: address!("0x0000000000000000000000000000000000000000"),
+                vaultId: FixedBytes::<32>::ZERO,
+            }],
+            validOutputs: vec![IOV2 {
+                token: address!("0x0000000000000000000000000000000000000000"),
+                vaultId: FixedBytes::<32>::ZERO,
+            }],
+            nonce: FixedBytes::<32>::ZERO,
+        }
     }
 }
