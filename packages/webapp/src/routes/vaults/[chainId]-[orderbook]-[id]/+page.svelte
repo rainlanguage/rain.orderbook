@@ -9,7 +9,7 @@
 	} from '$lib/services/modal';
 	import { RaindexClient, type Address, type RaindexVault } from '@rainlanguage/orderbook';
 	import type { Hex } from 'viem';
-	// import { lightweightChartsTheme } from '$lib/darkMode';
+	import { lightweightChartsTheme } from '$lib/darkMode';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
@@ -49,4 +49,4 @@
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
-<VaultDetail id={parsedId} {orderbookAddress} chainId={parsedChainId} {onDeposit} {onWithdraw} />
+<VaultDetail id={parsedId} {orderbookAddress} chainId={parsedChainId} {onDeposit} {onWithdraw} {lightweightChartsTheme} />
