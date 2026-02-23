@@ -36,8 +36,7 @@ impl_wasm_traits!(ApprovalCalldata);
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 pub enum DepositCalldataResult {
     NoDeposits,
-    #[tsify(type = "string[]")]
-    Calldatas(Vec<Bytes>),
+    Calldatas(#[tsify(type = "string[]")] Vec<Bytes>),
 }
 impl_wasm_traits!(DepositCalldataResult);
 
@@ -50,11 +49,14 @@ pub struct DepositAndAddOrderCalldataResult(#[tsify(type = "string")] pub Bytes)
 impl_wasm_traits!(DepositAndAddOrderCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct IOVaultIds(pub HashMap<String, HashMap<String, Option<U256>>>);
+pub struct IOVaultIds(
+    #[tsify(type = "Map<string, Map<string, string | undefined>>")]
+    pub  HashMap<String, HashMap<String, Option<U256>>>,
+);
 impl_wasm_traits!(IOVaultIds);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
-pub struct WithdrawCalldataResult(pub Vec<Bytes>);
+pub struct WithdrawCalldataResult(#[tsify(type = "string[]")] pub Vec<Bytes>);
 impl_wasm_traits!(WithdrawCalldataResult);
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
