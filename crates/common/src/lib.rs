@@ -9,6 +9,7 @@ pub mod local_db;
 pub mod meta;
 pub mod parsed_meta;
 pub mod raindex_client;
+pub mod raindex_order_builder;
 pub mod rainlang;
 pub mod remove_order;
 #[cfg(not(target_family = "wasm"))]
@@ -22,7 +23,6 @@ pub mod types;
 #[cfg(all(not(target_family = "wasm"), test))]
 pub mod unit_tests;
 pub mod utils;
-pub mod raindex_order_builder;
 pub mod withdraw;
 pub use dotrain;
 pub use dotrain_lsp;

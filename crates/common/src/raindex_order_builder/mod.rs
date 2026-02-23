@@ -1,3 +1,10 @@
+pub use crate::erc20::ExtendedTokenInfo;
+use crate::{
+    dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
+    dotrain_order::{DotrainOrder, DotrainOrderError},
+    erc20::ERC20,
+    utils::amount_formatter::AmountFormatterError,
+};
 use alloy::primitives::Address;
 use alloy_ethers_typecast::ReadableClientError;
 use base64::{engine::general_purpose::URL_SAFE, Engine};
@@ -16,13 +23,6 @@ use rain_orderbook_app_settings::{
         dotrain::{DotrainYaml, DotrainYamlValidation},
         emitter, YamlError, YamlParsable,
     },
-};
-pub use crate::erc20::ExtendedTokenInfo;
-use crate::{
-    dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
-    dotrain_order::{DotrainOrder, DotrainOrderError},
-    erc20::ERC20,
-    utils::amount_formatter::AmountFormatterError,
 };
 use serde::{Deserialize, Serialize};
 use std::io::prelude::*;
@@ -74,8 +74,7 @@ impl RaindexOrderBuilder {
         settings: Option<Vec<String>>,
         selected_deployment: String,
     ) -> Result<RaindexOrderBuilder, RaindexOrderBuilderError> {
-        let documents =
-            RaindexOrderBuilder::get_yaml_documents(&dotrain, settings.clone())?;
+        let documents = RaindexOrderBuilder::get_yaml_documents(&dotrain, settings.clone())?;
 
         let keys = GuiCfg::parse_deployment_keys(documents.clone())?;
         if !keys.contains(&selected_deployment) {
@@ -184,8 +183,7 @@ impl RaindexOrderBuilder {
         settings: Option<Vec<String>>,
         key: String,
     ) -> Result<NameAndDescriptionCfg, RaindexOrderBuilderError> {
-        let deployment_details =
-            RaindexOrderBuilder::get_deployment_details(dotrain, settings)?;
+        let deployment_details = RaindexOrderBuilder::get_deployment_details(dotrain, settings)?;
         let deployment_detail = deployment_details
             .get(&key)
             .ok_or(RaindexOrderBuilderError::DeploymentNotFound(key))?;
@@ -837,9 +835,7 @@ _ _: 0 0;
         )
     }
 
-    pub async fn initialize_builder(
-        deployment_name: Option<String>,
-    ) -> RaindexOrderBuilder {
+    pub async fn initialize_builder(deployment_name: Option<String>) -> RaindexOrderBuilder {
         RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
@@ -939,8 +935,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_get_order_details() {
-        let order_details =
-            RaindexOrderBuilder::get_order_details(get_yaml(), None).unwrap();
+        let order_details = RaindexOrderBuilder::get_order_details(get_yaml(), None).unwrap();
         assert_eq!(order_details.name, "Fixed limit");
         assert_eq!(order_details.description, "Fixed limit order");
         assert_eq!(
@@ -978,8 +973,7 @@ _ _: 0 0;
     async fn test_get_composed_rainlang() {
         let mut builder = initialize_builder(None).await;
         let rainlang = builder.get_composed_rainlang().await.unwrap();
-        let expected =
-            "/* 0. calculate-io */ \n_ _: 0 0;\n\n/* 1. handle-io */ \n:;".to_string();
+        let expected = "/* 0. calculate-io */ \n_ _: 0 0;\n\n/* 1. handle-io */ \n:;".to_string();
         assert_eq!(rainlang, expected);
     }
 
@@ -1105,7 +1099,10 @@ networks:
             .await
             .unwrap();
 
-            let err = builder.get_token_info("token3".to_string()).await.unwrap_err();
+            let err = builder
+                .get_token_info("token3".to_string())
+                .await
+                .unwrap_err();
             assert_eq!(
                 err.to_string(),
                 YamlError::Field {

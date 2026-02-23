@@ -386,6 +386,8 @@ impl RaindexOrderBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dotrain::RainDocument;
+    use crate::dotrain_order::DotrainOrder;
     use crate::raindex_order_builder::{
         field_values::FieldValue,
         tests::{get_yaml, initialize_builder_with_select_tokens},
@@ -394,11 +396,9 @@ mod tests {
     use rain_orderbook_app_settings::{
         network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
     };
-    use crate::dotrain::RainDocument;
-    use crate::dotrain_order::DotrainOrder;
     use std::str::FromStr;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTYvCMBBN3GWXhT3Jwp4W9gdsaNOu2Aqeiqj4cbF6T2vQ0pjUmqLin_AnS3VSsTiHeW_yXmaGaaBbfABGiVwmckUoMvECSG27bnIwPNioYoa8AWqVcuk-6_bc-Vh9QrVTG04k13uVp-bfD-Ba66xjWULFTKzVTnc822tZeRaTIhen0oHLjM3oXjj4Atr8XxzOtYSb-B3ksNzh18Wvph5NXdRA93hYllYTqO_juupUquP7f0Ajtk0Ow2g7ZaEqAhakDstTr8gCTsaz8aQ9n_cpXU1abdnrfptTcMFjTa5NyZJnQh03XOoLQ6E_l8kBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_2NigABOKJ2UmZeSmZeuawjlMzAwQ2lDAwN0RUaMUAEDBjgLxmCD0iX52al5xthMw64SlccD5RXn56bq5qWWlOcXZcP0yULpjJKSAit9_Zz85MScjPziEisLAwtT_aKCZN3SopxqkApGEMkIs9o1xEMEyhQyCauYgEYwCjGyQ6VDQG5QMGZkgfG9_YwZmOB-QXO6IdwGQ0tLkCNRZI3gskaWljqwgEwszKzwTCr0SwzJL3VOdM42SizKtigtcE7V9Qn28TUPDXU3NEz3NTXPc7UVhwVFak5qcoku2FDdlNSCnPzK3NS8EgBDoT-XyQEAAA==";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
@@ -466,9 +466,7 @@ mod tests {
     #[tokio::test]
     async fn test_generate_dotrain_gui_state_instance_v1_contents() {
         let builder = configured_builder().await;
-        let state = builder
-            .generate_dotrain_gui_state_instance_v1()
-            .unwrap();
+        let state = builder.generate_dotrain_gui_state_instance_v1().unwrap();
 
         let trimmed = builder
             .dotrain_order
@@ -511,13 +509,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_new_from_state() {
-        let builder = RaindexOrderBuilder::new_from_state(
-            get_yaml(),
-            None,
-            SERIALIZED_STATE.to_string(),
-        )
-        .await
-        .unwrap();
+        let builder =
+            RaindexOrderBuilder::new_from_state(get_yaml(), None, SERIALIZED_STATE.to_string())
+                .await
+                .unwrap();
 
         assert!(builder.is_select_token_set("token3".to_string()).unwrap());
         assert_eq!(builder.get_deposits().unwrap()[0].amount, "100");
@@ -624,8 +619,7 @@ mod tests {
     #[tokio::test]
     async fn test_new_from_state_rejects_unknown_select_token_key() {
         let dotrain = get_yaml();
-        let documents =
-            RaindexOrderBuilder::get_yaml_documents(&dotrain, None).unwrap();
+        let documents = RaindexOrderBuilder::get_yaml_documents(&dotrain, None).unwrap();
         let token = TokenCfg::parse_from_yaml(documents.clone(), "token1", None).unwrap();
 
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
@@ -650,8 +644,7 @@ mod tests {
     #[tokio::test]
     async fn test_new_from_state_replaces_existing_select_token_record() {
         let dotrain = get_yaml();
-        let documents =
-            RaindexOrderBuilder::get_yaml_documents(&dotrain, None).unwrap();
+        let documents = RaindexOrderBuilder::get_yaml_documents(&dotrain, None).unwrap();
         TokenCfg::add_record_to_yaml(
             documents.clone(),
             "token3",

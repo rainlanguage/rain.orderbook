@@ -91,24 +91,19 @@ impl RaindexOrderBuilder {
         Ok(())
     }
 
-    pub fn get_field_value(
-        &self,
-        field: String,
-    ) -> Result<FieldValue, RaindexOrderBuilderError> {
-        let field_value = self
-            .field_values
-            .get(&field)
-            .ok_or(RaindexOrderBuilderError::FieldBindingNotFound(
-                field.clone(),
-            ))?;
+    pub fn get_field_value(&self, field: String) -> Result<FieldValue, RaindexOrderBuilderError> {
+        let field_value =
+            self.field_values
+                .get(&field)
+                .ok_or(RaindexOrderBuilderError::FieldBindingNotFound(
+                    field.clone(),
+                ))?;
         let preset = match field_value.is_preset {
             true => {
                 let field_definition = self.get_field_definition(&field)?;
                 let presets = field_definition
                     .presets
-                    .ok_or(RaindexOrderBuilderError::BindingHasNoPresets(
-                        field.clone(),
-                    ))?;
+                    .ok_or(RaindexOrderBuilderError::BindingHasNoPresets(field.clone()))?;
                 presets
                     .iter()
                     .find(|preset| preset.id == field_value.value)
@@ -459,8 +454,7 @@ mod tests {
         let result = builder.set_field_value("quantity-field".to_string(), "0.001".to_string());
         assert!(result.is_ok());
 
-        let result =
-            builder.set_field_value("quantity-field".to_string(), "100000".to_string());
+        let result = builder.set_field_value("quantity-field".to_string(), "100000".to_string());
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
                 validation::GuiValidationError::AboveExclusiveMaximum {
@@ -476,8 +470,7 @@ mod tests {
             _ => panic!("Expected AboveExclusiveMaximum error"),
         }
 
-        let result =
-            builder.set_field_value("quantity-field".to_string(), "99999.999".to_string());
+        let result = builder.set_field_value("quantity-field".to_string(), "99999.999".to_string());
         assert!(result.is_ok());
     }
 
@@ -514,8 +507,7 @@ mod tests {
     async fn test_set_field_value_preset_with_validation() {
         let mut builder = initialize_validation_builder().await;
 
-        let result =
-            builder.set_field_value("preset-number-field".to_string(), "100".to_string());
+        let result = builder.set_field_value("preset-number-field".to_string(), "100".to_string());
         assert!(result.is_ok());
         let field_value = builder
             .get_field_value("preset-number-field".to_string())
@@ -523,8 +515,7 @@ mod tests {
         assert!(field_value.is_preset);
         assert_eq!(field_value.value, "100");
 
-        let result =
-            builder.set_field_value("preset-number-field".to_string(), "120".to_string());
+        let result = builder.set_field_value("preset-number-field".to_string(), "120".to_string());
         assert!(result.is_ok());
         let field_value = builder
             .get_field_value("preset-number-field".to_string())
@@ -606,8 +597,7 @@ mod tests {
             ))
         ));
 
-        let result =
-            builder.set_field_value("simple-number".to_string(), "12.34.56".to_string());
+        let result = builder.set_field_value("simple-number".to_string(), "12.34.56".to_string());
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
@@ -615,8 +605,7 @@ mod tests {
             ))
         ));
 
-        let result =
-            builder.set_field_value("simple-number".to_string(), "١٢٣".to_string());
+        let result = builder.set_field_value("simple-number".to_string(), "١٢٣".to_string());
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
@@ -629,8 +618,7 @@ mod tests {
     async fn test_set_field_value_string_length_constraints() {
         let mut builder = initialize_validation_builder().await;
 
-        let result =
-            builder.set_field_value("username-field".to_string(), "john_doe".to_string());
+        let result = builder.set_field_value("username-field".to_string(), "john_doe".to_string());
         assert!(result.is_ok());
 
         let result = builder.set_field_value("username-field".to_string(), "jo".to_string());
@@ -679,8 +667,7 @@ mod tests {
     async fn test_set_field_value_string_edge_cases() {
         let mut builder = initialize_validation_builder().await;
 
-        let result =
-            builder.set_field_value("description-field".to_string(), "".to_string());
+        let result = builder.set_field_value("description-field".to_string(), "".to_string());
         assert!(result.is_ok());
 
         let result = builder.set_field_value("code-field".to_string(), "".to_string());
@@ -691,12 +678,10 @@ mod tests {
             ))
         ));
 
-        let result =
-            builder.set_field_value("description-field".to_string(), "a".repeat(500));
+        let result = builder.set_field_value("description-field".to_string(), "a".repeat(500));
         assert!(result.is_ok());
 
-        let result =
-            builder.set_field_value("description-field".to_string(), "a".repeat(501));
+        let result = builder.set_field_value("description-field".to_string(), "a".repeat(501));
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
@@ -704,8 +689,8 @@ mod tests {
             ))
         ));
 
-        let result = builder
-            .set_field_value("username-field".to_string(), "🦀🦀🦀rust🦀🦀🦀".to_string());
+        let result =
+            builder.set_field_value("username-field".to_string(), "🦀🦀🦀rust🦀🦀🦀".to_string());
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
@@ -740,8 +725,7 @@ mod tests {
             .unwrap();
         assert!(!field_value.is_preset);
 
-        let result =
-            builder.set_field_value("preset-string-field".to_string(), "xyz".to_string());
+        let result = builder.set_field_value("preset-string-field".to_string(), "xyz".to_string());
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
@@ -820,8 +804,7 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        let result =
-            builder.set_field_value("price-field".to_string(), "999.99".to_string());
+        let result = builder.set_field_value("price-field".to_string(), "999.99".to_string());
         assert!(result.is_ok());
     }
 }

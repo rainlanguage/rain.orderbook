@@ -1,19 +1,17 @@
 use super::*;
+use crate::raindex_client::vaults::AccountBalance;
 use futures::StreamExt;
 use rain_math_float::Float;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
 };
-use crate::raindex_client::vaults::AccountBalance;
 use std::str::FromStr;
 
 const MAX_CONCURRENT_FETCHES: usize = 5;
 
 impl RaindexOrderBuilder {
-    pub fn get_select_tokens(
-        &self,
-    ) -> Result<Vec<GuiSelectTokensCfg>, RaindexOrderBuilderError> {
+    pub fn get_select_tokens(&self) -> Result<Vec<GuiSelectTokensCfg>, RaindexOrderBuilderError> {
         let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -21,10 +19,7 @@ impl RaindexOrderBuilder {
         Ok(select_tokens.unwrap_or(vec![]))
     }
 
-    pub fn is_select_token_set(
-        &self,
-        key: String,
-    ) -> Result<bool, RaindexOrderBuilderError> {
+    pub fn is_select_token_set(&self, key: String) -> Result<bool, RaindexOrderBuilderError> {
         Ok(self.dotrain_order.orderbook_yaml().get_token(&key).is_ok())
     }
 
@@ -69,10 +64,7 @@ impl RaindexOrderBuilder {
         if TokenCfg::parse_from_yaml(self.dotrain_order.dotrain_yaml().documents, &key, None)
             .is_ok()
         {
-            TokenCfg::remove_record_from_yaml(
-                self.dotrain_order.orderbook_yaml().documents,
-                &key,
-            )?;
+            TokenCfg::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
         }
 
         let address = Address::from_str(&address)?;
@@ -102,10 +94,7 @@ impl RaindexOrderBuilder {
         Ok(())
     }
 
-    pub fn unset_select_token(
-        &mut self,
-        key: String,
-    ) -> Result<(), RaindexOrderBuilderError> {
+    pub fn unset_select_token(&mut self, key: String) -> Result<(), RaindexOrderBuilderError> {
         let select_tokens = GuiCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
@@ -115,10 +104,7 @@ impl RaindexOrderBuilder {
             return Err(RaindexOrderBuilderError::TokenNotFound(key.clone()));
         }
 
-        TokenCfg::remove_record_from_yaml(
-            self.dotrain_order.orderbook_yaml().documents,
-            &key,
-        )?;
+        TokenCfg::remove_record_from_yaml(self.dotrain_order.orderbook_yaml().documents, &key)?;
 
         Ok(())
     }
@@ -485,10 +471,7 @@ mod tests {
             "T3".to_string(),
         );
 
-        let tokens = builder
-            .get_all_tokens(Some("".to_string()))
-            .await
-            .unwrap();
+        let tokens = builder.get_all_tokens(Some("".to_string())).await.unwrap();
         assert_eq!(tokens.len(), 3);
     }
 
@@ -513,7 +496,10 @@ mod tests {
             "T4".to_string(),
         );
 
-        let tokens = builder.get_all_tokens(Some("T4".to_string())).await.unwrap();
+        let tokens = builder
+            .get_all_tokens(Some("T4".to_string()))
+            .await
+            .unwrap();
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0].symbol, "T4");
     }
@@ -581,7 +567,10 @@ mod tests {
             "ETH".to_string(),
         );
 
-        let tokens = builder.get_all_tokens(Some("USD".to_string())).await.unwrap();
+        let tokens = builder
+            .get_all_tokens(Some("USD".to_string()))
+            .await
+            .unwrap();
         assert_eq!(tokens.len(), 2);
 
         for token in &tokens {
@@ -602,8 +591,8 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod mockserver_tests {
         use super::*;
-        use alloy::primitives::Address;
         use crate::raindex_order_builder::RaindexOrderBuilder;
+        use alloy::primitives::Address;
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
         use serde_json::json;

@@ -1,4 +1,5 @@
 use super::*;
+use crate::{add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs};
 use alloy::{
     primitives::{Bytes, B256, U256},
     sol_types::SolCall,
@@ -16,7 +17,6 @@ use rain_orderbook_app_settings::{
 use rain_orderbook_bindings::{
     IOrderBookV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
 };
-use crate::{add_order::AddOrderArgs, deposit::DepositArgs, transaction::TransactionArgs};
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 use url::Url;
 
@@ -308,12 +308,7 @@ impl RaindexOrderBuilder {
             .update_bindings(
                 self.field_values
                     .keys()
-                    .map(|k| {
-                        Ok((
-                            k.clone(),
-                            self.get_field_value(k.clone())?.value.clone(),
-                        ))
-                    })
+                    .map(|k| Ok((k.clone(), self.get_field_value(k.clone())?.value.clone())))
                     .collect::<Result<HashMap<String, String>, RaindexOrderBuilderError>>()?,
             )?;
         Ok(())
@@ -366,9 +361,9 @@ impl RaindexOrderBuilder {
                 .token
                 .as_ref()
                 .ok_or(RaindexOrderBuilderError::SelectTokensNotSet)?;
-            let vault_id = order_io.vault_id.ok_or(
-                RaindexOrderBuilderError::VaultIdNotFound(index.to_string()),
-            )?;
+            let vault_id = order_io
+                .vault_id
+                .ok_or(RaindexOrderBuilderError::VaultIdNotFound(index.to_string()))?;
 
             let decimals = if let Some(decimals) = token.decimals {
                 decimals
@@ -418,8 +413,7 @@ impl RaindexOrderBuilder {
     pub async fn generate_deposit_and_add_order_calldatas(
         &mut self,
     ) -> Result<DepositAndAddOrderCalldataResult, RaindexOrderBuilderError> {
-        let deployment =
-            self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
+        let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut calls = Vec::new();
 
@@ -512,8 +506,7 @@ impl RaindexOrderBuilder {
         &mut self,
         owner: String,
     ) -> Result<DeploymentTransactionArgs, RaindexOrderBuilderError> {
-        let deployment =
-            self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
+        let deployment = self.prepare_calldata_generation(CalldataFunction::DepositAndAddOrder)?;
 
         let mut approvals = Vec::new();
         let approval_calldata = self.generate_approval_calldatas(owner).await?;
@@ -529,11 +522,9 @@ impl RaindexOrderBuilder {
             }
 
             for calldata in calldatas.iter() {
-                let token_info = output_token_infos
-                    .get(&calldata.token)
-                    .ok_or(RaindexOrderBuilderError::TokenNotFound(
-                        calldata.token.to_string(),
-                    ))?;
+                let token_info = output_token_infos.get(&calldata.token).ok_or(
+                    RaindexOrderBuilderError::TokenNotFound(calldata.token.to_string()),
+                )?;
                 approvals.push(ExtendedApprovalCalldata {
                     token: calldata.token,
                     calldata: calldata.calldata.clone(),
@@ -595,9 +586,7 @@ impl RaindexOrderBuilder {
         })
     }
 
-    fn get_metaboard_client(
-        &self,
-    ) -> Result<MetaboardSubgraphClient, RaindexOrderBuilderError> {
+    fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
         let orderbook_yaml = self.dotrain_order.orderbook_yaml();
         let metaboard_cfg =
@@ -611,10 +600,7 @@ impl RaindexOrderBuilder {
 
         let client = self.get_metaboard_client()?;
         match client
-            .get_metabytes_by_subject(&MetaBigInt(format!(
-                "0x{}",
-                alloy::hex::encode(subject)
-            )))
+            .get_metabytes_by_subject(&MetaBigInt(format!("0x{}", alloy::hex::encode(subject))))
             .await
         {
             Ok(metas) => Ok(metas.is_empty()),
@@ -792,8 +778,7 @@ mod tests {
             .expect("emit meta call missing");
         let decoded = RainMetaDocumentV1Item::cbor_decode(emit_meta_call.meta.as_ref()).unwrap();
         assert_eq!(decoded.len(), 1);
-        let dotrain_source =
-            DotrainSourceV1::try_from(decoded[0].clone()).unwrap();
+        let dotrain_source = DotrainSourceV1::try_from(decoded[0].clone()).unwrap();
         assert_eq!(dotrain_source.0, trimmed_dotrain);
 
         assert_eq!(
@@ -890,13 +875,9 @@ mod tests {
 
         async fn initialize_builder_with_metaboard_url(url: &str) -> RaindexOrderBuilder {
             let yaml = get_yaml().replace("https://metaboard.com", url);
-            RaindexOrderBuilder::new_with_deployment(
-                yaml,
-                None,
-                "some-deployment".to_string(),
-            )
-            .await
-            .unwrap()
+            RaindexOrderBuilder::new_with_deployment(yaml, None, "some-deployment".to_string())
+                .await
+                .unwrap()
         }
 
         #[tokio::test]

@@ -273,9 +273,7 @@ mod tests {
     async fn test_get_deposit_presets() {
         let builder = initialize_builder(None).await;
 
-        let presets = builder
-            .get_deposit_presets("token1".to_string())
-            .unwrap();
+        let presets = builder.get_deposit_presets("token1".to_string()).unwrap();
         assert_eq!(
             presets,
             vec![
@@ -336,10 +334,8 @@ mod tests {
         let err = builder.check_deposits().unwrap_err();
         assert_eq!(
             err.to_string(),
-            RaindexOrderBuilderError::MissingDepositToken(
-                "select-token-deployment".to_string()
-            )
-            .to_string()
+            RaindexOrderBuilderError::MissingDepositToken("select-token-deployment".to_string())
+                .to_string()
         );
     }
 
