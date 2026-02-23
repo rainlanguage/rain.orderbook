@@ -69,7 +69,7 @@ contract RaindexRouterOrderBookV6Arb is OrderBookV6RaindexRouter {
 
         address endTakeOrdersInputToken =
             takeOrders[1].orders[0].order.validInputs[takeOrders[1].orders[0].inputIOIndex].token;
-        require (prevLegTokenAddress == endTakeOrdersInputToken, "token mismatch");
+        require(prevLegTokenAddress == endTakeOrdersInputToken, "token mismatch");
 
         IERC20(endTakeOrdersInputToken).forceApprove(msg.sender, 0);
         IERC20(endTakeOrdersInputToken).forceApprove(msg.sender, type(uint256).max);
