@@ -1,9 +1,7 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use rain_math_float::Float;
-use rain_orderbook_quote::{
-    get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair,
-};
+use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
 use rain_orderbook_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
 

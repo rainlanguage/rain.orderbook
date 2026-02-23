@@ -83,9 +83,13 @@ pub async fn build_take_order_candidates_for_pair(
         let orderbook = get_orderbook_address(order)?;
         let oracle_url = {
             #[cfg(target_family = "wasm")]
-            { order.oracle_url() }
+            {
+                order.oracle_url()
+            }
             #[cfg(not(target_family = "wasm"))]
-            { order.oracle_url() }
+            {
+                order.oracle_url()
+            }
         };
 
         for quote in &quotes {
@@ -128,7 +132,8 @@ async fn fetch_oracle_for_pair(
     output_io_index: u32,
     counterparty: Address,
 ) -> Vec<SignedContextV1> {
-    let body = crate::oracle::encode_oracle_body(order, input_io_index, output_io_index, counterparty);
+    let body =
+        crate::oracle::encode_oracle_body(order, input_io_index, output_io_index, counterparty);
     match crate::oracle::fetch_signed_context(oracle_url, body).await {
         Ok(ctx) => vec![ctx],
         Err(e) => {
