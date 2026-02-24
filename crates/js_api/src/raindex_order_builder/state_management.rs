@@ -99,13 +99,13 @@ impl RaindexOrderBuilder {
 
     #[wasm_export(
         js_name = "generateDotrainBuilderStateInstanceV1",
-        unchecked_return_type = "DotrainGuiStateV1",
+        unchecked_return_type = "OrderBuilderStateV1",
         return_description = "Builder state instance for metadata embedding"
     )]
     pub fn generate_dotrain_builder_state_instance_v1(
         &self,
     ) -> Result<
-        rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1,
+        rain_metadata::types::dotrain::order_builder_state_v1::OrderBuilderStateV1,
         RaindexOrderBuilderWasmError,
     > {
         Ok(self.inner.generate_dotrain_builder_state_instance_v1()?)

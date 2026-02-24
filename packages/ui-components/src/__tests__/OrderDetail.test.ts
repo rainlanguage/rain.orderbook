@@ -448,14 +448,14 @@ describe('OrderDetail', () => {
 	it('renders the builder state tab with formatted JSON when present', async () => {
 		const user = userEvent.setup();
 		const builderState = JSON.stringify({ foo: 'bar' });
-		resolveOrder({ dotrainGuiState: builderState });
+		resolveOrder({ orderBuilderState: builderState });
 
 		render(OrderDetail, {
 			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
-		const builderTab = await screen.findByText('Gui State');
+		const builderTab = await screen.findByText('Builder State');
 		await user.click(builderTab);
 
 		await waitFor(() => {
@@ -465,14 +465,14 @@ describe('OrderDetail', () => {
 
 	it('handles invalid builder state JSON gracefully', async () => {
 		const user = userEvent.setup();
-		resolveOrder({ dotrainGuiState: '{invalid' });
+		resolveOrder({ orderBuilderState: '{invalid' });
 
 		render(OrderDetail, {
 			props: defaultProps,
 			context: new Map([['$$_queryClient', queryClient]])
 		});
 
-		const builderTab = await screen.findByText('Gui State');
+		const builderTab = await screen.findByText('Builder State');
 		await user.click(builderTab);
 
 		await waitFor(() => {

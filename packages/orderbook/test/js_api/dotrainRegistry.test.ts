@@ -66,7 +66,7 @@ tokens:
 const MOCK_DOTRAIN_PREFIX = `
 version: ${SPEC_VERSION}
 builder:
-  name: Test gui
+  name: Test builder
   description: Test description
   short-description: Test short description
   deployments:
@@ -268,7 +268,7 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 
 			const fixedLimitDetails = orderDetails.valid.get('fixed-limit');
 			assert(fixedLimitDetails);
-			assert.strictEqual(fixedLimitDetails.name, 'Test gui');
+			assert.strictEqual(fixedLimitDetails.name, 'Test builder');
 			assert.strictEqual(fixedLimitDetails.description, 'Test description');
 			assert.strictEqual(fixedLimitDetails.short_description, 'Test short description');
 		});

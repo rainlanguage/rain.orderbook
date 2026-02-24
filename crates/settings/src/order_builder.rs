@@ -1107,8 +1107,8 @@ mod tests {
     #[test]
     fn test_order_builder_creation_success() {
         let order_builder_config_source = OrderBuilderConfigSourceCfg {
-            name: "test-gui".to_string(),
-            description: "test-gui-description".to_string(),
+            name: "test-builder".to_string(),
+            description: "test-builder-description".to_string(),
             short_description: None,
             deployments: HashMap::from([(
                 "test-deployment".to_string(),
@@ -1221,8 +1221,8 @@ mod tests {
             .try_into_order_builder(&deployments, &tokens)
             .unwrap();
 
-        assert_eq!(order_builder.name, "test-gui");
-        assert_eq!(order_builder.description, "test-gui-description");
+        assert_eq!(order_builder.name, "test-builder");
+        assert_eq!(order_builder.description, "test-builder-description");
         assert_eq!(order_builder.deployments.len(), 1);
         let deployment = &order_builder.deployments.get("test-deployment").unwrap();
         assert_eq!(deployment.name, "test-deployment");
@@ -2926,7 +2926,7 @@ builder:
     fn test_sanitize_documents_drops_unknown_builder_keys() {
         let yaml = r#"
 builder:
-    name: test-gui
+    name: test-builder
     description: test description
     short-description: short desc
     unknown-key: should-be-dropped

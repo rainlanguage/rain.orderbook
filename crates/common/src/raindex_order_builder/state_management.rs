@@ -1,6 +1,6 @@
 use super::*;
 use rain_metadata::types::dotrain::{
-    gui_state_v1::{DotrainGuiStateV1, ShortenedTokenCfg, ValueCfg},
+    order_builder_state_v1::{OrderBuilderStateV1, ShortenedTokenCfg, ValueCfg},
     source_v1::DotrainSourceV1,
 };
 use rain_orderbook_app_settings::{
@@ -88,7 +88,7 @@ impl RaindexOrderBuilder {
 
     pub fn generate_dotrain_builder_state_instance_v1(
         &self,
-    ) -> Result<DotrainGuiStateV1, RaindexOrderBuilderError> {
+    ) -> Result<OrderBuilderStateV1, RaindexOrderBuilderError> {
         let trimmed_dotrain = self
             .dotrain_order
             .generate_dotrain_for_deployment(&self.selected_deployment)?;
@@ -179,7 +179,7 @@ impl RaindexOrderBuilder {
             })
             .collect::<Result<_, RaindexOrderBuilderError>>()?;
 
-        Ok(DotrainGuiStateV1 {
+        Ok(OrderBuilderStateV1 {
             dotrain_hash,
             field_values,
             deposits,

@@ -123,7 +123,7 @@ deployments:
 using-tokens-from:
   - https://tokens.coingecko.com/base/all.json
 
-gui:
+builder:
   name: Fixed limit
   description: Deploy a USDC -> WETH limit order on Base.
   short-description: Deploy a USDC -> WETH limit order on Base.
@@ -545,14 +545,14 @@ const ordersResult = await client.getOrders([8453]);
 
 ### Build a deployment order builder
 
-Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `RaindexOrderBuilder`. The `FIXED_LIMIT_SOURCE` constant declared earlier already includes the required networks/tokens/deployers plus a full `gui` definition, so you can reference it directly (or trim it to your own bindings) instead of copying pieces of `settings.yaml` inline in this guide. Always cross-check the source you feed in with the latest definitions in [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies); that repository tracks the real configurations our UI ships with.
+Any dotrain file that includes a `builder:` block plus the usual settings YAML is enough to drive `RaindexOrderBuilder`. The `FIXED_LIMIT_SOURCE` constant declared earlier already includes the required networks/tokens/deployers plus a full `builder` definition, so you can reference it directly (or trim it to your own bindings) instead of copying pieces of `settings.yaml` inline in this guide. Always cross-check the source you feed in with the latest definitions in [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies); that repository tracks the real configurations our UI ships with.
 
 With that single source string (read from disk or built dynamically) you can drive the full order builder workflow:
 
 ```ts
 import { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 
-const dotrainWithGui = FIXED_LIMIT_SOURCE;
+const dotrainWithBuilder = FIXED_LIMIT_SOURCE;
 const SAMPLE_YAML = `
 ...
 deployers:
@@ -568,14 +568,14 @@ orderbooks:
 const additionalSettings = [SAMPLE_YAML]; // optional extra YAML strings
 
 const deploymentsResult = await RaindexOrderBuilder.getDeploymentKeys(
-  dotrainWithGui,
+  dotrainWithBuilder,
   additionalSettings
 );
 if (deploymentsResult.error) throw new Error(deploymentsResult.error.readableMsg);
 const [firstDeployment] = deploymentsResult.value;
 
 const builderResult = await RaindexOrderBuilder.newWithDeployment(
-  dotrainWithGui,
+  dotrainWithBuilder,
   additionalSettings,
   firstDeployment
 );

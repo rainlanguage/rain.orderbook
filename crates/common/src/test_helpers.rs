@@ -79,7 +79,7 @@ deployments:
         order: order1
         scenario: scenario1
 builder:
-    name: Test gui
+    name: Test builder
     description: Test description
     short-description: Test short description
     deployments:

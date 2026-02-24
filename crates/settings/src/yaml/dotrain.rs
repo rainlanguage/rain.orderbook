@@ -453,7 +453,7 @@ mod tests {
             order: order1
             scenario: scenario1
     builder:
-        name: Test gui
+        name: Test builder
         description: Test description
         short-description: Test short description
         deployments:
@@ -587,7 +587,7 @@ mod tests {
             order: order1
             scenario: scenario1.scenario2
     builder:
-        name: Test gui
+        name: Test builder
         description: Test description
         deployments:
             deployment1:
@@ -708,7 +708,7 @@ mod tests {
             .get_order_builder("deployment1")
             .unwrap()
             .unwrap();
-        assert_eq!(order_builder.name, "Test gui");
+        assert_eq!(order_builder.name, "Test builder");
         assert_eq!(order_builder.description, "Test description");
         assert_eq!(order_builder.deployments.len(), 1);
         let deployment = order_builder.deployments.get("deployment1").unwrap();
@@ -740,7 +740,7 @@ mod tests {
         );
 
         let details = OrderBuilderCfg::parse_order_details(dotrain_yaml.documents.clone()).unwrap();
-        assert_eq!(details.name, "Test gui");
+        assert_eq!(details.name, "Test builder");
         assert_eq!(details.description, "Test description");
 
         let deployment_details =

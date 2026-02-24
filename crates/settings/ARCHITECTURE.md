@@ -163,7 +163,7 @@ These three model how orders are defined, how they are executed (bindings, block
 - `OrderCfg { key, inputs: Vec<OrderIOCfg>, outputs: Vec<OrderIOCfg>, network: Arc<NetworkCfg>, deployer?: Arc<DeployerCfg>, orderbook?: Arc<OrderbookCfg> }`.
 - `OrderIOCfg { token_key: String, token?: Arc<TokenCfg>, vault_id?: U256 }` – `token_key` preserves the declared token name even when the token is unresolved for select‑tokens; vault IDs are arbitrary U256 strings.
 - Validation and network unification
-  - Inputs/outputs must each contain `token` (unless permitted by GUI select‑tokens through context) and optional `vault-id`.
+  - Inputs/outputs must each contain `token` (unless permitted by builder select‑tokens through context) and optional `vault-id`.
   - The order’s effective `network` is inferred from first matching component (deployer/orderbook/token), and all references must match. Mismatch yields detailed errors (`DeployerNetworkDoesNotMatch`, `OrderbookNetworkDoesNotMatch`, `InputTokenNetworkDoesNotMatch`, `OutputTokenNetworkDoesNotMatch`). If no network can be determined, `NetworkNotFoundError` is raised.
   - Vault IDs are validated via `U256::from_str`.
 - Mutations
@@ -347,9 +347,9 @@ When building for `wasm32`, many types derive `Tsify` and implement WASM trait h
 
 ## Testing
 
-The crate ships extensive unit tests for every parser and update path, including error paths with precise messages. Test helpers in `src/test.rs` construct mock networks/deployers/tokens/orderbooks; parser modules provide happy‑path and negative test cases (duplicate keys, missing/invalid fields, range validation for blocks, GUI validation, remote fetch flows with http mocks, etc.).
+The crate ships extensive unit tests for every parser and update path, including error paths with precise messages. Test helpers in `src/test.rs` construct mock networks/deployers/tokens/orderbooks; parser modules provide happy‑path and negative test cases (duplicate keys, missing/invalid fields, range validation for blocks, builder validation, remote fetch flows with http mocks, etc.).
 
 
 ## Summary
 
-The settings crate provides a single, well‑typed interface over YAML configuration for the Rain Orderbook ecosystem: robust parsing across multiple files, strict validation with user‑friendly errors, safe in‑place updates, optional remote augmentation, contextual interpolation, GUI and chart DSLs, and WASM interop. Other crates consume these types to build CLIs, runtimes, and UIs without re‑implementing YAML logic.
+The settings crate provides a single, well‑typed interface over YAML configuration for the Rain Orderbook ecosystem: robust parsing across multiple files, strict validation with user‑friendly errors, safe in‑place updates, optional remote augmentation, contextual interpolation, builder and chart DSLs, and WASM interop. Other crates consume these types to build CLIs, runtimes, and UIs without re‑implementing YAML logic.

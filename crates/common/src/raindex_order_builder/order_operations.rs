@@ -770,7 +770,7 @@ mod tests {
         assert_eq!(additional_meta.len(), 1);
         assert_eq!(
             additional_meta[0].magic,
-            rain_metadata::KnownMagic::DotrainGuiStateV1
+            rain_metadata::KnownMagic::OrderBuilderStateV1
         );
 
         let emit_meta_call = add_order_args
