@@ -52,7 +52,7 @@ mod tests {
     use url::Url;
 
     fn sample_target(metadata_rpcs: Vec<Url>) -> RunnerTarget {
-        let fetch = FetchConfig::new(1, 1, 1, 1).expect("fetch config");
+        let fetch = FetchConfig::new(1, 1, 1, 1, 0, 0).expect("fetch config");
         RunnerTarget {
             orderbook_key: "test-ob".to_string(),
             network_key: "test-network".to_string(),
