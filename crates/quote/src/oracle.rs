@@ -164,7 +164,7 @@ pub fn extract_oracle_url(order: &SgOrder) -> Option<String> {
 mod tests {
     use super::*;
     use alloy::primitives::{address, FixedBytes};
-    use rain_orderbook_bindings::IOrderBookV6::{EvaluableV4, IOV2, OrderV4};
+    use rain_orderbook_bindings::IOrderBookV6::{EvaluableV4, OrderV4, IOV2};
 
     #[test]
     fn test_oracle_response_to_signed_context() {
