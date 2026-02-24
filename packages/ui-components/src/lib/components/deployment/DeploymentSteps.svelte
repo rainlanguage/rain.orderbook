@@ -3,10 +3,10 @@
 	import TokenIOInput from './TokenIOInput.svelte';
 	import ComposedRainlangModal from './ComposedRainlangModal.svelte';
 	import {
-		type GuiSelectTokensCfg,
+		type OrderBuilderSelectTokensCfg,
 		type ExtendedTokenInfo,
-		type GuiDepositCfg,
-		type GuiFieldDefinitionCfg,
+		type OrderBuilderDepositCfg,
+		type OrderBuilderFieldDefinitionCfg,
 		type NameAndDescriptionCfg,
 		type OrderIOCfg,
 		RaindexOrderBuilder,
@@ -48,15 +48,15 @@
 	export let appKitModal: Writable<AppKit>;
 	export let account: Account;
 
-	let allDepositFields: GuiDepositCfg[] = [];
+	let allDepositFields: OrderBuilderDepositCfg[] = [];
 	let allTokenOutputs: OrderIOCfg[] = [];
 	let allTokenInputs: OrderIOCfg[] = [];
-	let allFieldDefinitionsWithoutDefaults: GuiFieldDefinitionCfg[] = [];
-	let allFieldDefinitionsWithDefaults: GuiFieldDefinitionCfg[] = [];
+	let allFieldDefinitionsWithoutDefaults: OrderBuilderFieldDefinitionCfg[] = [];
+	let allFieldDefinitionsWithDefaults: OrderBuilderFieldDefinitionCfg[] = [];
 	let allTokensSelected: boolean = false;
 	let showAdvancedOptions: boolean = false;
 	let allTokenInfos: ExtendedTokenInfo[] = [];
-	let selectTokens: GuiSelectTokensCfg[] | undefined = undefined;
+	let selectTokens: OrderBuilderSelectTokensCfg[] | undefined = undefined;
 	let checkingDeployment: boolean = false;
 	let tokenBalances: Map<string, TokenBalance> = new Map();
 

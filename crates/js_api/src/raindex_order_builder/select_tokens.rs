@@ -4,13 +4,13 @@ use super::*;
 impl RaindexOrderBuilder {
     #[wasm_export(
         js_name = "getSelectTokens",
-        unchecked_return_type = "GuiSelectTokensCfg[]",
+        unchecked_return_type = "OrderBuilderSelectTokensCfg[]",
         return_description = "Array of token selection configurations"
     )]
     pub fn get_select_tokens(
         &self,
     ) -> Result<
-        Vec<rain_orderbook_app_settings::gui::GuiSelectTokensCfg>,
+        Vec<rain_orderbook_app_settings::order_builder::OrderBuilderSelectTokensCfg>,
         RaindexOrderBuilderWasmError,
     > {
         Ok(self.inner.get_select_tokens()?)

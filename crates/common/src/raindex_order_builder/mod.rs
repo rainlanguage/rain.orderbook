@@ -13,11 +13,11 @@ use rain_math_float::FloatError;
 use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClientError;
 use rain_orderbook_app_settings::{
     deployment::DeploymentCfg,
-    gui::{
-        GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
-        ParseGuiConfigSourceError,
-    },
     order::OrderCfg,
+    order_builder::{
+        NameAndDescriptionCfg, OrderBuilderCfg, OrderBuilderDeploymentCfg,
+        OrderBuilderFieldDefinitionCfg, OrderBuilderPresetCfg, ParseOrderBuilderConfigSourceError,
+    },
     yaml::{
         context::ContextProfile,
         dotrain::{DotrainYaml, DotrainYamlValidation},
@@ -66,7 +66,7 @@ impl RaindexOrderBuilder {
         settings: Option<Vec<String>>,
     ) -> Result<Vec<String>, RaindexOrderBuilderError> {
         let documents = RaindexOrderBuilder::get_yaml_documents(&dotrain, settings)?;
-        Ok(GuiCfg::parse_deployment_keys(documents)?)
+        Ok(OrderBuilderCfg::parse_deployment_keys(documents)?)
     }
 
     pub async fn new_with_deployment(
@@ -76,7 +76,7 @@ impl RaindexOrderBuilder {
     ) -> Result<RaindexOrderBuilder, RaindexOrderBuilderError> {
         let documents = RaindexOrderBuilder::get_yaml_documents(&dotrain, settings.clone())?;
 
-        let keys = GuiCfg::parse_deployment_keys(documents.clone())?;
+        let keys = OrderBuilderCfg::parse_deployment_keys(documents.clone())?;
         if !keys.contains(&selected_deployment) {
             return Err(RaindexOrderBuilderError::DeploymentNotFound(
                 selected_deployment.clone(),
@@ -86,7 +86,7 @@ impl RaindexOrderBuilder {
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             settings,
-            ContextProfile::gui(selected_deployment.clone()),
+            ContextProfile::builder(selected_deployment.clone()),
         )
         .await?;
 
@@ -101,19 +101,23 @@ impl RaindexOrderBuilder {
         })
     }
 
-    pub fn get_builder_config(&self) -> Result<GuiCfg, RaindexOrderBuilderError> {
-        if !GuiCfg::check_gui_key_exists(self.dotrain_order.dotrain_yaml().documents.clone())? {
+    pub fn get_builder_config(&self) -> Result<OrderBuilderCfg, RaindexOrderBuilderError> {
+        if !OrderBuilderCfg::check_builder_key_exists(
+            self.dotrain_order.dotrain_yaml().documents.clone(),
+        )? {
             return Err(RaindexOrderBuilderError::BuilderConfigNotFound);
         }
         let config = self
             .dotrain_order
             .dotrain_yaml()
-            .get_gui(&self.selected_deployment)?
+            .get_order_builder(&self.selected_deployment)?
             .ok_or(RaindexOrderBuilderError::BuilderConfigNotFound)?;
         Ok(config)
     }
 
-    pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, RaindexOrderBuilderError> {
+    pub fn get_current_deployment(
+        &self,
+    ) -> Result<OrderBuilderDeploymentCfg, RaindexOrderBuilderError> {
         let config = self.get_builder_config()?;
         let (_, deployment) = config
             .deployments
@@ -167,7 +171,7 @@ impl RaindexOrderBuilder {
         settings: Option<Vec<String>>,
     ) -> Result<NameAndDescriptionCfg, RaindexOrderBuilderError> {
         let documents = RaindexOrderBuilder::get_yaml_documents(&dotrain, settings)?;
-        Ok(GuiCfg::parse_order_details(documents)?)
+        Ok(OrderBuilderCfg::parse_order_details(documents)?)
     }
 
     pub fn get_deployment_details(
@@ -175,7 +179,7 @@ impl RaindexOrderBuilder {
         settings: Option<Vec<String>>,
     ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, RaindexOrderBuilderError> {
         let documents = RaindexOrderBuilder::get_yaml_documents(&dotrain, settings)?;
-        Ok(GuiCfg::parse_deployment_details(documents)?)
+        Ok(OrderBuilderCfg::parse_deployment_details(documents)?)
     }
 
     pub fn get_deployment_detail(
@@ -193,8 +197,9 @@ impl RaindexOrderBuilder {
     pub fn get_current_deployment_details(
         &self,
     ) -> Result<NameAndDescriptionCfg, RaindexOrderBuilderError> {
-        let deployment_details =
-            GuiCfg::parse_deployment_details(self.dotrain_order.dotrain_yaml().documents.clone())?;
+        let deployment_details = OrderBuilderCfg::parse_deployment_details(
+            self.dotrain_order.dotrain_yaml().documents.clone(),
+        )?;
         Ok(deployment_details
             .get(&self.selected_deployment)
             .ok_or(RaindexOrderBuilderError::DeploymentNotFound(
@@ -221,7 +226,7 @@ impl RaindexOrderBuilder {
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             None,
-            ContextProfile::gui(deployment.deployment.key.clone()),
+            ContextProfile::builder(deployment.deployment.key.clone()),
         )
         .await?;
         let rainlang = dotrain_order
@@ -300,7 +305,7 @@ pub enum RaindexOrderBuilderError {
     #[error(transparent)]
     DotrainOrderError(#[from] DotrainOrderError),
     #[error(transparent)]
-    ParseGuiConfigSourceError(#[from] ParseGuiConfigSourceError),
+    ParseOrderBuilderConfigSourceError(#[from] ParseOrderBuilderConfigSourceError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error(transparent)]
@@ -392,7 +397,7 @@ impl RaindexOrderBuilderError {
                 format!("The token '{}' is not in the list of selectable tokens defined in the YAML configuration.", token),
             Self::DotrainOrderError(err) =>
                 format!("Order configuration error in YAML: {}", err),
-            Self::ParseGuiConfigSourceError(err) =>
+            Self::ParseOrderBuilderConfigSourceError(err) =>
                 format!("Failed to parse YAML builder configuration: {}", err),
             Self::IoError(err) =>
                 format!("I/O error: {}", err),
@@ -448,7 +453,7 @@ pub mod tests {
         format!(
             r#"
 version: {spec_version}
-gui:
+builder:
   name: Fixed limit
   description: Fixed limit order
   short-description: Buy WETH with USDC on Base.
@@ -630,7 +635,7 @@ _ _: 0 0;
         format!(
             r#"
 version: {spec_version}
-gui:
+builder:
   name: Validation Test
   description: Test deployment with various validation rules
   deployments:
@@ -984,7 +989,7 @@ _ _: 0 0;
         use serde_json::json;
 
         pub const SELECT_TOKEN_YAML: &str = r#"
-gui:
+builder:
     name: Fixed limit
     description: Fixed limit order order
     short-description: Buy WETH with USDC on Base.

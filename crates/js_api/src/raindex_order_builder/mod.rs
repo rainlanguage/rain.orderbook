@@ -1,5 +1,6 @@
-use rain_orderbook_app_settings::gui::{
-    GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, NameAndDescriptionCfg,
+use rain_orderbook_app_settings::order_builder::{
+    NameAndDescriptionCfg, OrderBuilderCfg, OrderBuilderDeploymentCfg,
+    OrderBuilderFieldDefinitionCfg,
 };
 pub use rain_orderbook_common::erc20::ExtendedTokenInfo;
 use rain_orderbook_common::raindex_order_builder::{
@@ -26,16 +27,16 @@ pub struct RaindexOrderBuilder {
 
 #[wasm_export]
 impl RaindexOrderBuilder {
-    /// Lists all available gui deployment keys from a dotrain YAML file.
+    /// Lists all available builder deployment keys from a dotrain YAML file.
     ///
-    /// This function parses the gui section of the YAML frontmatter to extract deployment keys that can be used
-    /// to initialize a GUI instance. Use this to build deployment selectors in your UI.
+    /// This function parses the builder section of the YAML frontmatter to extract deployment keys that can be used
+    /// to initialize a builder instance. Use this to build deployment selectors in your UI.
     ///
     /// ## Examples
     ///
     /// ```javascript
     /// const dotrain = `
-    /// gui:
+    /// builder:
     ///   deployments:
     ///     mainnet-order:
     ///       name: "Mainnet Trading"
@@ -58,7 +59,7 @@ impl RaindexOrderBuilder {
     )]
     pub async fn get_deployment_keys(
         #[wasm_export(
-            param_description = "Complete dotrain YAML content including the `gui.deployments` section"
+            param_description = "Complete dotrain YAML content including the `builder.deployments` section"
         )]
         dotrain: String,
         #[wasm_export(
@@ -69,9 +70,9 @@ impl RaindexOrderBuilder {
         Ok(RaindexOrderBuilderInner::get_deployment_keys(dotrain, settings).await?)
     }
 
-    /// Creates a new GUI instance for managing a specific deployment configuration.
+    /// Creates a new builder instance for managing a specific deployment configuration.
     ///
-    /// This is the primary initialization function that sets up the GUI context for a chosen
+    /// This is the primary initialization function that sets up the builder context for a chosen
     /// deployment. The instance tracks field values, deposits, token selections, and provides
     /// methods for generating order transactions.
     ///
@@ -89,7 +90,7 @@ impl RaindexOrderBuilder {
     ///   console.error("Init failed:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const gui = result.value;
+    /// const builder = result.value;
     ///
     /// // With state persistence
     /// const result = await RaindexOrderBuilder.newWithDeployment(
@@ -100,14 +101,14 @@ impl RaindexOrderBuilder {
     ///   }
     /// );
     /// if (!result.error) {
-    ///   const gui = result.value;
-    ///   // Use gui instance...
+    ///   const builder = result.value;
+    ///   // Use builder instance...
     /// }
     /// ```
     #[wasm_export(
         js_name = "newWithDeployment",
         preserve_js_class,
-        return_description = "Initialized GUI instance for further operations"
+        return_description = "Initialized builder instance for further operations"
     )]
     pub async fn new_with_deployment(
         #[wasm_export(param_description = "Complete dotrain YAML content with all configurations")]
@@ -122,7 +123,7 @@ impl RaindexOrderBuilder {
         selected_deployment: String,
         #[wasm_export(param_description = "Optional function called on state changes. \
             After a state change (deposit, field value, vault id, select token, etc.), the callback is called with the new state. \
-            This is useful for auto-saving the state of the GUI across sessions.")]
+            This is useful for auto-saving the state of the builder across sessions.")]
         state_update_callback: Option<js_sys::Function>,
     ) -> Result<RaindexOrderBuilder, RaindexOrderBuilderWasmError> {
         let inner =
@@ -134,9 +135,9 @@ impl RaindexOrderBuilder {
         })
     }
 
-    /// Retrieves the complete GUI configuration including all deployments.
+    /// Retrieves the complete builder configuration including all deployments.
     ///
-    /// This returns the parsed GUI section from the YAML, filtered to include only
+    /// This returns the parsed builder section from the YAML, filtered to include only
     /// the current deployment. Use this to access order-level metadata.
     ///
     /// ## Examples
@@ -152,10 +153,10 @@ impl RaindexOrderBuilder {
     /// ```
     #[wasm_export(
         js_name = "getBuilderConfig",
-        unchecked_return_type = "GuiCfg",
+        unchecked_return_type = "OrderBuilderCfg",
         return_description = "Complete builder configuration with name, description, and deployments"
     )]
-    pub fn get_builder_config(&self) -> Result<GuiCfg, RaindexOrderBuilderWasmError> {
+    pub fn get_builder_config(&self) -> Result<OrderBuilderCfg, RaindexOrderBuilderWasmError> {
         Ok(self.inner.get_builder_config()?)
     }
 
@@ -174,7 +175,7 @@ impl RaindexOrderBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = gui.getCurrentDeployment();
+    /// const result = builder.getCurrentDeployment();
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -184,10 +185,12 @@ impl RaindexOrderBuilder {
     /// ```
     #[wasm_export(
         js_name = "getCurrentDeployment",
-        unchecked_return_type = "GuiDeploymentCfg",
+        unchecked_return_type = "OrderBuilderDeploymentCfg",
         return_description = "Active deployment with all configuration details"
     )]
-    pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, RaindexOrderBuilderWasmError> {
+    pub fn get_current_deployment(
+        &self,
+    ) -> Result<OrderBuilderDeploymentCfg, RaindexOrderBuilderWasmError> {
         Ok(self.inner.get_current_deployment()?)
     }
 
@@ -205,7 +208,7 @@ impl RaindexOrderBuilder {
     ///
     /// ```javascript
     /// // Get token info (may query blockchain)
-    /// const result = await gui.getTokenInfo("weth");
+    /// const result = await builder.getTokenInfo("weth");
     /// if (result.error) {
     ///   console.error("Token error:", result.error.readableMsg);
     ///   return;
@@ -240,7 +243,7 @@ impl RaindexOrderBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await gui.getAllTokenInfos();
+    /// const result = await builder.getAllTokenInfos();
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -261,15 +264,15 @@ impl RaindexOrderBuilder {
 
     /// Extracts order-level metadata from a dotrain configuration.
     ///
-    /// This static method allows checking order details without creating a GUI instance,
+    /// This static method allows checking order details without creating a builder instance,
     /// useful for displaying order information before deployment selection.
     ///
     /// ## Required Fields
     ///
     /// The YAML must contain:
-    /// - `gui.name` - Order display name
-    /// - `gui.description` - Full order description
-    /// - `gui.short-description` - Brief summary (optional but recommended)
+    /// - `builder.name` - Order display name
+    /// - `builder.description` - Full order description
+    /// - `builder.short-description` - Brief summary (optional but recommended)
     ///
     /// ## Examples
     ///
@@ -385,7 +388,7 @@ impl RaindexOrderBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = gui.getCurrentDeploymentDetails();
+    /// const result = builder.getCurrentDeploymentDetails();
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
@@ -413,7 +416,7 @@ impl RaindexOrderBuilder {
     ///
     /// The output follows the standard dotrain format:
     /// ```text
-    /// gui:
+    /// builder:
     ///   ...
     /// ---
     /// #binding1 !The binding value
@@ -424,7 +427,7 @@ impl RaindexOrderBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = gui.generateDotrainText();
+    /// const result = builder.generateDotrainText();
     /// if (result.error) {
     ///   console.error("Export failed:", result.error.readableMsg);
     ///   return;
@@ -453,7 +456,7 @@ impl RaindexOrderBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await gui.getComposedRainlang();
+    /// const result = await builder.getComposedRainlang();
     /// if (result.error) {
     ///   console.error("Composition error:", result.error.readableMsg);
     ///   return;
@@ -509,7 +512,7 @@ impl From<RaindexOrderBuilderWasmError> for WasmEncodedError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::gui::GuiPresetCfg;
+    use rain_orderbook_app_settings::order_builder::OrderBuilderPresetCfg;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -518,7 +521,7 @@ mod tests {
         format!(
             r#"
 version: {spec_version}
-gui:
+builder:
   name: Fixed limit
   description: Fixed limit order
   short-description: Buy WETH with USDC on Base.
@@ -700,7 +703,7 @@ _ _: 0 0;
         format!(
             r#"
 version: {spec_version}
-gui:
+builder:
   name: Validation Test
   description: Test deployment with various validation rules
   deployments:
@@ -931,7 +934,7 @@ _ _: 0 0;
         )
     }
 
-    pub async fn initialize_gui(deployment_name: Option<String>) -> RaindexOrderBuilder {
+    pub async fn initialize_builder(deployment_name: Option<String>) -> RaindexOrderBuilder {
         RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
@@ -942,7 +945,7 @@ _ _: 0 0;
         .unwrap()
     }
 
-    pub async fn initialize_gui_with_select_tokens() -> RaindexOrderBuilder {
+    pub async fn initialize_builder_with_select_tokens() -> RaindexOrderBuilder {
         RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
@@ -953,7 +956,7 @@ _ _: 0 0;
         .unwrap()
     }
 
-    pub async fn initialize_validation_gui() -> RaindexOrderBuilder {
+    pub async fn initialize_validation_builder() -> RaindexOrderBuilder {
         RaindexOrderBuilder::new_with_deployment(
             get_yaml_with_validation(),
             None,
@@ -1008,7 +1011,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_builder_config() {
-        let gui = RaindexOrderBuilder::new_with_deployment(
+        let builder = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1017,7 +1020,7 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let builder_config = gui.get_builder_config().unwrap();
+        let builder_config = builder.get_builder_config().unwrap();
         assert_eq!(builder_config.name, "Fixed limit".to_string());
         assert_eq!(builder_config.description, "Fixed limit order".to_string());
         assert_eq!(builder_config.deployments.len(), 1);
@@ -1048,17 +1051,17 @@ _ _: 0 0;
         assert_eq!(
             field.presets,
             Some(vec![
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "0".to_string(),
                     name: Some("Preset 1".to_string()),
                     value: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "1".to_string(),
                     name: Some("Preset 2".to_string()),
                     value: "false".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "2".to_string(),
                     name: Some("Preset 3".to_string()),
                     value: "some-string".to_string(),
@@ -1072,17 +1075,17 @@ _ _: 0 0;
         assert_eq!(
             field.presets,
             Some(vec![
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "0".to_string(),
                     name: None,
                     value: "99.2".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "1".to_string(),
                     name: None,
                     value: "582.1".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "2".to_string(),
                     name: None,
                     value: "648.239".to_string(),
@@ -1093,7 +1096,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_current_deployment() {
-        let gui = RaindexOrderBuilder::new_with_deployment(
+        let builder = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1102,7 +1105,7 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let deployment = gui.get_current_deployment().unwrap();
+        let deployment = builder.get_current_deployment().unwrap();
         assert_eq!(deployment.name, "Buy WETH with USDC on Base.".to_string());
         assert_eq!(
             deployment.description,
@@ -1129,17 +1132,17 @@ _ _: 0 0;
         assert_eq!(
             field.presets,
             Some(vec![
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "0".to_string(),
                     name: Some("Preset 1".to_string()),
                     value: "0x1234567890abcdef1234567890abcdef12345678".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "1".to_string(),
                     name: Some("Preset 2".to_string()),
                     value: "false".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "2".to_string(),
                     name: Some("Preset 3".to_string()),
                     value: "some-string".to_string(),
@@ -1153,17 +1156,17 @@ _ _: 0 0;
         assert_eq!(
             field.presets,
             Some(vec![
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "0".to_string(),
                     name: None,
                     value: "99.2".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "1".to_string(),
                     name: None,
                     value: "582.1".to_string(),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: "2".to_string(),
                     name: None,
                     value: "648.239".to_string(),
@@ -1174,7 +1177,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_token_info_local() {
-        let gui = RaindexOrderBuilder::new_with_deployment(
+        let builder = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1183,7 +1186,7 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let token1_info = gui.get_token_info("token1".to_string()).await.unwrap();
+        let token1_info = builder.get_token_info("token1".to_string()).await.unwrap();
         assert_eq!(
             token1_info.address.to_string(),
             "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
@@ -1192,7 +1195,7 @@ _ _: 0 0;
         assert_eq!(token1_info.name, "Token 1");
         assert_eq!(token1_info.symbol, "T1");
 
-        let token2_info = gui.get_token_info("token2".to_string()).await.unwrap();
+        let token2_info = builder.get_token_info("token2".to_string()).await.unwrap();
         assert_eq!(
             token2_info.address.to_string(),
             "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063"
@@ -1201,7 +1204,7 @@ _ _: 0 0;
         assert_eq!(token2_info.name, "Token 2");
         assert_eq!(token2_info.symbol, "T2");
 
-        let err = gui
+        let err = builder
             .get_token_info("invalid-token".to_string())
             .await
             .unwrap_err();
@@ -1217,7 +1220,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_all_token_infos_local() {
-        let gui = RaindexOrderBuilder::new_with_deployment(
+        let builder = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1226,7 +1229,7 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let token_infos = gui.get_all_token_infos().await.unwrap();
+        let token_infos = builder.get_all_token_infos().await.unwrap();
         assert_eq!(token_infos.len(), 2);
         assert_eq!(
             token_infos[0].address.to_string(),
@@ -1257,7 +1260,7 @@ _ _: 0 0;
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     test: test
 ---
 #calculate-io
@@ -1274,19 +1277,19 @@ _ _: 0 0;
             err.to_string(),
             YamlError::Field {
                 kind: FieldErrorKind::Missing("name".to_string()),
-                location: "gui".to_string(),
+                location: "builder".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Missing required field 'name' in gui"
+            "YAML configuration error: Missing required field 'name' in builder"
         );
 
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     name: Test name
 ---
 #calculate-io
@@ -1303,19 +1306,19 @@ _ _: 0 0;
             err.to_string(),
             YamlError::Field {
                 kind: FieldErrorKind::Missing("description".to_string()),
-                location: "gui".to_string(),
+                location: "builder".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Missing required field 'description' in gui"
+            "YAML configuration error: Missing required field 'description' in builder"
         );
 
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     name: Test name
     description: Test description
 ---
@@ -1333,13 +1336,13 @@ _ _: 0 0;
             err.to_string(),
             YamlError::Field {
                 kind: FieldErrorKind::Missing("short-description".to_string()),
-                location: "gui".to_string(),
+                location: "builder".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Missing required field 'short-description' in gui"
+            "YAML configuration error: Missing required field 'short-description' in builder"
         );
     }
 
@@ -1390,7 +1393,7 @@ _ _: 0 0;
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     test: test
 ---
 #calculate-io
@@ -1407,19 +1410,19 @@ _ _: 0 0;
             err.to_string(),
             YamlError::Field {
                 kind: FieldErrorKind::Missing("deployments".to_string()),
-                location: "gui".to_string(),
+                location: "builder".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Missing required field 'deployments' in gui"
+            "YAML configuration error: Missing required field 'deployments' in builder"
         );
 
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     deployments: test
 ---
 #calculate-io
@@ -1439,19 +1442,19 @@ _ _: 0 0;
                     field: "deployments".to_string(),
                     expected: "a map".to_string(),
                 },
-                location: "gui".to_string(),
+                location: "builder".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Field 'deployments' must be a map in gui"
+            "YAML configuration error: Field 'deployments' must be a map in builder"
         );
 
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     deployments:
         - test
 ---
@@ -1472,19 +1475,19 @@ _ _: 0 0;
                     field: "deployments".to_string(),
                     expected: "a map".to_string(),
                 },
-                location: "gui".to_string(),
+                location: "builder".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Field 'deployments' must be a map in gui"
+            "YAML configuration error: Field 'deployments' must be a map in builder"
         );
 
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     deployments:
         test: test
 ---
@@ -1503,7 +1506,7 @@ _ _: 0 0;
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     deployments:
         test:
             unknown-field: value
@@ -1522,19 +1525,19 @@ _ _: 0 0;
             err.to_string(),
             YamlError::Field {
                 kind: FieldErrorKind::Missing("name".to_string()),
-                location: "gui deployment 'test'".to_string(),
+                location: "builder deployment 'test'".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Missing required field 'name' in gui deployment 'test'"
+            "YAML configuration error: Missing required field 'name' in builder deployment 'test'"
         );
 
         let yaml = format!(
             r#"
 version: {spec_version}
-gui:
+builder:
     deployments:
         test:
             name: Test name
@@ -1553,13 +1556,13 @@ _ _: 0 0;
             err.to_string(),
             YamlError::Field {
                 kind: FieldErrorKind::Missing("description".to_string()),
-                location: "gui deployment 'test'".to_string(),
+                location: "builder deployment 'test'".to_string(),
             }
             .to_string()
         );
         assert_eq!(
             err.to_readable_msg(),
-            "YAML configuration error: Missing required field 'description' in gui deployment 'test'"
+            "YAML configuration error: Missing required field 'description' in builder deployment 'test'"
         );
     }
 
@@ -1584,7 +1587,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_get_current_deployment_detail() {
-        let gui = RaindexOrderBuilder::new_with_deployment(
+        let builder = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1593,7 +1596,7 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let deployment_detail = gui.get_current_deployment_details().unwrap();
+        let deployment_detail = builder.get_current_deployment_details().unwrap();
         assert_eq!(deployment_detail.name, "Buy WETH with USDC on Base.");
         assert_eq!(
             deployment_detail.description,
@@ -1607,7 +1610,7 @@ _ _: 0 0;
 
     #[wasm_bindgen_test]
     async fn test_generate_dotrain_text() {
-        let gui = RaindexOrderBuilder::new_with_deployment(
+        let builder = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1615,10 +1618,10 @@ _ _: 0 0;
         )
         .await
         .unwrap();
-        let original_current_deployment = gui.get_current_deployment_details().unwrap();
+        let original_current_deployment = builder.get_current_deployment_details().unwrap();
 
-        let dotrain_text = gui.generate_dotrain_text().unwrap();
-        let gui = RaindexOrderBuilder::new_with_deployment(
+        let dotrain_text = builder.generate_dotrain_text().unwrap();
+        let builder = RaindexOrderBuilder::new_with_deployment(
             dotrain_text,
             None,
             "some-deployment".to_string(),
@@ -1626,14 +1629,14 @@ _ _: 0 0;
         )
         .await
         .unwrap();
-        let new_current_deployment = gui.get_current_deployment_details().unwrap();
+        let new_current_deployment = builder.get_current_deployment_details().unwrap();
 
         assert_eq!(new_current_deployment, original_current_deployment);
     }
 
     #[wasm_bindgen_test]
     async fn test_get_composed_rainlang() {
-        let mut gui = RaindexOrderBuilder::new_with_deployment(
+        let mut builder = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
             "some-deployment".to_string(),
@@ -1642,7 +1645,7 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let rainlang = gui.get_composed_rainlang().await.unwrap();
+        let rainlang = builder.get_composed_rainlang().await.unwrap();
         let expected_rainlang =
             "/* 0. calculate-io */ \n_ _: 0 0;\n\n/* 1. handle-io */ \n:;".to_string();
         assert_eq!(rainlang, expected_rainlang);
@@ -1655,7 +1658,7 @@ _ _: 0 0;
         use serde_json::json;
 
         pub const SELECT_TOKEN_YAML: &str = r#"
-gui:
+builder:
     name: Fixed limit
     description: Fixed limit order order
     short-description: Buy WETH with USDC on Base.
@@ -1762,7 +1765,7 @@ networks:
                         }));
                     });
 
-            let mut gui = RaindexOrderBuilder::new_with_deployment(
+            let mut builder = RaindexOrderBuilder::new_with_deployment(
                 yaml.to_string(),
                 None,
                 "some-deployment".to_string(),
@@ -1771,7 +1774,10 @@ networks:
             .await
             .unwrap();
 
-            let err = gui.get_token_info("token3".to_string()).await.unwrap_err();
+            let err = builder
+                .get_token_info("token3".to_string())
+                .await
+                .unwrap_err();
             assert_eq!(
                 err.to_string(),
                 YamlError::Field {
@@ -1785,14 +1791,15 @@ networks:
                 "YAML configuration error: Missing required field 'tokens' in root"
             );
 
-            gui.set_select_token(
-                "token3".to_string(),
-                "0x0000000000000000000000000000000000000001".to_string(),
-            )
-            .await
-            .unwrap();
+            builder
+                .set_select_token(
+                    "token3".to_string(),
+                    "0x0000000000000000000000000000000000000001".to_string(),
+                )
+                .await
+                .unwrap();
 
-            let token_info = gui.get_token_info("token3".to_string()).await.unwrap();
+            let token_info = builder.get_token_info("token3".to_string()).await.unwrap();
             assert_eq!(
                 token_info.address.to_string(),
                 "0x0000000000000000000000000000000000000001"
@@ -1801,7 +1808,7 @@ networks:
             assert_eq!(token_info.name, "Token 1");
             assert_eq!(token_info.symbol, "T1");
 
-            let token_infos = gui.get_all_token_infos().await.unwrap();
+            let token_infos = builder.get_all_token_infos().await.unwrap();
             assert_eq!(token_infos.len(), 1);
             assert_eq!(
                 token_infos[0].address.to_string(),

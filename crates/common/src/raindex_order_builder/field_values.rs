@@ -110,7 +110,7 @@ impl RaindexOrderBuilder {
                     .ok_or(RaindexOrderBuilderError::InvalidPreset)?
                     .clone()
             }
-            false => GuiPresetCfg {
+            false => OrderBuilderPresetCfg {
                 id: "".to_string(),
                 name: None,
                 value: field_value.value.clone(),
@@ -135,7 +135,7 @@ impl RaindexOrderBuilder {
     pub fn get_field_definition(
         &self,
         field: &str,
-    ) -> Result<GuiFieldDefinitionCfg, RaindexOrderBuilderError> {
+    ) -> Result<OrderBuilderFieldDefinitionCfg, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
         let field_definition = deployment
             .fields
@@ -150,7 +150,7 @@ impl RaindexOrderBuilder {
     pub fn get_all_field_definitions(
         &self,
         filter_defaults: Option<bool>,
-    ) -> Result<Vec<GuiFieldDefinitionCfg>, RaindexOrderBuilderError> {
+    ) -> Result<Vec<OrderBuilderFieldDefinitionCfg>, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
         let mut field_definitions = deployment.fields.clone();
 
@@ -167,7 +167,7 @@ impl RaindexOrderBuilder {
 
     pub fn get_missing_field_values(
         &self,
-    ) -> Result<Vec<GuiFieldDefinitionCfg>, RaindexOrderBuilderError> {
+    ) -> Result<Vec<OrderBuilderFieldDefinitionCfg>, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
         let mut missing_field_values = Vec::new();
 
@@ -235,23 +235,23 @@ mod tests {
         assert!(field_values[1].is_preset);
     }
 
-    fn get_binding_1() -> GuiFieldDefinitionCfg {
-        GuiFieldDefinitionCfg {
+    fn get_binding_1() -> OrderBuilderFieldDefinitionCfg {
+        OrderBuilderFieldDefinitionCfg {
             binding: String::from("binding-1"),
             name: String::from("Field 1 name"),
             description: Some(String::from("Field 1 description")),
             presets: Some(Vec::from([
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: String::from("0"),
                     name: Some(String::from("Preset 1")),
                     value: String::from("0x1234567890abcdef1234567890abcdef12345678"),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: String::from("1"),
                     name: Some(String::from("Preset 2")),
                     value: String::from("false"),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: String::from("2"),
                     name: Some(String::from("Preset 3")),
                     value: String::from("some-string"),
@@ -263,23 +263,23 @@ mod tests {
         }
     }
 
-    fn get_binding_2() -> GuiFieldDefinitionCfg {
-        GuiFieldDefinitionCfg {
+    fn get_binding_2() -> OrderBuilderFieldDefinitionCfg {
+        OrderBuilderFieldDefinitionCfg {
             binding: String::from("binding-2"),
             name: String::from("Field 2 name"),
             description: Some(String::from("Field 2 description")),
             presets: Some(Vec::from([
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: String::from("0"),
                     name: None,
                     value: String::from("99.2"),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: String::from("1"),
                     name: None,
                     value: String::from("582.1"),
                 },
-                GuiPresetCfg {
+                OrderBuilderPresetCfg {
                     id: String::from("2"),
                     name: None,
                     value: String::from("648.239"),

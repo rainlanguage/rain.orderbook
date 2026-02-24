@@ -1,6 +1,6 @@
 use crate::raindex_order_builder::{RaindexOrderBuilder, RaindexOrderBuilderWasmError};
 use crate::yaml::{OrderbookYaml, OrderbookYamlError};
-use rain_orderbook_app_settings::gui::NameAndDescriptionCfg;
+use rain_orderbook_app_settings::order_builder::NameAndDescriptionCfg;
 use rain_orderbook_common::raindex_client::{RaindexClient, RaindexError as RaindexClientError};
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -44,7 +44,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 /// 1. **Registry Creation** → Fetches and parses registry file
 /// 2. **List Orders** → Get available order strategies with metadata
 /// 3. **List Deployments** → Get deployment options for selected order
-/// 4. **Create GUI** → Instantiate RaindexOrderBuilder with merged content
+/// 4. **Create Builder** → Instantiate RaindexOrderBuilder with merged content
 ///
 /// ## Examples
 ///
@@ -111,7 +111,7 @@ pub struct DotrainRegistry {
     /// - **Value**: Raw dotrain content fetched from the corresponding URL
     ///
     /// This content is fetched in parallel during registry initialization and stored
-    /// for quick access. It gets merged with `settings` content when creating GUIs.
+    /// for quick access. It gets merged with `settings` content when creating builders.
     orders: HashMap<String, String>,
 }
 
@@ -414,7 +414,7 @@ impl DotrainRegistry {
 
     /// Creates a RaindexOrderBuilder instance for a specific order and deployment.
     ///
-    /// This is a convenience method that combines getting a DotrainOrder and creating a GUI.
+    /// This is a convenience method that combines getting a DotrainOrder and creating a builder.
     ///
     /// ## Examples
     ///
@@ -752,13 +752,13 @@ tokens:
     fn mock_dotrain_prefix() -> String {
         format!(
             r#"version: {version}
-gui:"#,
+builder:"#,
             version = SpecVersion::current()
         )
     }
 
     const MOCK_DOTRAIN_BODY: &str = r#"
-  name: Test gui
+  name: Test builder
   description: Test description
   short-description: Test short description
   deployments:
@@ -954,7 +954,7 @@ _ _: 1 1;
             assert!(order_details.valid.contains_key("auction-dca"));
 
             let fixed_limit_details = order_details.valid.get("fixed-limit").unwrap();
-            assert_eq!(fixed_limit_details.name, "Test gui");
+            assert_eq!(fixed_limit_details.name, "Test builder");
             assert_eq!(fixed_limit_details.description, "Test description");
         }
 
@@ -1532,7 +1532,7 @@ deployers:
             )
         }
 
-        const MOCK_DOTRAIN_SIMPLE: &str = r#"gui:
+        const MOCK_DOTRAIN_SIMPLE: &str = r#"builder:
   name: Test Order
   description: Test description
   deployments:

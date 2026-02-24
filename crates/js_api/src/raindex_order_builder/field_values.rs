@@ -97,19 +97,19 @@ impl RaindexOrderBuilder {
 
     #[wasm_export(
         js_name = "getFieldDefinition",
-        unchecked_return_type = "GuiFieldDefinitionCfg",
+        unchecked_return_type = "OrderBuilderFieldDefinitionCfg",
         return_description = "Complete field configuration"
     )]
     pub fn get_field_definition(
         &self,
         #[wasm_export(param_description = "Field binding identifier to look up")] field: &str,
-    ) -> Result<GuiFieldDefinitionCfg, RaindexOrderBuilderWasmError> {
+    ) -> Result<OrderBuilderFieldDefinitionCfg, RaindexOrderBuilderWasmError> {
         Ok(self.inner.get_field_definition(field)?)
     }
 
     #[wasm_export(
         js_name = "getAllFieldDefinitions",
-        unchecked_return_type = "GuiFieldDefinitionCfg[]",
+        unchecked_return_type = "OrderBuilderFieldDefinitionCfg[]",
         return_description = "Filtered field definitions"
     )]
     pub fn get_all_field_definitions(
@@ -118,18 +118,18 @@ impl RaindexOrderBuilder {
             param_description = "Optional filter: **true** for fields with defaults, **false** for fields without defaults, **undefined** for all"
         )]
         filter_defaults: Option<bool>,
-    ) -> Result<Vec<GuiFieldDefinitionCfg>, RaindexOrderBuilderWasmError> {
+    ) -> Result<Vec<OrderBuilderFieldDefinitionCfg>, RaindexOrderBuilderWasmError> {
         Ok(self.inner.get_all_field_definitions(filter_defaults)?)
     }
 
     #[wasm_export(
         js_name = "getMissingFieldValues",
-        unchecked_return_type = "GuiFieldDefinitionCfg[]",
+        unchecked_return_type = "OrderBuilderFieldDefinitionCfg[]",
         return_description = "Array of field definitions that need to be set"
     )]
     pub fn get_missing_field_values(
         &self,
-    ) -> Result<Vec<GuiFieldDefinitionCfg>, RaindexOrderBuilderWasmError> {
+    ) -> Result<Vec<OrderBuilderFieldDefinitionCfg>, RaindexOrderBuilderWasmError> {
         Ok(self.inner.get_missing_field_values()?)
     }
 }

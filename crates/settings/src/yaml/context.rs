@@ -8,17 +8,17 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 /// ContextProfile selects how YAML is parsed and what data is injected into the context.
 /// - Strict: Full validation mode. Parses all orders/deployments and requires all networks,
 ///   tokens, and bindings to be present. No scoping, no select-token deferral. Use this for
-///   batch validation, CLI, and non-GUI flows where the entire config must be consistent.
-/// - Gui: UI-scoped mode. Scopes parsing to the selected deployment, derives its order,
+///   batch validation, CLI, and non-builder flows where the entire config must be consistent.
+/// - Builder: UI-scoped mode. Scopes parsing to the selected deployment, derives its order,
 ///   injects select-tokens for that deployment, and avoids parsing unrelated orders so
-///   handlebars/missing-token templates in other orders don't fail. Use this for GUI/WASM
+///   handlebars/missing-token templates in other orders don't fail. Use this for builder/WASM
 ///   flows where the user works within a single deployment at a time.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub enum ContextProfile {
     Strict,
-    Gui { current_deployment: String },
+    Builder { current_deployment: String },
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ContextProfile);
@@ -28,8 +28,8 @@ impl ContextProfile {
         Self::Strict
     }
 
-    pub fn gui(current_deployment: String) -> Self {
-        Self::Gui { current_deployment }
+    pub fn builder(current_deployment: String) -> Self {
+        Self::Builder { current_deployment }
     }
 }
 
@@ -40,7 +40,7 @@ impl Default for ContextProfile {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct GuiContext {
+pub struct OrderBuilderContext {
     pub current_deployment: Option<String>,
     pub current_order: Option<String>,
 }
@@ -55,7 +55,7 @@ pub struct YamlCache {
 pub struct Context {
     pub order: Option<Arc<OrderCfg>>,
     pub select_tokens: Option<Vec<String>>,
-    pub gui_context: Option<GuiContext>,
+    pub builder_context: Option<OrderBuilderContext>,
     pub yaml_cache: Option<YamlCache>,
 }
 
@@ -167,23 +167,23 @@ impl OrderContext for Context {
     }
 }
 
-pub trait GuiContextTrait {
+pub trait OrderBuilderContextTrait {
     fn get_current_deployment(&self) -> Option<&String>;
 
     fn get_current_order(&self) -> Option<&String>;
 }
 
-impl GuiContextTrait for Context {
+impl OrderBuilderContextTrait for Context {
     fn get_current_deployment(&self) -> Option<&String> {
-        self.gui_context
+        self.builder_context
             .as_ref()
-            .and_then(|gui_context| gui_context.current_deployment.as_ref())
+            .and_then(|builder_context| builder_context.current_deployment.as_ref())
     }
 
     fn get_current_order(&self) -> Option<&String> {
-        self.gui_context
+        self.builder_context
             .as_ref()
-            .and_then(|gui_context| gui_context.current_order.as_ref())
+            .and_then(|builder_context| builder_context.current_order.as_ref())
     }
 }
 
@@ -230,7 +230,7 @@ impl Context {
         Self {
             order: None,
             select_tokens: None,
-            gui_context: None,
+            builder_context: None,
             yaml_cache: None,
         }
     }
@@ -240,7 +240,9 @@ impl Context {
         if let Some(context) = context {
             new_context.order.clone_from(&context.order);
             new_context.select_tokens.clone_from(&context.select_tokens);
-            new_context.gui_context.clone_from(&context.gui_context);
+            new_context
+                .builder_context
+                .clone_from(&context.builder_context);
             new_context.yaml_cache.clone_from(&context.yaml_cache);
         }
         new_context
@@ -257,10 +259,10 @@ impl Context {
     }
 
     pub fn add_current_deployment(&mut self, deployment: String) -> &mut Self {
-        if let Some(gui_context) = self.gui_context.as_mut() {
-            gui_context.current_deployment = Some(deployment);
+        if let Some(builder_context) = self.builder_context.as_mut() {
+            builder_context.current_deployment = Some(deployment);
         } else {
-            self.gui_context = Some(GuiContext {
+            self.builder_context = Some(OrderBuilderContext {
                 current_deployment: Some(deployment),
                 current_order: None,
             });
@@ -269,10 +271,10 @@ impl Context {
     }
 
     pub fn add_current_order(&mut self, order: String) -> &mut Self {
-        if let Some(gui_context) = self.gui_context.as_mut() {
-            gui_context.current_order = Some(order);
+        if let Some(builder_context) = self.builder_context.as_mut() {
+            builder_context.current_order = Some(order);
         } else {
-            self.gui_context = Some(GuiContext {
+            self.builder_context = Some(OrderBuilderContext {
                 current_deployment: None,
                 current_order: Some(order),
             });
@@ -400,12 +402,12 @@ mod tests {
         assert_eq!(ContextProfile::strict(), ContextProfile::Strict);
         assert_eq!(ContextProfile::default(), ContextProfile::Strict);
 
-        let gui_full = ContextProfile::gui("deployment1".to_string());
-        match gui_full {
-            ContextProfile::Gui { current_deployment } => {
+        let builder_full = ContextProfile::builder("deployment1".to_string());
+        match builder_full {
+            ContextProfile::Builder { current_deployment } => {
                 assert_eq!(current_deployment, "deployment1".to_string());
             }
-            _ => panic!("expected gui context profile"),
+            _ => panic!("expected builder context profile"),
         }
     }
 
@@ -627,7 +629,7 @@ mod tests {
         let mut context = Context::new();
         context.add_current_deployment("deployment1".to_string());
         assert_eq!(
-            context.gui_context.unwrap().current_deployment,
+            context.builder_context.unwrap().current_deployment,
             Some("deployment1".to_string())
         );
     }
@@ -637,7 +639,7 @@ mod tests {
         let mut context = Context::new();
         context.add_current_order("order1".to_string());
         assert_eq!(
-            context.gui_context.unwrap().current_order,
+            context.builder_context.unwrap().current_order,
             Some("order1".to_string())
         );
     }
@@ -686,15 +688,15 @@ mod tests {
 
         assert_eq!(new_context.order, context.order);
         assert_eq!(new_context.select_tokens, context.select_tokens);
-        assert!(new_context.gui_context.is_some());
+        assert!(new_context.builder_context.is_some());
         assert!(new_context.yaml_cache.is_some());
 
-        let gui_context = new_context.gui_context.unwrap();
+        let builder_context = new_context.builder_context.unwrap();
         assert_eq!(
-            gui_context.current_deployment,
+            builder_context.current_deployment,
             Some("deployment1".to_string())
         );
-        assert_eq!(gui_context.current_order, Some("order1".to_string()));
+        assert_eq!(builder_context.current_order, Some("order1".to_string()));
 
         let yaml_cache = new_context.yaml_cache.unwrap();
         assert_eq!(

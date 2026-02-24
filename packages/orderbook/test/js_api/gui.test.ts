@@ -6,11 +6,11 @@ import {
 	ApprovalCalldataResult,
 	DeploymentTransactionArgs,
 	DepositCalldataResult,
-	GuiCfg,
-	GuiDeploymentCfg,
-	GuiFieldDefinitionCfg,
-	GuiPresetCfg,
-	GuiSelectTokensCfg,
+	OrderBuilderCfg,
+	OrderBuilderDeploymentCfg,
+	OrderBuilderFieldDefinitionCfg,
+	OrderBuilderPresetCfg,
+	OrderBuilderSelectTokensCfg,
 	NameAndDescriptionCfg,
 	TokenAllowance,
 	TokenDeposit,
@@ -25,7 +25,7 @@ const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
 import { getLocal } from 'mockttp';
 
 const builderConfig = `
-gui:
+builder:
   name: Fixed limit
   description: Fixed limit order
   short-description: Buy WETH with USDC on Base.
@@ -87,7 +87,7 @@ gui:
             - value: "0"
 `;
 const builderConfig2 = `
-gui:
+builder:
   name: Test test
   description: Test test test
   deployments:
@@ -112,7 +112,7 @@ gui:
           default: 10
 `;
 const builderConfig3 = `
-gui:
+builder:
   name: Test test
   description: Test test test
   deployments:
@@ -355,7 +355,7 @@ const dotrainWithTokensMismatch = dotrain.replace(
 );
 const dotrainForRemotes = `
 version: ${SPEC_VERSION}
-gui:
+builder:
   name: Test
   description: Fixed limit order
   deployments:
@@ -534,7 +534,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 		);
 		const builder = extractWasmEncodedData(result);
 
-		const builderConfig = extractWasmEncodedData<GuiCfg>(builder.getBuilderConfig());
+		const builderConfig = extractWasmEncodedData<OrderBuilderCfg>(builder.getBuilderConfig());
 		assert.equal(builderConfig.name, 'Fixed limit');
 		assert.equal(builderConfig.description, 'Fixed limit order');
 	});
@@ -743,7 +743,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 		it('should throw error if deposit token is not found in builder config', () => {
 			const result = builder.getDepositPresets('token3');
 			if (!result.error) expect.fail('Expected error');
-			expect(result.error.msg).toBe('Deposit token not found in gui config: token3');
+			expect(result.error.msg).toBe('Deposit token not found in builder config: token3');
 			expect(result.error.readableMsg).toBe(
 				"The deposit token 'token3' was not found in the YAML configuration."
 			);
@@ -789,7 +789,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 		it('should throw error if deposit token is not found in builder config', () => {
 			const result = builder.getDepositPresets('token2');
 			if (!result.error) expect.fail('Expected error');
-			expect(result.error.msg).toBe('Deposit token not found in gui config: token2');
+			expect(result.error.msg).toBe('Deposit token not found in builder config: token2');
 			expect(result.error.readableMsg).toBe(
 				"The deposit token 'token2' was not found in the YAML configuration."
 			);
@@ -817,7 +817,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 		});
 
 		it('should save the field value as presets', async () => {
-			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+			const allFieldDefinitions = extractWasmEncodedData<OrderBuilderFieldDefinitionCfg[]>(
 				builder.getAllFieldDefinitions()
 			);
 			builder.setFieldValue('binding-1', allFieldDefinitions[0].presets?.[0]?.value || '');
@@ -938,18 +938,18 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 		});
 
 		it('should correctly filter field definitions', async () => {
-			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+			const allFieldDefinitions = extractWasmEncodedData<OrderBuilderFieldDefinitionCfg[]>(
 				builder.getAllFieldDefinitions()
 			);
 			assert.equal(allFieldDefinitions.length, 2);
 
-			const fieldDefinitionsWithoutDefaults = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
-				builder.getAllFieldDefinitions(true)
-			);
+			const fieldDefinitionsWithoutDefaults = extractWasmEncodedData<
+				OrderBuilderFieldDefinitionCfg[]
+			>(builder.getAllFieldDefinitions(true));
 			assert.equal(fieldDefinitionsWithoutDefaults.length, 1);
 			assert.equal(fieldDefinitionsWithoutDefaults[0].binding, 'binding-1');
 
-			const fieldDefinitionsWithDefaults = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+			const fieldDefinitionsWithDefaults = extractWasmEncodedData<OrderBuilderFieldDefinitionCfg[]>(
 				builder.getAllFieldDefinitions(false)
 			);
 			assert.equal(fieldDefinitionsWithDefaults.length, 1);
@@ -975,12 +975,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 		});
 
 		it('should get field definition', async () => {
-			const allFieldDefinitions = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+			const allFieldDefinitions = extractWasmEncodedData<OrderBuilderFieldDefinitionCfg[]>(
 				builder.getAllFieldDefinitions()
 			);
 			assert.equal(allFieldDefinitions.length, 2);
 
-			const fieldDefinition = extractWasmEncodedData<GuiFieldDefinitionCfg>(
+			const fieldDefinition = extractWasmEncodedData<OrderBuilderFieldDefinitionCfg>(
 				builder.getFieldDefinition('binding-1')
 			);
 			assert.equal(fieldDefinition.name, 'Field 1 name');
@@ -989,7 +989,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 			assert.equal(fieldDefinition.default, 'some-default-value');
 			assert.equal(fieldDefinition.showCustomField, undefined);
 
-			let presets = fieldDefinition.presets as GuiPresetCfg[];
+			let presets = fieldDefinition.presets as OrderBuilderPresetCfg[];
 			assert.equal(presets[0].name, 'Preset 1');
 			assert.equal(presets[0].value, '0x1234567890abcdef1234567890abcdef12345678');
 			assert.equal(presets[1].name, 'Preset 2');
@@ -997,10 +997,10 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 			assert.equal(presets[2].name, 'Preset 3');
 			assert.equal(presets[2].value, 'some-string');
 
-			const fieldDefinition2 = extractWasmEncodedData<GuiFieldDefinitionCfg>(
+			const fieldDefinition2 = extractWasmEncodedData<OrderBuilderFieldDefinitionCfg>(
 				builder.getFieldDefinition('binding-2')
 			);
-			presets = fieldDefinition2.presets as GuiPresetCfg[];
+			presets = fieldDefinition2.presets as OrderBuilderPresetCfg[];
 			assert.equal(presets[0].value, '99.2');
 			assert.equal(presets[1].value, '582.1');
 			assert.equal(presets[2].value, '648.239');
@@ -1020,7 +1020,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Builder', async function
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QT0vDMBRvqiiIBxGvguDV2ixZwzbmQUScFPyDRcTb1sa1NEtKklXED-HRq19g-Am8evPziDcpJnVle4f8kvf7vV_ee8D5i02DmirtjTKeZHwMTA46G_NsOWRT6prMmmVETnnLsbFqMICHpCFBtWTFYAtCsMwMNV-2QSUm1ONUPwqZ27pdg6nWRc_3mYiHLBVK9zqwE_iyiL2pZM-VAlQnsF-fRoMdc33pf8_2v_qzj9fg_efORd3Ptxhsg3VDR1UPewjYsSPkuM5_NLdQ-xNCwMJYNYsxPrB2A1hkKinD68uzk6vb_GGEw252fxHj4zK8OZdJGBDVbuMxUUdbpkbolEovoQUTTxPK9S-tddtKygEAAA==';
+			'H4sIAAAAAAAA_21QsU7DMBCNAwIJMSDEioTESojrKKZUZSlC6oDUFFJEJlRSQ0JcO3IcKsRHMLLyAxVfwMrG9yA2FHEORPQNfud77853RtYP1oE1K7RznYpJKm4R5LC19le9H_OS2ZBZMYrMmGhZBsvAPt6nDQupLUvALYzRomakeTMDFnLKHMH0TKrM1G0DJ1rnHdflMh7zRBa608Zt31V57JSKP1YOVJ3IPH0S9rcgfOp-znc_uvO3Z__169Imh-8vMdpEqyCH1Qw7BJm1Q2LZ1i-av1D3p5Sif2vVqud5exCeMXLRK9kxjvzhaZrdBeomD6gOzpXoD6PB1YiMBgfeLEp62dEG1EidMOVMWM7lw5QJ_Q1JvIo1ygEAAA==';
 		let dotrain3: string;
 		let builder: RaindexOrderBuilder;
 		beforeAll(async () => {
@@ -1050,8 +1050,9 @@ ${dotrain}`;
 
 			builder.setFieldValue(
 				'test-binding',
-				extractWasmEncodedData<GuiFieldDefinitionCfg>(builder.getFieldDefinition('test-binding'))
-					.presets?.[0].value || ''
+				extractWasmEncodedData<OrderBuilderFieldDefinitionCfg>(
+					builder.getFieldDefinition('test-binding')
+				).presets?.[0].value || ''
 			);
 			await builder.setDeposit('token1', '50.6');
 			await builder.setDeposit('token2', '100');
@@ -1094,7 +1095,7 @@ ${dotrain}`;
 			assert.equal(deposits[1].address, '0x8f3cf7ad23cd3cadbd9735aff958023239c6a063');
 
 			const result = builder.getCurrentDeployment();
-			const guiDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const guiDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(result);
 			assert.equal(guiDeployment.deployment.order.inputs[0].vaultId, '0x29a');
 			assert.equal(guiDeployment.deployment.order.outputs[0].vaultId, '0x14d');
 		});
@@ -1135,7 +1136,9 @@ ${dotrainWithoutVaultIds}
 			);
 			builder = extractWasmEncodedData(result);
 
-			let deployment1 = extractWasmEncodedData<GuiDeploymentCfg>(builder.getCurrentDeployment());
+			let deployment1 = extractWasmEncodedData<OrderBuilderDeploymentCfg>(
+				builder.getCurrentDeployment()
+			);
 			assert.equal(deployment1.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(deployment1.deployment.order.outputs[0].vaultId, undefined);
 
@@ -1147,7 +1150,9 @@ ${dotrainWithoutVaultIds}
 			);
 			builder = extractWasmEncodedData(builderResult);
 
-			let deployment2 = extractWasmEncodedData<GuiDeploymentCfg>(builder.getCurrentDeployment());
+			let deployment2 = extractWasmEncodedData<OrderBuilderDeploymentCfg>(
+				builder.getCurrentDeployment()
+			);
 			assert.equal(deployment2.deployment.order.inputs[0].vaultId, undefined);
 			assert.equal(deployment2.deployment.order.outputs[0].vaultId, undefined);
 		});
@@ -1423,7 +1428,7 @@ ${dotrain}`;
 			assert.equal(addOrderCalldata.length, 2634);
 
 			let result = builder.getCurrentDeployment();
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const currentDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(result);
 			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
 				'test-binding': '10',
 				'another-binding': '300'
@@ -1460,7 +1465,7 @@ ${dotrain}`;
 			assert.equal(addOrderCalldata.length, 2634);
 
 			let result = builder.getCurrentDeployment();
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const currentDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(result);
 			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
 				'test-binding': '10',
 				'another-binding': '300'
@@ -1502,7 +1507,7 @@ ${dotrain}`;
 			assert.equal(calldata.length, 3594);
 
 			let result = builder.getCurrentDeployment();
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const currentDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(result);
 			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
 				'test-binding': '0xbeef',
 				'another-binding': '300'
@@ -1545,7 +1550,7 @@ ${dotrain}`;
 			assert.equal(calldata.length, 3658);
 
 			let result = builder.getCurrentDeployment();
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(result);
+			const currentDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(result);
 			assert.deepEqual(currentDeployment.deployment.scenario.bindings, {
 				'test-binding': '10',
 				'another-binding': '300'
@@ -1608,7 +1613,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 			assert.equal(calldata.length, 3914);
 
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
+			const currentDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(
 				builder.getCurrentDeployment()
 			);
 			assert.equal(
@@ -1672,7 +1677,7 @@ ${dotrainWithoutVaultIds}`;
 				);
 
 			let builderConfig = `
-gui:
+builder:
   name: Test test
   description: Test test test
   deployments:
@@ -1724,7 +1729,7 @@ ${dotrainWithoutVaultIds}`;
 				);
 			} else expect.fail('Expected error');
 
-			let missingFieldValues = extractWasmEncodedData<GuiFieldDefinitionCfg[]>(
+			let missingFieldValues = extractWasmEncodedData<OrderBuilderFieldDefinitionCfg[]>(
 				builder.getMissingFieldValues()
 			);
 			assert.equal(missingFieldValues.length, 1);
@@ -1756,7 +1761,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 			const builder = extractWasmEncodedData(builderResult);
 
-			const currentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
+			const currentDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(
 				builder.getCurrentDeployment()
 			);
 			assert.equal(currentDeployment.deployment.order.inputs[0].vaultId, undefined);
@@ -1783,7 +1788,7 @@ ${dotrainWithoutVaultIds}`;
 
 			builder.setVaultId('output', 'token2', '0x234');
 
-			const newCurrentDeployment = extractWasmEncodedData<GuiDeploymentCfg>(
+			const newCurrentDeployment = extractWasmEncodedData<OrderBuilderDeploymentCfg>(
 				builder.getCurrentDeployment()
 			);
 			assert.notEqual(newCurrentDeployment.deployment.order.inputs[0].vaultId, undefined);
@@ -1997,7 +2002,9 @@ ${dotrainWithoutVaultIds}`;
 		});
 
 		it('should get select tokens', async () => {
-			const selectTokens = extractWasmEncodedData<GuiSelectTokensCfg[]>(builder.getSelectTokens());
+			const selectTokens = extractWasmEncodedData<OrderBuilderSelectTokensCfg[]>(
+				builder.getSelectTokens()
+			);
 			assert.equal(selectTokens.length, 2);
 			assert.equal(selectTokens[0].key, 'token1');
 			assert.equal(selectTokens[1].key, 'token2');
@@ -2019,7 +2026,7 @@ ${dotrainWithoutVaultIds}`;
 			const testBuilder = extractWasmEncodedData(builderResult);
 
 			assert.equal(
-				extractWasmEncodedData<GuiSelectTokensCfg[]>(testBuilder.getSelectTokens()).length,
+				extractWasmEncodedData<OrderBuilderSelectTokensCfg[]>(testBuilder.getSelectTokens()).length,
 				0
 			);
 

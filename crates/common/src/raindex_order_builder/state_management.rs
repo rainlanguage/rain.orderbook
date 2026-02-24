@@ -4,8 +4,8 @@ use rain_metadata::types::dotrain::{
     source_v1::DotrainSourceV1,
 };
 use rain_orderbook_app_settings::{
-    gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
+    order_builder::OrderBuilderDepositCfg,
     token::TokenCfg,
 };
 use sha2::{Digest, Sha256};
@@ -18,17 +18,17 @@ use strict_yaml_rust::StrictYaml;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct AllBuilderConfig {
-    pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
-    pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
-    pub deposits: Vec<GuiDepositCfg>,
+    pub field_definitions_without_defaults: Vec<OrderBuilderFieldDefinitionCfg>,
+    pub field_definitions_with_defaults: Vec<OrderBuilderFieldDefinitionCfg>,
+    pub deposits: Vec<OrderBuilderDepositCfg>,
     pub order_inputs: Vec<OrderIOCfg>,
     pub order_outputs: Vec<OrderIOCfg>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-struct SerializedGuiState {
-    field_values: BTreeMap<String, GuiPresetCfg>,
-    deposits: BTreeMap<String, GuiPresetCfg>,
+struct SerializedBuilderState {
+    field_values: BTreeMap<String, OrderBuilderPresetCfg>,
+    deposits: BTreeMap<String, OrderBuilderPresetCfg>,
     select_tokens: BTreeMap<String, TokenCfg>,
     vault_ids: BTreeMap<(VaultType, String), Option<String>>,
     dotrain_hash: String,
@@ -36,15 +36,18 @@ struct SerializedGuiState {
 }
 
 impl RaindexOrderBuilder {
-    fn create_preset(value: &field_values::PairValue, default_value: String) -> GuiPresetCfg {
+    fn create_preset(
+        value: &field_values::PairValue,
+        default_value: String,
+    ) -> OrderBuilderPresetCfg {
         if value.is_preset {
-            GuiPresetCfg {
+            OrderBuilderPresetCfg {
                 id: value.value.clone(),
                 name: None,
                 value: default_value,
             }
         } else {
-            GuiPresetCfg {
+            OrderBuilderPresetCfg {
                 id: "".to_string(),
                 name: None,
                 value: value.value.clone(),
@@ -52,7 +55,7 @@ impl RaindexOrderBuilder {
         }
     }
 
-    fn preset_to_pair_value(preset: GuiPresetCfg) -> field_values::PairValue {
+    fn preset_to_pair_value(preset: OrderBuilderPresetCfg) -> field_values::PairValue {
         if !preset.id.is_empty() {
             field_values::PairValue {
                 is_preset: true,
@@ -83,7 +86,7 @@ impl RaindexOrderBuilder {
         Ok(vault_ids)
     }
 
-    pub fn generate_dotrain_gui_state_instance_v1(
+    pub fn generate_dotrain_builder_state_instance_v1(
         &self,
     ) -> Result<DotrainGuiStateV1, RaindexOrderBuilderError> {
         let trimmed_dotrain = self
@@ -124,7 +127,7 @@ impl RaindexOrderBuilder {
                 }
             }
 
-            if let Some(st) = GuiCfg::parse_select_tokens(
+            if let Some(st) = OrderBuilderCfg::parse_select_tokens(
                 self.dotrain_order.dotrain_yaml().documents,
                 &self.selected_deployment,
             )? {
@@ -190,7 +193,7 @@ impl RaindexOrderBuilder {
         let mut field_values = BTreeMap::new();
         for (k, v) in self.field_values.iter() {
             let preset = if v.is_preset {
-                let presets = GuiCfg::parse_field_presets(
+                let presets = OrderBuilderCfg::parse_field_presets(
                     self.dotrain_order.dotrain_yaml().documents.clone(),
                     &self.selected_deployment,
                     k,
@@ -214,7 +217,7 @@ impl RaindexOrderBuilder {
         }
 
         let mut select_tokens: BTreeMap<String, TokenCfg> = BTreeMap::new();
-        if let Some(st) = GuiCfg::parse_select_tokens(
+        if let Some(st) = OrderBuilderCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents.clone(),
             &self.selected_deployment,
         )? {
@@ -245,7 +248,7 @@ impl RaindexOrderBuilder {
             false,
         )?);
 
-        let state = SerializedGuiState {
+        let state = SerializedBuilderState {
             field_values: field_values.clone(),
             deposits: deposits.clone(),
             select_tokens: select_tokens.clone(),
@@ -272,12 +275,12 @@ impl RaindexOrderBuilder {
         let mut decoder = GzDecoder::new(&compressed[..]);
         let mut bytes = Vec::new();
         decoder.read_to_end(&mut bytes)?;
-        let state: SerializedGuiState = bincode::deserialize(&bytes)?;
+        let state: SerializedBuilderState = bincode::deserialize(&bytes)?;
 
         let dotrain_order = DotrainOrder::create_with_profile(
             dotrain.clone(),
             settings,
-            ContextProfile::gui(state.selected_deployment.clone()),
+            ContextProfile::builder(state.selected_deployment.clone()),
         )
         .await?;
 
@@ -306,7 +309,7 @@ impl RaindexOrderBuilder {
             dotrain_hash: original_dotrain_hash,
         };
 
-        let deployment_select_tokens = GuiCfg::parse_select_tokens(
+        let deployment_select_tokens = OrderBuilderCfg::parse_select_tokens(
             builder.dotrain_order.dotrain_yaml().documents,
             &state.selected_deployment,
         )?;
@@ -342,7 +345,7 @@ impl RaindexOrderBuilder {
             builder
                 .dotrain_order
                 .dotrain_yaml()
-                .get_order_for_gui_deployment(&order_key, &state.selected_deployment)
+                .get_order_for_builder_deployment(&order_key, &state.selected_deployment)
                 .and_then(|mut order| order.update_vault_id(is_input, index, vault_id))?;
         }
 
@@ -398,9 +401,9 @@ mod tests {
     };
     use std::str::FromStr;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_2NigABOKJ2UmZeSmZeuawjlMzAwQ2lDAwN0RUaMUAEDBjgLxmCD0iX52al5xthMw64SlccD5RXn56bq5qWWlOcXZcP0yULpjJKSAit9_Zz85MScjPziEisLAwtT_aKCZN3SopxqkApGEMkIs9o1xEMEyhQyCauYgEYwCjGyQ6VDQG5QMGZkgfG9_YwZmOB-QXO6IdwGQ0tLkCNRZI3gskaWljqwgEwszKzwTCr0SwzJL3VOdM42SizKtigtcE7V9Qn28TUPDXU3NEz3NTXPc7UVhwVFak5qcoku2FDdlNSCnPzK3NS8EgBDoT-XyQEAAA==";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_2NigABOKJ2UmZeSmZeuawjlMzAwQ2lDAwN0RUaMUAEDBjgLxmCD0iX52al5xthMw64SlccD5RXn56bq5qWWlOcXZcP0yULpjJKSAit9_Zz85MScjPziEisLAwtT_aKCZN3SopxqkApGEMkIs9o1xEMEyhQyCauYgEYwCjGyQ6VDQG5QMGZkgfG9_YwZmOB-QXO6IdwGQ0tLkCNRZI3gskaWljpQpmduaoGvRVlRVZJJWZVpWE6lk5FHWkiOQV5YhWVQWlBgVkVYllelcVhwvqetOCwoUnNSk0t0wYbqpqQW5ORX5qbmlQAAdPUJnskBAAA=";
 
-    fn encode_state(state: &SerializedGuiState) -> String {
+    fn encode_state(state: &SerializedBuilderState) -> String {
         let bytes = bincode::serialize(state).unwrap();
         let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
         encoder.write_all(&bytes).unwrap();
@@ -464,9 +467,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_dotrain_gui_state_instance_v1_contents() {
+    async fn test_generate_dotrain_builder_state_instance_v1_contents() {
         let builder = configured_builder().await;
-        let state = builder.generate_dotrain_gui_state_instance_v1().unwrap();
+        let state = builder
+            .generate_dotrain_builder_state_instance_v1()
+            .unwrap();
 
         let trimmed = builder
             .dotrain_order
@@ -583,7 +588,7 @@ mod tests {
                 select-token-deployment:
                     order: test
                     scenario: test
-            gui:
+            builder:
                 name: Test
                 description: Fixed limit order
                 deployments:
@@ -623,7 +628,7 @@ mod tests {
         let token = TokenCfg::parse_from_yaml(documents.clone(), "token1", None).unwrap();
 
         let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
-        let serialized_state = encode_state(&SerializedGuiState {
+        let serialized_state = encode_state(&SerializedBuilderState {
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             select_tokens: BTreeMap::from([("token1".to_string(), token)]),
@@ -680,7 +685,7 @@ mod tests {
         let dotrain_order = DotrainOrder::create(dotrain_with_existing_token.clone(), None)
             .await
             .unwrap();
-        let serialized_state = encode_state(&SerializedGuiState {
+        let serialized_state = encode_state(&SerializedBuilderState {
             field_values: BTreeMap::new(),
             deposits: BTreeMap::new(),
             select_tokens: BTreeMap::from([("token3".to_string(), replacement_token.clone())]),

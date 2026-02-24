@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { type GuiDepositCfg, type TokenDeposit, type TokenInfo } from '@rainlanguage/orderbook';
+	import {
+		type OrderBuilderDepositCfg,
+		type TokenDeposit,
+		type TokenInfo
+	} from '@rainlanguage/orderbook';
 	import { Input } from 'flowbite-svelte';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
@@ -7,7 +11,7 @@
 	import { onMount } from 'svelte';
 	import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
 
-	export let deposit: GuiDepositCfg;
+	export let deposit: OrderBuilderDepositCfg;
 
 	const builder = useRaindexOrderBuilder();
 

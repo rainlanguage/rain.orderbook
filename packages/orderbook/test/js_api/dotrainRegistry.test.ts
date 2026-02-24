@@ -65,7 +65,7 @@ tokens:
 
 const MOCK_DOTRAIN_PREFIX = `
 version: ${SPEC_VERSION}
-gui:
+builder:
   name: Test gui
   description: Test description
   short-description: Test short description
@@ -421,7 +421,7 @@ deployers:
 `;
 
 	const MOCK_DOTRAIN_SIMPLE = `
-gui:
+builder:
   name: Test Order
   description: Test description
   deployments:

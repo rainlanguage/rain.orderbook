@@ -5,7 +5,7 @@ import { RaindexOrderBuilder, type ScenarioCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { readable, writable } from 'svelte/store';
 import type { AppKit } from '@reown/appkit';
-import type { GuiDeploymentCfg, RaindexClient } from '@rainlanguage/orderbook';
+import type { OrderBuilderDeploymentCfg, RaindexClient } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
 import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
 import { useAccount } from '$lib/providers/wallet/useAccount';
@@ -79,7 +79,7 @@ const mockDeployment = {
 			outputs: []
 		}
 	}
-} as unknown as GuiDeploymentCfg;
+} as unknown as OrderBuilderDeploymentCfg;
 
 const mockOnDeploy = vi.fn();
 

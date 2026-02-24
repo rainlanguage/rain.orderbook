@@ -2,15 +2,15 @@
 	import { Input } from 'flowbite-svelte';
 	import {
 		type FieldValue,
-		type GuiFieldDefinitionCfg,
-		type GuiPresetCfg
+		type OrderBuilderFieldDefinitionCfg,
+		type OrderBuilderPresetCfg
 	} from '@rainlanguage/orderbook';
 	import ButtonSelectOption from './ButtonSelectOption.svelte';
 	import DeploymentSectionHeader from './DeploymentSectionHeader.svelte';
 	import { onMount } from 'svelte';
 	import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
 
-	export let fieldDefinition: GuiFieldDefinitionCfg;
+	export let fieldDefinition: OrderBuilderFieldDefinitionCfg;
 
 	const builder = useRaindexOrderBuilder();
 
@@ -32,7 +32,7 @@
 		}
 	});
 
-	async function handlePresetClick(preset: GuiPresetCfg) {
+	async function handlePresetClick(preset: OrderBuilderPresetCfg) {
 		inputValue = preset.value;
 		builder.setFieldValue(fieldDefinition.binding, inputValue);
 

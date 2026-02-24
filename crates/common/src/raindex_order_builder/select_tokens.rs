@@ -3,16 +3,18 @@ use crate::raindex_client::vaults::AccountBalance;
 use futures::StreamExt;
 use rain_math_float::Float;
 use rain_orderbook_app_settings::{
-    deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
-    token::TokenCfg, yaml::YamlParsableHash,
+    deployment::DeploymentCfg, network::NetworkCfg, order::OrderCfg,
+    order_builder::OrderBuilderSelectTokensCfg, token::TokenCfg, yaml::YamlParsableHash,
 };
 use std::str::FromStr;
 
 const MAX_CONCURRENT_FETCHES: usize = 5;
 
 impl RaindexOrderBuilder {
-    pub fn get_select_tokens(&self) -> Result<Vec<GuiSelectTokensCfg>, RaindexOrderBuilderError> {
-        let select_tokens = GuiCfg::parse_select_tokens(
+    pub fn get_select_tokens(
+        &self,
+    ) -> Result<Vec<OrderBuilderSelectTokensCfg>, RaindexOrderBuilderError> {
+        let select_tokens = OrderBuilderCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
@@ -24,7 +26,7 @@ impl RaindexOrderBuilder {
     }
 
     pub fn check_select_tokens(&self) -> Result<(), RaindexOrderBuilderError> {
-        let select_tokens = GuiCfg::parse_select_tokens(
+        let select_tokens = OrderBuilderCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?;
@@ -52,7 +54,7 @@ impl RaindexOrderBuilder {
         key: String,
         address: String,
     ) -> Result<(), RaindexOrderBuilderError> {
-        let select_tokens = GuiCfg::parse_select_tokens(
+        let select_tokens = OrderBuilderCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?
@@ -95,7 +97,7 @@ impl RaindexOrderBuilder {
     }
 
     pub fn unset_select_token(&mut self, key: String) -> Result<(), RaindexOrderBuilderError> {
-        let select_tokens = GuiCfg::parse_select_tokens(
+        let select_tokens = OrderBuilderCfg::parse_select_tokens(
             self.dotrain_order.dotrain_yaml().documents,
             &self.selected_deployment,
         )?
@@ -599,7 +601,7 @@ mod tests {
         use std::str::FromStr;
 
         const TEST_YAML_TEMPLATE: &str = r#"
-gui:
+builder:
   name: Fixed limit
   description: Fixed limit order
   short-description: Buy WETH with USDC on Base.

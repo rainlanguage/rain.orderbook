@@ -4,9 +4,9 @@ use rain_orderbook_common::raindex_order_builder::state_management as inner_sm;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct AllBuilderConfig {
-    pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
-    pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
-    pub deposits: Vec<rain_orderbook_app_settings::gui::GuiDepositCfg>,
+    pub field_definitions_without_defaults: Vec<OrderBuilderFieldDefinitionCfg>,
+    pub field_definitions_with_defaults: Vec<OrderBuilderFieldDefinitionCfg>,
+    pub deposits: Vec<rain_orderbook_app_settings::order_builder::OrderBuilderDepositCfg>,
     pub order_inputs: Vec<rain_orderbook_app_settings::order::OrderIOCfg>,
     pub order_outputs: Vec<rain_orderbook_app_settings::order::OrderIOCfg>,
 }
@@ -47,7 +47,7 @@ impl RaindexOrderBuilder {
     #[wasm_export(
         js_name = "newFromState",
         preserve_js_class,
-        return_description = "Restored GUI instance"
+        return_description = "Restored builder instance"
     )]
     pub async fn new_from_state(
         #[wasm_export(param_description = "Complete dotrain YAML content")] dotrain: String,
@@ -98,16 +98,16 @@ impl RaindexOrderBuilder {
     }
 
     #[wasm_export(
-        js_name = "generateDotrainGuiStateInstanceV1",
+        js_name = "generateDotrainBuilderStateInstanceV1",
         unchecked_return_type = "DotrainGuiStateV1",
-        return_description = "GUI state instance for metadata embedding"
+        return_description = "Builder state instance for metadata embedding"
     )]
-    pub fn generate_dotrain_gui_state_instance_v1(
+    pub fn generate_dotrain_builder_state_instance_v1(
         &self,
     ) -> Result<
         rain_metadata::types::dotrain::gui_state_v1::DotrainGuiStateV1,
         RaindexOrderBuilderWasmError,
     > {
-        Ok(self.inner.generate_dotrain_gui_state_instance_v1()?)
+        Ok(self.inner.generate_dotrain_builder_state_instance_v1()?)
     }
 }

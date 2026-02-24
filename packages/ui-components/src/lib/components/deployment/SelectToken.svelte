@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Input } from 'flowbite-svelte';
-	import type { GuiSelectTokensCfg, ExtendedTokenInfo } from '@rainlanguage/orderbook';
+	import type { OrderBuilderSelectTokensCfg, ExtendedTokenInfo } from '@rainlanguage/orderbook';
 	import { CheckCircleSolid, CloseCircleSolid } from 'flowbite-svelte-icons';
 	import { Spinner } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
@@ -10,7 +10,7 @@
 	import TokenBalanceComponent from './TokenBalance.svelte';
 	import type { TokenBalance } from '$lib/types/tokenBalance';
 
-	export let token: GuiSelectTokensCfg;
+	export let token: OrderBuilderSelectTokensCfg;
 	export let onSelectTokenSelect: (key: string) => void;
 	export let tokenBalances: Map<string, TokenBalance> = new Map();
 

@@ -741,7 +741,7 @@ impl DotrainOrder {
         if let Some(builder_yaml) =
             Self::clone_builder_config_for_deployment(&documents, deployment_key.as_str())?
         {
-            root_hash.insert(StrictYaml::String("gui".to_string()), builder_yaml);
+            root_hash.insert(StrictYaml::String("builder".to_string()), builder_yaml);
         }
         let scenario_yaml = Self::scenario_to_yaml(&scenario_cfg)?;
         let mut scenarios_hash = StrictYamlHash::new();
@@ -779,7 +779,7 @@ impl DotrainOrder {
             })?;
 
             if let StrictYaml::Hash(root_hash) = &*document_read {
-                if let Some(builder) = root_hash.get(&StrictYaml::String("gui".to_string())) {
+                if let Some(builder) = root_hash.get(&StrictYaml::String("builder".to_string())) {
                     builder_value = Some(builder.clone());
                     break;
                 }
@@ -1189,7 +1189,7 @@ deployments:
 scenarios:
   polygon:
     deployer: polygon
-gui:
+builder:
   deployments:
     polygon-deployment:
       name: Used deployment
@@ -1237,7 +1237,7 @@ _ _: 0 0;
         assert!(!subgraphs.contains_key(&StrictYaml::String("sg-unused".to_string())));
 
         let StrictYaml::Hash(builder_config) = root
-            .get(&StrictYaml::String("gui".to_string()))
+            .get(&StrictYaml::String("builder".to_string()))
             .expect("builder config present")
             .clone()
         else {

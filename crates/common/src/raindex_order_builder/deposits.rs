@@ -1,5 +1,5 @@
 use super::*;
-use rain_orderbook_app_settings::gui::GuiDepositCfg;
+use rain_orderbook_app_settings::order_builder::OrderBuilderDepositCfg;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct TokenDeposit {
@@ -32,7 +32,10 @@ impl RaindexOrderBuilder {
         Ok(())
     }
 
-    pub fn get_deposit_config(&self, key: &str) -> Result<GuiDepositCfg, RaindexOrderBuilderError> {
+    pub fn get_deposit_config(
+        &self,
+        key: &str,
+    ) -> Result<OrderBuilderDepositCfg, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
         let deposit_config = deployment
             .deposits

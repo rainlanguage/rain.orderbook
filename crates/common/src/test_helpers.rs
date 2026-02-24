@@ -78,7 +78,7 @@ deployments:
     deployment2:
         order: order1
         scenario: scenario1
-gui:
+builder:
     name: Test gui
     description: Test description
     short-description: Test short description

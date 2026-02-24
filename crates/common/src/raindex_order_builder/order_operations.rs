@@ -140,7 +140,7 @@ impl RaindexOrderBuilder {
 
     async fn get_vaults_and_deposits(
         &self,
-        deployment: &GuiDeploymentCfg,
+        deployment: &OrderBuilderDeploymentCfg,
     ) -> Result<Vec<VaultAndDeposit>, RaindexOrderBuilderError> {
         let deposits_map = self.get_deposits_as_map().await?;
         let results = deployment
@@ -182,7 +182,7 @@ impl RaindexOrderBuilder {
     pub fn prepare_calldata_generation(
         &mut self,
         calldata_function: CalldataFunction,
-    ) -> Result<GuiDeploymentCfg, RaindexOrderBuilderError> {
+    ) -> Result<OrderBuilderDeploymentCfg, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
         self.check_select_tokens()?;
         match calldata_function {
@@ -289,7 +289,7 @@ impl RaindexOrderBuilder {
 
     fn populate_vault_ids(
         &mut self,
-        deployment: &GuiDeploymentCfg,
+        deployment: &OrderBuilderDeploymentCfg,
     ) -> Result<(), RaindexOrderBuilderError> {
         self.dotrain_order
             .dotrain_yaml()
@@ -300,7 +300,7 @@ impl RaindexOrderBuilder {
 
     fn update_bindings(
         &mut self,
-        deployment: &GuiDeploymentCfg,
+        deployment: &OrderBuilderDeploymentCfg,
     ) -> Result<(), RaindexOrderBuilderError> {
         self.dotrain_order
             .dotrain_yaml()
@@ -316,11 +316,12 @@ impl RaindexOrderBuilder {
 
     async fn prepare_add_order_args(
         &mut self,
-        deployment: &GuiDeploymentCfg,
+        deployment: &OrderBuilderDeploymentCfg,
     ) -> Result<AddOrderArgs, RaindexOrderBuilderError> {
-        let dotrain_gui_state_instance_v1 = self.generate_dotrain_gui_state_instance_v1()?;
-        let dotrain_gui_state_meta =
-            RainMetaDocumentV1Item::try_from(dotrain_gui_state_instance_v1)?;
+        let dotrain_builder_state_instance_v1 =
+            self.generate_dotrain_builder_state_instance_v1()?;
+        let dotrain_builder_state_meta =
+            RainMetaDocumentV1Item::try_from(dotrain_builder_state_instance_v1)?;
 
         let dotrain_for_deployment = self
             .dotrain_order
@@ -329,7 +330,7 @@ impl RaindexOrderBuilder {
         let add_order_args = AddOrderArgs::new_from_deployment(
             dotrain_for_deployment,
             deployment.deployment.as_ref().clone(),
-            Some(vec![dotrain_gui_state_meta]),
+            Some(vec![dotrain_builder_state_meta]),
         )
         .await?;
 
@@ -595,8 +596,8 @@ impl RaindexOrderBuilder {
     }
 
     async fn should_emit_meta_call(&self) -> Result<bool, RaindexOrderBuilderError> {
-        let dotrain_gui_state = self.generate_dotrain_gui_state_instance_v1()?;
-        let subject = dotrain_gui_state.dotrain_hash();
+        let dotrain_builder_state = self.generate_dotrain_builder_state_instance_v1()?;
+        let subject = dotrain_builder_state.dotrain_hash();
 
         let client = self.get_metaboard_client()?;
         match client
@@ -742,7 +743,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_prepare_add_order_args_injects_gui_meta() {
+    async fn test_prepare_add_order_args_injects_builder_meta() {
         let mut builder = initialize_builder(None).await;
         builder
             .set_field_value("binding-1".to_string(), "10".to_string())

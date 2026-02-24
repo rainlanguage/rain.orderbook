@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import DepositInput from '../lib/components/deployment/DepositInput.svelte';
-import type { GuiDepositCfg } from '@rainlanguage/orderbook';
+import type { OrderBuilderDepositCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
@@ -19,10 +19,10 @@ describe('DepositInput', () => {
 	let mockStateUpdateCallback: Mock;
 	let builderInstance: RaindexOrderBuilder;
 
-	const mockDeposit: GuiDepositCfg = {
+	const mockDeposit: OrderBuilderDepositCfg = {
 		token: { address: '0x123', key: 'TEST', symbol: 'TEST' },
 		presets: ['100', '200', '300']
-	} as unknown as GuiDepositCfg;
+	} as unknown as OrderBuilderDepositCfg;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
