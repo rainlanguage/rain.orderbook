@@ -6,6 +6,7 @@ mod quote;
 mod quote_debug;
 pub mod rpc;
 
+pub mod oracle;
 mod order_quotes;
 pub use order_quotes::*;
 

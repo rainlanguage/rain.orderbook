@@ -608,6 +608,7 @@ pub mod candidates {
             output_io_index: 0,
             max_output,
             ratio,
+            signed_context: vec![],
         }
     }
 
