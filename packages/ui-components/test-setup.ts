@@ -83,7 +83,7 @@ vi.mock('@rainlanguage/orderbook', () => {
 	RaindexOrderBuilder.prototype.getDeploymentTransactionArgs = vi.fn();
 	RaindexOrderBuilder.prototype.generateApprovalCalldatas = vi.fn();
 	RaindexOrderBuilder.prototype.serializeState = vi.fn();
-	RaindexOrderBuilder.prototype.getAllGuiConfig = vi.fn();
+	RaindexOrderBuilder.prototype.getAllBuilderConfig = vi.fn();
 	RaindexOrderBuilder.prototype.getCurrentDeploymentDetails = vi.fn();
 	return {
 		RaindexOrderBuilder

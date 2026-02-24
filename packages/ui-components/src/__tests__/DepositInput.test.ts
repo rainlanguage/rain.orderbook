@@ -4,20 +4,20 @@ import DepositInput from '../lib/components/deployment/DepositInput.svelte';
 import type { GuiDepositCfg } from '@rainlanguage/orderbook';
 import type { ComponentProps } from 'svelte';
 import { RaindexOrderBuilder } from '@rainlanguage/orderbook';
-import { useGui } from '$lib/hooks/useGui';
+import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
 type DepositInputProps = ComponentProps<DepositInput>;
 
 vi.mock('@rainlanguage/orderbook', () => ({
 	RaindexOrderBuilder: vi.fn()
 }));
 
-vi.mock('$lib/hooks/useGui', () => ({
-	useGui: vi.fn()
+vi.mock('$lib/hooks/useRaindexOrderBuilder', () => ({
+	useRaindexOrderBuilder: vi.fn()
 }));
 
 describe('DepositInput', () => {
 	let mockStateUpdateCallback: Mock;
-	let guiInstance: RaindexOrderBuilder;
+	let builderInstance: RaindexOrderBuilder;
 
 	const mockDeposit: GuiDepositCfg = {
 		token: { address: '0x123', key: 'TEST', symbol: 'TEST' },
@@ -27,7 +27,7 @@ describe('DepositInput', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 
-		guiInstance = {
+		builderInstance = {
 			getDeposits: vi.fn().mockReturnValue({
 				value: [{ token: 'output', amount: '10', address: '0x1234' }]
 			}),
@@ -38,11 +38,11 @@ describe('DepositInput', () => {
 		} as unknown as RaindexOrderBuilder;
 
 		mockStateUpdateCallback = vi.fn();
-		(useGui as Mock).mockReturnValue(guiInstance);
+		(useRaindexOrderBuilder as Mock).mockReturnValue(builderInstance);
 	});
 
 	it('renders token name and presets', async () => {
-		(guiInstance.getTokenInfo as Mock).mockResolvedValueOnce({
+		(builderInstance.getTokenInfo as Mock).mockResolvedValueOnce({
 			value: {
 				name: 'Test Token',
 				symbol: 'TEST'
@@ -70,7 +70,7 @@ describe('DepositInput', () => {
 		});
 
 		await fireEvent.click(getByText('100'));
-		expect(guiInstance.setDeposit).toHaveBeenCalledWith('TEST', '100');
+		expect(builderInstance.setDeposit).toHaveBeenCalledWith('TEST', '100');
 	});
 
 	it('handles custom input changes and triggers state update', async () => {
@@ -84,7 +84,7 @@ describe('DepositInput', () => {
 		const input = getByPlaceholderText('Enter deposit amount');
 		await fireEvent.input(input, { target: { value: '150' } });
 
-		expect(guiInstance.setDeposit).toHaveBeenCalledWith('TEST', '150');
+		expect(builderInstance.setDeposit).toHaveBeenCalledWith('TEST', '150');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 });

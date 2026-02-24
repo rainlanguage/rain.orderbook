@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import FieldDefinitionInput from '../lib/components/deployment/FieldDefinitionInput.svelte';
 import { RaindexOrderBuilder } from '@rainlanguage/orderbook';
 import userEvent from '@testing-library/user-event';
-import { useGui } from '$lib/hooks/useGui';
+import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
 import type { ComponentProps } from 'svelte';
 
 type FieldDefinitionInputProps = ComponentProps<FieldDefinitionInput>;
@@ -12,12 +12,12 @@ vi.mock('@rainlanguage/orderbook', () => ({
 	RaindexOrderBuilder: vi.fn()
 }));
 
-vi.mock('$lib/hooks/useGui', () => ({
-	useGui: vi.fn()
+vi.mock('$lib/hooks/useRaindexOrderBuilder', () => ({
+	useRaindexOrderBuilder: vi.fn()
 }));
 
 describe('FieldDefinitionInput', () => {
-	let guiInstance: RaindexOrderBuilder;
+	let builderInstance: RaindexOrderBuilder;
 	let mockStateUpdateCallback: Mock;
 
 	const mockFieldDefinition = {
@@ -33,14 +33,14 @@ describe('FieldDefinitionInput', () => {
 	beforeEach(() => {
 		mockStateUpdateCallback = vi.fn();
 
-		guiInstance = {
+		builderInstance = {
 			getFieldValue: vi.fn().mockReturnValue({}),
 			setFieldValue: vi.fn().mockImplementation(() => {
 				mockStateUpdateCallback();
 			})
 		} as unknown as RaindexOrderBuilder;
 
-		(useGui as Mock).mockReturnValue(guiInstance);
+		(useRaindexOrderBuilder as Mock).mockReturnValue(builderInstance);
 	});
 
 	it('renders field name and description', () => {
@@ -74,7 +74,7 @@ describe('FieldDefinitionInput', () => {
 
 		await fireEvent.click(getByText('Preset 1'));
 
-		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'value1');
+		expect(builderInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'value1');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -88,7 +88,7 @@ describe('FieldDefinitionInput', () => {
 		const input = getByPlaceholderText('Enter custom value');
 		await fireEvent.input(input, { target: { value: 'custom value' } });
 
-		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'custom value');
+		expect(builderInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'custom value');
 		expect(mockStateUpdateCallback).toHaveBeenCalled();
 	});
 
@@ -123,10 +123,10 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
+		expect(builderInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'default value@');
 	});
 	it('renders selected value instead of default value', async () => {
-		(guiInstance.getFieldValue as Mock).mockReturnValue({
+		(builderInstance.getFieldValue as Mock).mockReturnValue({
 			value: {
 				binding: 'test-binding',
 				value: 'preset1',
@@ -149,6 +149,6 @@ describe('FieldDefinitionInput', () => {
 
 		await userEvent.type(input, '@');
 
-		expect(guiInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'preset1@');
+		expect(builderInstance.setFieldValue).toHaveBeenCalledWith('test-binding', 'preset1@');
 	});
 });

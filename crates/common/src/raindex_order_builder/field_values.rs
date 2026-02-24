@@ -395,7 +395,7 @@ mod tests {
         let result = builder.set_field_value("price-field".to_string(), "5.00".to_string());
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::BelowMinimum {
+                validation::BuilderValidationError::BelowMinimum {
                     name,
                     value,
                     minimum,
@@ -411,7 +411,7 @@ mod tests {
         let result = builder.set_field_value("price-field".to_string(), "1500.00".to_string());
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::AboveMaximum {
+                validation::BuilderValidationError::AboveMaximum {
                     name,
                     value,
                     maximum,
@@ -438,7 +438,7 @@ mod tests {
         let result = builder.set_field_value("quantity-field".to_string(), "0".to_string());
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::BelowExclusiveMinimum {
+                validation::BuilderValidationError::BelowExclusiveMinimum {
                     name,
                     value,
                     exclusive_minimum,
@@ -457,7 +457,7 @@ mod tests {
         let result = builder.set_field_value("quantity-field".to_string(), "100000".to_string());
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::AboveExclusiveMaximum {
+                validation::BuilderValidationError::AboveExclusiveMaximum {
                     name,
                     value,
                     exclusive_maximum,
@@ -493,7 +493,7 @@ mod tests {
                 builder.set_field_value("enabled-field".to_string(), test_value.to_string());
             match result {
                 Err(RaindexOrderBuilderError::ValidationError(
-                    validation::GuiValidationError::InvalidBoolean { name, value },
+                    validation::BuilderValidationError::InvalidBoolean { name, value },
                 )) => {
                     assert_eq!(name, "Enabled");
                     assert_eq!(value, test_value);
@@ -527,7 +527,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::BelowMinimum { .. }
+                validation::BuilderValidationError::BelowMinimum { .. }
             ))
         ));
     }
@@ -581,7 +581,7 @@ mod tests {
         let result = builder.set_field_value("simple-number".to_string(), "".to_string());
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::InvalidNumber { name, value },
+                validation::BuilderValidationError::InvalidNumber { name, value },
             )) => {
                 assert_eq!(name, "Simple Number");
                 assert_eq!(value, "");
@@ -593,7 +593,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::FloatError(..)
+                validation::BuilderValidationError::FloatError(..)
             ))
         ));
 
@@ -601,7 +601,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::FloatError(..)
+                validation::BuilderValidationError::FloatError(..)
             ))
         ));
 
@@ -609,7 +609,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::FloatError(..)
+                validation::BuilderValidationError::FloatError(..)
             ))
         ));
     }
@@ -624,7 +624,7 @@ mod tests {
         let result = builder.set_field_value("username-field".to_string(), "jo".to_string());
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooShort {
+                validation::BuilderValidationError::StringTooShort {
                     name,
                     length,
                     minimum,
@@ -643,7 +643,7 @@ mod tests {
         );
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooLong {
+                validation::BuilderValidationError::StringTooLong {
                     name,
                     length,
                     maximum,
@@ -674,7 +674,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooShort { .. }
+                validation::BuilderValidationError::StringTooShort { .. }
             ))
         ));
 
@@ -685,7 +685,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooLong { .. }
+                validation::BuilderValidationError::StringTooLong { .. }
             ))
         ));
 
@@ -694,7 +694,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooLong { .. }
+                validation::BuilderValidationError::StringTooLong { .. }
             ))
         ));
 
@@ -729,7 +729,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooShort { .. }
+                validation::BuilderValidationError::StringTooShort { .. }
             ))
         ));
 
@@ -740,7 +740,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooLong { .. }
+                validation::BuilderValidationError::StringTooLong { .. }
             ))
         ));
     }
@@ -786,7 +786,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::StringTooShort { .. }
+                validation::BuilderValidationError::StringTooShort { .. }
             ))
         ));
 

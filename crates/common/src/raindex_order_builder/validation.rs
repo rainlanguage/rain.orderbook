@@ -3,7 +3,7 @@ use rain_orderbook_app_settings::gui::{DepositValidationCfg, FieldValueValidatio
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum GuiValidationError {
+pub enum BuilderValidationError {
     #[error("The {name} field contains an invalid number: '{value}'. Please enter a valid numeric value.")]
     InvalidNumber { name: String, value: String },
 
@@ -64,7 +64,7 @@ pub fn validate_field_value(
     field_name: &str,
     value: &str,
     validation: &FieldValueValidationCfg,
-) -> Result<(), GuiValidationError> {
+) -> Result<(), BuilderValidationError> {
     match validation {
         FieldValueValidationCfg::Number {
             minimum,
@@ -91,7 +91,7 @@ pub fn validate_deposit_amount(
     token_name: &str,
     amount: &str,
     validation: &DepositValidationCfg,
-) -> Result<(), GuiValidationError> {
+) -> Result<(), BuilderValidationError> {
     validate_number(
         token_name,
         amount,
@@ -109,9 +109,9 @@ fn validate_number(
     exclusive_minimum: &Option<String>,
     maximum: &Option<String>,
     exclusive_maximum: &Option<String>,
-) -> Result<(), GuiValidationError> {
+) -> Result<(), BuilderValidationError> {
     if value.is_empty() {
-        return Err(GuiValidationError::InvalidNumber {
+        return Err(BuilderValidationError::InvalidNumber {
             name: name.to_string(),
             value: value.to_string(),
         });
@@ -121,7 +121,7 @@ fn validate_number(
     let zero = Float::parse("0".to_string())?;
 
     if float_value.lt(zero)? {
-        return Err(GuiValidationError::InvalidNumber {
+        return Err(BuilderValidationError::InvalidNumber {
             name: name.to_string(),
             value: value.to_string(),
         });
@@ -130,7 +130,7 @@ fn validate_number(
     if let Some(min) = minimum {
         let float_min = Float::parse(min.clone())?;
         if float_value.lt(float_min)? {
-            return Err(GuiValidationError::BelowMinimum {
+            return Err(BuilderValidationError::BelowMinimum {
                 name: name.to_string(),
                 value: value.to_string(),
                 minimum: min.clone(),
@@ -141,7 +141,7 @@ fn validate_number(
     if let Some(exclusive_min) = exclusive_minimum {
         let exclusive_min_float = Float::parse(exclusive_min.clone())?;
         if float_value.lte(exclusive_min_float)? {
-            return Err(GuiValidationError::BelowExclusiveMinimum {
+            return Err(BuilderValidationError::BelowExclusiveMinimum {
                 name: name.to_string(),
                 value: value.to_string(),
                 exclusive_minimum: exclusive_min.clone(),
@@ -152,7 +152,7 @@ fn validate_number(
     if let Some(max) = maximum {
         let max_float = Float::parse(max.clone())?;
         if float_value.gt(max_float)? {
-            return Err(GuiValidationError::AboveMaximum {
+            return Err(BuilderValidationError::AboveMaximum {
                 name: name.to_string(),
                 value: value.to_string(),
                 maximum: max.clone(),
@@ -163,7 +163,7 @@ fn validate_number(
     if let Some(exclusive_max) = exclusive_maximum {
         let exclusive_max_float = Float::parse(exclusive_max.clone())?;
         if float_value.gte(exclusive_max_float)? {
-            return Err(GuiValidationError::AboveExclusiveMaximum {
+            return Err(BuilderValidationError::AboveExclusiveMaximum {
                 name: name.to_string(),
                 value: value.to_string(),
                 exclusive_maximum: exclusive_max.clone(),
@@ -179,13 +179,13 @@ fn validate_string(
     value: &str,
     min_length: &Option<u32>,
     max_length: &Option<u32>,
-) -> Result<(), GuiValidationError> {
+) -> Result<(), BuilderValidationError> {
     let trimmed_value = value.trim();
     let length = trimmed_value.len() as u32;
 
     if let Some(min) = min_length {
         if length < *min {
-            return Err(GuiValidationError::StringTooShort {
+            return Err(BuilderValidationError::StringTooShort {
                 name: name.to_string(),
                 length,
                 minimum: *min,
@@ -195,7 +195,7 @@ fn validate_string(
 
     if let Some(max) = max_length {
         if length > *max {
-            return Err(GuiValidationError::StringTooLong {
+            return Err(BuilderValidationError::StringTooLong {
                 name: name.to_string(),
                 length,
                 maximum: *max,
@@ -206,10 +206,10 @@ fn validate_string(
     Ok(())
 }
 
-fn validate_boolean(name: &str, value: &str) -> Result<(), GuiValidationError> {
+fn validate_boolean(name: &str, value: &str) -> Result<(), BuilderValidationError> {
     match value {
         "true" | "false" => Ok(()),
-        _ => Err(GuiValidationError::InvalidBoolean {
+        _ => Err(BuilderValidationError::InvalidBoolean {
             name: name.to_string(),
             value: value.to_string(),
         }),
@@ -232,7 +232,7 @@ mod tests {
             &None,
         );
         match &result {
-            Err(GuiValidationError::BelowMinimum {
+            Err(BuilderValidationError::BelowMinimum {
                 name,
                 value,
                 minimum,
@@ -269,7 +269,7 @@ mod tests {
     fn test_validate_number_exclusive_minimum() {
         let result = validate_number("Price", "10", &None, &Some("10".to_string()), &None, &None);
         match &result {
-            Err(GuiValidationError::BelowExclusiveMinimum {
+            Err(BuilderValidationError::BelowExclusiveMinimum {
                 name,
                 value,
                 exclusive_minimum,
@@ -303,7 +303,7 @@ mod tests {
             &None,
         );
         match &result {
-            Err(GuiValidationError::AboveMaximum {
+            Err(BuilderValidationError::AboveMaximum {
                 name,
                 value,
                 maximum,
@@ -347,7 +347,7 @@ mod tests {
             &Some("100".to_string()),
         );
         match &result {
-            Err(GuiValidationError::AboveExclusiveMaximum {
+            Err(BuilderValidationError::AboveExclusiveMaximum {
                 name,
                 value,
                 exclusive_maximum,
@@ -392,7 +392,7 @@ mod tests {
         );
         assert!(matches!(
             result,
-            Err(GuiValidationError::BelowMinimum { .. })
+            Err(BuilderValidationError::BelowMinimum { .. })
         ));
 
         let result = validate_number(
@@ -405,7 +405,7 @@ mod tests {
         );
         assert!(matches!(
             result,
-            Err(GuiValidationError::AboveMaximum { .. })
+            Err(BuilderValidationError::AboveMaximum { .. })
         ));
     }
 
@@ -428,15 +428,21 @@ mod tests {
         assert!(result.is_ok());
 
         let result = validate_number("Test Field", "not a number", &None, &None, &None, &None);
-        assert!(matches!(result, Err(GuiValidationError::FloatError(..))));
+        assert!(matches!(
+            result,
+            Err(BuilderValidationError::FloatError(..))
+        ));
 
         let result = validate_number("Test Field", "12.34.56", &None, &None, &None, &None);
-        assert!(matches!(result, Err(GuiValidationError::FloatError(..))));
+        assert!(matches!(
+            result,
+            Err(BuilderValidationError::FloatError(..))
+        ));
 
         let result = validate_number("Test Field", "", &None, &None, &None, &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidNumber { .. })
+            Err(BuilderValidationError::InvalidNumber { .. })
         ));
     }
 
@@ -486,19 +492,19 @@ mod tests {
         let result = validate_number("Amount", "-1", &None, &None, &None, &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidNumber { .. })
+            Err(BuilderValidationError::InvalidNumber { .. })
         ));
 
         let result = validate_number("Amount", "-0.01", &None, &None, &None, &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidNumber { .. })
+            Err(BuilderValidationError::InvalidNumber { .. })
         ));
 
         let result = validate_number("Amount", "-100.5", &None, &None, &None, &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidNumber { .. })
+            Err(BuilderValidationError::InvalidNumber { .. })
         ));
     }
 
@@ -506,7 +512,7 @@ mod tests {
     fn test_validate_string_length() {
         let result = validate_string("Username", "hello", &Some(10), &None);
         match &result {
-            Err(GuiValidationError::StringTooShort {
+            Err(BuilderValidationError::StringTooShort {
                 name,
                 length,
                 minimum,
@@ -526,7 +532,7 @@ mod tests {
 
         let result = validate_string("Description", &"a".repeat(100), &None, &Some(50));
         match &result {
-            Err(GuiValidationError::StringTooLong {
+            Err(BuilderValidationError::StringTooLong {
                 name,
                 length,
                 maximum,
@@ -547,7 +553,7 @@ mod tests {
         let result = validate_string("Field", "", &Some(1), &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::StringTooShort { .. })
+            Err(BuilderValidationError::StringTooShort { .. })
         ));
 
         let result = validate_string("Field", "12345", &Some(5), &Some(5));
@@ -559,7 +565,7 @@ mod tests {
         let result = validate_string("Field", "🦀", &Some(5), &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::StringTooShort { .. })
+            Err(BuilderValidationError::StringTooShort { .. })
         ));
     }
 
@@ -571,7 +577,7 @@ mod tests {
         let result = validate_string("Username", "  hi  ", &Some(5), &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::StringTooShort { .. })
+            Err(BuilderValidationError::StringTooShort { .. })
         ));
 
         let result = validate_string("Username", "\t\nhello world\t\n", &Some(5), &Some(15));
@@ -580,13 +586,13 @@ mod tests {
         let result = validate_string("Description", "   ", &Some(1), &None);
         assert!(matches!(
             result,
-            Err(GuiValidationError::StringTooShort { .. })
+            Err(BuilderValidationError::StringTooShort { .. })
         ));
 
         let result = validate_string("Field", "  toolong  ", &None, &Some(6));
         assert!(matches!(
             result,
-            Err(GuiValidationError::StringTooLong { .. })
+            Err(BuilderValidationError::StringTooLong { .. })
         ));
     }
 
@@ -600,7 +606,7 @@ mod tests {
 
         let result = validate_boolean("Enable Feature", "yes");
         match &result {
-            Err(GuiValidationError::InvalidBoolean { name, value }) => {
+            Err(BuilderValidationError::InvalidBoolean { name, value }) => {
                 assert_eq!(name, "Enable Feature");
                 assert_eq!(value, "yes");
             }
@@ -610,25 +616,25 @@ mod tests {
         let result = validate_boolean("Enable Feature", "True");
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidBoolean { .. })
+            Err(BuilderValidationError::InvalidBoolean { .. })
         ));
 
         let result = validate_boolean("Enable Feature", "FALSE");
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidBoolean { .. })
+            Err(BuilderValidationError::InvalidBoolean { .. })
         ));
 
         let result = validate_boolean("Enable Feature", "False");
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidBoolean { .. })
+            Err(BuilderValidationError::InvalidBoolean { .. })
         ));
 
         let result = validate_boolean("Enable Feature", "");
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidBoolean { .. })
+            Err(BuilderValidationError::InvalidBoolean { .. })
         ));
     }
 
@@ -647,13 +653,13 @@ mod tests {
         let result = validate_field_value("Price Field", "5", &validation);
         assert!(matches!(
             result,
-            Err(GuiValidationError::BelowMinimum { .. })
+            Err(BuilderValidationError::BelowMinimum { .. })
         ));
 
         let result = validate_field_value("Price Field", "102", &validation);
         assert!(matches!(
             result,
-            Err(GuiValidationError::AboveMaximum { .. })
+            Err(BuilderValidationError::AboveMaximum { .. })
         ));
     }
 
@@ -670,13 +676,13 @@ mod tests {
         let result = validate_field_value("Name Field", "hi", &validation);
         assert!(matches!(
             result,
-            Err(GuiValidationError::StringTooShort { .. })
+            Err(BuilderValidationError::StringTooShort { .. })
         ));
 
         let result = validate_field_value("Name Field", "hello world!", &validation);
         assert!(matches!(
             result,
-            Err(GuiValidationError::StringTooLong { .. })
+            Err(BuilderValidationError::StringTooLong { .. })
         ));
     }
 
@@ -693,7 +699,7 @@ mod tests {
         let result = validate_field_value("Toggle Field", "maybe", &validation);
         assert!(matches!(
             result,
-            Err(GuiValidationError::InvalidBoolean { .. })
+            Err(BuilderValidationError::InvalidBoolean { .. })
         ));
     }
 }

@@ -3,14 +3,14 @@ use rain_orderbook_common::raindex_order_builder::state_management as inner_sm;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct AllGuiConfig {
+pub struct AllBuilderConfig {
     pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
     pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
     pub deposits: Vec<rain_orderbook_app_settings::gui::GuiDepositCfg>,
     pub order_inputs: Vec<rain_orderbook_app_settings::order::OrderIOCfg>,
     pub order_outputs: Vec<rain_orderbook_app_settings::order::OrderIOCfg>,
 }
-impl_wasm_traits!(AllGuiConfig);
+impl_wasm_traits!(AllBuilderConfig);
 
 #[wasm_export]
 impl RaindexOrderBuilder {
@@ -67,14 +67,14 @@ impl RaindexOrderBuilder {
     }
 
     #[wasm_export(
-        js_name = "getAllGuiConfig",
-        unchecked_return_type = "AllGuiConfig",
-        return_description = "Complete GUI configuration for all fields, deposits, and I/O"
+        js_name = "getAllBuilderConfig",
+        unchecked_return_type = "AllBuilderConfig",
+        return_description = "Complete builder configuration for all fields, deposits, and I/O"
     )]
-    pub fn get_all_gui_config(
+    pub fn get_all_builder_config(
         &self,
-    ) -> Result<inner_sm::AllGuiConfig, RaindexOrderBuilderWasmError> {
-        Ok(self.inner.get_all_gui_config()?)
+    ) -> Result<inner_sm::AllBuilderConfig, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_all_builder_config()?)
     }
 
     #[wasm_export(

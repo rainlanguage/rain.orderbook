@@ -101,28 +101,28 @@ impl RaindexOrderBuilder {
         })
     }
 
-    pub fn get_gui_config(&self) -> Result<GuiCfg, RaindexOrderBuilderError> {
+    pub fn get_builder_config(&self) -> Result<GuiCfg, RaindexOrderBuilderError> {
         if !GuiCfg::check_gui_key_exists(self.dotrain_order.dotrain_yaml().documents.clone())? {
-            return Err(RaindexOrderBuilderError::GuiConfigNotFound);
+            return Err(RaindexOrderBuilderError::BuilderConfigNotFound);
         }
-        let gui = self
+        let config = self
             .dotrain_order
             .dotrain_yaml()
             .get_gui(&self.selected_deployment)?
-            .ok_or(RaindexOrderBuilderError::GuiConfigNotFound)?;
-        Ok(gui)
+            .ok_or(RaindexOrderBuilderError::BuilderConfigNotFound)?;
+        Ok(config)
     }
 
     pub fn get_current_deployment(&self) -> Result<GuiDeploymentCfg, RaindexOrderBuilderError> {
-        let gui = self.get_gui_config()?;
-        let (_, gui_deployment) = gui
+        let config = self.get_builder_config()?;
+        let (_, deployment) = config
             .deployments
             .into_iter()
             .find(|(name, _)| name == &self.selected_deployment)
             .ok_or(RaindexOrderBuilderError::DeploymentNotFound(
                 self.selected_deployment.clone(),
             ))?;
-        Ok(gui_deployment.clone())
+        Ok(deployment.clone())
     }
 
     pub async fn get_token_info(
@@ -257,15 +257,15 @@ impl RaindexOrderBuilder {
 
 #[derive(Error, Debug)]
 pub enum RaindexOrderBuilderError {
-    #[error("Gui config not found")]
-    GuiConfigNotFound,
+    #[error("Builder config not found")]
+    BuilderConfigNotFound,
     #[error("Deployment not found: {0}")]
     DeploymentNotFound(String),
     #[error("Field binding not found: {0}")]
     FieldBindingNotFound(String),
     #[error("Missing field value: {0}")]
     FieldValueNotSet(String),
-    #[error("Deposit token not found in gui config: {0}")]
+    #[error("Deposit token not found in builder config: {0}")]
     DepositTokenNotFound(String),
     #[error("Missing deposit with token: {0}")]
     DepositNotSet(String),
@@ -332,7 +332,7 @@ pub enum RaindexOrderBuilderError {
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
-    ValidationError(#[from] validation::GuiValidationError),
+    ValidationError(#[from] validation::BuilderValidationError),
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
@@ -350,8 +350,8 @@ pub enum RaindexOrderBuilderError {
 impl RaindexOrderBuilderError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            Self::GuiConfigNotFound =>
-                "The GUI configuration could not be found. Please check your YAML configuration file.".to_string(),
+            Self::BuilderConfigNotFound =>
+                "The builder configuration could not be found. Please check your YAML configuration file.".to_string(),
             Self::DeploymentNotFound(name) =>
                 format!("The deployment '{}' could not be found. Please select a valid deployment from your YAML configuration.", name),
             Self::FieldBindingNotFound(field) =>
@@ -393,7 +393,7 @@ impl RaindexOrderBuilderError {
             Self::DotrainOrderError(err) =>
                 format!("Order configuration error in YAML: {}", err),
             Self::ParseGuiConfigSourceError(err) =>
-                format!("Failed to parse YAML GUI configuration: {}", err),
+                format!("Failed to parse YAML builder configuration: {}", err),
             Self::IoError(err) =>
                 format!("I/O error: {}", err),
             Self::BincodeError(err) =>
@@ -905,12 +905,12 @@ _ _: 0 0;
     }
 
     #[tokio::test]
-    async fn test_get_gui_config() {
+    async fn test_get_builder_config() {
         let builder = initialize_builder(None).await;
-        let gui_config = builder.get_gui_config().unwrap();
-        assert_eq!(gui_config.name, "Fixed limit".to_string());
-        assert_eq!(gui_config.description, "Fixed limit order".to_string());
-        assert_eq!(gui_config.deployments.len(), 1);
+        let builder_config = builder.get_builder_config().unwrap();
+        assert_eq!(builder_config.name, "Fixed limit".to_string());
+        assert_eq!(builder_config.description, "Fixed limit order".to_string());
+        assert_eq!(builder_config.deployments.len(), 1);
     }
 
     #[tokio::test]

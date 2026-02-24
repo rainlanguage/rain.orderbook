@@ -323,7 +323,7 @@ invalid-order http://localhost:8231/invalid.rain`;
 		});
 	});
 
-	describe('DotrainRegistry GUI Creation', () => {
+	describe('DotrainRegistry Builder Creation', () => {
 		let registry: DotrainRegistry;
 
 		beforeEach(async () => {
@@ -339,47 +339,51 @@ fixed-limit http://localhost:8231/fixed-limit.rain`;
 			);
 		});
 
-		it('should create GUI for valid order and deployment', async () => {
-			const gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null, null));
+		it('should create builder for valid order and deployment', async () => {
+			const builder = extractWasmEncodedData(
+				await registry.getOrderBuilder('fixed-limit', 'flare', null, null)
+			);
 
-			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
+			const currentDeployment = extractWasmEncodedData(builder.getCurrentDeployment());
 
 			assert.strictEqual(currentDeployment.name, 'Flare order name');
 			assert.strictEqual(currentDeployment.description, 'Flare order description');
 		});
 
-		it('should create GUI with state update callback', async () => {
+		it('should create builder with state update callback', async () => {
 			const stateCallback = () => {};
 
-			const gui = extractWasmEncodedData(
-				await registry.getGui('fixed-limit', 'base', null, stateCallback)
+			const builder = extractWasmEncodedData(
+				await registry.getOrderBuilder('fixed-limit', 'base', null, stateCallback)
 			);
 
-			const currentDeployment = extractWasmEncodedData(gui.getCurrentDeployment());
+			const currentDeployment = extractWasmEncodedData(builder.getCurrentDeployment());
 
 			assert.strictEqual(currentDeployment.name, 'Base order name');
 			assert.strictEqual(currentDeployment.description, 'Base order description');
 		});
 
-		it('should restore GUI from serialized state when provided', async () => {
-			let gui = extractWasmEncodedData(await registry.getGui('fixed-limit', 'flare', null, null));
+		it('should restore builder from serialized state when provided', async () => {
+			let builder = extractWasmEncodedData(
+				await registry.getOrderBuilder('fixed-limit', 'flare', null, null)
+			);
 
-			gui.setFieldValue('test-binding', '42');
-			const serializedState = extractWasmEncodedData<string>(gui.serializeState());
+			builder.setFieldValue('test-binding', '42');
+			const serializedState = extractWasmEncodedData<string>(builder.serializeState());
 
-			gui = extractWasmEncodedData(
-				await registry.getGui('fixed-limit', 'flare', serializedState, null)
+			builder = extractWasmEncodedData(
+				await registry.getOrderBuilder('fixed-limit', 'flare', serializedState, null)
 			);
 
 			const fieldValue = extractWasmEncodedData<{ value: string }>(
-				gui.getFieldValue('test-binding')
+				builder.getFieldValue('test-binding')
 			);
 
 			assert.strictEqual(fieldValue.value, '42');
 		});
 
-		it('should handle GUI creation for non-existent order', async () => {
-			const result = await registry.getGui('non-existent', 'flare', null, null);
+		it('should handle builder creation for non-existent order', async () => {
+			const result = await registry.getOrderBuilder('non-existent', 'flare', null, null);
 			assert(result.error);
 			assert(result.error.readableMsg.includes("order key 'non-existent' was not found"));
 		});

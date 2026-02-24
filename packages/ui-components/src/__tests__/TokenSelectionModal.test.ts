@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenSelectionModal from '../lib/components/deployment/TokenSelectionModal.svelte';
 import type { ComponentProps } from 'svelte';
 import type { ExtendedTokenInfo, RaindexOrderBuilder } from '@rainlanguage/orderbook';
-import { useGui } from '$lib/hooks/useGui';
+import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
 
 type TokenSelectionModalProps = ComponentProps<TokenSelectionModal>;
 
@@ -29,14 +29,14 @@ const mockTokens: ExtendedTokenInfo[] = [
 	}
 ];
 
-const mockGui: RaindexOrderBuilder = {
+const mockBuilder: RaindexOrderBuilder = {
 	getAllTokens: vi.fn().mockResolvedValue({
 		value: mockTokens
 	})
 } as unknown as RaindexOrderBuilder;
 
-vi.mock('../lib/hooks/useGui', () => ({
-	useGui: vi.fn()
+vi.mock('../lib/hooks/useRaindexOrderBuilder', () => ({
+	useRaindexOrderBuilder: vi.fn()
 }));
 
 describe('TokenSelectionModal', () => {
@@ -49,7 +49,7 @@ describe('TokenSelectionModal', () => {
 
 	beforeEach(() => {
 		mockOnSelect = vi.fn();
-		(useGui as Mock).mockReturnValue(mockGui);
+		(useRaindexOrderBuilder as Mock).mockReturnValue(mockBuilder);
 		vi.clearAllMocks();
 	});
 
@@ -109,7 +109,7 @@ describe('TokenSelectionModal', () => {
 		await userEvent.click(button);
 
 		await waitFor(() => {
-			expect(mockGui.getAllTokens).toHaveBeenCalledWith(undefined);
+			expect(mockBuilder.getAllTokens).toHaveBeenCalledWith(undefined);
 		});
 	});
 
@@ -163,12 +163,12 @@ describe('TokenSelectionModal', () => {
 		await user.type(searchInput, 'TEST');
 
 		await waitFor(() => {
-			expect(mockGui.getAllTokens).toHaveBeenCalledWith('TEST');
+			expect(mockBuilder.getAllTokens).toHaveBeenCalledWith('TEST');
 		});
 	});
 
 	it('shows loading state while searching', async () => {
-		const mockGuiWithDelay = {
+		const mockBuilderWithDelay = {
 			getAllTokens: vi
 				.fn()
 				.mockImplementation(
@@ -176,7 +176,7 @@ describe('TokenSelectionModal', () => {
 				)
 		} as unknown as RaindexOrderBuilder;
 
-		(useGui as Mock).mockReturnValue(mockGuiWithDelay);
+		(useRaindexOrderBuilder as Mock).mockReturnValue(mockBuilderWithDelay);
 
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
@@ -194,11 +194,11 @@ describe('TokenSelectionModal', () => {
 	});
 
 	it('shows no results message when search returns empty', async () => {
-		const mockGuiNoResults = {
+		const mockBuilderNoResults = {
 			getAllTokens: vi.fn().mockResolvedValue({ value: [] })
 		} as unknown as RaindexOrderBuilder;
 
-		(useGui as Mock).mockReturnValue(mockGuiNoResults);
+		(useRaindexOrderBuilder as Mock).mockReturnValue(mockBuilderNoResults);
 
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
@@ -215,14 +215,14 @@ describe('TokenSelectionModal', () => {
 	});
 
 	it('clears search when clear button is clicked', async () => {
-		const mockGuiNoResults = {
+		const mockBuilderNoResults = {
 			getAllTokens: vi
 				.fn()
 				.mockResolvedValueOnce({ value: [] })
 				.mockResolvedValueOnce({ value: mockTokens })
 		} as unknown as RaindexOrderBuilder;
 
-		(useGui as Mock).mockReturnValue(mockGuiNoResults);
+		(useRaindexOrderBuilder as Mock).mockReturnValue(mockBuilderNoResults);
 
 		const user = userEvent.setup();
 		render(TokenSelectionModal, {
@@ -241,7 +241,7 @@ describe('TokenSelectionModal', () => {
 		await user.click(clearButton);
 
 		await waitFor(() => {
-			expect(mockGuiNoResults.getAllTokens).toHaveBeenCalledWith(undefined);
+			expect(mockBuilderNoResults.getAllTokens).toHaveBeenCalledWith(undefined);
 		});
 	});
 

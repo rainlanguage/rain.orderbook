@@ -32,29 +32,29 @@ impl RaindexOrderBuilder {
         Ok(())
     }
 
-    pub fn get_gui_deposit(&self, key: &str) -> Result<GuiDepositCfg, RaindexOrderBuilderError> {
+    pub fn get_deposit_config(&self, key: &str) -> Result<GuiDepositCfg, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
-        let gui_deposit = deployment
+        let deposit_config = deployment
             .deposits
             .iter()
             .find(|dg| dg.token.as_ref().is_some_and(|t| t.key == *key))
             .ok_or(RaindexOrderBuilderError::DepositTokenNotFound(
                 key.to_string(),
             ))?;
-        Ok(gui_deposit.clone())
+        Ok(deposit_config.clone())
     }
 
     pub fn get_deposits(&self) -> Result<Vec<TokenDeposit>, RaindexOrderBuilderError> {
         self.deposits
             .iter()
             .map(|(key, value)| {
-                let gui_deposit = self.get_gui_deposit(key)?;
+                let deposit_config = self.get_deposit_config(key)?;
                 let amount: String = if value.is_preset {
                     let index = value
                         .value
                         .parse::<usize>()
                         .map_err(|_| RaindexOrderBuilderError::InvalidPreset)?;
-                    gui_deposit
+                    deposit_config
                         .presets
                         .as_ref()
                         .ok_or(RaindexOrderBuilderError::PresetsNotSet)?
@@ -65,10 +65,10 @@ impl RaindexOrderBuilder {
                     value.value.clone()
                 };
 
-                if gui_deposit.token.is_none() {
+                if deposit_config.token.is_none() {
                     return Err(RaindexOrderBuilderError::TokenMustBeSelected(key.clone()));
                 }
-                let token = gui_deposit.token.as_ref().unwrap();
+                let token = deposit_config.token.as_ref().unwrap();
 
                 Ok(TokenDeposit {
                     token: token.key.clone(),
@@ -84,18 +84,18 @@ impl RaindexOrderBuilder {
         token: String,
         amount: String,
     ) -> Result<(), RaindexOrderBuilderError> {
-        let gui_deposit = self.get_gui_deposit(&token)?;
+        let deposit_config = self.get_deposit_config(&token)?;
 
         if amount.is_empty() {
             return Err(RaindexOrderBuilderError::DepositAmountCannotBeEmpty);
         }
 
-        if let Some(validation) = &gui_deposit.validation {
+        if let Some(validation) = &deposit_config.validation {
             let token_info = self.get_token_info(token.clone()).await?;
             validation::validate_deposit_amount(&token_info.name, &amount, validation)?;
         }
 
-        let value = match gui_deposit.presets.as_ref() {
+        let value = match deposit_config.presets.as_ref() {
             Some(presets) => match presets.iter().position(|p| **p == amount) {
                 Some(index) => field_values::PairValue {
                     is_preset: true,
@@ -126,8 +126,8 @@ impl RaindexOrderBuilder {
         &self,
         key: String,
     ) -> Result<Vec<String>, RaindexOrderBuilderError> {
-        let gui_deposit = self.get_gui_deposit(&key)?;
-        Ok(gui_deposit.presets.clone().unwrap_or(vec![]))
+        let deposit_config = self.get_deposit_config(&key)?;
+        Ok(deposit_config.presets.clone().unwrap_or(vec![]))
     }
 
     pub fn get_missing_deposits(&self) -> Result<Vec<String>, RaindexOrderBuilderError> {
@@ -159,10 +159,10 @@ mod tests {
     use std::str::FromStr;
 
     #[tokio::test]
-    async fn test_get_gui_deposit() {
+    async fn test_get_deposit_config() {
         let builder = initialize_builder(None).await;
 
-        let deposit = builder.get_gui_deposit("token1").unwrap();
+        let deposit = builder.get_deposit_config("token1").unwrap();
         assert_eq!(deposit.token.unwrap().key, "token1");
         assert_eq!(
             deposit.presets,
@@ -175,7 +175,7 @@ mod tests {
             ])
         );
 
-        let err = builder.get_gui_deposit("token2").unwrap_err();
+        let err = builder.get_deposit_config("token2").unwrap_err();
         assert_eq!(
             err.to_string(),
             RaindexOrderBuilderError::DepositTokenNotFound("token2".to_string()).to_string()
@@ -186,7 +186,7 @@ mod tests {
         );
 
         let builder = initialize_builder_with_select_tokens().await;
-        let err = builder.get_gui_deposit("token3").unwrap_err();
+        let err = builder.get_deposit_config("token3").unwrap_err();
         assert_eq!(
             err.to_string(),
             RaindexOrderBuilderError::DepositTokenNotFound("token3".to_string()).to_string()
@@ -347,7 +347,7 @@ mod tests {
             .await;
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::BelowMinimum {
+                validation::BuilderValidationError::BelowMinimum {
                     name,
                     value,
                     minimum,
@@ -385,7 +385,7 @@ mod tests {
             .await;
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::AboveMaximum {
+                validation::BuilderValidationError::AboveMaximum {
                     name,
                     value,
                     maximum,
@@ -426,7 +426,7 @@ mod tests {
             .await;
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::BelowExclusiveMinimum {
+                validation::BuilderValidationError::BelowExclusiveMinimum {
                     name,
                     value,
                     exclusive_minimum,
@@ -451,7 +451,7 @@ mod tests {
             .await;
         match result {
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::AboveExclusiveMaximum {
+                validation::BuilderValidationError::AboveExclusiveMaximum {
                     name,
                     value,
                     exclusive_maximum,
@@ -480,7 +480,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::BelowMinimum { .. }
+                validation::BuilderValidationError::BelowMinimum { .. }
             ))
         ));
 
@@ -490,7 +490,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::AboveMaximum { .. }
+                validation::BuilderValidationError::AboveMaximum { .. }
             ))
         ));
 
@@ -515,7 +515,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::FloatError(..)
+                validation::BuilderValidationError::FloatError(..)
             ))
         ));
 
@@ -525,7 +525,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::FloatError(..)
+                validation::BuilderValidationError::FloatError(..)
             ))
         ));
 
@@ -535,7 +535,7 @@ mod tests {
         assert!(matches!(
             result,
             Err(RaindexOrderBuilderError::ValidationError(
-                validation::GuiValidationError::FloatError(..)
+                validation::BuilderValidationError::FloatError(..)
             ))
         ));
     }

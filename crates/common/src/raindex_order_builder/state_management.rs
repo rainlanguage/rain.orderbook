@@ -17,7 +17,7 @@ use strict_yaml_rust::StrictYaml;
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct AllGuiConfig {
+pub struct AllBuilderConfig {
     pub field_definitions_without_defaults: Vec<GuiFieldDefinitionCfg>,
     pub field_definitions_with_defaults: Vec<GuiFieldDefinitionCfg>,
     pub deposits: Vec<GuiDepositCfg>,
@@ -349,7 +349,7 @@ impl RaindexOrderBuilder {
         Ok(builder)
     }
 
-    pub fn get_all_gui_config(&self) -> Result<AllGuiConfig, RaindexOrderBuilderError> {
+    pub fn get_all_builder_config(&self) -> Result<AllBuilderConfig, RaindexOrderBuilderError> {
         let deployment = self.get_current_deployment()?;
 
         let field_definitions_without_defaults = self.get_all_field_definitions(Some(false))?;
@@ -358,7 +358,7 @@ impl RaindexOrderBuilder {
         let order_inputs = deployment.deployment.order.inputs.clone();
         let order_outputs = deployment.deployment.order.outputs.clone();
 
-        Ok(AllGuiConfig {
+        Ok(AllBuilderConfig {
             field_definitions_without_defaults,
             field_definitions_with_defaults,
             deposits,

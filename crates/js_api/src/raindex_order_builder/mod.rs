@@ -142,7 +142,7 @@ impl RaindexOrderBuilder {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = gui.getGuiConfig();
+    /// const result = builder.getBuilderConfig();
     /// if (result.error) {
     ///   console.error("Config error:", result.error.readableMsg);
     ///   return;
@@ -151,12 +151,12 @@ impl RaindexOrderBuilder {
     /// // Do something with the config
     /// ```
     #[wasm_export(
-        js_name = "getGuiConfig",
+        js_name = "getBuilderConfig",
         unchecked_return_type = "GuiCfg",
-        return_description = "Complete GUI configuration with name, description, and deployments"
+        return_description = "Complete builder configuration with name, description, and deployments"
     )]
-    pub fn get_gui_config(&self) -> Result<GuiCfg, RaindexOrderBuilderWasmError> {
-        Ok(self.inner.get_gui_config()?)
+    pub fn get_builder_config(&self) -> Result<GuiCfg, RaindexOrderBuilderWasmError> {
+        Ok(self.inner.get_builder_config()?)
     }
 
     /// Gets the active deployment's configuration including fields, deposits, and tokens.
@@ -1007,7 +1007,7 @@ _ _: 0 0;
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_gui_config() {
+    async fn test_get_builder_config() {
         let gui = RaindexOrderBuilder::new_with_deployment(
             get_yaml(),
             None,
@@ -1017,11 +1017,11 @@ _ _: 0 0;
         .await
         .unwrap();
 
-        let gui_config = gui.get_gui_config().unwrap();
-        assert_eq!(gui_config.name, "Fixed limit".to_string());
-        assert_eq!(gui_config.description, "Fixed limit order".to_string());
-        assert_eq!(gui_config.deployments.len(), 1);
-        let deployment = gui_config.deployments.get("some-deployment").unwrap();
+        let builder_config = gui.get_builder_config().unwrap();
+        assert_eq!(builder_config.name, "Fixed limit".to_string());
+        assert_eq!(builder_config.description, "Fixed limit order".to_string());
+        assert_eq!(builder_config.deployments.len(), 1);
+        let deployment = builder_config.deployments.get("some-deployment").unwrap();
         assert_eq!(deployment.name, "Buy WETH with USDC on Base.".to_string());
         assert_eq!(
             deployment.description,

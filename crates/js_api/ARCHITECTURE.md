@@ -40,7 +40,7 @@
       - `DotrainOrderGui.getDeploymentKeys(dotrain: string) -> string[]` parses `gui.deployments`.
       - `DotrainOrderGui.newWithDeployment(dotrain, selectedDeployment, stateUpdateCallback?) -> DotrainOrderGui` validates the deployment and bootstraps a GUI instance.
     - Config accessors:
-      - `getGuiConfig() -> GuiCfg`, `getCurrentDeployment() -> GuiDeploymentCfg` (filtered for the active deployment).
+      - `getBuilderConfig() -> GuiCfg`, `getCurrentDeployment() -> GuiDeploymentCfg` (filtered for the active deployment).
       - `getOrderDetails(dotrain) -> NameAndDescriptionCfg` (static), `getDeploymentDetails(dotrain) -> Map<string, NameAndDescriptionCfg>`, `getDeploymentDetail(dotrain, key) -> NameAndDescriptionCfg`.
       - `getCurrentDeploymentDetails() -> NameAndDescriptionCfg`.
     - Token metadata:
@@ -106,16 +106,16 @@
         - `serializeState() -> string`: bincode-serializes a compact state (field values and deposit presets, selected tokens, vault IDs, selected deployment) then gzips and base64-encodes. Also embeds a SHA‑256 of the full dotrain to prevent mismatched restores.
         - `DotrainOrderGui.newFromState(dotrain, serialized, callback?) -> DotrainOrderGui`: validates the hash against the provided dotrain, rebuilds internal maps, replays selected tokens and vault IDs back into the YAML/documents, and returns a fully restored instance.
         - `executeStateUpdateCallback()`: manually triggers the callback by passing the latest `serializeState()` string. Most mutating methods call this automatically.
-        - `getAllGuiConfig() -> AllGuiConfig`: returns all front-end relevant config slices grouped for progressive UI building (fields by required/optional, deposits, order inputs/outputs).
+        - `getAllBuilderConfig() -> AllBuilderConfig`: returns all front-end relevant config slices grouped for progressive UI building (fields by required/optional, deposits, order inputs/outputs).
 
     - `validation.rs`
       - Uniform validation library used by `field_values` and `deposits`:
         - Numbers: `minimum`, `exclusive-minimum`, `maximum`, `exclusive-maximum`; rejects negatives; precise decimal support via `Float`.
         - Strings: `min-length`, `max-length` (length measured on trimmed strings).
         - Booleans: accepts only `"true"` or `"false"`.
-      - Errors (`GuiValidationError`) carry contextual, user-readable messages; surfaced to JS via `GuiError::ValidationError`.
+      - Errors (`BuilderValidationError`) carry contextual, user-readable messages; surfaced to JS via `BuilderError::ValidationError`.
 
-  - Error type for the GUI: `GuiError`
+  - Error type for the builder: `BuilderError`
     - Captures configuration, selection, validation, I/O, chain, and serialization errors.
     - Provides `to_readable_msg()` with end-user friendly explanations.
     - Implements conversions to `JsValue` and `WasmEncodedError` for FFI.
@@ -131,8 +131,8 @@
     - `getOrderKeys()` → keys from `order_urls`.
     - `getDeploymentDetails(orderKey)` → deployment name/description map for a specific order.
     - `getOrderbookYaml() -> OrderbookYaml` → returns an `OrderbookYaml` instance from the registry's shared settings YAML for querying tokens, networks, orderbooks, etc.
-  - `getGui(orderKey, deploymentKey, serializedState?, stateCallback?)` → merge `settings + order`, optionally restore serialized state, and produce a `DotrainOrderGui` instance.
-  - Errors: `DotrainRegistryError` covers fetch/parse/HTTP/URL issues and wraps `GuiError`. Also returns human-readable messages.
+  - `getOrderBuilder(orderKey, deploymentKey, serializedState?, stateCallback?)` → merge `settings + order`, optionally restore serialized state, and produce a `RaindexOrderBuilder` instance.
+  - Errors: `DotrainRegistryError` covers fetch/parse/HTTP/URL issues and wraps `BuilderError`. Also returns human-readable messages.
 
 - `yaml` (src/yaml/mod.rs)
   - Purpose: Wasm-friendly wrapper around orderbook YAML parsing to retrieve configuration objects by address or query token metadata.
@@ -188,7 +188,7 @@
   - Generate data: `generateAddOrderCalldata` or `generateDepositAndAddOrderCalldatas`; or get the full package from `getDeploymentTransactionArgs(owner)`.
   - Persist UI state: read `serializeState()`; restore later with `DotrainOrderGui.newFromState(dotrain, serialized, callback?)`.
 - Multiple orders via registry:
-  - `const registry = await DotrainRegistry.new(registryUrl)` → inspect orders/deployments → `await registry.getGui(orderKey, deploymentKey, serializedState?, onStateChanged?)`.
+  - `const registry = await DotrainRegistry.new(registryUrl)` → inspect orders/deployments → `await registry.getOrderBuilder(orderKey, deploymentKey, serializedState?, onStateChanged?)`.
 
 **Summary**
 - `rain_orderbook_js_api` is the JS/WASM gateway for building, validating, and deploying Rain Orderbook orders from YAML+Rainlang definitions. It centralizes: YAML parsing and validation, user input state, token selection and metadata, field and deposit validation, vault ID management, transaction calldata generation (approvals, deposits, add order, multicall), registry-driven content fetching, and robust error handling—exposed as a typed, ergonomic TypeScript surface.

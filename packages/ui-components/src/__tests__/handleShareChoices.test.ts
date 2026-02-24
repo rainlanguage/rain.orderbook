@@ -7,11 +7,11 @@ vi.mock('@rainlanguage/orderbook', () => ({
 }));
 
 describe('handleShareChoices', () => {
-	let guiInstance: RaindexOrderBuilder;
+	let builderInstance: RaindexOrderBuilder;
 	const mockRegistryUrl = 'https://example.com/registry';
 
 	beforeEach(() => {
-		guiInstance = {
+		builderInstance = {
 			serializeState: vi.fn()
 		} as unknown as RaindexOrderBuilder;
 
@@ -31,9 +31,9 @@ describe('handleShareChoices', () => {
 	});
 
 	it('should share the choices with state and registry', async () => {
-		(guiInstance.serializeState as Mock).mockReturnValue({ value: 'mockState123' });
+		(builderInstance.serializeState as Mock).mockReturnValue({ value: 'mockState123' });
 
-		await handleShareChoices(guiInstance, mockRegistryUrl);
+		await handleShareChoices(builderInstance, mockRegistryUrl);
 
 		expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
 			'http://example.com/?state=mockState123&registry=https%3A%2F%2Fexample.com%2Fregistry'
@@ -41,9 +41,9 @@ describe('handleShareChoices', () => {
 	});
 
 	it('should handle null state', async () => {
-		(guiInstance.serializeState as Mock).mockReturnValue({ value: null });
+		(builderInstance.serializeState as Mock).mockReturnValue({ value: null });
 
-		await handleShareChoices(guiInstance, mockRegistryUrl);
+		await handleShareChoices(builderInstance, mockRegistryUrl);
 
 		expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
 			'http://example.com/?state=&registry=https%3A%2F%2Fexample.com%2Fregistry'

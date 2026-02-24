@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import TokenIOInput from '../lib/components/deployment/TokenIOInput.svelte';
 import type { ComponentProps } from 'svelte';
 import { AccountBalance, RaindexOrderBuilder, Float } from '@rainlanguage/orderbook';
-import { useGui } from '$lib/hooks/useGui';
+import { useRaindexOrderBuilder } from '$lib/hooks/useRaindexOrderBuilder';
 import type { TokenBalance } from '$lib/types/tokenBalance';
 
 vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
@@ -13,14 +13,14 @@ vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
 	};
 });
 
-vi.mock('$lib/hooks/useGui', () => ({
-	useGui: vi.fn()
+vi.mock('$lib/hooks/useRaindexOrderBuilder', () => ({
+	useRaindexOrderBuilder: vi.fn()
 }));
 
 type TokenIOInputComponentProps = ComponentProps<TokenIOInput>;
 
 describe('TokenInput', () => {
-	let guiInstance: RaindexOrderBuilder;
+	let builderInstance: RaindexOrderBuilder;
 	let mockStateUpdateCallback: Mock;
 	let mockProps: TokenIOInputComponentProps;
 	let outputMockProps: TokenIOInputComponentProps;
@@ -43,7 +43,7 @@ describe('TokenInput', () => {
 		vi.clearAllMocks();
 
 		// Create a mock instance with all the methods
-		guiInstance = {
+		builderInstance = {
 			getTokenInfo: vi.fn().mockResolvedValue(mockTokenInfo),
 			setVaultId: vi.fn().mockImplementation(() => {
 				mockStateUpdateCallback();
@@ -65,7 +65,7 @@ describe('TokenInput', () => {
 
 		mockStateUpdateCallback = vi.fn();
 
-		(useGui as Mock).mockReturnValue(guiInstance);
+		(useRaindexOrderBuilder as Mock).mockReturnValue(builderInstance);
 
 		mockProps = {
 			label: 'Input',
@@ -100,14 +100,14 @@ describe('TokenInput', () => {
 	it('calls setVaultId when input changes', async () => {
 		const input = render(TokenIOInput, mockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault1' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith('input', 'test', 'vault1');
+		expect(builderInstance.setVaultId).toHaveBeenCalledWith('input', 'test', 'vault1');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
 	it('calls setVaultId on output vault when input changes', async () => {
 		const input = render(TokenIOInput, outputMockProps).getByPlaceholderText('Enter vault ID');
 		await fireEvent.input(input, { target: { value: 'vault2' } });
-		expect(guiInstance.setVaultId).toHaveBeenCalledWith('output', 'test', 'vault2');
+		expect(builderInstance.setVaultId).toHaveBeenCalledWith('output', 'test', 'vault2');
 		expect(mockStateUpdateCallback).toHaveBeenCalledTimes(1);
 	});
 
@@ -217,6 +217,6 @@ describe('TokenInput', () => {
 
 		const labelWithSymbol = await findByText('Input (MOCK)');
 		expect(labelWithSymbol).toBeInTheDocument();
-		expect(guiInstance.getTokenInfo).toHaveBeenCalledWith('0x456');
+		expect(builderInstance.getTokenInfo).toHaveBeenCalledWith('0x456');
 	});
 });
