@@ -22,8 +22,9 @@ use rain_interpreter_eval::{
 };
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 use rain_metadata::{
-    types::dotrain::gui_state_v1::DotrainGuiStateV1, ContentEncoding, ContentLanguage, ContentType,
-    Error as RainMetaError, KnownMagic, RainMetaDocumentV1Item,
+    types::dotrain::gui_state_v1::DotrainGuiStateV1,
+    types::raindex_signed_context_oracle::RaindexSignedContextOracleV1, ContentEncoding,
+    ContentLanguage, ContentType, Error as RainMetaError, KnownMagic, RainMetaDocumentV1Item,
 };
 use rain_metadata_bindings::MetaBoard::emitMetaCall;
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
@@ -129,6 +130,21 @@ impl AddOrderArgs {
                 vaultId: output.vault_id.map(B256::from).unwrap_or(random_vault_id),
             });
         }
+
+        // If the order has an oracle URL, add a RaindexSignedContextOracleV1 meta item
+        let additional_meta = {
+            let mut meta = additional_meta.unwrap_or_default();
+            if let Some(ref oracle_url) = deployment.order.oracle_url {
+                let oracle = RaindexSignedContextOracleV1::parse(oracle_url)
+                    .map_err(AddOrderArgsError::RainMetaError)?;
+                meta.push(oracle.to_meta_item());
+            }
+            if meta.is_empty() {
+                None
+            } else {
+                Some(meta)
+            }
+        };
 
         Ok(AddOrderArgs {
             dotrain: dotrain.to_string(),
@@ -683,6 +699,7 @@ price: 2e18;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -803,6 +820,7 @@ _ _: 0 0;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -966,6 +984,7 @@ _ _: 0 0;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -1307,6 +1326,7 @@ _ _: 16 52;
             network: network_arc.clone(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         DeploymentCfg {
             document: default_document(),

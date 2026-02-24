@@ -9,7 +9,7 @@ use std::{
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
 
-const ALLOWED_ORDER_KEYS: [&str; 4] = ["deployer", "inputs", "orderbook", "outputs"];
+const ALLOWED_ORDER_KEYS: [&str; 5] = ["deployer", "inputs", "oracle-url", "orderbook", "outputs"];
 const ALLOWED_ORDER_IO_KEYS: [&str; 2] = ["token", "vault-id"];
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -59,6 +59,9 @@ pub struct OrderCfg {
     pub deployer: Option<Arc<DeployerCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub orderbook: Option<Arc<OrderbookCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    #[serde(rename = "oracle-url")]
+    pub oracle_url: Option<String>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderCfg);
@@ -813,6 +816,8 @@ impl YamlParsableHash for OrderCfg {
                     })
                     .collect::<Result<Vec<_>, YamlError>>()?;
 
+                    let oracle_url = optional_string(order_yaml, "oracle-url");
+
                     let order = OrderCfg {
                         document: document.clone(),
                         key: order_key.clone(),
@@ -823,6 +828,7 @@ impl YamlParsableHash for OrderCfg {
                         )?,
                         deployer,
                         orderbook,
+                        oracle_url,
                     };
 
                     if orders.contains_key(&order_key) {
@@ -932,6 +938,7 @@ impl Default for OrderCfg {
             network: Arc::new(NetworkCfg::default()),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         }
     }
 }
@@ -944,6 +951,7 @@ impl PartialEq for OrderCfg {
             && self.network == other.network
             && self.deployer == other.deployer
             && self.orderbook == other.orderbook
+            && self.oracle_url == other.oracle_url
     }
 }
 
@@ -1478,5 +1486,53 @@ orders:
             .as_vec()
             .unwrap();
         assert_eq!(inputs.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_order_with_oracle_url() {
+        let yaml = r#"
+networks:
+    mainnet:
+        rpcs:
+            - "https://mainnet.infura.io"
+        chain-id: "1"
+deployers:
+    mainnet:
+        address: 0x0000000000000000000000000000000000000001
+        network: mainnet
+tokens:
+    token-one:
+        network: mainnet
+        address: 0x1234567890123456789012345678901234567890
+    token-two:
+        network: mainnet
+        address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+orders:
+    oracle-order:
+        deployer: mainnet
+        oracle-url: https://my-oracle.example.com/context
+        inputs:
+            - token: token-one
+        outputs:
+            - token: token-two
+    plain-order:
+        deployer: mainnet
+        inputs:
+            - token: token-one
+        outputs:
+            - token: token-two
+"#;
+        let orders = OrderCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
+
+        assert_eq!(orders.len(), 2);
+
+        let oracle_order = orders.get("oracle-order").unwrap();
+        assert_eq!(
+            oracle_order.oracle_url.as_deref(),
+            Some("https://my-oracle.example.com/context")
+        );
+
+        let plain_order = orders.get("plain-order").unwrap();
+        assert!(plain_order.oracle_url.is_none());
     }
 }
