@@ -747,9 +747,7 @@ mod tests {
         let orders_page2: Vec<SgOrder> = (0..50).map(|_| default_sg_order()).collect();
 
         sg_server.mock(|when, then| {
-            when.method(POST)
-                .path("/")
-                .body_contains("\"skip\":0");
+            when.method(POST).path("/").body_contains("\"skip\":0");
             then.status(200)
                 .json_body(json!({"data": {"orders": orders_page1}}));
         });
@@ -772,8 +770,7 @@ mod tests {
 
         sg_server.mock(|when, then| {
             when.method(POST).path("/");
-            then.status(200)
-                .json_body(json!({"data": {"orders": []}}));
+            then.status(200).json_body(json!({"data": {"orders": []}}));
         });
 
         let count = client.orders_count(default_filter_args()).await.unwrap();

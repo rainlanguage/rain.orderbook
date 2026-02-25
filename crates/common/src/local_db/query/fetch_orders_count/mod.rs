@@ -222,7 +222,9 @@ mod tests {
         };
         let stmt = build_fetch_orders_count_stmt(&args).unwrap();
         assert!(stmt.sql.contains("l.order_owner IN ("));
-        assert!(stmt.sql.contains("COALESCE(la.order_hash, l.order_hash) = "));
+        assert!(stmt
+            .sql
+            .contains("COALESCE(la.order_hash, l.order_hash) = "));
     }
 
     #[test]

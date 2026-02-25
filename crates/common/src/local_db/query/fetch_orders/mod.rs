@@ -624,14 +624,8 @@ mod tests {
             ..FetchOrdersArgs::default()
         };
         let stmt = build_fetch_orders_stmt(&args).unwrap();
-        assert!(
-            stmt.sql.contains("LIMIT"),
-            "should contain LIMIT clause"
-        );
-        assert!(
-            stmt.sql.contains("OFFSET"),
-            "should contain OFFSET clause"
-        );
+        assert!(stmt.sql.contains("LIMIT"), "should contain LIMIT clause");
+        assert!(stmt.sql.contains("OFFSET"), "should contain OFFSET clause");
         assert!(!stmt.sql.contains(PAGINATION_CLAUSE));
         let last_two: Vec<&SqlValue> = stmt.params.iter().rev().take(2).collect();
         assert_eq!(last_two[1], &SqlValue::U64(10));
