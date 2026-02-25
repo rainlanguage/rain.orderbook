@@ -864,15 +864,21 @@ impl RaindexClient {
         filters: Option<GetOrdersFilters>,
         #[wasm_export(param_description = "Page number for pagination (optional, defaults to 1)")]
         page: Option<u16>,
+        #[wasm_export(
+            js_name = "pageSize",
+            param_description = "Number of items per page (optional, defaults to 100)"
+        )]
+        page_size: Option<u16>,
     ) -> Result<RaindexOrdersListResult, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
+        let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let ids = chain_ids.map(|ChainIds(ids)| ids);
 
         if let Some(local_db) = self.local_db() {
             let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
             let mut result = local_source
-                .list(ids, &filters, Some(page_number), Some(DEFAULT_PAGE_SIZE))
+                .list(ids, &filters, Some(page_number), Some(page_size))
                 .await?;
             result.orders = fetch_orders_dotrain_sources(result.orders).await?;
             return Ok(result);
@@ -880,7 +886,7 @@ impl RaindexClient {
 
         let subgraph_source = SubgraphOrders::new(self);
         let mut result = subgraph_source
-            .list(ids, &filters, Some(page_number), Some(DEFAULT_PAGE_SIZE))
+            .list(ids, &filters, Some(page_number), Some(page_size))
             .await?;
         result.orders = fetch_orders_dotrain_sources(result.orders).await?;
         Ok(result)
@@ -2276,7 +2282,7 @@ mod tests {
             )
             .unwrap();
             let result = raindex_client
-                .get_orders(None, Some(filter_args), Some(1))
+                .get_orders(None, Some(filter_args), Some(1), None)
                 .await
                 .unwrap();
 
@@ -2805,6 +2811,7 @@ mod tests {
                     Some(ChainIds(vec![137])),
                     Some(GetOrdersFilters::default()),
                     Some(1),
+                    None,
                 )
                 .await
                 .unwrap();

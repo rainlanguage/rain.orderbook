@@ -395,7 +395,7 @@ mod tests {
             let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
 
             let result = client
-                .get_orders(Some(ChainIds(vec![42161])), None, None)
+                .get_orders(Some(ChainIds(vec![42161])), None, None, None)
                 .await
                 .expect("local db query should succeed");
 
