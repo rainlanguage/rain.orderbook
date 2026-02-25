@@ -46,6 +46,8 @@ pub(crate) fn map_sync_to_engine(
         sync.max_concurrent_batches as usize,
         sync.max_concurrent_batches as usize,
         sync.retry_attempts as usize,
+        sync.retry_delay_ms,
+        sync.rate_limit_delay_ms,
     )?;
     let finality = FinalityConfig {
         depth: sync.finality_depth,
@@ -268,8 +270,8 @@ orderbooks:
             batch_size: 25,
             max_concurrent_batches: 4,
             retry_attempts: 6,
-            retry_delay_ms: 0,
-            rate_limit_delay_ms: 0,
+            retry_delay_ms: 1000,
+            rate_limit_delay_ms: 5000,
             finality_depth: 32,
             bootstrap_block_threshold: 100,
         };
@@ -279,6 +281,8 @@ orderbooks:
         assert_eq!(fetch.max_concurrent_requests(), 4);
         assert_eq!(fetch.max_concurrent_blocks(), 4);
         assert_eq!(fetch.max_retry_attempts(), 6);
+        assert_eq!(fetch.retry_delay_ms(), 1000);
+        assert_eq!(fetch.rate_limit_delay_ms(), 5000);
         assert_eq!(finality.depth, 32);
     }
 

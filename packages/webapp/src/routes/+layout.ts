@@ -1,10 +1,4 @@
-import {
-	DotrainRegistry,
-	RaindexClient,
-	type AccountCfg,
-	type Address,
-	type Hex
-} from '@rainlanguage/orderbook';
+import { DotrainRegistry, RaindexClient, type Address, type Hex } from '@rainlanguage/orderbook';
 import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { REGISTRY_URL } from '$lib/constants';
@@ -104,16 +98,15 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 	return {
 		stores: {
 			selectedChainIds: writable<number[]>([]),
-			accounts: writable<Record<string, AccountCfg>>({}),
-			activeAccountsItems: writable<Record<string, Address>>({}),
 			showInactiveOrders: writable<boolean>(false),
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
 			hideInactiveOrdersVaults: writable<boolean>(false),
-			showMyItemsOnly: writable<boolean>(false),
 			activeTokens: writable<Address[]>([]),
-			activeOrderbookAddresses: writable<Address[]>([])
+			activeOrderbookAddresses: writable<Address[]>([]),
+			// @ts-expect-error initially the value is empty
+			ownerFilter: writable<Address>('')
 		},
 		registry,
 		localDb,

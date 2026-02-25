@@ -548,14 +548,14 @@ mod tests {
     use alloy::primitives::{Address, U256};
     use js_sys::{eval, Reflect};
     use rain_orderbook_app_settings::{
-        network::NetworkCfg, order::VaultType, spec_version::SpecVersion, yaml::YamlParsableHash,
+        network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
     };
     use rain_orderbook_common::dotrain::RainDocument;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Qy2rDMBCU0tJS6CkUeir0Ayos2S5YgR7bmjb4UEIOvQRHURJjRTLOmrx-Ip8cnEgOMdnDzo5mtLtsB53iweI405NMzwhDLm4sMkrbJh_bB4qayhV3FsHkUgfXul13XrJHy5ZmIYmWsDJl7v69WJwDFD3PU0akam6W0Ito9O6VhSBVqXa1A9cZu9Gfg_jJlt1wuN63Eu7ieysP6h1eA3zr-G8SoA46x8WyrJnAOMdt1W9Un_M3ZwQq6JDwUI03f6zaQtzPov80qfTPV5jqeDTVZb_4TiqRfzy7U0glBZBjUzKRhTKbhdRwAGw0tlzJAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTYvCMBBN3GWXhT3Jwp4W9gdsaNOu2Aqeiqj4cbF6T2vQ0pjUmqLin_AnS3VSsTiHeW_yXmaGaaBbfABGiVwmckUoMvECSG27bnIwPNioYoa8AWqVcuk-6_bc-Vh9QrVTG04k13uVp-bfD-Ba66xjWULFTKzVTnc822tZeRaTIhen0oHLjM3oXjj4Atr8XxzOtYSb-B3ksNzh18Wvph5NXdRA93hYllYTqO_juupUquP7f0Ajtk0Ow2g7ZaEqAhakDstTr8gCTsaz8aQ9n_cpXU1abdnrfptTcMFjTa5NyZJnQh03XOoLQ6E_l8kBAAA=";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
