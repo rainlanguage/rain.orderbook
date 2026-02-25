@@ -44,8 +44,6 @@ pub async fn get_order_quotes(
     rpcs: Vec<String>,
     gas: Option<u64>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
-    let mut results: Vec<BatchOrderQuotesResponse> = Vec::new();
-
     let req_block_number = match block_number {
         Some(block) => block,
         None => {
@@ -55,14 +53,19 @@ pub async fn get_order_quotes(
         }
     };
 
+    let mut all_pairs: Vec<Pair> = Vec::new();
+    let mut all_quote_targets: Vec<QuoteTarget> = Vec::new();
+
     for order in &orders {
-        let mut pairs: Vec<Pair> = Vec::new();
-        let mut quote_targets: Vec<QuoteTarget> = Vec::new();
         let order_struct: OrderV4 = order.clone().try_into()?;
         let orderbook = Address::from_str(&order.orderbook.id.0)?;
 
         for (input_index, input) in order_struct.validInputs.iter().enumerate() {
             for (output_index, output) in order_struct.validOutputs.iter().enumerate() {
+                if input.token == output.token {
+                    continue;
+                }
+
                 let pair_name = format!(
                     "{}/{}",
                     order
@@ -89,7 +92,12 @@ pub async fn get_order_quotes(
                         .unwrap_or("UNKNOWN".to_string())
                 );
 
-                let quote_target = QuoteTarget {
+                all_pairs.push(Pair {
+                    pair_name,
+                    input_index: input_index as u32,
+                    output_index: output_index as u32,
+                });
+                all_quote_targets.push(QuoteTarget {
                     orderbook,
                     quote_config: QuoteV2 {
                         order: order_struct.clone(),
@@ -97,58 +105,49 @@ pub async fn get_order_quotes(
                         outputIOIndex: U256::from(output_index),
                         signedContext: vec![],
                     },
-                };
-
-                if input.token != output.token {
-                    pairs.push(Pair {
-                        pair_name,
-                        input_index: input_index as u32,
-                        output_index: output_index as u32,
-                    });
-                    quote_targets.push(quote_target);
-                }
+                });
             }
         }
+    }
 
-        let quote_values = BatchQuoteTarget(quote_targets)
-            .do_quote(rpcs.clone(), Some(req_block_number), gas, None)
-            .await;
-
-        if let Ok(quote_values) = quote_values {
-            for (quote_value_result, pair) in quote_values.into_iter().zip(pairs) {
-                match quote_value_result {
-                    Ok(quote_value) => {
-                        results.push(BatchOrderQuotesResponse {
-                            pair,
-                            block_number: req_block_number,
-                            success: true,
-                            data: Some(quote_value),
-                            error: None,
-                        });
-                    }
-                    Err(e) => {
-                        results.push(BatchOrderQuotesResponse {
-                            pair,
-                            block_number: req_block_number,
-                            success: false,
-                            data: None,
-                            error: Some(e.to_string()),
-                        });
-                    }
-                }
-            }
-        } else if let Err(e) = quote_values {
-            for pair in pairs {
-                results.push(BatchOrderQuotesResponse {
+    let results = match BatchQuoteTarget(all_quote_targets)
+        .do_quote(rpcs, Some(req_block_number), gas, None)
+        .await
+    {
+        Ok(quote_values) => quote_values
+            .into_iter()
+            .zip(all_pairs)
+            .map(|(quote_result, pair)| match quote_result {
+                Ok(data) => BatchOrderQuotesResponse {
+                    pair,
+                    block_number: req_block_number,
+                    success: true,
+                    data: Some(data),
+                    error: None,
+                },
+                Err(e) => BatchOrderQuotesResponse {
                     pair,
                     block_number: req_block_number,
                     success: false,
                     data: None,
                     error: Some(e.to_string()),
-                });
-            }
+                },
+            })
+            .collect(),
+        Err(e) => {
+            let error = e.to_string();
+            all_pairs
+                .into_iter()
+                .map(|pair| BatchOrderQuotesResponse {
+                    pair,
+                    block_number: req_block_number,
+                    success: false,
+                    data: None,
+                    error: Some(error.clone()),
+                })
+                .collect()
         }
-    }
+    };
 
     Ok(results)
 }
