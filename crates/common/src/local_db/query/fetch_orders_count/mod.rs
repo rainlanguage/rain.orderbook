@@ -252,6 +252,78 @@ mod tests {
     }
 
     #[test]
+    fn builds_count_with_combined_tokens_when_inputs_equal_outputs() {
+        use super::super::fetch_orders::FetchOrdersTokensFilter;
+
+        let token_a = address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB");
+        let token_b = address!("0x1111111111111111111111111111111111111111");
+        let tokens = vec![token_a, token_b];
+
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tokens: FetchOrdersTokensFilter {
+                inputs: tokens.clone(),
+                outputs: tokens,
+            },
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_count_stmt(&args).unwrap();
+
+        assert!(
+            stmt.sql.contains("lower(io2.io_type) = 'input'"),
+            "should contain input check in combined clause"
+        );
+        assert!(
+            stmt.sql.contains("lower(io2.io_type) = 'output'"),
+            "should contain output check in combined clause"
+        );
+        assert!(
+            stmt.sql.contains(" OR "),
+            "should use OR to combine input and output checks"
+        );
+        assert!(
+            !stmt.sql.contains(INPUT_TOKENS_CLAUSE),
+            "input tokens placeholder should be replaced"
+        );
+        assert!(
+            !stmt.sql.contains(OUTPUT_TOKENS_CLAUSE),
+            "output tokens placeholder should be replaced"
+        );
+    }
+
+    #[test]
+    fn builds_count_with_separate_tokens_when_inputs_differ_from_outputs() {
+        use super::super::fetch_orders::FetchOrdersTokensFilter;
+
+        let token_a = address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB");
+        let token_b = address!("0x1111111111111111111111111111111111111111");
+
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tokens: FetchOrdersTokensFilter {
+                inputs: vec![token_a],
+                outputs: vec![token_b],
+            },
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_count_stmt(&args).unwrap();
+
+        assert!(
+            !stmt.sql.contains(INPUT_TOKENS_CLAUSE),
+            "input tokens placeholder should be replaced"
+        );
+        assert!(
+            !stmt.sql.contains(OUTPUT_TOKENS_CLAUSE),
+            "output tokens placeholder should be replaced"
+        );
+        let exists_count = stmt.sql.matches("AND EXISTS").count();
+        assert_eq!(
+            exists_count, 2,
+            "should have two separate EXISTS subqueries when tokens differ"
+        );
+    }
+
+    #[test]
     fn extract_count_returns_value() {
         let rows = vec![LocalDbOrdersCountRow { orders_count: 42 }];
         assert_eq!(extract_orders_count(&rows), 42);
