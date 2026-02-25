@@ -630,11 +630,12 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result.orders.length, 2);
 			assert.equal(result.orders[0].id, order1.id);
 			assert.equal(result.orders[1].id, order2.id);
-			assert.equal(typeof result.totalCount, 'number');
+			assert.equal(result.totalCount, 2);
 
 			result = extractWasmEncodedData(await raindexClient.getOrders([1]));
 			assert.equal(result.orders.length, 1);
 			assert.equal(result.orders[0].id, order1.id);
+			assert.equal(result.totalCount, 1);
 		});
 
 		it('should get order by hash', async function () {

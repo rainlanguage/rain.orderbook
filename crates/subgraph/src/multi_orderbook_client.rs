@@ -70,18 +70,25 @@ impl MultiOrderbookSubgraphClient {
         all_orders
     }
 
-    pub async fn orders_count(&self, filter_args: SgOrdersListFilterArgs) -> u32 {
+    pub async fn orders_count(
+        &self,
+        filter_args: SgOrdersListFilterArgs,
+    ) -> Result<u32, OrderbookSubgraphClientError> {
         let futures = self.subgraphs.iter().map(|subgraph| {
             let url = subgraph.url.clone();
             let filter_args = filter_args.clone();
             async move {
                 let client = self.get_orderbook_subgraph_client(url);
-                client.orders_count(filter_args).await.unwrap_or(0)
+                client.orders_count(filter_args).await
             }
         });
 
         let results = join_all(futures).await;
-        results.into_iter().sum()
+        let mut total: u32 = 0;
+        for result in results {
+            total += result?;
+        }
+        Ok(total)
     }
 
     pub async fn vaults_list(
@@ -475,7 +482,7 @@ mod tests {
     #[tokio::test]
     async fn test_orders_count_no_subgraphs() {
         let client = MultiOrderbookSubgraphClient::new(vec![]);
-        let count = client.orders_count(default_filter_args()).await;
+        let count = client.orders_count(default_filter_args()).await.unwrap();
         assert_eq!(count, 0);
     }
 
@@ -498,7 +505,7 @@ mod tests {
             name: "sg_one".to_string(),
         }]);
 
-        let count = client.orders_count(default_filter_args()).await;
+        let count = client.orders_count(default_filter_args()).await.unwrap();
         assert_eq!(count, 3);
     }
 
@@ -538,12 +545,12 @@ mod tests {
             },
         ]);
 
-        let count = client.orders_count(default_filter_args()).await;
+        let count = client.orders_count(default_filter_args()).await.unwrap();
         assert_eq!(count, 7);
     }
 
     #[tokio::test]
-    async fn test_orders_count_one_subgraph_errors_returns_partial() {
+    async fn test_orders_count_one_subgraph_errors_propagates() {
         let server1 = MockServer::start_async().await;
         let sg1_url = Url::parse(&server1.url("")).unwrap();
         let server2 = MockServer::start_async().await;
@@ -573,8 +580,8 @@ mod tests {
             },
         ]);
 
-        let count = client.orders_count(default_filter_args()).await;
-        assert_eq!(count, 4);
+        let result = client.orders_count(default_filter_args()).await;
+        assert!(result.is_err());
     }
 
     #[tokio::test]
@@ -604,8 +611,44 @@ mod tests {
             },
         ]);
 
-        let count = client.orders_count(default_filter_args()).await;
-        assert_eq!(count, 0);
+        let result = client.orders_count(default_filter_args()).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_orders_count_pagination_boundary() {
+        use crate::orderbook_client::ALL_PAGES_QUERY_PAGE_SIZE;
+
+        let server = MockServer::start_async().await;
+        let sg_url = Url::parse(&server.url("")).unwrap();
+
+        let page1_orders: Vec<_> = (0..ALL_PAGES_QUERY_PAGE_SIZE)
+            .map(|i| sample_sg_order(&format!("p1_{}", i), "100"))
+            .collect();
+        let page2_orders: Vec<_> = (0..10)
+            .map(|i| sample_sg_order(&format!("p2_{}", i), "100"))
+            .collect();
+
+        server.mock(|when, then| {
+            when.method(POST).path("/").body_contains("\"skip\":0");
+            then.status(200)
+                .json_body(json!({"data": {"orders": page1_orders}}));
+        });
+        server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains(format!("\"skip\":{}", ALL_PAGES_QUERY_PAGE_SIZE));
+            then.status(200)
+                .json_body(json!({"data": {"orders": page2_orders}}));
+        });
+
+        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+            url: sg_url,
+            name: "sg_one".to_string(),
+        }]);
+
+        let count = client.orders_count(default_filter_args()).await.unwrap();
+        assert_eq!(count, ALL_PAGES_QUERY_PAGE_SIZE as u32 + 10);
     }
 
     fn sample_sg_erc20(id_suffix: &str) -> SgErc20 {

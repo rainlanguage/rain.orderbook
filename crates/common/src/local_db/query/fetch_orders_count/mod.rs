@@ -105,13 +105,13 @@ pub fn build_fetch_orders_count_stmt(
         orderbooks_iter(),
     )?;
 
-    let mut owners_lower = args.owners.clone();
-    owners_lower.sort();
-    owners_lower.dedup();
+    let mut owners = args.owners.clone();
+    owners.sort();
+    owners.dedup();
     stmt.bind_list_clause(
         OWNERS_CLAUSE,
         OWNERS_CLAUSE_BODY,
-        owners_lower.into_iter().map(SqlValue::from),
+        owners.into_iter().map(SqlValue::from),
     )?;
 
     let order_hash_val = args.order_hash.as_ref().map(|hash| SqlValue::from(*hash));

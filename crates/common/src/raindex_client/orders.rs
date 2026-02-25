@@ -967,7 +967,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         let effective_page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE);
 
         let total_count = if page.is_some() {
-            client.orders_count(sg_filter_args.clone()).await
+            client.orders_count(sg_filter_args.clone()).await?
         } else {
             0
         };
