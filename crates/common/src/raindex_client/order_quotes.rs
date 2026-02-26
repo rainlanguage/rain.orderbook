@@ -195,6 +195,17 @@ pub async fn get_order_quotes_batch(
         return Ok(vec![]);
     }
 
+    let expected_chain_id = orders[0].chain_id();
+    for order in &orders[1..] {
+        if order.chain_id() != expected_chain_id {
+            return Err(RaindexError::PreflightError(format!(
+                "All orders must share the same chain ID, expected {} but found {}",
+                expected_chain_id,
+                order.chain_id()
+            )));
+        }
+    }
+
     let rpcs: Vec<String> = orders[0]
         .get_rpc_urls()?
         .into_iter()
