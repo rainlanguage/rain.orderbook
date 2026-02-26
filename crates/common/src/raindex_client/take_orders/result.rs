@@ -360,7 +360,7 @@ pub(crate) fn build_approval_result(
     amount: Float,
     decimals: u8,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
-    let amount_u256 = amount.to_fixed_decimal(decimals)?;
+    let amount_u256 = amount.to_fixed_decimal_lossy(decimals)?.0;
     let calldata = build_approval_calldata(spender, amount_u256);
     let formatted_amount = amount.format().unwrap_or_default();
     Ok(TakeOrdersCalldataResult::needs_approval(ApprovalInfoData {
@@ -643,6 +643,27 @@ mod tests {
                 .unwrap(),
             "max_sell_cap in spend mode should equal spend_budget = 20"
         );
+    }
+
+    #[test]
+    fn test_build_approval_result_excess_decimal_precision() {
+        let token = Address::from([0x22u8; 20]);
+        let spender = Address::from([0x33u8; 20]);
+        let amount = Float::parse("22.446685714285714".to_string()).unwrap();
+        let decimals = 6u8;
+
+        let result = build_approval_result(token, spender, amount, decimals);
+        assert!(
+            result.is_ok(),
+            "Should not error on excess decimal precision: {:?}",
+            result.err()
+        );
+        let result = result.unwrap();
+        assert!(result.is_needs_approval());
+        let approval_info = result.approval_info().unwrap();
+        assert_eq!(approval_info.token(), token);
+        assert_eq!(approval_info.spender(), spender);
+        assert!(!approval_info.calldata().is_empty());
     }
 
     #[test]
