@@ -362,11 +362,12 @@ pub(crate) fn build_approval_result(
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
     let amount_u256 = amount.to_fixed_decimal_lossy(decimals)?.0;
     let calldata = build_approval_calldata(spender, amount_u256);
-    let formatted_amount = amount.format().unwrap_or_default();
+    let truncated_amount = Float::from_fixed_decimal(amount_u256, decimals)?;
+    let formatted_amount = truncated_amount.format().unwrap_or_default();
     Ok(TakeOrdersCalldataResult::needs_approval(ApprovalInfoData {
         token,
         spender,
-        amount,
+        amount: truncated_amount,
         formatted_amount,
         calldata,
     }))
@@ -424,7 +425,9 @@ mod tests {
     use crate::raindex_client::take_orders::selection::select_best_orderbook_simulation;
     use crate::take_orders::build_take_orders_config_from_simulation;
     use crate::test_helpers::candidates::make_candidate;
+    use alloy::primitives::U256;
     use rain_orderbook_bindings::IOrderBookV6::takeOrders4Call;
+    use rain_orderbook_bindings::IERC20::approveCall;
 
     fn high_price_cap() -> Float {
         Float::parse("1000000".to_string()).unwrap()
@@ -664,6 +667,20 @@ mod tests {
         assert_eq!(approval_info.token(), token);
         assert_eq!(approval_info.spender(), spender);
         assert!(!approval_info.calldata().is_empty());
+
+        let decoded = approveCall::abi_decode(approval_info.calldata())
+            .expect("Should decode approval calldata");
+        let expected_truncated = U256::from(22_446_685u64);
+        assert_eq!(
+            decoded.amount, expected_truncated,
+            "Approved amount should be 22.446685 truncated to 6 decimals = 22446685"
+        );
+
+        let truncated_float = Float::parse("22.446685".to_string()).unwrap();
+        assert!(
+            approval_info.amount().eq(truncated_float).unwrap(),
+            "Displayed amount should match truncated value, not original"
+        );
     }
 
     #[test]
