@@ -1,6 +1,8 @@
 use super::*;
 use crate::raindex_client::orders::RaindexOrder;
+use crate::raindex_client::orders_list::RaindexOrders;
 use rain_math_float::Float;
+use rain_orderbook_bindings::IOrderBookV6::OrderV4;
 use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
 use rain_orderbook_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
@@ -114,17 +116,16 @@ impl RaindexOrder {
         )]
         block_number: Option<u64>,
         #[wasm_export(
-            param_description = "Optional gas limit as string for quote simulations (uses default if None)"
+            param_description = "Optional gas limit for quote simulations (uses default if None)"
         )]
-        gas: Option<String>,
+        gas: Option<u64>,
     ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
-        let gas_amount = gas.map(|v| v.parse::<u64>()).transpose()?;
         let rpcs = self.get_rpc_urls()?;
         let order_quotes = get_order_quotes(
             vec![self.clone().into_sg_order()?],
             block_number,
             rpcs.iter().map(|s| s.to_string()).collect(),
-            gas_amount,
+            gas,
         )
         .await?;
 
@@ -135,6 +136,107 @@ impl RaindexOrder {
         }
         Ok(result_order_quotes)
     }
+}
+
+#[wasm_export]
+impl RaindexClient {
+    /// Executes quotes for multiple orders in a single multicall
+    ///
+    /// This function batches all order pairs into one multicall request, which is
+    /// significantly more efficient than calling `getQuotes` on each order individually.
+    /// Results are positionally aligned with the input orders: `result[i]` contains
+    /// the quotes for `orders[i]`.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const orders = (await client.getOrders()).value;
+    /// const result = await client.getOrderQuotesBatch(orders, null, null);
+    /// if (result.error) {
+    ///   console.error("Error:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// for (const [order, quotes] of orders.map((o, i) => [o, result.value[i]])) {
+    ///   console.log("Order", order.orderHash, "quotes:", quotes);
+    /// }
+    /// ```
+    #[wasm_export(
+        js_name = "getOrderQuotesBatch",
+        return_description = "List of quote lists, one per input order, positionally aligned",
+        unchecked_return_type = "RaindexOrderQuote[][]"
+    )]
+    pub async fn get_order_quotes_batch(
+        &self,
+        #[wasm_export(
+            js_name = "orders",
+            param_description = "List of orders to quote; all must share the same chain"
+        )]
+        orders: &RaindexOrders,
+        #[wasm_export(
+            js_name = "blockNumber",
+            param_description = "Optional specific block number for historical quotes (uses latest if None)"
+        )]
+        block_number: Option<u64>,
+        #[wasm_export(
+            param_description = "Optional gas limit for quote simulations (uses default if None)"
+        )]
+        gas: Option<u64>,
+    ) -> Result<Vec<Vec<RaindexOrderQuote>>, RaindexError> {
+        get_order_quotes_batch(orders.inner(), block_number, gas).await
+    }
+}
+
+pub async fn get_order_quotes_batch(
+    orders: &[RaindexOrder],
+    block_number: Option<u64>,
+    gas: Option<u64>,
+) -> Result<Vec<Vec<RaindexOrderQuote>>, RaindexError> {
+    if orders.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let rpcs: Vec<String> = orders[0]
+        .get_rpc_urls()?
+        .into_iter()
+        .map(|u| u.to_string())
+        .collect();
+
+    let sg_orders = orders
+        .iter()
+        .map(|o| o.clone().into_sg_order())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let pair_counts: Vec<usize> = sg_orders
+        .iter()
+        .map(|sg| {
+            let order_v4: OrderV4 = sg.clone().try_into()?;
+            let mut count = 0usize;
+            for input in &order_v4.validInputs {
+                for output in &order_v4.validOutputs {
+                    if input.token != output.token {
+                        count += 1;
+                    }
+                }
+            }
+            Ok::<usize, RaindexError>(count)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let flat_results = get_order_quotes(sg_orders, block_number, rpcs, gas).await?;
+
+    let flat_raindex: Vec<RaindexOrderQuote> = flat_results
+        .into_iter()
+        .map(RaindexOrderQuote::try_from_batch_order_quotes_response)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut result = Vec::with_capacity(orders.len());
+    let mut offset = 0;
+    for count in pair_counts {
+        result.push(flat_raindex[offset..offset + count].to_vec());
+        offset += count;
+    }
+
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -322,7 +424,14 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn test_get_order_quote_invalid_values() {
+        async fn test_get_order_quotes_batch_empty() {
+            let result = get_order_quotes_batch(&[], None, None).await;
+            assert!(result.is_ok());
+            assert!(result.unwrap().is_empty());
+        }
+
+        #[tokio::test]
+        async fn test_get_order_quotes_batch_single_order() {
             let server = MockServer::start_async().await;
             server.mock(|when, then| {
                 when.path("/sg");
@@ -333,11 +442,40 @@ mod tests {
                 }));
             });
 
+            server.mock(|when, then| {
+                when.path("/rpc").body_contains("blockNumber");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x1",
+                }));
+            });
+
+            let aggreate_result = vec![Result {
+                success: true,
+                returnData: quoteReturn {
+                    exists: true,
+                    outputMax: U256::from(1),
+                    ioRatio: U256::from(2),
+                }
+                .abi_encode()
+                .into(),
+            }];
+            let response_hex = encode_prefixed(aggreate_result.abi_encode());
+            server.mock(|when, then| {
+                when.path("/rpc");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": response_hex,
+                }));
+            });
+
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
                     &server.url("/sg"),
                     "http://localhost:3000",
-                    "http://localhost:3000",
+                    &server.url("/rpc"),
                     "http://localhost:3000",
                 )],
                 None,
@@ -354,19 +492,121 @@ mod tests {
                 .await
                 .unwrap();
 
-            let err = order
-                .get_quotes(None, Some("invalid-gas".to_string()))
+            let result = get_order_quotes_batch(&[order], None, None).await.unwrap();
+
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].len(), 1);
+            assert!(result[0][0].success);
+            assert_eq!(result[0][0].error, None);
+            assert!(result[0][0]
+                .data
+                .as_ref()
+                .unwrap()
+                .max_output
+                .eq(F1)
+                .unwrap());
+            assert!(result[0][0].data.as_ref().unwrap().ratio.eq(F2).unwrap());
+            assert_eq!(result[0][0].pair.pair_name, "WFLR/sFLR");
+        }
+
+        #[tokio::test]
+        async fn test_get_order_quotes_batch_multiple_orders() {
+            let server = MockServer::start_async().await;
+            server.mock(|when, then| {
+                when.path("/sg");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
+
+            server.mock(|when, then| {
+                when.path("/rpc").body_contains("blockNumber");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x1",
+                }));
+            });
+
+            let aggreate_result = vec![
+                Result {
+                    success: true,
+                    returnData: quoteReturn {
+                        exists: true,
+                        outputMax: U256::from(1),
+                        ioRatio: U256::from(2),
+                    }
+                    .abi_encode()
+                    .into(),
+                },
+                Result {
+                    success: true,
+                    returnData: quoteReturn {
+                        exists: true,
+                        outputMax: U256::from(2),
+                        ioRatio: U256::from(1),
+                    }
+                    .abi_encode()
+                    .into(),
+                },
+            ];
+            let response_hex = encode_prefixed(aggreate_result.abi_encode());
+            server.mock(|when, then| {
+                when.path("/rpc");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": response_hex,
+                }));
+            });
+
+            let raindex_client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &server.url("/sg"),
+                    "http://localhost:3000",
+                    &server.url("/rpc"),
+                    "http://localhost:3000",
+                )],
+                None,
+            )
+            .unwrap();
+            let order = raindex_client
+                .get_order_by_hash(
+                    &OrderbookIdentifier::new(
+                        1,
+                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    ),
+                    b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
+                )
                 .await
-                .unwrap_err();
-            assert!(
-                err.to_string().contains("invalid digit"),
-                "unexpected error: {err}",
-            );
-            assert!(
-                err.to_readable_msg().contains("Failed to parse an integer"),
-                "unexpected error message: \"{}\"",
-                err.to_readable_msg()
-            );
+                .unwrap();
+            let orders = vec![order.clone(), order];
+
+            let result = get_order_quotes_batch(&orders, None, None).await.unwrap();
+
+            assert_eq!(result.len(), 2);
+            assert_eq!(result[0].len(), 1);
+            assert_eq!(result[1].len(), 1);
+            assert!(result[0][0]
+                .data
+                .as_ref()
+                .unwrap()
+                .max_output
+                .eq(F1)
+                .unwrap());
+            assert!(result[0][0].data.as_ref().unwrap().ratio.eq(F2).unwrap());
+            assert!(result[1][0]
+                .data
+                .as_ref()
+                .unwrap()
+                .max_output
+                .eq(F2)
+                .unwrap());
+            assert!(result[1][0].data.as_ref().unwrap().ratio.eq(F1).unwrap());
+            assert_eq!(result[0][0].pair.pair_name, "WFLR/sFLR");
+            assert_eq!(result[1][0].pair.pair_name, "WFLR/sFLR");
         }
     }
 }
