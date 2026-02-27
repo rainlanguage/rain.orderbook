@@ -11,7 +11,7 @@
 	import TableTimeFilters from '../charts/TableTimeFilters.svelte';
 	import Tooltip from '../Tooltip.svelte';
 
-	type BadgeColor = 'green' | 'yellow' | 'blue' | 'red' | 'purple' | 'pink' | 'dark';
+	type BadgeColor = 'blue' | 'pink' | 'dark';
 
 	function getTypeBadgeColor(type: string): BadgeColor {
 		const lowerType = type.toLowerCase();
@@ -29,9 +29,6 @@
 	export let rpcs: string[] | undefined = undefined;
 	export let handleDebugTradeModal: ((hash: string, rpcs: string[]) => void) | undefined =
 		undefined;
-
-	$: chainId = order.chainId;
-	$: orderbookAddress = order.orderbook;
 
 	let startTimestamp: number | undefined;
 	let endTimestamp: number | undefined;
@@ -145,7 +142,7 @@
 						<div class="flex items-center gap-1">
 							<span class="text-gray-500 dark:text-gray-400">Order:</span>
 							<a
-								href={`/orders/${chainId}-${orderbookAddress}-${item.counterparty.orderHash}`}
+								href={`/orders/${order.chainId}-${order.orderbook}-${item.counterparty.orderHash}`}
 								class="text-blue-600 hover:underline dark:text-blue-400"
 							>
 								<Hash
