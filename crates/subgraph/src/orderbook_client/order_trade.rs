@@ -80,9 +80,9 @@ impl OrderbookSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgSiblingTrade, SgSiblingTradeOrder,
-        SgTradeEvent, SgTradeEventTypename, SgTradeRef, SgTradeStructPartialOrder,
-        SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
+        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgSiblingTrade, SgSiblingTradeOrder, SgTradeEvent,
+        SgTradeEventTypename, SgTradeRef, SgTradeStructPartialOrder, SgTradeVaultBalanceChange,
+        SgTransaction, SgVaultBalanceChangeVault,
     };
     use crate::utils::float::*;
     use cynic::Id;

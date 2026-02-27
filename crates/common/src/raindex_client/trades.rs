@@ -390,15 +390,19 @@ impl RaindexTrade {
         }
         .to_string();
 
-        let counterparty = trade.counterparty_owner.as_ref().map(|owner_str| {
-            let owner = Address::from_str(owner_str)?;
-            let order_hash = trade
-                .counterparty_order_hash
-                .as_ref()
-                .map(|h| Bytes::from_str(h))
-                .transpose()?;
-            Ok::<RaindexCounterparty, RaindexError>(RaindexCounterparty { order_hash, owner })
-        }).transpose()?;
+        let counterparty = trade
+            .counterparty_owner
+            .as_ref()
+            .map(|owner_str| {
+                let owner = Address::from_str(owner_str)?;
+                let order_hash = trade
+                    .counterparty_order_hash
+                    .as_ref()
+                    .map(|h| Bytes::from_str(h))
+                    .transpose()?;
+                Ok::<RaindexCounterparty, RaindexError>(RaindexCounterparty { order_hash, owner })
+            })
+            .transpose()?;
 
         Ok(RaindexTrade {
             id: Bytes::from_str(&trade.trade_id)?,
@@ -1703,10 +1707,7 @@ mod test_helpers {
             let cp = trade
                 .counterparty()
                 .expect("Clear trade should have counterparty from sibling");
-            assert_eq!(
-                cp.order_hash,
-                Some(Bytes::from_str("0x0def").unwrap())
-            );
+            assert_eq!(cp.order_hash, Some(Bytes::from_str("0x0def").unwrap()));
             assert_eq!(
                 cp.owner,
                 Address::from_str("0x0000000000000000000000000000000000000088").unwrap()
