@@ -42,7 +42,7 @@ pub async fn get_order_quotes(
     orders: Vec<SgOrder>,
     block_number: Option<u64>,
     rpcs: Vec<String>,
-    gas: Option<u64>,
+    chunk_size: Option<usize>,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let req_block_number = match block_number {
         Some(block) => block,
@@ -111,7 +111,7 @@ pub async fn get_order_quotes(
     }
 
     let results = match BatchQuoteTarget(all_quote_targets)
-        .do_quote(rpcs, Some(req_block_number), gas, None)
+        .do_quote(rpcs, Some(req_block_number), None, chunk_size)
         .await
     {
         Ok(quote_values) => quote_values
