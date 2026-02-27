@@ -60,7 +60,7 @@ tokio = { workspace = true, features = ["full"] }
 proptest = { workspace = true }
 alloy = { workspace = true, features = ["signer-ledger"] }
 backon = { version = "1.6", features = ["tokio-sleep"] }
-rusqlite = { version = "0.31", features = ["functions"] }
+rusqlite = { version = "0.32", features = ["functions"] }
 
 [target.'cfg(target_family = "wasm")'.dependencies]
 tokio = { workspace = true, features = [
