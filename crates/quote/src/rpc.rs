@@ -514,6 +514,6 @@ mod tests {
         .unwrap();
 
         assert_eq!(results.len(), 2);
-        assert!(results.iter().all(|r| matches!(r, Ok(_))));
+        assert!(results.iter().all(|r| r.is_ok()));
     }
 }
