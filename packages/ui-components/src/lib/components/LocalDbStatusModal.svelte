@@ -70,6 +70,14 @@
 										Observing
 									</span>
 								{/if}
+								{#if group.status.latestBlock != null}
+									<span
+										class="text-xs text-gray-500 dark:text-gray-400"
+										data-testid="network-head-{group.chainId}"
+									>
+										Head: #{group.status.latestBlock.toLocaleString()}
+									</span>
+								{/if}
 							</div>
 							<LocalDbStatusBadge status={group.status.status} />
 						</div>
@@ -94,6 +102,19 @@
 												{#if obStatus.status === 'failure' && obStatus.error}
 													<div class="mt-2 text-sm text-red-600 dark:text-red-400">
 														{obStatus.error}
+													</div>
+												{/if}
+												{#if obStatus.syncedBlock != null}
+													<div
+														class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+														data-testid="ob-block-progress"
+													>
+														Synced to #{obStatus.syncedBlock.toLocaleString()}
+														{#if obStatus.status === 'syncing' && obStatus.latestBlock != null && obStatus.latestBlock > obStatus.syncedBlock}
+															<span class="text-amber-600 dark:text-amber-400">
+																({(obStatus.latestBlock - obStatus.syncedBlock).toLocaleString()} behind)
+															</span>
+														{/if}
 													</div>
 												{/if}
 											</div>
