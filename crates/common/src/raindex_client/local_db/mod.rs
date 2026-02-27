@@ -38,7 +38,7 @@ type WipeAndRecreateFn =
     dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
 
 #[derive(Clone)]
-pub(crate) struct LocalDb {
+pub struct LocalDb {
     execute_batch_fn: Rc<ExecuteBatchFn>,
     query_text_fn: Rc<QueryTextFn>,
     query_json_fn: Rc<QueryJsonFn>,
@@ -46,7 +46,7 @@ pub(crate) struct LocalDb {
 }
 
 impl LocalDb {
-    pub(crate) fn new<E>(executor: E) -> Self
+    pub fn new<E>(executor: E) -> Self
     where
         E: LocalDbQueryExecutor + Sync + 'static,
     {

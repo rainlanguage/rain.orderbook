@@ -225,6 +225,13 @@ impl RaindexClient {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
+impl RaindexClient {
+    pub fn set_local_db(&self, db: LocalDb) {
+        *self.local_db.borrow_mut() = Some(db);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct SerdeWasmBindgenErrorWrapper {
     message: String,
