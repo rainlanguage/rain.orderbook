@@ -75,18 +75,15 @@ pub async fn build_take_order_candidates_for_pair(
     input_token: Address,
     output_token: Address,
     block_number: Option<u64>,
-    gas: Option<u64>,
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
-    let gas_string = gas.map(|g| g.to_string());
-
-    let quote_results: Vec<Result<_, RaindexError>> =
-        futures::stream::iter(orders.iter().map(|order| {
-            let gas_string = gas_string.clone();
-            async move { order.get_quotes(block_number, gas_string).await }
-        }))
-        .buffered(DEFAULT_QUOTE_CONCURRENCY)
-        .collect()
-        .await;
+    let quote_results: Vec<Result<_, RaindexError>> = futures::stream::iter(
+        orders
+            .iter()
+            .map(|order| async move { order.get_quotes(block_number, None).await }),
+    )
+    .buffered(DEFAULT_QUOTE_CONCURRENCY)
+    .collect()
+    .await;
 
     orders
         .iter()

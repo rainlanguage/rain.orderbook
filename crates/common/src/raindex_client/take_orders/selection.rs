@@ -16,8 +16,7 @@ pub(crate) async fn build_candidates_for_chain(
     block_number: Option<u64>,
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
     let candidates =
-        build_take_order_candidates_for_pair(orders, sell_token, buy_token, block_number, None)
-            .await?;
+        build_take_order_candidates_for_pair(orders, sell_token, buy_token, block_number).await?;
     if candidates.is_empty() {
         return Err(RaindexError::NoLiquidity);
     }
