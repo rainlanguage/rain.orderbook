@@ -66,12 +66,15 @@ where
     {
         let latest_block = self.bootstrap_phase(db, input).await?;
         let (start_block, target_block) = self.compute_window(db, input, latest_block).await?;
+        self.status
+            .set_block_progress(latest_block, start_block.saturating_sub(1));
         if start_block > target_block {
             self.status.send(SyncPhase::Idle).await?;
             return Ok(SyncOutcome {
                 ob_id: input.ob_id.clone(),
                 start_block,
                 target_block,
+                latest_block,
                 fetched_logs: 0,
                 decoded_events: 0,
             });
@@ -126,6 +129,7 @@ where
             ob_id: input.ob_id.clone(),
             start_block,
             target_block,
+            latest_block,
             fetched_logs: all_raw_logs.len(),
             decoded_events: decoded_events.len(),
         })
@@ -1210,6 +1214,7 @@ mod tests {
         );
         assert_eq!(outcome.start_block, 10);
         assert_eq!(outcome.target_block, 12);
+        assert_eq!(outcome.latest_block, 12);
         assert_eq!(outcome.fetched_logs, 3);
         assert_eq!(outcome.decoded_events, 3);
 
@@ -1268,6 +1273,7 @@ mod tests {
         let outcome = harness.run(&base_inputs()).await.expect("run succeeds");
         assert_eq!(outcome.start_block, 15);
         assert_eq!(outcome.target_block, 10);
+        assert_eq!(outcome.latest_block, 100);
         assert_eq!(outcome.fetched_logs, 0);
         assert_eq!(outcome.decoded_events, 0);
 
