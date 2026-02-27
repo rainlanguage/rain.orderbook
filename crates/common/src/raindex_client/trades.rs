@@ -15,34 +15,15 @@ use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 #[serde(rename_all = "camelCase")]
-#[wasm_bindgen]
 pub struct RaindexCounterparty {
-    order_hash: Option<Bytes>,
-    owner: Address,
+    #[tsify(optional, type = "Hex")]
+    pub order_hash: Option<Bytes>,
+    #[tsify(type = "Address")]
+    pub owner: Address,
 }
-#[cfg(target_family = "wasm")]
-#[wasm_bindgen]
-impl RaindexCounterparty {
-    #[wasm_bindgen(getter = orderHash, unchecked_return_type = "Hex | undefined")]
-    pub fn order_hash(&self) -> Option<String> {
-        self.order_hash.as_ref().map(|h| h.to_string())
-    }
-    #[wasm_bindgen(getter, unchecked_return_type = "Address")]
-    pub fn owner(&self) -> String {
-        self.owner.to_string()
-    }
-}
-#[cfg(not(target_family = "wasm"))]
-impl RaindexCounterparty {
-    pub fn order_hash(&self) -> Option<Bytes> {
-        self.order_hash.clone()
-    }
-    pub fn owner(&self) -> Address {
-        self.owner
-    }
-}
+impl_wasm_traits!(RaindexCounterparty);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1471,9 +1452,9 @@ mod test_helpers {
             let cp1 = trade1
                 .counterparty()
                 .expect("TakeOrder should have counterparty");
-            assert_eq!(cp1.order_hash(), None);
+            assert_eq!(cp1.order_hash, None);
             assert_eq!(
-                cp1.owner(),
+                cp1.owner,
                 Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
             );
 
@@ -1483,9 +1464,9 @@ mod test_helpers {
             let cp2 = trade2
                 .counterparty()
                 .expect("TakeOrder should have counterparty");
-            assert_eq!(cp2.order_hash(), None);
+            assert_eq!(cp2.order_hash, None);
             assert_eq!(
-                cp2.owner(),
+                cp2.owner,
                 Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
             );
         }
@@ -1665,9 +1646,9 @@ mod test_helpers {
             let cp = trade
                 .counterparty()
                 .expect("TakeOrder should have counterparty");
-            assert_eq!(cp.order_hash(), None);
+            assert_eq!(cp.order_hash, None);
             assert_eq!(
-                cp.owner(),
+                cp.owner,
                 Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
             );
         }
@@ -1723,11 +1704,11 @@ mod test_helpers {
                 .counterparty()
                 .expect("Clear trade should have counterparty from sibling");
             assert_eq!(
-                cp.order_hash(),
+                cp.order_hash,
                 Some(Bytes::from_str("0x0def").unwrap())
             );
             assert_eq!(
-                cp.owner(),
+                cp.owner,
                 Address::from_str("0x0000000000000000000000000000000000000088").unwrap()
             );
         }
