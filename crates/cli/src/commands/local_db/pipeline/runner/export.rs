@@ -160,6 +160,7 @@ mod tests {
             ob_id,
             start_block: 900,
             target_block: 1000,
+            latest_block: 1000,
             fetched_logs: 1,
             decoded_events: 1,
         };
@@ -249,6 +250,7 @@ mod tests {
             ob_id,
             start_block: 0,
             target_block: 0,
+            latest_block: 0,
             fetched_logs: 0,
             decoded_events: 0,
         };

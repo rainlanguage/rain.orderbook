@@ -169,6 +169,10 @@ pub struct OrderbookSyncStatus {
     pub phase_message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_block: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub synced_block: Option<u64>,
 }
 impl_wasm_traits!(OrderbookSyncStatus);
 
@@ -186,6 +190,8 @@ impl OrderbookSyncStatus {
             scheduler_state,
             phase_message,
             error,
+            latest_block: None,
+            synced_block: None,
         }
     }
 
@@ -201,6 +207,40 @@ impl OrderbookSyncStatus {
 
     pub fn active(ob_id: OrderbookIdentifier, scheduler_state: SchedulerState) -> Self {
         Self::new(ob_id, LocalDbStatus::Active, scheduler_state, None, None)
+    }
+
+    pub fn active_with_blocks(
+        ob_id: OrderbookIdentifier,
+        scheduler_state: SchedulerState,
+        latest_block: u64,
+        synced_block: u64,
+    ) -> Self {
+        Self {
+            ob_id,
+            status: LocalDbStatus::Active,
+            scheduler_state,
+            phase_message: None,
+            error: None,
+            latest_block: Some(latest_block),
+            synced_block: Some(synced_block),
+        }
+    }
+
+    pub fn syncing_with_progress(
+        ob_id: OrderbookIdentifier,
+        phase: SyncPhase,
+        latest_block: u64,
+        synced_block: u64,
+    ) -> Self {
+        Self {
+            ob_id,
+            status: LocalDbStatus::Syncing,
+            scheduler_state: SchedulerState::Leader,
+            phase_message: Some(phase.to_message().to_string()),
+            error: None,
+            latest_block: Some(latest_block),
+            synced_block: Some(synced_block),
+        }
     }
 
     pub fn failure(ob_id: OrderbookIdentifier, error: String) -> Self {
@@ -222,6 +262,8 @@ pub struct NetworkSyncStatus {
     pub scheduler_state: SchedulerState,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latest_block: Option<u64>,
 }
 impl_wasm_traits!(NetworkSyncStatus);
 
@@ -237,11 +279,22 @@ impl NetworkSyncStatus {
             status,
             scheduler_state,
             error,
+            latest_block: None,
         }
     }
 
     pub fn active(chain_id: u32, scheduler_state: SchedulerState) -> Self {
         Self::new(chain_id, LocalDbStatus::Active, scheduler_state, None)
+    }
+
+    pub fn active_with_block(chain_id: u32, scheduler_state: SchedulerState, latest_block: u64) -> Self {
+        Self {
+            chain_id,
+            status: LocalDbStatus::Active,
+            scheduler_state,
+            error: None,
+            latest_block: Some(latest_block),
+        }
     }
 
     pub fn syncing(chain_id: u32) -> Self {
@@ -517,6 +570,18 @@ mod tests {
         assert_eq!(status.status, LocalDbStatus::Active);
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert!(status.error.is_none());
+        assert!(status.latest_block.is_none());
+    }
+
+    #[test]
+    fn network_sync_status_active_with_block_sets_correct_fields() {
+        let status = NetworkSyncStatus::active_with_block(137, SchedulerState::Leader, 12345);
+
+        assert_eq!(status.chain_id, 137);
+        assert_eq!(status.status, LocalDbStatus::Active);
+        assert_eq!(status.scheduler_state, SchedulerState::Leader);
+        assert!(status.error.is_none());
+        assert_eq!(status.latest_block, Some(12345));
     }
 
     #[test]
@@ -527,6 +592,7 @@ mod tests {
         assert_eq!(status.status, LocalDbStatus::Active);
         assert_eq!(status.scheduler_state, SchedulerState::NotLeader);
         assert!(status.error.is_none());
+        assert!(status.latest_block.is_none());
     }
 
     #[test]
