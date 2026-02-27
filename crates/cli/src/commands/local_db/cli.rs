@@ -232,6 +232,7 @@ mod tests {
             ob_id: runner_target.inputs.ob_id.clone(),
             start_block: 200,
             target_block: 400,
+            latest_block: 500,
             fetched_logs: 123,
             decoded_events: 456,
         };
