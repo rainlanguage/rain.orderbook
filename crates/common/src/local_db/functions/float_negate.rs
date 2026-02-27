@@ -32,7 +32,6 @@ mod tests {
         let conn = Connection::open_in_memory().expect("open memory db");
         register(&conn).expect("register float_negate");
 
-        // Represent +1 and expect -1 back.
         let one_hex = Float::parse("1".to_string()).unwrap().as_hex();
         let expected = Float::parse("-1".to_string()).unwrap().as_hex();
 

@@ -1,7 +1,11 @@
 pub mod address_collectors;
 pub mod decode;
+#[cfg(not(target_family = "wasm"))]
+pub mod executor;
 pub mod export;
 pub mod fetch;
+#[cfg(not(target_family = "wasm"))]
+pub mod functions;
 pub mod insert;
 pub mod pipeline;
 pub mod query;
