@@ -114,17 +114,17 @@ impl RaindexOrder {
         )]
         block_number: Option<u64>,
         #[wasm_export(
-            param_description = "Optional gas limit as string for quote simulations (uses default if None)"
+            js_name = "chunkSize",
+            param_description = "Optional quote chunk size override (defaults to 16)"
         )]
-        gas: Option<String>,
+        chunk_size: Option<u32>,
     ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
-        let gas_amount = gas.map(|v| v.parse::<u64>()).transpose()?;
         let rpcs = self.get_rpc_urls()?;
         let order_quotes = get_order_quotes(
             vec![self.clone().into_sg_order()?],
             block_number,
             rpcs.iter().map(|s| s.to_string()).collect(),
-            gas_amount,
+            chunk_size.map(|v| v as usize),
         )
         .await?;
 
@@ -322,7 +322,7 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn test_get_order_quote_invalid_values() {
+        async fn test_get_order_quote_with_chunk_override() {
             let server = MockServer::start_async().await;
             server.mock(|when, then| {
                 when.path("/sg");
@@ -333,11 +333,41 @@ mod tests {
                 }));
             });
 
+            // block number 1
+            server.mock(|when, then| {
+                when.path("/rpc").body_contains("blockNumber");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": "0x1",
+                }));
+            });
+
+            let aggregate_result = vec![Result {
+                success: true,
+                returnData: quoteReturn {
+                    exists: true,
+                    outputMax: U256::from(1),
+                    ioRatio: U256::from(2),
+                }
+                .abi_encode()
+                .into(),
+            }];
+            let response_hex = encode_prefixed(aggregate_result.abi_encode());
+            server.mock(|when, then| {
+                when.path("/rpc");
+                then.json_body(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": response_hex,
+                }));
+            });
+
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(
                     &server.url("/sg"),
                     "http://localhost:3000",
-                    "http://localhost:3000",
+                    &server.url("/rpc"),
                     "http://localhost:3000",
                 )],
                 None,
@@ -354,19 +384,8 @@ mod tests {
                 .await
                 .unwrap();
 
-            let err = order
-                .get_quotes(None, Some("invalid-gas".to_string()))
-                .await
-                .unwrap_err();
-            assert!(
-                err.to_string().contains("invalid digit"),
-                "unexpected error: {err}",
-            );
-            assert!(
-                err.to_readable_msg().contains("Failed to parse an integer"),
-                "unexpected error message: \"{}\"",
-                err.to_readable_msg()
-            );
+            let res = order.get_quotes(None, Some(8)).await.unwrap();
+            assert_eq!(res.len(), 1);
         }
     }
 }
