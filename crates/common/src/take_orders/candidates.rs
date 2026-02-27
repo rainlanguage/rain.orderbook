@@ -1,14 +1,11 @@
-use crate::raindex_client::order_quotes::RaindexOrderQuote;
+use crate::raindex_client::order_quotes::{get_order_quotes_batch, RaindexOrderQuote};
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::RaindexError;
 use alloy::primitives::Address;
-use futures::StreamExt;
 use rain_math_float::Float;
 use rain_orderbook_bindings::IOrderBookV6::OrderV4;
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
-
-const DEFAULT_QUOTE_CONCURRENCY: usize = 5;
 
 fn indices_in_bounds(order: &OrderV4, input_index: u32, output_index: u32) -> bool {
     (input_index as usize) < order.validInputs.len()
@@ -75,22 +72,14 @@ pub async fn build_take_order_candidates_for_pair(
     input_token: Address,
     output_token: Address,
     block_number: Option<u64>,
+    chunk_size: Option<u32>,
 ) -> Result<Vec<TakeOrderCandidate>, RaindexError> {
-    let quote_results: Vec<Result<_, RaindexError>> = futures::stream::iter(
-        orders
-            .iter()
-            .map(|order| async move { order.get_quotes(block_number, None).await }),
-    )
-    .buffered(DEFAULT_QUOTE_CONCURRENCY)
-    .collect()
-    .await;
+    let all_quotes = get_order_quotes_batch(orders, block_number, chunk_size).await?;
 
     orders
         .iter()
-        .zip(quote_results)
-        .map(|(order, quotes_result)| {
-            build_candidates_for_order(order, quotes_result?, input_token, output_token)
-        })
+        .zip(all_quotes)
+        .map(|(order, quotes)| build_candidates_for_order(order, quotes, input_token, output_token))
         .collect::<Result<Vec<_>, _>>()
         .map(|vecs| vecs.into_iter().flatten().collect())
 }

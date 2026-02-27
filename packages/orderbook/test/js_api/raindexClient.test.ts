@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import {
 	WasmEncodedResult,
 	RaindexClient,
+	RaindexOrders,
 	SgOrder,
 	SgTrade,
 	// OrderPerformance, TODO: Issue #1989
@@ -931,6 +932,71 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						formattedMaxInput: '2',
 						formattedMaxOutput: '1',
 						formattedRatio: '2'
+					},
+					success: true,
+					error: undefined
+				}
+			]);
+		});
+
+		it('should get order quotes batch', async () => {
+			await mockServer
+				.forPost('/sg1')
+				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
+			await mockServer.forPost('/rpc1').once().thenSendJsonRpcResult('0x01');
+			// 2-result multicall: elem[0] maxOutput=1/ioRatio=2, elem[1] maxOutput=2/ioRatio=1
+			await mockServer
+				.forPost('/rpc1')
+				.thenSendJsonRpcResult(
+					'0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001'
+				);
+
+			const raindexClient = extractWasmEncodedData(RaindexClient.new([YAML]));
+			const order = extractWasmEncodedData(
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+			);
+
+			const orders = new RaindexOrders();
+			orders.push(order);
+			orders.push(order);
+			const result = extractWasmEncodedData(
+				await raindexClient.getOrderQuotesBatch(orders)
+			);
+
+			assert.equal(result.length, 2);
+			assert.equal(result[0].length, 1);
+			assert.equal(result[1].length, 1);
+			assert.deepEqual(result[0], [
+				{
+					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
+					blockNumber: 1,
+					data: {
+						maxOutput: '0x0000000000000000000000000000000000000000000000000000000000000001',
+						formattedMaxOutput: '1',
+						maxInput: '0x0000000000000000000000000000000000000000000000000000000000000002',
+						formattedMaxInput: '2',
+						ratio: '0x0000000000000000000000000000000000000000000000000000000000000002',
+						formattedRatio: '2',
+						inverseRatio: '0xffffffbd2f7a53a390f4323b0f54bbbb472fa8c5db448df40000000000000000',
+						formattedInverseRatio: '0.5'
+					},
+					success: true,
+					error: undefined
+				}
+			]);
+			assert.deepEqual(result[1], [
+				{
+					pair: { pairName: 'WFLR/sFLR', inputIndex: 0, outputIndex: 0 },
+					blockNumber: 1,
+					data: {
+						maxOutput: '0x0000000000000000000000000000000000000000000000000000000000000002',
+						formattedMaxOutput: '2',
+						maxInput: '0x0000000000000000000000000000000000000000000000000000000000000002',
+						formattedMaxInput: '2',
+						ratio: '0x0000000000000000000000000000000000000000000000000000000000000001',
+						formattedRatio: '1',
+						inverseRatio: '0xffffffbd5ef4a74721e864761ea977768e5f518bb6891be80000000000000000',
+						formattedInverseRatio: '1'
 					},
 					success: true,
 					error: undefined
