@@ -9,6 +9,7 @@ pub mod local_db;
 pub mod meta;
 pub mod parsed_meta;
 pub mod raindex_client;
+pub mod raindex_order_builder;
 pub mod rainlang;
 pub mod remove_order;
 #[cfg(not(target_family = "wasm"))]

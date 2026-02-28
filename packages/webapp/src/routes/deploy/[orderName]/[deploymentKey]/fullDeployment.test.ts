@@ -133,10 +133,10 @@ describe('Full Deployment Tests', () => {
 			});
 			const screen = render(Page);
 
-			// Wait for the gui provider to be in the document
+			// Wait for the builder provider to be in the document
 			await waitFor(
 				() => {
-					expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+					expect(screen.getByTestId('builder-provider')).toBeInTheDocument();
 				},
 				{ timeout: 30000 }
 			);
@@ -203,17 +203,17 @@ describe('Full Deployment Tests', () => {
 				if (!registry) {
 					throw new Error('Registry not initialized');
 				}
-				const guiResult = await registry.getGui('fixed-limit', 'base');
-				if (guiResult.error) {
-					throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
+				const builderResult = await registry.getOrderBuilder('fixed-limit', 'base');
+				if (builderResult.error) {
+					throw new Error(builderResult.error.readableMsg ?? builderResult.error.msg);
 				}
-				const gui = guiResult.value;
-				await gui.setSelectToken('token1', '0x000000000000012def132e61759048be5b5c6033');
-				await gui.setSelectToken('token2', '0x00000000000007c8612ba63df8ddefd9e6077c97');
-				gui.setVaultId('output', 'token2', '234');
-				gui.setVaultId('input', 'token1', '123');
-				gui.setFieldValue('fixed-io', '10');
-				const args = await gui.getDeploymentTransactionArgs(
+				const builder = builderResult.value;
+				await builder.setSelectToken('token1', '0x000000000000012def132e61759048be5b5c6033');
+				await builder.setSelectToken('token2', '0x00000000000007c8612ba63df8ddefd9e6077c97');
+				builder.setVaultId('output', 'token2', '234');
+				builder.setVaultId('input', 'token1', '123');
+				builder.setFieldValue('fixed-io', '10');
+				const args = await builder.getDeploymentTransactionArgs(
 					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
 				);
 				return args.value;
@@ -276,10 +276,10 @@ describe('Full Deployment Tests', () => {
 
 	// 		const screen = render(Page);
 
-	// 		// Wait for the gui provider to be in the document
+	// 		// Wait for the builder provider to be in the document
 	// 		await waitFor(
 	// 			() => {
-	// 				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+	// 				expect(screen.getByTestId('builder-provider')).toBeInTheDocument();
 	// 			},
 	// 			{ timeout: 300000 }
 	// 		);
@@ -371,19 +371,19 @@ describe('Full Deployment Tests', () => {
 	// 		);
 
 	// 		const getDeploymentArgs = async () => {
-	// 			const gui = (await DotrainOrderGui.newWithDeployment(auctionOrder, 'base'))
-	// 				.value as DotrainOrderGui;
-	// 			await gui.setSelectToken('input', '0x000000000000012def132e61759048be5b5c6033');
-	// 			await gui.setSelectToken('output', '0x00000000000007c8612ba63df8ddefd9e6077c97');
-	// 			gui.setVaultId('output', 'output', '0x123');
-	// 			gui.setVaultId('input', 'input', '0x234');
-	// 			gui.setFieldValue('time-per-amount-epoch', '60');
-	// 			gui.setFieldValue('amount-per-epoch', '10');
-	// 			gui.setFieldValue('max-trade-amount', '100');
-	// 			gui.setFieldValue('min-trade-amount', '1');
-	// 			gui.setFieldValue('baseline', '10');
-	// 			gui.setFieldValue('initial-io', '10');
-	// 			const args = await gui.getDeploymentTransactionArgs(
+	// 			const builder = (await RaindexOrderBuilder.newWithDeployment(auctionOrder, 'base'))
+	// 				.value as RaindexOrderBuilder;
+	// 			await builder.setSelectToken('input', '0x000000000000012def132e61759048be5b5c6033');
+	// 			await builder.setSelectToken('output', '0x00000000000007c8612ba63df8ddefd9e6077c97');
+	// 			builder.setVaultId('output', 'output', '0x123');
+	// 			builder.setVaultId('input', 'input', '0x234');
+	// 			builder.setFieldValue('time-per-amount-epoch', '60');
+	// 			builder.setFieldValue('amount-per-epoch', '10');
+	// 			builder.setFieldValue('max-trade-amount', '100');
+	// 			builder.setFieldValue('min-trade-amount', '1');
+	// 			builder.setFieldValue('baseline', '10');
+	// 			builder.setFieldValue('initial-io', '10');
+	// 			const args = await builder.getDeploymentTransactionArgs(
 	// 				'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
 	// 			);
 	// 			return args.value;
@@ -438,10 +438,10 @@ describe('Full Deployment Tests', () => {
 
 	// 		const screen = render(Page);
 
-	// 		// Wait for the gui provider to be in the document
+	// 		// Wait for the builder provider to be in the document
 	// 		await waitFor(
 	// 			() => {
-	// 				expect(screen.getByTestId('gui-provider')).toBeInTheDocument();
+	// 				expect(screen.getByTestId('builder-provider')).toBeInTheDocument();
 	// 			},
 	// 			{ timeout: 300000 }
 	// 		);
@@ -519,18 +519,18 @@ describe('Full Deployment Tests', () => {
 	// 		);
 
 	// 		const getDeploymentArgs = async () => {
-	// 			const gui = (await DotrainOrderGui.newWithDeployment(dynamicSpreadOrder, 'base'))
-	// 				.value as DotrainOrderGui;
-	// 			await gui.setSelectToken('token1', '0x000000000000012def132e61759048be5b5c6033');
-	// 			await gui.setSelectToken('token2', '0x00000000000007c8612ba63df8ddefd9e6077c97');
-	// 			gui.setVaultId('output', 'token2', '0x123');
-	// 			gui.setVaultId('input', 'token1', '0x234');
-	// 			gui.setFieldValue('amount-is-fast-exit', '1');
-	// 			gui.setFieldValue('not-amount-is-fast-exit', '0');
-	// 			gui.setFieldValue('initial-io', '100');
-	// 			gui.setFieldValue('max-amount', '1000');
-	// 			gui.setFieldValue('min-amount', '10');
-	// 			const args = await gui.getDeploymentTransactionArgs(
+	// 			const builder = (await RaindexOrderBuilder.newWithDeployment(dynamicSpreadOrder, 'base'))
+	// 				.value as RaindexOrderBuilder;
+	// 			await builder.setSelectToken('token1', '0x000000000000012def132e61759048be5b5c6033');
+	// 			await builder.setSelectToken('token2', '0x00000000000007c8612ba63df8ddefd9e6077c97');
+	// 			builder.setVaultId('output', 'token2', '0x123');
+	// 			builder.setVaultId('input', 'token1', '0x234');
+	// 			builder.setFieldValue('amount-is-fast-exit', '1');
+	// 			builder.setFieldValue('not-amount-is-fast-exit', '0');
+	// 			builder.setFieldValue('initial-io', '100');
+	// 			builder.setFieldValue('max-amount', '1000');
+	// 			builder.setFieldValue('min-amount', '10');
+	// 			const args = await builder.getDeploymentTransactionArgs(
 	// 				'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
 	// 			);
 	// 			return args.value;
