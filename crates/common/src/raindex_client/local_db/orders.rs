@@ -1,7 +1,10 @@
-use super::super::orders::{GetOrdersFilters, OrdersDataSource, RaindexOrder};
+use super::super::orders::{
+    GetOrdersFilters, OrdersDataSource, RaindexOrder, RaindexOrdersListResult,
+};
 use super::super::trades::RaindexTrade;
 use super::query::fetch_order_trades::fetch_order_trades;
 use super::query::fetch_order_trades_count::fetch_order_trades_count;
+use super::query::fetch_orders_count::fetch_orders_count;
 use super::{LocalDb, RaindexError};
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::query::LocalDbQueryError;
@@ -95,14 +98,29 @@ impl OrdersDataSource for LocalDbOrders<'_> {
         &self,
         chain_ids: Option<Vec<u32>>,
         filters: &GetOrdersFilters,
-        _page: Option<u16>,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        page: Option<u16>,
+        page_size: Option<u16>,
+    ) -> Result<RaindexOrdersListResult, RaindexError> {
         let mut fetch_args = FetchOrdersArgs::from(filters.clone());
         if let Some(ids) = chain_ids {
             if !ids.is_empty() {
                 fetch_args.chain_ids = ids;
             }
         }
+
+        let total_count = if page.is_some() {
+            let count_args = FetchOrdersArgs {
+                page: None,
+                page_size: None,
+                ..fetch_args.clone()
+            };
+            fetch_orders_count(self.db, count_args).await?
+        } else {
+            0
+        };
+
+        fetch_args.page = page;
+        fetch_args.page_size = page_size;
 
         let local_db_orders = fetch_orders(self.db, fetch_args).await?;
         let mut orders: Vec<RaindexOrder> = Vec::with_capacity(local_db_orders.len());
@@ -120,7 +138,10 @@ impl OrdersDataSource for LocalDbOrders<'_> {
             orders.push(order);
         }
 
-        Ok(orders)
+        Ok(RaindexOrdersListResult {
+            orders,
+            total_count,
+        })
     }
 
     async fn get_by_hash(
@@ -221,6 +242,7 @@ mod tests {
         use wasm_bindgen_utils::prelude::*;
 
         fn make_local_db_callback(orders: Vec<LocalDbOrder>) -> js_sys::Function {
+            let order_count = orders.len();
             let orders_json = serde_json::to_string(&orders).unwrap();
             let orders_result = WasmEncodedResult::Success::<String> {
                 value: orders_json,
@@ -228,6 +250,17 @@ mod tests {
             };
             let orders_payload =
                 js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&orders_result).unwrap())
+                    .unwrap()
+                    .as_string()
+                    .unwrap();
+
+            let count_json = format!("[{{\"orders_count\":{}}}]", order_count);
+            let count_result = WasmEncodedResult::Success::<String> {
+                value: count_json,
+                error: None,
+            };
+            let count_payload =
+                js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&count_result).unwrap())
                     .unwrap()
                     .as_string()
                     .unwrap();
@@ -244,6 +277,9 @@ mod tests {
 
             let callback =
                 Closure::wrap(Box::new(move |sql: String, _params: JsValue| -> JsValue {
+                    if sql.contains("orders_count") {
+                        return js_sys::JSON::parse(&count_payload).unwrap();
+                    }
                     if sql.contains("FROM order_events") && sql.contains("json_group_array") {
                         return js_sys::JSON::parse(&orders_payload).unwrap();
                     }
@@ -358,14 +394,15 @@ mod tests {
 
             let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
 
-            let orders = client
-                .get_orders(Some(ChainIds(vec![42161])), None, None)
+            let result = client
+                .get_orders(Some(ChainIds(vec![42161])), None, None, None)
                 .await
                 .expect("local db query should succeed");
 
-            assert_eq!(orders.len(), 1);
+            assert_eq!(result.orders().len(), 1);
+            assert_eq!(result.total_count(), 1);
 
-            let order = &orders[0];
+            let order = &result.orders()[0];
             assert_eq!(order.chain_id(), 42161);
             assert_eq!(order.order_hash(), order_hash_str);
             assert_eq!(order.order_bytes(), order_bytes_str);

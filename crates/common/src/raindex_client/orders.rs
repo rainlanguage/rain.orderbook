@@ -51,6 +51,39 @@ const DEFAULT_PAGE_SIZE: u16 = 100;
 // Limit concurrent dotrain source fetches to avoid overwhelming the subgraph/metaboard.
 const MAX_CONCURRENT_DOTRAIN_SOURCE_FETCHES: usize = 5;
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen]
+pub struct RaindexOrdersListResult {
+    pub(crate) orders: Vec<RaindexOrder>,
+    pub(crate) total_count: u32,
+}
+
+#[cfg(target_family = "wasm")]
+#[wasm_bindgen]
+impl RaindexOrdersListResult {
+    #[wasm_bindgen(getter)]
+    pub fn orders(&self) -> Vec<RaindexOrder> {
+        self.orders.clone()
+    }
+
+    #[wasm_bindgen(getter, js_name = "totalCount")]
+    pub fn total_count(&self) -> u32 {
+        self.total_count
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl RaindexOrdersListResult {
+    pub fn orders(&self) -> &[RaindexOrder] {
+        &self.orders
+    }
+
+    pub fn total_count(&self) -> u32 {
+        self.total_count
+    }
+}
+
 pub(crate) struct SubgraphOrders<'a> {
     client: &'a RaindexClient,
 }
@@ -67,7 +100,8 @@ pub(crate) trait OrdersDataSource {
         chain_ids: Option<Vec<u32>>,
         filters: &GetOrdersFilters,
         page: Option<u16>,
-    ) -> Result<Vec<RaindexOrder>, RaindexError>;
+        page_size: Option<u16>,
+    ) -> Result<RaindexOrdersListResult, RaindexError>;
 
     async fn get_by_hash(
         &self,
@@ -808,13 +842,13 @@ impl RaindexClient {
     ///   console.error("Error fetching orders:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const orders = result.value;
+    /// const { orders, totalCount } = result.value;
     /// // Do something with orders
     /// ```
     #[wasm_export(
         js_name = "getOrders",
-        return_description = "Array of raindex order instances",
-        unchecked_return_type = "RaindexOrder[]",
+        return_description = "Orders list result with total count for pagination",
+        unchecked_return_type = "RaindexOrdersListResult",
         preserve_js_class
     )]
     pub async fn get_orders(
@@ -830,24 +864,32 @@ impl RaindexClient {
         filters: Option<GetOrdersFilters>,
         #[wasm_export(param_description = "Page number for pagination (optional, defaults to 1)")]
         page: Option<u16>,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        #[wasm_export(
+            js_name = "pageSize",
+            param_description = "Number of items per page (optional, defaults to 100)"
+        )]
+        page_size: Option<u16>,
+    ) -> Result<RaindexOrdersListResult, RaindexError> {
         let filters = filters.unwrap_or_default();
         let page_number = page.unwrap_or(1);
+        let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE);
         let ids = chain_ids.map(|ChainIds(ids)| ids);
 
         if let Some(local_db) = self.local_db() {
             let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-            let orders = local_source.list(ids, &filters, None).await?;
-            let orders = fetch_orders_dotrain_sources(orders).await?;
-            return Ok(orders);
+            let mut result = local_source
+                .list(ids, &filters, Some(page_number), Some(page_size))
+                .await?;
+            result.orders = fetch_orders_dotrain_sources(result.orders).await?;
+            return Ok(result);
         }
 
         let subgraph_source = SubgraphOrders::new(self);
-        let orders = subgraph_source
-            .list(ids, &filters, Some(page_number))
+        let mut result = subgraph_source
+            .list(ids, &filters, Some(page_number), Some(page_size))
             .await?;
-        let orders = fetch_orders_dotrain_sources(orders).await?;
-        Ok(orders)
+        result.orders = fetch_orders_dotrain_sources(result.orders).await?;
+        Ok(result)
     }
 
     /// Retrieves a specific order by its hash from a particular blockchain network
@@ -912,7 +954,8 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         chain_ids: Option<Vec<u32>>,
         filters: &GetOrdersFilters,
         page: Option<u16>,
-    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        page_size: Option<u16>,
+    ) -> Result<RaindexOrdersListResult, RaindexError> {
         let raindex_client = Rc::new(self.client.clone());
         let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
 
@@ -920,12 +963,21 @@ impl OrdersDataSource for SubgraphOrders<'_> {
             multi_subgraph_args.values().flatten().cloned().collect(),
         );
 
+        let sg_filter_args: SgOrdersListFilterArgs = filters.clone().try_into()?;
+        let effective_page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+
+        let total_count = if page.is_some() {
+            client.orders_count(sg_filter_args.clone()).await?
+        } else {
+            0
+        };
+
         let orders = client
             .orders_list(
-                filters.clone().try_into()?,
+                sg_filter_args,
                 SgPaginationArgs {
                     page: page.unwrap_or(1),
-                    page_size: DEFAULT_PAGE_SIZE,
+                    page_size: effective_page_size,
                 },
             )
             .await;
@@ -950,7 +1002,10 @@ impl OrdersDataSource for SubgraphOrders<'_> {
             })
             .collect::<Result<Vec<RaindexOrder>, RaindexError>>()?;
 
-        Ok(orders)
+        Ok(RaindexOrdersListResult {
+            orders,
+            total_count,
+        })
     }
 
     async fn get_by_hash(
@@ -1130,15 +1185,20 @@ impl RaindexClient {
             orderbook_addresses: None,
         };
 
-        let orders = self
-            .get_orders(Some(ChainIds(vec![chain_id])), Some(filters), None)
-            .await?;
+        let ids = Some(vec![chain_id]);
+        let result = if let Some(local_db) = self.local_db() {
+            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+            local_source.list(ids, &filters, None, None).await?
+        } else {
+            let subgraph_source = SubgraphOrders::new(self);
+            subgraph_source.list(ids, &filters, None, None).await?
+        };
 
-        if orders.is_empty() {
+        if result.orders.is_empty() {
             return Err(RaindexError::NoLiquidity);
         }
 
-        Ok(orders)
+        Ok(result.orders)
     }
 }
 
@@ -2222,11 +2282,12 @@ mod tests {
             )
             .unwrap();
             let result = raindex_client
-                .get_orders(None, Some(filter_args), Some(1))
+                .get_orders(None, Some(filter_args), Some(1), None)
                 .await
                 .unwrap();
 
-            assert_eq!(result.len(), 2);
+            assert_eq!(result.orders().len(), 2);
+            assert_eq!(result.total_count(), 2);
 
             let expected_order1 = RaindexOrder::try_from_sg_order(
                 Rc::new(raindex_client.clone()),
@@ -2236,7 +2297,7 @@ mod tests {
             )
             .unwrap();
 
-            let order1 = result[0].clone();
+            let order1 = result.orders()[0].clone();
             assert_eq!(order1.chain_id, expected_order1.chain_id);
             assert_eq!(order1.id, expected_order1.id);
             assert_eq!(order1.order_bytes, expected_order1.order_bytes);
@@ -2292,7 +2353,7 @@ mod tests {
             assert_eq!(order1.orderbook(), expected_order1.orderbook());
             assert_eq!(order1.timestamp_added(), expected_order1.timestamp_added());
 
-            let order2 = result[1].clone();
+            let order2 = result.orders()[1].clone();
             assert_eq!(order2.chain_id, 137);
             assert_eq!(
                 order2.id,
@@ -2653,13 +2714,13 @@ mod tests {
             client.local_db.borrow_mut().replace(local_db.clone());
 
             let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
-            let orders = orders_source
-                .list(Some(vec![137]), &GetOrdersFilters::default(), None)
+            let result = orders_source
+                .list(Some(vec![137]), &GetOrdersFilters::default(), None, None)
                 .await
                 .unwrap();
 
-            assert_eq!(orders.len(), 1);
-            let order = &orders[0];
+            assert_eq!(result.orders().len(), 1);
+            let order = &result.orders()[0];
             assert_eq!(order.inputs.len(), 1);
             assert_eq!(order.outputs.len(), 1);
             assert_eq!(order.trades_count, 2);
@@ -2686,7 +2747,7 @@ mod tests {
 
             let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
             let err = orders_source
-                .list(Some(vec![137]), &GetOrdersFilters::default(), None)
+                .list(Some(vec![137]), &GetOrdersFilters::default(), None, None)
                 .await
                 .unwrap_err();
             match err {
@@ -2750,12 +2811,13 @@ mod tests {
                     Some(ChainIds(vec![137])),
                     Some(GetOrdersFilters::default()),
                     Some(1),
+                    None,
                 )
                 .await
                 .unwrap();
-            assert_eq!(result.len(), 1);
+            assert_eq!(result.orders().len(), 1);
             assert_eq!(
-                result[0].order_hash,
+                result.orders()[0].order_hash,
                 b256!("0x0000000000000000000000000000000000000000000000000000000000002345")
             );
         }
