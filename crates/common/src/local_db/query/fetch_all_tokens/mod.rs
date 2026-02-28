@@ -81,4 +81,13 @@ mod tests {
         assert!(stmt.sql.contains("orderbook_address IN"));
         assert_eq!(stmt.params.len(), 1);
     }
+
+    #[test]
+    fn sql_uses_camel_case_aliases() {
+        let args = FetchAllTokensArgs::default();
+        let stmt = build_fetch_all_tokens_stmt(&args).expect("should build");
+        assert!(stmt.sql.contains("chain_id AS chainId"));
+        assert!(stmt.sql.contains("orderbook_address AS orderbookAddress"));
+        assert!(stmt.sql.contains("token_address AS tokenAddress"));
+    }
 }
