@@ -258,6 +258,8 @@ pub enum RaindexError {
     SubgraphNotConfigured(String),
     #[error("Transaction {tx_hash:#x} was not indexed after {attempts} attempts")]
     TransactionIndexingTimeout { tx_hash: B256, attempts: usize },
+    #[error("Trades for transaction {tx_hash:#x} were not indexed after {attempts} attempts")]
+    TradesIndexingTimeout { tx_hash: B256, attempts: usize },
     #[error(transparent)]
     YamlError(#[from] YamlError),
     #[error(transparent)]
@@ -394,6 +396,11 @@ impl RaindexError {
             RaindexError::TransactionIndexingTimeout { tx_hash, attempts } => {
                 format!(
                     "Timeout waiting for transaction {tx_hash:#x} to be indexed after {attempts} attempts."
+                )
+            }
+            RaindexError::TradesIndexingTimeout { tx_hash, attempts } => {
+                format!(
+                    "Timeout waiting for trades of transaction {tx_hash:#x} to be indexed after {attempts} attempts."
                 )
             }
             RaindexError::YamlError(err) => format!(
