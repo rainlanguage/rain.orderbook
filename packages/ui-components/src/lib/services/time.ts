@@ -18,9 +18,7 @@ export function dateTimestamp(date: Date): number {
 }
 
 export function formatTimestampSecondsAsLocal(timestampSeconds: bigint) {
-	return dayjs(timestampSeconds * BigInt('1000'))
-		.utc()
-		.format('L LT');
+	return dayjs(timestampSeconds * BigInt('1000')).format('L LT');
 }
 
 export function timestampSecondsToUTCTimestamp(timestampSeconds: bigint) {
@@ -54,8 +52,10 @@ if (import.meta.vitest) {
 	describe('Date and timestamp utilities', () => {
 		describe('formatTimestampSecondsAsLocal', () => {
 			it('converts timestamp to local format', () => {
-				const result = formatTimestampSecondsAsLocal(BigInt('1672531200')); // Jan 1, 2023 12:00 AM
-				expect(result).toBe('01/01/2023 12:00 AM');
+				const ts = BigInt('1672531200');
+				const expected = dayjs(Number(ts) * 1000).format('L LT');
+				const result = formatTimestampSecondsAsLocal(ts);
+				expect(result).toBe(expected);
 			});
 		});
 
