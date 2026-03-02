@@ -1391,47 +1391,15 @@ impl RaindexClient {
         )]
         chain_ids: Option<ChainIds>,
     ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
-        let subgraph_source = SubgraphVaults::new(self);
-
-        let Some(mut ids) = chain_ids.map(|ChainIds(ids)| ids) else {
-            return subgraph_source.tokens_list(None).await;
-        };
-
-        if ids.is_empty() {
-            return subgraph_source.tokens_list(None).await;
-        }
-
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-
-        for id in ids.drain(..) {
-            if is_chain_supported_local_db(id) {
-                local_ids.push(id);
-            } else {
-                sg_ids.push(id);
-            }
-        }
-
-        let mut tokens: Vec<RaindexVaultToken> = Vec::new();
-
-        if self.local_db().is_none() {
-            sg_ids.append(&mut local_ids);
-        }
+        let ids = chain_ids.map(|ChainIds(ids)| ids);
 
         if let Some(local_db) = self.local_db() {
-            if !local_ids.is_empty() {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
-                let local_tokens = local_source.tokens_list(Some(local_ids)).await?;
-                tokens.extend(local_tokens);
-            }
+            let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+            return local_source.tokens_list(ids).await;
         }
 
-        if !sg_ids.is_empty() {
-            let sg_tokens = subgraph_source.tokens_list(Some(sg_ids)).await?;
-            tokens.extend(sg_tokens);
-        }
-
-        Ok(tokens)
+        let subgraph_source = SubgraphVaults::new(self);
+        subgraph_source.tokens_list(ids).await
     }
 }
 impl RaindexClient {
@@ -2134,6 +2102,41 @@ mod tests {
             }
             assert!(has_owner, "owner missing in params");
             assert!(has_token, "token missing in params");
+        }
+
+        #[wasm_bindgen_test]
+        async fn test_get_all_vault_tokens_uses_local_db_when_available() {
+            use crate::local_db::query::fetch_all_tokens::LocalDbToken;
+
+            let token = LocalDbToken {
+                chain_id: 42161,
+                orderbook_address: address!("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB"),
+                token_address: address!("0x00000000000000000000000000000000000000aa"),
+                name: "Test Token".to_string(),
+                symbol: "TST".to_string(),
+                decimals: 18,
+            };
+
+            let captured_sql = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
+            let json = serde_json::to_string(&vec![token]).unwrap();
+            let callback = create_sql_capturing_callback(&json, captured_sql.clone());
+
+            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+
+            let tokens = client.get_all_vault_tokens(None).await.unwrap();
+
+            let sql = captured_sql.borrow();
+            assert!(
+                !sql.0.is_empty(),
+                "SQL should be captured, proving local DB was used"
+            );
+            assert!(
+                sql.0.contains("erc20_tokens"),
+                "Should query erc20_tokens table"
+            );
+
+            assert_eq!(tokens.len(), 1);
+            assert_eq!(tokens[0].symbol(), Some("TST".to_string()));
         }
     }
 
