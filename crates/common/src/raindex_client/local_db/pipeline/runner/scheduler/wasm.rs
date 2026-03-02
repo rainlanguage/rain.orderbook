@@ -1,7 +1,7 @@
-use super::config::NetworkRunnerConfig;
-use super::environment::default_environment;
-use super::leadership::DefaultLeadership;
-use super::ClientRunner;
+use super::super::config::NetworkRunnerConfig;
+use super::super::environment::default_environment;
+use super::super::leadership::DefaultLeadership;
+use super::super::ClientRunner;
 use crate::local_db::pipeline::adapters::bootstrap::BootstrapPipeline;
 use crate::local_db::pipeline::adapters::{
     apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
@@ -26,8 +26,6 @@ use std::pin::Pin;
 use std::rc::Rc;
 use wasm_bindgen_utils::prelude::wasm_bindgen_futures::spawn_local;
 use wasm_bindgen_utils::prelude::*;
-
-const DEFAULT_INTERVAL_MS: u32 = 5_000;
 
 type DefaultClientRunner = ClientRunner<
     ClientBootstrapAdapter,
@@ -159,12 +157,29 @@ pub(crate) fn start(
                 }
             };
 
+            let interval_ms = match settings_clone.syncs.get(&network.key) {
+                Some(sync_cfg) => sync_cfg.sync_interval_ms as u32,
+                None => {
+                    emit_network_status(
+                        callback.as_deref(),
+                        NetworkSyncStatus::failure(
+                            network.chain_id,
+                            format!(
+                                "missing local-db-sync settings for network '{}'",
+                                network.key
+                            ),
+                        ),
+                    );
+                    continue;
+                }
+            };
+
             spawn_network_loop(
                 runner,
                 db_clone.clone(),
                 callback.clone(),
                 Rc::clone(&stop_flag_init),
-                DEFAULT_INTERVAL_MS,
+                interval_ms,
             );
         }
     });

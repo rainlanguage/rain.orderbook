@@ -959,9 +959,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const orders = new RaindexOrders();
 			orders.push(order);
 			orders.push(order);
-			const result = extractWasmEncodedData(
-				await raindexClient.getOrderQuotesBatch(orders)
-			);
+			const result = extractWasmEncodedData(await raindexClient.getOrderQuotesBatch(orders));
 
 			assert.equal(result.length, 2);
 			assert.equal(result[0].length, 1);
