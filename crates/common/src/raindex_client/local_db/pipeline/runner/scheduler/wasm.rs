@@ -157,7 +157,22 @@ pub(crate) fn start(
                 }
             };
 
-            let interval_ms = settings_clone.syncs[&network.key].sync_interval_ms as u32;
+            let interval_ms = match settings_clone.syncs.get(&network.key) {
+                Some(sync_cfg) => sync_cfg.sync_interval_ms as u32,
+                None => {
+                    emit_network_status(
+                        callback.as_deref(),
+                        NetworkSyncStatus::failure(
+                            network.chain_id,
+                            format!(
+                                "missing local-db-sync settings for network '{}'",
+                                network.key
+                            ),
+                        ),
+                    );
+                    continue;
+                }
+            };
 
             spawn_network_loop(
                 runner,

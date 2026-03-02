@@ -137,7 +137,17 @@ pub fn start(settings_yaml: String, db_path: PathBuf) -> Result<NativeSyncHandle
                             }
                         };
 
-                        let interval_ms = settings.syncs[&network.key].sync_interval_ms;
+                        let interval_ms = match settings.syncs.get(&network.key) {
+                            Some(sync_cfg) => sync_cfg.sync_interval_ms,
+                            None => {
+                                tracing::error!(
+                                    network = %network.key,
+                                    chain_id = network.chain_id,
+                                    "missing local-db-sync settings for network"
+                                );
+                                continue;
+                            }
+                        };
 
                         let leadership = DefaultLeadership::with_network_key(network.key.clone());
                         let environment = default_environment();
