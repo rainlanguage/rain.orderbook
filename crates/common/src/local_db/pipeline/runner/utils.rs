@@ -155,6 +155,7 @@ local-db-sync:
     rate-limit-delay-ms: 50
     finality-depth: 12
     bootstrap-block-threshold: 10000
+    sync-interval-ms: 5000
   network-b:
     batch-size: 20
     max-concurrent-batches: 2
@@ -163,6 +164,7 @@ local-db-sync:
     rate-limit-delay-ms: 100
     finality-depth: 24
     bootstrap-block-threshold: 5000
+    sync-interval-ms: 5000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
@@ -274,6 +276,7 @@ orderbooks:
             rate_limit_delay_ms: 5000,
             finality_depth: 32,
             bootstrap_block_threshold: 100,
+            sync_interval_ms: 5000,
         };
 
         let (fetch, finality) = map_sync_to_engine(&sync).expect("map succeeds");

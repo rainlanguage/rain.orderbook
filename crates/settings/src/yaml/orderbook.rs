@@ -1228,6 +1228,7 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );
@@ -1263,6 +1264,7 @@ local-db-sync:
     rate-limit-delay-ms: 50
     finality-depth: 60
     bootstrap-block-threshold: 70
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );
@@ -1293,6 +1295,7 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );
