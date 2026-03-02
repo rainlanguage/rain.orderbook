@@ -34,6 +34,25 @@ impl OrderbookSubgraphClient {
         Ok(data.add_orders)
     }
 
+    pub async fn transaction_trades(
+        &self,
+        id: Id,
+    ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
+        let data = self
+            .query::<SgTransactionTradesQuery, TransactionTradesVariables>(
+                TransactionTradesVariables {
+                    id: id.inner().to_string(),
+                },
+            )
+            .await?;
+
+        if data.trades.is_empty() {
+            return Err(OrderbookSubgraphClientError::Empty);
+        }
+
+        Ok(data.trades)
+    }
+
     /// Fetch all remove orders for a given transaction
     pub async fn transaction_remove_orders(
         &self,
@@ -60,7 +79,9 @@ mod tests {
     use super::*;
     use crate::types::common::{
         SgAddOrderWithOrder, SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook,
-        SgRemoveOrderWithOrder, SgTransaction, SgVault,
+        SgRemoveOrderWithOrder, SgTrade, SgTradeEvent, SgTradeEventTypename, SgTradeRef,
+        SgTradeStructPartialOrder, SgTradeVaultBalanceChange, SgTransaction, SgVault,
+        SgVaultBalanceChangeVault,
     };
     use crate::utils::float::*;
     use cynic::Id;
@@ -361,6 +382,127 @@ mod tests {
         });
 
         let result = client.transaction_remove_orders(tx_id).await;
+        assert!(matches!(
+            result,
+            Err(OrderbookSubgraphClientError::CynicClientError(_))
+        ));
+    }
+
+    fn default_sg_trade(tx_id_str: &str, trade_id_str: &str) -> SgTrade {
+        let tx = default_sg_transaction(tx_id_str);
+        SgTrade {
+            id: SgBytes(trade_id_str.to_string()),
+            trade_event: SgTradeEvent {
+                transaction: tx.clone(),
+                sender: SgBytes("0xsender_default".to_string()),
+            },
+            output_vault_balance_change: SgTradeVaultBalanceChange {
+                id: SgBytes(format!("{}_out_vbc", trade_id_str)),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBytes(F0.as_hex()),
+                new_vault_balance: SgBytes(F0.as_hex()),
+                old_vault_balance: SgBytes(F0.as_hex()),
+                vault: SgVaultBalanceChangeVault {
+                    id: SgBytes("0xvault_out".to_string()),
+                    vault_id: SgBytes("0x01".to_string()),
+                    token: default_sg_erc20("out"),
+                },
+                timestamp: SgBigInt("1600000000".to_string()),
+                transaction: tx.clone(),
+                orderbook: SgOrderbook {
+                    id: SgBytes("0xorderbook_default".to_string()),
+                },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TakeOrder".to_string(),
+                    },
+                },
+            },
+            order: SgTradeStructPartialOrder {
+                id: SgBytes("0xorder_default".to_string()),
+                order_hash: SgBytes("0xorderhash_default".to_string()),
+            },
+            input_vault_balance_change: SgTradeVaultBalanceChange {
+                id: SgBytes(format!("{}_in_vbc", trade_id_str)),
+                __typename: "TradeVaultBalanceChange".to_string(),
+                amount: SgBytes(F0.as_hex()),
+                new_vault_balance: SgBytes(F0.as_hex()),
+                old_vault_balance: SgBytes(F0.as_hex()),
+                vault: SgVaultBalanceChangeVault {
+                    id: SgBytes("0xvault_in".to_string()),
+                    vault_id: SgBytes("0x02".to_string()),
+                    token: default_sg_erc20("in"),
+                },
+                timestamp: SgBigInt("1600000000".to_string()),
+                transaction: tx.clone(),
+                orderbook: SgOrderbook {
+                    id: SgBytes("0xorderbook_default".to_string()),
+                },
+                trade: SgTradeRef {
+                    trade_event: SgTradeEventTypename {
+                        __typename: "TakeOrder".to_string(),
+                    },
+                },
+            },
+            timestamp: SgBigInt("1600000000".to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes("0xorderbook_default".to_string()),
+            },
+        }
+    }
+
+    #[tokio::test]
+    async fn test_transaction_trades_found() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let tx_id_str = "0xtx_trades_1";
+        let tx_id = Id::new(tx_id_str);
+        let expected_trades = vec![
+            default_sg_trade(tx_id_str, "0xtrade1"),
+            default_sg_trade(tx_id_str, "0xtrade2"),
+        ];
+
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200)
+                .json_body(json!({"data": {"trades": expected_trades}}));
+        });
+
+        let result = client.transaction_trades(tx_id).await;
+        assert!(result.is_ok(), "Result was: {:?}", result);
+        let trades = result.unwrap();
+        assert_eq!(trades.len(), 2);
+        assert_eq!(trades[0].id.0, "0xtrade1");
+        assert_eq!(trades[1].id.0, "0xtrade2");
+    }
+
+    #[tokio::test]
+    async fn test_transaction_trades_empty_result_returns_error() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let tx_id = Id::new("0xtx_trades_empty");
+
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(200).json_body(json!({"data": {"trades": []}}));
+        });
+
+        let result = client.transaction_trades(tx_id).await;
+        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+    }
+
+    #[tokio::test]
+    async fn test_transaction_trades_network_error() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let tx_id = Id::new("0xtx_trades_network_err");
+
+        sg_server.mock(|when, then| {
+            when.method(POST).path("/");
+            then.status(500);
+        });
+
+        let result = client.transaction_trades(tx_id).await;
         assert!(matches!(
             result,
             Err(OrderbookSubgraphClientError::CynicClientError(_))

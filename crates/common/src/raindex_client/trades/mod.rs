@@ -1,3 +1,5 @@
+mod get_by_tx;
+
 use super::local_db::orders::LocalDbOrders;
 use super::orders::{OrdersDataSource, SubgraphOrders};
 use super::*;
