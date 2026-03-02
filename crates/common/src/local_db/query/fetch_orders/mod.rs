@@ -29,6 +29,8 @@ pub struct FetchOrdersArgs {
     pub order_hash: Option<B256>,
     pub tx_hash: Option<B256>,
     pub tokens: FetchOrdersTokensFilter,
+    pub page: Option<u16>,
+    pub page_size: Option<u16>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -119,6 +121,7 @@ const CLEAR_EVENTS_ORDERBOOKS_CLAUSE: &str = "/*CLEAR_EVENTS_ORDERBOOKS_CLAUSE*/
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE_BODY: &str = "AND entries.orderbook_address IN ({list})";
 const TX_HASH_CLAUSE: &str = "/*TX_HASH_CLAUSE*/";
 const TX_HASH_CLAUSE_BODY: &str = "AND oe.transaction_hash = {param}";
+const PAGINATION_CLAUSE: &str = "/*PAGINATION_CLAUSE*/";
 
 pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, SqlBuildError> {
     let mut stmt = SqlStatement::new(QUERY_TEMPLATE);
@@ -284,6 +287,18 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
         )?;
     }
 
+    if let (Some(page), Some(page_size)) = (args.page, args.page_size) {
+        let offset = (page.saturating_sub(1) as u64) * (page_size as u64);
+        let limit_placeholder = format!("?{}", stmt.params.len() + 1);
+        let offset_placeholder = format!("?{}", stmt.params.len() + 2);
+        let pagination = format!("LIMIT {} OFFSET {}", limit_placeholder, offset_placeholder);
+        stmt.sql = stmt.sql.replace(PAGINATION_CLAUSE, &pagination);
+        stmt.push(SqlValue::U64(page_size as u64));
+        stmt.push(SqlValue::U64(offset));
+    } else {
+        stmt.sql = stmt.sql.replace(PAGINATION_CLAUSE, "");
+    }
+
     Ok(stmt)
 }
 
@@ -331,6 +346,8 @@ mod tests {
                 ],
                 outputs: vec![address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB")],
             },
+            page: None,
+            page_size: None,
         };
 
         let stmt = build_fetch_orders_stmt(&args).unwrap();
@@ -596,6 +613,91 @@ mod tests {
             stmt.params.contains(&expected),
             "tx hash param should be bound"
         );
+    }
+
+    #[test]
+    fn pagination_clause_page1() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            page: Some(1),
+            page_size: Some(10),
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("LIMIT"), "should contain LIMIT clause");
+        assert!(stmt.sql.contains("OFFSET"), "should contain OFFSET clause");
+        assert!(!stmt.sql.contains(PAGINATION_CLAUSE));
+        let last_two: Vec<&SqlValue> = stmt.params.iter().rev().take(2).collect();
+        assert_eq!(last_two[1], &SqlValue::U64(10));
+        assert_eq!(last_two[0], &SqlValue::U64(0));
+    }
+
+    #[test]
+    fn pagination_clause_page3() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            page: Some(3),
+            page_size: Some(25),
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("LIMIT"));
+        assert!(stmt.sql.contains("OFFSET"));
+        let last_two: Vec<&SqlValue> = stmt.params.iter().rev().take(2).collect();
+        assert_eq!(last_two[1], &SqlValue::U64(25));
+        assert_eq!(last_two[0], &SqlValue::U64(50));
+    }
+
+    #[test]
+    fn pagination_clause_page0_saturates_to_zero_offset() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            page: Some(0),
+            page_size: Some(10),
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(stmt.sql.contains("LIMIT"));
+        let last_two: Vec<&SqlValue> = stmt.params.iter().rev().take(2).collect();
+        assert_eq!(last_two[1], &SqlValue::U64(10));
+        assert_eq!(last_two[0], &SqlValue::U64(0));
+    }
+
+    #[test]
+    fn pagination_clause_omitted_when_only_page_set() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            page: Some(2),
+            page_size: None,
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(!stmt.sql.contains("OFFSET"));
+        assert!(!stmt.sql.contains(PAGINATION_CLAUSE));
+    }
+
+    #[test]
+    fn pagination_clause_omitted_when_only_page_size_set() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            page: None,
+            page_size: Some(10),
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(!stmt.sql.contains("OFFSET"));
+        assert!(!stmt.sql.contains(PAGINATION_CLAUSE));
+    }
+
+    #[test]
+    fn pagination_clause_omitted_when_neither_set() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(!stmt.sql.contains("OFFSET"));
+        assert!(!stmt.sql.contains(PAGINATION_CLAUSE));
     }
 
     #[test]
