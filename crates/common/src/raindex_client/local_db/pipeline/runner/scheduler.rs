@@ -219,10 +219,21 @@ async fn run_network_loop<R>(
                     set_scheduler_state(SchedulerState::Leader);
 
                     if report.failures.is_empty() {
-                        emit_network_status(
-                            callback.as_deref(),
-                            NetworkSyncStatus::active(chain_id, SchedulerState::Leader),
-                        );
+                        let max_latest = report
+                            .successes
+                            .iter()
+                            .map(|s| s.outcome.latest_block)
+                            .max();
+                        let status = if let Some(latest) = max_latest {
+                            NetworkSyncStatus::active_with_block(
+                                chain_id,
+                                SchedulerState::Leader,
+                                latest,
+                            )
+                        } else {
+                            NetworkSyncStatus::active(chain_id, SchedulerState::Leader)
+                        };
+                        emit_network_status(callback.as_deref(), status);
                     } else {
                         let first = &report.failures[0];
                         let msg = format!(
@@ -274,7 +285,8 @@ fn emit_network_status(callback: Option<&Function>, status: NetworkSyncStatus) {
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
-    use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
+    use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage, TargetSuccess};
+    use crate::local_db::pipeline::SyncOutcome;
     use crate::local_db::OrderbookIdentifier;
     use crate::raindex_client::local_db::pipeline::status::get_scheduler_state;
     use crate::raindex_client::local_db::LocalDbStatus;
@@ -306,6 +318,7 @@ mod wasm_tests {
         calls: Rc<Cell<usize>>,
         failures: Rc<Cell<usize>>,
         outcomes: Rc<RefCell<VecDeque<Option<bool>>>>,
+        success_blocks: Rc<RefCell<VecDeque<u64>>>,
     }
 
     impl RecordingRunner {
@@ -320,6 +333,23 @@ mod wasm_tests {
                 calls,
                 failures,
                 outcomes: Rc::new(RefCell::new(VecDeque::from(outcomes))),
+                success_blocks: Rc::new(RefCell::new(VecDeque::new())),
+            }
+        }
+
+        fn new_with_successes(
+            chain_id: u32,
+            calls: Rc<Cell<usize>>,
+            failures: Rc<Cell<usize>>,
+            outcomes: Vec<Option<bool>>,
+            success_blocks: Vec<u64>,
+        ) -> Self {
+            Self {
+                chain_id,
+                calls,
+                failures,
+                outcomes: Rc::new(RefCell::new(VecDeque::from(outcomes))),
+                success_blocks: Rc::new(RefCell::new(VecDeque::from(success_blocks))),
             }
         }
     }
@@ -332,6 +362,7 @@ mod wasm_tests {
             let calls = Rc::clone(&self.calls);
             let failures = Rc::clone(&self.failures);
             let outcomes = Rc::clone(&self.outcomes);
+            let success_blocks = Rc::clone(&self.success_blocks);
 
             Box::pin(async move {
                 calls.set(calls.get() + 1);
@@ -351,8 +382,23 @@ mod wasm_tests {
                                 failures: vec![failure],
                             }))
                         } else {
+                            let successes =
+                                if let Some(latest) = success_blocks.borrow_mut().pop_front() {
+                                    vec![TargetSuccess {
+                                        outcome: SyncOutcome {
+                                            ob_id: OrderbookIdentifier::new(1, Address::ZERO),
+                                            start_block: 0,
+                                            target_block: latest,
+                                            latest_block: latest,
+                                            fetched_logs: 0,
+                                            decoded_events: 0,
+                                        },
+                                    }]
+                                } else {
+                                    vec![]
+                                };
                             Ok(RunOutcome::Report(RunReport {
-                                successes: vec![],
+                                successes,
                                 failures: vec![],
                             }))
                         }
@@ -692,5 +738,60 @@ mod wasm_tests {
             "slow network should complete at least one cycle: got {}",
             slow_calls.get()
         );
+    }
+
+    #[wasm_bindgen_test]
+    async fn network_loop_emits_active_with_latest_block_from_successes() {
+        let calls = Rc::new(Cell::new(0));
+        let failures = Rc::new(Cell::new(0));
+        let runner = RecordingRunner::new_with_successes(
+            7,
+            Rc::clone(&calls),
+            Rc::clone(&failures),
+            vec![Some(false)],
+            vec![99_000],
+        );
+        let stop_flag = Rc::new(Cell::new(false));
+
+        let statuses = Rc::new(RefCell::new(Vec::new()));
+        let status_callback = {
+            let statuses = Rc::clone(&statuses);
+            let closure = Closure::wrap(Box::new(move |value: JsValue| {
+                let snapshot: NetworkSyncStatus =
+                    serde_wasm_bindgen::from_value(value).expect("valid status value");
+                statuses.borrow_mut().push(snapshot);
+            }) as Box<dyn FnMut(JsValue)>);
+            let function: Function = closure.as_ref().clone().unchecked_into();
+            closure.forget();
+            function
+        };
+
+        spawn_network_loop(
+            runner,
+            noop_local_db(),
+            Some(Rc::new(status_callback)),
+            Rc::clone(&stop_flag),
+            1,
+        );
+
+        TimeoutFuture::new(0).await;
+        TimeoutFuture::new(5).await;
+
+        stop_flag.set(true);
+        TimeoutFuture::new(5).await;
+
+        let recorded = statuses.borrow();
+        let active_with_block = recorded
+            .iter()
+            .find(|s| s.status == LocalDbStatus::Active && s.latest_block.is_some());
+        assert!(
+            active_with_block.is_some(),
+            "expected an Active status with latest_block set, got: {:?}",
+            recorded.iter().map(|s| (&s.status, &s.latest_block)).collect::<Vec<_>>()
+        );
+        let s = active_with_block.unwrap();
+        assert_eq!(s.chain_id, 7);
+        assert_eq!(s.latest_block, Some(99_000));
+        assert_eq!(s.scheduler_state, SchedulerState::Leader);
     }
 }

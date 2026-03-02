@@ -402,4 +402,137 @@ describe('LocalDbStatusModal', () => {
 		expect(screen.getByText('Observing')).toBeInTheDocument();
 		expect(screen.queryByText('Fetching latest block')).not.toBeInTheDocument();
 	});
+
+	it('shows network head block when latestBlock is present', () => {
+		const networkStatuses = new Map<number, NetworkSyncStatus>([
+			[137, { chainId: 137, status: 'active', schedulerState: 'leader', latestBlock: 50000000 }]
+		]);
+
+		render(LocalDbStatusModal, {
+			props: {
+				open: true,
+				networkStatuses,
+				orderbookStatuses: new Map()
+			}
+		});
+
+		const headEl = screen.getByTestId('network-head-137');
+		expect(headEl).toBeInTheDocument();
+		expect(headEl.textContent).toContain('Head:');
+		expect(headEl.textContent).toContain('50,000,000');
+	});
+
+	it('does not show network head block when latestBlock is undefined', () => {
+		const networkStatuses = new Map<number, NetworkSyncStatus>([
+			[137, { chainId: 137, status: 'active', schedulerState: 'leader' }]
+		]);
+
+		render(LocalDbStatusModal, {
+			props: {
+				open: true,
+				networkStatuses,
+				orderbookStatuses: new Map()
+			}
+		});
+
+		expect(screen.queryByTestId('network-head-137')).not.toBeInTheDocument();
+	});
+
+	it('shows behind count when orderbook is syncing', () => {
+		const networkStatuses = new Map<number, NetworkSyncStatus>([
+			[137, { chainId: 137, status: 'syncing', schedulerState: 'leader' }]
+		]);
+		const orderbookStatuses = new Map<string, OrderbookSyncStatus>([
+			[
+				'137:0x1234567890123456789012345678901234567890',
+				{
+					obId: {
+						chainId: 137,
+						orderbookAddress: '0x1234567890123456789012345678901234567890'
+					},
+					status: 'syncing',
+					schedulerState: 'leader',
+					latestBlock: 1000,
+					syncedBlock: 950
+				}
+			]
+		]);
+
+		render(LocalDbStatusModal, {
+			props: {
+				open: true,
+				networkStatuses,
+				orderbookStatuses
+			}
+		});
+
+		const progressEl = screen.getByTestId('ob-block-progress');
+		expect(progressEl).toBeInTheDocument();
+		expect(progressEl.textContent).toContain('Synced to #950');
+		expect(progressEl.textContent).toContain('50 behind');
+	});
+
+	it('does not show behind count when orderbook is active', () => {
+		const networkStatuses = new Map<number, NetworkSyncStatus>([
+			[137, { chainId: 137, status: 'active', schedulerState: 'leader' }]
+		]);
+		const orderbookStatuses = new Map<string, OrderbookSyncStatus>([
+			[
+				'137:0x1234567890123456789012345678901234567890',
+				{
+					obId: {
+						chainId: 137,
+						orderbookAddress: '0x1234567890123456789012345678901234567890'
+					},
+					status: 'active',
+					schedulerState: 'leader',
+					latestBlock: 1000,
+					syncedBlock: 950
+				}
+			]
+		]);
+
+		render(LocalDbStatusModal, {
+			props: {
+				open: true,
+				networkStatuses,
+				orderbookStatuses
+			}
+		});
+
+		const progressEl = screen.getByTestId('ob-block-progress');
+		expect(progressEl).toBeInTheDocument();
+		expect(progressEl.textContent).toContain('Synced to #950');
+		expect(progressEl.textContent).not.toContain('behind');
+	});
+
+	it('does not show block progress when syncedBlock is undefined', () => {
+		const networkStatuses = new Map<number, NetworkSyncStatus>([
+			[137, { chainId: 137, status: 'active', schedulerState: 'leader' }]
+		]);
+		const orderbookStatuses = new Map<string, OrderbookSyncStatus>([
+			[
+				'137:0x1234567890123456789012345678901234567890',
+				{
+					obId: {
+						chainId: 137,
+						orderbookAddress: '0x1234567890123456789012345678901234567890'
+					},
+					status: 'active',
+					schedulerState: 'leader'
+				}
+			]
+		]);
+
+		render(LocalDbStatusModal, {
+			props: {
+				open: true,
+				networkStatuses,
+				orderbookStatuses
+			}
+		});
+
+		expect(screen.queryByTestId('ob-block-progress')).not.toBeInTheDocument();
+	});
+
 });

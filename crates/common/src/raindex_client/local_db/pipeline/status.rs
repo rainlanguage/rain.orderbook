@@ -2,7 +2,7 @@ use crate::local_db::pipeline::{StatusBus, SyncPhase};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use crate::raindex_client::local_db::{OrderbookSyncStatus, SchedulerState};
 use js_sys::Function;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use wasm_bindgen_utils::prelude::*;
 
@@ -37,18 +37,44 @@ fn emit_to_callback(status: OrderbookSyncStatus) {
     });
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug)]
 pub struct ClientStatusBus {
     ob_id: Option<OrderbookIdentifier>,
+    latest_block: Cell<Option<u64>>,
+    synced_block: Cell<Option<u64>>,
+}
+
+impl Clone for ClientStatusBus {
+    fn clone(&self) -> Self {
+        Self {
+            ob_id: self.ob_id.clone(),
+            latest_block: Cell::new(self.latest_block.get()),
+            synced_block: Cell::new(self.synced_block.get()),
+        }
+    }
+}
+
+impl Default for ClientStatusBus {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ClientStatusBus {
     pub fn new() -> Self {
-        Self { ob_id: None }
+        Self {
+            ob_id: None,
+            latest_block: Cell::new(None),
+            synced_block: Cell::new(None),
+        }
     }
 
     pub fn with_ob_id(ob_id: OrderbookIdentifier) -> Self {
-        Self { ob_id: Some(ob_id) }
+        Self {
+            ob_id: Some(ob_id),
+            latest_block: Cell::new(None),
+            synced_block: Cell::new(None),
+        }
     }
 
     fn emit(&self, status: OrderbookSyncStatus) {
@@ -62,6 +88,20 @@ impl ClientStatusBus {
 
         let scheduler_state = get_scheduler_state();
         self.emit(OrderbookSyncStatus::active(ob_id.clone(), scheduler_state));
+    }
+
+    pub fn emit_active_with_blocks(&self, latest_block: u64, synced_block: u64) {
+        let Some(ob_id) = &self.ob_id else {
+            return;
+        };
+
+        let scheduler_state = get_scheduler_state();
+        self.emit(OrderbookSyncStatus::active_with_blocks(
+            ob_id.clone(),
+            scheduler_state,
+            latest_block,
+            synced_block,
+        ));
     }
 
     pub fn emit_failure(&self, error: String) {
@@ -85,10 +125,25 @@ impl StatusBus for ClientStatusBus {
             return Ok(());
         };
 
-        let status = OrderbookSyncStatus::syncing(ob_id.clone(), phase);
+        let status = match (self.latest_block.get(), self.synced_block.get()) {
+            (Some(latest), Some(synced)) => {
+                OrderbookSyncStatus::syncing_with_progress(
+                    ob_id.clone(),
+                    phase,
+                    latest,
+                    synced,
+                )
+            }
+            _ => OrderbookSyncStatus::syncing(ob_id.clone(), phase),
+        };
         self.emit(status);
 
         Ok(())
+    }
+
+    fn set_block_progress(&self, latest_block: u64, synced_block: u64) {
+        self.latest_block.set(Some(latest_block));
+        self.synced_block.set(Some(synced_block));
     }
 }
 
@@ -254,6 +309,23 @@ mod tests {
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert!(status.phase_message.is_none());
         assert!(status.error.is_none());
+        assert!(status.latest_block.is_none());
+        assert!(status.synced_block.is_none());
+    }
+
+    #[test]
+    fn orderbook_sync_status_active_with_blocks_sets_correct_fields() {
+        let ob_id = test_ob_id();
+        let status =
+            OrderbookSyncStatus::active_with_blocks(ob_id.clone(), SchedulerState::Leader, 1000, 950);
+
+        assert_eq!(status.ob_id, ob_id);
+        assert_eq!(status.status, LocalDbStatus::Active);
+        assert_eq!(status.scheduler_state, SchedulerState::Leader);
+        assert!(status.phase_message.is_none());
+        assert!(status.error.is_none());
+        assert_eq!(status.latest_block, Some(1000));
+        assert_eq!(status.synced_block, Some(950));
     }
 
     #[test]
@@ -266,6 +338,8 @@ mod tests {
         assert_eq!(status.scheduler_state, SchedulerState::NotLeader);
         assert!(status.phase_message.is_none());
         assert!(status.error.is_none());
+        assert!(status.latest_block.is_none());
+        assert!(status.synced_block.is_none());
     }
 
     #[test]
@@ -297,6 +371,41 @@ mod tests {
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert_eq!(status.phase_message, Some("Custom phase".to_string()));
         assert_eq!(status.error, Some("Custom error".to_string()));
+    }
+
+    #[test]
+    fn syncing_with_progress_sets_all_fields() {
+        let ob_id = test_ob_id();
+        let status = OrderbookSyncStatus::syncing_with_progress(
+            ob_id.clone(),
+            SyncPhase::FetchingOrderbookLogs,
+            50_000_000,
+            1_000_000,
+        );
+
+        assert_eq!(status.ob_id, ob_id);
+        assert_eq!(status.status, LocalDbStatus::Syncing);
+        assert_eq!(status.scheduler_state, SchedulerState::Leader);
+        assert_eq!(
+            status.phase_message,
+            Some("Fetching orderbook logs".to_string())
+        );
+        assert_eq!(status.latest_block, Some(50_000_000));
+        assert_eq!(status.synced_block, Some(1_000_000));
+    }
+
+    #[test]
+    fn set_block_progress_stores_values_in_bus() {
+        let ob_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(ob_id);
+
+        assert!(bus.latest_block.get().is_none());
+        assert!(bus.synced_block.get().is_none());
+
+        bus.set_block_progress(50_000_000, 1_000_000);
+
+        assert_eq!(bus.latest_block.get(), Some(50_000_000));
+        assert_eq!(bus.synced_block.get(), Some(1_000_000));
     }
 }
 
@@ -379,5 +488,62 @@ mod wasm_tests {
             "expected no emissions when NotLeader, got {}",
             emissions.len()
         );
+    }
+
+    #[wasm_bindgen_test]
+    async fn send_with_block_progress_emits_syncing_with_progress() {
+        let recorded = Rc::new(RefCell::new(Vec::new()));
+        let callback = create_recording_callback(Rc::clone(&recorded));
+
+        set_status_callback(Some(callback));
+        set_scheduler_state(SchedulerState::Leader);
+
+        let ob_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(ob_id.clone());
+        bus.set_block_progress(50_000_000, 1_000_000);
+        bus.send(SyncPhase::FetchingOrderbookLogs).await.unwrap();
+
+        set_status_callback(None);
+
+        let emissions = recorded.borrow();
+        assert_eq!(emissions.len(), 1, "expected exactly one emission");
+
+        let emitted = &emissions[0];
+        assert_eq!(emitted.ob_id, ob_id);
+        assert_eq!(emitted.status, LocalDbStatus::Syncing);
+        assert_eq!(emitted.scheduler_state, SchedulerState::Leader);
+        assert_eq!(
+            emitted.phase_message,
+            Some("Fetching orderbook logs".to_string())
+        );
+        assert_eq!(emitted.latest_block, Some(50_000_000));
+        assert_eq!(emitted.synced_block, Some(1_000_000));
+    }
+
+    #[wasm_bindgen_test]
+    async fn emit_active_with_blocks_emits_correct_status() {
+        let recorded = Rc::new(RefCell::new(Vec::new()));
+        let callback = create_recording_callback(Rc::clone(&recorded));
+
+        set_status_callback(Some(callback));
+        set_scheduler_state(SchedulerState::Leader);
+
+        let ob_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(ob_id.clone());
+        bus.emit_active_with_blocks(1000, 950);
+
+        set_status_callback(None);
+
+        let emissions = recorded.borrow();
+        assert_eq!(emissions.len(), 1, "expected exactly one emission");
+
+        let emitted = &emissions[0];
+        assert_eq!(emitted.ob_id, ob_id);
+        assert_eq!(emitted.status, LocalDbStatus::Active);
+        assert_eq!(emitted.scheduler_state, SchedulerState::Leader);
+        assert!(emitted.phase_message.is_none());
+        assert!(emitted.error.is_none());
+        assert_eq!(emitted.latest_block, Some(1000));
+        assert_eq!(emitted.synced_block, Some(950));
     }
 }

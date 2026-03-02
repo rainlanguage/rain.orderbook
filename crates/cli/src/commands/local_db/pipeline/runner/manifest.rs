@@ -202,6 +202,7 @@ mod tests {
                     ob_id: target.clone(),
                     start_block: 0,
                     target_block: 1234,
+                    latest_block: 1234,
                     fetched_logs: 10,
                     decoded_events: 5,
                 },
