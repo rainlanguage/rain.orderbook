@@ -1,5 +1,9 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
-use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
+#[cfg(not(target_family = "wasm"))]
+use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHandle;
+#[cfg(target_family = "wasm")]
+use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
+use crate::raindex_client::local_db::LocalDb;
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -87,8 +91,12 @@ pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
     #[serde(skip_serializing, skip_deserializing)]
     local_db: Rc<RefCell<Option<LocalDb>>>,
+    #[cfg(target_family = "wasm")]
     #[serde(skip_serializing, skip_deserializing)]
     local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
+    #[cfg(not(target_family = "wasm"))]
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db_scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
 }
 
 #[wasm_export]
