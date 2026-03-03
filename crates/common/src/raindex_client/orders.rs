@@ -1,10 +1,11 @@
 use super::local_db::orders::LocalDbOrders;
 use super::local_db::query::fetch_order_vaults_volume::fetch_order_vaults_volume;
 use super::trades::RaindexTrade;
+use super::QuerySource;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
-use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
+use crate::local_db::OrderbookIdentifier;
 use crate::parsed_meta::ParsedMeta;
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::take_orders::{
@@ -455,9 +456,9 @@ impl RaindexOrder {
         #[cfg(not(target_family = "wasm"))]
         let orderbook = self.orderbook();
 
-        if is_chain_supported_local_db(chain_id) {
-            let raindex_client = self.get_raindex_client();
-            if let Some(local_db) = raindex_client.local_db() {
+        let raindex_client = self.get_raindex_client();
+        match raindex_client.query_source(chain_id) {
+            QuerySource::LocalDb(local_db) => {
                 #[cfg(target_family = "wasm")]
                 let order_hash = B256::from_str(&self.order_hash())?;
                 #[cfg(not(target_family = "wasm"))]
@@ -472,21 +473,26 @@ impl RaindexOrder {
                 )
                 .await?;
 
-                return volumes
+                volumes
                     .into_iter()
                     .map(|v| RaindexVaultVolume::try_from_local_db_vault_volume(chain_id, v))
-                    .collect();
+                    .collect()
+            }
+            QuerySource::Subgraph => {
+                let client = self.get_orderbook_client()?;
+                let volumes = client
+                    .order_vaults_volume(
+                        Id::new(self.id.to_string()),
+                        start_timestamp,
+                        end_timestamp,
+                    )
+                    .await?;
+                volumes
+                    .into_iter()
+                    .map(|v| RaindexVaultVolume::try_from_vault_volume(self.chain_id, v))
+                    .collect()
             }
         }
-
-        let client = self.get_orderbook_client()?;
-        let volumes = client
-            .order_vaults_volume(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
-            .await?;
-        volumes
-            .into_iter()
-            .map(|v| RaindexVaultVolume::try_from_vault_volume(self.chain_id, v))
-            .collect()
     }
 
     // /// Gets comprehensive performance metrics and analytics for this order over a specified time period
@@ -835,18 +841,37 @@ impl RaindexClient {
         let page_number = page.unwrap_or(1);
         let ids = chain_ids.map(|ChainIds(ids)| ids);
 
-        if let Some(local_db) = self.local_db() {
-            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-            let orders = local_source.list(ids, &filters, None).await?;
-            let orders = fetch_orders_dotrain_sources(orders).await?;
-            return Ok(orders);
+        let resolved = self.resolve_networks(ids.clone())?;
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
+        for net in &resolved {
+            match self.query_source(net.chain_id) {
+                QuerySource::LocalDb(_) => local_ids.push(net.chain_id),
+                QuerySource::Subgraph => sg_ids.push(net.chain_id),
+            }
         }
 
-        let subgraph_source = SubgraphOrders::new(self);
-        let orders = subgraph_source
-            .list(ids, &filters, Some(page_number))
-            .await?;
-        let orders = fetch_orders_dotrain_sources(orders).await?;
+        let mut all_orders = Vec::new();
+
+        if !local_ids.is_empty() {
+            if let QuerySource::LocalDb(local_db) = self.query_source(local_ids[0]) {
+                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+                let orders = local_source
+                    .list(Some(local_ids), &filters, Some(page_number))
+                    .await?;
+                all_orders.extend(orders);
+            }
+        }
+
+        if !sg_ids.is_empty() {
+            let subgraph_source = SubgraphOrders::new(self);
+            let orders = subgraph_source
+                .list(Some(sg_ids), &filters, Some(page_number))
+                .await?;
+            all_orders.extend(orders);
+        }
+
+        let orders = fetch_orders_dotrain_sources(all_orders).await?;
         Ok(orders)
     }
 
@@ -1089,26 +1114,37 @@ impl RaindexClient {
             ));
         }
 
-        if let Some(local_db) = self.local_db() {
-            let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-            if let Some(mut order) = local_source.get_by_hash(ob_id, &order_hash).await? {
+        match self.query_source(ob_id.chain_id) {
+            QuerySource::LocalDb(local_db) => {
+                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+                let mut order = local_source
+                    .get_by_hash(ob_id, &order_hash)
+                    .await?
+                    .ok_or_else(|| {
+                        RaindexError::OrderNotFound(
+                            ob_id.orderbook_address.to_string(),
+                            ob_id.chain_id,
+                            order_hash,
+                        )
+                    })?;
                 order.fetch_dotrain_source().await?;
-                return Ok(order);
+                Ok(order)
+            }
+            QuerySource::Subgraph => {
+                let mut order = SubgraphOrders::new(self)
+                    .get_by_hash(ob_id, &order_hash)
+                    .await?
+                    .ok_or_else(|| {
+                        RaindexError::OrderNotFound(
+                            ob_id.orderbook_address.to_string(),
+                            ob_id.chain_id,
+                            order_hash,
+                        )
+                    })?;
+                order.fetch_dotrain_source().await?;
+                Ok(order)
             }
         }
-
-        let mut order = SubgraphOrders::new(self)
-            .get_by_hash(ob_id, &order_hash)
-            .await?
-            .ok_or_else(|| {
-                RaindexError::OrderNotFound(
-                    ob_id.orderbook_address.to_string(),
-                    ob_id.chain_id,
-                    order_hash,
-                )
-            })?;
-        order.fetch_dotrain_source().await?;
-        Ok(order)
     }
 }
 
@@ -1387,7 +1423,9 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm {
         use super::super::*;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::raindex_client::tests::{
+            get_test_yaml, new_with_local_db, CHAIN_ID_1_ORDERBOOK_ADDRESS,
+        };
         use crate::{
             local_db::query::{
                 fetch_orders::LocalDbOrder, FromDbJson, LocalDbQueryError, LocalDbQueryExecutor,
@@ -2640,17 +2678,16 @@ mod tests {
                 json: serde_json::to_string(&vec![local_order]).unwrap(),
             };
             let local_db = LocalDb::new(exec.clone());
-            let client = RaindexClient::new(
+            let client = new_with_local_db(
                 vec![get_test_yaml(
                     "https://example/sg1",
                     "https://example/sg2",
                     "https://example/rpc1",
                     "https://example/rpc2",
                 )],
-                None,
-            )
-            .unwrap();
-            client.local_db.borrow_mut().replace(local_db.clone());
+                local_db.clone(),
+                vec![137],
+            );
 
             let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
             let orders = orders_source
@@ -2672,17 +2709,16 @@ mod tests {
                 json: "not-json".to_string(),
             };
             let local_db = LocalDb::new(exec);
-            let client = RaindexClient::new(
+            let client = new_with_local_db(
                 vec![get_test_yaml(
                     "https://example/sg1",
                     "https://example/sg2",
                     "https://example/rpc1",
                     "https://example/rpc2",
                 )],
-                None,
-            )
-            .unwrap();
-            client.local_db.borrow_mut().replace(local_db.clone());
+                local_db.clone(),
+                vec![137],
+            );
 
             let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
             let err = orders_source
@@ -2788,17 +2824,16 @@ mod tests {
             };
             let local_db = LocalDb::new(exec);
 
-            let client = RaindexClient::new(
+            let client = new_with_local_db(
                 vec![get_test_yaml(
                     "https://example/sg1",
                     "https://example/sg2",
                     "https://example/rpc1",
                     "https://example/rpc2",
                 )],
-                None,
-            )
-            .unwrap();
-            client.local_db.borrow_mut().replace(local_db);
+                local_db,
+                vec![137],
+            );
 
             let order = client
                 .get_order_by_hash(

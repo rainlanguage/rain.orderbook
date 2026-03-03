@@ -3,7 +3,7 @@ use crate::local_db::{query::LocalDbQueryError, LocalDbError};
 use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHandle;
 #[cfg(target_family = "wasm")]
 use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
-use crate::raindex_client::local_db::LocalDb;
+use crate::raindex_client::local_db::{LocalDb, SyncReadiness};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -29,6 +29,7 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::{cell::RefCell, rc::Rc};
 use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
 use thiserror::Error;
@@ -52,6 +53,74 @@ pub mod vaults_list;
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
 impl_wasm_traits!(ChainIds);
+
+pub(crate) enum QuerySource {
+    LocalDb(LocalDb),
+    Subgraph,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct LocalDbState {
+    db: Rc<RefCell<Option<LocalDb>>>,
+    #[cfg(target_family = "wasm")]
+    scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
+    #[cfg(not(target_family = "wasm"))]
+    scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
+    sync_readiness: SyncReadiness,
+    chain_ids: HashSet<u32>,
+}
+
+impl Default for LocalDbState {
+    fn default() -> Self {
+        Self {
+            db: Rc::new(RefCell::new(None)),
+            scheduler: Rc::new(RefCell::new(None)),
+            sync_readiness: SyncReadiness::new(),
+            chain_ids: HashSet::new(),
+        }
+    }
+}
+
+impl LocalDbState {
+    fn db(&self) -> Option<LocalDb> {
+        self.db.borrow().as_ref().cloned()
+    }
+
+    fn compute_chain_ids(yaml: &OrderbookYaml) -> HashSet<u32> {
+        let syncs = match yaml.get_local_db_syncs() {
+            Ok(s) => s,
+            Err(_) => return HashSet::new(),
+        };
+        let networks = match yaml.get_networks() {
+            Ok(n) => n,
+            Err(_) => return HashSet::new(),
+        };
+        let mut ids = HashSet::new();
+        for sync_key in syncs.keys() {
+            if let Some(network) = networks.get(sync_key) {
+                ids.insert(network.chain_id);
+            }
+        }
+        ids
+    }
+
+    pub(crate) fn query_source(&self, chain_id: u32) -> QuerySource {
+        if let Some(db) = self.db() {
+            if self.chain_ids.contains(&chain_id) && self.sync_readiness.is_ready(chain_id) {
+                return QuerySource::LocalDb(db);
+            }
+        }
+        QuerySource::Subgraph
+    }
+}
+
+impl Drop for LocalDbState {
+    fn drop(&mut self) {
+        if let Some(handle) = self.scheduler.borrow_mut().take() {
+            handle.stop();
+        }
+    }
+}
 
 /// RaindexClient provides a simplified interface for querying orderbook data across
 /// multiple networks with automatic configuration management.
@@ -90,39 +159,35 @@ impl_wasm_traits!(ChainIds);
 pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
     #[serde(skip_serializing, skip_deserializing)]
-    local_db: Rc<RefCell<Option<LocalDb>>>,
-    #[cfg(target_family = "wasm")]
-    #[serde(skip_serializing, skip_deserializing)]
-    local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
-    #[cfg(not(target_family = "wasm"))]
-    #[serde(skip_serializing, skip_deserializing)]
-    local_db_scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
+    local_db_state: LocalDbState,
 }
 
 #[wasm_export]
 impl RaindexClient {
-    /// Constructor that creates and returns RaindexClient instance directly
+    /// Creates a RaindexClient from YAML config, optionally setting up local DB
+    /// sync automatically when the YAML declares `local-db-sync`.
     ///
     /// ## Examples
     ///
     /// ```javascript
-    /// // Single YAML file
+    /// // Subgraph-only (no local-db-sync in YAML)
     /// const result = await RaindexClient.new([yamlConfig]);
-    /// if (result.error) {
-    ///   console.error("Init failed:", result.error.readableMsg);
-    ///   return;
-    /// }
-    /// const client = result.value;
     ///
-    /// // Multiple YAML files (for modular configuration)
-    /// const result = await RaindexClient.new([networksYaml, orderbooksYaml, tokensYaml]);
+    /// // With local DB (YAML has local-db-sync, pass callbacks)
+    /// const result = await RaindexClient.new(
+    ///   [yamlConfig],
+    ///   undefined,
+    ///   localDb.query.bind(localDb),
+    ///   localDb.wipeAndRecreate.bind(localDb),
+    ///   updateStatus,
+    /// );
     /// ```
     #[wasm_export(
         js_name = "new",
         return_description = "Initialized client instance for further operations",
         preserve_js_class
     )]
-    pub fn new(
+    pub async fn create(
         #[wasm_export(
             js_name = "obYamls",
             param_description = "List of YAML configuration strings. \
@@ -131,7 +196,26 @@ impl RaindexClient {
         )]
         ob_yamls: Vec<String>,
         validate: Option<bool>,
+        #[wasm_export(
+            js_name = "queryCallback",
+            param_description = "Optional JavaScript function to execute local database queries"
+        )]
+        query_callback: Option<js_sys::Function>,
+        #[wasm_export(
+            js_name = "wipeCallback",
+            param_description = "Optional JavaScript function to wipe and recreate the database"
+        )]
+        wipe_callback: Option<js_sys::Function>,
+        #[wasm_export(
+            js_name = "statusCallback",
+            param_description = "Optional callback invoked with the current local DB sync status"
+        )]
+        status_callback: Option<js_sys::Function>,
     ) -> Result<RaindexClient, RaindexError> {
+        #[cfg(not(target_family = "wasm"))]
+        {
+            let _ = (&query_callback, &wipe_callback, &status_callback);
+        }
         let orderbook_yaml = OrderbookYaml::new(
             ob_yamls,
             match validate {
@@ -139,30 +223,54 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
+        let chain_ids = LocalDbState::compute_chain_ids(&orderbook_yaml);
+        let sync_readiness = SyncReadiness::new();
+
+        #[allow(unused_variables)]
+        let has_syncs = !chain_ids.is_empty();
+
+        #[cfg(target_family = "wasm")]
+        let local_db = if has_syncs {
+            let cb = query_callback
+                .ok_or_else(|| RaindexError::LocalDbSetupMissing("query_callback".to_string()))?;
+            Some(LocalDb::from_js_callback(cb, wipe_callback))
+        } else {
+            None
+        };
+        #[cfg(not(target_family = "wasm"))]
+        let local_db: Option<LocalDb> = None;
+
+        #[cfg(target_family = "wasm")]
+        let scheduler = if has_syncs {
+            let db = local_db
+                .clone()
+                .expect("local_db should be set when has_syncs");
+            let settings =
+                crate::local_db::pipeline::runner::utils::parse_runner_settings_from_yaml(
+                    &orderbook_yaml,
+                )?;
+            let handle = crate::raindex_client::local_db::pipeline::runner::scheduler::start(
+                settings,
+                db,
+                status_callback,
+                sync_readiness.clone(),
+            )?;
+            Rc::new(RefCell::new(Some(handle)))
+        } else {
+            Rc::new(RefCell::new(None))
+        };
+        #[cfg(not(target_family = "wasm"))]
+        let scheduler = Rc::new(RefCell::new(None));
+
         Ok(RaindexClient {
             orderbook_yaml,
-            local_db: Rc::new(RefCell::new(None)),
-            local_db_scheduler: Rc::new(RefCell::new(None)),
+            local_db_state: LocalDbState {
+                db: Rc::new(RefCell::new(local_db)),
+                scheduler,
+                sync_readiness,
+                chain_ids,
+            },
         })
-    }
-
-    #[wasm_export(js_name = "setDbCallback", unchecked_return_type = "void")]
-    pub fn set_local_db_callback(
-        &self,
-        #[wasm_export(
-            js_name = "queryCallback",
-            param_description = "JavaScript function to execute local database queries"
-        )]
-        query_callback: js_sys::Function,
-        #[wasm_export(
-            js_name = "wipeCallback",
-            param_description = "Optional JavaScript function to wipe and recreate the database"
-        )]
-        wipe_callback: Option<js_sys::Function>,
-    ) -> Result<(), RaindexError> {
-        let mut slot = self.local_db.borrow_mut();
-        *slot = Some(LocalDb::from_js_callback(query_callback, wipe_callback));
-        Ok(())
     }
 
     fn resolve_networks(
@@ -228,15 +336,76 @@ impl RaindexClient {
         Ok(network.rpcs.clone())
     }
 
-    fn local_db(&self) -> Option<LocalDb> {
-        self.local_db.borrow().as_ref().cloned()
+    pub(crate) fn query_source(&self, chain_id: u32) -> QuerySource {
+        self.local_db_state.query_source(chain_id)
+    }
+}
+
+impl RaindexClient {
+    pub fn new(
+        ob_yamls: Vec<String>,
+        validate: Option<bool>,
+    ) -> Result<RaindexClient, RaindexError> {
+        let orderbook_yaml = OrderbookYaml::new(
+            ob_yamls,
+            match validate {
+                Some(true) => OrderbookYamlValidation::full(),
+                _ => OrderbookYamlValidation::default(),
+            },
+        )?;
+        Ok(RaindexClient {
+            orderbook_yaml,
+            local_db_state: LocalDbState::default(),
+        })
     }
 }
 
 #[cfg(not(target_family = "wasm"))]
 impl RaindexClient {
-    pub fn set_local_db(&self, db: LocalDb) {
-        *self.local_db.borrow_mut() = Some(db);
+    pub fn new_native(
+        ob_yamls: Vec<String>,
+        validate: Option<bool>,
+        db_path: Option<std::path::PathBuf>,
+    ) -> Result<RaindexClient, RaindexError> {
+        let orderbook_yaml = OrderbookYaml::new(
+            ob_yamls,
+            match validate {
+                Some(true) => OrderbookYamlValidation::full(),
+                _ => OrderbookYamlValidation::default(),
+            },
+        )?;
+        let chain_ids = LocalDbState::compute_chain_ids(&orderbook_yaml);
+        let sync_readiness = SyncReadiness::new();
+
+        let has_syncs = !chain_ids.is_empty();
+
+        let (local_db, scheduler) = if has_syncs {
+            let path =
+                db_path.ok_or_else(|| RaindexError::LocalDbSetupMissing("db_path".to_string()))?;
+            let settings =
+                crate::local_db::pipeline::runner::utils::parse_runner_settings_from_yaml(
+                    &orderbook_yaml,
+                )?;
+            let handle = crate::raindex_client::local_db::pipeline::runner::scheduler::start(
+                settings,
+                path.clone(),
+                sync_readiness.clone(),
+            )?;
+            let executor = crate::local_db::executor::RusqliteExecutor::new(&path);
+            (Some(LocalDb::new(executor)), Some(handle))
+        } else {
+            (None, None)
+        };
+
+        Ok(RaindexClient {
+            orderbook_yaml,
+            local_db_state: LocalDbState {
+                db: Rc::new(RefCell::new(local_db)),
+                scheduler: Rc::new(RefCell::new(scheduler)),
+                sync_readiness,
+                chain_ids,
+            },
+        })
     }
 }
 
@@ -339,6 +508,8 @@ pub enum RaindexError {
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
     LocalDbUnsupportedNetwork(u32),
+    #[error("YAML has local-db-sync but no {0} was provided")]
+    LocalDbSetupMissing(String),
     #[error("No liquidity available for the requested token pair")]
     NoLiquidity,
     #[error("Insufficient liquidity: requested {requested}, available {available}")]
@@ -516,6 +687,9 @@ impl RaindexError {
             RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
                 format!("The chain ID: {chain_id} is not supported for local database operations.")
             }
+            RaindexError::LocalDbSetupMissing(field) => {
+                format!("YAML has local-db-sync configured but no {field} was provided.")
+            }
             RaindexError::NoLiquidity => {
                 "No liquidity available for the requested token pair".to_string()
             }
@@ -580,8 +754,7 @@ impl From<RaindexError> for WasmEncodedError {
 }
 
 #[cfg(test)]
-mod tests {
-    #[cfg(target_family = "wasm")]
+pub(crate) mod tests {
     use super::*;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
 
@@ -653,14 +826,46 @@ accounts:
         )
     }
 
+    #[cfg(not(target_family = "wasm"))]
+    pub fn new_with_local_db(
+        yamls: Vec<String>,
+        local_db: super::local_db::LocalDb,
+        chain_ids: Vec<u32>,
+    ) -> RaindexClient {
+        let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        client.local_db_state.db = Rc::new(RefCell::new(Some(local_db)));
+        for &id in &chain_ids {
+            client.local_db_state.sync_readiness.mark_ready(id);
+            client.local_db_state.chain_ids.insert(id);
+        }
+        client
+    }
+
     #[cfg(target_family = "wasm")]
     pub fn new_test_client_with_db_callback(
         yamls: Vec<String>,
         query_callback: js_sys::Function,
+        chain_ids: Vec<u32>,
     ) -> RaindexClient {
-        let client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
-        client.set_local_db_callback(query_callback, None).unwrap();
-        client
+        let orderbook_yaml = OrderbookYaml::new(yamls, OrderbookYamlValidation::default())
+            .expect("test yaml should be valid");
+        let sync_readiness = SyncReadiness::new();
+        let mut db_chain_ids = HashSet::new();
+        for &id in &chain_ids {
+            sync_readiness.mark_ready(id);
+            db_chain_ids.insert(id);
+        }
+        RaindexClient {
+            orderbook_yaml,
+            local_db_state: LocalDbState {
+                db: Rc::new(RefCell::new(Some(
+                    super::local_db::LocalDb::from_js_callback(query_callback, None),
+                ))),
+                scheduler: Rc::new(RefCell::new(None)),
+                sync_readiness,
+                chain_ids: db_chain_ids,
+            },
+        }
     }
 
     #[cfg(target_family = "wasm")]
