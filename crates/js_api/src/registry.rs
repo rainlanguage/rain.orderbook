@@ -574,6 +574,17 @@ impl DotrainRegistry {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
+impl DotrainRegistry {
+    pub fn get_raindex_client_native(
+        &self,
+        db_path: Option<std::path::PathBuf>,
+    ) -> Result<RaindexClient, DotrainRegistryError> {
+        let client = RaindexClient::new_native(vec![self.settings.clone()], None, db_path)?;
+        Ok(client)
+    }
+}
+
 impl DotrainRegistry {
     fn settings_sources(&self) -> Option<Vec<String>> {
         if self.settings.is_empty() {
