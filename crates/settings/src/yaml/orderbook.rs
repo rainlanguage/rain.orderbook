@@ -1228,6 +1228,7 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );
@@ -1247,6 +1248,7 @@ local-db-sync:
         assert_eq!(cfg.rate_limit_delay_ms, 5);
         assert_eq!(cfg.finality_depth, 6);
         assert_eq!(cfg.bootstrap_block_threshold, 7);
+        assert_eq!(cfg.sync_interval_ms, 5000);
     }
 
     #[test]
@@ -1263,6 +1265,7 @@ local-db-sync:
     rate-limit-delay-ms: 50
     finality-depth: 60
     bootstrap-block-threshold: 70
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );
@@ -1277,6 +1280,7 @@ local-db-sync:
         assert_eq!(cfg.rate_limit_delay_ms, 50);
         assert_eq!(cfg.finality_depth, 60);
         assert_eq!(cfg.bootstrap_block_threshold, 70);
+        assert_eq!(cfg.sync_interval_ms, 5000);
     }
 
     #[test]
@@ -1293,6 +1297,7 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );

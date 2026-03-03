@@ -39,6 +39,7 @@ local-db-sync:
     rate-limit-delay-ms: 1000
     finality-depth: 30
     bootstrap-block-threshold: 1000
+    sync-interval-ms: 5000
 
 orderbooks:
     some-orderbook:
