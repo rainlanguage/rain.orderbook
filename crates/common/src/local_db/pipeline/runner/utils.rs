@@ -32,9 +32,14 @@ pub fn parse_runner_settings(settings_yaml: &str) -> Result<ParsedRunnerSettings
         vec![settings_yaml.to_owned()],
         OrderbookYamlValidation::default(),
     )?;
-    let orderbooks = orderbook_yaml.get_orderbooks()?;
-    let syncs = orderbook_yaml.get_local_db_syncs()?;
+    parse_runner_settings_from_yaml(&orderbook_yaml)
+}
 
+pub fn parse_runner_settings_from_yaml(
+    yaml: &OrderbookYaml,
+) -> Result<ParsedRunnerSettings, LocalDbError> {
+    let orderbooks = yaml.get_orderbooks()?;
+    let syncs = yaml.get_local_db_syncs()?;
     Ok(ParsedRunnerSettings { orderbooks, syncs })
 }
 
