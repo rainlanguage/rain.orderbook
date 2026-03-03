@@ -68,7 +68,8 @@ fn join_err(err: tokio::task::JoinError) -> LocalDbQueryError {
     LocalDbQueryError::database(format!("Blocking task failed: {err}"))
 }
 
-#[async_trait(?Send)]
+#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[cfg_attr(not(target_family = "wasm"), async_trait)]
 impl LocalDbQueryExecutor for RusqliteExecutor {
     async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
         if !batch.is_transaction() {
