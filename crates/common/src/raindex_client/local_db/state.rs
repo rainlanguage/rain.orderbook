@@ -5,9 +5,13 @@ use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHand
 use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
 use rain_orderbook_app_settings::network::NetworkCfg;
 use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
+#[cfg(target_family = "wasm")]
 use std::cell::RefCell;
 use std::collections::HashSet;
+#[cfg(target_family = "wasm")]
 use std::rc::Rc;
+#[cfg(not(target_family = "wasm"))]
+use std::sync::{Arc, Mutex};
 
 pub(crate) enum QuerySource {
     LocalDb(LocalDb),
@@ -18,11 +22,14 @@ pub(crate) type ClassifiedChains = (Option<LocalDb>, Vec<u32>, Vec<u32>);
 
 #[derive(Clone, Debug)]
 pub(crate) struct LocalDbState {
+    #[cfg(target_family = "wasm")]
     pub(crate) db: Rc<RefCell<Option<LocalDb>>>,
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) db: Arc<Mutex<Option<LocalDb>>>,
     #[cfg(target_family = "wasm")]
     pub(crate) scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
     #[cfg(not(target_family = "wasm"))]
-    pub(crate) scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
+    pub(crate) scheduler: Arc<Mutex<Option<NativeSyncHandle>>>,
     pub(crate) sync_readiness: SyncReadiness,
     pub(crate) sync_configured_chains: HashSet<u32>,
 }
@@ -30,19 +37,25 @@ pub(crate) struct LocalDbState {
 impl Default for LocalDbState {
     fn default() -> Self {
         Self {
+            #[cfg(target_family = "wasm")]
             db: Rc::new(RefCell::new(None)),
+            #[cfg(not(target_family = "wasm"))]
+            db: Arc::new(Mutex::new(None)),
+            #[cfg(target_family = "wasm")]
             scheduler: Rc::new(RefCell::new(None)),
+            #[cfg(not(target_family = "wasm"))]
+            scheduler: Arc::new(Mutex::new(None)),
             sync_readiness: SyncReadiness::new(),
             sync_configured_chains: HashSet::new(),
         }
     }
 }
 
+#[cfg(target_family = "wasm")]
 impl LocalDbState {
     pub(crate) fn new(
         db: Option<LocalDb>,
-        #[cfg(target_family = "wasm")] scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
-        #[cfg(not(target_family = "wasm"))] scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
+        scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
         sync_readiness: SyncReadiness,
         sync_configured_chains: HashSet<u32>,
     ) -> Self {
@@ -57,7 +70,33 @@ impl LocalDbState {
     fn db(&self) -> Option<LocalDb> {
         self.db.borrow().as_ref().cloned()
     }
+}
 
+#[cfg(not(target_family = "wasm"))]
+impl LocalDbState {
+    pub(crate) fn new(
+        db: Option<LocalDb>,
+        scheduler: Arc<Mutex<Option<NativeSyncHandle>>>,
+        sync_readiness: SyncReadiness,
+        sync_configured_chains: HashSet<u32>,
+    ) -> Self {
+        Self {
+            db: Arc::new(Mutex::new(db)),
+            scheduler,
+            sync_readiness,
+            sync_configured_chains,
+        }
+    }
+
+    fn db(&self) -> Option<LocalDb> {
+        self.db
+            .lock()
+            .ok()
+            .and_then(|guard| guard.as_ref().cloned())
+    }
+}
+
+impl LocalDbState {
     pub(crate) fn compute_chain_ids(yaml: &OrderbookYaml) -> HashSet<u32> {
         let syncs = match yaml.get_local_db_syncs() {
             Ok(s) => s,
@@ -108,9 +147,22 @@ impl LocalDbState {
 
 impl Drop for LocalDbState {
     fn drop(&mut self) {
-        if Rc::strong_count(&self.scheduler) == 1 {
-            if let Some(handle) = self.scheduler.borrow_mut().take() {
-                handle.stop();
+        #[cfg(target_family = "wasm")]
+        {
+            if Rc::strong_count(&self.scheduler) == 1 {
+                if let Some(handle) = self.scheduler.borrow_mut().take() {
+                    handle.stop();
+                }
+            }
+        }
+        #[cfg(not(target_family = "wasm"))]
+        {
+            if Arc::strong_count(&self.scheduler) == 1 {
+                if let Ok(mut guard) = self.scheduler.lock() {
+                    if let Some(handle) = guard.take() {
+                        handle.stop();
+                    }
+                }
             }
         }
     }
@@ -138,14 +190,20 @@ impl SyncReadiness {
         #[cfg(target_family = "wasm")]
         self.ready.borrow_mut().insert(chain_id);
         #[cfg(not(target_family = "wasm"))]
-        self.ready.write().unwrap().insert(chain_id);
+        if let Ok(mut guard) = self.ready.write() {
+            guard.insert(chain_id);
+        }
     }
 
     pub fn is_ready(&self, chain_id: u32) -> bool {
         #[cfg(target_family = "wasm")]
         return self.ready.borrow().contains(&chain_id);
         #[cfg(not(target_family = "wasm"))]
-        return self.ready.read().unwrap().contains(&chain_id);
+        return self
+            .ready
+            .read()
+            .map(|guard| guard.contains(&chain_id))
+            .unwrap_or(false);
     }
 }
 
@@ -167,7 +225,8 @@ mod tests {
 
     struct NoopExec;
 
-    #[async_trait::async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
     impl LocalDbQueryExecutor for NoopExec {
         async fn execute_batch(&self, _: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             Ok(())
@@ -204,7 +263,10 @@ mod tests {
         }
         LocalDbState::new(
             Some(dummy_db()),
+            #[cfg(target_family = "wasm")]
             Rc::new(RefCell::new(None)),
+            #[cfg(not(target_family = "wasm"))]
+            Arc::new(Mutex::new(None)),
             readiness,
             configured.iter().copied().collect(),
         )
