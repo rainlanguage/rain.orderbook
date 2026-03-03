@@ -169,8 +169,6 @@ impl RaindexClient {
         max_attempts: Option<usize>,
         interval_ms: Option<u64>,
     ) -> Result<RaindexTransaction, RaindexError> {
-        let client = self.get_orderbook_client(orderbook_address)?;
-
         let attempts = max_attempts
             .unwrap_or(DEFAULT_TRANSACTION_POLL_ATTEMPTS)
             .max(1);
@@ -193,6 +191,7 @@ impl RaindexClient {
                 Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
             }
             QuerySource::Subgraph => {
+                let client = self.get_orderbook_client(orderbook_address)?;
                 for attempt in 1..=attempts {
                     match client
                         .transaction_detail(Id::new(tx_hash.to_string()))

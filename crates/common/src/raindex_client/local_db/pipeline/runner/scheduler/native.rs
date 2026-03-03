@@ -453,6 +453,7 @@ mod tests {
                     vec![Some(false)],
                 );
                 let stop_flag = Arc::new(AtomicBool::new(false));
+                let readiness = SyncReadiness::new();
 
                 tokio::task::spawn_local(run_network_loop(
                     runner,
@@ -461,7 +462,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
-                    SyncReadiness::new(),
+                    readiness.clone(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(20)).await;
@@ -470,6 +471,10 @@ mod tests {
 
                 assert!(calls.load(Ordering::SeqCst) >= 1);
                 assert_eq!(failures.load(Ordering::SeqCst), 0);
+                assert!(
+                    readiness.is_ready(1),
+                    "chain should be marked ready after successful run"
+                );
             })
             .await;
     }
@@ -487,6 +492,7 @@ mod tests {
                     vec![Some(true), Some(false)],
                 );
                 let stop_flag = Arc::new(AtomicBool::new(false));
+                let readiness = SyncReadiness::new();
 
                 tokio::task::spawn_local(run_network_loop(
                     runner,
@@ -495,7 +501,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
-                    SyncReadiness::new(),
+                    readiness.clone(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(30)).await;
@@ -504,6 +510,10 @@ mod tests {
 
                 assert!(failures.load(Ordering::SeqCst) >= 1);
                 assert!(calls.load(Ordering::SeqCst) >= 2);
+                assert!(
+                    readiness.is_ready(1),
+                    "chain should be marked ready after recovery"
+                );
             })
             .await;
     }
@@ -521,6 +531,7 @@ mod tests {
                     vec![None, Some(false)],
                 );
                 let stop_flag = Arc::new(AtomicBool::new(false));
+                let readiness = SyncReadiness::new();
 
                 tokio::task::spawn_local(run_network_loop(
                     runner,
@@ -529,7 +540,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
-                    SyncReadiness::new(),
+                    readiness.clone(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(30)).await;
@@ -538,6 +549,10 @@ mod tests {
 
                 assert!(calls.load(Ordering::SeqCst) >= 2);
                 assert_eq!(failures.load(Ordering::SeqCst), 0);
+                assert!(
+                    readiness.is_ready(1),
+                    "chain should be marked ready after successful cycle"
+                );
             })
             .await;
     }
@@ -552,6 +567,7 @@ mod tests {
                     calls: Arc::clone(&calls),
                 };
                 let stop_flag = Arc::new(AtomicBool::new(false));
+                let readiness = SyncReadiness::new();
 
                 tokio::task::spawn_local(run_network_loop(
                     runner,
@@ -560,7 +576,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
-                    SyncReadiness::new(),
+                    readiness.clone(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(30)).await;
@@ -571,6 +587,10 @@ mod tests {
                     calls.load(Ordering::SeqCst) >= 2,
                     "loop should continue after errors, got {} calls",
                     calls.load(Ordering::SeqCst)
+                );
+                assert!(
+                    !readiness.is_ready(1),
+                    "chain should not be marked ready after errors"
                 );
             })
             .await;
@@ -589,6 +609,7 @@ mod tests {
                     vec![Some(false)],
                 );
                 let stop_flag = Arc::new(AtomicBool::new(true));
+                let readiness = SyncReadiness::new();
 
                 tokio::task::spawn_local(run_network_loop(
                     runner,
@@ -597,12 +618,16 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
-                    SyncReadiness::new(),
+                    readiness.clone(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(20)).await;
 
                 assert_eq!(calls.load(Ordering::SeqCst), 0);
+                assert!(
+                    !readiness.is_ready(1),
+                    "chain should not be marked ready when stopped before running"
+                );
             })
             .await;
     }
@@ -622,6 +647,7 @@ mod tests {
                 let stop_flag = Arc::new(AtomicBool::new(false));
                 let stop_clone = Arc::clone(&stop_flag);
                 let calls_clone = Arc::clone(&calls);
+                let readiness = SyncReadiness::new();
 
                 tokio::task::spawn_local(run_network_loop(
                     runner,
@@ -630,7 +656,7 @@ mod tests {
                     10000,
                     "test".to_string(),
                     1,
-                    SyncReadiness::new(),
+                    readiness.clone(),
                 ));
 
                 for _ in 0..200 {
@@ -647,6 +673,10 @@ mod tests {
                     calls.load(Ordering::SeqCst),
                     1,
                     "loop should stop after first run without waiting for interval"
+                );
+                assert!(
+                    readiness.is_ready(1),
+                    "chain should be marked ready after successful run"
                 );
             })
             .await;

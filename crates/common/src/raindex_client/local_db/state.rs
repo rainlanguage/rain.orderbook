@@ -108,8 +108,10 @@ impl LocalDbState {
 
 impl Drop for LocalDbState {
     fn drop(&mut self) {
-        if let Some(handle) = self.scheduler.borrow_mut().take() {
-            handle.stop();
+        if Rc::strong_count(&self.scheduler) == 1 {
+            if let Some(handle) = self.scheduler.borrow_mut().take() {
+                handle.stop();
+            }
         }
     }
 }

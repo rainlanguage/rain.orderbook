@@ -74,8 +74,8 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			const raindexClientRes = await RaindexClient.new(
 				[registry.settings as string],
 				undefined,
-				localDb?.query.bind(localDb),
-				localDb?.wipeAndRecreate.bind(localDb),
+				localDb?.query?.bind(localDb),
+				localDb?.wipeAndRecreate?.bind(localDb),
 				updateStatus
 			);
 			if (raindexClientRes.error) {
@@ -166,7 +166,9 @@ if (import.meta.vitest) {
 				}
 			};
 			mockInit.mockResolvedValue(undefined);
-			mockLocalDbNew.mockReturnValue({ value: { db: true } });
+			mockLocalDbNew.mockReturnValue({
+				value: { db: true, query: vi.fn(), wipeAndRecreate: vi.fn() }
+			});
 		});
 
 		it('should return errorMessage if registry fails to load', async () => {

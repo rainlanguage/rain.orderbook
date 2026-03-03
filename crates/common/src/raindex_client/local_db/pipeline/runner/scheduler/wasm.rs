@@ -292,6 +292,7 @@ fn emit_network_status(callback: Option<&Function>, status: NetworkSyncStatus) {
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
+    use crate::local_db::pipeline::runner::utils::parse_runner_settings;
     use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
     use crate::local_db::OrderbookIdentifier;
     use crate::raindex_client::local_db::pipeline::status::get_scheduler_state;
@@ -387,7 +388,7 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn start_returns_error_for_invalid_yaml() {
-        let result = start("not yaml".to_string(), noop_local_db(), None);
+        let result = parse_runner_settings("not yaml");
         assert!(result.is_err());
     }
 
@@ -403,7 +404,14 @@ mod wasm_tests {
         );
         let stop_flag = Rc::new(Cell::new(false));
 
-        spawn_network_loop(runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
+        spawn_network_loop(
+            runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(3).await;
@@ -427,7 +435,14 @@ mod wasm_tests {
         );
         let stop_flag = Rc::new(Cell::new(false));
 
-        spawn_network_loop(runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
+        spawn_network_loop(
+            runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(5).await;
@@ -470,6 +485,7 @@ mod wasm_tests {
             Some(Rc::new(status_callback)),
             Rc::clone(&stop_flag),
             1,
+            SyncReadiness::new(),
         );
 
         TimeoutFuture::new(0).await;
@@ -523,6 +539,7 @@ mod wasm_tests {
             Some(Rc::new(status_callback)),
             Rc::clone(&stop_flag),
             1,
+            SyncReadiness::new(),
         );
 
         TimeoutFuture::new(0).await;
@@ -587,6 +604,7 @@ mod wasm_tests {
             Some(Rc::new(status_callback)),
             Rc::clone(&stop_flag),
             1,
+            SyncReadiness::new(),
         );
 
         TimeoutFuture::new(0).await;
@@ -657,7 +675,9 @@ mod wasm_tests {
         use crate::raindex_client::tests::get_local_db_test_yaml;
 
         let yaml = get_local_db_test_yaml();
-        let handle = start(yaml, noop_local_db(), None).expect("should start with valid yaml");
+        let settings = parse_runner_settings(&yaml).expect("should parse valid yaml");
+        let handle = start(settings, noop_local_db(), None, SyncReadiness::new())
+            .expect("should start with valid yaml");
 
         handle.stop();
 
@@ -680,8 +700,22 @@ mod wasm_tests {
 
         let stop_flag = Rc::new(Cell::new(false));
 
-        spawn_network_loop(slow_runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
-        spawn_network_loop(fast_runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
+        spawn_network_loop(
+            slow_runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
+        spawn_network_loop(
+            fast_runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(50).await;
