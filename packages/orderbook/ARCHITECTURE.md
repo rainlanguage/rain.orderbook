@@ -81,7 +81,7 @@ The package re‑exports the WASM‑bound API from the Rust crates. Representati
 - Functions
   - `parseYaml`, `getOrderHash`, `getTakeOrders3Calldata`, `keccak256`, `keccak256HexString`.
 - High‑level classes (selected)
-  - `RaindexClient` — orderbook queries (orders, trades, vaults, quotes, transactions) across configured networks/subgraphs.
+  - `RaindexClient` — orderbook queries (orders, trades, vaults, quotes, transactions) across configured networks/subgraphs. Constructor is async (`await RaindexClient.new(...)`) and accepts optional `queryCallback`, `wipeCallback`, `statusCallback` args for local DB sync when the YAML has `local-db-sync` sections.
   - `RaindexOrder`, `RaindexVault`, `RaindexTrade`, `RaindexTransaction`, `RaindexVaultsList`, etc.
   - `DotrainOrder`, `DotrainOrderGui`, `DotrainRegistry` — dotrain parsing, GUI orchestration, registry fetching (including `getOrderbookYaml()` for token queries), and deployment calldata.
   - `OrderbookYaml` — typed access to networks, tokens (via `getTokens()`), orderbooks, subgraphs, deployers, accounts, metaboards.
