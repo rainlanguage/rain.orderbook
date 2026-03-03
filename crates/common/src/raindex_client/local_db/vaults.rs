@@ -1,7 +1,8 @@
+use super::super::RaindexError;
 use super::{
     query::fetch_all_tokens::fetch_all_tokens,
     query::fetch_vault_balance_changes::fetch_vault_balance_changes,
-    query::fetch_vaults::fetch_vaults, LocalDb, OrderbookIdentifier, RaindexError,
+    query::fetch_vaults::fetch_vaults, LocalDb, OrderbookIdentifier,
 };
 use crate::{
     local_db::query::{

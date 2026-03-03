@@ -1,8 +1,9 @@
 use super::super::orders::{GetOrdersFilters, OrdersDataSource, RaindexOrder};
 use super::super::trades::RaindexTrade;
+use super::super::RaindexError;
 use super::query::fetch_order_trades::fetch_order_trades;
 use super::query::fetch_order_trades_count::fetch_order_trades_count;
-use super::{LocalDb, RaindexError};
+use super::LocalDb;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::query::LocalDbQueryError;
 use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
@@ -356,7 +357,11 @@ mod tests {
 
             let callback = make_local_db_callback(vec![local_order.clone()]);
 
-            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+            let client = new_test_client_with_db_callback(
+                vec![get_local_db_test_yaml()],
+                callback,
+                vec![42161],
+            );
 
             let orders = client
                 .get_orders(Some(ChainIds(vec![42161])), None, None)
@@ -533,7 +538,11 @@ mod tests {
 
             let callback = make_local_db_callback(vec![local_order.clone()]);
 
-            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+            let client = new_test_client_with_db_callback(
+                vec![get_local_db_test_yaml()],
+                callback,
+                vec![42161],
+            );
 
             let order = client
                 .get_order_by_hash(
@@ -584,7 +593,11 @@ mod tests {
             };
 
             let callback = make_local_db_callback(vec![local_order.clone()]);
-            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+            let client = new_test_client_with_db_callback(
+                vec![get_local_db_test_yaml()],
+                callback,
+                vec![42161, 137],
+            );
 
             let orders = client
                 .get_add_orders_for_transaction_wasm_binding(
@@ -637,7 +650,11 @@ mod tests {
             };
 
             let callback = make_local_db_callback(vec![local_order.clone()]);
-            let client = new_test_client_with_db_callback(vec![get_local_db_test_yaml()], callback);
+            let client = new_test_client_with_db_callback(
+                vec![get_local_db_test_yaml()],
+                callback,
+                vec![42161, 137],
+            );
 
             let orders = client
                 .get_remove_orders_for_transaction_wasm_binding(
