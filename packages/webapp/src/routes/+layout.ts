@@ -2,6 +2,7 @@ import { DotrainRegistry, RaindexClient, type Address, type Hex } from '@rainlan
 import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { REGISTRY_URL } from '$lib/constants';
+import { updateStatus } from '$lib/stores/localDbStatus';
 import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
 
@@ -52,20 +53,6 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 		}
 	}
 
-	let raindexClient: RaindexClient | null = null;
-	try {
-		if (!errorMessage && registry) {
-			const raindexClientRes = RaindexClient.new([registry.settings as string]);
-			if (raindexClientRes.error) {
-				errorMessage = raindexClientRes.error.readableMsg;
-			} else {
-				raindexClient = raindexClientRes.value;
-			}
-		}
-	} catch (error: unknown) {
-		errorMessage = 'Error initializing RaindexClient: ' + (error as Error).message;
-	}
-
 	let localDb: SQLiteWasmDatabase | null = null;
 	if (!errorMessage) {
 		try {
@@ -81,6 +68,26 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 		}
 	}
 
+	let raindexClient: RaindexClient | null = null;
+	try {
+		if (!errorMessage && registry) {
+			const raindexClientRes = await RaindexClient.new(
+				[registry.settings as string],
+				undefined,
+				localDb?.query.bind(localDb),
+				localDb?.wipeAndRecreate.bind(localDb),
+				updateStatus
+			);
+			if (raindexClientRes.error) {
+				errorMessage = raindexClientRes.error.readableMsg;
+			} else {
+				raindexClient = raindexClientRes.value;
+			}
+		}
+	} catch (error: unknown) {
+		errorMessage = 'Error initializing RaindexClient: ' + (error as Error).message;
+	}
+
 	if (errorMessage) {
 		return {
 			errorMessage,
@@ -89,10 +96,6 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			localDb,
 			raindexClient: null
 		};
-	}
-
-	if (localDb && raindexClient) {
-		raindexClient.setDbCallback(localDb.query.bind(localDb), localDb.wipeAndRecreate.bind(localDb));
 	}
 
 	return {
@@ -181,7 +184,7 @@ if (import.meta.vitest) {
 			mockRegistryNew.mockResolvedValueOnce({
 				value: mockRegistry
 			});
-			mockRaindexClientNew.mockReturnValue({
+			mockRaindexClientNew.mockResolvedValue({
 				error: { readableMsg: 'Malformed settings' }
 			});
 
@@ -196,9 +199,6 @@ if (import.meta.vitest) {
 			const mockRegistry = { settings: 'settings' };
 			mockRegistryNew.mockResolvedValueOnce({
 				value: mockRegistry
-			});
-			mockRaindexClientNew.mockReturnValue({
-				value: { client: true }
 			});
 			mockLocalDbNew.mockReturnValue({
 				error: { readableMsg: 'Database init failed' }
@@ -216,11 +216,11 @@ if (import.meta.vitest) {
 			mockRegistryNew.mockResolvedValueOnce({
 				value: mockRegistry
 			});
-			mockRaindexClientNew.mockReturnValue({
-				value: { client: true, setDbCallback: vi.fn() }
-			});
 			mockLocalDbNew.mockReturnValue({
 				value: { db: true, query: vi.fn(), wipeAndRecreate: vi.fn() }
+			});
+			mockRaindexClientNew.mockResolvedValue({
+				value: { client: true }
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
