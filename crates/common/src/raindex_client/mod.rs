@@ -1,8 +1,4 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
-#[cfg(not(target_family = "wasm"))]
-use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHandle;
-#[cfg(target_family = "wasm")]
-use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
 use crate::raindex_client::local_db::{LocalDb, SyncReadiness};
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
@@ -16,6 +12,7 @@ use alloy::{
         Address, ParseSignedError, B256,
     },
 };
+pub(crate) use local_db::{ClassifiedChains, LocalDbState, QuerySource};
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     network::NetworkCfg,
@@ -29,7 +26,6 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::{cell::RefCell, rc::Rc};
 use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
 use thiserror::Error;
@@ -53,74 +49,6 @@ pub mod vaults_list;
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
 impl_wasm_traits!(ChainIds);
-
-pub(crate) enum QuerySource {
-    LocalDb(LocalDb),
-    Subgraph,
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct LocalDbState {
-    db: Rc<RefCell<Option<LocalDb>>>,
-    #[cfg(target_family = "wasm")]
-    scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
-    #[cfg(not(target_family = "wasm"))]
-    scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
-    sync_readiness: SyncReadiness,
-    chain_ids: HashSet<u32>,
-}
-
-impl Default for LocalDbState {
-    fn default() -> Self {
-        Self {
-            db: Rc::new(RefCell::new(None)),
-            scheduler: Rc::new(RefCell::new(None)),
-            sync_readiness: SyncReadiness::new(),
-            chain_ids: HashSet::new(),
-        }
-    }
-}
-
-impl LocalDbState {
-    fn db(&self) -> Option<LocalDb> {
-        self.db.borrow().as_ref().cloned()
-    }
-
-    fn compute_chain_ids(yaml: &OrderbookYaml) -> HashSet<u32> {
-        let syncs = match yaml.get_local_db_syncs() {
-            Ok(s) => s,
-            Err(_) => return HashSet::new(),
-        };
-        let networks = match yaml.get_networks() {
-            Ok(n) => n,
-            Err(_) => return HashSet::new(),
-        };
-        let mut ids = HashSet::new();
-        for sync_key in syncs.keys() {
-            if let Some(network) = networks.get(sync_key) {
-                ids.insert(network.chain_id);
-            }
-        }
-        ids
-    }
-
-    pub(crate) fn query_source(&self, chain_id: u32) -> QuerySource {
-        if let Some(db) = self.db() {
-            if self.chain_ids.contains(&chain_id) && self.sync_readiness.is_ready(chain_id) {
-                return QuerySource::LocalDb(db);
-            }
-        }
-        QuerySource::Subgraph
-    }
-}
-
-impl Drop for LocalDbState {
-    fn drop(&mut self) {
-        if let Some(handle) = self.scheduler.borrow_mut().take() {
-            handle.stop();
-        }
-    }
-}
 
 /// RaindexClient provides a simplified interface for querying orderbook data across
 /// multiple networks with automatic configuration management.
@@ -223,11 +151,11 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
-        let chain_ids = LocalDbState::compute_chain_ids(&orderbook_yaml);
+        let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
 
         #[allow(unused_variables)]
-        let has_syncs = !chain_ids.is_empty();
+        let has_syncs = !sync_configured_chains.is_empty();
 
         #[cfg(target_family = "wasm")]
         let local_db = if has_syncs {
@@ -264,12 +192,12 @@ impl RaindexClient {
 
         Ok(RaindexClient {
             orderbook_yaml,
-            local_db_state: LocalDbState {
-                db: Rc::new(RefCell::new(local_db)),
+            local_db_state: LocalDbState::new(
+                local_db,
                 scheduler,
                 sync_readiness,
-                chain_ids,
-            },
+                sync_configured_chains,
+            ),
         })
     }
 
@@ -339,6 +267,14 @@ impl RaindexClient {
     pub(crate) fn query_source(&self, chain_id: u32) -> QuerySource {
         self.local_db_state.query_source(chain_id)
     }
+
+    pub(crate) fn classify_chains(
+        &self,
+        chain_ids: Option<Vec<u32>>,
+    ) -> Result<ClassifiedChains, RaindexError> {
+        let networks = self.resolve_networks(chain_ids)?;
+        Ok(self.local_db_state.classify_chains(&networks))
+    }
 }
 
 impl RaindexClient {
@@ -374,10 +310,10 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
-        let chain_ids = LocalDbState::compute_chain_ids(&orderbook_yaml);
+        let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
 
-        let has_syncs = !chain_ids.is_empty();
+        let has_syncs = !sync_configured_chains.is_empty();
 
         let (local_db, scheduler) = if has_syncs {
             let path =
@@ -399,12 +335,12 @@ impl RaindexClient {
 
         Ok(RaindexClient {
             orderbook_yaml,
-            local_db_state: LocalDbState {
-                db: Rc::new(RefCell::new(local_db)),
-                scheduler: Rc::new(RefCell::new(scheduler)),
+            local_db_state: LocalDbState::new(
+                local_db,
+                Rc::new(RefCell::new(scheduler)),
                 sync_readiness,
-                chain_ids,
-            },
+                sync_configured_chains,
+            ),
         })
     }
 }
@@ -836,7 +772,7 @@ accounts:
         client.local_db_state.db = Rc::new(RefCell::new(Some(local_db)));
         for &id in &chain_ids {
             client.local_db_state.sync_readiness.mark_ready(id);
-            client.local_db_state.chain_ids.insert(id);
+            client.local_db_state.sync_configured_chains.insert(id);
         }
         client
     }
@@ -850,21 +786,22 @@ accounts:
         let orderbook_yaml = OrderbookYaml::new(yamls, OrderbookYamlValidation::default())
             .expect("test yaml should be valid");
         let sync_readiness = SyncReadiness::new();
-        let mut db_chain_ids = HashSet::new();
+        let mut db_chain_ids = std::collections::HashSet::new();
         for &id in &chain_ids {
             sync_readiness.mark_ready(id);
             db_chain_ids.insert(id);
         }
         RaindexClient {
             orderbook_yaml,
-            local_db_state: LocalDbState {
-                db: Rc::new(RefCell::new(Some(
-                    super::local_db::LocalDb::from_js_callback(query_callback, None),
-                ))),
-                scheduler: Rc::new(RefCell::new(None)),
+            local_db_state: LocalDbState::new(
+                Some(super::local_db::LocalDb::from_js_callback(
+                    query_callback,
+                    None,
+                )),
+                Rc::new(RefCell::new(None)),
                 sync_readiness,
-                chain_ids: db_chain_ids,
-            },
+                db_chain_ids,
+            ),
         }
     }
 

@@ -1,13 +1,22 @@
-use super::{RaindexClient, RaindexError};
+#[cfg(test)]
+use super::RaindexClient;
 pub use crate::local_db::pipeline::SyncPhase;
 use crate::local_db::query::{
     FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
 };
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
+#[cfg(not(target_family = "wasm"))]
+use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHandle;
+#[cfg(target_family = "wasm")]
+use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
 use executor::JsCallbackExecutor;
-use pipeline::runner::scheduler;
+use rain_orderbook_app_settings::network::NetworkCfg;
+use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::cell::RefCell;
+use std::collections::HashSet;
 use std::{fmt, future::Future, pin::Pin, rc::Rc};
 use tsify::Tsify;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -18,6 +27,150 @@ pub mod pipeline;
 pub mod query;
 pub mod transactions;
 pub mod vaults;
+
+pub(crate) enum QuerySource {
+    LocalDb(LocalDb),
+    Subgraph,
+}
+
+pub(crate) type ClassifiedChains = (Option<LocalDb>, Vec<u32>, Vec<u32>);
+
+#[derive(Clone, Debug)]
+pub(crate) struct LocalDbState {
+    pub(crate) db: Rc<RefCell<Option<LocalDb>>>,
+    #[cfg(target_family = "wasm")]
+    pub(crate) scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
+    #[cfg(not(target_family = "wasm"))]
+    pub(crate) scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
+    pub(crate) sync_readiness: SyncReadiness,
+    pub(crate) sync_configured_chains: HashSet<u32>,
+}
+
+impl Default for LocalDbState {
+    fn default() -> Self {
+        Self {
+            db: Rc::new(RefCell::new(None)),
+            scheduler: Rc::new(RefCell::new(None)),
+            sync_readiness: SyncReadiness::new(),
+            sync_configured_chains: HashSet::new(),
+        }
+    }
+}
+
+impl LocalDbState {
+    pub(crate) fn new(
+        db: Option<LocalDb>,
+        #[cfg(target_family = "wasm")] scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
+        #[cfg(not(target_family = "wasm"))] scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
+        sync_readiness: SyncReadiness,
+        sync_configured_chains: HashSet<u32>,
+    ) -> Self {
+        Self {
+            db: Rc::new(RefCell::new(db)),
+            scheduler,
+            sync_readiness,
+            sync_configured_chains,
+        }
+    }
+
+    fn db(&self) -> Option<LocalDb> {
+        self.db.borrow().as_ref().cloned()
+    }
+
+    pub(crate) fn compute_chain_ids(yaml: &OrderbookYaml) -> HashSet<u32> {
+        let syncs = match yaml.get_local_db_syncs() {
+            Ok(s) => s,
+            Err(_) => return HashSet::new(),
+        };
+        let networks = match yaml.get_networks() {
+            Ok(n) => n,
+            Err(_) => return HashSet::new(),
+        };
+        let mut ids = HashSet::new();
+        for sync_key in syncs.keys() {
+            if let Some(network) = networks.get(sync_key) {
+                ids.insert(network.chain_id);
+            }
+        }
+        ids
+    }
+
+    pub(crate) fn query_source(&self, chain_id: u32) -> QuerySource {
+        if let Some(db) = self.db() {
+            if self.sync_configured_chains.contains(&chain_id)
+                && self.sync_readiness.is_ready(chain_id)
+            {
+                return QuerySource::LocalDb(db);
+            }
+        }
+        QuerySource::Subgraph
+    }
+
+    pub(crate) fn classify_chains(&self, networks: &[NetworkCfg]) -> ClassifiedChains {
+        let mut local_db: Option<LocalDb> = None;
+        let mut local_ids = Vec::new();
+        let mut sg_ids = Vec::new();
+        for net in networks {
+            match self.query_source(net.chain_id) {
+                QuerySource::LocalDb(db) => {
+                    if local_db.is_none() {
+                        local_db = Some(db);
+                    }
+                    local_ids.push(net.chain_id);
+                }
+                QuerySource::Subgraph => sg_ids.push(net.chain_id),
+            }
+        }
+        (local_db, local_ids, sg_ids)
+    }
+}
+
+impl Drop for LocalDbState {
+    fn drop(&mut self) {
+        if let Some(handle) = self.scheduler.borrow_mut().take() {
+            handle.stop();
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SyncReadiness {
+    #[cfg(target_family = "wasm")]
+    ready: Rc<RefCell<HashSet<u32>>>,
+    #[cfg(not(target_family = "wasm"))]
+    ready: std::sync::Arc<std::sync::RwLock<HashSet<u32>>>,
+}
+
+impl SyncReadiness {
+    pub fn new() -> Self {
+        Self {
+            #[cfg(target_family = "wasm")]
+            ready: Rc::new(RefCell::new(HashSet::new())),
+            #[cfg(not(target_family = "wasm"))]
+            ready: std::sync::Arc::new(std::sync::RwLock::new(HashSet::new())),
+        }
+    }
+
+    pub fn mark_ready(&self, chain_id: u32) {
+        #[cfg(target_family = "wasm")]
+        self.ready.borrow_mut().insert(chain_id);
+        #[cfg(not(target_family = "wasm"))]
+        self.ready.write().unwrap().insert(chain_id);
+    }
+
+    pub fn is_ready(&self, chain_id: u32) -> bool {
+        #[cfg(target_family = "wasm")]
+        return self.ready.borrow().contains(&chain_id);
+        #[cfg(not(target_family = "wasm"))]
+        return self.ready.read().unwrap().contains(&chain_id);
+    }
+}
+
+impl Default for SyncReadiness {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 type ExecuteBatchFn =
     dyn Fn(
@@ -287,86 +440,6 @@ impl LocalDbStatusSnapshot {
 
     pub fn failure(error: String) -> Self {
         Self::new(LocalDbStatus::Failure, Some(error))
-    }
-}
-
-#[cfg(target_family = "wasm")]
-#[wasm_export]
-impl RaindexClient {
-    #[wasm_export(js_name = "startLocalDbScheduler", unchecked_return_type = "void")]
-    pub async fn start_local_db_scheduler(
-        &self,
-        #[wasm_export(
-            js_name = "settingsYaml",
-            param_description = "Full settings YAML string used by the client runner"
-        )]
-        settings_yaml: String,
-        #[wasm_export(
-            js_name = "statusCallback",
-            param_description = "Optional callback invoked with the current local DB status"
-        )]
-        status_callback: Option<js_sys::Function>,
-    ) -> Result<(), RaindexError> {
-        let local_db = {
-            let slot = self.local_db.borrow();
-            slot.clone()
-                .ok_or_else(|| RaindexError::JsError("Local DB not set".to_string()))?
-        };
-
-        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
-        let existing = {
-            let mut slot = scheduler_cell.borrow_mut();
-            slot.take()
-        };
-
-        if let Some(handle) = existing {
-            handle.stop();
-        }
-
-        let handle = scheduler::start(settings_yaml, local_db, status_callback)?;
-        {
-            let mut slot = scheduler_cell.borrow_mut();
-            *slot = Some(handle);
-        }
-        Ok(())
-    }
-
-    #[wasm_export(js_name = "stopLocalDbScheduler", unchecked_return_type = "void")]
-    pub fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
-        let scheduler_cell = Rc::clone(&self.local_db_scheduler);
-        let handle = {
-            let mut slot = scheduler_cell.borrow_mut();
-            slot.take()
-        };
-
-        if let Some(handle) = handle {
-            handle.stop();
-        }
-
-        Ok(())
-    }
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl RaindexClient {
-    pub fn start_local_db_scheduler(
-        &self,
-        settings_yaml: String,
-        db_path: std::path::PathBuf,
-    ) -> Result<(), RaindexError> {
-        self.stop_local_db_scheduler()?;
-        let handle = scheduler::start(settings_yaml, db_path.clone())?;
-        *self.local_db_scheduler.borrow_mut() = Some(handle);
-        let executor = crate::local_db::executor::RusqliteExecutor::new(&db_path);
-        self.set_local_db(LocalDb::new(executor));
-        Ok(())
-    }
-
-    pub fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
-        if let Some(handle) = self.local_db_scheduler.borrow_mut().take() {
-            handle.stop();
-        }
-        Ok(())
     }
 }
 
@@ -717,17 +790,8 @@ orderbooks:
     }
 
     fn build_client() -> RaindexClient {
-        let orderbook_yaml = OrderbookYaml::new(
-            vec![single_orderbook_settings_yaml()],
-            OrderbookYamlValidation::default(),
-        )
-        .expect("valid orderbook yaml");
-
-        RaindexClient {
-            orderbook_yaml,
-            local_db: Rc::new(RefCell::new(None)),
-            local_db_scheduler: Rc::new(RefCell::new(None)),
-        }
+        RaindexClient::new(vec![single_orderbook_settings_yaml()], None)
+            .expect("valid orderbook yaml")
     }
 
     fn success_callback() -> js_sys::Function {
@@ -774,11 +838,7 @@ orderbooks:
 
     #[wasm_bindgen_test]
     async fn local_db_from_js_callback_executes_queries() {
-        let client = build_client();
-        client
-            .set_local_db_callback(success_callback(), None)
-            .expect("callback set");
-        let db = client.local_db().expect("local db set");
+        let db = LocalDb::from_js_callback(success_callback(), None);
 
         let stmt = SqlStatement::new("SELECT 1");
         let rows: Vec<String> = db.query_json(&stmt).await.unwrap();
@@ -810,119 +870,5 @@ orderbooks:
         let stmt = SqlStatement::new("SELECT 1");
         let err = db.query_text(&stmt).await.unwrap_err();
         assert!(matches!(err, LocalDbQueryError::Database { .. }));
-    }
-
-    #[wasm_bindgen_test]
-    async fn start_scheduler_without_callback_returns_error() {
-        let client = build_client();
-        let result = client
-            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
-            .await;
-        assert!(matches!(result, Err(RaindexError::JsError(_))));
-        assert!(client.local_db_scheduler.borrow().is_none());
-    }
-
-    #[wasm_bindgen_test]
-    async fn start_and_stop_scheduler_updates_handle_state() {
-        let client = build_client();
-        client
-            .set_local_db_callback(healthy_db_callback(), None)
-            .expect("callback set");
-
-        client
-            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
-            .await
-            .expect("scheduler starts");
-        assert!(client.local_db_scheduler.borrow().is_some());
-
-        TimeoutFuture::new(0).await;
-
-        client.stop_local_db_scheduler().expect("scheduler stops");
-        assert!(client.local_db_scheduler.borrow().is_none());
-    }
-
-    #[wasm_bindgen_test]
-    async fn restarting_scheduler_replaces_handle() {
-        let client = build_client();
-        client
-            .set_local_db_callback(healthy_db_callback(), None)
-            .expect("callback set");
-
-        client
-            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
-            .await
-            .expect("first scheduler starts");
-
-        TimeoutFuture::new(0).await;
-
-        let first_handle_ptr = client
-            .local_db_scheduler
-            .borrow()
-            .as_ref()
-            .map(|handle| handle.stop_flag_ptr())
-            .expect("first handle exists");
-
-        let statuses = Rc::new(RefCell::new(Vec::new()));
-        let status_callback = recording_status_callback(Rc::clone(&statuses));
-
-        client
-            .start_local_db_scheduler(single_orderbook_settings_yaml(), Some(status_callback))
-            .await
-            .expect("second scheduler starts");
-
-        TimeoutFuture::new(0).await;
-        TimeoutFuture::new(1000).await;
-
-        let second_handle_ptr = client
-            .local_db_scheduler
-            .borrow()
-            .as_ref()
-            .map(|handle| handle.stop_flag_ptr())
-            .expect("second handle exists");
-
-        assert_ne!(first_handle_ptr, second_handle_ptr);
-        let recorded = statuses.borrow();
-        assert!(recorded
-            .iter()
-            .any(|snapshot| snapshot.status == LocalDbStatus::Syncing));
-
-        client.stop_local_db_scheduler().expect("scheduler stops");
-    }
-
-    #[wasm_bindgen_test]
-    async fn start_scheduler_propagates_errors_and_leaves_handle_empty() {
-        let client = build_client();
-        client
-            .set_local_db_callback(success_callback(), None)
-            .expect("callback set");
-
-        let result = client
-            .start_local_db_scheduler("not yaml".to_owned(), None)
-            .await;
-        assert!(matches!(result, Err(RaindexError::LocalDbError(_))));
-        assert!(client.local_db_scheduler.borrow().is_none());
-    }
-
-    #[wasm_bindgen_test]
-    async fn stop_scheduler_is_idempotent() {
-        let client = build_client();
-        client
-            .set_local_db_callback(healthy_db_callback(), None)
-            .expect("callback set");
-
-        client
-            .start_local_db_scheduler(single_orderbook_settings_yaml(), None)
-            .await
-            .expect("scheduler starts");
-
-        TimeoutFuture::new(0).await;
-
-        client
-            .stop_local_db_scheduler()
-            .expect("first stop succeeds");
-        client
-            .stop_local_db_scheduler()
-            .expect("second stop succeeds");
-        assert!(client.local_db_scheduler.borrow().is_none());
     }
 }

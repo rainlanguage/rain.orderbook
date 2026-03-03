@@ -841,26 +841,16 @@ impl RaindexClient {
         let page_number = page.unwrap_or(1);
         let ids = chain_ids.map(|ChainIds(ids)| ids);
 
-        let resolved = self.resolve_networks(ids.clone())?;
-        let mut local_ids = Vec::new();
-        let mut sg_ids = Vec::new();
-        for net in &resolved {
-            match self.query_source(net.chain_id) {
-                QuerySource::LocalDb(_) => local_ids.push(net.chain_id),
-                QuerySource::Subgraph => sg_ids.push(net.chain_id),
-            }
-        }
+        let (local_db, local_ids, sg_ids) = self.classify_chains(ids)?;
 
         let mut all_orders = Vec::new();
 
-        if !local_ids.is_empty() {
-            if let QuerySource::LocalDb(local_db) = self.query_source(local_ids[0]) {
-                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
-                let orders = local_source
-                    .list(Some(local_ids), &filters, Some(page_number))
-                    .await?;
-                all_orders.extend(orders);
-            }
+        if let Some(db) = local_db {
+            let local_source = LocalDbOrders::new(&db, Rc::new(self.clone()));
+            let orders = local_source
+                .list(Some(local_ids), &filters, Some(page_number))
+                .await?;
+            all_orders.extend(orders);
         }
 
         if !sg_ids.is_empty() {
