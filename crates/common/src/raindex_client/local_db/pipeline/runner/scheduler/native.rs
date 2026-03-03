@@ -7,13 +7,13 @@ use crate::local_db::pipeline::adapters::{
     apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
     window::DefaultWindowPipeline,
 };
-use crate::local_db::pipeline::runner::utils::parse_runner_settings;
+use crate::local_db::pipeline::runner::utils::ParsedRunnerSettings;
 use crate::local_db::pipeline::runner::RunOutcome;
 use crate::local_db::query::LocalDbQueryExecutor;
 use crate::local_db::LocalDbError;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::TracingStatusBus;
-use crate::raindex_client::local_db::LocalDb;
+use crate::raindex_client::local_db::{LocalDb, SyncReadiness};
 use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use rain_orderbook_app_settings::network::NetworkCfg;
 use std::collections::HashMap;
@@ -76,9 +76,11 @@ impl NativeSyncHandle {
     }
 }
 
-pub fn start(settings_yaml: String, db_path: PathBuf) -> Result<NativeSyncHandle, LocalDbError> {
-    let settings = parse_runner_settings(&settings_yaml)?;
-
+pub fn start(
+    settings: ParsedRunnerSettings,
+    db_path: PathBuf,
+    sync_readiness: SyncReadiness,
+) -> Result<NativeSyncHandle, LocalDbError> {
     let mut networks_map: HashMap<String, NetworkCfg> = HashMap::new();
     for ob in settings.orderbooks.values() {
         networks_map
@@ -179,6 +181,7 @@ pub fn start(settings_yaml: String, db_path: PathBuf) -> Result<NativeSyncHandle
                             interval_ms,
                             network.key.clone(),
                             network.chain_id,
+                            sync_readiness.clone(),
                         ));
                     }
 
@@ -206,6 +209,7 @@ async fn run_network_loop<R: NativeRunner>(
     interval_ms: u64,
     network_key: String,
     chain_id: u32,
+    sync_readiness: SyncReadiness,
 ) {
     tracing::info!(network = %network_key, chain_id, "starting native sync loop");
 
@@ -218,6 +222,7 @@ async fn run_network_loop<R: NativeRunner>(
             Ok(outcome) => match outcome {
                 RunOutcome::Report(report) => {
                     if report.failures.is_empty() {
+                        sync_readiness.mark_ready(chain_id);
                         tracing::debug!(
                             network = %network_key,
                             chain_id,
@@ -378,8 +383,16 @@ mod tests {
     }
 
     #[test]
-    fn start_returns_error_for_invalid_yaml() {
-        let result = start("not yaml".to_string(), PathBuf::from("/tmp/test.db"));
+    fn start_returns_error_for_empty_settings() {
+        let settings = ParsedRunnerSettings {
+            orderbooks: HashMap::new(),
+            syncs: HashMap::new(),
+        };
+        let result = start(
+            settings,
+            PathBuf::from("/tmp/test.db"),
+            SyncReadiness::new(),
+        );
         assert!(result.is_err());
     }
 
@@ -448,6 +461,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
+                    SyncReadiness::new(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(20)).await;
@@ -481,6 +495,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
+                    SyncReadiness::new(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(30)).await;
@@ -514,6 +529,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
+                    SyncReadiness::new(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(30)).await;
@@ -544,6 +560,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
+                    SyncReadiness::new(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(30)).await;
@@ -580,6 +597,7 @@ mod tests {
                     1,
                     "test".to_string(),
                     1,
+                    SyncReadiness::new(),
                 ));
 
                 tokio::time::sleep(std::time::Duration::from_millis(20)).await;
@@ -612,6 +630,7 @@ mod tests {
                     10000,
                     "test".to_string(),
                     1,
+                    SyncReadiness::new(),
                 ));
 
                 for _ in 0..200 {
