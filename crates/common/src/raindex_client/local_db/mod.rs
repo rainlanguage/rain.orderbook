@@ -1,17 +1,20 @@
-#[cfg(test)]
-use super::RaindexClient;
 pub use crate::local_db::pipeline::SyncPhase;
 use crate::local_db::query::{
     FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
 };
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
+#[cfg(target_family = "wasm")]
 use executor::JsCallbackExecutor;
 
 use serde_json::Value;
+#[cfg(target_family = "wasm")]
 use std::rc::Rc;
+#[cfg(not(target_family = "wasm"))]
+use std::sync::Arc;
 use std::{fmt, future::Future, pin::Pin};
 use wasm_bindgen_utils::prelude::*;
 
+#[cfg(target_family = "wasm")]
 pub mod executor;
 pub mod orders;
 pub mod pipeline;
@@ -27,40 +30,72 @@ pub use status::{
     LocalDbStatus, LocalDbStatusSnapshot, NetworkSyncStatus, OrderbookSyncStatus, SchedulerState,
 };
 
+#[cfg(target_family = "wasm")]
 type ExecuteBatchFn =
     dyn Fn(
         &SqlStatementBatch,
     ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
+#[cfg(not(target_family = "wasm"))]
+type ExecuteBatchFn = dyn Fn(
+        &SqlStatementBatch,
+    ) -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + Send + 'static>>
+    + Send
+    + Sync;
 
+#[cfg(target_family = "wasm")]
 type QueryTextFn =
     dyn Fn(
         &SqlStatement,
     ) -> Pin<Box<dyn Future<Output = Result<String, LocalDbQueryError>> + 'static>>;
+#[cfg(not(target_family = "wasm"))]
+type QueryTextFn = dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<String, LocalDbQueryError>> + Send + 'static>>
+    + Send
+    + Sync;
 
+#[cfg(target_family = "wasm")]
 type QueryJsonFn =
     dyn Fn(
         &SqlStatement,
     ) -> Pin<Box<dyn Future<Output = Result<Value, LocalDbQueryError>> + 'static>>;
+#[cfg(not(target_family = "wasm"))]
+type QueryJsonFn = dyn Fn(
+        &SqlStatement,
+    ) -> Pin<Box<dyn Future<Output = Result<Value, LocalDbQueryError>> + Send + 'static>>
+    + Send
+    + Sync;
 
+#[cfg(target_family = "wasm")]
 type WipeAndRecreateFn =
     dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
+#[cfg(not(target_family = "wasm"))]
+type WipeAndRecreateFn = dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + Send + 'static>>
+    + Send
+    + Sync;
+
+#[cfg(target_family = "wasm")]
+type FnPtr<T> = Rc<T>;
+#[cfg(not(target_family = "wasm"))]
+type FnPtr<T> = Arc<T>;
 
 #[derive(Clone)]
 pub struct LocalDb {
-    execute_batch_fn: Rc<ExecuteBatchFn>,
-    query_text_fn: Rc<QueryTextFn>,
-    query_json_fn: Rc<QueryJsonFn>,
-    wipe_and_recreate_fn: Rc<WipeAndRecreateFn>,
+    execute_batch_fn: FnPtr<ExecuteBatchFn>,
+    query_text_fn: FnPtr<QueryTextFn>,
+    query_json_fn: FnPtr<QueryJsonFn>,
+    wipe_and_recreate_fn: FnPtr<WipeAndRecreateFn>,
 }
 
+#[cfg(target_family = "wasm")]
 impl LocalDb {
     pub fn new<E>(executor: E) -> Self
     where
-        E: LocalDbQueryExecutor + Sync + 'static,
+        E: LocalDbQueryExecutor + 'static,
     {
         let exec = Rc::new(executor);
 
-        let execute_batch_fn: Rc<ExecuteBatchFn> = {
+        let execute_batch_fn: FnPtr<ExecuteBatchFn> = {
             let exec = Rc::clone(&exec);
             Rc::new(move |batch: &SqlStatementBatch| {
                 let exec = Rc::clone(&exec);
@@ -69,7 +104,7 @@ impl LocalDb {
             })
         };
 
-        let query_text_fn: Rc<QueryTextFn> = {
+        let query_text_fn: FnPtr<QueryTextFn> = {
             let exec = Rc::clone(&exec);
             Rc::new(move |stmt: &SqlStatement| {
                 let exec = Rc::clone(&exec);
@@ -78,7 +113,7 @@ impl LocalDb {
             })
         };
 
-        let query_json_fn: Rc<QueryJsonFn> = {
+        let query_json_fn: FnPtr<QueryJsonFn> = {
             let exec = Rc::clone(&exec);
             Rc::new(move |stmt: &SqlStatement| {
                 let exec = Rc::clone(&exec);
@@ -87,7 +122,7 @@ impl LocalDb {
             })
         };
 
-        let wipe_and_recreate_fn: Rc<WipeAndRecreateFn> = {
+        let wipe_and_recreate_fn: FnPtr<WipeAndRecreateFn> = {
             let exec = Rc::clone(&exec);
             Rc::new(move || {
                 let exec = Rc::clone(&exec);
@@ -111,13 +146,66 @@ impl LocalDb {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
+impl LocalDb {
+    pub fn new<E>(executor: E) -> Self
+    where
+        E: LocalDbQueryExecutor + Send + Sync + 'static,
+    {
+        let exec = Arc::new(executor);
+
+        let execute_batch_fn: FnPtr<ExecuteBatchFn> = {
+            let exec = Arc::clone(&exec);
+            Arc::new(move |batch: &SqlStatementBatch| {
+                let exec = Arc::clone(&exec);
+                let batch = batch.clone();
+                Box::pin(async move { exec.execute_batch(&batch).await })
+            })
+        };
+
+        let query_text_fn: FnPtr<QueryTextFn> = {
+            let exec = Arc::clone(&exec);
+            Arc::new(move |stmt: &SqlStatement| {
+                let exec = Arc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_text(&stmt).await })
+            })
+        };
+
+        let query_json_fn: FnPtr<QueryJsonFn> = {
+            let exec = Arc::clone(&exec);
+            Arc::new(move |stmt: &SqlStatement| {
+                let exec = Arc::clone(&exec);
+                let stmt = stmt.clone();
+                Box::pin(async move { exec.query_json::<Value>(&stmt).await })
+            })
+        };
+
+        let wipe_and_recreate_fn: FnPtr<WipeAndRecreateFn> = {
+            let exec = Arc::clone(&exec);
+            Arc::new(move || {
+                let exec = Arc::clone(&exec);
+                Box::pin(async move { exec.wipe_and_recreate().await })
+            })
+        };
+
+        Self {
+            execute_batch_fn,
+            query_text_fn,
+            query_json_fn,
+            wipe_and_recreate_fn,
+        }
+    }
+}
+
 impl fmt::Debug for LocalDb {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LocalDb").finish()
     }
 }
 
-#[async_trait::async_trait(?Send)]
+#[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
+#[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
 impl LocalDbQueryExecutor for LocalDb {
     async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
         (self.execute_batch_fn)(batch).await
@@ -181,7 +269,8 @@ mod tests {
         }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
     impl LocalDbQueryExecutor for RecordingExec {
         async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             self.calls.lock().unwrap().push("batch");
