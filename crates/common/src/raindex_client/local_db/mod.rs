@@ -335,6 +335,7 @@ mod tests {
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
+    use crate::raindex_client::RaindexClient;
     use gloo_timers::future::TimeoutFuture;
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::{
