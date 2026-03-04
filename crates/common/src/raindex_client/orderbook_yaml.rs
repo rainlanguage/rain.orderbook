@@ -1,6 +1,7 @@
 use super::*;
 use rain_orderbook_app_settings::{
     accounts::AccountCfg, network::NetworkCfg, orderbook::OrderbookCfg,
+    remote_tokens::RemoteTokensCfg,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -202,6 +203,15 @@ impl RaindexClient {
     pub fn get_all_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, RaindexError> {
         Ok(self.orderbook_yaml.get_orderbooks()?)
     }
+
+    #[wasm_export(
+        js_name = "getRemoteTokens",
+        return_description = "Returns the remote tokens configuration from the orderbook YAML, if present.",
+        unchecked_return_type = "RemoteTokensCfg | null"
+    )]
+    pub fn get_remote_tokens(&self) -> Result<Option<RemoteTokensCfg>, RaindexError> {
+        Ok(self.orderbook_yaml.get_remote_tokens()?)
+    }
 }
 impl RaindexClient {
     pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, RaindexError> {
@@ -362,6 +372,46 @@ mod tests {
         assert_eq!(
             charlie.address,
             Address::from_str("0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5").unwrap()
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_remote_tokens_none() {
+        let yaml = get_test_yaml(
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "http://localhost:3004",
+        );
+        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let result = client.get_remote_tokens().unwrap();
+        assert!(result.is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_remote_tokens_some() {
+        let yaml = get_test_yaml(
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "http://localhost:3004",
+        );
+        let yaml_with_remote_tokens = format!(
+            "{}\nusing-tokens-from:\n  - https://example.com/tokens1.json\n  - https://example.com/tokens2.json\n",
+            yaml
+        );
+        let client = RaindexClient::new(vec![yaml_with_remote_tokens], None).unwrap();
+        let result = client.get_remote_tokens().unwrap();
+        assert!(result.is_some());
+        let remote_tokens = result.unwrap();
+        assert_eq!(remote_tokens.urls.len(), 2);
+        assert_eq!(
+            remote_tokens.urls[0].as_str(),
+            "https://example.com/tokens1.json"
+        );
+        assert_eq!(
+            remote_tokens.urls[1].as_str(),
+            "https://example.com/tokens2.json"
         );
     }
 
