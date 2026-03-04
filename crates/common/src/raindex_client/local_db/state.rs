@@ -91,8 +91,9 @@ impl LocalDbState {
     fn db(&self) -> Option<LocalDb> {
         self.db
             .lock()
-            .ok()
-            .and_then(|guard| guard.as_ref().cloned())
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .as_ref()
+            .cloned()
     }
 }
 
@@ -158,10 +159,12 @@ impl Drop for LocalDbState {
         #[cfg(not(target_family = "wasm"))]
         {
             if Arc::strong_count(&self.scheduler) == 1 {
-                if let Ok(mut guard) = self.scheduler.lock() {
-                    if let Some(handle) = guard.take() {
-                        handle.stop();
-                    }
+                let mut guard = self
+                    .scheduler
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                if let Some(handle) = guard.take() {
+                    handle.stop();
                 }
             }
         }
@@ -190,9 +193,10 @@ impl SyncReadiness {
         #[cfg(target_family = "wasm")]
         self.ready.borrow_mut().insert(chain_id);
         #[cfg(not(target_family = "wasm"))]
-        if let Ok(mut guard) = self.ready.write() {
-            guard.insert(chain_id);
-        }
+        self.ready
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(chain_id);
     }
 
     pub fn is_ready(&self, chain_id: u32) -> bool {
@@ -202,8 +206,8 @@ impl SyncReadiness {
         return self
             .ready
             .read()
-            .map(|guard| guard.contains(&chain_id))
-            .unwrap_or(false);
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .contains(&chain_id);
     }
 }
 
