@@ -217,14 +217,16 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
-    fn test_get_unique_chain_ids() {
+    async fn test_get_unique_chain_ids() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
         );
-        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
         let result = client.get_unique_chain_ids().unwrap();
 
         assert!(!result.is_empty());
@@ -234,14 +236,16 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_get_all_networks() {
+    async fn test_get_all_networks() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
         );
-        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
         let result = client.get_all_networks().unwrap();
 
         assert_eq!(result.len(), 2);
@@ -258,14 +262,16 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_get_network_by_chain_id() {
+    async fn test_get_network_by_chain_id() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
         );
-        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
 
         let mainnet = client.get_network_by_chain_id(1).unwrap();
         assert_eq!(mainnet.chain_id, 1);
@@ -280,14 +286,16 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_get_orderbook_by_address_wasm_binding() {
+    async fn test_get_orderbook_by_address_wasm_binding() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
         );
-        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
 
         let mainnet_address = "0x1234567890123456789012345678901234567890".to_string();
         let mainnet_orderbook = client
@@ -317,28 +325,32 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_is_sentry_enabled() {
+    async fn test_is_sentry_enabled() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
         );
-        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
         let result = client.is_sentry_enabled().unwrap();
 
         assert!(!result);
     }
 
     #[wasm_bindgen_test]
-    fn test_get_all_accounts() {
+    async fn test_get_all_accounts() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
         );
-        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
         let result = client.get_all_accounts().unwrap();
 
         assert_eq!(result.len(), 3);
@@ -366,14 +378,16 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_get_all_orderbooks() {
+    async fn test_get_all_orderbooks() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
             "http://localhost:3003",
             "http://localhost:3004",
         );
-        let client = RaindexClient::new(vec![yaml], None).unwrap();
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
         let result = client.get_all_orderbooks().unwrap();
 
         assert_eq!(result.len(), 2);
