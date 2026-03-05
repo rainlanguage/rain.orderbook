@@ -2304,6 +2304,7 @@ mod tests {
                     "http://rpc2",
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -2406,6 +2407,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -2469,6 +2471,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -2559,6 +2562,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let err = raindex_client
@@ -2647,6 +2651,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -2738,6 +2743,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -2824,6 +2830,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -2935,6 +2942,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let vault = raindex_client
@@ -2984,6 +2992,7 @@ mod tests {
                     // not used
                     &server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -3052,6 +3061,7 @@ mod tests {
                     &server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let vault = raindex_client
@@ -3116,6 +3126,7 @@ mod tests {
                     &rpc_server.url("/rpc1"),
                     &rpc_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -3193,6 +3204,7 @@ mod tests {
                     &rpc_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let vault = raindex_client
@@ -3238,6 +3250,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -3295,6 +3308,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -3364,6 +3378,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -3400,6 +3415,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -3447,6 +3463,7 @@ mod tests {
                     &server.url("/rpc1"),
                     &server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();

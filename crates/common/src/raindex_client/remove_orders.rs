@@ -402,6 +402,7 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
             let res = raindex_client
@@ -607,6 +608,7 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
             let order = raindex_client
@@ -643,6 +645,7 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -675,6 +678,7 @@ mod tests {
                     "http://localhost:3000",
                     "http://localhost:3000",
                 )],
+                None,
                 None,
             )
             .unwrap();

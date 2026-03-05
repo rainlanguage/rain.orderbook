@@ -99,6 +99,7 @@ pub struct RaindexClient {
     local_db_state: LocalDbState,
 }
 
+#[cfg(target_family = "wasm")]
 #[wasm_export]
 impl RaindexClient {
     /// Creates a RaindexClient from YAML config, optionally setting up local DB
@@ -124,7 +125,7 @@ impl RaindexClient {
         return_description = "Initialized client instance for further operations",
         preserve_js_class
     )]
-    pub async fn create(
+    pub async fn new(
         #[wasm_export(
             js_name = "obYamls",
             param_description = "List of YAML configuration strings. \
@@ -149,10 +150,6 @@ impl RaindexClient {
         )]
         status_callback: Option<js_sys::Function>,
     ) -> Result<RaindexClient, RaindexError> {
-        #[cfg(not(target_family = "wasm"))]
-        {
-            let _ = (&query_callback, &wipe_callback, &status_callback);
-        }
         let orderbook_yaml = OrderbookYaml::new(
             ob_yamls,
             match validate {
@@ -162,11 +159,8 @@ impl RaindexClient {
         )?;
         let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
-
-        #[allow(unused_variables)]
         let has_syncs = !sync_configured_chains.is_empty();
 
-        #[cfg(target_family = "wasm")]
         let local_db = if has_syncs {
             let cb = query_callback
                 .ok_or_else(|| RaindexError::LocalDbSetupMissing("query_callback".to_string()))?;
@@ -174,10 +168,7 @@ impl RaindexClient {
         } else {
             None
         };
-        #[cfg(not(target_family = "wasm"))]
-        let local_db: Option<LocalDb> = None;
 
-        #[cfg(target_family = "wasm")]
         let scheduler = if has_syncs {
             let db = local_db
                 .clone()
@@ -209,7 +200,10 @@ impl RaindexClient {
             ),
         })
     }
+}
 
+#[wasm_export]
+impl RaindexClient {
     fn resolve_networks(
         &self,
         chain_ids: Option<Vec<u32>>,
@@ -286,28 +280,9 @@ impl RaindexClient {
     }
 }
 
-impl RaindexClient {
-    pub fn new(
-        ob_yamls: Vec<String>,
-        validate: Option<bool>,
-    ) -> Result<RaindexClient, RaindexError> {
-        let orderbook_yaml = OrderbookYaml::new(
-            ob_yamls,
-            match validate {
-                Some(true) => OrderbookYamlValidation::full(),
-                _ => OrderbookYamlValidation::default(),
-            },
-        )?;
-        Ok(RaindexClient {
-            orderbook_yaml,
-            local_db_state: LocalDbState::default(),
-        })
-    }
-}
-
 #[cfg(not(target_family = "wasm"))]
 impl RaindexClient {
-    pub fn new_native(
+    pub fn new(
         ob_yamls: Vec<String>,
         validate: Option<bool>,
         db_path: Option<std::path::PathBuf>,
@@ -321,7 +296,6 @@ impl RaindexClient {
         )?;
         let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
-
         let has_syncs = !sync_configured_chains.is_empty();
 
         let (local_db, scheduler) = if has_syncs {
@@ -777,7 +751,7 @@ accounts:
         local_db: super::local_db::LocalDb,
         chain_ids: Vec<u32>,
     ) -> RaindexClient {
-        let mut client = RaindexClient::new(yamls, None).expect("test yaml should be valid");
+        let mut client = RaindexClient::new(yamls, None, None).expect("test yaml should be valid");
         client.local_db_state.db = Arc::new(std::sync::Mutex::new(Some(local_db)));
         for &id in &chain_ids {
             client.local_db_state.sync_readiness.mark_ready(id);
@@ -889,24 +863,29 @@ accounts:
         }
 
         #[wasm_bindgen_test]
-        fn test_raindex_client_new_success() {
+        async fn test_raindex_client_new_success() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
-                    // not used
                     "http://localhost:3000/sg1",
                     "http://localhost:3000/sg2",
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
                 None,
+                None,
+                None,
+                None,
             )
+            .await
             .unwrap();
             assert!(!client.orderbook_yaml.documents.is_empty());
         }
 
         #[wasm_bindgen_test]
-        fn test_raindex_client_new_invalid_yaml() {
-            let err = RaindexClient::new(vec![get_invalid_yaml()], Some(true)).unwrap_err();
+        async fn test_raindex_client_new_invalid_yaml() {
+            let err = RaindexClient::new(vec![get_invalid_yaml()], Some(true), None, None, None)
+                .await
+                .unwrap_err();
             assert!(matches!(
                 err,
                 RaindexError::YamlError(YamlError::Field { .. })
@@ -917,23 +896,28 @@ accounts:
         }
 
         #[wasm_bindgen_test]
-        fn test_raindex_client_new_empty_yaml() {
-            let err = RaindexClient::new(vec!["".to_string()], None).unwrap_err();
+        async fn test_raindex_client_new_empty_yaml() {
+            let err = RaindexClient::new(vec!["".to_string()], None, None, None, None)
+                .await
+                .unwrap_err();
             assert!(matches!(err, RaindexError::YamlError(YamlError::EmptyFile)));
         }
 
         #[wasm_bindgen_test]
-        fn test_get_multi_subgraph_args_single_chain() {
+        async fn test_get_multi_subgraph_args_single_chain() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
-                    // not used
                     "http://localhost:3000/sg1",
                     "http://localhost:3000/sg2",
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
                 None,
+                None,
+                None,
+                None,
             )
+            .await
             .unwrap();
 
             let args = client.get_multi_subgraph_args(Some(vec![1])).unwrap();
@@ -946,17 +930,20 @@ accounts:
         }
 
         #[wasm_bindgen_test]
-        fn test_get_multi_subgraph_args_all_chains() {
+        async fn test_get_multi_subgraph_args_all_chains() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
-                    // not used
                     "http://localhost:3000/sg1",
                     "http://localhost:3000/sg2",
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
                 None,
+                None,
+                None,
+                None,
             )
+            .await
             .unwrap();
 
             let args = client.get_multi_subgraph_args(None).unwrap();
@@ -972,17 +959,20 @@ accounts:
         }
 
         #[wasm_bindgen_test]
-        fn test_get_multi_subgraph_args_empty_chain_ids_defaults_to_all() {
+        async fn test_get_multi_subgraph_args_empty_chain_ids_defaults_to_all() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
-                    // not used
                     "http://localhost:3000/sg1",
                     "http://localhost:3000/sg2",
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
                 None,
+                None,
+                None,
+                None,
             )
+            .await
             .unwrap();
 
             let args = client.get_multi_subgraph_args(Some(vec![])).unwrap();
@@ -994,17 +984,20 @@ accounts:
         }
 
         #[wasm_bindgen_test]
-        fn test_get_multi_subgraph_args_multiple_chains() {
+        async fn test_get_multi_subgraph_args_multiple_chains() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
-                    // not used
                     "http://localhost:3000/sg1",
                     "http://localhost:3000/sg2",
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
                 None,
+                None,
+                None,
+                None,
             )
+            .await
             .unwrap();
 
             let args = client.get_multi_subgraph_args(Some(vec![1, 137])).unwrap();
@@ -1028,17 +1021,20 @@ accounts:
         }
 
         #[wasm_bindgen_test]
-        fn test_get_multi_subgraph_args_invalid_chain() {
+        async fn test_get_multi_subgraph_args_invalid_chain() {
             let client = RaindexClient::new(
                 vec![get_test_yaml(
-                    // not used
                     "http://localhost:3000/sg1",
                     "http://localhost:3000/sg2",
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
                 None,
+                None,
+                None,
+                None,
             )
+            .await
             .unwrap();
 
             let err = client.get_multi_subgraph_args(Some(vec![999])).unwrap_err();
@@ -1048,7 +1044,7 @@ accounts:
         }
 
         #[wasm_bindgen_test]
-        fn test_get_multi_subgraph_args_no_networks() {
+        async fn test_get_multi_subgraph_args_no_networks() {
             let yaml = format!(
                 r#"
     version: {spec_version}
@@ -1086,7 +1082,9 @@ accounts:
                 spec_version = SpecVersion::current()
             );
 
-            let client = RaindexClient::new(vec![yaml], None).unwrap();
+            let client = RaindexClient::new(vec![yaml], None, None, None, None)
+                .await
+                .unwrap();
 
             let err = client.get_multi_subgraph_args(None).unwrap_err();
             assert!(matches!(

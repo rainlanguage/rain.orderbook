@@ -110,6 +110,7 @@ mod tests {
                 "http://localhost:3000",
             )],
             None,
+            None,
         )
         .unwrap();
         client
