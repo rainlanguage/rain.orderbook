@@ -8,7 +8,8 @@ use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::parsed_meta::ParsedMeta;
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::take_orders::{
-    build_candidate_from_quote, estimate_take_order, execute_single_take, TakeOrderEstimate,
+    build_candidate_from_quote, estimate_take_order, execute_single_take,
+    ExecuteSingleTakeParams, TakeOrderEstimate,
     TakeOrdersCalldataResult,
 };
 use crate::raindex_client::vaults_list::RaindexVaultsList;
@@ -668,16 +669,16 @@ impl RaindexOrder {
         let candidate =
             build_candidate_from_quote(self, &fresh_quote)?.ok_or(RaindexError::NoLiquidity)?;
 
-        execute_single_take(
+        execute_single_take(ExecuteSingleTakeParams {
             candidate,
-            parsed_mode,
-            parsed_price_cap,
-            taker_addr,
-            &rpc_urls,
-            Some(block_number),
+            mode: parsed_mode,
+            price_cap: parsed_price_cap,
+            taker: taker_addr,
+            rpc_urls: &rpc_urls,
+            block_number: Some(block_number),
             sell_token,
-            self.oracle_url(),
-        )
+            oracle_url: self.oracle_url(),
+        })
         .await
     }
 

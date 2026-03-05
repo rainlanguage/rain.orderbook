@@ -12,7 +12,9 @@ mod single_tests;
 
 pub use request::TakeOrdersRequest;
 pub use result::{ApprovalInfo, TakeOrderEstimate, TakeOrdersCalldataResult, TakeOrdersInfo};
-pub use single::{build_candidate_from_quote, estimate_take_order, execute_single_take};
+pub use single::{
+    build_candidate_from_quote, estimate_take_order, execute_single_take, ExecuteSingleTakeParams,
+};
 
 use super::{RaindexClient, RaindexError};
 use crate::rpc_client::RpcClient;

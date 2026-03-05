@@ -103,17 +103,31 @@ pub fn estimate_take_order(
     ))
 }
 
-#[allow(clippy::too_many_arguments)]
+/// Parameters for executing a single take order operation.
+pub struct ExecuteSingleTakeParams<'a> {
+    pub candidate: TakeOrderCandidate,
+    pub mode: ParsedTakeOrdersMode,
+    pub price_cap: Float,
+    pub taker: Address,
+    pub rpc_urls: &'a [Url],
+    pub block_number: Option<u64>,
+    pub sell_token: Address,
+    pub oracle_url: Option<String>,
+}
+
 pub async fn execute_single_take(
-    candidate: TakeOrderCandidate,
-    mode: ParsedTakeOrdersMode,
-    price_cap: Float,
-    taker: Address,
-    rpc_urls: &[Url],
-    block_number: Option<u64>,
-    sell_token: Address,
-    oracle_url: Option<String>,
+    params: ExecuteSingleTakeParams<'_>,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
+    let ExecuteSingleTakeParams {
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        rpc_urls,
+        block_number,
+        sell_token,
+        oracle_url,
+    } = params;
     // Fetch signed context from oracle if URL provided
     let mut candidate = candidate;
     if let Some(url) = oracle_url {
