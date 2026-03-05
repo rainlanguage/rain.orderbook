@@ -283,7 +283,8 @@ mod tests {
 
     struct NoopExecutor;
 
-    #[async_trait::async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait::async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait::async_trait)]
     impl LocalDbQueryExecutor for NoopExecutor {
         async fn execute_batch(&self, _: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             Ok(())

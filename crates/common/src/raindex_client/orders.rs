@@ -1,6 +1,7 @@
 use super::local_db::orders::LocalDbOrders;
 use super::local_db::query::fetch_order_vaults_volume::fetch_order_vaults_volume;
 use super::trades::RaindexTrade;
+use super::ClientRef;
 use super::QuerySource;
 use super::*;
 use crate::local_db::query::fetch_orders::LocalDbOrder;
@@ -43,7 +44,7 @@ use rain_orderbook_subgraph_client::{
     SgPaginationArgs,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashSet, io::Cursor, rc::Rc, str::FromStr};
+use std::{collections::HashSet, io::Cursor, str::FromStr};
 use tsify::Tsify;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -61,7 +62,8 @@ impl<'a> SubgraphOrders<'a> {
     }
 }
 
-#[async_trait(?Send)]
+#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[cfg_attr(not(target_family = "wasm"), async_trait)]
 pub(crate) trait OrdersDataSource {
     async fn list(
         &self,
@@ -121,7 +123,7 @@ pub(crate) trait OrdersDataSource {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexOrder {
-    raindex_client: Rc<RaindexClient>,
+    raindex_client: ClientRef,
     chain_id: u32,
     id: B256,
     order_bytes: Bytes,
@@ -149,7 +151,7 @@ fn get_io_by_type(order: &RaindexOrder, vault_type: RaindexVaultType) -> Vec<Rai
 
 impl RaindexOrder {
     pub(crate) fn from_local_db_order(
-        raindex_client: Rc<RaindexClient>,
+        raindex_client: ClientRef,
         order: LocalDbOrder,
         inputs: Vec<LocalDbVault>,
         outputs: Vec<LocalDbVault>,
@@ -164,7 +166,7 @@ impl RaindexOrder {
         id.extend_from_slice(order.order_hash.as_ref());
 
         Ok(Self {
-            raindex_client: Rc::clone(&raindex_client),
+            raindex_client: ClientRef::clone(&raindex_client),
             chain_id,
             id: keccak256(&id),
             order_bytes: order.order_bytes,
@@ -174,7 +176,7 @@ impl RaindexOrder {
                 .into_iter()
                 .map(|v| {
                     RaindexVault::try_from_local_db(
-                        Rc::clone(&raindex_client),
+                        ClientRef::clone(&raindex_client),
                         v,
                         Some(RaindexVaultType::Input),
                     )
@@ -184,7 +186,7 @@ impl RaindexOrder {
                 .into_iter()
                 .map(|v| {
                     RaindexVault::try_from_local_db(
-                        Rc::clone(&raindex_client),
+                        ClientRef::clone(&raindex_client),
                         v,
                         Some(RaindexVaultType::Output),
                     )
@@ -406,8 +408,8 @@ fn get_vaults_with_type(
 #[wasm_export]
 impl RaindexOrder {
     #[wasm_export(skip)]
-    pub fn get_raindex_client(&self) -> Rc<RaindexClient> {
-        Rc::clone(&self.raindex_client)
+    pub fn get_raindex_client(&self) -> ClientRef {
+        ClientRef::clone(&self.raindex_client)
     }
     #[wasm_export(skip)]
     pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
@@ -846,7 +848,7 @@ impl RaindexClient {
         let mut all_orders = Vec::new();
 
         if let Some(db) = local_db {
-            let local_source = LocalDbOrders::new(&db, Rc::new(self.clone()));
+            let local_source = LocalDbOrders::new(&db, ClientRef::new(self.clone()));
             let orders = local_source
                 .list(Some(local_ids), &filters, Some(page_number))
                 .await?;
@@ -920,7 +922,8 @@ impl RaindexClient {
     }
 }
 
-#[async_trait(?Send)]
+#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[cfg_attr(not(target_family = "wasm"), async_trait)]
 impl OrdersDataSource for SubgraphOrders<'_> {
     async fn list(
         &self,
@@ -928,7 +931,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         filters: &GetOrdersFilters,
         page: Option<u16>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.client.clone());
+        let raindex_client = ClientRef::new(self.client.clone());
         let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
 
         let client = MultiOrderbookSubgraphClient::new(
@@ -973,7 +976,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         ob_id: &OrderbookIdentifier,
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.client.clone());
+        let raindex_client = ClientRef::new(self.client.clone());
         let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
         let order = match client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
@@ -993,7 +996,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         orderbook: Address,
         tx_hash: B256,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.client.clone());
+        let raindex_client = ClientRef::new(self.client.clone());
         let client = self.client.get_orderbook_client(orderbook)?;
         let sg_orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))
@@ -1018,7 +1021,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         orderbook: Address,
         tx_hash: B256,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.client.clone());
+        let raindex_client = ClientRef::new(self.client.clone());
         let client = self.client.get_orderbook_client(orderbook)?;
         let sg_orders = client
             .transaction_remove_orders(Id::new(tx_hash.to_string()))
@@ -1106,7 +1109,7 @@ impl RaindexClient {
 
         match self.query_source(ob_id.chain_id) {
             QuerySource::LocalDb(local_db) => {
-                let local_source = LocalDbOrders::new(&local_db, Rc::new(self.clone()));
+                let local_source = LocalDbOrders::new(&local_db, ClientRef::new(self.clone()));
                 let mut order = local_source
                     .get_by_hash(ob_id, &order_hash)
                     .await?
@@ -1294,7 +1297,7 @@ impl RaindexOrder {
     }
 
     pub fn try_from_sg_order(
-        raindex_client: Rc<RaindexClient>,
+        raindex_client: ClientRef,
         chain_id: u32,
         order: SgOrder,
         transaction: Option<RaindexTransaction>,
@@ -1305,7 +1308,7 @@ impl RaindexOrder {
             .and_then(|meta| meta.0.try_decode_rainlangsource().ok());
 
         Ok(Self {
-            raindex_client: Rc::clone(&raindex_client),
+            raindex_client: ClientRef::clone(&raindex_client),
             chain_id,
             id: B256::from_str(&order.id.0)?,
             order_bytes: Bytes::from_str(&order.order_bytes.0)?,
@@ -1317,7 +1320,7 @@ impl RaindexOrder {
                     .iter()
                     .map(|v| {
                         RaindexVault::try_from_sg_vault(
-                            Rc::clone(&raindex_client),
+                            ClientRef::clone(&raindex_client),
                             chain_id,
                             v.clone(),
                             Some(RaindexVaultType::Input),
@@ -1331,7 +1334,7 @@ impl RaindexOrder {
                     .iter()
                     .map(|v| {
                         RaindexVault::try_from_sg_vault(
-                            Rc::clone(&raindex_client),
+                            ClientRef::clone(&raindex_client),
                             chain_id,
                             v.clone(),
                             Some(RaindexVaultType::Output),
@@ -1441,6 +1444,7 @@ mod tests {
         use serde_bytes::ByteBuf;
         use serde_json::{json, Value};
         use std::collections::BTreeMap;
+        use std::sync::Arc;
 
         fn sample_dotrain_source() -> DotrainSourceV1 {
             DotrainSourceV1("sample dotrain source".to_string())
@@ -1506,7 +1510,7 @@ mod tests {
             .unwrap();
 
             let order =
-                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+                RaindexOrder::try_from_sg_order(Arc::new(client), 1, sg_order, None).unwrap();
 
             assert_eq!(order.parsed_meta().len(), 2);
             assert_eq!(order.dotrain_source(), Some(source.0));
@@ -1559,7 +1563,7 @@ mod tests {
             };
 
             let order =
-                RaindexOrder::from_local_db_order(Rc::new(client), local_order, vec![], vec![])
+                RaindexOrder::from_local_db_order(Arc::new(client), local_order, vec![], vec![])
                     .unwrap();
 
             assert_eq!(order.parsed_meta().len(), 2);
@@ -1594,7 +1598,7 @@ mod tests {
             .unwrap();
 
             let mut order =
-                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+                RaindexOrder::try_from_sg_order(Arc::new(client), 1, sg_order, None).unwrap();
             order.fetch_dotrain_source().await.unwrap();
             assert_eq!(order.parsed_meta().len(), 2);
         }
@@ -1617,7 +1621,7 @@ mod tests {
             .unwrap();
 
             let mut order =
-                RaindexOrder::try_from_sg_order(Rc::new(client), 1, sg_order, None).unwrap();
+                RaindexOrder::try_from_sg_order(Arc::new(client), 1, sg_order, None).unwrap();
             order.fetch_dotrain_source().await.unwrap();
             assert!(order.parsed_meta().is_empty());
         }
@@ -1664,7 +1668,7 @@ mod tests {
                 }));
             });
 
-            let client = Rc::new(build_client_with_metaboard(
+            let client = Arc::new(build_client_with_metaboard(
                 &server.url("/"),
                 &server.url("/sg"),
             ));
@@ -1673,7 +1677,7 @@ mod tests {
             sg_order.meta = Some(SgBytes(order_meta_hex));
 
             let mut order =
-                RaindexOrder::try_from_sg_order(Rc::clone(&client), 1, sg_order, None).unwrap();
+                RaindexOrder::try_from_sg_order(Arc::clone(&client), 1, sg_order, None).unwrap();
 
             order.fetch_dotrain_source().await.unwrap();
 
@@ -1720,7 +1724,7 @@ mod tests {
                 }));
             });
 
-            let client = Rc::new(build_client_with_metaboard(
+            let client = Arc::new(build_client_with_metaboard(
                 &server.url("/"),
                 &server.url("/sg"),
             ));
@@ -1729,7 +1733,7 @@ mod tests {
             sg_order.meta = Some(SgBytes(meta_hex));
 
             let mut order =
-                RaindexOrder::try_from_sg_order(Rc::clone(&client), 1, sg_order, None).unwrap();
+                RaindexOrder::try_from_sg_order(Arc::clone(&client), 1, sg_order, None).unwrap();
 
             order.fetch_dotrain_source().await.unwrap();
 
@@ -1744,7 +1748,8 @@ mod tests {
             json: String,
         }
 
-        #[async_trait(?Send)]
+        #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+        #[cfg_attr(not(target_family = "wasm"), async_trait)]
         impl LocalDbQueryExecutor for StaticJsonExec {
             async fn execute_batch(
                 &self,
@@ -2262,7 +2267,7 @@ mod tests {
             assert_eq!(result.len(), 2);
 
             let expected_order1 = RaindexOrder::try_from_sg_order(
-                Rc::new(raindex_client.clone()),
+                Arc::new(raindex_client.clone()),
                 1,
                 get_order1(),
                 None,
@@ -2442,7 +2447,7 @@ mod tests {
                 .unwrap();
 
             let expected_order = RaindexOrder::try_from_sg_order(
-                Rc::new(raindex_client.clone()),
+                Arc::new(raindex_client.clone()),
                 1,
                 get_order1(),
                 None,
@@ -2688,7 +2693,7 @@ mod tests {
                 vec![137],
             );
 
-            let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
+            let orders_source = LocalDbOrders::new(&local_db, Arc::new(client.clone()));
             let orders = orders_source
                 .list(Some(vec![137]), &GetOrdersFilters::default(), None)
                 .await
@@ -2719,7 +2724,7 @@ mod tests {
                 vec![137],
             );
 
-            let orders_source = LocalDbOrders::new(&local_db, Rc::new(client.clone()));
+            let orders_source = LocalDbOrders::new(&local_db, Arc::new(client.clone()));
             let err = orders_source
                 .list(Some(vec![137]), &GetOrdersFilters::default(), None)
                 .await

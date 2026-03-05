@@ -26,8 +26,17 @@ use rain_orderbook_subgraph_client::{
     OrderbookSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_family = "wasm"))]
+use std::sync::Arc;
+#[cfg(target_family = "wasm")]
 use std::{cell::RefCell, rc::Rc};
 use std::{collections::BTreeMap, fmt, num::ParseIntError, str::FromStr};
+
+#[cfg(target_family = "wasm")]
+pub(crate) type ClientRef = std::rc::Rc<RaindexClient>;
+#[cfg(not(target_family = "wasm"))]
+pub(crate) type ClientRef = std::sync::Arc<RaindexClient>;
+
 use thiserror::Error;
 use tsify::Tsify;
 use url::Url;
@@ -178,6 +187,8 @@ impl RaindexClient {
         } else {
             Rc::new(RefCell::new(None))
         };
+        #[cfg(not(target_family = "wasm"))]
+        let scheduler = Arc::new(std::sync::Mutex::new(None));
 
         Ok(RaindexClient {
             orderbook_yaml,
@@ -309,7 +320,7 @@ impl RaindexClient {
             orderbook_yaml,
             local_db_state: LocalDbState::new(
                 local_db,
-                Rc::new(RefCell::new(scheduler)),
+                Arc::new(std::sync::Mutex::new(scheduler)),
                 sync_readiness,
                 sync_configured_chains,
             ),
@@ -741,7 +752,7 @@ accounts:
         chain_ids: Vec<u32>,
     ) -> RaindexClient {
         let mut client = RaindexClient::new(yamls, None, None).expect("test yaml should be valid");
-        client.local_db_state.db = Rc::new(RefCell::new(Some(local_db)));
+        client.local_db_state.db = Arc::new(std::sync::Mutex::new(Some(local_db)));
         for &id in &chain_ids {
             client.local_db_state.sync_readiness.mark_ready(id);
             client.local_db_state.sync_configured_chains.insert(id);

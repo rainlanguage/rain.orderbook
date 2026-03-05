@@ -1,3 +1,4 @@
+use super::ClientRef;
 use super::*;
 use crate::local_db::query::fetch_order_vaults_volume::LocalDbVaultVolume;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
@@ -37,7 +38,7 @@ use rain_orderbook_subgraph_client::{
     MultiOrderbookSubgraphClient, OrderbookSubgraphClient, OrderbookSubgraphClientError,
     SgPaginationArgs,
 };
-use std::{rc::Rc, str::FromStr};
+use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
 
@@ -52,7 +53,8 @@ impl<'a> SubgraphVaults<'a> {
     }
 }
 
-#[async_trait(?Send)]
+#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[cfg_attr(not(target_family = "wasm"), async_trait)]
 pub(crate) trait VaultsDataSource {
     async fn list(
         &self,
@@ -101,7 +103,7 @@ impl_wasm_traits!(RaindexVaultType);
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct RaindexVault {
-    raindex_client: Rc<RaindexClient>,
+    raindex_client: ClientRef,
     chain_id: u32,
     vault_type: Option<RaindexVaultType>,
     id: Bytes,
@@ -357,7 +359,8 @@ impl RaindexVault {
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
         match self.raindex_client.query_source(self.chain_id) {
             QuerySource::LocalDb(local_db) => {
-                let local_source = LocalDbVaults::new(&local_db, Rc::clone(&self.raindex_client));
+                let local_source =
+                    LocalDbVaults::new(&local_db, ClientRef::clone(&self.raindex_client));
                 local_source
                     .balance_changes_list(self, page, filter_types.as_deref())
                     .await
@@ -1298,7 +1301,7 @@ impl RaindexClient {
         let mut all_vaults = Vec::new();
 
         if let Some(db) = local_db {
-            let local_source = LocalDbVaults::new(&db, Rc::new(self.clone()));
+            let local_source = LocalDbVaults::new(&db, ClientRef::new(self.clone()));
             let vaults = local_source
                 .list(Some(local_ids), &filters, Some(page_number))
                 .await?;
@@ -1406,7 +1409,7 @@ impl RaindexClient {
         let mut tokens: Vec<RaindexVaultToken> = Vec::new();
 
         if let Some(db) = local_db {
-            let local_source = LocalDbVaults::new(&db, Rc::new(self.clone()));
+            let local_source = LocalDbVaults::new(&db, ClientRef::new(self.clone()));
             let local_tokens = local_source.tokens_list(Some(local_ids)).await?;
             tokens.extend(local_tokens);
         }
@@ -1436,7 +1439,7 @@ impl RaindexClient {
 
         match self.query_source(ob_id.chain_id) {
             QuerySource::LocalDb(local_db) => {
-                let local_source = LocalDbVaults::new(&local_db, Rc::new(self.clone()));
+                let local_source = LocalDbVaults::new(&local_db, ClientRef::new(self.clone()));
                 local_source
                     .get_by_id(ob_id, &vault_id)
                     .await?
@@ -1462,7 +1465,8 @@ impl RaindexClient {
     }
 }
 
-#[async_trait(?Send)]
+#[cfg_attr(target_family = "wasm", async_trait(?Send))]
+#[cfg_attr(not(target_family = "wasm"), async_trait)]
 impl VaultsDataSource for SubgraphVaults<'_> {
     async fn list(
         &self,
@@ -1470,7 +1474,7 @@ impl VaultsDataSource for SubgraphVaults<'_> {
         filters: &GetVaultsFilters,
         page: Option<u16>,
     ) -> Result<Vec<RaindexVault>, RaindexError> {
-        let raindex_client = Rc::new(self.client.clone());
+        let raindex_client = ClientRef::new(self.client.clone());
         let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
         let client = MultiOrderbookSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
@@ -1517,7 +1521,7 @@ impl VaultsDataSource for SubgraphVaults<'_> {
         ob_id: &OrderbookIdentifier,
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
-        let raindex_client = Rc::new(self.client.clone());
+        let raindex_client = ClientRef::new(self.client.clone());
         let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
         let vault = match client.vault_detail(Id::new(vault_id.to_string())).await {
             Ok(vault) => vault,
@@ -1644,7 +1648,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
 
 impl RaindexVault {
     pub fn try_from_sg_vault(
-        raindex_client: Rc<RaindexClient>,
+        raindex_client: ClientRef,
         chain_id: u32,
         vault: SgVault,
         vault_type: Option<RaindexVaultType>,
@@ -1680,7 +1684,7 @@ impl RaindexVault {
 
     pub fn with_vault_type(&self, vault_type: RaindexVaultType) -> Self {
         Self {
-            raindex_client: Rc::clone(&self.raindex_client),
+            raindex_client: ClientRef::clone(&self.raindex_client),
             chain_id: self.chain_id,
             vault_type: Some(vault_type),
             id: self.id.clone(),
@@ -1720,7 +1724,7 @@ impl RaindexVault {
     }
 
     pub fn try_from_local_db(
-        raindex_client: Rc<RaindexClient>,
+        raindex_client: ClientRef,
         vault: LocalDbVault,
         vault_type: Option<RaindexVaultType>,
     ) -> Result<Self, RaindexError> {
@@ -2157,6 +2161,7 @@ mod tests {
         };
         use rain_orderbook_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
+        use std::sync::Arc;
         use LocalDbVault;
 
         #[test]
@@ -2318,7 +2323,7 @@ mod tests {
             };
 
             let rv = RaindexVault::try_from_local_db(
-                Rc::new(raindex_client),
+                Arc::new(raindex_client),
                 local_vault,
                 Some(RaindexVaultType::Input),
             )

@@ -1,5 +1,6 @@
 use super::local_db::orders::LocalDbOrders;
 use super::orders::{OrdersDataSource, SubgraphOrders};
+use super::ClientRef;
 use super::*;
 use crate::local_db::query::fetch_order_trades::LocalDbOrderTrade;
 use crate::local_db::OrderbookIdentifier;
@@ -11,7 +12,6 @@ use crate::raindex_client::{
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
 use rain_orderbook_subgraph_client::types::{common::SgTrade, Id};
-use std::rc::Rc;
 use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -143,7 +143,7 @@ impl RaindexOrder {
 
         match raindex_client.query_source(chain_id) {
             QuerySource::LocalDb(local_db) => {
-                let local_source = LocalDbOrders::new(&local_db, Rc::clone(&raindex_client));
+                let local_source = LocalDbOrders::new(&local_db, ClientRef::clone(&raindex_client));
                 local_source
                     .trades_list(&ob_id, &order_hash, start_timestamp, end_timestamp, page)
                     .await
@@ -241,7 +241,7 @@ impl RaindexOrder {
 
         match raindex_client.query_source(chain_id) {
             QuerySource::LocalDb(local_db) => {
-                let local_source = LocalDbOrders::new(&local_db, Rc::clone(&raindex_client));
+                let local_source = LocalDbOrders::new(&local_db, ClientRef::clone(&raindex_client));
                 local_source
                     .trades_count(&ob_id, &order_hash, start_timestamp, end_timestamp)
                     .await

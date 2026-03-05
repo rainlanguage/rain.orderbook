@@ -1,4 +1,5 @@
 use super::orders::{OrdersDataSource, SubgraphOrders};
+use super::ClientRef;
 use super::*;
 use crate::raindex_client::local_db::orders::LocalDbOrders;
 use crate::raindex_client::orders::{fetch_orders_dotrain_sources, RaindexOrder};
@@ -8,7 +9,6 @@ use alloy::primitives::{hex::decode, Bytes, B256};
 use alloy::sol_types::{SolCall, SolValue};
 use rain_orderbook_bindings::IOrderBookV6::{removeOrder3Call, OrderV4};
 use rain_orderbook_subgraph_client::types::order_detail_traits::OrderDetailError;
-use std::rc::Rc;
 
 const DEFAULT_REMOVE_ORDER_POLL_ATTEMPTS: usize = 10;
 const DEFAULT_REMOVE_ORDER_POLL_INTERVAL_MS: u64 = 1_000;
@@ -91,7 +91,7 @@ impl RaindexClient {
         max_attempts: Option<usize>,
         interval_ms: Option<u64>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
+        let raindex_client = ClientRef::new(self.clone());
 
         let attempts = max_attempts
             .unwrap_or(DEFAULT_REMOVE_ORDER_POLL_ATTEMPTS)
@@ -252,7 +252,8 @@ mod tests {
             calls: Arc<AtomicUsize>,
         }
 
-        #[async_trait(?Send)]
+        #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+        #[cfg_attr(not(target_family = "wasm"), async_trait)]
         impl LocalDbQueryExecutor for CountingJsonExec {
             async fn execute_batch(
                 &self,

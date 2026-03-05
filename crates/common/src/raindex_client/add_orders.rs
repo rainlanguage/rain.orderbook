@@ -1,11 +1,11 @@
 use super::orders::{OrdersDataSource, SubgraphOrders};
+use super::ClientRef;
 use super::*;
 use crate::raindex_client::local_db::orders::LocalDbOrders;
 use crate::raindex_client::orders::{fetch_orders_dotrain_sources, RaindexOrder};
 use crate::raindex_client::QuerySource;
 use crate::retry::{retry_with_constant_interval, RetryError};
 use alloy::primitives::B256;
-use std::rc::Rc;
 
 const DEFAULT_ADD_ORDER_POLL_ATTEMPTS: usize = 10;
 const DEFAULT_ADD_ORDER_POLL_INTERVAL_MS: u64 = 1_000;
@@ -88,7 +88,7 @@ impl RaindexClient {
         max_attempts: Option<usize>,
         interval_ms: Option<u64>,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
-        let raindex_client = Rc::new(self.clone());
+        let raindex_client = ClientRef::new(self.clone());
 
         let attempts = max_attempts
             .unwrap_or(DEFAULT_ADD_ORDER_POLL_ATTEMPTS)
@@ -207,7 +207,8 @@ mod tests {
             calls: Arc<AtomicUsize>,
         }
 
-        #[async_trait(?Send)]
+        #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+        #[cfg_attr(not(target_family = "wasm"), async_trait)]
         impl LocalDbQueryExecutor for CountingJsonExec {
             async fn execute_batch(
                 &self,
