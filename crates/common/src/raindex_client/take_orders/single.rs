@@ -372,6 +372,7 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -470,6 +471,7 @@ mod tests {
                     "http://localhost:3000",
                     "http://localhost:3000",
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -571,6 +573,7 @@ mod tests {
                     "http://localhost:3000",
                     "http://localhost:3000",
                 )],
+                None,
                 None,
             )
             .unwrap();

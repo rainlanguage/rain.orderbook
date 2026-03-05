@@ -7,14 +7,14 @@ use crate::local_db::pipeline::adapters::{
     apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
     window::DefaultWindowPipeline,
 };
-use crate::local_db::pipeline::runner::utils::parse_runner_settings;
+use crate::local_db::pipeline::runner::utils::ParsedRunnerSettings;
 use crate::local_db::pipeline::runner::RunOutcome;
 use crate::local_db::LocalDbError;
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 use crate::raindex_client::local_db::pipeline::status::{
     set_scheduler_state, set_status_callback, ClientStatusBus,
 };
-use crate::raindex_client::local_db::{LocalDb, NetworkSyncStatus, SchedulerState};
+use crate::raindex_client::local_db::{LocalDb, NetworkSyncStatus, SchedulerState, SyncReadiness};
 use gloo_timers::future::TimeoutFuture;
 use js_sys::Function;
 use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
@@ -80,12 +80,11 @@ impl SchedulerHandle {
 }
 
 pub(crate) fn start(
-    settings_yaml: String,
+    settings: ParsedRunnerSettings,
     db: LocalDb,
     status_callback: Option<Function>,
+    sync_readiness: SyncReadiness,
 ) -> Result<SchedulerHandle, LocalDbError> {
-    let settings = parse_runner_settings(&settings_yaml)?;
-
     let mut networks_map: HashMap<String, NetworkCfg> = HashMap::new();
     for ob in settings.orderbooks.values() {
         networks_map
@@ -180,6 +179,7 @@ pub(crate) fn start(
                 callback.clone(),
                 Rc::clone(&stop_flag_init),
                 interval_ms,
+                sync_readiness.clone(),
             );
         }
     });
@@ -196,11 +196,12 @@ fn spawn_network_loop<R>(
     callback: Option<Rc<Function>>,
     stop_flag: Rc<Cell<bool>>,
     interval_ms: u32,
+    sync_readiness: SyncReadiness,
 ) where
     R: SchedulerRunner + 'static,
 {
     spawn_local(async move {
-        run_network_loop(runner, db, callback, stop_flag, interval_ms).await;
+        run_network_loop(runner, db, callback, stop_flag, interval_ms, sync_readiness).await;
     });
 }
 
@@ -210,6 +211,7 @@ async fn run_network_loop<R>(
     callback: Option<Rc<Function>>,
     stop_flag: Rc<Cell<bool>>,
     interval_ms: u32,
+    sync_readiness: SyncReadiness,
 ) where
     R: SchedulerRunner + 'static,
 {
@@ -234,6 +236,7 @@ async fn run_network_loop<R>(
                     set_scheduler_state(SchedulerState::Leader);
 
                     if report.failures.is_empty() {
+                        sync_readiness.mark_ready(chain_id);
                         emit_network_status(
                             callback.as_deref(),
                             NetworkSyncStatus::active(chain_id, SchedulerState::Leader),
@@ -289,6 +292,7 @@ fn emit_network_status(callback: Option<&Function>, status: NetworkSyncStatus) {
 #[cfg(all(test, target_family = "wasm", feature = "browser-tests"))]
 mod wasm_tests {
     use super::*;
+    use crate::local_db::pipeline::runner::utils::parse_runner_settings;
     use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
     use crate::local_db::OrderbookIdentifier;
     use crate::raindex_client::local_db::pipeline::status::get_scheduler_state;
@@ -384,7 +388,7 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn start_returns_error_for_invalid_yaml() {
-        let result = start("not yaml".to_string(), noop_local_db(), None);
+        let result = parse_runner_settings("not yaml");
         assert!(result.is_err());
     }
 
@@ -400,7 +404,14 @@ mod wasm_tests {
         );
         let stop_flag = Rc::new(Cell::new(false));
 
-        spawn_network_loop(runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
+        spawn_network_loop(
+            runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(3).await;
@@ -424,7 +435,14 @@ mod wasm_tests {
         );
         let stop_flag = Rc::new(Cell::new(false));
 
-        spawn_network_loop(runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
+        spawn_network_loop(
+            runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(5).await;
@@ -467,6 +485,7 @@ mod wasm_tests {
             Some(Rc::new(status_callback)),
             Rc::clone(&stop_flag),
             1,
+            SyncReadiness::new(),
         );
 
         TimeoutFuture::new(0).await;
@@ -520,6 +539,7 @@ mod wasm_tests {
             Some(Rc::new(status_callback)),
             Rc::clone(&stop_flag),
             1,
+            SyncReadiness::new(),
         );
 
         TimeoutFuture::new(0).await;
@@ -584,6 +604,7 @@ mod wasm_tests {
             Some(Rc::new(status_callback)),
             Rc::clone(&stop_flag),
             1,
+            SyncReadiness::new(),
         );
 
         TimeoutFuture::new(0).await;
@@ -654,7 +675,9 @@ mod wasm_tests {
         use crate::raindex_client::tests::get_local_db_test_yaml;
 
         let yaml = get_local_db_test_yaml();
-        let handle = start(yaml, noop_local_db(), None).expect("should start with valid yaml");
+        let settings = parse_runner_settings(&yaml).expect("should parse valid yaml");
+        let handle = start(settings, noop_local_db(), None, SyncReadiness::new())
+            .expect("should start with valid yaml");
 
         handle.stop();
 
@@ -677,8 +700,22 @@ mod wasm_tests {
 
         let stop_flag = Rc::new(Cell::new(false));
 
-        spawn_network_loop(slow_runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
-        spawn_network_loop(fast_runner, noop_local_db(), None, Rc::clone(&stop_flag), 1);
+        spawn_network_loop(
+            slow_runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
+        spawn_network_loop(
+            fast_runner,
+            noop_local_db(),
+            None,
+            Rc::clone(&stop_flag),
+            1,
+            SyncReadiness::new(),
+        );
 
         TimeoutFuture::new(0).await;
         TimeoutFuture::new(50).await;
