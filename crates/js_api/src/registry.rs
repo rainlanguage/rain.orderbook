@@ -605,11 +605,11 @@ impl DotrainRegistry {
 
 #[cfg(not(target_family = "wasm"))]
 impl DotrainRegistry {
-    pub fn get_raindex_client(
+    pub async fn get_raindex_client(
         &self,
         db_path: Option<std::path::PathBuf>,
     ) -> Result<RaindexClient, DotrainRegistryError> {
-        let client = RaindexClient::new(vec![self.settings.clone()], None, db_path)?;
+        let client = RaindexClient::new(vec![self.settings.clone()], None, db_path).await?;
         Ok(client)
     }
 }
@@ -1672,7 +1672,7 @@ _ _: 0 0;
                 .await
                 .unwrap();
 
-            let raindex_client = registry.get_raindex_client(None);
+            let raindex_client = registry.get_raindex_client(None).await;
             assert!(raindex_client.is_ok());
         }
     }

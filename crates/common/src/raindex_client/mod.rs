@@ -296,18 +296,30 @@ impl RaindexClient {
 
 #[cfg(not(target_family = "wasm"))]
 impl RaindexClient {
-    pub fn new(
+    pub async fn new(
         ob_yamls: Vec<String>,
         validate: Option<bool>,
         db_path: Option<std::path::PathBuf>,
     ) -> Result<RaindexClient, RaindexError> {
-        let orderbook_yaml = OrderbookYaml::new(
+        let mut orderbook_yaml = OrderbookYaml::new(
             ob_yamls,
             match validate {
                 Some(true) => OrderbookYamlValidation::full(),
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
+
+        let remote_networks =
+            RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
+        if !remote_networks.is_empty() {
+            orderbook_yaml.cache.update_remote_networks(remote_networks);
+        }
+        if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
+            let networks = orderbook_yaml.get_networks()?;
+            let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
+            orderbook_yaml.cache.update_remote_tokens(remote_tokens);
+        }
+
         let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
         let has_syncs = !sync_configured_chains.is_empty();
@@ -770,12 +782,14 @@ accounts:
     }
 
     #[cfg(not(target_family = "wasm"))]
-    pub fn new_with_local_db(
+    pub async fn new_with_local_db(
         yamls: Vec<String>,
         local_db: super::local_db::LocalDb,
         chain_ids: Vec<u32>,
     ) -> RaindexClient {
-        let mut client = RaindexClient::new(yamls, None, None).expect("test yaml should be valid");
+        let mut client = RaindexClient::new(yamls, None, None)
+            .await
+            .expect("test yaml should be valid");
         client.local_db_state.db = Arc::new(std::sync::Mutex::new(Some(local_db)));
         for &id in &chain_ids {
             client.local_db_state.sync_readiness.mark_ready(id);
@@ -858,9 +872,7 @@ using-networks-from:
                 url = server.base_url()
             );
 
-            let client = RaindexClient::create(vec![yaml], None, None, None, None)
-                .await
-                .unwrap();
+            let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
             let networks = client.get_all_networks().unwrap();
             assert!(networks.contains_key("remote-network"));
@@ -916,9 +928,7 @@ using-tokens-from:
                 url = server.base_url()
             );
 
-            let client = RaindexClient::create(vec![yaml], None, None, None, None)
-                .await
-                .unwrap();
+            let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
             let tokens = client.orderbook_yaml.get_tokens().unwrap();
             let expected_key =
