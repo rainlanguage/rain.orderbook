@@ -1107,6 +1107,7 @@ mod test_helpers {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
             let order = raindex_client
@@ -1293,6 +1294,7 @@ mod test_helpers {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
             let order = raindex_client
@@ -1475,6 +1477,7 @@ mod test_helpers {
                     "http://localhost:3000",
                     "http://localhost:3000",
                 )],
+                None,
                 None,
             )
             .unwrap();

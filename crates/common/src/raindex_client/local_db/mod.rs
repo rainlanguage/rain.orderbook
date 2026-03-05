@@ -1,4 +1,4 @@
-#[cfg(test)]
+#[cfg(all(test, not(target_family = "wasm")))]
 use super::RaindexClient;
 pub use crate::local_db::pipeline::SyncPhase;
 use crate::local_db::query::{
@@ -299,8 +299,9 @@ orderbooks:
         )
     }
 
+    #[cfg(not(target_family = "wasm"))]
     fn build_client() -> RaindexClient {
-        RaindexClient::new(vec![single_orderbook_settings_yaml()], None)
+        RaindexClient::new(vec![single_orderbook_settings_yaml()], None, None)
             .expect("valid orderbook yaml")
     }
 

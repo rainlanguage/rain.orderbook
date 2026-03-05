@@ -229,7 +229,9 @@ mod tests {
             let callback = make_local_db_vaults_callback(vec![vault]);
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
             let vaults = data_source
                 .list(Some(vec![42161]), &GetVaultsFilters::default(), None)
@@ -259,7 +261,9 @@ mod tests {
             let callback = make_local_db_vaults_callback(vec![local_vault.clone()]);
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let rc_client = Rc::new(client.clone());
             let derived_vault =
                 RaindexVault::try_from_local_db(Rc::clone(&rc_client), local_vault, None)
@@ -299,7 +303,9 @@ mod tests {
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
 
             let vaults = data_source
@@ -329,7 +335,9 @@ mod tests {
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
 
             let vaults = data_source
@@ -365,7 +373,9 @@ mod tests {
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
 
             let filters = GetVaultsFilters {
@@ -445,7 +455,9 @@ mod tests {
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
 
             let tokens = data_source
@@ -482,7 +494,9 @@ mod tests {
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
 
             let tokens = data_source
@@ -518,7 +532,9 @@ mod tests {
             let callback = create_sql_capturing_callback(&json, captured_sql.clone());
             let local_db = LocalDb::from_js_callback(callback, None);
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
 
             let tokens = data_source
@@ -573,7 +589,9 @@ mod tests {
                 output_orders: None,
             };
 
-            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None).unwrap();
+            let client = RaindexClient::new(vec![get_local_db_test_yaml()], None, None, None, None)
+                .await
+                .unwrap();
             let rc_client = Rc::new(client.clone());
             let raindex_vault =
                 RaindexVault::try_from_local_db(Rc::clone(&rc_client), local_vault, None)

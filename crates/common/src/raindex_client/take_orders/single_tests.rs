@@ -96,7 +96,7 @@ async fn test_single_order_take_happy_path_buy_up_to() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -204,7 +204,7 @@ async fn test_single_order_take_happy_path_buy_exact() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -307,7 +307,7 @@ async fn test_single_order_take_happy_path_spend_up_to() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -416,7 +416,7 @@ async fn test_single_order_take_no_capacity_returns_error() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -466,7 +466,7 @@ async fn test_single_order_take_invalid_io_index_returns_none() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -533,7 +533,7 @@ async fn test_single_order_take_buy_exact_insufficient_liquidity() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -624,7 +624,7 @@ async fn test_single_order_take_price_exceeds_cap() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -713,7 +713,7 @@ async fn test_single_order_take_failed_quote_returns_none() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -764,7 +764,7 @@ async fn test_single_order_take_preflight_insufficient_balance() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -851,7 +851,7 @@ async fn test_single_order_take_preflight_insufficient_allowance() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -956,7 +956,7 @@ async fn test_single_order_take_approval_then_ready_flow() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -1123,7 +1123,7 @@ async fn test_single_order_take_calldata_encoding_buy_mode() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -1232,7 +1232,7 @@ async fn test_single_order_take_expected_spend_calculation() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -1342,7 +1342,7 @@ async fn test_single_order_take_spend_exact_mode() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -1573,7 +1573,7 @@ async fn test_single_order_take_spend_exact_insufficient_liquidity() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -1664,7 +1664,7 @@ async fn test_single_order_take_calldata_encoding_spend_mode() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)
@@ -1782,7 +1782,7 @@ async fn test_single_order_take_expected_receive_calculation() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
 
     let order = client
         .get_order_by_hash(&OrderbookIdentifier::new(123, setup.orderbook), order_hash)

@@ -1478,7 +1478,7 @@ mod tests {
                     "https://api.thegraph.com/subgraphs/name/polygon",
                     metaboard_url,
                 );
-            RaindexClient::new(vec![yaml], None).unwrap()
+            RaindexClient::new(vec![yaml], None, None).unwrap()
         }
 
         #[test]
@@ -1500,6 +1500,7 @@ mod tests {
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -1532,6 +1533,7 @@ mod tests {
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -1587,6 +1589,7 @@ mod tests {
                     "http://localhost:3000/rpc2",
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -1608,6 +1611,7 @@ mod tests {
                     "http://localhost:3000/rpc1",
                     "http://localhost:3000/rpc2",
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -2247,6 +2251,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let result = raindex_client
@@ -2422,6 +2427,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let res = raindex_client
@@ -2488,6 +2494,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let order_hash =
@@ -2552,6 +2559,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
             let res = raindex_client
@@ -2586,6 +2594,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -2767,6 +2776,7 @@ mod tests {
                     "https://example/rpc1",
                     "https://example/rpc2",
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -2973,6 +2983,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -3159,6 +3170,7 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
             .unwrap();
 
@@ -3192,6 +3204,7 @@ mod tests {
                     &sg_server.url("/rpc1"),
                     &sg_server.url("/rpc2"),
                 )],
+                None,
                 None,
             )
             .unwrap();

@@ -400,6 +400,7 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
             let order = raindex_client
@@ -498,6 +499,7 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
             .unwrap();
             let order = raindex_client
@@ -563,6 +565,7 @@ mod tests {
                     &server.url("/rpc"),
                     "http://localhost:3000",
                 )],
+                None,
                 None,
             )
             .unwrap();
@@ -654,6 +657,7 @@ mod tests {
                     &server.url("/rpc"),
                     "http://localhost:3000",
                 )],
+                None,
                 None,
             )
             .unwrap();
