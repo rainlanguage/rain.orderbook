@@ -8,9 +8,8 @@ use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::parsed_meta::ParsedMeta;
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::take_orders::{
-    build_candidate_from_quote, estimate_take_order, execute_single_take,
-    ExecuteSingleTakeParams, TakeOrderEstimate,
-    TakeOrdersCalldataResult,
+    build_candidate_from_quote, estimate_take_order, execute_single_take, ExecuteSingleTakeParams,
+    TakeOrderEstimate, TakeOrdersCalldataResult,
 };
 use crate::raindex_client::vaults_list::RaindexVaultsList;
 use crate::rpc_client::RpcClient;

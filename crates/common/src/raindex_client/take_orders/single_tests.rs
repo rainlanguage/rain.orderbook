@@ -1,8 +1,7 @@
 use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::take_orders::single::{
-    build_candidate_from_quote, estimate_take_order, execute_single_take,
-        ExecuteSingleTakeParams,
+    build_candidate_from_quote, estimate_take_order, execute_single_take, ExecuteSingleTakeParams,
 };
 use crate::raindex_client::RaindexClient;
 use crate::raindex_client::RaindexError;
@@ -133,15 +132,15 @@ async fn test_single_order_take_happy_path_buy_up_to() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with BuyUpTo mode");
 
@@ -243,15 +242,15 @@ async fn test_single_order_take_happy_path_buy_exact() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with BuyExact mode");
 
@@ -346,15 +345,15 @@ async fn test_single_order_take_happy_path_spend_up_to() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with SpendUpTo mode");
 
@@ -573,15 +572,15 @@ async fn test_single_order_take_buy_exact_insufficient_liquidity() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await;
 
     assert!(
@@ -665,15 +664,15 @@ async fn test_single_order_take_price_exceeds_cap() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await;
 
     assert!(
@@ -798,15 +797,15 @@ async fn test_single_order_take_preflight_insufficient_balance() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with approval result");
 
@@ -904,15 +903,15 @@ async fn test_single_order_take_preflight_insufficient_allowance() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with approval result");
 
@@ -1011,15 +1010,15 @@ async fn test_single_order_take_approval_then_ready_flow() {
 
     // Step 1: First call should return NeedsApproval
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate.clone(),
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate.clone(),
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with approval result");
 
@@ -1058,15 +1057,15 @@ async fn test_single_order_take_approval_then_ready_flow() {
 
     // Step 3: Second call should return Ready with take order calldata
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with ready result after approval");
 
@@ -1171,15 +1170,15 @@ async fn test_single_order_take_calldata_encoding_buy_mode() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed");
 
@@ -1279,15 +1278,15 @@ async fn test_single_order_take_expected_spend_calculation() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed");
 
@@ -1391,15 +1390,15 @@ async fn test_single_order_take_spend_exact_mode() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed with SpendExact mode");
 
@@ -1622,15 +1621,15 @@ async fn test_single_order_take_spend_exact_insufficient_liquidity() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await;
 
     assert!(
@@ -1716,15 +1715,15 @@ async fn test_single_order_take_calldata_encoding_spend_mode() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed");
 
@@ -1833,15 +1832,15 @@ async fn test_single_order_take_expected_receive_calculation() {
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
     let result = execute_single_take(ExecuteSingleTakeParams {
-            candidate: candidate,
-            mode: mode,
-            price_cap: price_cap,
-            taker: taker,
-            rpc_urls: &rpc_urls,
-            block_number: None,
-            sell_token: setup.token1,
-            oracle_url: None,
-        })
+        candidate: candidate,
+        mode: mode,
+        price_cap: price_cap,
+        taker: taker,
+        rpc_urls: &rpc_urls,
+        block_number: None,
+        sell_token: setup.token1,
+        oracle_url: None,
+    })
     .await
     .expect("Should succeed");
 
