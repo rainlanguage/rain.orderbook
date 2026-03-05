@@ -173,3 +173,968 @@ _ _: 0 0;
         version = SpecVersion::current()
     )
 }
+
+#[cfg(not(target_family = "wasm"))]
+pub mod local_evm {
+    use alloy::primitives::{Address, B256, U256};
+    use rain_math_float::Float;
+    use rain_orderbook_subgraph_client::types::common::{
+        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
+    };
+    use rain_orderbook_test_fixtures::LocalEvm;
+
+    pub struct TestSetup {
+        pub local_evm: LocalEvm,
+        pub owner: Address,
+        pub token1: Address,
+        pub token2: Address,
+        pub token1_sg: SgErc20,
+        pub token2_sg: SgErc20,
+        pub orderbook: Address,
+    }
+
+    pub async fn setup_test() -> TestSetup {
+        let mut local_evm = LocalEvm::new().await;
+        let owner = local_evm.signer_wallets[0].default_signer().address();
+
+        let token1 = local_evm
+            .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
+            .await;
+        let token2 = local_evm
+            .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
+            .await;
+        let orderbook = *local_evm.orderbook.address();
+
+        TestSetup {
+            token1: *token1.address(),
+            token2: *token2.address(),
+            token1_sg: SgErc20 {
+                id: SgBytes(token1.address().to_string()),
+                address: SgBytes(token1.address().to_string()),
+                name: Some("Token1".to_string()),
+                symbol: Some("Token1".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            token2_sg: SgErc20 {
+                id: SgBytes(token2.address().to_string()),
+                address: SgBytes(token2.address().to_string()),
+                name: Some("Token2".to_string()),
+                symbol: Some("Token2".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            local_evm,
+            owner,
+            orderbook,
+        }
+    }
+
+    pub fn standard_deposit_amount() -> U256 {
+        U256::from(10).pow(U256::from(20))
+    }
+
+    pub async fn fund_standard_two_token_vault(setup: &TestSetup, vault_id: B256) {
+        let amount = standard_deposit_amount();
+        setup
+            .local_evm
+            .deposit(setup.owner, setup.token1, amount, 18, vault_id)
+            .await;
+        setup
+            .local_evm
+            .deposit(setup.owner, setup.token2, amount, 18, vault_id)
+            .await;
+    }
+
+    pub async fn fund_taker(setup: &TestSetup, token: Address, taker: Address, amount: U256) {
+        let token_contract = setup
+            .local_evm
+            .tokens
+            .iter()
+            .find(|t| *t.address() == token)
+            .expect("Token should exist in setup.local_evm.tokens");
+
+        token_contract
+            .transfer(taker, amount)
+            .from(setup.owner)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    }
+
+    pub async fn approve_taker(
+        setup: &TestSetup,
+        token: Address,
+        taker: Address,
+        spender: Address,
+        amount: U256,
+    ) {
+        let token_contract = setup
+            .local_evm
+            .tokens
+            .iter()
+            .find(|t| *t.address() == token)
+            .expect("Token should exist in setup.local_evm.tokens");
+
+        token_contract
+            .approve(spender, amount)
+            .from(taker)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    }
+
+    pub async fn fund_and_approve_taker(
+        setup: &TestSetup,
+        token: Address,
+        taker: Address,
+        spender: Address,
+        amount: U256,
+    ) {
+        fund_taker(setup, token, taker, amount).await;
+        approve_taker(setup, token, taker, spender, U256::MAX).await;
+    }
+
+    pub async fn fund_and_approve_taker_multi_orderbook(
+        setup: &MultiOrderbookTestSetup,
+        token: Address,
+        taker: Address,
+        spender: Address,
+        amount: U256,
+    ) {
+        let token_contract = setup
+            .local_evm
+            .tokens
+            .iter()
+            .find(|t| *t.address() == token)
+            .expect("Token should exist in setup.local_evm.tokens");
+
+        token_contract
+            .transfer(taker, amount)
+            .from(setup.owner)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+
+        token_contract
+            .approve(spender, U256::MAX)
+            .from(taker)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    }
+
+    pub struct MultiOrderbookTestSetup {
+        pub local_evm: LocalEvm,
+        pub owner: Address,
+        pub token1: Address,
+        pub token2: Address,
+        pub token1_sg: SgErc20,
+        pub token2_sg: SgErc20,
+        pub orderbook_a: Address,
+        pub orderbook_b: Address,
+    }
+
+    pub async fn setup_multi_orderbook_test() -> MultiOrderbookTestSetup {
+        use rain_orderbook_test_fixtures::Orderbook;
+
+        let mut local_evm = LocalEvm::new().await;
+        let owner = local_evm.signer_wallets[0].default_signer().address();
+
+        let token1 = local_evm
+            .deploy_new_token("Token1", "Token1", 18, U256::MAX, owner)
+            .await;
+        let token2 = local_evm
+            .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
+            .await;
+
+        let orderbook_a = *local_evm.orderbook.address();
+        let orderbook_b_instance = Orderbook::deploy(local_evm.provider.clone())
+            .await
+            .expect("Should deploy second orderbook");
+        let orderbook_b = *orderbook_b_instance.address();
+
+        MultiOrderbookTestSetup {
+            token1: *token1.address(),
+            token2: *token2.address(),
+            token1_sg: SgErc20 {
+                id: SgBytes(token1.address().to_string()),
+                address: SgBytes(token1.address().to_string()),
+                name: Some("Token1".to_string()),
+                symbol: Some("Token1".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            token2_sg: SgErc20 {
+                id: SgBytes(token2.address().to_string()),
+                address: SgBytes(token2.address().to_string()),
+                name: Some("Token2".to_string()),
+                symbol: Some("Token2".to_string()),
+                decimals: Some(SgBigInt(18.to_string())),
+            },
+            local_evm,
+            owner,
+            orderbook_a,
+            orderbook_b,
+        }
+    }
+
+    pub async fn deposit_to_orderbook(
+        setup: &MultiOrderbookTestSetup,
+        orderbook: Address,
+        token: Address,
+        amount: U256,
+        vault_id: B256,
+    ) {
+        use rain_orderbook_test_fixtures::Orderbook;
+
+        let token_contract = setup
+            .local_evm
+            .tokens
+            .iter()
+            .find(|t| *t.address() == token)
+            .expect("Token should exist");
+
+        token_contract
+            .approve(orderbook, amount)
+            .from(setup.owner)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+
+        let orderbook_instance = Orderbook::new(orderbook, setup.local_evm.provider.clone());
+        let raw_amount = Float::from_fixed_decimal(amount, 18).unwrap().get_inner();
+
+        orderbook_instance
+            .deposit4(token, vault_id, raw_amount, vec![])
+            .from(setup.owner)
+            .send()
+            .await
+            .unwrap()
+            .get_receipt()
+            .await
+            .unwrap();
+    }
+
+    pub fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
+        create_vault_with_balance_and_orderbook(
+            vault_id,
+            &setup.local_evm.anvil.addresses()[0],
+            setup.orderbook,
+            token,
+            "6",
+        )
+    }
+
+    pub fn create_vault_for_orderbook(
+        vault_id: B256,
+        setup: &MultiOrderbookTestSetup,
+        orderbook: Address,
+        token: &SgErc20,
+    ) -> SgVault {
+        create_vault_with_balance_and_orderbook(
+            vault_id,
+            &setup.local_evm.anvil.addresses()[0],
+            orderbook,
+            token,
+            "1000",
+        )
+    }
+
+    pub fn create_vault_with_balance_and_orderbook(
+        vault_id: B256,
+        owner: &Address,
+        orderbook: Address,
+        token: &SgErc20,
+        balance: &str,
+    ) -> SgVault {
+        SgVault {
+            id: SgBytes(vault_id.to_string()),
+            token: token.clone(),
+            balance: SgBytes(Float::parse(balance.to_string()).unwrap().as_hex()),
+            vault_id: SgBytes(vault_id.to_string()),
+            owner: SgBytes(owner.to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(orderbook.to_string()),
+            },
+            orders_as_input: vec![],
+            orders_as_output: vec![],
+            balance_changes: vec![],
+        }
+    }
+}
+
+pub mod orders {
+    use alloy::primitives::{Address, U256};
+    use rain_orderbook_bindings::IOrderBookV6::{EvaluableV4, OrderV4, IOV2};
+
+    pub fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
+        OrderV4 {
+            owner: Address::from([1u8; 20]),
+            nonce: U256::from(1).into(),
+            evaluable: EvaluableV4 {
+                interpreter: Address::from([2u8; 20]),
+                store: Address::from([3u8; 20]),
+                bytecode: alloy::primitives::Bytes::from(vec![0x01, 0x02]),
+            },
+            validInputs: vec![IOV2 {
+                token: input_token,
+                vaultId: U256::from(100).into(),
+            }],
+            validOutputs: vec![IOV2 {
+                token: output_token,
+                vaultId: U256::from(200).into(),
+            }],
+        }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    pub mod deploy {
+        use crate::add_order::AddOrderArgs;
+        use crate::dotrain_order::DotrainOrder;
+        use alloy::hex::encode_prefixed;
+        use alloy::primitives::{Address, B256};
+        use alloy::sol_types::{SolCall, SolValue};
+
+        use super::super::local_evm::TestSetup;
+
+        pub async fn deploy_order(setup: &TestSetup, dotrain: String) -> (String, B256) {
+            let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
+            let deployment = dotrain_order
+                .dotrain_yaml()
+                .get_deployment("test-deployment")
+                .unwrap();
+            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
+                .await
+                .unwrap()
+                .try_into_call(vec![setup.local_evm.url()])
+                .await
+                .unwrap()
+                .abi_encode();
+
+            let (event, _) = setup.local_evm.add_order(&calldata, setup.owner).await;
+            let order_bytes = encode_prefixed(event.order.abi_encode());
+            let order_hash = B256::from(event.orderHash);
+            (order_bytes, order_hash)
+        }
+
+        use super::super::local_evm::MultiOrderbookTestSetup;
+        use rain_orderbook_bindings::IOrderBookV6::OrderV4;
+
+        pub async fn deploy_order_to_orderbook(
+            setup: &MultiOrderbookTestSetup,
+            orderbook: Address,
+            dotrain: String,
+        ) -> (String, B256, OrderV4) {
+            use alloy::network::TransactionBuilder;
+            use alloy::rpc::types::TransactionRequest;
+            use alloy::serde::WithOtherFields;
+            use rain_orderbook_test_fixtures::Orderbook;
+
+            let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
+            let deployment = dotrain_order
+                .dotrain_yaml()
+                .get_deployment("test-deployment")
+                .unwrap();
+            let calldata = AddOrderArgs::new_from_deployment(dotrain, deployment, None)
+                .await
+                .unwrap()
+                .try_into_call(vec![setup.local_evm.url()])
+                .await
+                .unwrap()
+                .abi_encode();
+
+            let tx_req = WithOtherFields::new(
+                TransactionRequest::default()
+                    .with_input(calldata.to_vec())
+                    .with_to(orderbook)
+                    .with_from(setup.owner),
+            );
+
+            let tx = setup
+                .local_evm
+                .send_transaction(tx_req)
+                .await
+                .expect("Should add order");
+
+            let log = tx
+                .inner
+                .inner
+                .logs()
+                .iter()
+                .find_map(|v| v.log_decode::<Orderbook::AddOrderV3>().ok())
+                .expect("Should have AddOrderV3 event")
+                .inner
+                .data;
+
+            let order_bytes = encode_prefixed(log.order.abi_encode());
+            let order_hash = B256::from(log.orderHash);
+            let order_v4 =
+                OrderV4::abi_decode(&log.order.abi_encode()).expect("Should decode OrderV4");
+
+            (order_bytes, order_hash, order_v4)
+        }
+    }
+}
+
+pub mod candidates {
+    use crate::take_orders::TakeOrderCandidate;
+    use alloy::primitives::Address;
+    use rain_math_float::Float;
+
+    use super::orders::make_basic_order;
+
+    pub fn make_candidate(
+        orderbook: Address,
+        max_output: Float,
+        ratio: Float,
+    ) -> TakeOrderCandidate {
+        TakeOrderCandidate {
+            orderbook,
+            order: make_basic_order(Address::from([4u8; 20]), Address::from([5u8; 20])),
+            input_io_index: 0,
+            output_io_index: 0,
+            max_output,
+            ratio,
+        }
+    }
+
+    pub fn make_simulation_candidate(max_output: Float, ratio: Float) -> TakeOrderCandidate {
+        make_candidate(Address::from([0xAAu8; 20]), max_output, ratio)
+    }
+}
+
+pub mod quotes {
+    use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
+    use rain_math_float::Float;
+    use rain_orderbook_quote::Pair;
+
+    pub fn make_quote_value(
+        max_output: Float,
+        max_input: Float,
+        ratio: Float,
+    ) -> RaindexOrderQuoteValue {
+        RaindexOrderQuoteValue {
+            max_output,
+            formatted_max_output: max_output.format().unwrap(),
+            max_input,
+            formatted_max_input: max_input.format().unwrap(),
+            ratio,
+            formatted_ratio: ratio.format().unwrap(),
+            inverse_ratio: ratio,
+            formatted_inverse_ratio: ratio.format().unwrap(),
+        }
+    }
+
+    pub fn make_quote(
+        input_index: u32,
+        output_index: u32,
+        data: Option<RaindexOrderQuoteValue>,
+        success: bool,
+    ) -> RaindexOrderQuote {
+        RaindexOrderQuote {
+            pair: Pair {
+                pair_name: "A/B".to_string(),
+                input_index,
+                output_index,
+            },
+            block_number: 1,
+            data,
+            success,
+            error: if success {
+                None
+            } else {
+                Some("Quote failed".to_string())
+            },
+        }
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub mod dotrain {
+    use alloy::primitives::Address;
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
+
+    use super::local_evm::{MultiOrderbookTestSetup, TestSetup};
+
+    pub struct DotrainBuilder {
+        rpc_url: String,
+        deployer: Address,
+        orderbook: Address,
+        token1: Address,
+        token2: Address,
+        vault_id: String,
+        max_output: String,
+        ratio: String,
+        inputs: Vec<(String, Option<String>)>,
+        outputs: Vec<(String, Option<String>)>,
+    }
+
+    impl DotrainBuilder {
+        pub fn new(setup: &TestSetup) -> Self {
+            Self {
+                rpc_url: setup.local_evm.url(),
+                deployer: *setup.local_evm.deployer.address(),
+                orderbook: setup.orderbook,
+                token1: setup.token1,
+                token2: setup.token2,
+                vault_id: "0x01".to_string(),
+                max_output: "100".to_string(),
+                ratio: "2".to_string(),
+                inputs: vec![("t1".to_string(), None), ("t2".to_string(), None)],
+                outputs: vec![
+                    ("t1".to_string(), Some("0x01".to_string())),
+                    ("t2".to_string(), Some("0x01".to_string())),
+                ],
+            }
+        }
+
+        pub fn from_multi_orderbook_setup(setup: &MultiOrderbookTestSetup) -> Self {
+            Self {
+                rpc_url: setup.local_evm.url(),
+                deployer: *setup.local_evm.deployer.address(),
+                orderbook: setup.orderbook_a,
+                token1: setup.token1,
+                token2: setup.token2,
+                vault_id: "0x01".to_string(),
+                max_output: "100".to_string(),
+                ratio: "2".to_string(),
+                inputs: vec![("t1".to_string(), None)],
+                outputs: vec![("t2".to_string(), Some("0x01".to_string()))],
+            }
+        }
+
+        pub fn with_vault_id(mut self, vault_id: &str) -> Self {
+            self.vault_id = vault_id.to_string();
+            for (_, vault) in self.outputs.iter_mut() {
+                *vault = Some(vault_id.to_string());
+            }
+            self
+        }
+
+        pub fn with_max_output(mut self, max_output: &str) -> Self {
+            self.max_output = max_output.to_string();
+            self
+        }
+
+        pub fn with_ratio(mut self, ratio: &str) -> Self {
+            self.ratio = ratio.to_string();
+            self
+        }
+
+        pub fn with_orderbook(mut self, orderbook: Address) -> Self {
+            self.orderbook = orderbook;
+            self
+        }
+
+        pub fn with_single_io(mut self, vault_id: &str) -> Self {
+            self.inputs = vec![("t1".to_string(), None)];
+            self.outputs = vec![("t2".to_string(), Some(vault_id.to_string()))];
+            self
+        }
+
+        pub fn with_multi_io(
+            mut self,
+            inputs: Vec<(String, Option<String>)>,
+            outputs: Vec<(String, Option<String>)>,
+        ) -> Self {
+            self.inputs = inputs;
+            self.outputs = outputs;
+            self
+        }
+
+        pub fn build(self) -> String {
+            let inputs_yaml = self
+                .inputs
+                .iter()
+                .map(|(token, vault_id)| {
+                    if let Some(vid) = vault_id {
+                        format!(
+                            "            - token: {}\n              vault-id: {}",
+                            token, vid
+                        )
+                    } else {
+                        format!("            - token: {}", token)
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            let outputs_yaml = self
+                .outputs
+                .iter()
+                .map(|(token, vault_id)| {
+                    if let Some(vid) = vault_id {
+                        format!(
+                            "            - token: {}\n              vault-id: {}",
+                            token, vid
+                        )
+                    } else {
+                        format!("            - token: {}", token)
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            format!(
+                r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: 123
+        network-id: 123
+        currency: ETH
+deployers:
+    test-deployer:
+        network: test-network
+        address: {deployer}
+tokens:
+    t1:
+        network: test-network
+        address: {token1}
+        decimals: 18
+        label: Token1
+        symbol: Token1
+    t2:
+        network: test-network
+        address: {token2}
+        decimals: 18
+        label: Token2
+        symbol: Token2
+orderbook:
+    test-orderbook:
+        address: {orderbook}
+orders:
+    test-order:
+        inputs:
+{inputs}
+        outputs:
+{outputs}
+scenarios:
+    test-scenario:
+        deployer: test-deployer
+        bindings:
+            max-amount: 1000
+deployments:
+    test-deployment:
+        scenario: test-scenario
+        order: test-order
+---
+#max-amount !Max output amount
+#calculate-io
+amount price: {max_output} {ratio};
+#handle-add-order
+:;
+#handle-io
+:;
+"#,
+                rpc_url = self.rpc_url,
+                orderbook = self.orderbook,
+                deployer = self.deployer,
+                token1 = self.token1,
+                token2 = self.token2,
+                spec_version = SpecVersion::current(),
+                max_output = self.max_output,
+                ratio = self.ratio,
+                inputs = inputs_yaml,
+                outputs = outputs_yaml,
+            )
+        }
+    }
+
+    pub fn create_dotrain_config(setup: &TestSetup) -> String {
+        DotrainBuilder::new(setup).build()
+    }
+
+    pub fn create_dotrain_config_with_vault_id(setup: &TestSetup, vault_id: &str) -> String {
+        DotrainBuilder::new(setup).with_vault_id(vault_id).build()
+    }
+
+    pub fn create_dotrain_config_with_params(
+        setup: &TestSetup,
+        max_output: &str,
+        ratio: &str,
+    ) -> String {
+        DotrainBuilder::new(setup)
+            .with_max_output(max_output)
+            .with_ratio(ratio)
+            .build()
+    }
+
+    pub fn create_dotrain_config_with_vault_and_ratio(
+        setup: &TestSetup,
+        vault_id: &str,
+        max_output: &str,
+        ratio: &str,
+    ) -> String {
+        DotrainBuilder::new(setup)
+            .with_single_io(vault_id)
+            .with_max_output(max_output)
+            .with_ratio(ratio)
+            .build()
+    }
+
+    pub fn create_dotrain_config_for_orderbook(
+        setup: &MultiOrderbookTestSetup,
+        orderbook: Address,
+        vault_id: &str,
+        max_output: &str,
+        ratio: &str,
+    ) -> String {
+        DotrainBuilder::from_multi_orderbook_setup(setup)
+            .with_orderbook(orderbook)
+            .with_single_io(vault_id)
+            .with_max_output(max_output)
+            .with_ratio(ratio)
+            .build()
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+pub mod subgraph {
+    use alloy::primitives::{Address, B256};
+    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use rain_orderbook_subgraph_client::types::common::{
+        SgBigInt, SgBytes, SgOrder, SgOrderbook, SgVault,
+    };
+    use serde_json::json;
+
+    use super::local_evm::{MultiOrderbookTestSetup, TestSetup};
+
+    pub fn create_sg_order(
+        setup: &TestSetup,
+        order_bytes: String,
+        order_hash: B256,
+        inputs: Vec<SgVault>,
+        outputs: Vec<SgVault>,
+    ) -> SgOrder {
+        SgOrder {
+            id: SgBytes(order_hash.to_string()),
+            orderbook: SgOrderbook {
+                id: SgBytes(setup.orderbook.to_string()),
+            },
+            order_bytes: SgBytes(order_bytes),
+            order_hash: SgBytes(order_hash.to_string()),
+            owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
+            outputs,
+            inputs,
+            active: true,
+            add_events: vec![],
+            meta: None,
+            timestamp_added: SgBigInt(0.to_string()),
+            trades: vec![],
+            remove_events: vec![],
+        }
+    }
+
+    fn vaults_to_json(vaults: &[SgVault], orderbook: Address) -> Vec<serde_json::Value> {
+        vaults
+            .iter()
+            .map(|v| {
+                json!({
+                    "id": v.id.0,
+                    "owner": v.owner.0,
+                    "vaultId": v.vault_id.0,
+                    "balance": v.balance.0,
+                    "token": {
+                        "id": v.token.id.0,
+                        "address": v.token.address.0,
+                        "name": v.token.name.clone().unwrap_or_default(),
+                        "symbol": v.token.symbol.clone().unwrap_or_default(),
+                        "decimals": v.token.decimals.clone().map(|d| d.0).unwrap_or_default()
+                    },
+                    "orderbook": { "id": orderbook.to_string() },
+                    "ordersAsOutput": [],
+                    "ordersAsInput": [],
+                    "balanceChanges": []
+                })
+            })
+            .collect()
+    }
+
+    pub fn create_sg_order_json(
+        setup: &TestSetup,
+        order_bytes: &str,
+        order_hash: B256,
+        inputs: Vec<SgVault>,
+        outputs: Vec<SgVault>,
+    ) -> serde_json::Value {
+        create_sg_order_json_with_orderbook_and_owner(
+            setup.orderbook,
+            setup.owner,
+            order_bytes,
+            order_hash,
+            inputs,
+            outputs,
+        )
+    }
+
+    pub fn create_sg_order_json_with_orderbook(
+        setup: &MultiOrderbookTestSetup,
+        orderbook: Address,
+        order_bytes: &str,
+        order_hash: B256,
+        inputs: Vec<SgVault>,
+        outputs: Vec<SgVault>,
+    ) -> serde_json::Value {
+        create_sg_order_json_with_orderbook_and_owner(
+            orderbook,
+            setup.owner,
+            order_bytes,
+            order_hash,
+            inputs,
+            outputs,
+        )
+    }
+
+    fn create_sg_order_json_with_orderbook_and_owner(
+        orderbook: Address,
+        owner: Address,
+        order_bytes: &str,
+        order_hash: B256,
+        inputs: Vec<SgVault>,
+        outputs: Vec<SgVault>,
+    ) -> serde_json::Value {
+        let inputs_json = vaults_to_json(&inputs, orderbook);
+        let outputs_json = vaults_to_json(&outputs, orderbook);
+
+        json!({
+            "id": order_hash.to_string(),
+            "orderBytes": order_bytes,
+            "orderHash": order_hash.to_string(),
+            "owner": owner.to_string(),
+            "outputs": outputs_json,
+            "inputs": inputs_json,
+            "orderbook": { "id": orderbook.to_string() },
+            "active": true,
+            "timestampAdded": "1739448802",
+            "meta": null,
+            "addEvents": [{
+                "transaction": {
+                    "id": "0x0000000000000000000000000000000000000000000000000000000000000001",
+                    "from": owner.to_string(),
+                    "blockNumber": "1",
+                    "timestamp": "1739448802"
+                }
+            }],
+            "trades": [],
+            "removeEvents": []
+        })
+    }
+
+    pub fn get_minimal_yaml_for_chain(
+        chain_id: u32,
+        rpc_url: &str,
+        sg_url: &str,
+        orderbook_address: &str,
+    ) -> String {
+        format!(
+            r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: {chain_id}
+        network-id: {chain_id}
+        currency: ETH
+subgraphs:
+    test-sg: {sg_url}
+metaboards:
+    test-mb: http://localhost:0/notused
+orderbooks:
+    test-orderbook:
+        address: {orderbook_address}
+        network: test-network
+        subgraph: test-sg
+        local-db-remote: remote
+        deployment-block: 0
+deployers:
+    test-deployer:
+        network: test-network
+        address: 0x1111111111111111111111111111111111111111
+tokens:
+    test-token:
+        network: test-network
+        address: 0x2222222222222222222222222222222222222222
+        decimals: 18
+        label: TestToken
+        symbol: TST
+"#,
+            spec_version = SpecVersion::current(),
+            chain_id = chain_id,
+            rpc_url = rpc_url,
+            sg_url = sg_url,
+            orderbook_address = orderbook_address,
+        )
+    }
+
+    pub fn get_multi_orderbook_yaml(
+        chain_id: u32,
+        rpc_url: &str,
+        sg_url: &str,
+        orderbook_a: &str,
+        orderbook_b: &str,
+    ) -> String {
+        format!(
+            r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - {rpc_url}
+        chain-id: {chain_id}
+        network-id: {chain_id}
+        currency: ETH
+subgraphs:
+    test-sg: {sg_url}
+metaboards:
+    test-mb: http://localhost:0/notused
+orderbooks:
+    orderbook-a:
+        address: {orderbook_a}
+        network: test-network
+        subgraph: test-sg
+        local-db-remote: remote
+        deployment-block: 0
+    orderbook-b:
+        address: {orderbook_b}
+        network: test-network
+        subgraph: test-sg
+        local-db-remote: remote
+        deployment-block: 0
+deployers:
+    test-deployer:
+        network: test-network
+        address: 0x1111111111111111111111111111111111111111
+tokens:
+    test-token:
+        network: test-network
+        address: 0x2222222222222222222222222222222222222222
+        decimals: 18
+        label: TestToken
+        symbol: TST
+"#,
+            spec_version = SpecVersion::current(),
+            chain_id = chain_id,
+            rpc_url = rpc_url,
+            sg_url = sg_url,
+            orderbook_a = orderbook_a,
+            orderbook_b = orderbook_b,
+        )
+    }
+}

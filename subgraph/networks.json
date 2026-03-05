@@ -13,8 +13,8 @@
     },
     "base": {
         "OrderBook": {
-            "address": "0x498Ff70C5f67e63e53b74551DE31387cf2813986",
-            "startBlock": 41134692
+            "address": "0xe522cB4a5fCb2eb31a52Ff41a4653d85A4fd7C9D",
+            "startBlock": 41747644
         }
     },
     "flare": {

@@ -38,7 +38,7 @@ type WipeAndRecreateFn =
     dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), LocalDbQueryError>> + 'static>>;
 
 #[derive(Clone)]
-pub(crate) struct LocalDb {
+pub struct LocalDb {
     execute_batch_fn: Rc<ExecuteBatchFn>,
     query_text_fn: Rc<QueryTextFn>,
     query_json_fn: Rc<QueryJsonFn>,
@@ -46,7 +46,7 @@ pub(crate) struct LocalDb {
 }
 
 impl LocalDb {
-    pub(crate) fn new<E>(executor: E) -> Self
+    pub fn new<E>(executor: E) -> Self
     where
         E: LocalDbQueryExecutor + Sync + 'static,
     {
@@ -290,6 +290,7 @@ impl LocalDbStatusSnapshot {
     }
 }
 
+#[cfg(target_family = "wasm")]
 #[wasm_export]
 impl RaindexClient {
     #[wasm_export(js_name = "startLocalDbScheduler", unchecked_return_type = "void")]
@@ -342,6 +343,29 @@ impl RaindexClient {
             handle.stop();
         }
 
+        Ok(())
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl RaindexClient {
+    pub fn start_local_db_scheduler(
+        &self,
+        settings_yaml: String,
+        db_path: std::path::PathBuf,
+    ) -> Result<(), RaindexError> {
+        self.stop_local_db_scheduler()?;
+        let handle = scheduler::start(settings_yaml, db_path.clone())?;
+        *self.local_db_scheduler.borrow_mut() = Some(handle);
+        let executor = crate::local_db::executor::RusqliteExecutor::new(&db_path);
+        self.set_local_db(LocalDb::new(executor));
+        Ok(())
+    }
+
+    pub fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
+        if let Some(handle) = self.local_db_scheduler.borrow_mut().take() {
+            handle.stop();
+        }
         Ok(())
     }
 }
@@ -679,6 +703,7 @@ local-db-sync:
     rate-limit-delay-ms: 1
     finality-depth: 12
     bootstrap-block-threshold: 1000
+    sync-interval-ms: 5000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1

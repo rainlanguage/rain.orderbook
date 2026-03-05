@@ -352,6 +352,69 @@ describe('OrderDetail', () => {
 		expect(mockOnWithdraw).toHaveBeenCalledWith(mockRaindexClient, mockOrder.vaultsList.items[1]);
 	});
 
+	it('does not show Take Order button for inactive orders', async () => {
+		(mockRaindexClient.getOrderByHash as Mock).mockResolvedValue({
+			value: {
+				...mockOrder,
+				active: false
+			}
+		});
+
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onTakeOrder: vi.fn()
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+		});
+
+		expect(screen.queryByTestId('take-order-button')).not.toBeInTheDocument();
+	});
+
+	it('shows Take Order button for active orders', async () => {
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onTakeOrder: vi.fn()
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+		});
+
+		expect(screen.getByTestId('take-order-button')).toBeInTheDocument();
+	});
+
+	it('calls onTakeOrder callback when Take Order button clicked', async () => {
+		const user = userEvent.setup();
+		const mockOnTakeOrder = vi.fn();
+
+		render(OrderDetail, {
+			props: {
+				...defaultProps,
+				onTakeOrder: mockOnTakeOrder
+			},
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+		});
+
+		const takeOrderButton = screen.getByTestId('take-order-button');
+		expect(takeOrderButton).toBeInTheDocument();
+
+		await user.click(takeOrderButton);
+
+		expect(mockOnTakeOrder).toHaveBeenCalledWith(mockRaindexClient, mockOrder);
+	});
+
 	it('renders the Dotrain tab and content when dotrain source exists', async () => {
 		const user = userEvent.setup();
 		resolveOrder({ dotrainSource: 'dotrain:source' });

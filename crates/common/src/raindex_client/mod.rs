@@ -1,5 +1,9 @@
 use crate::local_db::{query::LocalDbQueryError, LocalDbError};
-use crate::raindex_client::local_db::{pipeline::runner::scheduler::SchedulerHandle, LocalDb};
+#[cfg(not(target_family = "wasm"))]
+use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHandle;
+#[cfg(target_family = "wasm")]
+use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
+use crate::raindex_client::local_db::LocalDb;
 use crate::{
     add_order::AddOrderArgsError, deposit::DepositError, dotrain_order::DotrainOrderError,
     meta::TryDecodeRainlangSourceError, transaction::WritableTransactionExecuteError,
@@ -37,7 +41,9 @@ pub mod local_db;
 pub mod order_quotes;
 pub mod orderbook_yaml;
 pub mod orders;
+pub mod orders_list;
 pub mod remove_orders;
+pub mod take_orders;
 pub mod trades;
 pub mod transactions;
 pub mod vaults;
@@ -85,8 +91,12 @@ pub struct RaindexClient {
     orderbook_yaml: OrderbookYaml,
     #[serde(skip_serializing, skip_deserializing)]
     local_db: Rc<RefCell<Option<LocalDb>>>,
+    #[cfg(target_family = "wasm")]
     #[serde(skip_serializing, skip_deserializing)]
     local_db_scheduler: Rc<RefCell<Option<SchedulerHandle>>>,
+    #[cfg(not(target_family = "wasm"))]
+    #[serde(skip_serializing, skip_deserializing)]
+    local_db_scheduler: Rc<RefCell<Option<NativeSyncHandle>>>,
 }
 
 #[wasm_export]
@@ -223,6 +233,13 @@ impl RaindexClient {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
+impl RaindexClient {
+    pub fn set_local_db(&self, db: LocalDb) {
+        *self.local_db.borrow_mut() = Some(db);
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct SerdeWasmBindgenErrorWrapper {
     message: String,
@@ -322,6 +339,27 @@ pub enum RaindexError {
     LocalDbQueryError(#[from] LocalDbQueryError),
     #[error("Chain id: {0} is not supported for local database")]
     LocalDbUnsupportedNetwork(u32),
+    #[error("No liquidity available for the requested token pair")]
+    NoLiquidity,
+    #[error("Insufficient liquidity: requested {requested}, available {available}")]
+    InsufficientLiquidity {
+        requested: String,
+        available: String,
+    },
+    #[error("Sell token and buy token cannot be the same")]
+    SameTokenPair,
+    #[error("Amount must be positive")]
+    NonPositiveAmount,
+    #[error("Price cap cannot be negative")]
+    NegativePriceCap,
+    #[error(transparent)]
+    RpcClientError(#[from] crate::rpc_client::RpcClientError),
+    #[error("Preflight check failed: {0}")]
+    PreflightError(String),
+    #[error("Quote data is missing")]
+    QuoteDataMissing,
+    #[error("Invalid input index: {0}")]
+    InvalidInputIndex(u32),
     #[error("Cannot parse metadata: {0}")]
     ParseMetaError(#[from] rain_metadata::Error),
     #[error("No metaboards configured for any chain")]
@@ -477,6 +515,36 @@ impl RaindexError {
             }
             RaindexError::LocalDbUnsupportedNetwork(chain_id) => {
                 format!("The chain ID: {chain_id} is not supported for local database operations.")
+            }
+            RaindexError::NoLiquidity => {
+                "No liquidity available for the requested token pair".to_string()
+            }
+            RaindexError::InsufficientLiquidity {
+                requested,
+                available,
+            } => {
+                format!(
+                    "Insufficient liquidity: requested {}, but only {} available",
+                    requested, available
+                )
+            }
+            RaindexError::SameTokenPair => {
+                "Sell token and buy token cannot be the same".to_string()
+            }
+            RaindexError::NonPositiveAmount => "Amount must be positive".to_string(),
+            RaindexError::NegativePriceCap => "Price cap cannot be negative".to_string(),
+            RaindexError::RpcClientError(err) => format!("RPC client error: {}", err),
+            RaindexError::PreflightError(err) => {
+                format!("Preflight check failed: {err}")
+            }
+            RaindexError::QuoteDataMissing => {
+                "Quote data is missing. Please ensure the quote was successful.".to_string()
+            }
+            RaindexError::InvalidInputIndex(index) => {
+                format!(
+                    "Invalid input index: {}. The order does not have an input at this index.",
+                    index
+                )
             }
             RaindexError::ParseMetaError(err) => format!("Cannot parse metadata: {err}"),
             RaindexError::NoMetaboardsConfigured => {

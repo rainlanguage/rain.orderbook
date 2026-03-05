@@ -507,6 +507,60 @@ export class TransactionManager {
 	}
 
 	/**
+	 * Creates and initializes a new transaction for taking orders.
+	 * @param args - Configuration for the take order transaction.
+	 * @param args.txHash - Hash of the transaction to track.
+	 * @param args.chainId - Chain ID where the transaction is being executed.
+	 * @param args.queryKey - The hash of the order being taken (used for query invalidation).
+	 * @param args.entity - The `RaindexOrder` entity associated with this transaction.
+	 * @returns A new Transaction instance configured for taking orders.
+	 * @example
+	 * const tx = await manager.createTakeOrderTransaction({
+	 *   txHash: '0x123...',
+	 *   chainId: 1,
+	 *   queryKey: '0x456...', // Order hash
+	 *   entity: raindexOrderInstance,
+	 *   raindexClient: clientInstance
+	 * });
+	 */
+	public async createTakeOrderTransaction(
+		args: InternalTransactionArgs & { entity: RaindexOrder; raindexClient: RaindexClient }
+	): Promise<Transaction> {
+		const name = TransactionName.TAKE_ORDER;
+		const errorMessage = 'Take order failed.';
+		const successMessage = 'Order taken successfully.';
+		const {
+			chainId,
+			entity: { orderbook },
+			queryKey,
+			txHash,
+			raindexClient
+		} = args;
+
+		const explorerLink = await getExplorerLink(txHash, chainId, 'tx');
+		const toastLinks: ToastLink[] = [
+			{
+				link: explorerLink,
+				label: 'View on explorer'
+			}
+		];
+		const awaitIndexingFn = createSdkIndexingFn({
+			call: () => raindexClient.getTransaction(chainId, orderbook, txHash),
+			isSuccess: (tx) => !!tx
+		});
+
+		return this.createTransaction({
+			...args,
+			name,
+			errorMessage,
+			successMessage,
+			queryKey,
+			toastLinks,
+			awaitIndexingFn
+		});
+	}
+
+	/**
 	 * Creates, initializes, and executes a new transaction instance.
 	 * @param args - Configuration for the transaction.
 	 * @param args.name - Name or title of the transaction.

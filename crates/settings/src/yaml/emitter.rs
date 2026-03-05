@@ -100,15 +100,28 @@ fn validate_optional_string_field<T: YamlParsableString>(
     Ok(())
 }
 
+fn deep_merge_hash(base: &mut Hash, incoming: &Hash) {
+    for (key, value) in incoming {
+        match (base.get(key), value) {
+            (Some(StrictYaml::Hash(existing_hash)), StrictYaml::Hash(incoming_hash)) => {
+                let mut merged = existing_hash.clone();
+                deep_merge_hash(&mut merged, incoming_hash);
+                base.insert(key.clone(), StrictYaml::Hash(merged));
+            }
+            _ => {
+                base.insert(key.clone(), value.clone());
+            }
+        }
+    }
+}
+
 pub fn emit_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<String, YamlError> {
     let mut merged_hash = Hash::new();
 
     for document in documents {
         let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
         if let StrictYaml::Hash(ref hash) = *document_read {
-            for (key, value) in hash {
-                merged_hash.insert(key.clone(), value.clone());
-            }
+            deep_merge_hash(&mut merged_hash, hash);
         }
     }
 
@@ -540,5 +553,33 @@ deployers:
             tokens_pos < deployers_pos,
             "tokens should come before deployers"
         );
+    }
+
+    #[test]
+    fn test_emit_deep_merges_hash_sections() {
+        let yaml1 = r#"
+networks:
+    mainnet:
+        rpcs:
+            - https://eth.llamarpc.com
+        chain-id: 1
+deployers:
+    deployer1:
+        network: mainnet
+        address: 0x0000000000000000000000000000000000000001
+"#;
+        let yaml2 = r#"
+deployers:
+    deployer2:
+        network: mainnet
+        address: 0x0000000000000000000000000000000000000002
+"#;
+        let result = emit_documents(&[get_document(yaml1), get_document(yaml2)]);
+        assert!(result.is_ok());
+        let output = result.unwrap();
+        assert!(output.contains("deployer1:"), "deployer1 should be present");
+        assert!(output.contains("deployer2:"), "deployer2 should be present");
+        assert!(output.contains("0x0000000000000000000000000000000000000001"));
+        assert!(output.contains("0x0000000000000000000000000000000000000002"));
     }
 }

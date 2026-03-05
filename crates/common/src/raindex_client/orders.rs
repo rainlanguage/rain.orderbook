@@ -6,7 +6,14 @@ use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::{is_chain_supported_local_db, OrderbookIdentifier};
 use crate::parsed_meta::ParsedMeta;
+use crate::raindex_client::order_quotes::RaindexOrderQuote;
+use crate::raindex_client::take_orders::{
+    build_candidate_from_quote, estimate_take_order, execute_single_take, TakeOrderEstimate,
+    TakeOrdersCalldataResult,
+};
 use crate::raindex_client::vaults_list::RaindexVaultsList;
+use crate::rpc_client::RpcClient;
+use crate::take_orders::{ParsedTakeOrdersMode, TakeOrdersMode};
 use crate::{
     meta::TryDecodeRainlangSource,
     raindex_client::{
@@ -18,6 +25,7 @@ use alloy::primitives::{b256, keccak256, Address, Bytes, B256, U256};
 use async_trait::async_trait;
 use csv::{ReaderBuilder, Terminator};
 use futures::{stream, StreamExt, TryStreamExt};
+use rain_math_float::Float;
 use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
@@ -542,6 +550,142 @@ impl RaindexOrder {
         let sg_order = self.clone().into_sg_order()?;
         Ok(sg_order)
     }
+
+    /// Generates calldata for `IOrderBookV6.takeOrders4` targeting this specific order.
+    ///
+    /// Unlike `getTakeOrdersCalldata` on `RaindexClient` which discovers orders from the subgraph,
+    /// this method generates calldata for taking this single known order that the user has already
+    /// selected. The method fetches a fresh quote at execution time using the provided pair indices.
+    ///
+    /// This method includes preflight simulation to validate the transaction will succeed.
+    ///
+    /// Parameters:
+    /// - `inputIndex`: Index of the input token in the order's validInputs array
+    /// - `outputIndex`: Index of the output token in the order's validOutputs array
+    /// - `taker`: Address of the account that will execute the takeOrders transaction
+    /// - `mode`: One of `buyExact`, `buyUpTo`, `spendExact`, or `spendUpTo`
+    /// - `amount`: Target amount (output tokens for buy modes, input tokens for spend modes)
+    /// - `priceCap`: human-readable decimal string for max sell per 1 buy
+    ///
+    /// Returns calldata plus pricing info:
+    /// - `calldata`: ABI-encoded bytes for `takeOrders4`.
+    /// - `effectivePrice`: expected blended sell per 1 buy from the simulation.
+    /// - `prices`: per-leg ratios (single entry for this order).
+    /// - `expectedSell`: simulated sell at current quotes.
+    /// - `maxSellCap`: worst-case on-chain spend cap.
+    ///
+    /// ## Example (JS)
+    /// ```javascript
+    /// const res = await order.getTakeCalldata(
+    ///   0, // inputIndex
+    ///   0, // outputIndex
+    ///   "0xTAKER...",
+    ///   "buyUpTo",
+    ///   "10",
+    ///   "1.2",
+    /// );
+    /// if (res.error) {
+    ///   console.error(res.error.readableMsg);
+    /// } else {
+    ///   const { calldata, effectivePrice, expectedSell, maxSellCap, prices, orderbook } = res.value;
+    /// }
+    /// ```
+    #[wasm_export(
+        js_name = "getTakeCalldata",
+        return_description = "Encoded takeOrders4 calldata and price information for this order",
+        unchecked_return_type = "TakeOrdersCalldataResult",
+        preserve_js_class
+    )]
+    pub async fn get_take_calldata(
+        &self,
+        #[wasm_export(
+            js_name = "inputIndex",
+            param_description = "Index of the input token in the order's validInputs array"
+        )]
+        input_index: u32,
+        #[wasm_export(
+            js_name = "outputIndex",
+            param_description = "Index of the output token in the order's validOutputs array"
+        )]
+        output_index: u32,
+        #[wasm_export(param_description = "Address of the taker account")] taker: String,
+        #[wasm_export(
+            param_description = "Take orders mode: buyExact, buyUpTo, spendExact, or spendUpTo"
+        )]
+        mode: TakeOrdersMode,
+        #[wasm_export(param_description = "Target amount as decimal string")] amount: String,
+        #[wasm_export(
+            js_name = "priceCap",
+            param_description = "Maximum price cap as decimal string"
+        )]
+        price_cap: String,
+    ) -> Result<TakeOrdersCalldataResult, RaindexError> {
+        let taker_addr = Address::from_str(&taker)?;
+        let parsed_mode = ParsedTakeOrdersMode::parse(mode, &amount)?;
+        let parsed_price_cap = Float::parse(price_cap)?;
+
+        let zero = Float::zero()?;
+        if parsed_price_cap.lt(zero)? {
+            return Err(RaindexError::NegativePriceCap);
+        }
+
+        let sell_token = self
+            .inputs
+            .get(input_index as usize)
+            .ok_or(RaindexError::InvalidInputIndex(input_index))?
+            .token()
+            .address();
+        #[cfg(target_family = "wasm")]
+        let sell_token = Address::from_str(&sell_token)?;
+
+        let rpc_urls = self.get_rpc_urls()?;
+
+        let rpc_client = RpcClient::new_with_urls(rpc_urls.clone())?;
+        let block_number = rpc_client.get_latest_block_number().await?;
+
+        let fresh_quotes = self.get_quotes(Some(block_number), None).await?;
+
+        let fresh_quote = fresh_quotes
+            .into_iter()
+            .find(|q| q.pair.input_index == input_index && q.pair.output_index == output_index)
+            .ok_or(RaindexError::NoLiquidity)?;
+
+        let candidate =
+            build_candidate_from_quote(self, &fresh_quote)?.ok_or(RaindexError::NoLiquidity)?;
+
+        execute_single_take(
+            candidate,
+            parsed_mode,
+            parsed_price_cap,
+            taker_addr,
+            &rpc_urls,
+            Some(block_number),
+            sell_token,
+        )
+        .await
+    }
+
+    #[wasm_export(
+        js_name = "estimateTakeOrder",
+        return_description = "Estimated spend/receive amounts and partial fill indicator",
+        unchecked_return_type = "TakeOrderEstimate",
+        preserve_js_class
+    )]
+    pub fn estimate_take_order_method(
+        &self,
+        #[wasm_export(param_description = "Quote for the order pair")] quote: &RaindexOrderQuote,
+        #[wasm_export(
+            js_name = "isBuy",
+            param_description = "True if buying output token, false if selling input token"
+        )]
+        is_buy: bool,
+        #[wasm_export(param_description = "Amount as decimal string")] amount: String,
+    ) -> Result<TakeOrderEstimate, RaindexError> {
+        let data = quote.data.as_ref().ok_or(RaindexError::QuoteDataMissing)?;
+        let amount_float = Float::parse(amount)?;
+
+        estimate_take_order(data.max_output, data.ratio, is_buy, amount_float)
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
@@ -965,6 +1109,36 @@ impl RaindexClient {
             })?;
         order.fetch_dotrain_source().await?;
         Ok(order)
+    }
+}
+
+impl RaindexClient {
+    pub(crate) async fn fetch_orders_for_pair(
+        &self,
+        chain_id: u32,
+        sell_token: Address,
+        buy_token: Address,
+    ) -> Result<Vec<RaindexOrder>, RaindexError> {
+        let filters = GetOrdersFilters {
+            owners: vec![],
+            active: Some(true),
+            order_hash: None,
+            tokens: Some(GetOrdersTokenFilter {
+                inputs: Some(vec![sell_token]),
+                outputs: Some(vec![buy_token]),
+            }),
+            orderbook_addresses: None,
+        };
+
+        let orders = self
+            .get_orders(Some(ChainIds(vec![chain_id])), Some(filters), None)
+            .await?;
+
+        if orders.is_empty() {
+            return Err(RaindexError::NoLiquidity);
+        }
+
+        Ok(orders)
     }
 }
 
@@ -2932,5 +3106,292 @@ mod tests {
 
         //     assert_eq!(result.len(), 1);
         // }
+
+        #[tokio::test]
+        async fn test_fetch_orders_for_pair_returns_orders() {
+            let sg_server = MockServer::start_async().await;
+
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": {
+                        "orders": [get_order1_json()]
+                    }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let sell = address!("1d80c49bbbcd1c0911346656b529df9e5c2f783d");
+            let buy = address!("12e605bc104e93b45e1ad99f9e555f659051c2bb");
+            let result = client.fetch_orders_for_pair(1, sell, buy).await.unwrap();
+            assert_eq!(result.len(), 1);
+        }
+
+        #[tokio::test]
+        async fn test_fetch_orders_for_pair_no_liquidity() {
+            let sg_server = MockServer::start_async().await;
+
+            sg_server.mock(|when, then| {
+                when.path("/sg1");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+            sg_server.mock(|when, then| {
+                when.path("/sg2");
+                then.status(200).json_body_obj(&json!({
+                    "data": { "orders": [] }
+                }));
+            });
+
+            let client = RaindexClient::new(
+                vec![get_test_yaml(
+                    &sg_server.url("/sg1"),
+                    &sg_server.url("/sg2"),
+                    &sg_server.url("/rpc1"),
+                    &sg_server.url("/rpc2"),
+                )],
+                None,
+            )
+            .unwrap();
+
+            let sell = address!("1d80c49bbbcd1c0911346656b529df9e5c2f783d");
+            let buy = address!("12e605bc104e93b45e1ad99f9e555f659051c2bb");
+            let result = client.fetch_orders_for_pair(1, sell, buy).await;
+            assert!(matches!(result, Err(RaindexError::NoLiquidity)));
+        }
+    }
+
+    #[cfg(target_family = "wasm")]
+    mod wasm_tests {
+        use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
+        use crate::raindex_client::take_orders::{
+            estimate_take_order, TakeOrderEstimate, TakeOrdersCalldataResult,
+        };
+        use crate::take_orders::TakeOrdersMode;
+        use alloy::primitives::{Address, Bytes};
+        use rain_math_float::Float;
+        use rain_orderbook_quote::Pair;
+        use std::ops::Mul;
+        use wasm_bindgen_test::wasm_bindgen_test;
+        use wasm_bindgen_utils::prelude::{from_js_value, to_js_value};
+
+        fn make_test_quote_value() -> RaindexOrderQuoteValue {
+            let max_output = Float::parse("100".to_string()).unwrap();
+            let ratio = Float::parse("2".to_string()).unwrap();
+            let max_input = max_output.mul(ratio).unwrap();
+            let inverse_ratio = Float::parse("0.5".to_string()).unwrap();
+            RaindexOrderQuoteValue {
+                max_output,
+                formatted_max_output: "100".to_string(),
+                max_input,
+                formatted_max_input: "200".to_string(),
+                ratio,
+                formatted_ratio: "2".to_string(),
+                inverse_ratio,
+                formatted_inverse_ratio: "0.5".to_string(),
+            }
+        }
+
+        fn make_test_quote() -> RaindexOrderQuote {
+            RaindexOrderQuote {
+                pair: Pair {
+                    pair_name: "TOKEN_A/TOKEN_B".to_string(),
+                    input_index: 0,
+                    output_index: 0,
+                },
+                block_number: 12345678,
+                data: Some(make_test_quote_value()),
+                success: true,
+                error: None,
+            }
+        }
+
+        fn make_test_calldata_result() -> TakeOrdersCalldataResult {
+            use crate::raindex_client::take_orders::result::TakeOrdersInfoData;
+
+            let orderbook = Address::from([0x11u8; 20]);
+            let calldata = Bytes::from(vec![0x01, 0x02, 0x03, 0x04]);
+            let effective_price = Float::parse("1.5".to_string()).unwrap();
+            let prices = vec![
+                Float::parse("1.4".to_string()).unwrap(),
+                Float::parse("1.6".to_string()).unwrap(),
+            ];
+            let expected_sell = Float::parse("150".to_string()).unwrap();
+            let max_sell_cap = Float::parse("200".to_string()).unwrap();
+
+            TakeOrdersCalldataResult::ready(TakeOrdersInfoData {
+                orderbook,
+                calldata,
+                effective_price,
+                prices,
+                expected_sell,
+                max_sell_cap,
+            })
+        }
+
+        #[wasm_bindgen_test]
+        fn test_raindex_order_quote_wasm_serialization() {
+            let quote = make_test_quote();
+
+            let js_value = to_js_value(&quote).expect("Should serialize RaindexOrderQuote to JS");
+            let roundtrip: RaindexOrderQuote =
+                from_js_value(js_value).expect("Should deserialize RaindexOrderQuote from JS");
+
+            assert_eq!(roundtrip.pair.pair_name, quote.pair.pair_name);
+            assert_eq!(roundtrip.pair.input_index, quote.pair.input_index);
+            assert_eq!(roundtrip.pair.output_index, quote.pair.output_index);
+            assert_eq!(roundtrip.block_number, quote.block_number);
+            assert_eq!(roundtrip.success, quote.success);
+            assert!(roundtrip.error.is_none());
+
+            let data = roundtrip.data.expect("Should have quote data");
+            let original_data = quote.data.expect("Original should have data");
+            assert!(data.max_output.eq(original_data.max_output).unwrap());
+            assert!(data.ratio.eq(original_data.ratio).unwrap());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_raindex_order_quote_failed_wasm_serialization() {
+            let quote = RaindexOrderQuote {
+                pair: Pair {
+                    pair_name: "FAIL/TEST".to_string(),
+                    input_index: 1,
+                    output_index: 2,
+                },
+                block_number: 99999,
+                data: None,
+                success: false,
+                error: Some("Quote simulation failed".to_string()),
+            };
+
+            let js_value = to_js_value(&quote).expect("Should serialize failed quote to JS");
+            let roundtrip: RaindexOrderQuote =
+                from_js_value(js_value).expect("Should deserialize failed quote from JS");
+
+            assert_eq!(roundtrip.pair.pair_name, "FAIL/TEST");
+            assert!(!roundtrip.success);
+            assert!(roundtrip.data.is_none());
+            assert_eq!(roundtrip.error, Some("Quote simulation failed".to_string()));
+        }
+
+        #[wasm_bindgen_test]
+        fn test_take_orders_calldata_result_wasm_serialization() {
+            let result = make_test_calldata_result();
+
+            assert!(result.is_ready());
+            let result_info = result.take_orders_info().unwrap();
+
+            let js_value =
+                to_js_value(&result_info).expect("Should serialize TakeOrdersInfo to JS");
+            let roundtrip: crate::raindex_client::take_orders::TakeOrdersInfo =
+                from_js_value(js_value).expect("Should deserialize TakeOrdersInfo from JS");
+
+            assert_eq!(roundtrip.orderbook(), result_info.orderbook());
+            assert_eq!(roundtrip.calldata(), result_info.calldata());
+            assert!(roundtrip
+                .effective_price()
+                .eq(result_info.effective_price())
+                .unwrap());
+            assert_eq!(roundtrip.prices().len(), result_info.prices().len());
+            for (rt_price, orig_price) in roundtrip.prices().iter().zip(result_info.prices().iter())
+            {
+                assert!(rt_price.eq(*orig_price).unwrap());
+            }
+            assert!(roundtrip
+                .expected_sell()
+                .eq(result_info.expected_sell())
+                .unwrap());
+            assert!(roundtrip
+                .max_sell_cap()
+                .eq(result_info.max_sell_cap())
+                .unwrap());
+        }
+
+        #[wasm_bindgen_test]
+        fn test_take_orders_mode_wasm_serialization_for_get_take_calldata() {
+            let modes = vec![
+                TakeOrdersMode::BuyUpTo,
+                TakeOrdersMode::BuyExact,
+                TakeOrdersMode::SpendUpTo,
+                TakeOrdersMode::SpendExact,
+            ];
+
+            for mode in modes {
+                let js_value = to_js_value(&mode).expect("Should serialize TakeOrdersMode to JS");
+                let roundtrip: TakeOrdersMode =
+                    from_js_value(js_value).expect("Should deserialize TakeOrdersMode from JS");
+                assert_eq!(roundtrip, mode);
+            }
+        }
+
+        #[wasm_bindgen_test]
+        fn test_order_estimate_take_order_wasm() {
+            let max_output = Float::parse("100".to_string()).unwrap();
+            let ratio = Float::parse("2".to_string()).unwrap();
+            let amount = Float::parse("50".to_string()).unwrap();
+
+            let estimate = estimate_take_order(max_output, ratio, true, amount).unwrap();
+
+            let js_value =
+                to_js_value(&estimate).expect("Should serialize TakeOrderEstimate to JS");
+            let roundtrip: TakeOrderEstimate =
+                from_js_value(js_value).expect("Should deserialize TakeOrderEstimate from JS");
+
+            assert!(roundtrip
+                .expected_spend()
+                .eq(estimate.expected_spend())
+                .unwrap());
+            assert!(roundtrip
+                .expected_receive()
+                .eq(estimate.expected_receive())
+                .unwrap());
+            assert_eq!(roundtrip.is_partial(), estimate.is_partial());
+            assert!(!roundtrip.is_partial());
+
+            let partial_amount = Float::parse("150".to_string()).unwrap();
+            let partial_estimate =
+                estimate_take_order(max_output, ratio, true, partial_amount).unwrap();
+
+            let partial_js =
+                to_js_value(&partial_estimate).expect("Should serialize partial estimate to JS");
+            let partial_roundtrip: TakeOrderEstimate =
+                from_js_value(partial_js).expect("Should deserialize partial estimate from JS");
+
+            assert!(partial_roundtrip.is_partial());
+            assert!(partial_roundtrip.expected_receive().eq(max_output).unwrap());
+
+            let sell_estimate = estimate_take_order(max_output, ratio, false, amount).unwrap();
+
+            let sell_js =
+                to_js_value(&sell_estimate).expect("Should serialize sell estimate to JS");
+            let sell_roundtrip: TakeOrderEstimate =
+                from_js_value(sell_js).expect("Should deserialize sell estimate from JS");
+
+            assert!(sell_roundtrip
+                .expected_spend()
+                .eq(sell_estimate.expected_spend())
+                .unwrap());
+            assert!(sell_roundtrip
+                .expected_receive()
+                .eq(sell_estimate.expected_receive())
+                .unwrap());
+        }
     }
 }
