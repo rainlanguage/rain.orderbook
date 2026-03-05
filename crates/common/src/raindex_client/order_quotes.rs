@@ -400,7 +400,9 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
@@ -498,7 +500,9 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
@@ -564,7 +568,9 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
@@ -655,7 +661,9 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(

@@ -389,8 +389,10 @@ orderbooks:
         )
     }
 
-    fn build_client() -> RaindexClient {
-        RaindexClient::new(vec![single_orderbook_settings_yaml()], None)
+    #[cfg(not(target_family = "wasm"))]
+    async fn build_client() -> RaindexClient {
+        RaindexClient::new(vec![single_orderbook_settings_yaml()], None, None)
+            .await
             .expect("valid orderbook yaml")
     }
 

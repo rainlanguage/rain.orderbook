@@ -490,7 +490,7 @@ test-order http://localhost:8231/order.rain`;
 				await DotrainRegistry.new('http://localhost:8231/registry.txt')
 			);
 
-			const raindexClientResult = registry.getRaindexClient();
+			const raindexClientResult = await registry.getRaindexClient();
 			const raindexClient = extractWasmEncodedData(raindexClientResult);
 
 			assert.ok(raindexClient, 'RaindexClient instance should be returned');

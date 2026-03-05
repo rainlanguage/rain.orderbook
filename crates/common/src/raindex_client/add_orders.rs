@@ -357,7 +357,9 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let res = raindex_client
                 .get_add_orders_for_transaction(
@@ -539,7 +541,9 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let res = raindex_client
@@ -571,7 +575,9 @@ mod tests {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let err = raindex_client
@@ -641,7 +647,8 @@ mod tests {
                 )],
                 local_db,
                 vec![137],
-            );
+            )
+            .await;
 
             let res = client
                 .get_add_orders_for_transaction(137, orderbook_address, tx_hash, Some(3), Some(1))
@@ -690,7 +697,8 @@ mod tests {
                 )],
                 local_db,
                 vec![137],
-            );
+            )
+            .await;
 
             let err = client
                 .get_add_orders_for_transaction(137, orderbook_address, tx_hash, Some(2), Some(1))

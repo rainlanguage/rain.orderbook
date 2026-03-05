@@ -279,7 +279,9 @@ mod test_helpers {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let tx = raindex_client
                 .get_transaction(
@@ -320,7 +322,9 @@ mod test_helpers {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let tx = raindex_client
@@ -357,7 +361,9 @@ mod test_helpers {
                     "http://localhost:3000",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let err = raindex_client

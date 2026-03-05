@@ -2304,7 +2304,9 @@ mod tests {
                     "http://rpc2",
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let local_vault = LocalDbVault {
@@ -2406,7 +2408,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let result = raindex_client
@@ -2470,7 +2474,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let vault = raindex_client
@@ -2559,7 +2565,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let err = raindex_client
                 .get_vault(
@@ -2648,7 +2656,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -2738,7 +2748,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let vault = raindex_client
@@ -2825,7 +2837,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -2935,7 +2949,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -2985,7 +3001,9 @@ mod tests {
                     &server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3052,7 +3070,9 @@ mod tests {
                     &server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3117,7 +3137,9 @@ mod tests {
                     &rpc_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3193,7 +3215,9 @@ mod tests {
                     &rpc_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3239,7 +3263,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let filters = GetVaultsFilters {
@@ -3296,7 +3322,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             let filters = GetVaultsFilters {
@@ -3364,7 +3392,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             // Test with specific chain filter (only chain 1)
@@ -3401,7 +3431,9 @@ mod tests {
                     &sg_server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
 
             // Test with specific chain filter (only chain 1)
@@ -3448,7 +3480,9 @@ mod tests {
                     &server.url("/rpc2"),
                 )],
                 None,
+                None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
