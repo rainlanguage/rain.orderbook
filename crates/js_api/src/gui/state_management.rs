@@ -825,6 +825,7 @@ mod tests {
             label: Some("Replaced Token 3".to_string()),
             symbol: Some("NEW3".to_string()),
             logo_uri: None,
+            extensions: None,
         };
 
         let dotrain_order = DotrainOrder::create(dotrain_with_existing_token.clone(), None)
