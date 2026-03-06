@@ -3,13 +3,6 @@
 pragma solidity =0.8.25;
 
 import {Test, Vm, console2} from "forge-std/Test.sol";
-import {Rainterpreter} from "rain.interpreter/concrete/Rainterpreter.sol";
-import {RainterpreterStore} from "rain.interpreter/concrete/RainterpreterStore.sol";
-import {
-    RainterpreterExpressionDeployer,
-    RainterpreterExpressionDeployerConstructionConfigV2
-} from "rain.interpreter/concrete/RainterpreterExpressionDeployer.sol";
-import {LibAllStandardOps} from "rain.interpreter/lib/op/LibAllStandardOps.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IOrderBookV6Stub} from "test/util/abstract/IOrderBookV6Stub.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
@@ -22,16 +15,15 @@ import {
     SignedContextV1
 } from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
 import {OrderBookV6, IERC20} from "src/concrete/ob/OrderBookV6.sol";
-import {RainterpreterParser} from "rain.interpreter/concrete/RainterpreterParser.sol";
 import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
+import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 
 abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
     IInterpreterV4 internal immutable iInterpreter;
     IInterpreterStoreV3 internal immutable iStore;
-    RainterpreterParser internal immutable iParser;
     IParserV2 internal immutable iParserV2;
     IOrderBookV6 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
@@ -39,18 +31,13 @@ abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
     OrderBookV6SubParser internal immutable iSubParser;
 
     constructor() {
-        // Put the TOFU decimals contract in place so that any calls to it
-        // succeed. This is because we don't have zoltu here.
         vm.etch(address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT), type(TOFUTokenDecimals).runtimeCode);
 
-        iInterpreter = IInterpreterV4(new Rainterpreter());
-        iStore = IInterpreterStoreV3(new RainterpreterStore());
-        iParser = new RainterpreterParser();
-        iParserV2 = new RainterpreterExpressionDeployer(
-            RainterpreterExpressionDeployerConstructionConfigV2({
-                interpreter: address(iInterpreter), store: address(iStore), parser: address(iParser)
-            })
-        );
+        LibInterpreterDeploy.etchDISPaiR(vm);
+
+        iInterpreter = IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS);
+        iStore = IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS);
+        iParserV2 = IParserV2(LibInterpreterDeploy.EXPRESSION_DEPLOYER_DEPLOYED_ADDRESS);
 
         iOrderbook = IOrderBookV6(address(new OrderBookV6()));
 
@@ -70,7 +57,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
         vm.assume(account != address(iInterpreter));
         vm.assume(account != address(iStore));
         vm.assume(account != address(iParserV2));
-        vm.assume(account != address(iParser));
+        vm.assume(account != LibInterpreterDeploy.PARSER_DEPLOYED_ADDRESS);
 
         vm.assume(account != address(iOrderbook));
         vm.assume(account != address(iToken0));
