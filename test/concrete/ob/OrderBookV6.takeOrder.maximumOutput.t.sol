@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookV6ExternalRealTest, Vm} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     OrderV4,
@@ -59,7 +60,8 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         TestVault[] memory testVaults,
         Float maximumTakerOutput,
         Float expectedTakerInput,
-        Float expectedTakerOutput
+        Float expectedTakerOutput,
+        bytes32 outputVaultId
     ) internal {
         address bob = address(uint160(uint256(keccak256("bob.rain.test"))));
         bytes32 vaultId = bytes32(uint256(0x01));
@@ -74,7 +76,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
                     IOV2[] memory inputs = new IOV2[](1);
                     inputs[0] = IOV2({token: address(iToken0), vaultId: vaultId});
                     IOV2[] memory outputs = new IOV2[](1);
-                    outputs[0] = IOV2({token: address(iToken1), vaultId: vaultId});
+                    outputs[0] = IOV2({token: address(iToken1), vaultId: outputVaultId});
                     EvaluableV4 memory evaluable =
                         EvaluableV4({interpreter: iInterpreter, store: iStore, bytecode: bytecode});
                     orderConfig = OrderConfigV4({
@@ -208,7 +210,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         testVaults[1] =
             TestVault({owner: owner, token: address(iToken0), deposit: Float.wrap(0), expect: expectedTakerOutput});
 
-        checkTakeOrderMaximumOutput(testOrders, testVaults, expectedTakerInput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, expectedTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)));
     }
 
     /// Add an order with less than the maximum IO. Only the limit from the order
@@ -232,7 +234,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         testVaults[1] =
             TestVault({owner: owner, token: address(iToken0), deposit: Float.wrap(0), expect: expectedTakerOutput});
 
-        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)));
     }
 
     /// If the vault balance is less than both the maximum output and the order
@@ -265,7 +267,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
             TestVault({owner: owner, token: address(iToken1), deposit: ownerDepositAmount, expect: Float.wrap(0)});
         testVaults[1] =
             TestVault({owner: owner, token: address(iToken0), deposit: Float.wrap(0), expect: expectedTakerOutput});
-        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)));
     }
 
     /// The deposit amount can be anything, the order taking should adjust
@@ -303,7 +305,45 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         });
         testVaults[1] =
             TestVault({owner: owner, token: address(iToken0), deposit: Float.wrap(0), expect: expectedTakerOutput});
-        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)));
+    }
+
+    /// Same as testTakeOrderMaximumOutputSingleAnyDeposit but with output
+    /// vault ID 0 (vaultless).
+    function testTakeOrderMaximumOutputSingleAnyDepositOutputVaultIdZero(
+        uint256 ownerDepositAmount18,
+        uint256 maximumTakerOutput18
+    ) external {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
+        uint256 orderLimit18 = 1000;
+
+        TestOrder[] memory testOrders = new TestOrder[](1);
+        testOrders[0] = TestOrder({owner: owner, orderString: "_ _: 1000e-18 2;:;"});
+
+        ownerDepositAmount18 = bound(ownerDepositAmount18, 0, uint256(int256(type(int224).max)));
+        maximumTakerOutput18 = bound(maximumTakerOutput18, 1, uint256(int256(type(int224).max)));
+
+        Float orderIO = LibDecimalFloat.fromFixedDecimalLosslessPacked(2, 0);
+        Float orderLimit = LibDecimalFloat.fromFixedDecimalLosslessPacked(orderLimit18, 18);
+        Float ownerDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerDepositAmount18, 18);
+        Float maximumTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerOutput18, 18);
+        Float maximumTakerInput = maximumTakerOutput.div(orderIO);
+
+        Float expectedTakerInput = maximumTakerInput.min(ownerDepositAmount);
+        expectedTakerInput = expectedTakerInput.min(orderLimit);
+
+        Float expectedTakerOutput = expectedTakerInput.mul(orderIO);
+
+        TestVault[] memory testVaults = new TestVault[](2);
+        testVaults[0] = TestVault({
+            owner: owner,
+            token: address(iToken1),
+            deposit: ownerDepositAmount,
+            expect: ownerDepositAmount.sub(expectedTakerInput)
+        });
+        testVaults[1] =
+            TestVault({owner: owner, token: address(iToken0), deposit: Float.wrap(0), expect: expectedTakerOutput});
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(0));
     }
 
     /// The taker input can be sourced from multiple orders. Tests two orders
@@ -343,7 +383,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         testVaults[1] =
             TestVault({owner: owner, token: address(iToken0), deposit: Float.wrap(0), expect: expectedTakerOutput});
 
-        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)));
     }
 
     /// The taker input can be sourced from multiple orders with different
@@ -414,6 +454,6 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
             });
         }
         Float expectedTakerOutput = expectedTakerInput.mul(orderIO);
-        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)));
     }
 }
