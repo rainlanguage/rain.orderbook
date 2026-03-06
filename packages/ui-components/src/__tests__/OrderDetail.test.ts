@@ -518,6 +518,40 @@ describe('OrderDetail', () => {
 		});
 	});
 
+	it('displays oracle URL when order has an oracle', async () => {
+		const oracleUrl = 'https://oracle.example.com/signed-context';
+		resolveOrder({ oracleUrl });
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Oracle')).toBeInTheDocument();
+			const link = screen.getByRole('link', { name: oracleUrl });
+			expect(link).toBeInTheDocument();
+			expect(link).toHaveAttribute('href', oracleUrl);
+			expect(link).toHaveAttribute('target', '_blank');
+			expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+		});
+	});
+
+	it('does not display oracle section when order has no oracle URL', async () => {
+		resolveOrder({ oracleUrl: undefined });
+
+		render(OrderDetail, {
+			props: defaultProps,
+			context: new Map([['$$_queryClient', queryClient]])
+		});
+
+		await waitFor(() => {
+			expect(screen.getByText('Order')).toBeInTheDocument();
+		});
+
+		expect(screen.queryByText('Oracle')).not.toBeInTheDocument();
+	});
+
 	it('falls back to Hash component when no explorer link is available', async () => {
 		(getExplorerLink as Mock).mockReturnValue('');
 
