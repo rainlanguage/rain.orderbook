@@ -54,6 +54,7 @@ pub fn build_candidate_from_quote(
         output_io_index,
         max_output: data.max_output,
         ratio: data.ratio,
+        signed_context: vec![],
     }))
 }
 
@@ -102,15 +103,48 @@ pub fn estimate_take_order(
     ))
 }
 
+/// Parameters for executing a single take order operation.
+pub struct ExecuteSingleTakeParams<'a> {
+    pub candidate: TakeOrderCandidate,
+    pub mode: ParsedTakeOrdersMode,
+    pub price_cap: Float,
+    pub taker: Address,
+    pub rpc_urls: &'a [Url],
+    pub block_number: Option<u64>,
+    pub sell_token: Address,
+    pub oracle_url: Option<String>,
+}
+
 pub async fn execute_single_take(
-    candidate: TakeOrderCandidate,
-    mode: ParsedTakeOrdersMode,
-    price_cap: Float,
-    taker: Address,
-    rpc_urls: &[Url],
-    block_number: Option<u64>,
-    sell_token: Address,
+    params: ExecuteSingleTakeParams<'_>,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
+    let ExecuteSingleTakeParams {
+        candidate,
+        mode,
+        price_cap,
+        taker,
+        rpc_urls,
+        block_number,
+        sell_token,
+        oracle_url,
+    } = params;
+    // Fetch signed context from oracle if URL provided
+    let mut candidate = candidate;
+    if let Some(url) = oracle_url {
+        let body = crate::oracle::encode_oracle_body(
+            &candidate.order,
+            candidate.input_io_index,
+            candidate.output_io_index,
+            taker,
+        );
+        match crate::oracle::fetch_signed_context(&url, body).await {
+            Ok(ctx) => candidate.signed_context = vec![ctx],
+            Err(e) => {
+                tracing::warn!("Failed to fetch oracle data from {}: {}", url, e);
+            }
+        }
+    }
+
     let zero = Float::zero()?;
 
     if candidate.ratio.gt(price_cap)? {
