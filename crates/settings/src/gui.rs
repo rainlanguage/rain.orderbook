@@ -1196,6 +1196,7 @@ mod tests {
             network: mock_network(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         };
         let deployment = DeploymentCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),

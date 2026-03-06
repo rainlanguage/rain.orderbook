@@ -437,6 +437,7 @@ mod tests {
             network: mock_network(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         })
     }
 
@@ -453,6 +454,7 @@ mod tests {
             network: mock_network(),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         })
     }
 
@@ -587,6 +589,7 @@ mod tests {
             network: mock_network(),
             deployer: Some(mock_deployer()),
             orderbook: Some(mock_orderbook()),
+            oracle_url: None,
         };
         context.add_order(Arc::new(order));
 
