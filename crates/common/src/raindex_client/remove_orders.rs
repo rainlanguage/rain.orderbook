@@ -404,6 +404,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let res = raindex_client
                 .get_remove_orders_for_transaction(
@@ -610,6 +611,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
@@ -647,6 +649,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let res = raindex_client
@@ -681,6 +684,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let err = raindex_client
@@ -751,7 +755,8 @@ mod tests {
                 )],
                 local_db,
                 vec![137],
-            );
+            )
+            .await;
 
             let res = client
                 .get_remove_orders_for_transaction(
@@ -806,7 +811,8 @@ mod tests {
                 )],
                 local_db,
                 vec![137],
-            );
+            )
+            .await;
 
             let err = client
                 .get_remove_orders_for_transaction(

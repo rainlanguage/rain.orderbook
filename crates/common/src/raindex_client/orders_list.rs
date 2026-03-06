@@ -112,6 +112,7 @@ mod tests {
             None,
             None,
         )
+        .await
         .unwrap();
         client
             .get_order_by_hash(
