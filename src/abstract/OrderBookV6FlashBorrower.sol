@@ -7,22 +7,18 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import {
-    LibEncodedDispatch,
-    EncodedDispatch
-} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
-import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {
-    IOrderBookV6,
+    IRaindexV6,
     TakeOrdersConfigV5,
     TaskV2,
     Float
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
-import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {OrderBookV6ArbConfig, OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
-import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/unstable/IInterpreterCallerV4.sol";
+import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
 import {LibOrderBook} from "../lib/LibOrderBook.sol";
 import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
@@ -109,7 +105,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (Float totalInput, Float totalOutput) = IOrderBookV6(msg.sender).takeOrders4(takeOrders);
+        (Float totalInput, Float totalOutput) = IRaindexV6(msg.sender).takeOrders4(takeOrders);
         (totalInput, totalOutput);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;
@@ -137,14 +133,14 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// the external liquidity. For example, `GenericPoolOrderBookV5FlashBorrower`
     /// uses this data as a literal encoded external call.
     function arb4(
-        IOrderBookV6 orderBook,
+        IRaindexV6 orderBook,
         TakeOrdersConfigV5 calldata takeOrders,
         bytes calldata exchangeData,
         TaskV2 calldata task
     ) external payable nonReentrant onlyValidTask(task) {
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
-            revert IOrderBookV6.NoOrders();
+            revert IRaindexV6.NoOrders();
         }
 
         // Encode everything that will be used by the flash loan callback.

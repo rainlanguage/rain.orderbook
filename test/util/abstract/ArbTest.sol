@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/v1/IExpressionDeployerV3.sol";
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {Refundoor} from "test/util/concrete/Refundoor.sol";
 import {
@@ -18,10 +18,11 @@ import {
     EvaluableV4
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
 import {OrderBookV6ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
-import {IInterpreterV4} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
-import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
+import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
+import {TOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}

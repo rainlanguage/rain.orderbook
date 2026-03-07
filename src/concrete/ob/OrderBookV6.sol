@@ -9,10 +9,6 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import {
-    LibEncodedDispatch,
-    EncodedDispatch
-} from "rain.interpreter.interface/lib/deprecated/caller/LibEncodedDispatch.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {
@@ -21,10 +17,10 @@ import {
     IInterpreterV4,
     StackItem,
     EvalV4
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibUint256Array} from "rain.solmem/lib/LibUint256Array.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
@@ -32,12 +28,12 @@ import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {
     LibTOFUTokenDecimals,
-    TOFUOutcome,
-    TokenDecimalsReadFailure
+    TOFUOutcome
 } from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
+import {ITOFUTokenDecimals} from "rain.tofu.erc20-decimals/interface/ITOFUTokenDecimals.sol";
 
 import {
-    IOrderBookV6,
+    IRaindexV6,
     OrderV4,
     OrderConfigV4,
     TakeOrderConfigV4,
@@ -52,8 +48,8 @@ import {
     QuoteV2,
     Float,
     IOV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
-import {IOrderBookV6OrderTaker} from "rain.orderbook.interface/interface/unstable/IOrderBookV6OrderTaker.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {IRaindexV6OrderTaker} from "rain.raindex.interface/interface/IRaindexV6OrderTaker.sol";
 import {LibOrder} from "../../lib/LibOrder.sol";
 import {
     CALLING_CONTEXT_COLUMNS,
@@ -201,8 +197,8 @@ type Output18Amount is uint256;
 type Input18Amount is uint256;
 
 /// @title OrderBookV6
-/// See `IOrderBookV6` for more documentation.
-contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV6FlashLender {
+/// See `IRaindexV6` for more documentation.
+contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV6FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV4;
@@ -229,7 +225,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     mapping(address owner => mapping(address token => mapping(bytes32 vaultId => Float balance))) internal
         sVaultBalances;
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function vaultBalance2(address owner, address token, bytes32 vaultId)
         external
         view
@@ -246,7 +242,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         } else {
             (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForTokenReadOnly(token);
             if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
-                revert TokenDecimalsReadFailure(token, tofuOutcome);
+                revert ITOFUTokenDecimals.TokenDecimalsReadFailure(token, tofuOutcome);
             }
             Float ownerTokenBalance =
                 LibDecimalFloat.fromFixedDecimalLosslessPacked(IERC20(token).balanceOf(owner), decimals);
@@ -256,17 +252,17 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function orderExists(bytes32 orderHash) external view override returns (bool) {
         return sOrders[orderHash] == ORDER_LIVE;
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function entask2(TaskV2[] calldata post) external nonReentrant {
         LibOrderBook.doPost(new bytes32[][](0), post);
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function deposit4(address token, bytes32 vaultId, Float depositAmount, TaskV2[] calldata post)
         external
         nonReentrant
@@ -301,7 +297,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function withdraw4(address token, bytes32 vaultId, Float targetAmount, TaskV2[] calldata post)
         external
         nonReentrant
@@ -340,7 +336,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function addOrder4(OrderConfigV4 calldata orderConfig, TaskV2[] calldata post)
         external
         nonReentrant
@@ -390,7 +386,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         return stateChange;
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function removeOrder3(OrderV4 calldata order, TaskV2[] calldata post)
         external
         nonReentrant
@@ -420,7 +416,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function quote2(QuoteV2 calldata quoteConfig) external view returns (bool, Float, Float) {
         bytes32 orderHash = quoteConfig.order.hash();
 
@@ -440,7 +436,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         return (true, orderIOCalculation.outputMax, orderIOCalculation.IORatio);
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     // Most of the cyclomatic complexity here is due to the error handling within
     // the loop. The actual logic is fairly linear.
     //slither-disable-next-line cyclomatic-complexity
@@ -590,7 +586,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         pushTokens(msg.sender, orderOutputToken, totalTakerInput);
 
         if (config.data.length > 0) {
-            IOrderBookV6OrderTaker(msg.sender)
+            IRaindexV6OrderTaker(msg.sender)
                 .onTakeOrders2(orderOutputToken, orderInputToken, totalTakerInput, totalTakerOutput, config.data);
         }
 
@@ -603,7 +599,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
         }
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function clear3(
         OrderV4 memory aliceOrder,
         OrderV4 memory bobOrder,
@@ -727,7 +723,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                     (TOFUOutcome inputOutcome, uint8 inputDecimals) =
                         LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validInputs[inputIOIndex].token);
                     if (inputOutcome != TOFUOutcome.Consistent && inputOutcome != TOFUOutcome.Initial) {
-                        revert TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
+                        revert ITOFUTokenDecimals.TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
                     }
 
                     Float inputTokenVaultBalance = _vaultBalance(
@@ -747,7 +743,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
                     (TOFUOutcome outputOutcome, uint8 outputDecimals) =
                         LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validOutputs[outputIOIndex].token);
                     if (outputOutcome != TOFUOutcome.Consistent && outputOutcome != TOFUOutcome.Initial) {
-                        revert TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
+                        revert ITOFUTokenDecimals.TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
                     }
 
                     Float outputTokenVaultBalance = _vaultBalance(
@@ -1005,7 +1001,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     function pullTokens(address account, address token, Float amount) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
-            revert TokenDecimalsReadFailure(token, tofuOutcome);
+            revert ITOFUTokenDecimals.TokenDecimalsReadFailure(token, tofuOutcome);
         }
         if (amount.lt(Float.wrap(0))) {
             revert NegativePull();
@@ -1027,7 +1023,7 @@ contract OrderBookV6 is IOrderBookV6, IMetaV1_2, ReentrancyGuard, Multicall, Ord
     function pushTokens(address account, address token, Float amountFloat) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
-            revert TokenDecimalsReadFailure(token, tofuOutcome);
+            revert ITOFUTokenDecimals.TokenDecimalsReadFailure(token, tofuOutcome);
         }
 
         if (amountFloat.lt(Float.wrap(0))) {

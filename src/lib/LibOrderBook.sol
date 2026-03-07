@@ -8,13 +8,13 @@ import {
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_COLUMN
 } from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {
     SourceIndexV2,
     StateNamespace,
     StackItem,
     EvalV4
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 

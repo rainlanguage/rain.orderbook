@@ -2,8 +2,8 @@
   "lib/rain.interpreter": {
     "rev": "13917ea1eb147b19bc4ce5e01fd10071cb63e1f0"
   },
-  "lib/rain.tofu.erc20-decimals": {
-    "rev": "db41950b70dae3c6ff38e50da96d04763a15c00a"
+  "lib/rain.raindex.interface": {
+    "rev": "ad4427dcb07e6df95def94999799470db89321b3"
   },
   "lib/sushixswap-v2": {
     "rev": "ca38c64cf7c3042f6427414d7bff61c54293da51"

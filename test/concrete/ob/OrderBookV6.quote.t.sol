@@ -4,14 +4,14 @@ pragma solidity =0.8.25;
 
 import {OrderBookV6ExternalRealTest, console2} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
-    IOrderBookV6,
+    IRaindexV6,
     QuoteV2,
     OrderConfigV4,
     EvaluableV4,
     TaskV2,
     OrderV4,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";

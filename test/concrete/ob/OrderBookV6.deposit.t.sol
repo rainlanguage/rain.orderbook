@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {stdError} from "forge-std/Test.sol";
 import {REVERTING_MOCK_BYTECODE, CONSOLE_ADDRESS} from "test/util/lib/LibTestConstants.sol";
 import {OrderBookV6ExternalMockTest} from "test/util/abstract/OrderBookV6ExternalMockTest.sol";
-import {TaskV2, EvaluableV4, IOrderBookV6} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {TaskV2, EvaluableV4, IRaindexV6} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
@@ -43,7 +43,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
         vm.prank(depositor);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IOrderBookV6.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
+                IRaindexV6.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
             )
         );
         iOrderbook.deposit4(address(iToken0), vaultId, LibDecimalFloat.packLossless(0, 0), new TaskV2[](0));
@@ -53,7 +53,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
     function testDepositZeroVaultId(address depositor, address token, Float amount) external {
         vm.assume(amount.gt(Float.wrap(0)));
         vm.prank(depositor);
-        vm.expectRevert(abi.encodeWithSelector(IOrderBookV6.ZeroVaultId.selector, address(depositor), address(token)));
+        vm.expectRevert(abi.encodeWithSelector(IRaindexV6.ZeroVaultId.selector, address(depositor), address(token)));
         iOrderbook.deposit4(token, bytes32(0), amount, new TaskV2[](0));
     }
 
@@ -233,7 +233,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
             address(reenteroor), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(uint8(18))
         );
         reenteroor.reenterWith(
-            abi.encodeWithSelector(IOrderBookV6.deposit4.selector, reToken, reVaultId, reAmount, new TaskV2[](0))
+            abi.encodeWithSelector(IRaindexV6.deposit4.selector, reToken, reVaultId, reAmount, new TaskV2[](0))
         );
         vm.expectRevert(abi.encodeWithSelector(ReentrancyGuard.ReentrancyGuardReentrantCall.selector));
         iOrderbook.deposit4(address(reenteroor), vaultId, amount, new TaskV2[](0));

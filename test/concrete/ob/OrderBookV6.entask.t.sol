@@ -8,7 +8,7 @@ import {
     EvaluableV4,
     TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 
 contract OrderBookV6EnactTest is OrderBookV6ExternalRealTest {
     function checkReentrancyRW() internal view {

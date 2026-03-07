@@ -16,7 +16,7 @@ import {
     IInterpreterStoreV3,
     SignedContextV1,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {
     LibNamespace,
@@ -28,7 +28,7 @@ import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBookV6.sol";
 import {
     StateNamespace,
     FullyQualifiedNamespace
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBookV6ArbOrderTakerTest {

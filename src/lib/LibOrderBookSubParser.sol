@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {AuthoringMetaV2, OperandV2} from "rain.interpreter.interface/interface/unstable/ISubParserV4.sol";
+import {AuthoringMetaV2, OperandV2} from "rain.interpreter.interface/interface/ISubParserV4.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 import {LibSubParse} from "rain.interpreter/lib/parse/LibSubParse.sol";
 import {

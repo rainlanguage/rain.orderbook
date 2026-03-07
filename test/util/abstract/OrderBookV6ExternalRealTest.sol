@@ -4,28 +4,29 @@ pragma solidity =0.8.25;
 
 import {Test, Vm, console2} from "forge-std/Test.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
-import {IOrderBookV6Stub} from "test/util/abstract/IOrderBookV6Stub.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/unstable/IInterpreterStoreV3.sol";
+import {IRaindexV6Stub} from "test/util/abstract/IRaindexV6Stub.sol";
+import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/IParserV2.sol";
 import {
-    IOrderBookV6,
+    IRaindexV6,
     IInterpreterV4,
     TaskV2,
     EvaluableV4,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {OrderBookV6, IERC20} from "src/concrete/ob/OrderBookV6.sol";
 import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
-import {TOFUTokenDecimals, LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
+import {TOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 
-abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
+abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
     IInterpreterV4 internal immutable iInterpreter;
     IInterpreterStoreV3 internal immutable iStore;
     IParserV2 internal immutable iParserV2;
-    IOrderBookV6 internal immutable iOrderbook;
+    IRaindexV6 internal immutable iOrderbook;
     IERC20 internal immutable iToken0;
     IERC20 internal immutable iToken1;
     OrderBookV6SubParser internal immutable iSubParser;
@@ -39,7 +40,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IOrderBookV6Stub {
         iStore = IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS);
         iParserV2 = IParserV2(LibInterpreterDeploy.EXPRESSION_DEPLOYER_DEPLOYED_ADDRESS);
 
-        iOrderbook = IOrderBookV6(address(new OrderBookV6()));
+        iOrderbook = IRaindexV6(address(new OrderBookV6()));
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);

@@ -10,7 +10,7 @@ import {
     TakeOrderConfigV4,
     SignedContextV1,
     TakeOrdersConfigV5
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {TokenSelfTrade} from "src/concrete/ob/OrderBookV6.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";

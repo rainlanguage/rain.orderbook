@@ -17,7 +17,7 @@ import {
     IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract GenericPoolOrderBookV6ArbOrderTakerSenderTest is GenericPoolOrderBookV6ArbOrderTakerTest {

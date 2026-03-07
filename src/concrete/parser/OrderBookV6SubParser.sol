@@ -4,13 +4,13 @@ pragma solidity =0.8.25;
 
 import {
     LibParseOperand,
-    BaseRainterpreterSubParserNPE2,
+    BaseRainterpreterSubParser,
     OperandV2,
     IParserToolingV1
-} from "rain.interpreter/abstract/BaseRainterpreterSubParserNPE2.sol";
+} from "rain.interpreter/abstract/BaseRainterpreterSubParser.sol";
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
 import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
-import {LibExternOpContextSenderNPE2} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSenderNPE2.sol";
+import {LibExternOpContextSender} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSender.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 
 import {
@@ -68,7 +68,7 @@ import {
 } from "../../generated/OrderBookV6SubParser.pointers.sol";
 import {IDescribedByMetaV1} from "rain.metadata/interface/IDescribedByMetaV1.sol";
 
-contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
+contract OrderBookV6SubParser is BaseRainterpreterSubParser {
     using LibUint256Matrix for uint256[][];
 
     /// @inheritdoc IDescribedByMetaV1
@@ -76,17 +76,17 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParserNPE2 {
         return DESCRIBED_BY_META_HASH;
     }
 
-    /// @inheritdoc BaseRainterpreterSubParserNPE2
+    /// @inheritdoc BaseRainterpreterSubParser
     function subParserParseMeta() internal pure virtual override returns (bytes memory) {
         return SUB_PARSER_PARSE_META;
     }
 
-    /// @inheritdoc BaseRainterpreterSubParserNPE2
+    /// @inheritdoc BaseRainterpreterSubParser
     function subParserWordParsers() internal pure virtual override returns (bytes memory) {
         return SUB_PARSER_WORD_PARSERS;
     }
 
-    /// @inheritdoc BaseRainterpreterSubParserNPE2
+    /// @inheritdoc BaseRainterpreterSubParser
     function subParserOperandHandlers() internal pure virtual override returns (bytes memory) {
         return SUB_PARSER_OPERAND_HANDLERS;
     }

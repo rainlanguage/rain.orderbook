@@ -14,13 +14,13 @@ import {
     IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {WrongTask} from "src/abstract/OrderBookV6ArbCommon.sol";
 import {RouteProcessorOrderBookV6ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 import {
     StateNamespace,
     FullyQualifiedNamespace
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorOrderBookV6ArbOrderTakerTest {

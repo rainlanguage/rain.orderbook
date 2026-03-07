@@ -9,12 +9,12 @@ import {
     TakeOrderConfigV4,
     TakeOrdersConfigV5,
     SignedContextV1,
-    IOrderBookV6,
+    IRaindexV6,
     OrderConfigV4,
     IOV2,
     EvaluableV4,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
@@ -38,7 +38,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
             IOIsInput: false,
             data: ""
         });
-        vm.expectRevert(IOrderBookV6.ZeroMaximumIO.selector);
+        vm.expectRevert(IRaindexV6.ZeroMaximumIO.selector);
         (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(config);
         (totalTakerInput, totalTakerOutput);
     }

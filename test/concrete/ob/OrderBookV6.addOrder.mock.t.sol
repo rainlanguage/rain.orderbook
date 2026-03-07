@@ -9,11 +9,11 @@ import {
     IOV2,
     EvaluableV4,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotRainMetaV1, META_MAGIC_NUMBER_V1} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
-import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/IExpressionDeployerV3.sol";
+import {IExpressionDeployerV3} from "rain.interpreter.interface/interface/deprecated/v1/IExpressionDeployerV3.sol";
 
 /// @title OrderBookV6AddOrderMockTest
 /// @notice Tests the addOrder function of the OrderBookV6 contract.

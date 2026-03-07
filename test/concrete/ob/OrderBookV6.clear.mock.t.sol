@@ -16,11 +16,11 @@ import {
     IInterpreterV4,
     TaskV2,
     Float
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner, StackItem, NegativeBounty, ClearZeroAmount} from "src/concrete/ob/OrderBookV6.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
-import {StateNamespace, EvalV4, SourceIndexV2} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+import {StateNamespace, EvalV4, SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {
     LibFixedPointDecimalArithmeticOpenZeppelin
 } from "rain.math.fixedpoint/lib/LibFixedPointDecimalArithmeticOpenZeppelin.sol";
