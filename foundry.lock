@@ -2,9 +2,6 @@
   "lib/rain.interpreter": {
     "rev": "13917ea1eb147b19bc4ce5e01fd10071cb63e1f0"
   },
-  "lib/rain.orderbook.interface": {
-    "rev": "24bc3bdf9be3d4bdd4061dba862a29e3a9feaf1b"
-  },
   "lib/rain.tofu.erc20-decimals": {
     "rev": "db41950b70dae3c6ff38e50da96d04763a15c00a"
   },
