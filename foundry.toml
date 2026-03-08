@@ -1,7 +1,5 @@
 [profile.default]
 src = 'src'
-test = 'test'
-script = 'script'
 out = 'out'
 libs = ['lib']
 
