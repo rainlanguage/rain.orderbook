@@ -36,6 +36,7 @@ contract OrderBookV6WithdrawTest is OrderBookV6ExternalMockTest {
     /// Withdrawing a zero target amount should revert.
     /// forge-config: default.fuzz.runs = 100
     function testWithdrawZero(address alice, address token, bytes32 vaultId) external {
+        vm.assume(vaultId != bytes32(0));
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(ZeroWithdrawTargetAmount.selector, alice, token, vaultId));
         iOrderbook.withdraw4(token, vaultId, Float.wrap(0), new TaskV2[](0));

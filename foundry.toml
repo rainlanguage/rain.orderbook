@@ -46,6 +46,7 @@ remappings = [
   "rain.solmem/=lib/rain.raindex.interface/lib/rain.interpreter.interface/lib/rain.solmem/src",
   "rain.math.float/=lib/rain.raindex.interface/lib/rain.interpreter.interface/lib/rain.math.float/src/",
   "rain.tofu.erc20-decimals/=lib/rain.interpreter/lib/rain.tofu.erc20-decimals/src/",
+  "rain.deploy/=lib/rain.interpreter/lib/rain.deploy/src/",
 ]
 
 [fuzz]

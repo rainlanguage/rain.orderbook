@@ -7,7 +7,6 @@ import {OpTest, StackItem} from "rain.interpreter/../test/abstract/OpTest.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {LibOrderBookSubParserContextFixture} from "test/util/fixture/LibOrderBookSubParserContextFixture.sol";
-
 abstract contract OrderBookV6SubParserContextTest is OpTest {
     using Strings for address;
 

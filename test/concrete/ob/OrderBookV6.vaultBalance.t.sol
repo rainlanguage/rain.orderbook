@@ -17,10 +17,4 @@ contract OrderBookV6VaultBalanceTest is OrderBookV6ExternalMockTest {
         assertTrue(iOrderbook.vaultBalance2(owner, token, vaultId).isZero());
     }
 
-    /// Vault balance for VaultId 0 is always an error.
-    function testVaultBalanceZeroVaultIdReverts(address sender, address owner, address token) external {
-        vm.prank(sender);
-        vm.expectRevert(abi.encodeWithSelector(IRaindexV6.ZeroVaultId.selector, owner, token));
-        iOrderbook.vaultBalance2(owner, token, bytes32(0));
-    }
 }

@@ -18,9 +18,9 @@ import {OrderBookV6, IERC20} from "src/concrete/ob/OrderBookV6.sol";
 import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
-import {TOFUTokenDecimals} from "rain.tofu.erc20-decimals/concrete/TOFUTokenDecimals.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
+import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 
 abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
     IInterpreterV4 internal immutable iInterpreter;
@@ -32,7 +32,8 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
     OrderBookV6SubParser internal immutable iSubParser;
 
     constructor() {
-        vm.etch(address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT), type(TOFUTokenDecimals).runtimeCode);
+        LibRainDeploy.etchZoltuFactory(vm);
+        LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
         LibInterpreterDeploy.etchDISPaiR(vm);
 

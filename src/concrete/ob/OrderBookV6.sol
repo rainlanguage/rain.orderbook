@@ -226,13 +226,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         sVaultBalances;
 
     /// @inheritdoc IRaindexV6
-    function vaultBalance2(address owner, address token, bytes32 vaultId)
-        external
-        view
-        override
-        nonZeroVaultId(owner, token, vaultId)
-        returns (Float)
-    {
+    function vaultBalance2(address owner, address token, bytes32 vaultId) external view override returns (Float) {
         return _vaultBalance(owner, token, vaultId);
     }
 
