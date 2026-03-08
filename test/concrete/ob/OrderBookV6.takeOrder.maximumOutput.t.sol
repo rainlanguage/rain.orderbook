@@ -489,6 +489,78 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(0), bytes32(0));
     }
 
+    /// Same as testTakeOrderMaximumOutputMultipleOrders but with both vault IDs
+    /// set to 0 (fully vaultless). With vault 0 and constant balanceOf mock,
+    /// each order independently sees the full deposit, so per-order amounts
+    /// must be calculated separately.
+    /// forge-config: default.fuzz.runs = 100
+    function testTakeOrderMaximumOutputMultipleOrdersBothVaultIdZero(
+        uint256 ownerDepositAmount18,
+        uint256 maximumTakerOutput18
+    ) external {
+        address owner = address(uint160(uint256(keccak256("owner.rain.test"))));
+
+        TestOrder[] memory testOrders = new TestOrder[](2);
+        testOrders[0] = TestOrder({owner: owner, orderString: "_ _: 1000e-18 2;:;"});
+        testOrders[1] = TestOrder({owner: owner, orderString: "_ _: 500e-18 2;:;"});
+
+        ownerDepositAmount18 = bound(ownerDepositAmount18, 0, uint256(int256(type(int224).max)));
+        maximumTakerOutput18 = bound(maximumTakerOutput18, 1, uint256(int256(type(int224).max)));
+
+        Float orderIO = LibDecimalFloat.fromFixedDecimalLosslessPacked(2, 0);
+        Float ownerDepositAmount = LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerDepositAmount18, 18);
+        Float maximumTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerOutput18, 18);
+
+        // Need per-order input vault mocks because pushTokens is called
+        // per-order with per-order amounts.
+        TestVault[] memory testVaults = new TestVault[](3);
+        Float expectedTakerInput;
+        {
+            Float maximumTakerInput = maximumTakerOutput.div(orderIO);
+
+            // With vault 0 and constant balanceOf mock, each order
+            // independently sees the full deposit as available balance.
+            Float order0Take;
+            {
+                Float order0Limit = LibDecimalFloat.fromFixedDecimalLosslessPacked(1000, 18);
+                order0Take = maximumTakerInput.min(order0Limit.min(ownerDepositAmount));
+            }
+            Float order1Take;
+            {
+                Float order1Limit = LibDecimalFloat.fromFixedDecimalLosslessPacked(500, 18);
+                Float remaining = maximumTakerInput.sub(order0Take);
+                order1Take = remaining.min(order1Limit.min(ownerDepositAmount));
+            }
+
+            expectedTakerInput = order0Take.add(order1Take);
+
+            testVaults[0] = TestVault({
+                owner: owner,
+                token: address(iToken1),
+                vaultId: bytes32(0),
+                deposit: ownerDepositAmount,
+                expect: ownerDepositAmount.sub(expectedTakerInput)
+            });
+            testVaults[1] = TestVault({
+                owner: owner,
+                token: address(iToken0),
+                vaultId: bytes32(0),
+                deposit: Float.wrap(0),
+                expect: order0Take.mul(orderIO)
+            });
+            testVaults[2] = TestVault({
+                owner: owner,
+                token: address(iToken0),
+                vaultId: bytes32(0),
+                deposit: Float.wrap(0),
+                expect: order1Take.mul(orderIO)
+            });
+        }
+
+        Float expectedTakerOutput = expectedTakerInput.mul(orderIO);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(0), bytes32(0));
+    }
+
     /// The taker input can be sourced from multiple orders. Tests two orders
     /// that combined make up the maximum taker output. Both orders have the same
     /// owner for simplicity.
@@ -601,5 +673,87 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
         }
         Float expectedTakerOutput = expectedTakerInput.mul(orderIO);
         checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)), bytes32(uint256(0x01)));
+    }
+
+    /// Same as testTakeOrderMaximumOutputMultipleOrdersDifferentOwners but with
+    /// both vault IDs set to 0 (fully vaultless). Each owner sells from and
+    /// receives to their wallet directly.
+    /// forge-config: default.fuzz.runs = 100
+    function testTakeOrderMaximumOutputMultipleOrdersDifferentOwnersBothVaultIdZero(
+        uint256 ownerOneDepositAmount18,
+        uint256 ownerTwoDepositAmount18,
+        uint256 maximumTakerOutput18
+    ) external {
+        ownerOneDepositAmount18 = bound(ownerOneDepositAmount18, 0, uint256(int256(type(int224).max)));
+        ownerTwoDepositAmount18 =
+            bound(ownerTwoDepositAmount18, 0, uint256(int256(type(int224).max)) - ownerOneDepositAmount18);
+        maximumTakerOutput18 = bound(maximumTakerOutput18, 1, uint256(int256(type(int224).max)));
+
+        TestOrder[] memory testOrders = new TestOrder[](2);
+        TestVault[] memory testVaults = new TestVault[](4);
+        Float expectedTakerInput;
+        Float expectedTakerOutput;
+
+        {
+            Float orderIO = LibDecimalFloat.fromFixedDecimalLosslessPacked(2, 0);
+            Float maximumTakerInput =
+                LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerOutput18, 18).div(orderIO);
+            Float ownerOneTakerInput;
+
+            {
+                address ownerOne = address(uint160(uint256(keccak256("owner.one.rain.test"))));
+                testOrders[0] = TestOrder({owner: ownerOne, orderString: "_ _: 1000e-18 2;:;"});
+                Float ownerOneDepositAmount =
+                    LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerOneDepositAmount18, 18);
+                ownerOneTakerInput = maximumTakerInput.min(
+                    ownerOneDepositAmount.min(LibDecimalFloat.fromFixedDecimalLosslessPacked(1000, 18))
+                );
+                expectedTakerInput = ownerOneTakerInput;
+                testVaults[0] = TestVault({
+                    owner: ownerOne,
+                    token: address(iToken1),
+                    vaultId: bytes32(0),
+                    deposit: ownerOneDepositAmount,
+                    expect: ownerOneDepositAmount.sub(ownerOneTakerInput)
+                });
+                testVaults[2] = TestVault({
+                    owner: ownerOne,
+                    token: address(iToken0),
+                    vaultId: bytes32(0),
+                    deposit: Float.wrap(0),
+                    expect: ownerOneTakerInput.mul(orderIO)
+                });
+            }
+
+            {
+                address ownerTwo = address(uint160(uint256(keccak256("owner.two.rain.test"))));
+                testOrders[1] = TestOrder({owner: ownerTwo, orderString: "_ _: 500e-18 2;:;"});
+                Float ownerTwoDepositAmount =
+                    LibDecimalFloat.fromFixedDecimalLosslessPacked(ownerTwoDepositAmount18, 18);
+                Float ownerTwoTakerInput = (maximumTakerInput.sub(ownerOneTakerInput)).min(
+                    ownerTwoDepositAmount.min(LibDecimalFloat.fromFixedDecimalLosslessPacked(500, 18))
+                );
+                expectedTakerInput = expectedTakerInput.add(ownerTwoTakerInput);
+                testVaults[1] = TestVault({
+                    owner: ownerTwo,
+                    token: address(iToken1),
+                    vaultId: bytes32(0),
+                    deposit: ownerTwoDepositAmount,
+                    expect: ownerTwoDepositAmount.sub(ownerTwoTakerInput)
+                });
+                testVaults[3] = TestVault({
+                    owner: ownerTwo,
+                    token: address(iToken0),
+                    vaultId: bytes32(0),
+                    deposit: Float.wrap(0),
+                    expect: ownerTwoTakerInput.mul(orderIO)
+                });
+            }
+
+            expectedTakerOutput = expectedTakerInput.mul(orderIO);
+        }
+
+        Float maximumTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(maximumTakerOutput18, 18);
+        checkTakeOrderMaximumOutput(testOrders, testVaults, maximumTakerOutput, expectedTakerInput, expectedTakerOutput, bytes32(0), bytes32(0));
     }
 }
