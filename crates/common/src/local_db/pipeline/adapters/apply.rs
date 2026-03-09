@@ -169,7 +169,8 @@ mod tests {
         pub executed: std::sync::Mutex<Vec<String>>,
     }
 
-    #[async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait)]
     impl LocalDbQueryExecutor for MockDb {
         async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             let mut exec = self.executed.lock().unwrap();
@@ -197,7 +198,8 @@ mod tests {
 
     struct FailingDb;
 
-    #[async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait)]
     impl LocalDbQueryExecutor for FailingDb {
         async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             Err(LocalDbQueryError::database("boom"))
