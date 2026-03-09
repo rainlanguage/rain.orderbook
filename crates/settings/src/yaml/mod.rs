@@ -5,7 +5,8 @@ pub mod emitter;
 pub mod orderbook;
 
 use crate::{
-    NetworkCfg, ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
+    remote_networks::ParseRemoteNetworksError, remote_tokens::ParseRemoteTokensError, NetworkCfg,
+    ParseDeployerConfigSourceError, ParseDeploymentConfigSourceError,
     ParseNetworkConfigSourceError, ParseOrderConfigSourceError, ParseOrderbookConfigSourceError,
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
@@ -209,6 +210,10 @@ pub enum YamlError {
     ParseDeploymentConfigSourceError(#[from] ParseDeploymentConfigSourceError),
     #[error(transparent)]
     ContextError(#[from] ContextError),
+    #[error(transparent)]
+    ParseRemoteNetworksError(#[from] ParseRemoteNetworksError),
+    #[error(transparent)]
+    ParseRemoteTokensError(#[from] ParseRemoteTokensError),
 }
 
 impl PartialEq for YamlError {
@@ -265,6 +270,12 @@ impl PartialEq for YamlError {
                 Self::ParseDeploymentConfigSourceError(e2),
             ) => e1 == e2,
             (Self::ContextError(e1), Self::ContextError(e2)) => e1.to_string() == e2.to_string(),
+            (Self::ParseRemoteNetworksError(e1), Self::ParseRemoteNetworksError(e2)) => {
+                e1.to_string() == e2.to_string()
+            }
+            (Self::ParseRemoteTokensError(e1), Self::ParseRemoteTokensError(e2)) => {
+                e1.to_string() == e2.to_string()
+            }
             (Self::NotFound(s1), Self::NotFound(s2)) => s1 == s2,
             _ => false,
         }
@@ -355,6 +366,12 @@ impl YamlError {
             ),
             YamlError::ContextError(err) => {
                 format!("Context error in your YAML: {}", err.to_readable_msg())
+            }
+            YamlError::ParseRemoteNetworksError(err) => {
+                format!("Remote networks configuration error: {}", err)
+            }
+            YamlError::ParseRemoteTokensError(err) => {
+                format!("Remote tokens configuration error: {}", err)
             }
         }
     }
