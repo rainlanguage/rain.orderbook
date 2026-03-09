@@ -98,28 +98,12 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
 
         for (uint256 i = 0; i < testVaults.length; i++) {
             if (testVaults[i].vaultId == bytes32(0)) {
-                uint256 depositAmount18 = LibDecimalFloat.toFixedDecimalLossless(testVaults[i].deposit, 18);
-                vm.mockCall(
-                    testVaults[i].token,
-                    abi.encodeWithSelector(IERC20.balanceOf.selector, testVaults[i].owner),
-                    abi.encode(depositAmount18)
-                );
-                vm.mockCall(
-                    testVaults[i].token,
-                    abi.encodeWithSelector(
-                        IERC20(testVaults[i].token).allowance.selector, testVaults[i].owner, address(iOrderbook)
-                    ),
-                    abi.encode(depositAmount18)
-                );
-                // For vault 0 input vaults (no deposit, receives tokens),
-                // mock the transfer that pushTokens makes to the owner.
-                if (!testVaults[i].deposit.gt(Float.wrap(0)) && testVaults[i].expect.gt(Float.wrap(0))) {
+                if (testVaults[i].deposit.gt(Float.wrap(0))) {
+                    uint256 depositAmount18 = LibDecimalFloat.toFixedDecimalLossless(testVaults[i].deposit, 18);
+                    mockVault0Output(testVaults[i].token, testVaults[i].owner, depositAmount18);
+                } else {
                     (uint256 expectAmount18,) = LibDecimalFloat.toFixedDecimalLossy(testVaults[i].expect, 18);
-                    vm.mockCall(
-                        testVaults[i].token,
-                        abi.encodeWithSelector(IERC20.transfer.selector, testVaults[i].owner, expectAmount18),
-                        abi.encode(true)
-                    );
+                    mockVault0Input(testVaults[i].token, testVaults[i].owner, expectAmount18);
                 }
             }
             if (testVaults[i].deposit.gt(Float.wrap(0))) {
@@ -150,26 +134,6 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
                     Float expectedBalance = testVaults[i].deposit.add(balanceBefore);
 
                     assertTrue(balanceAfter.eq(expectedBalance), "vaultBalance after");
-                } else {
-                    vm.mockCall(
-                        testVaults[i].token,
-                        abi.encodeWithSelector(IERC20.balanceOf.selector, testVaults[i].owner),
-                        abi.encode(depositAmount18)
-                    );
-                    vm.mockCall(
-                        testVaults[i].token,
-                        abi.encodeWithSelector(
-                            IERC20(testVaults[i].token).allowance.selector, testVaults[i].owner, address(iOrderbook)
-                        ),
-                        abi.encode(depositAmount18)
-                    );
-                    vm.mockCall(
-                        testVaults[i].token,
-                        abi.encodeWithSelector(
-                            IERC20.transferFrom.selector, testVaults[i].owner, address(iOrderbook)
-                        ),
-                        abi.encode(true)
-                    );
                 }
             }
         }

@@ -79,4 +79,38 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
         }
         return actions;
     }
+
+    /// Mock the balanceOf and allowance for a vault 0 output vault (owner
+    /// sells from wallet). Also mocks transferFrom for pullTokens with any
+    /// amount.
+    function mockVault0Output(address token, address owner, uint256 depositAmount18) internal {
+        vm.mockCall(token, abi.encodeWithSelector(IERC20.balanceOf.selector, owner), abi.encode(depositAmount18));
+        vm.mockCall(
+            token,
+            abi.encodeWithSelector(IERC20.allowance.selector, owner, address(iOrderbook)),
+            abi.encode(depositAmount18)
+        );
+        vm.mockCall(
+            token,
+            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook)),
+            abi.encode(true)
+        );
+    }
+
+    /// Mock the balanceOf and allowance (zero) for a vault 0 input vault
+    /// (owner receives to wallet). Mocks the transfer for pushTokens if
+    /// the expected amount is non-zero.
+    function mockVault0Input(address token, address owner, uint256 expectAmount18) internal {
+        vm.mockCall(token, abi.encodeWithSelector(IERC20.balanceOf.selector, owner), abi.encode(0));
+        vm.mockCall(
+            token,
+            abi.encodeWithSelector(IERC20.allowance.selector, owner, address(iOrderbook)),
+            abi.encode(0)
+        );
+        if (expectAmount18 > 0) {
+            vm.mockCall(
+                token, abi.encodeWithSelector(IERC20.transfer.selector, owner, expectAmount18), abi.encode(true)
+            );
+        }
+    }
 }
