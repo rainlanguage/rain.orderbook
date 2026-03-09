@@ -13,12 +13,9 @@ use rain_orderbook_app_settings::yaml::{
     FieldErrorKind, YamlError, YamlParsable,
 };
 use rain_orderbook_app_settings::{
-    remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
-    yaml::dotrain::DotrainYamlValidation,
-};
-use rain_orderbook_app_settings::{
-    remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg},
-    yaml::orderbook::OrderbookYamlValidation,
+    remote_networks::ParseRemoteNetworksError,
+    remote_tokens::ParseRemoteTokensError,
+    yaml::{dotrain::DotrainYamlValidation, orderbook::OrderbookYamlValidation},
 };
 use rain_orderbook_app_settings::{scenario::ScenarioCfg, spec_version::SpecVersion};
 use serde::{Deserialize, Serialize};
@@ -325,24 +322,16 @@ impl DotrainOrder {
             profile,
         )?;
 
-        let remote_networks =
-            RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
-        if !remote_networks.is_empty() {
-            orderbook_yaml
-                .cache
-                .update_remote_networks(remote_networks.clone());
+        let remote_data = orderbook_yaml.fetch_remote_data().await?;
+        if !remote_data.remote_networks.is_empty() {
             dotrain_yaml
                 .cache
-                .update_remote_networks(remote_networks.clone());
+                .update_remote_networks(remote_data.remote_networks);
         }
-
-        if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
-            let networks = orderbook_yaml.get_networks()?;
-            let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
-            orderbook_yaml
+        if !remote_data.remote_tokens.is_empty() {
+            dotrain_yaml
                 .cache
-                .update_remote_tokens(remote_tokens.clone());
-            dotrain_yaml.cache.update_remote_tokens(remote_tokens);
+                .update_remote_tokens(remote_data.remote_tokens);
         }
 
         Ok(DotrainOrder {
