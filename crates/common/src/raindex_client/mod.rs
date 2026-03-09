@@ -16,8 +16,8 @@ pub(crate) use local_db::{ClassifiedChains, LocalDbState, QuerySource};
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     network::NetworkCfg,
-    remote_networks::{ParseRemoteNetworksError, RemoteNetworksCfg},
-    remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg},
+    remote_networks::ParseRemoteNetworksError,
+    remote_tokens::ParseRemoteTokensError,
     yaml::{
         orderbook::{OrderbookYaml, OrderbookYamlValidation},
         YamlError, YamlParsable,
@@ -159,17 +159,7 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
-
-        let remote_networks =
-            RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
-        if !remote_networks.is_empty() {
-            orderbook_yaml.cache.update_remote_networks(remote_networks);
-        }
-        if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
-            let networks = orderbook_yaml.get_networks()?;
-            let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
-            orderbook_yaml.cache.update_remote_tokens(remote_tokens);
-        }
+        orderbook_yaml.fetch_remote_data().await?;
 
         let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
@@ -308,17 +298,7 @@ impl RaindexClient {
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
-
-        let remote_networks =
-            RemoteNetworksCfg::fetch_networks(orderbook_yaml.get_remote_networks()?).await?;
-        if !remote_networks.is_empty() {
-            orderbook_yaml.cache.update_remote_networks(remote_networks);
-        }
-        if let Some(remote_tokens_cfg) = orderbook_yaml.get_remote_tokens()? {
-            let networks = orderbook_yaml.get_networks()?;
-            let remote_tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
-            orderbook_yaml.cache.update_remote_tokens(remote_tokens);
-        }
+        orderbook_yaml.fetch_remote_data().await?;
 
         let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
