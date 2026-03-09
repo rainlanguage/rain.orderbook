@@ -493,9 +493,8 @@ mod tests {
     }
 
     use crate::types::common::{
-        SgTradeEvent, SgTradeEventTypename, SgTradeRef,
-        SgTradeStructPartialOrder, SgTradeVaultBalanceChange, SgTransaction,
-        SgVaultBalanceChangeVault, SgTrade,
+        SgTrade, SgTradeEvent, SgTradeEventTypename, SgTradeRef, SgTradeStructPartialOrder,
+        SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
 
     fn default_sg_transaction() -> SgTransaction {
@@ -586,7 +585,9 @@ mod tests {
     #[tokio::test]
     async fn test_trades_by_transaction_no_subgraphs() {
         let client = MultiOrderbookSubgraphClient::new(vec![]);
-        let result = client.trades_by_transaction("0xtx123".to_string(), None).await;
+        let result = client
+            .trades_by_transaction("0xtx123".to_string(), None)
+            .await;
         assert!(result.is_empty());
     }
 
