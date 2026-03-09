@@ -7,6 +7,8 @@ use rain_orderbook_app_settings::token::TokenCfg;
 use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
 use rain_orderbook_bindings::IERC20::IERC20Instance;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
 use thiserror::Error;
 use url::Url;
 #[cfg(target_family = "wasm")]
@@ -22,7 +24,7 @@ pub struct TokenInfo {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(TokenInfo);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct ExtendedTokenInfo {
@@ -35,6 +37,8 @@ pub struct ExtendedTokenInfo {
     pub chain_id: u32,
     #[cfg_attr(target_family = "wasm", tsify(optional, type = "string"))]
     pub logo_uri: Option<Url>,
+    #[cfg_attr(target_family = "wasm", tsify(optional, type = "Map<string, any>"))]
+    pub extensions: Option<HashMap<String, Value>>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ExtendedTokenInfo);
@@ -52,6 +56,7 @@ impl ExtendedTokenInfo {
                 symbol: symbol.clone(),
                 chain_id: token.network.chain_id,
                 logo_uri: token.logo_uri.clone(),
+                extensions: token.extensions.clone(),
             })
         } else {
             let erc20 = ERC20::new(token.network.rpcs.clone(), token.address);
@@ -65,6 +70,7 @@ impl ExtendedTokenInfo {
                 symbol: token.symbol.clone().unwrap_or(onchain_info.symbol),
                 chain_id: token.network.chain_id,
                 logo_uri: token.logo_uri.clone(),
+                extensions: token.extensions.clone(),
             })
         }
     }

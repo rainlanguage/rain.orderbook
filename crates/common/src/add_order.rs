@@ -635,6 +635,7 @@ price: 2e18;
             label: None,
             symbol: Some("Token1".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token2 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -645,6 +646,7 @@ price: 2e18;
             label: None,
             symbol: Some("Token2".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token3 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -655,6 +657,7 @@ price: 2e18;
             label: None,
             symbol: Some("Token3".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token1_arc = Arc::new(token1);
         let token2_arc = Arc::new(token2);
@@ -756,6 +759,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token1".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token2 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -766,6 +770,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token2".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token3 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -776,6 +781,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token3".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token1_arc = Arc::new(token1);
         let token2_arc = Arc::new(token2);
@@ -918,6 +924,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token1".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token2 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -928,6 +935,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token2".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token3 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -938,6 +946,7 @@ _ _: 0 0;
             label: None,
             symbol: Some("Token3".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token1_arc = Arc::new(token1);
         let token2_arc = Arc::new(token2);
@@ -1260,6 +1269,7 @@ _ _: 16 52;
             label: None,
             symbol: Some("Token1".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token2 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -1270,6 +1280,7 @@ _ _: 16 52;
             label: None,
             symbol: Some("Token2".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token3 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -1280,6 +1291,7 @@ _ _: 16 52;
             label: None,
             symbol: Some("Token3".to_string()),
             logo_uri: None,
+            extensions: None,
         };
         let token1_arc = Arc::new(token1);
         let token2_arc = Arc::new(token2);

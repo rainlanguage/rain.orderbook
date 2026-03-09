@@ -1484,7 +1484,10 @@ mod tests {
         }
         use std::str::FromStr;
 
-        fn build_client_with_metaboard(metaboard_url: &str, subgraph_url: &str) -> RaindexClient {
+        async fn build_client_with_metaboard(
+            metaboard_url: &str,
+            subgraph_url: &str,
+        ) -> RaindexClient {
             let yaml = get_test_yaml(
                 subgraph_url,
                 subgraph_url,
@@ -1497,11 +1500,11 @@ mod tests {
                     "https://api.thegraph.com/subgraphs/name/polygon",
                     metaboard_url,
                 );
-            RaindexClient::new(vec![yaml], None, None).unwrap()
+            RaindexClient::new(vec![yaml], None, None).await.unwrap()
         }
 
-        #[test]
-        fn try_from_sg_order_populates_parsed_meta() {
+        #[tokio::test]
+        async fn try_from_sg_order_populates_parsed_meta() {
             let source = sample_dotrain_source();
             let gui_state = sample_dotrain_gui_state(&source);
             let meta_hex = encode_meta_items_hex(vec![
@@ -1522,6 +1525,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order =
@@ -1534,8 +1538,8 @@ mod tests {
             assert_eq!(parsed_gui_state, gui_state);
         }
 
-        #[test]
-        fn from_local_db_order_populates_parsed_meta() {
+        #[tokio::test]
+        async fn from_local_db_order_populates_parsed_meta() {
             let source = sample_dotrain_source();
             let gui_state = sample_dotrain_gui_state(&source);
             let meta_hex = encode_meta_items_hex(vec![
@@ -1555,6 +1559,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let local_order = LocalDbOrder {
@@ -1610,6 +1615,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let mut order =
@@ -1633,6 +1639,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let mut order =
@@ -1683,10 +1690,8 @@ mod tests {
                 }));
             });
 
-            let client = Arc::new(build_client_with_metaboard(
-                &server.url("/"),
-                &server.url("/sg"),
-            ));
+            let client =
+                Arc::new(build_client_with_metaboard(&server.url("/"), &server.url("/sg")).await);
 
             let mut sg_order = get_order1();
             sg_order.meta = Some(SgBytes(order_meta_hex));
@@ -1739,10 +1744,8 @@ mod tests {
                 }));
             });
 
-            let client = Arc::new(build_client_with_metaboard(
-                &server.url("/"),
-                &server.url("/sg"),
-            ));
+            let client =
+                Arc::new(build_client_with_metaboard(&server.url("/"), &server.url("/sg")).await);
 
             let mut sg_order = get_order1();
             sg_order.meta = Some(SgBytes(meta_hex));
@@ -2273,6 +2276,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let result = raindex_client
                 .get_orders(None, Some(filter_args), Some(1))
@@ -2449,6 +2453,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let res = raindex_client
                 .get_order_by_hash(
@@ -2516,6 +2521,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let order_hash =
                 b256!("0x0000000000000000000000000000000000000000000000000000000000000123");
@@ -2581,6 +2587,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let res = raindex_client
                 .get_order_by_hash(
@@ -2617,6 +2624,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let res = raindex_client
                 .get_order_by_hash(
@@ -2706,7 +2714,8 @@ mod tests {
                 )],
                 local_db.clone(),
                 vec![137],
-            );
+            )
+            .await;
 
             let orders_source = LocalDbOrders::new(&local_db, Arc::new(client.clone()));
             let orders = orders_source
@@ -2737,7 +2746,8 @@ mod tests {
                 )],
                 local_db.clone(),
                 vec![137],
-            );
+            )
+            .await;
 
             let orders_source = LocalDbOrders::new(&local_db, Arc::new(client.clone()));
             let err = orders_source
@@ -2799,6 +2809,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let result = client
@@ -2853,7 +2864,8 @@ mod tests {
                 )],
                 local_db,
                 vec![137],
-            );
+            )
+            .await;
 
             let order = client
                 .get_order_by_hash(
@@ -3006,6 +3018,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order = raindex_client
@@ -3193,6 +3206,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let sell = address!("1d80c49bbbcd1c0911346656b529df9e5c2f783d");
@@ -3228,6 +3242,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let sell = address!("1d80c49bbbcd1c0911346656b529df9e5c2f783d");

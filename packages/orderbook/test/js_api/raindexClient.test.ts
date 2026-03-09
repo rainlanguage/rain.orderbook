@@ -2189,5 +2189,27 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				'0x8ba1f109551bd432803012645aac136c0c8d2e80'
 			);
 		});
+
+		it('should get all tokens', async () => {
+			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
+			const result = extractWasmEncodedData(raindexClient.getAllTokens());
+			assert.equal(result.size, 2);
+			assert(result.has('token1'));
+			assert(result.has('token2'));
+			assert.equal(
+				result.get('token1')?.address.toLowerCase(),
+				'0xc2132d05d31c914a87c6611c10748aeb04b58e8f'
+			);
+			assert.equal(result.get('token1')?.decimals, 6);
+			assert.equal(result.get('token1')?.symbol, 'T1');
+			assert.equal(result.get('token1')?.label, 'Token 1');
+			assert.equal(
+				result.get('token2')?.address.toLowerCase(),
+				'0x8f3cf7ad23cd3cadbd9735aff958023239c6a063'
+			);
+			assert.equal(result.get('token2')?.decimals, 18);
+			assert.equal(result.get('token2')?.symbol, 'T2');
+			assert.equal(result.get('token2')?.label, 'Token 2');
+		});
 	});
 });
