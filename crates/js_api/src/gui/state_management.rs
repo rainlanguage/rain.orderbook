@@ -555,7 +555,7 @@ mod tests {
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTYvCMBBN3GWXhT3Jwp4W9gdsaNOu2Aqeiqj4cbF6T2vQ0pjUmqLin_AnS3VSsTiHeW_yXmaGaaBbfABGiVwmckUoMvECSG27bnIwPNioYoa8AWqVcuk-6_bc-Vh9QrVTG04k13uVp-bfD-Ba66xjWULFTKzVTnc822tZeRaTIhen0oHLjM3oXjj4Atr8XxzOtYSb-B3ksNzh18Wvph5NXdRA93hYllYTqO_juupUquP7f0Ajtk0Ow2g7ZaEqAhakDstTr8gCTsaz8aQ9n_cpXU1abdnrfptTcMFjTa5NyZJnQh03XOoLQ6E_l8kBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTYvCMBBt3GWXhT3Jwp4Ef4ChTVVsBU9FVPy4WL2nNWhpTGpNUfFP-JO1OqlYnMO8N3kvM5NUjEf8AAaRWEVijYmh4wOQWFbZZCM4sIyCafIFqGTMRPNdt_fO1-oXqr3cMiyYOsg01vdqgBulkq5pchlSvpF71XUsp22mSYizlJ9zB8oz0qP7_vAPaLW1PF5KCVXRN8h-vkO9iT51PZ7dXlIxnvGyLSlGENdFZdUuVNt1G0ADuouOo2A3o77MPOrFNk1jJ0s8hifzybSzWAwIWU_bHdHv_eu_YJyFCt-b4hVLuDxtmVBX9NlCVMoBAAA=";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
@@ -825,6 +825,7 @@ mod tests {
             label: Some("Replaced Token 3".to_string()),
             symbol: Some("NEW3".to_string()),
             logo_uri: None,
+            extensions: None,
         };
 
         let dotrain_order = DotrainOrder::create(dotrain_with_existing_token.clone(), None)

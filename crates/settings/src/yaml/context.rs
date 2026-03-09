@@ -419,6 +419,7 @@ mod tests {
             label: Some("Test Token".to_string()),
             symbol: Some("TST".to_string()),
             logo_uri: None,
+            extensions: None,
         };
 
         Arc::new(OrderCfg {
