@@ -29,7 +29,26 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
         Float expectedTakerTotalInput,
         Float expectedTakerTotalOutput
     ) internal {
-        bytes32 vaultId = bytes32(uint256(0x01));
+        checkPrecision(
+            rainString,
+            outputTokenDecimals,
+            inputTokenDecimals,
+            expectedTakerTotalInput,
+            expectedTakerTotalOutput,
+            bytes32(uint256(0x01)),
+            bytes32(uint256(0x01))
+        );
+    }
+
+    function checkPrecision(
+        bytes memory rainString,
+        uint8 outputTokenDecimals,
+        uint8 inputTokenDecimals,
+        Float expectedTakerTotalInput,
+        Float expectedTakerTotalOutput,
+        bytes32 outputVaultId,
+        bytes32 inputVaultId
+    ) internal {
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 
@@ -50,13 +69,17 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
             if (!lossless) {
                 ++absoluteDepositAmount;
             }
-            vm.mockCall(
-                outputToken,
-                abi.encodeWithSelector(
-                    IERC20.transferFrom.selector, address(this), address(iOrderbook), absoluteDepositAmount
-                ),
-                abi.encode(true)
-            );
+            if (outputVaultId == bytes32(0)) {
+                mockVault0Output(outputToken, address(this), absoluteDepositAmount);
+            } else {
+                vm.mockCall(
+                    outputToken,
+                    abi.encodeWithSelector(
+                        IERC20.transferFrom.selector, address(this), address(iOrderbook), absoluteDepositAmount
+                    ),
+                    abi.encode(true)
+                );
+            }
         }
 
         {
@@ -85,24 +108,31 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
             );
         }
 
+        if (inputVaultId == bytes32(0)) {
+            (uint256 absoluteInputAmount,) = expectedTakerTotalOutput.toFixedDecimalLossy(inputTokenDecimals);
+            mockVault0Input(inputToken, address(this), absoluteInputAmount);
+        }
+
         OrderConfigV4 memory config;
         {
             IOV2[] memory validInputs = new IOV2[](1);
-            validInputs[0] = IOV2(inputToken, vaultId);
+            validInputs[0] = IOV2(inputToken, inputVaultId);
             IOV2[] memory validOutputs = new IOV2[](1);
-            validOutputs[0] = IOV2(outputToken, vaultId);
-            // These numbers are known to cause large rounding errors if the
-            // precision is not handled correctly.
+            validOutputs[0] = IOV2(outputToken, outputVaultId);
             bytes memory bytecode = iParserV2.parse2(rainString);
             EvaluableV4 memory evaluable = EvaluableV4(iInterpreter, iStore, bytecode);
             config = OrderConfigV4(evaluable, validInputs, validOutputs, bytes32(0), bytes32(0), "");
         }
 
         {
-            if (expectedTakerTotalInput.gt(LibDecimalFloat.packLossless(0, 0))) {
-                iOrderbook.deposit4(outputToken, vaultId, expectedTakerTotalInput, new TaskV2[](0));
+            if (outputVaultId != bytes32(0) && expectedTakerTotalInput.gt(LibDecimalFloat.packLossless(0, 0))) {
+                iOrderbook.deposit4(outputToken, outputVaultId, expectedTakerTotalInput, new TaskV2[](0));
             }
-            assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(expectedTakerTotalInput));
+            if (outputVaultId != bytes32(0)) {
+                assertTrue(
+                    iOrderbook.vaultBalance2(address(this), outputToken, outputVaultId).eq(expectedTakerTotalInput)
+                );
+            }
             vm.recordLogs();
             iOrderbook.addOrder4(config, new TaskV2[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -124,7 +154,11 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
             assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");
         }
 
-        assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, vaultId).isZero(), "vault balance");
+        if (outputVaultId != bytes32(0)) {
+            assertTrue(
+                iOrderbook.vaultBalance2(address(this), outputToken, outputVaultId).isZero(), "vault balance"
+            );
+        }
     }
 
     // Older versions of OB had precision issues with this IO setup.
@@ -238,6 +272,18 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
             50,
             LibDecimalFloat.packLossless(157116365680491867129910, -18),
             LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35)
+        );
+    }
+
+    function testTakeOrderPrecisionKnownBad01BothVaultIdZero() public {
+        checkPrecision(
+            KNOWN_BAD,
+            18,
+            18,
+            LibDecimalFloat.packLossless(157116365680491867129910, -18),
+            LibDecimalFloat.packLossless(4999999999999984457923789473657330035, -35),
+            bytes32(0),
+            bytes32(0)
         );
     }
 }
