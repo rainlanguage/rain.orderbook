@@ -1,6 +1,6 @@
 use super::*;
 use rain_orderbook_app_settings::{
-    accounts::AccountCfg, network::NetworkCfg, orderbook::OrderbookCfg,
+    accounts::AccountCfg, network::NetworkCfg, orderbook::OrderbookCfg, token::TokenCfg,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -202,6 +202,36 @@ impl RaindexClient {
     pub fn get_all_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, RaindexError> {
         Ok(self.orderbook_yaml.get_orderbooks()?)
     }
+
+    /// Retrieves all tokens from the orderbook YAML configuration
+    ///
+    /// Returns a map of token configurations where the keys are token names
+    /// and the values are `TokenCfg` objects containing token details such as
+    /// address, decimals, symbol, and associated network. This includes both
+    /// locally defined tokens and any remotely fetched tokens that were cached
+    /// during client initialization.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const result = client.getAllTokens();
+    /// if (result.error) {
+    ///   console.error("Error getting tokens:", result.error.readableMsg);
+    ///   return;
+    /// }
+    /// const tokens = result.value;
+    /// for (const [name, token] of tokens) {
+    ///   console.log(`Token: ${name}, Address: ${token.address}, Decimals: ${token.decimals}`);
+    /// }
+    /// ```
+    #[wasm_export(
+        js_name = "getAllTokens",
+        return_description = "Returns a map of all available tokens with their configurations. Keys are token names, values are TokenCfg objects.",
+        unchecked_return_type = "Map<string, TokenCfg>"
+    )]
+    pub fn get_all_tokens(&self) -> Result<HashMap<String, TokenCfg>, RaindexError> {
+        Ok(self.orderbook_yaml.get_tokens()?)
+    }
 }
 impl RaindexClient {
     pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, RaindexError> {
@@ -375,6 +405,42 @@ mod tests {
             charlie.address,
             Address::from_str("0x95222290DD7278Aa3Ddd389Cc1E1d165CC4BAfe5").unwrap()
         );
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_all_tokens() {
+        let yaml = get_test_yaml(
+            "http://localhost:3001",
+            "http://localhost:3002",
+            "http://localhost:3003",
+            "http://localhost:3004",
+        );
+        let client = RaindexClient::new(vec![yaml], None, None, None, None)
+            .await
+            .unwrap();
+        let result = client.get_all_tokens().unwrap();
+
+        assert_eq!(result.len(), 2);
+        assert!(result.contains_key("weth"));
+        assert!(result.contains_key("usdc"));
+
+        let weth = result.get("weth").unwrap();
+        assert_eq!(
+            weth.address,
+            Address::from_str("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2").unwrap()
+        );
+        assert_eq!(weth.decimals, Some(18));
+        assert_eq!(weth.label, Some("Wrapped Ether".to_string()));
+        assert_eq!(weth.symbol, Some("WETH".to_string()));
+
+        let usdc = result.get("usdc").unwrap();
+        assert_eq!(
+            usdc.address,
+            Address::from_str("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174").unwrap()
+        );
+        assert_eq!(usdc.decimals, Some(6));
+        assert_eq!(usdc.label, Some("USD Coin".to_string()));
+        assert_eq!(usdc.symbol, Some("USDC".to_string()));
     }
 
     #[wasm_bindgen_test]

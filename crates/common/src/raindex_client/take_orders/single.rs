@@ -374,6 +374,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order = raindex_client
@@ -474,6 +475,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order = raindex_client
@@ -576,6 +578,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order = raindex_client
