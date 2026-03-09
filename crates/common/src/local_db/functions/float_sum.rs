@@ -1,7 +1,6 @@
 use rain_math_float::Float;
 use rusqlite::{functions::FunctionFlags, Connection, Error, Result};
 
-/// Registers FLOAT_SUM(hex_str) aggregate that sums FLOAT hex strings and returns hex.
 pub fn register(conn: &Connection) -> Result<()> {
     conn.create_aggregate_function(
         "FLOAT_SUM",
@@ -15,7 +14,6 @@ struct FloatSum;
 
 impl rusqlite::functions::Aggregate<Float, Option<String>> for FloatSum {
     fn init(&self, _: &mut rusqlite::functions::Context<'_>) -> Result<Float> {
-        // Start from canonical zero
         Float::zero().map_err(|e| Error::UserFunctionError(e.into()))
     }
 

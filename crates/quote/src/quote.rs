@@ -74,16 +74,16 @@ impl QuoteTarget {
         &self,
         rpcs: Vec<String>,
         block_number: Option<u64>,
-        gas: Option<u64>,
         multicall_address: Option<Address>,
+        chunk_size: Option<usize>,
     ) -> Result<QuoteResult, Error> {
         Ok(batch_quote(
             std::slice::from_ref(self),
             rpcs,
             block_number,
-            gas,
             multicall_address,
             None,
+            chunk_size,
         )
         .await?
         .into_iter()
@@ -118,10 +118,18 @@ impl BatchQuoteTarget {
         &self,
         rpcs: Vec<String>,
         block_number: Option<u64>,
-        gas: Option<u64>,
         multicall_address: Option<Address>,
+        chunk_size: Option<usize>,
     ) -> Result<Vec<QuoteResult>, Error> {
-        batch_quote(&self.0, rpcs, block_number, gas, multicall_address, None).await
+        batch_quote(
+            &self.0,
+            rpcs,
+            block_number,
+            multicall_address,
+            None,
+            chunk_size,
+        )
+        .await
     }
 }
 
@@ -183,17 +191,17 @@ impl QuoteSpec {
         subgraph_url: &str,
         rpcs: Vec<String>,
         block_number: Option<u64>,
-        gas: Option<u64>,
         multicall_address: Option<Address>,
+        chunk_size: Option<usize>,
     ) -> Result<QuoteResult, Error> {
         let quote_target = self.get_quote_target_from_subgraph(subgraph_url).await?;
         let quote_result = batch_quote(
             &[quote_target],
             rpcs,
             block_number,
-            gas,
             multicall_address,
             None,
+            chunk_size,
         )
         .await?;
 
@@ -262,8 +270,8 @@ impl BatchQuoteSpec {
         subgraph_url: &str,
         rpcs: Vec<String>,
         block_number: Option<u64>,
-        gas: Option<u64>,
         multicall_address: Option<Address>,
+        chunk_size: Option<usize>,
     ) -> Result<Vec<QuoteResult>, Error> {
         let opts_quote_targets = self
             .get_batch_quote_target_from_subgraph(subgraph_url)
@@ -279,9 +287,9 @@ impl BatchQuoteSpec {
                 &quote_targets,
                 rpcs,
                 block_number,
-                gas,
                 multicall_address,
                 None,
+                chunk_size,
             )
             .await?,
         );
@@ -1155,8 +1163,8 @@ mod tests {
             .do_quote(
                 vec![rpc_server.url("/error-rpc").to_string()],
                 Some(1),
-                Some(1000000),
                 Some(address!("aaaaaaaaaabbbbbbbbbbccccccccccdddddddddd")),
+                None,
             )
             .await
             .unwrap_err();
