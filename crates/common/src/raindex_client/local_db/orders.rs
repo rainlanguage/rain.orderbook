@@ -7,6 +7,7 @@ use super::query::fetch_order_trades::fetch_order_trades;
 use super::query::fetch_order_trades_count::fetch_order_trades_count;
 use super::query::fetch_orders_count::fetch_orders_count;
 use super::LocalDb;
+use crate::local_db::query::fetch_orders::LocalDbOrder;
 use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::query::LocalDbQueryError;
 use crate::local_db::{query::fetch_orders::FetchOrdersArgs, OrderbookIdentifier};
@@ -20,6 +21,15 @@ use serde_json::from_str;
 pub struct LocalDbOrders<'a> {
     pub(crate) db: &'a LocalDb,
     pub(crate) client: ClientRef,
+}
+
+fn convert_local_db_order(
+    client: ClientRef,
+    local_db_order: LocalDbOrder,
+) -> Result<RaindexOrder, RaindexError> {
+    let inputs = parse_io_vaults("inputs", &local_db_order.inputs)?;
+    let outputs = parse_io_vaults("outputs", &local_db_order.outputs)?;
+    RaindexOrder::from_local_db_order(client, local_db_order, inputs, outputs)
 }
 
 impl<'a> LocalDbOrders<'a> {
@@ -43,20 +53,10 @@ impl<'a> LocalDbOrders<'a> {
         let local_db_orders = fetch_orders(self.db, fetch_args).await?;
         let client = ClientRef::clone(&self.client);
 
-        let mut orders: Vec<RaindexOrder> = Vec::with_capacity(local_db_orders.len());
-        for local_db_order in local_db_orders {
-            let inputs = parse_io_vaults("inputs", &local_db_order.inputs)?;
-            let outputs = parse_io_vaults("outputs", &local_db_order.outputs)?;
-            let order = RaindexOrder::from_local_db_order(
-                ClientRef::clone(&client),
-                local_db_order,
-                inputs,
-                outputs,
-            )?;
-            orders.push(order);
-        }
-
-        Ok(orders)
+        local_db_orders
+            .into_iter()
+            .map(|order| convert_local_db_order(ClientRef::clone(&client), order))
+            .collect()
     }
 }
 
@@ -124,20 +124,12 @@ impl OrdersDataSource for LocalDbOrders<'_> {
         fetch_args.page_size = page_size;
 
         let local_db_orders = fetch_orders(self.db, fetch_args).await?;
-        let mut orders: Vec<RaindexOrder> = Vec::with_capacity(local_db_orders.len());
         let client = ClientRef::clone(&self.client);
 
-        for local_db_order in local_db_orders {
-            let inputs = parse_io_vaults("inputs", &local_db_order.inputs)?;
-            let outputs = parse_io_vaults("outputs", &local_db_order.outputs)?;
-            let order = RaindexOrder::from_local_db_order(
-                ClientRef::clone(&client),
-                local_db_order,
-                inputs,
-                outputs,
-            )?;
-            orders.push(order);
-        }
+        let orders: Vec<RaindexOrder> = local_db_orders
+            .into_iter()
+            .map(|order| convert_local_db_order(ClientRef::clone(&client), order))
+            .collect::<Result<_, _>>()?;
 
         Ok(RaindexOrdersListResult {
             orders,
@@ -160,15 +152,11 @@ impl OrdersDataSource for LocalDbOrders<'_> {
         let local_db_orders = fetch_orders(self.db, fetch_args).await?;
         let client = ClientRef::clone(&self.client);
 
-        if let Some(local_db_order) = local_db_orders.into_iter().next() {
-            let inputs = parse_io_vaults("inputs", &local_db_order.inputs)?;
-            let outputs = parse_io_vaults("outputs", &local_db_order.outputs)?;
-            let order = RaindexOrder::from_local_db_order(client, local_db_order, inputs, outputs)?;
-
-            return Ok(Some(order));
-        }
-
-        Ok(None)
+        local_db_orders
+            .into_iter()
+            .next()
+            .map(|order| convert_local_db_order(client, order))
+            .transpose()
     }
 
     async fn get_added_by_tx_hash(

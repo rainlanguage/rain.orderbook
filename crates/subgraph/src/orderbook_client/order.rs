@@ -111,40 +111,11 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of orders_list query
-    pub async fn orders_list_all(&self) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
-        let mut all_pages_merged = vec![];
-        let mut page = 1;
-
-        loop {
-            let page_data = self
-                .orders_list(
-                    SgOrdersListFilterArgs {
-                        owners: vec![],
-                        active: None,
-                        order_hash: None,
-                        tokens: None,
-                        orderbooks: vec![],
-                    },
-                    SgPaginationArgs {
-                        page,
-                        page_size: ALL_PAGES_QUERY_PAGE_SIZE,
-                    },
-                )
-                .await?;
-            if page_data.is_empty() {
-                break;
-            }
-            all_pages_merged.extend(page_data);
-            page += 1
-        }
-        Ok(all_pages_merged)
-    }
-
-    pub async fn orders_count(
+    async fn fetch_all_orders_pages(
         &self,
         filter_args: SgOrdersListFilterArgs,
-    ) -> Result<u32, OrderbookSubgraphClientError> {
-        let mut count: u32 = 0;
+    ) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
+        let mut all_pages_merged = vec![];
         let mut page: u16 = 1;
 
         loop {
@@ -157,14 +128,32 @@ impl OrderbookSubgraphClient {
                     },
                 )
                 .await?;
-            let batch_len = page_data.len() as u32;
-            count += batch_len;
-            if batch_len < ALL_PAGES_QUERY_PAGE_SIZE as u32 {
+            let batch_len = page_data.len();
+            all_pages_merged.extend(page_data);
+            if (batch_len as u16) < ALL_PAGES_QUERY_PAGE_SIZE {
                 break;
             }
             page += 1;
         }
-        Ok(count)
+        Ok(all_pages_merged)
+    }
+
+    pub async fn orders_list_all(&self) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
+        self.fetch_all_orders_pages(SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbooks: vec![],
+        })
+        .await
+    }
+
+    pub async fn orders_count(
+        &self,
+        filter_args: SgOrdersListFilterArgs,
+    ) -> Result<u32, OrderbookSubgraphClientError> {
+        Ok(self.fetch_all_orders_pages(filter_args).await?.len() as u32)
     }
 
     /// Fetch single order given its hash
