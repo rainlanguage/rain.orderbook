@@ -52,6 +52,9 @@ nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
 
+echo "Building Solidity contracts..."
+nix develop -i ${keep[@]} -c forge build
+
 # Temporarily disable command echoing
 set +x
 
