@@ -256,6 +256,8 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
     function testTakeOrderHandleIO00BothVaultIdZero() external {
         bytes[] memory configs = new bytes[](1);
         configs[0] = "_ _:max-positive-value() 1;:ensure(0 \"err\");";
-        checkTakeOrderHandleIO(configs, "err", LibDecimalFloat.packLossless(type(int224).max, 0), bytes32(0), bytes32(0));
+        checkTakeOrderHandleIO(
+            configs, "err", LibDecimalFloat.packLossless(type(int224).max, 0), bytes32(0), bytes32(0)
+        );
     }
 }
