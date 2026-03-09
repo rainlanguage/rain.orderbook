@@ -894,8 +894,8 @@ impl RaindexClient {
         page_size: Option<u16>,
     ) -> Result<RaindexOrdersListResult, RaindexError> {
         let filters = filters.unwrap_or_default();
-        let page_number = page.unwrap_or(1);
-        let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE);
+        let page_number = page.unwrap_or(1).max(1);
+        let page_size = page_size.unwrap_or(DEFAULT_PAGE_SIZE).max(1);
         let ids = chain_ids.map(|ChainIds(ids)| ids);
 
         let (local_db, local_ids, sg_ids) = self.classify_chains(ids)?;
@@ -906,7 +906,12 @@ impl RaindexClient {
         if let Some(db) = local_db {
             let local_source = LocalDbOrders::new(&db, ClientRef::new(self.clone()));
             let result = local_source
-                .list(Some(local_ids), &filters, Some(page_number), Some(page_size))
+                .list(
+                    Some(local_ids),
+                    &filters,
+                    Some(page_number),
+                    Some(page_size),
+                )
                 .await?;
             total_count += result.total_count;
             all_orders.extend(result.orders);
