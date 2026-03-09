@@ -23,6 +23,7 @@ on:
           - matchain
           - bera
           - sonic
+          - base_sepolia
 
       suite:
         description: "Suite to deploy"
