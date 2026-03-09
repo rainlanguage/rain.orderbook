@@ -36,7 +36,7 @@ nix develop -i ${keep[@]} -c bash \
   -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-rs-prelude)'
 
 echo "Setting up rain.tofu.erc20-decimals..."
-(cd lib/rain.tofu.erc20-decimals && nix develop -c forge build)
+(cd lib/rain.interpreter/lib/rain.tofu.erc20-decimals && nix develop -c forge build)
 
 echo "Setting up rain.interpreter..."
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-sol-prelude)'
