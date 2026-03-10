@@ -376,9 +376,10 @@ _ _: 1 2;
             )
             .unwrap();
 
-            let err = parse_rainlang_on_fork(&rainlang, &vec![rpc_url.clone()], None, rainlang_addr)
-                .await
-                .unwrap_err();
+            let err =
+                parse_rainlang_on_fork(&rainlang, &vec![rpc_url.clone()], None, rainlang_addr)
+                    .await
+                    .unwrap_err();
 
             assert!(
                 matches!(&err,

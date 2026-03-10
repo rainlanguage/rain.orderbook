@@ -62,7 +62,7 @@ impl DotrainAddOrderLsp {
         &self,
         rpcs: &Vec<String>,
         block_number: Option<u64>,
-        rainlang: Option<Address>,
+        rainlang_address: Option<Address>,
     ) -> Vec<Problem> {
         let rain_document =
             LANG_SERVICES.new_rain_document(&self.text_document, self.rebinds.clone());
@@ -98,9 +98,9 @@ impl DotrainAddOrderLsp {
                 },
             };
 
-            if let Some(rainlang_address) = rainlang {
+            if let Some(rainlang_addr) = rainlang_address {
                 if let Err(e) =
-                    parse_rainlang_on_fork(&rainlang, rpcs, block_number, rainlang_address).await
+                    parse_rainlang_on_fork(&rainlang, rpcs, block_number, rainlang_addr).await
                 {
                     bindings_problems.push(Problem {
                         msg: e.to_string(),

@@ -490,13 +490,13 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<Address>, DotrainOrderError> {
-        let rainlang = self.dotrain_yaml.get_scenario(scenario)?.rainlang;
-        let parser: ParserV2 = rainlang.address.into();
+        let rainlang_cfg = self.dotrain_yaml.get_scenario(scenario)?.rainlang;
+        let parser: ParserV2 = rainlang_cfg.address.into();
         let rainlang = self
             .compose_scenario_to_rainlang(scenario.to_string())
             .await?;
 
-        let rpcs = rainlang
+        let rpcs = rainlang_cfg
             .network
             .rpcs
             .iter()

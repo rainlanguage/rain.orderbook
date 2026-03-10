@@ -87,7 +87,9 @@ impl ERC20 {
         Self { rpcs, address }
     }
 
-    fn get_metadata_instance(&self) -> Result<IERC20MetadataInstance<ReadProvider, AnyNetwork>, Error> {
+    fn get_metadata_instance(
+        &self,
+    ) -> Result<IERC20MetadataInstance<ReadProvider, AnyNetwork>, Error> {
         let provider = mk_read_provider(&self.rpcs)?;
         let erc20 = IERC20MetadataInstance::new(self.address, provider);
         Ok(erc20)
