@@ -627,7 +627,6 @@ mod tests {
             let orders = client
                 .get_add_orders_for_transaction_wasm_binding(
                     137,
-                    orderbook_address.to_string(),
                     transaction_hash.to_string(),
                     Some(1),
                     Some(1),
