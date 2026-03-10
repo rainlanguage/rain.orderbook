@@ -227,6 +227,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return _vaultBalance(owner, token, vaultId);
     }
 
+    //slither-disable-next-line calls-loop
     function _vaultBalance(address owner, address token, bytes32 vaultId) internal view returns (Float) {
         if (vaultId != bytes32(0)) {
             return sVaultBalances[owner][token][vaultId];
@@ -237,6 +238,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
             }
             Float ownerTokenBalance =
                 LibDecimalFloat.fromFixedDecimalLosslessPacked(IERC20(token).balanceOf(owner), decimals);
+            //slither-disable-next-line unused-return
             (Float ownerTokenApproval,) =
                 LibDecimalFloat.fromFixedDecimalLossyPacked(IERC20(token).allowance(owner, address(this)), decimals);
             return ownerTokenBalance.min(ownerTokenApproval);
@@ -825,6 +827,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         // Vault ID 0 is special, it directly transfers tokens to the owner
         // rather than allocating an internal balance in a vault.
+        //slither-disable-next-line incorrect-equality
         if (vaultId == bytes32(0)) {
             pushTokens(owner, token, amount);
             // The internal balance of vault 0 is always 0 as every transfer in
@@ -855,6 +858,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         // Vault ID 0 is special, it directly pulls tokens from the owner when
         // their balance on DEX is reduced.
+        //slither-disable-next-line incorrect-equality
         if (vaultId == bytes32(0)) {
             pullTokens(owner, token, amount);
             // The internal balance of vault 0 is always 0 as every balance
