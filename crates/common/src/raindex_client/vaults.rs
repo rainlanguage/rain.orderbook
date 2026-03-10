@@ -517,7 +517,7 @@ impl RaindexVault {
 
         let calldata = approveCall {
             spender: transaction_args.orderbook_address,
-            value: amount.to_fixed_decimal(self.token.decimals)?,
+            amount: amount.to_fixed_decimal(self.token.decimals)?,
         }
         .abi_encode();
 
