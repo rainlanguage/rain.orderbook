@@ -1085,7 +1085,7 @@ fn parse_field_validation(
 mod tests {
     use super::*;
     use crate::{
-        test::{mock_deployer, mock_network, mock_token},
+        test::{mock_network, mock_registry, mock_token},
         yaml::{default_documents, tests::get_document},
         OrderCfg, ScenarioCfg,
     };
@@ -1184,7 +1184,7 @@ mod tests {
             documents: default_documents(),
             key: "scenario1".into(),
             bindings: HashMap::new(),
-            deployer: mock_deployer(),
+            registry: mock_registry(),
             runs: None,
             blocks: None,
         };
@@ -1194,7 +1194,7 @@ mod tests {
             inputs: vec![],
             outputs: vec![],
             network: mock_network(),
-            deployer: None,
+            registry: None,
             orderbook: None,
         };
         let deployment = DeploymentCfg {
@@ -1528,15 +1528,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -1550,7 +1550,7 @@ orders:
             - token: token1
         outputs:
             - token: token2
-        deployer: deployer1
+        registry: registry1
 gui:
     name: test
     description: test
@@ -1573,15 +1573,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -1595,7 +1595,7 @@ orders:
             - token: token1
         outputs:
             - token: token2
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1
@@ -1917,15 +1917,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -1939,7 +1939,7 @@ orders:
             - token: token1
         outputs:
             - token: token2
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1
@@ -2010,15 +2010,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -2032,7 +2032,7 @@ orders:
             - token: token1
         outputs:
             - token: token2
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1
@@ -2261,15 +2261,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -2280,7 +2280,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1
@@ -2390,15 +2390,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -2409,7 +2409,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1
@@ -2511,15 +2511,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -2530,7 +2530,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1
@@ -2657,15 +2657,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -2676,7 +2676,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1
@@ -2723,15 +2723,15 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-deployers:
-    deployer1:
+registries:
+    registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
 scenarios:
     scenario1:
         bindings:
             test: test
-        deployer: deployer1
+        registry: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000001
@@ -2742,7 +2742,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        deployer: deployer1
+        registry: registry1
 deployments:
     deployment1:
         scenario: scenario1

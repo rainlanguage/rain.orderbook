@@ -94,9 +94,9 @@ impl Execute for Words {
 
         let dotrain_order = DotrainOrder::create(dotrain, settings.map(|v| vec![v])).await?;
 
-        let results = if let Some(deployer_key) = &self.source.deployer {
-            // get deployer from order config
-            let deployer = dotrain_order.orderbook_yaml().get_deployer(deployer_key)?;
+        let results = if let Some(registry_key) = &self.source.deployer {
+            // get registry from order config
+            let registry = dotrain_order.orderbook_yaml().get_registry(registry_key)?;
 
             // get metaboard subgraph url
             let metaboard_url = self
@@ -106,19 +106,19 @@ impl Execute for Words {
                 .or_else(|| {
                     dotrain_order
                         .orderbook_yaml()
-                        .get_metaboard(&deployer.network.key)
+                        .get_metaboard(&registry.network.key)
                         .ok()
                         .map(|metaboard| metaboard.url.to_string())
                 })
                 .ok_or(anyhow!("undefined metaboard subgraph url"))?;
 
-            let rpcs = deployer
+            let rpcs = registry
                 .network
                 .rpcs
                 .iter()
                 .map(|rpc| rpc.to_string())
                 .collect::<Vec<String>>();
-            AuthoringMetaV2::fetch_for_contract(deployer.address, rpcs, metaboard_url)
+            AuthoringMetaV2::fetch_for_contract(registry.address, rpcs, metaboard_url)
                 .await?
                 .words
         } else if let Some(scenario) = &self.source.scenario {
@@ -127,7 +127,7 @@ impl Execute for Words {
                 let network_name = &dotrain_order
                     .dotrain_yaml()
                     .get_scenario(scenario)?
-                    .deployer
+                    .registry
                     .network
                     .key
                     .clone();
@@ -137,7 +137,7 @@ impl Execute for Words {
             }
             if self.deployer_only {
                 match dotrain_order
-                    .get_deployer_words_for_scenario(scenario)
+                    .get_registry_words_for_scenario(scenario)
                     .await?
                     .words
                 {
@@ -159,7 +159,7 @@ impl Execute for Words {
             } else {
                 let result = dotrain_order.get_all_words_for_scenario(scenario).await?;
                 let mut words = vec![];
-                match result.deployer_words.words {
+                match result.registry_words.words {
                     WordsResult::Success(v) => words.extend(v.words),
                     WordsResult::Error(e) => Err(anyhow!(e))?,
                 }
@@ -177,14 +177,14 @@ impl Execute for Words {
 
             // set the cli given metaboard url into the config
             if let Some(v) = &self.metaboard_subgraph {
-                let network_key = deployment.scenario.deployer.network.key.clone();
+                let network_key = deployment.scenario.registry.network.key.clone();
                 dotrain_order
                     .orderbook_yaml()
                     .add_metaboard(&network_key, v)?;
             }
             let result = dotrain_order.get_all_words_for_scenario(scenario).await?;
             let mut words = vec![];
-            match result.deployer_words.words {
+            match result.registry_words.words {
                 WordsResult::Success(v) => words.extend(v.words),
                 WordsResult::Error(e) => Err(anyhow!(e))?,
             }
@@ -262,7 +262,7 @@ networks:
 metaboards:
     some-network: {}
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -324,7 +324,7 @@ networks:
         network-id: 123
         currency: ETH
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba",
@@ -376,7 +376,7 @@ networks:
         network-id: 123
         currency: ETH
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -384,7 +384,7 @@ deployers:
 scenarios:
     some-scenario:
         network: some-network
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             key1: 10
 ---
@@ -425,7 +425,7 @@ _ _: 1 2;
     }
 
     #[tokio::test]
-    async fn test_execute_happy_scenario_deployer_words() {
+    async fn test_execute_happy_scenario_registry_words() {
         let server = mock_server();
         let dotrain_content = format!(
             "
@@ -448,7 +448,7 @@ networks:
         network-id: 123
         currency: ETH
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -456,7 +456,7 @@ deployers:
 scenarios:
     some-scenario:
         network: some-network
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             key1: value1
 
@@ -521,7 +521,7 @@ networks:
 subgraphs:
     some-sg: https://some-sg.com
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -529,7 +529,7 @@ deployers:
 scenarios:
     some-scenario:
         network: some-network
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             key1: 10
 
@@ -562,7 +562,7 @@ orders:
         outputs:
             - token: token2
               vault-id: 1
-        deployer: some-deployer
+        registry: some-deployer
         orderbook: some-orderbook
 
 deployments:
@@ -632,7 +632,7 @@ networks:
 metaboards:
     some-network: {}
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba

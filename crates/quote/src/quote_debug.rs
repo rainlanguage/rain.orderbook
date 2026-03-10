@@ -114,9 +114,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-deployers:
+registries:
     some-key:
-        address: {deployer}
+        address: {registry}
 tokens:
     t1:
         network: some-key
@@ -142,7 +142,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        deployer: some-key
+        registry: some-key
         bindings:
             key1: 10
 deployments:
@@ -160,7 +160,7 @@ amount price: 16 52;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
-            deployer = local_evm.deployer.address(),
+            registry = local_evm.registry,
             token1 = token1.address(),
             token2 = token2.address(),
             spec_version = SpecVersion::current()
@@ -239,9 +239,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-deployers:
+registries:
     some-key:
-        address: {deployer}
+        address: {registry}
 tokens:
     t1:
         network: some-key
@@ -267,7 +267,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        deployer: some-key
+        registry: some-key
         bindings:
             key1: 10
 deployments:
@@ -290,7 +290,7 @@ _: 1;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
-            deployer = local_evm.deployer.address(),
+            registry = local_evm.registry,
             token1 = token1.address(),
             token2 = token2.address(),
             spec_version = SpecVersion::current()
@@ -376,9 +376,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-deployers:
+registries:
     some-key:
-        address: {deployer}
+        address: {registry}
 tokens:
     t1:
         network: some-key
@@ -404,7 +404,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        deployer: some-key
+        registry: some-key
         bindings:
             key1: 10
 deployments:
@@ -427,7 +427,7 @@ _: 1;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
-            deployer = local_evm.deployer.address(),
+            registry = local_evm.registry,
             token1 = token1.address(),
             token2 = token2.address(),
             spec_version = SpecVersion::current(),

@@ -12,7 +12,9 @@ use alloy::{
     sol_types::SolCall,
     transports::{RpcError, TransportErrorKind},
 };
-pub use rain_interpreter_test_fixtures::{Deployer, Interpreter, Parser, Store, ERC20};
+pub use rain_interpreter_test_fixtures::{
+    DISPaiRegistry, Deployer, Interpreter, Parser, Store, ERC20,
+};
 use serde_json::value::RawValue;
 use std::marker::PhantomData;
 
@@ -36,7 +38,7 @@ sol!(
 
 sol!(
     #![sol(all_derives = true, rpc = true)]
-    TOFUTokenDecimals, "../../lib/rain.tofu.erc20-decimals/out/TOFUTokenDecimals.sol/TOFUTokenDecimals.json"
+    TOFUTokenDecimals, "../../lib/rain.interpreter/lib/rain.tofu.erc20-decimals/out/TOFUTokenDecimals.sol/TOFUTokenDecimals.json"
 );
 
 /// A local evm instance that wraps an Anvil instance and provider with
@@ -74,6 +76,9 @@ pub struct LocalEvm {
 
     /// Array of alloy ERC20 contract instances deployed on this blockchain
     pub tokens: Vec<ERC20::ERC20Instance<LocalEvmProvider, AnyNetwork>>,
+
+    /// Address of the deployed DISPaiRegistry instance
+    pub registry: Address,
 
     /// All wallets of this local blockchain that can be used to perform transactions
     /// the first wallet is the blockchain's default wallet, ie transactions that dont
@@ -117,18 +122,39 @@ impl LocalEvm {
             .await
             .unwrap();
 
-        // deploy rain contracts
+        // Deploy the registry and query deterministic addresses
+        let registry_instance = DISPaiRegistry::deploy(provider.clone()).await.unwrap();
+        let registry_addr = *registry_instance.address();
+        let parser_addr = registry_instance.parserAddress().call().await.unwrap();
+        let store_addr = registry_instance.storeAddress().call().await.unwrap();
+        let interpreter_addr = registry_instance.interpreterAddress().call().await.unwrap();
+        let deployer_addr = registry_instance
+            .expressionDeployerAddress()
+            .call()
+            .await
+            .unwrap();
+
+        // Set component bytecodes at their deterministic addresses
+        provider
+            .anvil_set_code(parser_addr, Parser::DEPLOYED_BYTECODE.clone())
+            .await
+            .unwrap();
+        provider
+            .anvil_set_code(store_addr, Store::DEPLOYED_BYTECODE.clone())
+            .await
+            .unwrap();
+        provider
+            .anvil_set_code(interpreter_addr, Interpreter::DEPLOYED_BYTECODE.clone())
+            .await
+            .unwrap();
+        provider
+            .anvil_set_code(deployer_addr, Deployer::DEPLOYED_BYTECODE.clone())
+            .await
+            .unwrap();
+
+        // deploy orderbook contracts
         let orderbook = Orderbook::deploy(provider.clone()).await.unwrap();
         let orderbook_subparser = OrderbookSubParser::deploy(provider.clone()).await.unwrap();
-        let interpreter = Interpreter::deploy(provider.clone()).await.unwrap();
-        let store = Store::deploy(provider.clone()).await.unwrap();
-        let parser = Parser::deploy(provider.clone()).await.unwrap();
-        let config = Deployer::RainterpreterExpressionDeployerConstructionConfigV2 {
-            interpreter: *interpreter.address(),
-            parser: *parser.address(),
-            store: *store.address(),
-        };
-        let deployer = Deployer::deploy(provider.clone(), config).await.unwrap();
 
         // set the multicall 3 contract at its official address
         provider
@@ -138,6 +164,11 @@ impl LocalEvm {
             )
             .await
             .unwrap();
+
+        let interpreter = Interpreter::new(interpreter_addr, provider.clone());
+        let store = Store::new(store_addr, provider.clone());
+        let parser = Parser::new(parser_addr, provider.clone());
+        let deployer = Deployer::new(deployer_addr, provider.clone());
         let multicall3 = IMulticall3::new(MULTICALL3_ADDRESS, provider.clone());
 
         Self {
@@ -151,6 +182,7 @@ impl LocalEvm {
             deployer,
             multicall3,
             tokens: vec![],
+            registry: registry_addr,
             signer_wallets,
         }
     }

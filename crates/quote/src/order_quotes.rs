@@ -224,9 +224,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-deployers:
+registries:
     some-key:
-        address: {deployer}
+        address: {registry}
 tokens:
     t2:
         network: some-key
@@ -255,7 +255,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        deployer: some-key
+        registry: some-key
         bindings:
             key1: 10
 deployments:
@@ -274,7 +274,7 @@ amount price: context<3 0>() context<4 0>();
 "#,
             rpc_url = setup.local_evm.url(),
             orderbook = setup.orderbook,
-            deployer = setup.local_evm.deployer.address(),
+            registry = setup.local_evm.registry,
             token1 = setup.token1.address.0,
             token2 = setup.token2.address.0,
             spec_version = SpecVersion::current(),

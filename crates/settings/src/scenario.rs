@@ -18,7 +18,7 @@ use yaml::{
     require_string, FieldErrorKind, YamlError, YamlParsableHash,
 };
 
-const ALLOWED_SCENARIO_KEYS: [&str; 5] = ["bindings", "blocks", "deployer", "runs", "scenarios"];
+const ALLOWED_SCENARIO_KEYS: [&str; 5] = ["bindings", "blocks", "registry", "runs", "scenarios"];
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
@@ -39,7 +39,7 @@ pub struct ScenarioCfg {
     pub runs: Option<u64>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub blocks: Option<BlocksCfg>,
-    pub deployer: Arc<DeployerCfg>,
+    pub registry: Arc<RegistryCfg>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ScenarioCfg);
@@ -64,8 +64,8 @@ impl ScenarioCfg {
     pub fn validate_scenario(
         documents: Vec<Arc<RwLock<StrictYaml>>>,
         current_document: Arc<RwLock<StrictYaml>>,
-        deployers: &HashMap<String, DeployerCfg>,
-        deployer: &mut Option<Arc<DeployerCfg>>,
+        registries: &HashMap<String, RegistryCfg>,
+        registry: &mut Option<Arc<RegistryCfg>>,
         scenarios: &mut HashMap<String, ScenarioCfg>,
         parent_scenario: ScenarioParent,
         scenario_key: String,
@@ -143,33 +143,33 @@ impl ScenarioCfg {
             None
         };
 
-        let mut current_deployer: Option<DeployerCfg> = None;
+        let mut current_registry: Option<RegistryCfg> = None;
 
-        if let Ok(dep) = deployers
+        if let Ok(reg) = registries
             .get(&scenario_key)
             .ok_or_else(|| YamlError::KeyNotFound(scenario_key.clone()))
         {
-            current_deployer = Some(dep.clone());
-        } else if let Some(deployer_name) = optional_string(scenario_yaml, "deployer") {
-            current_deployer = Some(
-                deployers
-                    .get(&deployer_name)
-                    .ok_or_else(|| YamlError::KeyNotFound(deployer_name.to_string()))?
+            current_registry = Some(reg.clone());
+        } else if let Some(registry_name) = optional_string(scenario_yaml, "registry") {
+            current_registry = Some(
+                registries
+                    .get(&registry_name)
+                    .ok_or_else(|| YamlError::KeyNotFound(registry_name.to_string()))?
                     .clone(),
             );
         }
 
-        if let Some(current_deployer) = current_deployer {
-            if let Some(parent_deployer) = parent_scenario.deployer.as_ref() {
-                if current_deployer.key != parent_deployer.key {
+        if let Some(current_registry) = current_registry {
+            if let Some(parent_registry) = parent_scenario.registry.as_ref() {
+                if current_registry.key != parent_registry.key {
                     return Err(YamlError::ParseScenarioConfigSourceError(
-                        ParseScenarioConfigSourceError::ParentDeployerShadowedError(
-                            current_deployer.key.clone(),
+                        ParseScenarioConfigSourceError::ParentRegistryShadowedError(
+                            current_registry.key.clone(),
                         ),
                     ));
                 }
             }
-            *deployer = Some(Arc::new(current_deployer));
+            *registry = Some(Arc::new(current_registry));
         }
 
         if scenarios.contains_key(&scenario_key) {
@@ -192,8 +192,8 @@ impl ScenarioCfg {
                 bindings: bindings.clone(),
                 runs,
                 blocks,
-                deployer: deployer.clone().ok_or(
-                    ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
+                registry: registry.clone().ok_or(
+                    ParseScenarioConfigSourceError::RegistryNotFound(scenario_key),
                 )?,
             },
         );
@@ -204,13 +204,13 @@ impl ScenarioCfg {
                 Self::validate_scenario(
                     documents.clone(),
                     current_document.clone(),
-                    deployers,
-                    deployer,
+                    registries,
+                    registry,
                     scenarios,
                     ScenarioParent {
                         key: key.clone(),
                         bindings: Some(bindings.clone()),
-                        deployer: deployer.clone(),
+                        registry: registry.clone(),
                     },
                     child_key,
                     child_scenario_yaml,
@@ -414,7 +414,7 @@ impl YamlParsableHash for ScenarioCfg {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut scenarios = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context)?;
+        let registries = RegistryCfg::parse_all_from_yaml(documents.clone(), context)?;
 
         for document in &documents {
             let document_read = document.read().map_err(|_| YamlError::ReadLockError)?;
@@ -423,27 +423,27 @@ impl YamlParsableHash for ScenarioCfg {
                 for (key_yaml, scenario_yaml) in scenarios_hash {
                     let scenario_key = key_yaml.as_str().unwrap_or_default().to_string();
 
-                    let mut deployer: Option<Arc<DeployerCfg>> = None;
+                    let mut registry: Option<Arc<RegistryCfg>> = None;
 
                     Self::validate_scenario(
                         documents.clone(),
                         document.clone(),
-                        &deployers,
-                        &mut deployer,
+                        &registries,
+                        &mut registry,
                         &mut scenarios,
                         ScenarioParent {
                             key: "".to_string(),
                             bindings: None,
-                            deployer: None,
+                            registry: None,
                         },
                         scenario_key.clone(),
                         scenario_yaml,
                         context,
                     )?;
 
-                    if deployer.is_none() {
+                    if registry.is_none() {
                         return Err(YamlError::ParseScenarioConfigSourceError(
-                            ParseScenarioConfigSourceError::DeployerNotFound(scenario_key),
+                            ParseScenarioConfigSourceError::RegistryNotFound(scenario_key),
                         ));
                     }
                 }
@@ -492,7 +492,7 @@ impl Default for ScenarioCfg {
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
-            deployer: Arc::new(DeployerCfg::default()),
+            registry: Arc::new(RegistryCfg::default()),
         }
     }
 }
@@ -503,7 +503,7 @@ impl PartialEq for ScenarioCfg {
             && self.bindings == other.bindings
             && self.runs == other.runs
             && self.blocks == other.blocks
-            && self.deployer == other.deployer
+            && self.registry == other.registry
     }
 }
 
@@ -513,10 +513,10 @@ pub enum ParseScenarioConfigSourceError {
     RunsParseError(ParseIntError),
     #[error("Parent binding shadowed by child: {0}")]
     ParentBindingShadowedError(String),
-    #[error("Parent deployer shadowed by child: {0}")]
-    ParentDeployerShadowedError(String),
-    #[error("Deployer not found: {0}")]
-    DeployerNotFound(String),
+    #[error("Parent registry shadowed by child: {0}")]
+    ParentRegistryShadowedError(String),
+    #[error("Registry not found: {0}")]
+    RegistryNotFound(String),
     #[error("Parent orderbook shadowed by child: {0}")]
     ParentOrderbookShadowedError(String),
     #[error("Failed to parse blocks: {0}")]
@@ -530,10 +530,10 @@ impl ParseScenarioConfigSourceError {
                 format!("The 'runs' value in your scenario YAML configuration must be a valid number: {}", err),
             ParseScenarioConfigSourceError::ParentBindingShadowedError(binding) =>
                 format!("Binding conflict in your YAML configuration: The child scenario is trying to override the binding '{}' that was already defined in a parent scenario. Child scenarios cannot change binding values defined by parents.", binding),
-            ParseScenarioConfigSourceError::ParentDeployerShadowedError(deployer) =>
-                format!("Deployer conflict in your YAML configuration: The child scenario is trying to use deployer '{}' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.", deployer),
-            ParseScenarioConfigSourceError::DeployerNotFound(scenario) =>
-                format!("No deployer was found for scenario '{}' in your YAML configuration. Please specify a deployer for this scenario or ensure it inherits one from a parent scenario.", scenario),
+            ParseScenarioConfigSourceError::ParentRegistryShadowedError(registry) =>
+                format!("Registry conflict in your YAML configuration: The child scenario is trying to use registry '{}' which differs from the registry specified in the parent scenario. Child scenarios must use the same registry as their parent.", registry),
+            ParseScenarioConfigSourceError::RegistryNotFound(scenario) =>
+                format!("No registry was found for scenario '{}' in your YAML configuration. Please specify a registry for this scenario or ensure it inherits one from a parent scenario.", scenario),
             ParseScenarioConfigSourceError::ParentOrderbookShadowedError(orderbook) =>
                 format!("Orderbook conflict in your YAML configuration: The child scenario is trying to use orderbook '{}' which differs from the orderbook specified in the parent scenario. Child scenarios must use the same orderbook as their parent.", orderbook),
             ParseScenarioConfigSourceError::BlocksParseError(blocks) =>
@@ -546,7 +546,7 @@ impl ParseScenarioConfigSourceError {
 pub struct ScenarioParent {
     key: String,
     bindings: Option<HashMap<String, String>>,
-    deployer: Option<Arc<DeployerCfg>>,
+    registry: Option<Arc<RegistryCfg>>,
 }
 
 #[cfg(test)]
@@ -563,7 +563,7 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
@@ -588,7 +588,7 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
@@ -620,7 +620,7 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
@@ -652,13 +652,13 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
 scenarios:
     scenario1:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: some-value
         scenarios:
@@ -686,7 +686,7 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 2
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
@@ -695,24 +695,24 @@ deployers:
         network: testnet
 scenarios:
     scenario1:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: some-value
         scenarios:
             scenario2:
                 bindings:
                     key2: value
-                deployer: testnet
+                registry: testnet
 "#;
         let error = ScenarioCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
         assert_eq!(
             error.to_string(),
             YamlError::ParseScenarioConfigSourceError(
-                ParseScenarioConfigSourceError::ParentDeployerShadowedError("testnet".to_string())
+                ParseScenarioConfigSourceError::ParentRegistryShadowedError("testnet".to_string())
             )
             .to_string()
         );
-        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Deployer conflict in your YAML configuration: The child scenario is trying to use deployer 'testnet' which differs from the deployer specified in the parent scenario. Child scenarios must use the same deployer as their parent.");
+        assert_eq!(error.to_readable_msg(), "Scenario configuration error in your YAML: Registry conflict in your YAML configuration: The child scenario is trying to use registry 'testnet' which differs from the registry specified in the parent scenario. Child scenarios must use the same registry as their parent.");
     }
 
     #[test]
@@ -723,13 +723,13 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
 scenarios:
     scenario1:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: binding1
         scenarios:
@@ -740,7 +740,7 @@ scenarios:
         let yaml_two = r#"
 scenarios:
     scenario3:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key3: binding3
         scenarios:
@@ -806,20 +806,20 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
 scenarios:
     DuplicateScenario:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: binding1
 "#;
         let yaml_two = r#"
 scenarios:
     DuplicateScenario:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: binding2
 "#;
@@ -845,7 +845,7 @@ networks:
         rpcs:
             - https://rpc.com
         chain-id: 1
-deployers:
+registries:
     mainnet:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
@@ -854,7 +854,7 @@ deployers:
         let simple_range = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         blocks: [1..2]
         bindings:
             key1: binding1
@@ -876,7 +876,7 @@ scenarios:
         let simple_range_genesis = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         blocks: [..2]
         bindings:
             key1: binding1
@@ -898,7 +898,7 @@ scenarios:
         let simple_range_latest = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         blocks: [1..]
         bindings:
             key1: binding1
@@ -920,7 +920,7 @@ scenarios:
         let range = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         blocks:
             range: [1..2]
             interval: 10
@@ -947,7 +947,7 @@ scenarios:
         let range_genesis = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         blocks:
             range: [..2]
             interval: 10
@@ -974,7 +974,7 @@ scenarios:
         let range_latest = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         blocks:
             range: [1..]
             interval: 10
@@ -1004,7 +1004,7 @@ scenarios:
         let yaml = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: value1
         runs: 10
@@ -1027,7 +1027,7 @@ scenarios:
             .as_hash()
             .unwrap();
 
-        assert!(mainnet.contains_key(&StrictYaml::String("deployer".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("registry".to_string())));
         assert!(mainnet.contains_key(&StrictYaml::String("bindings".to_string())));
         assert!(mainnet.contains_key(&StrictYaml::String("runs".to_string())));
         assert!(!mainnet.contains_key(&StrictYaml::String("unknown-key".to_string())));
@@ -1039,7 +1039,7 @@ scenarios:
         let yaml = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: value1
         runs: 10
@@ -1065,7 +1065,7 @@ scenarios:
             .as_hash()
             .unwrap();
 
-        assert!(mainnet.contains_key(&StrictYaml::String("deployer".to_string())));
+        assert!(mainnet.contains_key(&StrictYaml::String("registry".to_string())));
         assert!(mainnet.contains_key(&StrictYaml::String("bindings".to_string())));
         assert!(mainnet.contains_key(&StrictYaml::String("runs".to_string())));
         assert!(mainnet.contains_key(&StrictYaml::String("blocks".to_string())));
@@ -1077,7 +1077,7 @@ scenarios:
         let yaml = r#"
 scenarios:
     parent:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: value1
         scenarios:
@@ -1141,7 +1141,7 @@ scenarios:
         let yaml = r#"
 scenarios:
     mainnet:
-        deployer: mainnet
+        registry: mainnet
         bindings:
             key1: value1
     invalid-string: just-a-string
@@ -1166,11 +1166,11 @@ scenarios:
         let yaml = r#"
 scenarios:
     zebra:
-        deployer: mainnet
+        registry: mainnet
     alpha:
-        deployer: mainnet
+        registry: mainnet
     mainnet:
-        deployer: mainnet
+        registry: mainnet
 "#;
         let doc = get_document(yaml);
         ScenarioCfg::sanitize_documents(std::slice::from_ref(&doc)).unwrap();
@@ -1235,13 +1235,13 @@ scenarios: not-a-hash
         let yaml1 = r#"
 scenarios:
     from-doc1:
-        deployer: mainnet
+        registry: mainnet
         extra-key: removed
 "#;
         let yaml2 = r#"
 scenarios:
     from-doc2:
-        deployer: testnet
+        registry: testnet
         another-extra: also-removed
 "#;
         let doc1 = get_document(yaml1);

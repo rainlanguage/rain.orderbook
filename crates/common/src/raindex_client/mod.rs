@@ -748,7 +748,7 @@ tokens:
         decimals: 6
         label: USD Coin
         symbol: USDC
-deployers:
+registries:
     mainnet-deployer:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
         network: mainnet
@@ -963,7 +963,7 @@ tokens:
         decimals: 6
         label: Token B
         symbol: TKNB
-deployers:
+registries:
     arb-deployer:
         address: 0x1111111111111111111111111111111111111111
         network: arbitrum
@@ -1204,7 +1204,7 @@ accounts:
             network: isolated
             address: 0x1111111111111111111111111111111111111111
             decimals: 18
-    deployers:
+    registries:
         test-deployer:
             address: 0x2222222222222222222222222222222222222222
             network: isolated

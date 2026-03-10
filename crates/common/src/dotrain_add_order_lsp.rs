@@ -62,7 +62,7 @@ impl DotrainAddOrderLsp {
         &self,
         rpcs: &Vec<String>,
         block_number: Option<u64>,
-        deployer: Option<Address>,
+        registry: Option<Address>,
     ) -> Vec<Problem> {
         let rain_document =
             LANG_SERVICES.new_rain_document(&self.text_document, self.rebinds.clone());
@@ -98,9 +98,9 @@ impl DotrainAddOrderLsp {
                 },
             };
 
-            if let Some(deployer_address) = deployer {
+            if let Some(registry_address) = registry {
                 if let Err(e) =
-                    parse_rainlang_on_fork(&rainlang, rpcs, block_number, deployer_address).await
+                    parse_rainlang_on_fork(&rainlang, rpcs, block_number, registry_address).await
                 {
                     bindings_problems.push(Problem {
                         msg: e.to_string(),
@@ -236,11 +236,7 @@ _ _: 0 0;
 "#;
         let lsp = DotrainAddOrderLsp::new(get_text_document(rainlang), HashMap::new());
         let problems = lsp
-            .problems(
-                &vec![local_evm.url()],
-                None,
-                Some(*local_evm.deployer.address()),
-            )
+            .problems(&vec![local_evm.url()], None, Some(local_evm.registry))
             .await;
         assert_eq!(problems.len(), 0);
     }

@@ -120,7 +120,7 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -134,7 +134,7 @@ orderbooks:
 scenarios:
     some-scenario:
         network: some-network
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             key1: 10
 

@@ -49,7 +49,7 @@ impl Execute for AddOrderCalldata {
 
         let rpcs = config_deployment
             .scenario
-            .deployer
+            .registry
             .network
             .rpcs
             .iter()
@@ -190,7 +190,7 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -219,7 +219,7 @@ tokens:
 scenarios:
     some-scenario:
         network: some-network
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             key: 10
 
@@ -231,7 +231,7 @@ orders:
         outputs:
             - token: token2
               vault-id: 1
-        deployer: some-deployer
+        registry: some-deployer
         orderbook: some-orderbook
 
 deployments:
@@ -295,17 +295,17 @@ networks:
         chain-id: 1
         network-id: 1
         currency: ETH
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 scenarios:
     some-scenario:
         network: some-network
-        deployer: some-deployer
+        registry: some-deployer
 orders:
     some-order:
-        deployer: some-deployer
+        registry: some-deployer
         orderbook: 0x0000000000000000000000000000000000000000
         inputs: []
         outputs: []
@@ -409,17 +409,17 @@ orderbooks:
     network: some-network
     subgraph: some-subgraph
     deployment-block: 12345
-deployers:
+registries:
   some-deployer:
     network: some-network
     address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 scenarios:
   some-scenario:
     network: some-network
-    deployer: some-deployer
+    registry: some-deployer
 orders:
   some-order:
-    deployer: some-deployer
+    registry: some-deployer
     orderbook: some-orderbook
     inputs:
       - token: token1
@@ -469,7 +469,7 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -498,7 +498,7 @@ tokens:
 scenarios:
     some-scenario:
         network: some-network
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             key: 10
 
@@ -510,7 +510,7 @@ orders:
         outputs:
             - token: token2
               vault-id: 1
-        deployer: some-deployer
+        registry: some-deployer
         orderbook: some-orderbook
 
 deployments:

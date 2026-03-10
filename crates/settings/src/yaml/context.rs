@@ -436,7 +436,7 @@ mod tests {
                 vault_id: None,
             }],
             network: mock_network(),
-            deployer: None,
+            registry: None,
             orderbook: None,
         })
     }
@@ -452,7 +452,7 @@ mod tests {
             }],
             outputs: vec![],
             network: mock_network(),
-            deployer: None,
+            registry: None,
             orderbook: None,
         })
     }
@@ -586,7 +586,7 @@ mod tests {
                 vault_id: None,
             }],
             network: mock_network(),
-            deployer: Some(mock_deployer()),
+            registry: Some(mock_registry()),
             orderbook: Some(mock_orderbook()),
         };
         context.add_order(Arc::new(order));
@@ -601,7 +601,7 @@ mod tests {
         assert_eq!(context_order.outputs[0].token, Some(mock_token("token2")));
         assert_eq!(context_order.outputs[0].vault_id, None);
         assert_eq!(context_order.network, mock_network());
-        assert_eq!(context_order.deployer, Some(mock_deployer()));
+        assert_eq!(context_order.registry, Some(mock_registry()));
         assert_eq!(context_order.orderbook, Some(mock_orderbook()));
     }
 

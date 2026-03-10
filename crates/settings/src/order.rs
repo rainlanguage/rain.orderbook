@@ -9,7 +9,7 @@ use std::{
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
 
-const ALLOWED_ORDER_KEYS: [&str; 4] = ["deployer", "inputs", "orderbook", "outputs"];
+const ALLOWED_ORDER_KEYS: [&str; 4] = ["inputs", "orderbook", "outputs", "registry"];
 const ALLOWED_ORDER_IO_KEYS: [&str; 2] = ["token", "vault-id"];
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
@@ -53,7 +53,7 @@ pub struct OrderCfg {
     pub outputs: Vec<OrderIOCfg>,
     pub network: Arc<NetworkCfg>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
-    pub deployer: Option<Arc<DeployerCfg>>,
+    pub registry: Option<Arc<RegistryCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub orderbook: Option<Arc<OrderbookCfg>>,
 }
@@ -329,13 +329,13 @@ impl OrderCfg {
                 {
                     let location = format!("order '{}'", order_key);
 
-                    if let Some(deployer_key) = optional_string(order_yaml, "deployer") {
-                        let key = DeployerCfg::parse_network_key(documents.clone(), &deployer_key)?;
+                    if let Some(registry_key) = optional_string(order_yaml, "registry") {
+                        let key = RegistryCfg::parse_network_key(documents.clone(), &registry_key)?;
 
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
                                 return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch {
+                                    ParseOrderConfigSourceError::RegistryNetworkDoesNotMatch {
                                         expected: existing_key.clone(),
                                         found: key.clone(),
                                     },
@@ -528,7 +528,7 @@ impl YamlParsableHash for OrderCfg {
     ) -> Result<HashMap<String, Self>, YamlError> {
         let mut orders = HashMap::new();
 
-        let deployers = DeployerCfg::parse_all_from_yaml(documents.clone(), context);
+        let registries = RegistryCfg::parse_all_from_yaml(documents.clone(), context);
         let orderbooks = OrderbookCfg::parse_all_from_yaml(documents.clone(), context);
         let tokens = TokenCfg::parse_all_from_yaml(documents.clone(), context);
 
@@ -572,36 +572,36 @@ impl YamlParsableHash for OrderCfg {
 
                     let mut network: Option<Arc<NetworkCfg>> = None;
 
-                    let deployer = match optional_string(order_yaml, "deployer") {
-                        Some(deployer_name) => {
-                            let deployers = deployers.as_ref().map_err(|e| YamlError::Field {
+                    let registry = match optional_string(order_yaml, "registry") {
+                        Some(registry_name) => {
+                            let registries = registries.as_ref().map_err(|e| YamlError::Field {
                                 kind: FieldErrorKind::InvalidValue {
-                                    field: "deployers".to_string(),
+                                    field: "registries".to_string(),
                                     reason: e.to_string(),
                                 },
                                 location: "root".to_string(),
                             })?;
-                            let deployer = Arc::new(
-                                deployers
-                                    .get(&deployer_name)
+                            let registry = Arc::new(
+                                registries
+                                    .get(&registry_name)
                                     .ok_or_else(|| {
-                                        YamlError::KeyNotFound(deployer_name.to_string())
+                                        YamlError::KeyNotFound(registry_name.to_string())
                                     })?
                                     .clone(),
                             );
                             if let Some(n) = &network {
-                                if deployer.network != *n {
+                                if registry.network != *n {
                                     return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch {
+                                        ParseOrderConfigSourceError::RegistryNetworkDoesNotMatch {
                                             expected: n.key.clone(),
-                                            found: deployer.network.key.clone(),
+                                            found: registry.network.key.clone(),
                                         },
                                     ));
                                 }
                             } else {
-                                network = Some(deployer.network.clone());
+                                network = Some(registry.network.clone());
                             }
-                            Some(deployer)
+                            Some(registry)
                         }
                         None => None,
                     };
@@ -818,7 +818,7 @@ impl YamlParsableHash for OrderCfg {
                         network: network.ok_or(
                             ParseOrderConfigSourceError::NetworkNotFoundError(String::new()),
                         )?,
-                        deployer,
+                        registry,
                         orderbook,
                     };
 
@@ -927,7 +927,7 @@ impl Default for OrderCfg {
             inputs: vec![],
             outputs: vec![],
             network: Arc::new(NetworkCfg::default()),
-            deployer: None,
+            registry: None,
             orderbook: None,
         }
     }
@@ -939,15 +939,15 @@ impl PartialEq for OrderCfg {
             && self.inputs == other.inputs
             && self.outputs == other.outputs
             && self.network == other.network
-            && self.deployer == other.deployer
+            && self.registry == other.registry
             && self.orderbook == other.orderbook
     }
 }
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ParseOrderConfigSourceError {
-    #[error("Failed to parse deployer")]
-    DeployerParseError(ParseDeployerConfigSourceError),
+    #[error("Failed to parse registry")]
+    RegistryParseError(ParseRegistryConfigSourceError),
     #[error("Failed to parse orderbook")]
     OrderbookParseError(ParseOrderbookConfigSourceError),
     #[error("Failed to parse token")]
@@ -956,8 +956,8 @@ pub enum ParseOrderConfigSourceError {
     NetworkNotFoundError(String),
     #[error("Network does not match")]
     NetworkNotMatch,
-    #[error("Deployer network does not match: expected {expected}, found {found}")]
-    DeployerNetworkDoesNotMatch { expected: String, found: String },
+    #[error("Registry network does not match: expected {expected}, found {found}")]
+    RegistryNetworkDoesNotMatch { expected: String, found: String },
     #[error("Orderbook network does not match: expected {expected}, found {found}")]
     OrderbookNetworkDoesNotMatch { expected: String, found: String },
     #[error(
@@ -983,18 +983,18 @@ pub enum ParseOrderConfigSourceError {
 impl ParseOrderConfigSourceError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            ParseOrderConfigSourceError::DeployerParseError(err) =>
+            ParseOrderConfigSourceError::RegistryParseError(err) =>
                 err.to_readable_msg(),
             ParseOrderConfigSourceError::OrderbookParseError(err) =>
                 err.to_readable_msg(),
             ParseOrderConfigSourceError::TokenParseError(err) =>
                 err.to_readable_msg(),
             ParseOrderConfigSourceError::NetworkNotFoundError(_) =>
-                "No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks.".to_string(),
+                "No network could be determined for this order. Please specify a network or ensure that tokens, registries, or orderbooks have valid networks.".to_string(),
             ParseOrderConfigSourceError::NetworkNotMatch =>
-                "The networks specified in your order configuration do not match. All components (tokens, deployers, orderbooks) must use the same network.".to_string(),
-            ParseOrderConfigSourceError::DeployerNetworkDoesNotMatch { expected, found } =>
-                format!("Network mismatch in your YAML configuration: The deployer is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
+                "The networks specified in your order configuration do not match. All components (tokens, registries, orderbooks) must use the same network.".to_string(),
+            ParseOrderConfigSourceError::RegistryNetworkDoesNotMatch { expected, found } =>
+                format!("Network mismatch in your YAML configuration: The registry is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
             ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The orderbook is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
             ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } =>
@@ -1133,7 +1133,7 @@ networks:
         rpcs:
             - "https://mainnet.infura.io"
         chain-id: "1"
-deployers:
+registries:
     mainnet:
         address: 0x0000000000000000000000000000000000000001
         network: mainnet
@@ -1146,7 +1146,7 @@ tokens:
         address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 orders:
     OrderOne:
-        deployer: mainnet
+        registry: mainnet
         inputs:
             - token: token-one
         outputs:
@@ -1155,7 +1155,7 @@ orders:
         let yaml_two = r#"
 orders:
     OrderTwo:
-        deployer: mainnet
+        registry: mainnet
         inputs:
             - token: token-one
         outputs:
@@ -1181,7 +1181,7 @@ networks:
         rpcs:
             - "https://mainnet.infura.io"
         chain-id: "1"
-deployers:
+registries:
     mainnet:
         address: 0x0000000000000000000000000000000000000001
         network: mainnet
@@ -1194,7 +1194,7 @@ tokens:
         address: 0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 orders:
     DuplicateOrder:
-        deployer: mainnet
+        registry: mainnet
         inputs:
             - token: token-one
         outputs:
@@ -1203,7 +1203,7 @@ orders:
         let yaml_two = r#"
 orders:
     DuplicateOrder:
-        deployer: mainnet
+        registry: mainnet
         inputs:
             - token: token-one
         outputs:
@@ -1234,7 +1234,7 @@ orders: test
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."
+            "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, registries, or orderbooks have valid networks."
         );
 
         let yaml = r#"
@@ -1250,7 +1250,7 @@ orders:
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."
+            "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, registries, or orderbooks have valid networks."
         );
 
         let yaml = r#"
@@ -1266,7 +1266,7 @@ orders:
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, deployers, or orderbooks have valid networks."
+            "Order configuration error in your YAML: No network could be determined for this order. Please specify a network or ensure that tokens, registries, or orderbooks have valid networks."
         );
     }
 
@@ -1279,7 +1279,7 @@ orders:
             - token: eth
         outputs:
             - token: usdc
-        deployer: mainnet
+        registry: mainnet
         orderbook: mainnet
         unknown-key: should-be-dropped
         another-unknown: also-dropped
@@ -1303,7 +1303,7 @@ orders:
         assert_eq!(order_hash.len(), 4);
         assert!(order_hash.contains_key(&StrictYaml::String("inputs".to_string())));
         assert!(order_hash.contains_key(&StrictYaml::String("outputs".to_string())));
-        assert!(order_hash.contains_key(&StrictYaml::String("deployer".to_string())));
+        assert!(order_hash.contains_key(&StrictYaml::String("registry".to_string())));
         assert!(order_hash.contains_key(&StrictYaml::String("orderbook".to_string())));
         assert!(!order_hash.contains_key(&StrictYaml::String("unknown-key".to_string())));
         assert!(!order_hash.contains_key(&StrictYaml::String("another-unknown".to_string())));

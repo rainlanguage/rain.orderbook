@@ -856,7 +856,7 @@ subgraphs:
   some-sg: https://www.some-sg.com
 metaboards:
   some-network: https://metaboard.com
-deployers:
+registries:
   some-deployer:
     network: some-network
     address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -868,7 +868,7 @@ orderbooks:
     deployment-block: 12345
 scenarios:
   some-scenario:
-    deployer: some-deployer
+    registry: some-deployer
     bindings:
       test-binding: 5
     scenarios:
@@ -877,7 +877,7 @@ scenarios:
           another-binding: 300
 orders:
   some-order:
-    deployer: some-deployer
+    registry: some-deployer
     inputs:
       - token: token3
     outputs:

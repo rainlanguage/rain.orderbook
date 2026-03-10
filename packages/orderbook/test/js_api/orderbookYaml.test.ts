@@ -22,7 +22,7 @@ subgraphs:
 metaboards:
     test: https://metaboard.com
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -64,7 +64,7 @@ tokens:
 
 scenarios:
     some-scenario:
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             test-binding: 5
         scenarios:
@@ -80,7 +80,7 @@ orders:
       outputs:
         - token: token2
           vault-id: 1
-      deployer: some-deployer
+      registry: some-deployer
       orderbook: some-orderbook
 
 deployments:

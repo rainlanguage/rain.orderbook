@@ -41,7 +41,7 @@ tokens:
         decimals: 6
         label: USD Coin
         symbol: USDC
-deployers:
+registries:
     scenario1:
         address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
         network: mainnet
@@ -54,7 +54,7 @@ accounts:
     account2: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 orders:
     order1:
-        deployer: scenario1
+        registry: scenario1
         orderbook: mainnet
         inputs:
             - token: token1
@@ -671,7 +671,7 @@ pub mod dotrain {
 
     pub struct DotrainBuilder {
         rpc_url: String,
-        deployer: Address,
+        registry: Address,
         orderbook: Address,
         token1: Address,
         token2: Address,
@@ -686,7 +686,7 @@ pub mod dotrain {
         pub fn new(setup: &TestSetup) -> Self {
             Self {
                 rpc_url: setup.local_evm.url(),
-                deployer: *setup.local_evm.deployer.address(),
+                registry: setup.local_evm.registry,
                 orderbook: setup.orderbook,
                 token1: setup.token1,
                 token2: setup.token2,
@@ -704,7 +704,7 @@ pub mod dotrain {
         pub fn from_multi_orderbook_setup(setup: &MultiOrderbookTestSetup) -> Self {
             Self {
                 rpc_url: setup.local_evm.url(),
-                deployer: *setup.local_evm.deployer.address(),
+                registry: setup.local_evm.registry,
                 orderbook: setup.orderbook_a,
                 token1: setup.token1,
                 token2: setup.token2,
@@ -798,10 +798,10 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-deployers:
+registries:
     test-deployer:
         network: test-network
-        address: {deployer}
+        address: {registry}
 tokens:
     t1:
         network: test-network
@@ -826,7 +826,7 @@ orders:
 {outputs}
 scenarios:
     test-scenario:
-        deployer: test-deployer
+        registry: test-deployer
         bindings:
             max-amount: 1000
 deployments:
@@ -844,7 +844,7 @@ amount price: {max_output} {ratio};
 "#,
                 rpc_url = self.rpc_url,
                 orderbook = self.orderbook,
-                deployer = self.deployer,
+                registry = self.registry,
                 token1 = self.token1,
                 token2 = self.token2,
                 spec_version = SpecVersion::current(),
@@ -1063,7 +1063,7 @@ orderbooks:
         subgraph: test-sg
         local-db-remote: remote
         deployment-block: 0
-deployers:
+registries:
     test-deployer:
         network: test-network
         address: 0x1111111111111111111111111111111111111111
@@ -1117,7 +1117,7 @@ orderbooks:
         subgraph: test-sg
         local-db-remote: remote
         deployment-block: 0
-deployers:
+registries:
     test-deployer:
         network: test-network
         address: 0x1111111111111111111111111111111111111111

@@ -710,7 +710,7 @@ mod tests {
                 token1:
                     network: test
                     address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
-            deployers:
+            registries:
                 test:
                     network: test
                     address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -722,14 +722,14 @@ mod tests {
                     deployment-block: 12345
             scenarios:
                 test:
-                    deployer: test
+                    registry: test
             orders:
                 test:
                     inputs:
                         - token: token1
                     outputs:
                         - token: token1
-                    deployer: test
+                    registry: test
                     orderbook: test
             deployments:
                 select-token-deployment:

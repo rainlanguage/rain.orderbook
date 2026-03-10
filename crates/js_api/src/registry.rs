@@ -770,7 +770,7 @@ orderbooks:
     network: base
     subgraph: base
     deployment-block: 0
-deployers:
+registries:
   flare:
     address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
     network: flare
@@ -832,10 +832,10 @@ gui:"#,
           default: 10
 scenarios:
   flare:
-    deployer: flare
+    registry: flare
     runs: 1
   base:
-    deployer: base
+    registry: base
     runs: 1
 orders:
   flare:
@@ -1563,7 +1563,7 @@ orderbooks:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
-deployers:
+registries:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
@@ -1590,7 +1590,7 @@ deployers:
             - value: "0xbeef"
 scenarios:
   mainnet:
-    deployer: mainnet
+    registry: mainnet
     runs: 1
 orders:
   mainnet:

@@ -155,7 +155,7 @@ metaboards:
     test: http://localhost:8085/metaboard
     some-network: http://localhost:8085/metaboard
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -183,7 +183,7 @@ tokens:
 
 scenarios:
     some-scenario:
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             test-binding: 5
         scenarios:
@@ -199,7 +199,7 @@ orders:
       outputs:
         - token: token2
           vault-id: 1
-      deployer: some-deployer
+      registry: some-deployer
       orderbook: some-orderbook
 
 deployments:
@@ -235,7 +235,7 @@ metaboards:
     test: http://localhost:8085/metaboard
     some-network: http://localhost:8085/metaboard
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -263,7 +263,7 @@ tokens:
 
 scenarios:
     some-scenario:
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             test-binding: 5
 
@@ -273,7 +273,7 @@ orders:
         - token: token1
       outputs:
         - token: token2
-      deployer: some-deployer
+      registry: some-deployer
       orderbook: some-orderbook
 
 deployments:
@@ -307,7 +307,7 @@ subgraphs:
 metaboards:
     test: http://localhost:8085/metaboard
 
-deployers:
+registries:
     some-deployer:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -321,7 +321,7 @@ orderbooks:
 
 scenarios:
     some-scenario:
-        deployer: some-deployer
+        registry: some-deployer
         bindings:
             test-binding: 5
 
@@ -331,7 +331,7 @@ orders:
         - token: token1
       outputs:
         - token: token2
-      deployer: some-deployer
+      registry: some-deployer
       orderbook: some-orderbook
 
 deployments:
@@ -395,7 +395,7 @@ subgraphs:
 metaboards:
     test: http://localhost:8085/metaboard
     some-network: http://localhost:8085/metaboard
-deployers:
+registries:
     some-deployer:
         network: remote-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -438,23 +438,23 @@ tokens:
         symbol: T3
 scenarios:
     some-scenario:
-        deployer: some-deployer
+        registry: some-deployer
     other-scenario:
-        deployer: other-deployer
+        registry: other-deployer
 orders:
     some-order:
       inputs:
         - token: token1
       outputs:
         - token: token2
-      deployer: some-deployer
+      registry: some-deployer
       orderbook: some-orderbook
     other-order:
       inputs:
         - token: token3
       outputs:
         - token: token3
-      deployer: other-deployer
+      registry: other-deployer
       orderbook: other-orderbook
 deployments:
     test-deployment:

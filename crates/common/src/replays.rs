@@ -98,9 +98,9 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-deployers:
+registries:
     polygon:
-        address: {deployer}
+        address: {registry}
 tokens:
     eth:
         network: polygon
@@ -126,7 +126,7 @@ orders:
               vault-id: 0x01
 scenarios:
     polygon:
-        deployer: polygon
+        registry: polygon
         bindings:
             key1: 10
 deployments:
@@ -144,7 +144,7 @@ amount price: 2 1;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
-            deployer = local_evm.deployer.address(),
+            registry = local_evm.registry,
             token1 = token1.address(),
             token2 = token2.address(),
             spec_version = SpecVersion::current()
