@@ -80,7 +80,7 @@ impl RaindexClient {
     }
 }
 impl RaindexClient {
-    async fn get_add_orders_for_transaction(
+    pub async fn get_add_orders_for_transaction(
         &self,
         chain_id: u32,
         orderbook_address: Address,
