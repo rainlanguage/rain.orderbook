@@ -16,7 +16,7 @@ use alloy_ethers_typecast::{
 use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use dotrain::error::ComposeError;
 use rain_interpreter_bindings::IParserV2::parse2Return;
-use rain_interpreter_bindings::RainterpreterDISPaiRegistry::{
+use rain_interpreter_bindings::Rainlang::{
     expressionDeployerAddressCall, interpreterAddressCall, parserAddressCall, storeAddressCall,
 };
 use rain_interpreter_dispair::DISPaiR;

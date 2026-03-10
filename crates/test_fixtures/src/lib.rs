@@ -13,7 +13,7 @@ use alloy::{
     transports::{RpcError, TransportErrorKind},
 };
 pub use rain_interpreter_test_fixtures::{
-    DISPaiRegistry, Deployer, Interpreter, Parser, Store, ERC20,
+    Deployer, Interpreter, Parser, RainlangContract, Store, ERC20,
 };
 use serde_json::value::RawValue;
 use std::marker::PhantomData;
@@ -77,7 +77,7 @@ pub struct LocalEvm {
     /// Array of alloy ERC20 contract instances deployed on this blockchain
     pub tokens: Vec<ERC20::ERC20Instance<LocalEvmProvider, AnyNetwork>>,
 
-    /// Address of the deployed DISPaiRegistry instance
+    /// Address of the deployed Rainlang instance
     pub rainlang: Address,
 
     /// All wallets of this local blockchain that can be used to perform transactions
@@ -123,7 +123,7 @@ impl LocalEvm {
             .unwrap();
 
         // Deploy the registry and query deterministic addresses
-        let registry_instance = DISPaiRegistry::deploy(provider.clone()).await.unwrap();
+        let registry_instance = RainlangContract::deploy(provider.clone()).await.unwrap();
         let registry_addr = *registry_instance.address();
         let parser_addr = registry_instance.parserAddress().call().await.unwrap();
         let store_addr = registry_instance.storeAddress().call().await.unwrap();

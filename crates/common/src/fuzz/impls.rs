@@ -15,7 +15,7 @@ use rain_interpreter_bindings::IInterpreterStoreV3::FullyQualifiedNamespace;
 use rain_interpreter_bindings::IInterpreterV4::EvalV4;
 use rain_interpreter_bindings::{
     IInterpreterV4::eval4Call,
-    RainterpreterDISPaiRegistry::{interpreterAddressCall, storeAddressCall},
+    Rainlang::{interpreterAddressCall, storeAddressCall},
 };
 use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::{Forker, NewForkedEvm};
