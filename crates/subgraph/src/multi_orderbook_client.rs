@@ -192,6 +192,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         }
     }
 

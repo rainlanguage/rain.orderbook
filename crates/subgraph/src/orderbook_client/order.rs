@@ -41,7 +41,8 @@ impl OrderbookSubgraphClient {
         let has_basic_filters = !filter_args.owners.is_empty()
             || filter_args.active.is_some()
             || filter_args.order_hash.is_some()
-            || !filter_args.orderbooks.is_empty();
+            || !filter_args.orderbooks.is_empty()
+            || !filter_args.tx_hashes.is_empty();
         let tokens = filter_args.tokens.as_ref();
         let has_input_tokens = tokens.is_some_and(|tokens| !tokens.inputs.is_empty());
         let has_output_tokens = tokens.is_some_and(|tokens| !tokens.outputs.is_empty());
@@ -55,6 +56,13 @@ impl OrderbookSubgraphClient {
                 inputs_: None,
                 outputs_: None,
                 orderbook_in: filter_args.orderbooks.clone(),
+                add_events_: if filter_args.tx_hashes.is_empty() {
+                    None
+                } else {
+                    Some(SgAddOrderTxFilter {
+                        transaction_in: filter_args.tx_hashes.clone(),
+                    })
+                },
             };
 
             let or_filters = if has_input_tokens && has_output_tokens {
@@ -145,6 +153,7 @@ impl OrderbookSubgraphClient {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         })
         .await
     }
@@ -505,6 +514,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -539,6 +549,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -571,6 +582,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -597,6 +609,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -707,6 +720,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         }
     }
 
@@ -849,6 +863,7 @@ mod tests {
                 outputs: vec![],
             }),
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -885,6 +900,7 @@ mod tests {
                 outputs: vec![token_address.clone()],
             }),
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -922,6 +938,7 @@ mod tests {
                 outputs: vec![token2.clone()],
             }),
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -962,6 +979,7 @@ mod tests {
                 outputs: vec![],
             }),
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -997,6 +1015,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![orderbook_address.clone()],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -1030,6 +1049,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![ob1.clone(), ob2.clone()],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -1052,6 +1072,82 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_orders_list_with_tx_hashes_filter() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let tx1 = "0x0000000000000000000000000000000000000000000000000000000000000001".to_string();
+        let tx2 = "0x0000000000000000000000000000000000000000000000000000000000000002".to_string();
+        let filter_args = SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbooks: vec![],
+            tx_hashes: vec![tx1.clone(), tx2.clone()],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_orders = vec![default_sg_order()];
+
+        sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .body_contains("\"addEvents_\":")
+                .body_contains("\"transaction_in\":");
+            then.status(200)
+                .json_body(json!({"data": {"orders": expected_orders}}));
+        });
+
+        let result = client.orders_list(filter_args, pagination_args).await;
+        assert!(result.is_ok());
+        let orders = result.unwrap();
+        assert_eq!(orders.len(), expected_orders.len());
+    }
+
+    #[tokio::test]
+    async fn test_orders_list_empty_tx_hashes_omits_add_events() {
+        let sg_server = MockServer::start_async().await;
+        let client = setup_client(&sg_server);
+        let filter_args = SgOrdersListFilterArgs {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbooks: vec![],
+            tx_hashes: vec![],
+        };
+        let pagination_args = SgPaginationArgs {
+            page: 1,
+            page_size: 10,
+        };
+        let expected_orders = vec![default_sg_order()];
+
+        let mock = sg_server.mock(|when, then| {
+            when.method(POST)
+                .path("/")
+                .matches(|req: &httpmock::prelude::HttpMockRequest| {
+                    if let Some(body) = &req.body {
+                        let body_str = String::from_utf8_lossy(body);
+                        !body_str.contains("addEvents_")
+                    } else {
+                        true
+                    }
+                });
+            then.status(200)
+                .json_body(json!({"data": {"orders": expected_orders}}));
+        });
+
+        let result = client.orders_list(filter_args, pagination_args).await;
+        assert!(
+            result.is_ok(),
+            "Request failed - addEvents_ was likely present when it should be omitted"
+        );
+        mock.assert();
+    }
+
+    #[tokio::test]
     async fn test_orders_list_empty_orderbook_filter_omits_field() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
@@ -1061,6 +1157,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbooks: vec![],
+            tx_hashes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,

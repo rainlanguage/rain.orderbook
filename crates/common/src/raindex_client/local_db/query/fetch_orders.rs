@@ -26,6 +26,7 @@ impl From<GetOrdersFilters> for FetchOrdersArgs {
             order_hash: filters.order_hash,
             tokens,
             orderbook_addresses: filters.orderbook_addresses.unwrap_or_default(),
+            tx_hashes: filters.tx_hashes.unwrap_or_default(),
             ..FetchOrdersArgs::default()
         }
     }
@@ -63,6 +64,7 @@ mod tests {
                 outputs: None,
             }),
             orderbook_addresses: Some(vec![orderbook1, orderbook2]),
+            tx_hashes: None,
         };
         let args: FetchOrdersArgs = filters.into();
         assert!(matches!(args.filter, FetchOrdersActiveFilter::Active));
@@ -94,6 +96,7 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbook_addresses: None,
+            tx_hashes: None,
         };
         let args: FetchOrdersArgs = filters.into();
         assert!(args.orderbook_addresses.is_empty());
@@ -108,10 +111,41 @@ mod tests {
             order_hash: None,
             tokens: None,
             orderbook_addresses: Some(vec![orderbook]),
+            tx_hashes: None,
         };
         let args: FetchOrdersArgs = filters.into();
         assert_eq!(args.orderbook_addresses.len(), 1);
         assert_eq!(args.orderbook_addresses[0], orderbook);
+    }
+
+    #[test]
+    fn from_get_orders_filters_maps_tx_hashes() {
+        let tx1 = b256!("0x0000000000000000000000000000000000000000000000000000000000000001");
+        let tx2 = b256!("0x0000000000000000000000000000000000000000000000000000000000000002");
+        let filters = GetOrdersFilters {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbook_addresses: None,
+            tx_hashes: Some(vec![tx1, tx2]),
+        };
+        let args: FetchOrdersArgs = filters.into();
+        assert_eq!(args.tx_hashes, vec![tx1, tx2]);
+    }
+
+    #[test]
+    fn from_get_orders_filters_none_tx_hashes_becomes_empty_vec() {
+        let filters = GetOrdersFilters {
+            owners: vec![],
+            active: None,
+            order_hash: None,
+            tokens: None,
+            orderbook_addresses: None,
+            tx_hashes: None,
+        };
+        let args: FetchOrdersArgs = filters.into();
+        assert!(args.tx_hashes.is_empty());
     }
 
     #[cfg(target_family = "wasm")]

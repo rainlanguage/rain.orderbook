@@ -46,7 +46,7 @@ impl<'a> LocalDbOrders<'a> {
         let fetch_args = FetchOrdersArgs {
             chain_ids: vec![chain_id],
             orderbook_addresses: vec![orderbook],
-            tx_hash: Some(tx_hash),
+            tx_hashes: vec![tx_hash],
             ..FetchOrdersArgs::default()
         };
 

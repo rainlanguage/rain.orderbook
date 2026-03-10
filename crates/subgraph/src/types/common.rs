@@ -27,6 +27,7 @@ pub struct SgOrdersListFilterArgs {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub tokens: Option<SgOrdersTokensFilterArgs>,
     pub orderbooks: Vec<String>,
+    pub tx_hashes: Vec<String>,
 }
 impl_wasm_traits!(SgOrdersListFilterArgs);
 
@@ -53,6 +54,8 @@ pub struct SgOrdersListQueryFilters {
     pub outputs_: Option<SgVaultTokenFilter>,
     #[cynic(rename = "orderbook_in", skip_serializing_if = "Vec::is_empty")]
     pub orderbook_in: Vec<String>,
+    #[cynic(rename = "addEvents_", skip_serializing_if = "Option::is_none")]
+    pub add_events_: Option<SgAddOrderTxFilter>,
 }
 
 #[derive(cynic::InputObject, Debug, Clone, Tsify)]
@@ -67,6 +70,13 @@ pub struct SgOrdersListQueryAnyFilters {
 pub struct SgVaultTokenFilter {
     #[cynic(rename = "token_in")]
     pub token_in: Vec<String>,
+}
+
+#[derive(cynic::InputObject, Debug, Clone, Tsify)]
+#[cynic(graphql_type = "AddOrder_filter")]
+pub struct SgAddOrderTxFilter {
+    #[cynic(rename = "transaction_in")]
+    pub transaction_in: Vec<String>,
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]

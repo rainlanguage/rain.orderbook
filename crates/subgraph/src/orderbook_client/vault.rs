@@ -35,6 +35,7 @@ impl OrderbookSubgraphClient {
                 inputs_: None,
                 outputs_: None,
                 orderbook_in: vec![],
+                add_events_: None,
             };
             Some(vec![
                 SgVaultsListQueryFilters {

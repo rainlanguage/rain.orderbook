@@ -1236,6 +1236,7 @@ impl RaindexClient {
                 outputs: Some(vec![buy_token]),
             }),
             orderbook_addresses: None,
+            tx_hashes: None,
         };
 
         let ids = Some(vec![chain_id]);
@@ -1280,6 +1281,8 @@ pub struct GetOrdersFilters {
     pub tokens: Option<GetOrdersTokenFilter>,
     #[tsify(optional, type = "Address[]")]
     pub orderbook_addresses: Option<Vec<Address>>,
+    #[tsify(optional, type = "Hex[]")]
+    pub tx_hashes: Option<Vec<B256>>,
 }
 impl_wasm_traits!(GetOrdersFilters);
 
@@ -1330,6 +1333,15 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                     addrs
                         .into_iter()
                         .map(|addr| addr.to_string().to_lowercase())
+                        .collect()
+                })
+                .unwrap_or_default(),
+            tx_hashes: filters
+                .tx_hashes
+                .map(|hashes| {
+                    hashes
+                        .into_iter()
+                        .map(|h| h.to_string().to_lowercase())
                         .collect()
                 })
                 .unwrap_or_default(),
@@ -1965,6 +1977,7 @@ mod tests {
                     address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
                     address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
                 ]),
+                tx_hashes: None,
             };
 
             let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
@@ -1990,6 +2003,7 @@ mod tests {
                 order_hash: None,
                 tokens: None,
                 orderbook_addresses: None,
+                tx_hashes: None,
             };
 
             let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
@@ -2010,6 +2024,7 @@ mod tests {
                 orderbook_addresses: Some(vec![address!(
                     "0xDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEfDeaDbEEf"
                 )]),
+                tx_hashes: None,
             };
 
             let sg_filter_args: SgOrdersListFilterArgs = filters.try_into().unwrap();
@@ -2345,6 +2360,7 @@ mod tests {
                 order_hash: None,
                 tokens: None,
                 orderbook_addresses: None,
+                tx_hashes: None,
             };
             let raindex_client = RaindexClient::new(
                 vec![get_test_yaml(

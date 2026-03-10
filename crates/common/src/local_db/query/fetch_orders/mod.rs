@@ -33,7 +33,7 @@ pub struct FetchOrdersArgs {
     pub filter: FetchOrdersActiveFilter,
     pub owners: Vec<Address>,
     pub order_hash: Option<B256>,
-    pub tx_hash: Option<B256>,
+    pub tx_hashes: Vec<B256>,
     pub tokens: FetchOrdersTokensFilter,
     pub page: Option<u16>,
     pub page_size: Option<u16>,
@@ -73,7 +73,7 @@ const CLEAR_EVENTS_CHAIN_IDS_CLAUSE_BODY: &str = "AND entries.chain_id IN ({list
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE: &str = "/*CLEAR_EVENTS_ORDERBOOKS_CLAUSE*/";
 const CLEAR_EVENTS_ORDERBOOKS_CLAUSE_BODY: &str = "AND entries.orderbook_address IN ({list})";
 const TX_HASH_CLAUSE: &str = "/*TX_HASH_CLAUSE*/";
-const TX_HASH_CLAUSE_BODY: &str = "AND oe.transaction_hash = {param}";
+const TX_HASH_CLAUSE_BODY: &str = "AND oe.transaction_hash IN ({list})";
 const PAGINATION_CLAUSE: &str = "/*PAGINATION_CLAUSE*/";
 
 pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, SqlBuildError> {
@@ -116,8 +116,11 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
         orderbooks_iter(),
     )?;
 
-    let tx_hash_val = args.tx_hash.as_ref().map(|hash| SqlValue::from(*hash));
-    stmt.bind_param_clause(TX_HASH_CLAUSE, TX_HASH_CLAUSE_BODY, tx_hash_val)?;
+    stmt.bind_list_clause(
+        TX_HASH_CLAUSE,
+        TX_HASH_CLAUSE_BODY,
+        args.tx_hashes.iter().cloned().map(SqlValue::from),
+    )?;
 
     if let (Some(page), Some(page_size)) = (args.page, args.page_size) {
         let offset = (page.saturating_sub(1) as u64) * (page_size as u64);
@@ -170,7 +173,6 @@ mod tests {
             order_hash: Some(b256!(
                 "0x00000000000000000000000000000000000000000000000000000000deadbeef"
             )),
-            tx_hash: None,
             tokens: FetchOrdersTokensFilter {
                 inputs: vec![
                     address!("0xF3dEe5b36E3402893e6953A8670E37D329683ABB"),
@@ -428,7 +430,7 @@ mod tests {
         let tx_hash = b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef");
         let args = FetchOrdersArgs {
             chain_ids: vec![1],
-            tx_hash: Some(tx_hash),
+            tx_hashes: vec![tx_hash],
             ..FetchOrdersArgs::default()
         };
         let stmt = build_fetch_orders_stmt(&args).unwrap();
@@ -437,13 +439,51 @@ mod tests {
             "tx hash marker should be replaced"
         );
         assert!(
-            stmt.sql.contains("oe.transaction_hash = ?"),
+            stmt.sql.contains("oe.transaction_hash IN (?"),
             "tx hash clause should be present"
         );
         let expected = SqlValue::Text(hex::encode_prefixed(tx_hash));
         assert!(
             stmt.params.contains(&expected),
             "tx hash param should be bound"
+        );
+    }
+
+    #[test]
+    fn tx_hash_clause_multiple_hashes() {
+        let tx1 = b256!("0x0000000000000000000000000000000000000000000000000000000000000001");
+        let tx2 = b256!("0x0000000000000000000000000000000000000000000000000000000000000002");
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tx_hashes: vec![tx1, tx2],
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(
+            !stmt.sql.contains(TX_HASH_CLAUSE),
+            "tx hash marker should be replaced"
+        );
+        assert!(
+            stmt.sql.contains("oe.transaction_hash IN (?"),
+            "tx hash IN clause should be present"
+        );
+        let p1 = SqlValue::Text(hex::encode_prefixed(tx1));
+        let p2 = SqlValue::Text(hex::encode_prefixed(tx2));
+        assert!(stmt.params.contains(&p1), "first tx hash param should be bound");
+        assert!(stmt.params.contains(&p2), "second tx hash param should be bound");
+    }
+
+    #[test]
+    fn tx_hash_clause_omitted_when_empty() {
+        let args = FetchOrdersArgs {
+            chain_ids: vec![1],
+            tx_hashes: vec![],
+            ..FetchOrdersArgs::default()
+        };
+        let stmt = build_fetch_orders_stmt(&args).unwrap();
+        assert!(
+            !stmt.sql.contains("oe.transaction_hash"),
+            "tx hash clause should not appear when list is empty"
         );
     }
 
