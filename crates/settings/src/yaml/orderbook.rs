@@ -3,7 +3,7 @@ use crate::{
     accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, local_db_sync::LocalDbSyncCfg,
     metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg,
     sentry::Sentry, spec_version::SpecVersion, subgraph::SubgraphCfg, NetworkCfg, OrderbookCfg,
-    RegistryCfg, TokenCfg,
+    RainlangCfg, TokenCfg,
 };
 use alloy::primitives::Address;
 use serde::{
@@ -41,7 +41,7 @@ pub struct OrderbookYamlValidation {
     pub local_db_sync: bool,
     pub orderbooks: bool,
     pub metaboards: bool,
-    pub registries: bool,
+    pub rainlangs: bool,
 }
 impl OrderbookYamlValidation {
     pub fn full() -> Self {
@@ -55,7 +55,7 @@ impl OrderbookYamlValidation {
             local_db_sync: true,
             orderbooks: true,
             metaboards: true,
-            registries: true,
+            rainlangs: true,
         }
     }
 }
@@ -87,8 +87,8 @@ impl ValidationConfig for OrderbookYamlValidation {
     fn should_validate_metaboards(&self) -> bool {
         self.metaboards
     }
-    fn should_validate_registries(&self) -> bool {
-        self.registries
+    fn should_validate_rainlangs(&self) -> bool {
+        self.rainlangs
     }
     fn should_validate_orders(&self) -> bool {
         false
@@ -154,8 +154,8 @@ impl YamlParsable for OrderbookYaml {
         if validate.should_validate_metaboards() {
             MetaboardCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
-        if validate.should_validate_registries() {
-            RegistryCfg::parse_all_from_yaml(documents.clone(), None)?;
+        if validate.should_validate_rainlangs() {
+            RainlangCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
         Ok(OrderbookYaml {
@@ -407,16 +407,16 @@ impl OrderbookYaml {
         MetaboardCfg::add_record_to_yaml(self.documents[0].clone(), key, value)
     }
 
-    pub fn get_registry_keys(&self) -> Result<Vec<String>, YamlError> {
-        Ok(self.get_registries()?.keys().cloned().collect())
+    pub fn get_rainlang_keys(&self) -> Result<Vec<String>, YamlError> {
+        Ok(self.get_rainlangs()?.keys().cloned().collect())
     }
-    pub fn get_registries(&self) -> Result<HashMap<String, RegistryCfg>, YamlError> {
+    pub fn get_rainlangs(&self) -> Result<HashMap<String, RainlangCfg>, YamlError> {
         let context = self.build_context();
-        RegistryCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
+        RainlangCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
-    pub fn get_registry(&self, key: &str) -> Result<RegistryCfg, YamlError> {
+    pub fn get_rainlang(&self, key: &str) -> Result<RainlangCfg, YamlError> {
         let context = self.build_context();
-        RegistryCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+        RainlangCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
     pub fn get_sentry(&self) -> Result<Option<bool>, YamlError> {
@@ -661,7 +661,7 @@ mod tests {
             decimals: 18
             label: Wrapped Ether
             symbol: WETH
-    registries:
+    rainlangs:
         registry1:
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
@@ -692,7 +692,7 @@ mod tests {
         token1:
             network: mainnet
             address: 0x2345678901abcdef
-    registries:
+    rainlangs:
         registry1:
             address: 0x3456789012abcdef
     "#;
@@ -784,15 +784,15 @@ mod tests {
             Url::parse("https://meta.example.com/board2").unwrap()
         );
 
-        assert_eq!(ob_yaml.get_registry_keys().unwrap().len(), 1);
-        let registry = ob_yaml.get_registry("registry1").unwrap();
+        assert_eq!(ob_yaml.get_rainlang_keys().unwrap().len(), 1);
+        let rainlang_cfg = ob_yaml.get_rainlang("registry1").unwrap();
         assert_eq!(
-            registry.address,
+            rainlang_cfg.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
-        assert_eq!(registry.network, network.into());
+        assert_eq!(rainlang_cfg.network, network.into());
         assert_eq!(
-            RegistryCfg::parse_network_key(ob_yaml.documents.clone(), "registry1").unwrap(),
+            RainlangCfg::parse_network_key(ob_yaml.documents.clone(), "registry1").unwrap(),
             "mainnet"
         );
 

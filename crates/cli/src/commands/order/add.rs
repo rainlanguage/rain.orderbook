@@ -117,7 +117,7 @@ mod tests {
                 token: address!("0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"),
                 vaultId: B256::from(U256::from(1)),
             }],
-            registry: Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap(),
+            rainlang: Address::from_str("0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba").unwrap(),
             bindings: HashMap::new(),
             additional_meta: None,
         };
@@ -139,8 +139,8 @@ networks:
 subgraphs:
     some-sg: https://www.some-sg.com
 
-registries:
-    some-deployer:
+rainlangs:
+    some-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
@@ -168,7 +168,7 @@ tokens:
 scenarios:
     some-scenario:
         network: some-network
-        registry: some-deployer
+        rainlang: some-rainlang
 
 orders:
     some-order:
@@ -178,7 +178,7 @@ orders:
         outputs:
             - token: token2
               vault-id: 1
-        registry: some-deployer
+        rainlang: some-rainlang
         orderbook: some-orderbook
 
 deployments:

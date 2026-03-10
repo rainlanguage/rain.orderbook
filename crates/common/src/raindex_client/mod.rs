@@ -748,8 +748,8 @@ tokens:
         decimals: 6
         label: USD Coin
         symbol: USDC
-registries:
-    mainnet-deployer:
+rainlangs:
+    mainnet-rainlang:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
         network: mainnet
 accounts:
@@ -963,8 +963,8 @@ tokens:
         decimals: 6
         label: Token B
         symbol: TKNB
-registries:
-    arb-deployer:
+rainlangs:
+    arb-rainlang:
         address: 0x1111111111111111111111111111111111111111
         network: arbitrum
 accounts:
@@ -1204,8 +1204,8 @@ accounts:
             network: isolated
             address: 0x1111111111111111111111111111111111111111
             decimals: 18
-    registries:
-        test-deployer:
+    rainlangs:
+        test-rainlang:
             address: 0x2222222222222222222222222222222222222222
             network: isolated
     orderbooks:

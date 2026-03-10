@@ -7,7 +7,7 @@ pub mod orderbook;
 use crate::{
     remote_networks::ParseRemoteNetworksError, remote_tokens::ParseRemoteTokensError, NetworkCfg,
     ParseDeploymentConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
-    ParseOrderbookConfigSourceError, ParseRegistryConfigSourceError,
+    ParseOrderbookConfigSourceError, ParseRainlangConfigSourceError,
     ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
@@ -34,7 +34,7 @@ pub trait ValidationConfig {
     fn should_validate_local_db_sync(&self) -> bool;
     fn should_validate_orderbooks(&self) -> bool;
     fn should_validate_metaboards(&self) -> bool;
-    fn should_validate_registries(&self) -> bool;
+    fn should_validate_rainlangs(&self) -> bool;
     fn should_validate_orders(&self) -> bool;
     fn should_validate_scenarios(&self) -> bool;
     fn should_validate_deployments(&self) -> bool;
@@ -201,7 +201,7 @@ pub enum YamlError {
     #[error(transparent)]
     ParseOrderbookConfigSourceError(#[from] ParseOrderbookConfigSourceError),
     #[error(transparent)]
-    ParseRegistryConfigSourceError(#[from] ParseRegistryConfigSourceError),
+    ParseRainlangConfigSourceError(#[from] ParseRainlangConfigSourceError),
     #[error(transparent)]
     ParseOrderConfigSourceError(#[from] ParseOrderConfigSourceError),
     #[error(transparent)]
@@ -255,8 +255,8 @@ impl PartialEq for YamlError {
                 Self::ParseOrderbookConfigSourceError(e2),
             ) => e1 == e2,
             (
-                Self::ParseRegistryConfigSourceError(e1),
-                Self::ParseRegistryConfigSourceError(e2),
+                Self::ParseRainlangConfigSourceError(e1),
+                Self::ParseRainlangConfigSourceError(e2),
             ) => e1 == e2,
             (Self::ParseOrderConfigSourceError(e1), Self::ParseOrderConfigSourceError(e2)) => {
                 e1 == e2
@@ -348,8 +348,8 @@ impl YamlError {
                 "Orderbook configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
-            YamlError::ParseRegistryConfigSourceError(err) => format!(
-                "Registry configuration error in your YAML: {}",
+            YamlError::ParseRainlangConfigSourceError(err) => format!(
+                "Rainlang configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
             YamlError::ParseOrderConfigSourceError(err) => format!(
@@ -546,7 +546,7 @@ pub fn default_documents() -> Arc<Vec<Arc<RwLock<StrictYaml>>>> {
 
 pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(), YamlError> {
     crate::ChartCfg::sanitize_documents(documents)?;
-    crate::RegistryCfg::sanitize_documents(documents)?;
+    crate::RainlangCfg::sanitize_documents(documents)?;
     crate::DeploymentCfg::sanitize_documents(documents)?;
     crate::GuiCfg::sanitize_documents(documents)?;
     crate::LocalDbSyncCfg::sanitize_documents(documents)?;

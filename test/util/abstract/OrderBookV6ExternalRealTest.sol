@@ -35,7 +35,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
-        LibInterpreterDeploy.etchDISPaiR(vm);
+        LibInterpreterDeploy.etchRainlang(vm);
 
         iInterpreter = IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS);
         iStore = IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS);

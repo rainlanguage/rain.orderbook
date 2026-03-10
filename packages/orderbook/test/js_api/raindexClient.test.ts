@@ -43,8 +43,8 @@ subgraphs:
     other-sg: http://localhost:8230/sg2
 metaboards:
     test: https://metaboard.com
-registries:
-    some-deployer:
+rainlangs:
+    some-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 accounts:
@@ -79,7 +79,7 @@ tokens:
         symbol: T2
 scenarios:
     some-scenario:
-        registry: some-deployer
+        rainlang: some-rainlang
         bindings:
             test-binding: 5
         scenarios:
@@ -94,7 +94,7 @@ orders:
       outputs:
         - token: token2
           vault-id: 1
-      registry: some-deployer
+      rainlang: some-rainlang
       orderbook: some-orderbook
 deployments:
     some-deployment:

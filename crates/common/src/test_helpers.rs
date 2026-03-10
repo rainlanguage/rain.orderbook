@@ -41,11 +41,11 @@ tokens:
         decimals: 6
         label: USD Coin
         symbol: USDC
-registries:
+rainlangs:
     scenario1:
         address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
         network: mainnet
-    deployer2:
+    rainlang2:
         address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
         network: testnet
 sentry: true
@@ -54,7 +54,7 @@ accounts:
     account2: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 orders:
     order1:
-        registry: scenario1
+        rainlang: scenario1
         orderbook: mainnet
         inputs:
             - token: token1
@@ -671,7 +671,7 @@ pub mod dotrain {
 
     pub struct DotrainBuilder {
         rpc_url: String,
-        registry: Address,
+        rainlang: Address,
         orderbook: Address,
         token1: Address,
         token2: Address,
@@ -686,7 +686,7 @@ pub mod dotrain {
         pub fn new(setup: &TestSetup) -> Self {
             Self {
                 rpc_url: setup.local_evm.url(),
-                registry: setup.local_evm.registry,
+                rainlang: setup.local_evm.rainlang,
                 orderbook: setup.orderbook,
                 token1: setup.token1,
                 token2: setup.token2,
@@ -704,7 +704,7 @@ pub mod dotrain {
         pub fn from_multi_orderbook_setup(setup: &MultiOrderbookTestSetup) -> Self {
             Self {
                 rpc_url: setup.local_evm.url(),
-                registry: setup.local_evm.registry,
+                rainlang: setup.local_evm.rainlang,
                 orderbook: setup.orderbook_a,
                 token1: setup.token1,
                 token2: setup.token2,
@@ -798,10 +798,10 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-registries:
-    test-deployer:
+rainlangs:
+    test-rainlang:
         network: test-network
-        address: {registry}
+        address: {rainlang}
 tokens:
     t1:
         network: test-network
@@ -826,7 +826,7 @@ orders:
 {outputs}
 scenarios:
     test-scenario:
-        registry: test-deployer
+        rainlang: test-rainlang
         bindings:
             max-amount: 1000
 deployments:
@@ -844,7 +844,7 @@ amount price: {max_output} {ratio};
 "#,
                 rpc_url = self.rpc_url,
                 orderbook = self.orderbook,
-                registry = self.registry,
+                rainlang = self.rainlang,
                 token1 = self.token1,
                 token2 = self.token2,
                 spec_version = SpecVersion::current(),
@@ -1063,8 +1063,8 @@ orderbooks:
         subgraph: test-sg
         local-db-remote: remote
         deployment-block: 0
-registries:
-    test-deployer:
+rainlangs:
+    test-rainlang:
         network: test-network
         address: 0x1111111111111111111111111111111111111111
 tokens:
@@ -1117,8 +1117,8 @@ orderbooks:
         subgraph: test-sg
         local-db-remote: remote
         deployment-block: 0
-registries:
-    test-deployer:
+rainlangs:
+    test-rainlang:
         network: test-network
         address: 0x1111111111111111111111111111111111111111
 tokens:

@@ -15,7 +15,7 @@ use rain_interpreter_eval::{
 };
 use rain_orderbook_app_settings::{
     blocks::BlockError,
-    registry::RegistryCfg,
+    rainlang::RainlangCfg,
     unit_test::TestConfig,
     yaml::{
         orderbook::{OrderbookYaml, OrderbookYamlValidation},
@@ -38,7 +38,7 @@ pub struct TestRunner {
 #[derive(Clone)]
 pub struct TestSetup {
     pub block_number: u64,
-    pub registry: Arc<RegistryCfg>,
+    pub rainlang: Arc<RainlangCfg>,
     pub scenario_name: String,
 }
 
@@ -115,7 +115,7 @@ impl TestRunner {
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
             test_setup: TestSetup {
                 block_number: 0,
-                registry: Arc::new(RegistryCfg::dummy()),
+                rainlang: Arc::new(RainlangCfg::dummy()),
                 scenario_name: String::new(),
             },
             test_config: test_config.clone(),
@@ -172,7 +172,7 @@ impl TestRunner {
             .roll_fork(Some(self.test_setup.block_number), None)?;
         let fork = Arc::new(self.forker.clone());
         let fork_clone = Arc::clone(&fork);
-        let registry = Arc::clone(&self.test_setup.registry);
+        let rainlang_cfg = Arc::clone(&self.test_setup.rainlang);
         let dotrain = Arc::clone(&dotrain);
 
         let handle = tokio::spawn(async move {
@@ -182,7 +182,7 @@ impl TestRunner {
             let args = ForkEvalArgs {
                 rainlang_string,
                 source_index: 0,
-                registry: registry.address,
+                rainlang: rainlang_cfg.address,
                 namespace: FullyQualifiedNamespace::default(),
                 context: vec![vec![U256::from(0); 1]; 1],
                 decode_errors: true,
@@ -213,7 +213,7 @@ impl TestRunner {
             .roll_fork(Some(self.test_setup.block_number), None)?;
         let fork = Arc::new(self.forker.clone());
         let fork_clone = Arc::clone(&fork);
-        let registry = Arc::clone(&self.test_setup.registry);
+        let rainlang_cfg = Arc::clone(&self.test_setup.rainlang);
         let dotrain = Arc::clone(&dotrain);
 
         let handle = tokio::spawn(async move {
@@ -235,7 +235,7 @@ impl TestRunner {
             let args = ForkEvalArgs {
                 rainlang_string,
                 source_index: 0,
-                registry: registry.address,
+                rainlang: rainlang_cfg.address,
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
@@ -267,7 +267,7 @@ impl TestRunner {
             .roll_fork(Some(self.test_setup.block_number), None)?;
         let fork = Arc::new(self.forker.clone());
         let fork_clone = Arc::clone(&fork);
-        let registry = Arc::clone(&self.test_setup.registry);
+        let rainlang_cfg = Arc::clone(&self.test_setup.rainlang);
         let dotrain = Arc::clone(&dotrain);
 
         let handle = tokio::spawn(async move {
@@ -282,7 +282,7 @@ impl TestRunner {
             let args = ForkEvalArgs {
                 rainlang_string,
                 source_index: 0,
-                registry: registry.address,
+                rainlang: rainlang_cfg.address,
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
@@ -316,7 +316,7 @@ impl TestRunner {
             .roll_fork(Some(self.test_setup.block_number), None)?;
         let fork = Arc::new(self.forker.clone());
         let fork_clone = Arc::clone(&fork);
-        let registry = Arc::clone(&self.test_setup.registry);
+        let rainlang_cfg = Arc::clone(&self.test_setup.rainlang);
         let dotrain = Arc::clone(&dotrain);
 
         let handle = tokio::spawn(async move {
@@ -339,7 +339,7 @@ impl TestRunner {
             let args = ForkEvalArgs {
                 rainlang_string,
                 source_index: 0,
-                registry: registry.address,
+                rainlang: rainlang_cfg.address,
                 namespace: FullyQualifiedNamespace::default(),
                 context,
                 decode_errors: true,
@@ -392,16 +392,16 @@ impl TestRunner {
     }
 
     pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
-        self.test_setup.registry = Arc::new(
+        self.test_setup.rainlang = Arc::new(
             self.orderbook_yamls
                 .main
-                .get_registry(&self.test_config.scenario_name)?,
+                .get_rainlang(&self.test_config.scenario_name)?,
         );
 
         // Fetch the latest block number
         let rpcs = self
             .test_setup
-            .registry
+            .rainlang
             .network
             .rpcs
             .iter()
@@ -487,9 +487,9 @@ using-words-from orderbook-subparser
         let dotrain = format!(
             r#"
 version: {spec_version}
-registries:
+rainlangs:
     some-key:
-        address: {registry}
+        address: {rainlang_address}
 networks:
     some-key:
         rpcs:
@@ -517,7 +517,7 @@ using-words-from orderbook-subparser
 _: output-vault-decrease();
     "#,
             rpc_url = local_evm.url(),
-            registry = local_evm.registry,
+            rainlang_address = local_evm.rainlang,
             orderbook_subparser = local_evm.orderbook_subparser.address(),
             spec_version = SpecVersion::current()
         );

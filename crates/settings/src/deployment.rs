@@ -92,8 +92,8 @@ impl YamlParsableHash for DeploymentCfg {
                         Some(&context),
                     )?;
 
-                    if let Some(registry) = &order.registry {
-                        if registry != &scenario.registry {
+                    if let Some(rainlang) = &order.rainlang {
+                        if rainlang != &scenario.rainlang {
                             return Err(YamlError::ParseDeploymentConfigSourceError(
                                 ParseDeploymentConfigSourceError::NoMatch,
                             ));
@@ -223,7 +223,7 @@ impl ParseDeploymentConfigSourceError {
             ParseDeploymentConfigSourceError::OrderNotFoundError(order) =>
                 format!("The order '{}' referenced in your deployment configuration was not found in your YAML configuration. Please check that this order is defined correctly.", order),
             ParseDeploymentConfigSourceError::NoMatch =>
-                "The scenario and order in your deployment configuration do not match. The registry specified in the order must match the registry specified in the scenario.".to_string(),
+                "The scenario and order in your deployment configuration do not match. The rainlang specified in the order must match the rainlang specified in the scenario.".to_string(),
         }
     }
 }
@@ -241,7 +241,7 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-registries:
+rainlangs:
     registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
@@ -255,7 +255,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        registry: registry1
+        rainlang: registry1
 test: test
 "#;
         let error = DeploymentCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap_err();
@@ -277,7 +277,7 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-registries:
+rainlangs:
     registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
@@ -291,7 +291,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        registry: registry1
+        rainlang: registry1
 deployments:
     deployment1:
         test: test
@@ -315,7 +315,7 @@ networks:
         rpcs:
             - https://eth.llamarpc.com
         chain-id: 1
-registries:
+rainlangs:
     registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
@@ -329,7 +329,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        registry: registry1
+        rainlang: registry1
 deployments:
     deployment1:
         order: order1
@@ -358,7 +358,7 @@ networks:
         rpcs:
             - https://test.com
         chain-id: 2
-registries:
+rainlangs:
     registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
@@ -369,7 +369,7 @@ scenarios:
     scenario1:
         bindings:
             test: test
-        registry: registry1
+        rainlang: registry1
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000000
@@ -380,7 +380,7 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        registry: registry2
+        rainlang: registry2
 deployments:
     deployment1:
         scenario: scenario1
@@ -394,7 +394,7 @@ deployments:
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Deployment configuration error in your YAML: The scenario and order in your deployment configuration do not match. The registry specified in the order must match the registry specified in the scenario."
+            "Deployment configuration error in your YAML: The scenario and order in your deployment configuration do not match. The rainlang specified in the order must match the rainlang specified in the scenario."
         );
     }
 
@@ -408,7 +408,7 @@ networks:
         rpcs:
             - https://test.com
         chain-id: 2
-registries:
+rainlangs:
     registry1:
         address: 0x0000000000000000000000000000000000000000
         network: network1
@@ -419,11 +419,11 @@ scenarios:
     scenario1:
         bindings:
             test: test
-        registry: registry1
+        rainlang: registry1
     scenario2:
         bindings:
             test: test
-        registry: registry2
+        rainlang: registry2
 tokens:
     token1:
         address: 0x0000000000000000000000000000000000000000
@@ -437,13 +437,13 @@ orders:
             - token: token1
         outputs:
             - token: token1
-        registry: registry1
+        rainlang: registry1
     order2:
         inputs:
             - token: token2
         outputs:
             - token: token2
-        registry: registry2
+        rainlang: registry2
 "#;
 
     #[test]

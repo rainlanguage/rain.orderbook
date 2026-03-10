@@ -95,7 +95,7 @@ pub struct AddOrderArgs {
     pub dotrain: String,
     pub inputs: Vec<IOV2>,
     pub outputs: Vec<IOV2>,
-    pub registry: Address,
+    pub rainlang: Address,
     pub bindings: HashMap<String, String>,
     pub additional_meta: Option<Vec<RainMetaDocumentV1Item>>,
 }
@@ -139,18 +139,18 @@ impl AddOrderArgs {
             dotrain: dotrain.to_string(),
             inputs,
             outputs,
-            registry: deployment.scenario.registry.address,
+            rainlang: deployment.scenario.rainlang.address,
             bindings: deployment.scenario.bindings.to_owned(),
             additional_meta,
         })
     }
 
-    /// Read DISPaiR addresses from the registry contract.
+    /// Read DISPaiR addresses from the rainlang contract.
     async fn read_dispair(&self, client: &ReadableClient) -> Result<DISPaiR, AddOrderArgsError> {
         let deployer: Address = client
             .read(
                 ReadContractParametersBuilder::default()
-                    .address(self.registry)
+                    .address(self.rainlang)
                     .call(expressionDeployerAddressCall {})
                     .build()?,
             )
@@ -158,7 +158,7 @@ impl AddOrderArgs {
         let interpreter: Address = client
             .read(
                 ReadContractParametersBuilder::default()
-                    .address(self.registry)
+                    .address(self.rainlang)
                     .call(interpreterAddressCall {})
                     .build()?,
             )
@@ -166,7 +166,7 @@ impl AddOrderArgs {
         let store: Address = client
             .read(
                 ReadContractParametersBuilder::default()
-                    .address(self.registry)
+                    .address(self.rainlang)
                     .call(storeAddressCall {})
                     .build()?,
             )
@@ -174,7 +174,7 @@ impl AddOrderArgs {
         let parser: Address = client
             .read(
                 ReadContractParametersBuilder::default()
-                    .address(self.registry)
+                    .address(self.rainlang)
                     .call(parserAddressCall {})
                     .build()?,
             )
@@ -450,7 +450,7 @@ mod tests {
     use rain_orderbook_app_settings::{
         network::NetworkCfg,
         order::{OrderCfg, OrderIOCfg},
-        registry::RegistryCfg,
+        rainlang::RainlangCfg,
         scenario::ScenarioCfg,
         spec_version::SpecVersion,
         token::TokenCfg,
@@ -483,7 +483,7 @@ price: 2e18;
             inputs: vec![],
             outputs: vec![],
             bindings: HashMap::new(),
-            registry: Address::default(),
+            rainlang: Address::default(),
             additional_meta: None,
         };
 
@@ -535,7 +535,7 @@ price: 2e18;
             inputs: vec![],
             outputs: vec![],
             bindings: HashMap::new(),
-            registry: Address::default(),
+            rainlang: Address::default(),
             additional_meta: Some(additional_meta),
         };
 
@@ -574,7 +574,7 @@ price: 2e18;
             inputs: vec![],
             outputs: vec![],
             bindings: HashMap::new(),
-            registry: Address::default(),
+            rainlang: Address::default(),
             additional_meta: Some(vec![RainMetaDocumentV1Item::try_from(gui_state).unwrap()]),
         };
 
@@ -604,7 +604,7 @@ price: 2e18;
             inputs: vec![],
             outputs: vec![],
             bindings: HashMap::new(),
-            registry: Address::default(),
+            rainlang: Address::default(),
             additional_meta: Some(vec![invalid_gui_state]),
         };
 
@@ -622,7 +622,7 @@ price: 2e18;
             inputs: vec![],
             outputs: vec![],
             bindings: HashMap::new(),
-            registry: Address::default(),
+            rainlang: Address::default(),
             additional_meta: None,
         };
         let meta_bytes = args.try_generate_meta("".to_string()).unwrap();
@@ -648,13 +648,13 @@ price: 2e18;
             currency: None,
         };
         let network_arc = Arc::new(network);
-        let registry = RegistryCfg {
+        let rainlang = RainlangCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
             address: Address::default(),
         };
-        let registry_arc = Arc::new(registry);
+        let rainlang_arc = Arc::new(rainlang);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             documents: default_documents(),
@@ -662,7 +662,7 @@ price: 2e18;
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
-            registry: registry_arc.clone(),
+            rainlang: rainlang_arc.clone(),
         };
         let token1 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -722,7 +722,7 @@ price: 2e18;
                 vault_id: None,
             }],
             network: network_arc.clone(),
-            registry: None,
+            rainlang: None,
             orderbook: None,
         };
         let deployment = DeploymentCfg {
@@ -772,13 +772,13 @@ _ _: 0 0;
             currency: None,
         };
         let network_arc = Arc::new(network);
-        let registry = RegistryCfg {
+        let rainlang = RainlangCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
-            address: local_evm.registry,
+            address: local_evm.rainlang,
         };
-        let registry_arc = Arc::new(registry);
+        let rainlang_arc = Arc::new(rainlang);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             documents: default_documents(),
@@ -786,7 +786,7 @@ _ _: 0 0;
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
-            registry: registry_arc.clone(),
+            rainlang: rainlang_arc.clone(),
         };
         let token1 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -845,7 +845,7 @@ _ _: 0 0;
                 vault_id: Some(U256::from(4)),
             }],
             network: network_arc.clone(),
-            registry: None,
+            rainlang: None,
             orderbook: None,
         };
         let deployment = DeploymentCfg {
@@ -937,13 +937,13 @@ _ _: 0 0;
             currency: None,
         };
         let network_arc = Arc::new(network);
-        let registry = RegistryCfg {
+        let rainlang = RainlangCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
             address: Address::default(),
         };
-        let registry_arc = Arc::new(registry);
+        let rainlang_arc = Arc::new(rainlang);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             documents: default_documents(),
@@ -951,7 +951,7 @@ _ _: 0 0;
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
-            registry: registry_arc.clone(),
+            rainlang: rainlang_arc.clone(),
         };
         let token1 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -1011,7 +1011,7 @@ _ _: 0 0;
                 vault_id: None,
             }],
             network: network_arc.clone(),
-            registry: None,
+            rainlang: None,
             orderbook: None,
         };
         let deployment = DeploymentCfg {
@@ -1047,7 +1047,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_compose_addorder_post_task_empty_dotrain() {
         let local_evm = LocalEvm::new().await;
-        let deployment = get_deployment(&local_evm.url(), local_evm.registry);
+        let deployment = get_deployment(&local_evm.url(), local_evm.rainlang);
         let result = AddOrderArgs::new_from_deployment("".to_string(), deployment.clone(), None)
             .await
             .unwrap();
@@ -1061,7 +1061,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_compose_addorder_post_task_missing_bindings() {
         let local_evm = LocalEvm::new().await;
-        let deployment = get_deployment(&local_evm.url(), local_evm.registry);
+        let deployment = get_deployment(&local_evm.url(), local_evm.rainlang);
         let result = AddOrderArgs::new_from_deployment(
             format!(
                 "
@@ -1107,9 +1107,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-registries:
+rainlangs:
     some-key:
-        address: {registry}
+        address: {rainlang}
 tokens:
     t1:
         network: some-key
@@ -1135,7 +1135,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        registry: some-key
+        rainlang: some-key
         bindings:
             key1: 10
 deployments:
@@ -1153,7 +1153,7 @@ _ _: 16 52;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
-            registry = local_evm.registry,
+            rainlang = local_evm.rainlang,
             token1 = token1.address(),
             token2 = token2.address(),
             spec_version = SpecVersion::current()
@@ -1198,9 +1198,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-registries:
+rainlangs:
     some-key:
-        address: {registry}
+        address: {rainlang}
 tokens:
     t1:
         network: some-key
@@ -1226,7 +1226,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        registry: some-key
+        rainlang: some-key
         bindings:
             key1: 10
 deployments:
@@ -1244,7 +1244,7 @@ _ _: 16 52;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
-            registry = local_evm.registry,
+            rainlang = local_evm.rainlang,
             token1 = token1.address(),
             token2 = token2.address(),
             spec_version = SpecVersion::current()
@@ -1271,7 +1271,7 @@ _ _: 16 52;
             .expect_err("expected to fail but resolved");
     }
 
-    fn get_deployment(rpc_url: &str, registry: Address) -> DeploymentCfg {
+    fn get_deployment(rpc_url: &str, rainlang_address: Address) -> DeploymentCfg {
         let network = NetworkCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "test-network".to_string(),
@@ -1282,13 +1282,13 @@ _ _: 16 52;
             currency: None,
         };
         let network_arc = Arc::new(network);
-        let registry = RegistryCfg {
+        let rainlang = RainlangCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             key: "".to_string(),
             network: network_arc.clone(),
-            address: registry,
+            address: rainlang_address,
         };
-        let registry_arc = Arc::new(registry);
+        let rainlang_arc = Arc::new(rainlang);
         let scenario = ScenarioCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
             documents: default_documents(),
@@ -1296,7 +1296,7 @@ _ _: 16 52;
             bindings: HashMap::new(),
             runs: None,
             blocks: None,
-            registry: registry_arc.clone(),
+            rainlang: rainlang_arc.clone(),
         };
         let token1 = TokenCfg {
             document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
@@ -1355,7 +1355,7 @@ _ _: 16 52;
                 vault_id: Some(U256::from(4)),
             }],
             network: network_arc.clone(),
-            registry: None,
+            rainlang: None,
             orderbook: None,
         };
         DeploymentCfg {
@@ -1369,7 +1369,7 @@ _ _: 16 52;
     #[tokio::test]
     async fn test_try_parse_rainlang() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
-        let deployment = get_deployment(&local_evm.url(), local_evm.registry);
+        let deployment = get_deployment(&local_evm.url(), local_evm.rainlang);
 
         let dotrain = format!(
             "
@@ -1478,7 +1478,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_try_parse_rainlang_malformed_rainlang() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
-        let deployment = get_deployment(&local_evm.url(), local_evm.registry);
+        let deployment = get_deployment(&local_evm.url(), local_evm.rainlang);
         let dotrain = format!(
             "
 version: {spec_version}
@@ -1516,7 +1516,7 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-registries:
+rainlangs:
     test:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
@@ -1524,7 +1524,7 @@ scenarios:
         bindings:
             key1: 10
             key2: 20
-        registry: test
+        rainlang: test
 ---
 #key1 !Test binding
 #key2 !Test binding
@@ -1541,7 +1541,7 @@ _ _: key1 key2;
             dotrain: dotrain.clone(),
             inputs: vec![],
             outputs: vec![],
-            registry: local_evm.registry,
+            rainlang: local_evm.rainlang,
             bindings: HashMap::from([
                 ("key1".to_string(), "10".to_string()),
                 ("key2".to_string(), "20".to_string()),
@@ -1561,7 +1561,7 @@ _ _: key1 key2;
             dotrain: "invalid-dotrain".to_string(),
             inputs: vec![],
             outputs: vec![],
-            registry: Address::random(),
+            rainlang: Address::random(),
             bindings: HashMap::from([
                 ("key1".to_string(), "10".to_string()),
                 ("key2".to_string(), "20".to_string()),
@@ -1585,7 +1585,7 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-registries:
+rainlangs:
     test:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
@@ -1593,7 +1593,7 @@ scenarios:
         bindings:
             key1: 10
             key2: 20
-        registry: test
+        rainlang: test
 ---
 #key1 !Test binding
 #key2 !Test binding
@@ -1607,7 +1607,7 @@ _ _: key1 key2;
             dotrain: dotrain.to_string(),
             inputs: vec![],
             outputs: vec![],
-            registry: Address::random(),
+            rainlang: Address::random(),
             bindings: HashMap::new(),
             additional_meta: None,
         };
@@ -1630,12 +1630,12 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-registries:
+rainlangs:
     test:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     test:
-        registry: test
+        rainlang: test
 ---
 #calculate-io
 _ _: 0 0;
@@ -1655,7 +1655,7 @@ _ _: 0 0;
                 token: *local_evm.tokens[1].address(),
                 vaultId: B256::from(U256::from(4)),
             }],
-            registry: local_evm.registry,
+            rainlang: local_evm.rainlang,
             bindings: HashMap::new(),
             additional_meta: None,
         };
@@ -1724,7 +1724,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_get_add_order_calldata() {
         let local_evm = LocalEvm::new().await;
-        let deployment = get_deployment(&local_evm.url(), local_evm.registry);
+        let deployment = get_deployment(&local_evm.url(), local_evm.rainlang);
         let dotrain = format!(
             "
 version: {spec_version}
@@ -1795,7 +1795,7 @@ _ _: 0 0;
     #[tokio::test]
     async fn test_get_add_order_calldata_invalid_rpc_url() {
         let local_evm = LocalEvm::new().await;
-        let deployment = get_deployment(&local_evm.url(), local_evm.registry);
+        let deployment = get_deployment(&local_evm.url(), local_evm.rainlang);
         let dotrain = format!(
             "
 version: {spec_version}

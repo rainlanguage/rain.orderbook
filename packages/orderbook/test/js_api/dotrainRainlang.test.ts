@@ -1,6 +1,6 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
-import { WasmEncodedResult, DotrainRegistry, OrderbookYaml, RaindexClient } from '../../dist/cjs';
+import { WasmEncodedResult, DotrainRainlang, OrderbookYaml, RaindexClient } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
 const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
@@ -47,7 +47,7 @@ orderbooks:
     subgraph: base
     local-db-remote: remote
     deployment-block: 12345
-registries:
+rainlangs:
   flare:
     address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
     network: flare
@@ -100,10 +100,10 @@ gui:
           default: 10
 scenarios:
   flare:
-    registry: flare
+    rainlang: flare
     runs: 1
   base:
-    registry: base
+    rainlang: base
     runs: 1
 orders:
   flare:
@@ -146,7 +146,7 @@ _ _: 1 1;
 #handle-add-order
 :;`;
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Dotrain Registry', async function () {
+describe('Rain Orderbook JS API Package Bindgen Tests - Dotrain Rainlang', async function () {
 	const mockServer = getLocal();
 	beforeAll(async () => {
 		await mockServer.start(8231);
@@ -158,23 +158,24 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Dotrain Registry', async
 		mockServer.reset();
 	});
 
-	describe('DotrainRegistry Constructor', () => {
-		it('should create registry and fetch all content successfully', async () => {
-			const registryContent = `http://localhost:8231/settings.yaml
+	describe('DotrainRainlang Constructor', () => {
+
+		it('should create rainlang and fetch all content successfully', async () => {
+			const rainlangContent = `http://localhost:8231/settings.yaml
 fixed-limit http://localhost:8231/fixed-limit.rain
 auction-dca http://localhost:8231/auction-dca.rain`;
 
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_CONTENT);
 			await mockServer.forGet('/fixed-limit.rain').thenReply(200, FIRST_DOTRAIN_CONTENT);
 			await mockServer.forGet('/auction-dca.rain').thenReply(200, SECOND_DOTRAIN_CONTENT);
 
-			const result = await DotrainRegistry.new('http://localhost:8231/registry.txt');
+			const result = await DotrainRainlang.new('http://localhost:8231/registry.txt');
 			const registry = extractWasmEncodedData(result);
 
-			assert.strictEqual(registry.registryUrl, 'http://localhost:8231/registry.txt');
+			assert.strictEqual(registry.rainlangUrl, 'http://localhost:8231/registry.txt');
 			assert.strictEqual(registry.settingsUrl, 'http://localhost:8231/settings.yaml');
-			assert.strictEqual(registry.registry, registryContent);
+			assert.strictEqual(registry.rainlang, rainlangContent);
 			assert.strictEqual(registry.settings, MOCK_SETTINGS_CONTENT);
 
 			const orderUrls = registry.orderUrls;
@@ -188,65 +189,65 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 			assert(orders.has('auction-dca'));
 		});
 
-		it('should handle invalid registry format', async () => {
+		it('should handle invalid rainlang format', async () => {
 			const invalidContent = 'invalid format without proper structure';
 			await mockServer.forGet('/invalid.txt').thenReply(200, invalidContent);
 
-			const result = await DotrainRegistry.new('http://localhost:8231/invalid.txt');
+			const result = await DotrainRainlang.new('http://localhost:8231/invalid.txt');
 			assert(result.error);
 		});
 
-		it('should handle empty registry file', async () => {
+		it('should handle empty rainlang file', async () => {
 			await mockServer.forGet('/empty.txt').thenReply(200, '');
 
-			const result = await DotrainRegistry.new('http://localhost:8231/empty.txt');
+			const result = await DotrainRainlang.new('http://localhost:8231/empty.txt');
 			assert(result.error);
 			assert(result.error.readableMsg.includes('Invalid registry format'));
 		});
 
 		it('should handle settings fetch error', async () => {
-			const registryContent =
+			const rainlangContent =
 				'http://localhost:8231/nonexistent-settings.yaml\norder1 http://localhost:8231/order1.rain';
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 			await mockServer.forGet('/nonexistent-settings.yaml').thenReply(404);
 
-			const result = await DotrainRegistry.new('http://localhost:8231/registry.txt');
+			const result = await DotrainRainlang.new('http://localhost:8231/registry.txt');
 			assert(result.error);
 		});
 
-		it('should validate registry format without fetching orders', async () => {
-			const registryContent = `http://localhost:8231/settings.yaml
+		it('should validate rainlang format without fetching orders', async () => {
+			const rainlangContent = `http://localhost:8231/settings.yaml
 fixed-limit http://localhost:8231/fixed-limit.rain`;
 
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 
-			const result = await DotrainRegistry.validate('http://localhost:8231/registry.txt');
+			const result = await DotrainRainlang.validate('http://localhost:8231/registry.txt');
 			const value = extractWasmEncodedData(result);
 			assert.strictEqual(value, undefined);
 		});
 
-		it('should fail validation for invalid registry format', async () => {
+		it('should fail validation for invalid rainlang format', async () => {
 			await mockServer.forGet('/invalid-registry.txt').thenReply(200, 'invalid');
 
-			const result = await DotrainRegistry.validate('http://localhost:8231/invalid-registry.txt');
+			const result = await DotrainRainlang.validate('http://localhost:8231/invalid-registry.txt');
 			assert(result.error);
 		});
 	});
 
-	describe('DotrainRegistry Order Management', () => {
-		let registry: DotrainRegistry;
+	describe('DotrainRainlang Order Management', () => {
+		let registry: DotrainRainlang;
 
 		beforeEach(async () => {
-			const registryContent = `http://localhost:8231/settings.yaml
+			const rainlangContent = `http://localhost:8231/settings.yaml
 fixed-limit http://localhost:8231/fixed-limit.rain
 auction-dca http://localhost:8231/auction-dca.rain`;
 
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_CONTENT);
 			await mockServer.forGet('/fixed-limit.rain').thenReply(200, FIRST_DOTRAIN_CONTENT);
 			await mockServer.forGet('/auction-dca.rain').thenReply(200, SECOND_DOTRAIN_CONTENT);
 
-			const result = await DotrainRegistry.new('http://localhost:8231/registry.txt');
+			const result = await DotrainRainlang.new('http://localhost:8231/registry.txt');
 			registry = extractWasmEncodedData(result);
 		});
 
@@ -276,19 +277,19 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 		it('should handle mixed valid and invalid orders', async () => {
 			mockServer.reset();
 
-			const registryContent = `http://localhost:8231/settings.yaml
+			const rainlangContent = `http://localhost:8231/settings.yaml
 valid-order http://localhost:8231/valid.rain
 invalid-order http://localhost:8231/invalid.rain`;
 
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_CONTENT);
 			await mockServer.forGet('/valid.rain').thenReply(200, FIRST_DOTRAIN_CONTENT);
 			await mockServer.forGet('/invalid.rain').thenReply(200, 'not a dotrain file');
 
-			const registryResult = await DotrainRegistry.new('http://localhost:8231/registry.txt');
-			const mixedRegistry = extractWasmEncodedData(registryResult);
+			const rainlangResult = await DotrainRainlang.new('http://localhost:8231/registry.txt');
+			const mixedRainlang = extractWasmEncodedData(rainlangResult);
 
-			const orderDetails = extractWasmEncodedData(mixedRegistry.getAllOrderDetails());
+			const orderDetails = extractWasmEncodedData(mixedRainlang.getAllOrderDetails());
 
 			assert.strictEqual(orderDetails.valid.size, 1);
 			assert.strictEqual(orderDetails.invalid.size, 1);
@@ -323,19 +324,19 @@ invalid-order http://localhost:8231/invalid.rain`;
 		});
 	});
 
-	describe('DotrainRegistry GUI Creation', () => {
-		let registry: DotrainRegistry;
+	describe('DotrainRainlang GUI Creation', () => {
+		let registry: DotrainRainlang;
 
 		beforeEach(async () => {
-			const registryContent = `http://localhost:8231/settings.yaml
+			const rainlangContent = `http://localhost:8231/settings.yaml
 fixed-limit http://localhost:8231/fixed-limit.rain`;
 
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_CONTENT);
 			await mockServer.forGet('/fixed-limit.rain').thenReply(200, FIRST_DOTRAIN_CONTENT);
 
 			registry = extractWasmEncodedData(
-				await DotrainRegistry.new('http://localhost:8231/registry.txt')
+				await DotrainRainlang.new('http://localhost:8231/registry.txt')
 			);
 		});
 
@@ -410,7 +411,7 @@ orderbooks:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
-registries:
+rainlangs:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
@@ -435,7 +436,7 @@ gui:
             - value: "0xbeef"
 scenarios:
   mainnet:
-    registry: mainnet
+    rainlang: mainnet
     runs: 1
 orders:
   mainnet:
@@ -455,17 +456,18 @@ _ _: 0 0;
 :;
 `;
 
-	describe('DotrainRegistry getOrderbookYaml', () => {
+	describe('DotrainRainlang getOrderbookYaml', () => {
+
 		it('should return OrderbookYaml instance from settings', async () => {
-			const registryContent = `http://localhost:8231/settings.yaml
+			const rainlangContent = `http://localhost:8231/settings.yaml
 test-order http://localhost:8231/order.rain`;
 
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_WITH_TOKENS);
 			await mockServer.forGet('/order.rain').thenReply(200, MOCK_DOTRAIN_SIMPLE);
 
 			const registry = extractWasmEncodedData(
-				await DotrainRegistry.new('http://localhost:8231/registry.txt')
+				await DotrainRainlang.new('http://localhost:8231/registry.txt')
 			);
 
 			const orderbookYamlResult = registry.getOrderbookYaml();
@@ -477,17 +479,17 @@ test-order http://localhost:8231/order.rain`;
 		});
 	});
 
-	describe('DotrainRegistry getRaindexClient', () => {
+	describe('DotrainRainlang getRaindexClient', () => {
 		it('should return RaindexClient instance from settings', async () => {
-			const registryContent = `http://localhost:8231/settings.yaml
+			const rainlangContent = `http://localhost:8231/settings.yaml
 test-order http://localhost:8231/order.rain`;
 
-			await mockServer.forGet('/registry.txt').thenReply(200, registryContent);
+			await mockServer.forGet('/registry.txt').thenReply(200, rainlangContent);
 			await mockServer.forGet('/settings.yaml').thenReply(200, MOCK_SETTINGS_WITH_TOKENS);
 			await mockServer.forGet('/order.rain').thenReply(200, MOCK_DOTRAIN_SIMPLE);
 
 			const registry = extractWasmEncodedData(
-				await DotrainRegistry.new('http://localhost:8231/registry.txt')
+				await DotrainRainlang.new('http://localhost:8231/registry.txt')
 			);
 
 			const raindexClientResult = await registry.getRaindexClient();

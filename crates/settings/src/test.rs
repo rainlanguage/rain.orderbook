@@ -18,11 +18,11 @@ pub fn mock_network() -> Arc<NetworkCfg> {
     })
 }
 
-// Helper function to create a mock registry
-pub fn mock_registry() -> Arc<RegistryCfg> {
-    Arc::new(RegistryCfg {
+// Helper function to create a mock rainlang
+pub fn mock_rainlang() -> Arc<RainlangCfg> {
+    Arc::new(RainlangCfg {
         document: Arc::new(RwLock::new(StrictYaml::String("".to_string()))),
-        key: "Registry1".to_string(),
+        key: "Rainlang1".to_string(),
         address: Address::repeat_byte(0x03),
         network: mock_network(),
     })

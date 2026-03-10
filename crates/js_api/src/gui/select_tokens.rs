@@ -856,8 +856,8 @@ subgraphs:
   some-sg: https://www.some-sg.com
 metaboards:
   some-network: https://metaboard.com
-registries:
-  some-deployer:
+rainlangs:
+  some-rainlang:
     network: some-network
     address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 orderbooks:
@@ -868,7 +868,7 @@ orderbooks:
     deployment-block: 12345
 scenarios:
   some-scenario:
-    registry: some-deployer
+    rainlang: some-rainlang
     bindings:
       test-binding: 5
     scenarios:
@@ -877,7 +877,7 @@ scenarios:
           another-binding: 300
 orders:
   some-order:
-    registry: some-deployer
+    rainlang: some-rainlang
     inputs:
       - token: token3
     outputs:

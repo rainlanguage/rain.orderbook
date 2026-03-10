@@ -9,8 +9,8 @@ import {
 	type TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
 import { readable, writable } from 'svelte/store';
-import { DotrainRegistry, type NameAndDescriptionCfg } from '@rainlanguage/orderbook';
-import { REGISTRY_URL } from '$lib/constants';
+import { DotrainRainlang, type NameAndDescriptionCfg } from '@rainlanguage/orderbook';
+import { RAINLANG_URL } from '$lib/constants';
 import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
 const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
@@ -53,7 +53,7 @@ vi.mock('$lib/stores/wagmi', () => ({
 }));
 
 describe('Full Deployment Tests', () => {
-	let registry: DotrainRegistry | null = null;
+	let rainlang: DotrainRainlang | null = null;
 
 	function findLockRegion(a: string, b: string): { prefixEnd: number; suffixEnd: number } {
 		expect(a.length).toEqual(b.length);
@@ -72,11 +72,11 @@ describe('Full Deployment Tests', () => {
 	}
 
 	beforeAll(async () => {
-		const registryResult = await DotrainRegistry.new(REGISTRY_URL);
-		if (registryResult.error) {
-			throw new Error('Failed to create registry');
+		const rainlangResult = await DotrainRainlang.new(RAINLANG_URL);
+		if (rainlangResult.error) {
+			throw new Error('Failed to create rainlang');
 		}
-		registry = registryResult.value;
+		rainlang = rainlangResult.value;
 	});
 
 	beforeEach(async () => {
@@ -110,16 +110,16 @@ describe('Full Deployment Tests', () => {
 	it(
 		'Fixed limit order',
 		async () => {
-			if (!registry) {
-				throw new Error('No registry available');
+			if (!rainlang) {
+				throw new Error('No rainlang available');
 			}
 
-			const fixedLimitDeploymentDetails = registry.getDeploymentDetails('fixed-limit');
+			const fixedLimitDeploymentDetails = rainlang.getDeploymentDetails('fixed-limit');
 			if (fixedLimitDeploymentDetails.error) {
 				throw new Error('Failed to get deployment details');
 			}
 			const deployment = fixedLimitDeploymentDetails.value.get('base') as NameAndDescriptionCfg;
-			const fixedLimitOrderDetail = registry
+			const fixedLimitOrderDetail = rainlang
 				.getAllOrderDetails()
 				.value?.valid.get('fixed-limit') as NameAndDescriptionCfg;
 
@@ -127,7 +127,7 @@ describe('Full Deployment Tests', () => {
 				data: {
 					orderName: 'fixed-limit',
 					deployment: { key: 'base', ...deployment },
-					registry,
+					rainlang,
 					orderDetail: fixedLimitOrderDetail
 				}
 			});
@@ -200,10 +200,10 @@ describe('Full Deployment Tests', () => {
 			);
 
 			const getDeploymentArgs = async () => {
-				if (!registry) {
-					throw new Error('Registry not initialized');
+				if (!rainlang) {
+					throw new Error('Rainlang not initialized');
 				}
-				const guiResult = await registry.getGui('fixed-limit', 'base');
+				const guiResult = await rainlang.getGui('fixed-limit', 'base');
 				if (guiResult.error) {
 					throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
 				}

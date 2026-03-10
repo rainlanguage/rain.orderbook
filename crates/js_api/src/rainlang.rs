@@ -9,9 +9,9 @@ use thiserror::Error;
 use url::Url;
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 
-/// A registry system for managing dotrain order configurations with layered content merging.
+/// A rainlang system for managing dotrain order configurations with layered content merging.
 ///
-/// The `DotrainRegistry` provides a centralized way to fetch, parse, and manage dotrain order
+/// The `DotrainRainlang` provides a centralized way to fetch, parse, and manage dotrain order
 /// strategies from remote sources. It supports a layered architecture where shared settings
 /// are merged with individual order configurations.
 ///
@@ -50,7 +50,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 ///
 /// ```javascript
 /// // Initialize registry
-/// const registry = await DotrainRegistry.new("https://example.com/registry.txt");
+/// const registry = await DotrainRainlang.new("https://example.com/registry.txt");
 ///
 /// // Get available orders
 /// const orders = await registry.getAllOrderDetails();
@@ -63,20 +63,20 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 /// ```
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[wasm_bindgen]
-pub struct DotrainRegistry {
+pub struct DotrainRainlang {
     /// The URL of the registry file containing the list of orders and settings.
     ///
     /// This is the original URL passed to the constructor and serves as the entry point
     /// for fetching the registry configuration. The registry file should contain a
     /// settings URL on the first line followed by order entries.
-    registry_url: Url,
+    rainlang_url: Url,
 
-    /// The raw content of the registry file as fetched from `registry_url`.
+    /// The raw content of the registry file as fetched from `rainlang_url`.
     ///
     /// Contains the complete registry file content including the settings URL and
     /// all order entries. This is stored for reference and debugging purposes.
     /// Format: settings URL on first line, then "key url" pairs for each order.
-    registry: String,
+    rainlang: String,
 
     /// The URL of the shared settings YAML file extracted from the first line of the registry.
     ///
@@ -127,19 +127,19 @@ pub struct OrderUrls(pub HashMap<String, String>);
 impl_wasm_traits!(OrderUrls);
 
 #[derive(Error, Debug)]
-pub enum DotrainRegistryError {
-    #[error("Failed to fetch registry from URL: {0}")]
-    RegistryFetchError(String),
-    #[error("Failed to parse registry content")]
-    RegistryParseError,
+pub enum DotrainRainlangError {
+    #[error("Failed to fetch rainlang from URL: {0}")]
+    RainlangFetchError(String),
+    #[error("Failed to parse rainlang content")]
+    RainlangParseError,
     #[error("Failed to fetch settings from URL: {0}")]
     SettingsFetchError(String),
     #[error("Failed to fetch order content from URL: {0}")]
     OrderFetchError(String),
     #[error("Order key not found: {0}")]
     OrderKeyNotFound(String),
-    #[error("Invalid registry format: {0}")]
-    InvalidRegistryFormat(String),
+    #[error("Invalid rainlang format: {0}")]
+    InvalidRainlangFormat(String),
     #[error("HTTP request failed: {0}")]
     HttpError(String),
     #[error("Invalid URL: {0}")]
@@ -152,42 +152,42 @@ pub enum DotrainRegistryError {
     RaindexClientError(#[from] RaindexClientError),
 }
 
-impl DotrainRegistryError {
+impl DotrainRainlangError {
     pub fn to_readable_msg(&self) -> String {
         match self {
-            DotrainRegistryError::RegistryFetchError(url) => {
-                format!("Unable to fetch the registry file from {}. Please check your internet connection and ensure the URL is accessible.", url)
+            DotrainRainlangError::RainlangFetchError(url) => {
+                format!("Unable to fetch the rainlang file from {}. Please check your internet connection and ensure the URL is accessible.", url)
             }
-            DotrainRegistryError::RegistryParseError => {
-                "The registry file format is invalid. Please ensure it follows the expected format with settings URL on the first line and order entries on subsequent lines.".to_string()
+            DotrainRainlangError::RainlangParseError => {
+                "The rainlang file format is invalid. Please ensure it follows the expected format with settings URL on the first line and order entries on subsequent lines.".to_string()
             }
-            DotrainRegistryError::SettingsFetchError(url) => {
+            DotrainRainlangError::SettingsFetchError(url) => {
                 format!("Unable to fetch the settings file from {}. Please check your internet connection and ensure the URL is accessible.", url)
             }
-            DotrainRegistryError::OrderFetchError(url) => {
+            DotrainRainlangError::OrderFetchError(url) => {
                 format!("Unable to fetch the order file from {}. Please check your internet connection and ensure the URL is accessible.", url)
             }
-            DotrainRegistryError::OrderKeyNotFound(key) => {
-                format!("The order key '{}' was not found in the registry. Please check the available order keys.", key)
+            DotrainRainlangError::OrderKeyNotFound(key) => {
+                format!("The order key '{}' was not found in the rainlang. Please check the available order keys.", key)
             }
-            DotrainRegistryError::InvalidRegistryFormat(msg) => {
-                format!("Invalid registry format: {}", msg)
+            DotrainRainlangError::InvalidRainlangFormat(msg) => {
+                format!("Invalid rainlang format: {}", msg)
             }
-            DotrainRegistryError::HttpError(msg) => {
+            DotrainRainlangError::HttpError(msg) => {
                 format!("Network error: {}", msg)
             }
-            DotrainRegistryError::UrlParseError(err) => {
+            DotrainRainlangError::UrlParseError(err) => {
                 format!("Invalid URL format: {}. Please ensure the URL is properly formatted.", err)
             }
-            DotrainRegistryError::GuiError(err) => err.to_readable_msg(),
-            DotrainRegistryError::OrderbookYamlError(err) => err.to_readable_msg(),
-            DotrainRegistryError::RaindexClientError(err) => err.to_readable_msg(),
+            DotrainRainlangError::GuiError(err) => err.to_readable_msg(),
+            DotrainRainlangError::OrderbookYamlError(err) => err.to_readable_msg(),
+            DotrainRainlangError::RaindexClientError(err) => err.to_readable_msg(),
         }
     }
 }
 
-impl From<DotrainRegistryError> for WasmEncodedError {
-    fn from(value: DotrainRegistryError) -> Self {
+impl From<DotrainRainlangError> for WasmEncodedError {
+    fn from(value: DotrainRainlangError) -> Self {
         WasmEncodedError {
             msg: value.to_string(),
             readable_msg: value.to_readable_msg(),
@@ -196,14 +196,14 @@ impl From<DotrainRegistryError> for WasmEncodedError {
 }
 
 #[wasm_bindgen]
-impl DotrainRegistry {
-    #[wasm_bindgen(getter = registryUrl)]
-    pub fn registry_url(&self) -> String {
-        self.registry_url.to_string()
+impl DotrainRainlang {
+    #[wasm_bindgen(getter = rainlangUrl)]
+    pub fn rainlang_url(&self) -> String {
+        self.rainlang_url.to_string()
     }
     #[wasm_bindgen(getter)]
-    pub fn registry(&self) -> String {
-        self.registry.clone()
+    pub fn rainlang(&self) -> String {
+        self.rainlang.clone()
     }
     #[wasm_bindgen(getter = settingsUrl)]
     pub fn settings_url(&self) -> String {
@@ -229,8 +229,8 @@ impl DotrainRegistry {
 }
 
 #[wasm_export]
-impl DotrainRegistry {
-    /// Creates a new DotrainRegistry instance by fetching and parsing the registry file.
+impl DotrainRainlang {
+    /// Creates a new DotrainRainlang instance by fetching and parsing the registry file.
     ///
     /// The registry file should contain a settings YAML URL on the first line (without a key),
     /// followed by order entries in the format "key url".
@@ -238,7 +238,7 @@ impl DotrainRegistry {
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = await DotrainRegistry.new("https://example.com/registry.txt");
+    /// const result = await DotrainRainlang.new("https://example.com/registry.txt");
     /// if (result.error) {
     ///   console.error("Registry creation failed:", result.error.readableMsg);
     ///   return;
@@ -248,24 +248,24 @@ impl DotrainRegistry {
     #[wasm_export(
         js_name = "new",
         preserve_js_class,
-        return_description = "DotrainRegistry instance with settings and orders loaded"
+        return_description = "DotrainRainlang instance with settings and orders loaded"
     )]
     pub async fn new(
         #[wasm_export(
-            js_name = "registryUrl",
-            param_description = "URL to the registry file containing settings and order definitions"
+            js_name = "rainlangUrl",
+            param_description = "URL to the rainlang file containing settings and order definitions"
         )]
-        registry_url: String,
-    ) -> Result<DotrainRegistry, DotrainRegistryError> {
-        let registry_url = Url::parse(&registry_url)?;
-        let (registry_content, settings_url, order_urls) =
-            Self::fetch_and_parse_registry(&registry_url).await?;
+        rainlang_url: String,
+    ) -> Result<DotrainRainlang, DotrainRainlangError> {
+        let rainlang_url = Url::parse(&rainlang_url)?;
+        let (rainlang_content, settings_url, order_urls) =
+            Self::fetch_and_parse_rainlang(&rainlang_url).await?;
         let settings = Self::fetch_settings(&settings_url).await?;
         let orders = Self::fetch_orders(&order_urls).await?;
 
-        Ok(DotrainRegistry {
-            registry_url,
-            registry: registry_content,
+        Ok(DotrainRainlang {
+            rainlang_url,
+            rainlang: rainlang_content,
             settings_url,
             settings,
             order_urls,
@@ -279,19 +279,19 @@ impl DotrainRegistry {
     /// performing a full registry load.
     #[wasm_export(
         js_name = "validate",
-        return_description = "Validates the registry URL and format without fetching settings or orders",
+        return_description = "Validates the rainlang URL and format without fetching settings or orders",
         unchecked_return_type = "void"
     )]
     pub async fn validate(
         #[wasm_export(
-            js_name = "registryUrl",
-            param_description = "URL to the registry file containing settings and order definitions"
+            js_name = "rainlangUrl",
+            param_description = "URL to the rainlang file containing settings and order definitions"
         )]
-        registry_url: String,
-    ) -> Result<(), DotrainRegistryError> {
-        let registry_url = Url::parse(&registry_url)?;
-        // Only fetch and parse the registry file to verify format/URLs.
-        let _ = Self::fetch_and_parse_registry(&registry_url).await?;
+        rainlang_url: String,
+    ) -> Result<(), DotrainRainlangError> {
+        let rainlang_url = Url::parse(&rainlang_url)?;
+        // Only fetch and parse the rainlang file to verify format/URLs.
+        let _ = Self::fetch_and_parse_rainlang(&rainlang_url).await?;
         Ok(())
     }
 
@@ -321,7 +321,7 @@ impl DotrainRegistry {
         unchecked_return_type = "{ valid: Map<string, NameAndDescriptionCfg>, invalid: Map<string, WasmEncodedError> }",
         return_description = "Valid and invalid order metadata grouped by order key"
     )]
-    pub fn get_all_order_details(&self) -> Result<OrderDetailsResult, DotrainRegistryError> {
+    pub fn get_all_order_details(&self) -> Result<OrderDetailsResult, DotrainRainlangError> {
         let mut valid = BTreeMap::new();
         let mut invalid = BTreeMap::new();
         let settings = self.settings_sources();
@@ -366,7 +366,7 @@ impl DotrainRegistry {
         unchecked_return_type = "string[]",
         return_description = "Array of order keys available in the registry"
     )]
-    pub fn get_order_keys(&self) -> Result<Vec<String>, DotrainRegistryError> {
+    pub fn get_order_keys(&self) -> Result<Vec<String>, DotrainRainlangError> {
         Ok(self.order_urls.keys().cloned().collect())
     }
 
@@ -401,11 +401,11 @@ impl DotrainRegistry {
             param_description = "Order key to get deployment details for"
         )]
         order_key: String,
-    ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, DotrainRegistryError> {
+    ) -> Result<BTreeMap<String, NameAndDescriptionCfg>, DotrainRainlangError> {
         let dotrain = self
             .orders
             .get(&order_key)
-            .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
+            .ok_or(DotrainRainlangError::OrderKeyNotFound(order_key.clone()))?;
         let settings = self.settings_sources();
         let deployment_details =
             DotrainOrderGui::get_deployment_details(dotrain.clone(), settings.clone())?;
@@ -477,11 +477,11 @@ impl DotrainRegistry {
             This is useful for auto-saving the state of the GUI across sessions."
         )]
         state_update_callback: Option<js_sys::Function>,
-    ) -> Result<DotrainOrderGui, DotrainRegistryError> {
+    ) -> Result<DotrainOrderGui, DotrainRainlangError> {
         let dotrain = self
             .orders
             .get(&order_key)
-            .ok_or(DotrainRegistryError::OrderKeyNotFound(order_key.clone()))?;
+            .ok_or(DotrainRainlangError::OrderKeyNotFound(order_key.clone()))?;
         let settings = self.settings_sources();
 
         let gui_result = match serialized_state {
@@ -517,7 +517,7 @@ impl DotrainRegistry {
             }
         };
 
-        let gui = gui_result.map_err(DotrainRegistryError::GuiError)?;
+        let gui = gui_result.map_err(DotrainRainlangError::GuiError)?;
         Ok(gui)
     }
 
@@ -542,7 +542,7 @@ impl DotrainRegistry {
         unchecked_return_type = "OrderbookYaml",
         return_description = "OrderbookYaml instance from registry settings"
     )]
-    pub fn get_orderbook_yaml(&self) -> Result<OrderbookYaml, DotrainRegistryError> {
+    pub fn get_orderbook_yaml(&self) -> Result<OrderbookYaml, DotrainRainlangError> {
         let yaml = OrderbookYaml::new(vec![self.settings.clone()], None)?;
         Ok(yaml)
     }
@@ -550,7 +550,7 @@ impl DotrainRegistry {
 
 #[cfg(target_family = "wasm")]
 #[wasm_export]
-impl DotrainRegistry {
+impl DotrainRainlang {
     /// Creates a RaindexClient instance from the registry's shared settings.
     ///
     /// ## Examples
@@ -590,7 +590,7 @@ impl DotrainRegistry {
             param_description = "Optional callback invoked with the current local DB sync status"
         )]
         status_callback: Option<js_sys::Function>,
-    ) -> Result<RaindexClient, DotrainRegistryError> {
+    ) -> Result<RaindexClient, DotrainRainlangError> {
         let client = RaindexClient::new(
             vec![self.settings.clone()],
             None,
@@ -604,17 +604,17 @@ impl DotrainRegistry {
 }
 
 #[cfg(not(target_family = "wasm"))]
-impl DotrainRegistry {
+impl DotrainRainlang {
     pub async fn get_raindex_client(
         &self,
         db_path: Option<std::path::PathBuf>,
-    ) -> Result<RaindexClient, DotrainRegistryError> {
+    ) -> Result<RaindexClient, DotrainRainlangError> {
         let client = RaindexClient::new(vec![self.settings.clone()], None, db_path).await?;
         Ok(client)
     }
 }
 
-impl DotrainRegistry {
+impl DotrainRainlang {
     fn settings_sources(&self) -> Option<Vec<String>> {
         if self.settings.is_empty() {
             None
@@ -623,17 +623,17 @@ impl DotrainRegistry {
         }
     }
 
-    async fn fetch_and_parse_registry(
-        registry_url: &Url,
-    ) -> Result<(String, Url, HashMap<String, Url>), DotrainRegistryError> {
-        let registry_content = Self::fetch_url_content(registry_url).await?;
-        let (settings_url, order_urls) = Self::parse_registry_content(&registry_content)?;
-        Ok((registry_content, settings_url, order_urls))
+    async fn fetch_and_parse_rainlang(
+        rainlang_url: &Url,
+    ) -> Result<(String, Url, HashMap<String, Url>), DotrainRainlangError> {
+        let rainlang_content = Self::fetch_url_content(rainlang_url).await?;
+        let (settings_url, order_urls) = Self::parse_rainlang_content(&rainlang_content)?;
+        Ok((rainlang_content, settings_url, order_urls))
     }
 
-    fn parse_registry_content(
+    fn parse_rainlang_content(
         content: &str,
-    ) -> Result<(Url, HashMap<String, Url>), DotrainRegistryError> {
+    ) -> Result<(Url, HashMap<String, Url>), DotrainRainlangError> {
         let lines: Vec<&str> = content
             .lines()
             .map(|line| line.trim())
@@ -641,14 +641,14 @@ impl DotrainRegistry {
             .collect();
 
         if lines.is_empty() {
-            return Err(DotrainRegistryError::InvalidRegistryFormat(
-                "Registry file is empty".to_string(),
+            return Err(DotrainRainlangError::InvalidRainlangFormat(
+                "Rainlang file is empty".to_string(),
             ));
         }
 
         let first_line = lines[0];
         if first_line.contains(' ') {
-            return Err(DotrainRegistryError::InvalidRegistryFormat(
+            return Err(DotrainRainlangError::InvalidRainlangFormat(
                 "First line should be a settings URL without a key".to_string(),
             ));
         }
@@ -659,7 +659,7 @@ impl DotrainRegistry {
         for line in &lines[1..] {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() != 2 {
-                return Err(DotrainRegistryError::InvalidRegistryFormat(format!(
+                return Err(DotrainRainlangError::InvalidRainlangFormat(format!(
                     "Invalid order entry format: '{}'. Expected: 'key url'",
                     line
                 )));
@@ -674,13 +674,13 @@ impl DotrainRegistry {
         Ok((settings_url, order_urls))
     }
 
-    async fn fetch_url_content(url: &Url) -> Result<String, DotrainRegistryError> {
+    async fn fetch_url_content(url: &Url) -> Result<String, DotrainRainlangError> {
         let response = reqwest::get(url.as_str())
             .await
-            .map_err(|e| DotrainRegistryError::HttpError(e.to_string()))?;
+            .map_err(|e| DotrainRainlangError::HttpError(e.to_string()))?;
 
         if !response.status().is_success() {
-            return Err(DotrainRegistryError::HttpError(format!(
+            return Err(DotrainRainlangError::HttpError(format!(
                 "HTTP {}",
                 response.status()
             )));
@@ -689,16 +689,16 @@ impl DotrainRegistry {
         response
             .text()
             .await
-            .map_err(|e| DotrainRegistryError::HttpError(e.to_string()))
+            .map_err(|e| DotrainRainlangError::HttpError(e.to_string()))
     }
 
-    async fn fetch_settings(settings_url: &Url) -> Result<String, DotrainRegistryError> {
+    async fn fetch_settings(settings_url: &Url) -> Result<String, DotrainRainlangError> {
         Self::fetch_url_content(settings_url).await
     }
 
     async fn fetch_orders(
         order_urls: &HashMap<String, Url>,
-    ) -> Result<HashMap<String, String>, DotrainRegistryError> {
+    ) -> Result<HashMap<String, String>, DotrainRainlangError> {
         use futures::future::join_all;
 
         let mut futures = Vec::new();
@@ -709,11 +709,11 @@ impl DotrainRegistry {
             futures.push(async move {
                 let content = reqwest::get(url_clone.as_str())
                     .await
-                    .map_err(|e| DotrainRegistryError::HttpError(e.to_string()))?
+                    .map_err(|e| DotrainRainlangError::HttpError(e.to_string()))?
                     .text()
                     .await
-                    .map_err(|e| DotrainRegistryError::HttpError(e.to_string()))?;
-                Ok::<(String, String), DotrainRegistryError>((key_clone, content))
+                    .map_err(|e| DotrainRainlangError::HttpError(e.to_string()))?;
+                Ok::<(String, String), DotrainRainlangError>((key_clone, content))
             });
         }
 
@@ -770,7 +770,7 @@ orderbooks:
     network: base
     subgraph: base
     deployment-block: 0
-registries:
+rainlangs:
   flare:
     address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
     network: flare
@@ -832,10 +832,10 @@ gui:"#,
           default: 10
 scenarios:
   flare:
-    registry: flare
+    rainlang: flare
     runs: 1
   base:
-    registry: base
+    rainlang: base
     runs: 1
 orders:
   flare:
@@ -895,9 +895,9 @@ _ _: 1 1;
         use wasm_bindgen_test::wasm_bindgen_test;
 
         #[wasm_bindgen_test]
-        fn test_parse_registry_content() {
+        fn test_parse_rainlang_content() {
             let (settings_url, order_urls) =
-                DotrainRegistry::parse_registry_content(MOCK_REGISTRY_CONTENT).unwrap();
+                DotrainRainlang::parse_rainlang_content(MOCK_REGISTRY_CONTENT).unwrap();
 
             assert_eq!(
                 settings_url.to_string(),
@@ -916,13 +916,13 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_parse_invalid_registry_content() {
-            let result = DotrainRegistry::parse_registry_content("");
+            let result = DotrainRainlang::parse_rainlang_content("");
             assert!(result.is_err());
 
-            let result = DotrainRegistry::parse_registry_content("invalid first line");
+            let result = DotrainRainlang::parse_rainlang_content("invalid first line");
             assert!(result.is_err());
 
-            let result = DotrainRegistry::parse_registry_content(
+            let result = DotrainRainlang::parse_rainlang_content(
                 "https://example.com/settings.yaml\ninvalid-entry",
             );
             assert!(result.is_err());
@@ -930,9 +930,9 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_get_order_keys() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
+            let registry = DotrainRainlang {
+                rainlang_url: Url::parse("https://example.com/test").unwrap(),
+                rainlang: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
                 settings: "".to_string(),
                 order_urls: vec![
@@ -958,9 +958,9 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_get_all_order_details() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
+            let registry = DotrainRainlang {
+                rainlang_url: Url::parse("https://example.com/test").unwrap(),
+                rainlang: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
                 settings: mock_settings_content(),
                 order_urls: vec![
@@ -1000,9 +1000,9 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_get_all_order_details_with_invalid_order() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
+            let registry = DotrainRainlang {
+                rainlang_url: Url::parse("https://example.com/test").unwrap(),
+                rainlang: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
                 settings: mock_settings_content(),
                 order_urls: vec![
@@ -1034,9 +1034,9 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_get_deployment_details() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
+            let registry = DotrainRainlang {
+                rainlang_url: Url::parse("https://example.com/test").unwrap(),
+                rainlang: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
                 settings: mock_settings_content(),
                 order_urls: vec![(
@@ -1069,9 +1069,9 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_get_deployment_details_order_not_found() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/test").unwrap(),
-                registry: "".to_string(),
+            let registry = DotrainRainlang {
+                rainlang_url: Url::parse("https://example.com/test").unwrap(),
+                rainlang: "".to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
                 settings: mock_settings_content(),
                 order_urls: HashMap::new(),
@@ -1082,7 +1082,7 @@ _ _: 1 1;
             assert!(result.is_err());
 
             match result.err().unwrap() {
-                DotrainRegistryError::OrderKeyNotFound(key) => {
+                DotrainRainlangError::OrderKeyNotFound(key) => {
                     assert_eq!(key, "non-existent");
                 }
                 _ => panic!("Expected OrderKeyNotFound error"),
@@ -1091,9 +1091,9 @@ _ _: 1 1;
 
         #[wasm_bindgen_test]
         fn test_getter_methods() {
-            let registry = DotrainRegistry {
-                registry_url: Url::parse("https://example.com/registry.txt").unwrap(),
-                registry: MOCK_REGISTRY_CONTENT.to_string(),
+            let registry = DotrainRainlang {
+                rainlang_url: Url::parse("https://example.com/registry.txt").unwrap(),
+                rainlang: MOCK_REGISTRY_CONTENT.to_string(),
                 settings_url: Url::parse("https://example.com/settings.yaml").unwrap(),
                 settings: mock_settings_content(),
                 order_urls: vec![(
@@ -1107,9 +1107,9 @@ _ _: 1 1;
                     .collect(),
             };
 
-            assert_eq!(registry.registry_url(), "https://example.com/registry.txt");
+            assert_eq!(registry.rainlang_url(), "https://example.com/registry.txt");
             assert_eq!(registry.settings_url(), "https://example.com/settings.yaml");
-            assert_eq!(registry.registry(), MOCK_REGISTRY_CONTENT);
+            assert_eq!(registry.rainlang(), MOCK_REGISTRY_CONTENT);
             assert_eq!(registry.settings(), mock_settings_content());
 
             let order_urls_map = registry.order_urls();
@@ -1122,16 +1122,16 @@ _ _: 1 1;
         #[wasm_bindgen_test]
         fn test_error_readable_messages() {
             let registry_error =
-                DotrainRegistryError::RegistryFetchError("https://example.com".to_string());
+                DotrainRainlangError::RainlangFetchError("https://example.com".to_string());
             let readable = registry_error.to_readable_msg();
-            assert!(readable.contains("Unable to fetch the registry file"));
+            assert!(readable.contains("Unable to fetch the rainlang file"));
             assert!(readable.contains("https://example.com"));
 
-            let parse_error = DotrainRegistryError::RegistryParseError;
+            let parse_error = DotrainRainlangError::RainlangParseError;
             let readable = parse_error.to_readable_msg();
-            assert!(readable.contains("registry file format is invalid"));
+            assert!(readable.contains("rainlang file format is invalid"));
 
-            let not_found_error = DotrainRegistryError::OrderKeyNotFound("test-order".to_string());
+            let not_found_error = DotrainRainlangError::OrderKeyNotFound("test-order".to_string());
             let readable = not_found_error.to_readable_msg();
             assert!(readable.contains("order key 'test-order' was not found"));
         }
@@ -1173,15 +1173,15 @@ _ _: 1 1;
                 then.status(200).body(get_second_dotrain_content());
             });
 
-            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+            let registry = DotrainRainlang::new(format!("{}/registry.txt", server.url("")))
                 .await
                 .unwrap();
 
             assert_eq!(
-                registry.registry_url(),
+                registry.rainlang_url(),
                 format!("{}/registry.txt", server.url(""))
             );
-            assert_eq!(registry.registry(), test_registry_content);
+            assert_eq!(registry.rainlang(), test_registry_content);
             assert_eq!(
                 registry.settings_url(),
                 format!("{}/settings.yaml", server.url(""))
@@ -1202,7 +1202,7 @@ _ _: 1 1;
         }
 
         #[tokio::test]
-        async fn test_fetch_and_parse_registry() {
+        async fn test_fetch_and_parse_rainlang() {
             let server = MockServer::start_async().await;
 
             let test_registry_content = format!(
@@ -1217,9 +1217,9 @@ _ _: 1 1;
                 then.status(200).body(test_registry_content.clone());
             });
 
-            let registry_url = Url::parse(&format!("{}/registry.txt", server.url(""))).unwrap();
+            let rainlang_url = Url::parse(&format!("{}/registry.txt", server.url(""))).unwrap();
             let (registry_content, settings_url, order_urls) =
-                DotrainRegistry::fetch_and_parse_registry(&registry_url)
+                DotrainRainlang::fetch_and_parse_rainlang(&rainlang_url)
                     .await
                     .unwrap();
 
@@ -1248,7 +1248,7 @@ _ _: 1 1;
             });
 
             let result =
-                DotrainRegistry::validate(format!("{}/registry.txt", server.url(""))).await;
+                DotrainRainlang::validate(format!("{}/registry.txt", server.url(""))).await;
             assert!(result.is_ok());
         }
 
@@ -1262,7 +1262,7 @@ _ _: 1 1;
             });
 
             let result =
-                DotrainRegistry::validate(format!("{}/invalid-registry.txt", server.url(""))).await;
+                DotrainRainlang::validate(format!("{}/invalid-registry.txt", server.url(""))).await;
             assert!(result.is_err());
         }
 
@@ -1276,7 +1276,7 @@ _ _: 1 1;
             });
 
             let url = Url::parse(&format!("{}/test.txt", server.url(""))).unwrap();
-            let content = DotrainRegistry::fetch_url_content(&url).await.unwrap();
+            let content = DotrainRainlang::fetch_url_content(&url).await.unwrap();
 
             assert_eq!(content, "test content");
         }
@@ -1291,11 +1291,11 @@ _ _: 1 1;
             });
 
             let url = Url::parse(&format!("{}/error.txt", server.url(""))).unwrap();
-            let result = DotrainRegistry::fetch_url_content(&url).await;
+            let result = DotrainRainlang::fetch_url_content(&url).await;
 
             assert!(result.is_err());
             match result.err().unwrap() {
-                DotrainRegistryError::HttpError(msg) => {
+                DotrainRainlangError::HttpError(msg) => {
                     assert!(msg.contains("HTTP 500"));
                 }
                 _ => panic!("Expected HttpError"),
@@ -1312,7 +1312,7 @@ _ _: 1 1;
             });
 
             let url = Url::parse(&format!("{}/settings.yaml", server.url(""))).unwrap();
-            let settings = DotrainRegistry::fetch_settings(&url).await.unwrap();
+            let settings = DotrainRainlang::fetch_settings(&url).await.unwrap();
 
             assert_eq!(settings, "test settings content");
         }
@@ -1344,7 +1344,7 @@ _ _: 1 1;
             .into_iter()
             .collect();
 
-            let orders = DotrainRegistry::fetch_orders(&order_urls).await.unwrap();
+            let orders = DotrainRainlang::fetch_orders(&order_urls).await.unwrap();
 
             assert_eq!(orders.len(), 2);
             assert_eq!(orders.get("order1").unwrap(), &get_first_dotrain_content());
@@ -1368,7 +1368,7 @@ _ _: 1 1;
             });
 
             let result =
-                DotrainRegistry::new(format!("{}/invalid-registry.txt", server.url(""))).await;
+                DotrainRainlang::new(format!("{}/invalid-registry.txt", server.url(""))).await;
             assert!(result.is_err());
         }
 
@@ -1382,14 +1382,14 @@ _ _: 1 1;
             });
 
             let result =
-                DotrainRegistry::new(format!("{}/empty-registry.txt", server.url(""))).await;
+                DotrainRainlang::new(format!("{}/empty-registry.txt", server.url(""))).await;
             assert!(result.is_err());
 
             match result.err().unwrap() {
-                DotrainRegistryError::InvalidRegistryFormat(msg) => {
-                    assert!(msg.contains("Registry file is empty"));
+                DotrainRainlangError::InvalidRainlangFormat(msg) => {
+                    assert!(msg.contains("Rainlang file is empty"));
                 }
-                _ => panic!("Expected InvalidRegistryFormat error for empty registry"),
+                _ => panic!("Expected InvalidRainlangFormat error for empty rainlang"),
             }
         }
 
@@ -1410,7 +1410,7 @@ _ _: 1 1;
             });
 
             let registry =
-                DotrainRegistry::new(format!("{}/settings-only-registry.txt", server.url("")))
+                DotrainRainlang::new(format!("{}/settings-only-registry.txt", server.url("")))
                     .await
                     .unwrap();
 
@@ -1457,7 +1457,7 @@ _ _: 1 1;
                 then.status(200).body(get_second_dotrain_content());
             });
 
-            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+            let registry = DotrainRainlang::new(format!("{}/registry.txt", server.url("")))
                 .await
                 .unwrap();
 
@@ -1530,7 +1530,7 @@ _ _: 1 1;
                 .await;
             assert!(result.is_err());
             match result.err().unwrap() {
-                DotrainRegistryError::OrderKeyNotFound(key) => {
+                DotrainRainlangError::OrderKeyNotFound(key) => {
                     assert_eq!(key, "non-existent-order");
                 }
                 _ => panic!("Expected OrderKeyNotFound error"),
@@ -1563,7 +1563,7 @@ orderbooks:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
-registries:
+rainlangs:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
@@ -1590,7 +1590,7 @@ registries:
             - value: "0xbeef"
 scenarios:
   mainnet:
-    registry: mainnet
+    rainlang: mainnet
     runs: 1
 orders:
   mainnet:
@@ -1635,7 +1635,7 @@ _ _: 0 0;
                 then.status(200).body(MOCK_DOTRAIN_SIMPLE);
             });
 
-            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+            let registry = DotrainRainlang::new(format!("{}/registry.txt", server.url("")))
                 .await
                 .unwrap();
 
@@ -1668,7 +1668,7 @@ _ _: 0 0;
                 then.status(200).body(MOCK_DOTRAIN_SIMPLE);
             });
 
-            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+            let registry = DotrainRainlang::new(format!("{}/registry.txt", server.url("")))
                 .await
                 .unwrap();
 

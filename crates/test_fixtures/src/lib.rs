@@ -78,7 +78,7 @@ pub struct LocalEvm {
     pub tokens: Vec<ERC20::ERC20Instance<LocalEvmProvider, AnyNetwork>>,
 
     /// Address of the deployed DISPaiRegistry instance
-    pub registry: Address,
+    pub rainlang: Address,
 
     /// All wallets of this local blockchain that can be used to perform transactions
     /// the first wallet is the blockchain's default wallet, ie transactions that dont
@@ -182,7 +182,7 @@ impl LocalEvm {
             deployer,
             multicall3,
             tokens: vec![],
-            registry: registry_addr,
+            rainlang: registry_addr,
             signer_wallets,
         }
     }

@@ -248,7 +248,7 @@ pub(crate) mod tests {
             decimals: 18
             label: Wrapped Ether
             symbol: WETH
-    registries:
+    rainlangs:
         deployer1:
             address: 0x0000000000000000000000000000000000000002
             network: mainnet

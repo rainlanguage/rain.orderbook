@@ -70,7 +70,7 @@ deployments:
         )
     }
 
-    fn get_settings(rpc: &str, orderbook: &str, registry: &str) -> String {
+    fn get_settings(rpc: &str, orderbook: &str, rainlang: &str) -> String {
         format!(
             r#"
 version: {spec_version}
@@ -89,9 +89,9 @@ orderbooks:
     address: {orderbook}
     network: "flare"
     subgraph: "flare"
-registries:
+rainlangs:
   flare:
-    address: {registry}
+    address: {rainlang}
     network: "flare"
 "#,
             spec_version = SpecVersion::current()
@@ -185,14 +185,14 @@ io: fixed-io;
         let local_evm = LocalEvm::new_with_tokens(2).await;
         let orderbook = &local_evm.orderbook;
         let orderbook_subparser = &local_evm.orderbook_subparser;
-        let registry = local_evm.registry;
+        let rainlang = local_evm.rainlang;
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
 
         let settings = get_settings(
             &local_evm.url(),
             &orderbook.address().to_string(),
-            &registry.to_string(),
+            &rainlang.to_string(),
         );
         let dotrain_prefix = get_dotrain_prefix(
             &orderbook_subparser.address().to_string(),
@@ -237,14 +237,14 @@ io: fixed-io;
         let local_evm = LocalEvm::new_with_tokens(2).await;
         let orderbook = &local_evm.orderbook;
         let orderbook_subparser = &local_evm.orderbook_subparser;
-        let registry = local_evm.registry;
+        let rainlang = local_evm.rainlang;
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
 
         let settings = get_settings(
             &local_evm.url(),
             &orderbook.address().to_string(),
-            &registry.to_string(),
+            &rainlang.to_string(),
         );
         let dotrain_prefix = get_dotrain_prefix(
             &orderbook_subparser.address().to_string(),
@@ -294,14 +294,14 @@ charts:
         let local_evm = LocalEvm::new_with_tokens(2).await;
         let orderbook = &local_evm.orderbook;
         let orderbook_subparser = &local_evm.orderbook_subparser;
-        let registry = local_evm.registry;
+        let rainlang = local_evm.rainlang;
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
 
         let settings = get_settings(
             "http://localhost:8545",
             &orderbook.address().to_string(),
-            &registry.to_string(),
+            &rainlang.to_string(),
         );
         let dotrain_prefix = get_dotrain_prefix(
             &orderbook_subparser.address().to_string(),

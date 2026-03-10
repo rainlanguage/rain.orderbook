@@ -34,9 +34,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-registries:
+rainlangs:
     some-key:
-        address: {registry}
+        address: {rainlang_address}
 tokens:
     eth:
         network: some-key
@@ -62,7 +62,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        registry: some-key
+        rainlang: some-key
         bindings:
             key1: 10
 deployments:
@@ -82,7 +82,7 @@ amount price: get("amount") 52;
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
             orderbook_subparser = local_evm.orderbook_subparser.address(),
-            registry = local_evm.registry,
+            rainlang_address = local_evm.rainlang,
             token1 = token1.address(),
             token2 = token2.address(),
             spec_version = SpecVersion::current()
@@ -150,9 +150,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-registries:
+rainlangs:
     some-key:
-        address: {registry}
+        address: {rainlang_address}
 tokens:
     eth:
         network: some-key
@@ -178,7 +178,7 @@ orders:
             - token: dai
 scenarios:
     some-key:
-        registry: some-key
+        rainlang: some-key
         bindings:
             key1: 10
 deployments:
@@ -196,7 +196,7 @@ amount price: get("amount") 52;
 "#,
             rpc_url = local_evm.url(),
             orderbook = orderbook.address(),
-            registry = local_evm.registry,
+            rainlang_address = local_evm.rainlang,
             spec_version = SpecVersion::current(),
         );
 

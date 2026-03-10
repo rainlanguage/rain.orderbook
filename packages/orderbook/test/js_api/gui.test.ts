@@ -155,8 +155,8 @@ metaboards:
     test: http://localhost:8085/metaboard
     some-network: http://localhost:8085/metaboard
 
-registries:
-    some-deployer:
+rainlangs:
+    some-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
@@ -183,7 +183,7 @@ tokens:
 
 scenarios:
     some-scenario:
-        registry: some-deployer
+        rainlang: some-rainlang
         bindings:
             test-binding: 5
         scenarios:
@@ -199,7 +199,7 @@ orders:
       outputs:
         - token: token2
           vault-id: 1
-      registry: some-deployer
+      rainlang: some-rainlang
       orderbook: some-orderbook
 
 deployments:
@@ -235,8 +235,8 @@ metaboards:
     test: http://localhost:8085/metaboard
     some-network: http://localhost:8085/metaboard
 
-registries:
-    some-deployer:
+rainlangs:
+    some-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
@@ -263,7 +263,7 @@ tokens:
 
 scenarios:
     some-scenario:
-        registry: some-deployer
+        rainlang: some-rainlang
         bindings:
             test-binding: 5
 
@@ -273,7 +273,7 @@ orders:
         - token: token1
       outputs:
         - token: token2
-      registry: some-deployer
+      rainlang: some-rainlang
       orderbook: some-orderbook
 
 deployments:
@@ -307,8 +307,8 @@ subgraphs:
 metaboards:
     test: http://localhost:8085/metaboard
 
-registries:
-    some-deployer:
+rainlangs:
+    some-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
@@ -321,7 +321,7 @@ orderbooks:
 
 scenarios:
     some-scenario:
-        registry: some-deployer
+        rainlang: some-rainlang
         bindings:
             test-binding: 5
 
@@ -331,7 +331,7 @@ orders:
         - token: token1
       outputs:
         - token: token2
-      registry: some-deployer
+      rainlang: some-rainlang
       orderbook: some-orderbook
 
 deployments:
@@ -395,11 +395,11 @@ subgraphs:
 metaboards:
     test: http://localhost:8085/metaboard
     some-network: http://localhost:8085/metaboard
-registries:
-    some-deployer:
+rainlangs:
+    some-rainlang:
         network: remote-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-    other-deployer:
+    other-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 orderbooks:
@@ -438,23 +438,23 @@ tokens:
         symbol: T3
 scenarios:
     some-scenario:
-        registry: some-deployer
+        rainlang: some-rainlang
     other-scenario:
-        registry: other-deployer
+        rainlang: other-rainlang
 orders:
     some-order:
       inputs:
         - token: token1
       outputs:
         - token: token2
-      registry: some-deployer
+      rainlang: some-rainlang
       orderbook: some-orderbook
     other-order:
       inputs:
         - token: token3
       outputs:
         - token: token3
-      registry: other-deployer
+      rainlang: other-rainlang
       orderbook: other-orderbook
 deployments:
     test-deployment:

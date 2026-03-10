@@ -238,7 +238,7 @@ impl From<Result<AuthoringMetaV2, DotrainOrderError>> for WordsResult {
 pub struct ScenarioWords {
     pub scenario: String,
     pub pragma_words: Vec<ContractWords>,
-    pub registry_words: ContractWords,
+    pub rainlang_words: ContractWords,
 }
 
 impl DotrainOrder {
@@ -490,13 +490,13 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<Vec<Address>, DotrainOrderError> {
-        let registry = self.dotrain_yaml.get_scenario(scenario)?.registry;
-        let parser: ParserV2 = registry.address.into();
+        let rainlang = self.dotrain_yaml.get_scenario(scenario)?.rainlang;
+        let parser: ParserV2 = rainlang.address.into();
         let rainlang = self
             .compose_scenario_to_rainlang(scenario.to_string())
             .await?;
 
-        let rpcs = registry
+        let rpcs = rainlang
             .network
             .rpcs
             .iter()
@@ -512,7 +512,7 @@ impl DotrainOrder {
         scenario: &str,
         address: Address,
     ) -> Result<AuthoringMetaV2, DotrainOrderError> {
-        let network = &self.dotrain_yaml.get_scenario(scenario)?.registry.network;
+        let network = &self.dotrain_yaml.get_scenario(scenario)?.rainlang.network;
 
         let rpcs = network
             .rpcs
@@ -523,16 +523,16 @@ impl DotrainOrder {
         Ok(AuthoringMetaV2::fetch_for_contract(address, rpcs, metaboard.to_string()).await?)
     }
 
-    pub async fn get_registry_words_for_scenario(
+    pub async fn get_rainlang_words_for_scenario(
         &self,
         scenario: &str,
     ) -> Result<ContractWords, DotrainOrderError> {
-        let registry = &self.dotrain_yaml.get_scenario(scenario)?.registry.address;
+        let rainlang = &self.dotrain_yaml.get_scenario(scenario)?.rainlang.address;
 
         Ok(ContractWords {
-            address: *registry,
+            address: *rainlang,
             words: self
-                .get_contract_authoring_meta_v2_for_scenario(scenario, *registry)
+                .get_contract_authoring_meta_v2_for_scenario(scenario, *rainlang)
                 .await
                 .into(),
         })
@@ -563,8 +563,8 @@ impl DotrainOrder {
         &self,
         scenario: &str,
     ) -> Result<ScenarioWords, DotrainOrderError> {
-        let registry = &self.dotrain_yaml.get_scenario(scenario)?.registry.address;
-        let mut addresses = vec![*registry];
+        let rainlang = &self.dotrain_yaml.get_scenario(scenario)?.rainlang.address;
+        let mut addresses = vec![*rainlang];
         addresses.extend(self.get_pragmas_for_scenario(scenario).await?);
 
         let mut futures = vec![];
@@ -573,8 +573,8 @@ impl DotrainOrder {
         }
         let mut results = join_all(futures).await;
 
-        let registry_words = ContractWords {
-            address: *registry,
+        let rainlang_words = ContractWords {
+            address: *rainlang,
             words: results.drain(0..1).nth(0).unwrap().into(),
         };
         let pragma_words = results
@@ -589,7 +589,7 @@ impl DotrainOrder {
         Ok(ScenarioWords {
             scenario: scenario.to_string(),
             pragma_words,
-            registry_words,
+            rainlang_words,
         })
     }
 
@@ -624,10 +624,10 @@ impl DotrainOrder {
         let deployment = dotrain_yaml.get_deployment(deployment_key)?;
         let order_cfg = deployment.order.clone();
         let scenario_cfg = deployment.scenario.clone();
-        let registry_cfg = scenario_cfg.registry.clone();
+        let rainlang_cfg = scenario_cfg.rainlang.clone();
 
         let network_key = order_cfg.network.key.clone();
-        let registry_key = registry_cfg.key.clone();
+        let rainlang_key = rainlang_cfg.key.clone();
         let orderbook_key = order_cfg.orderbook.as_ref().map(|ob| ob.key.clone());
         let subgraph_key = order_cfg
             .orderbook
@@ -666,13 +666,13 @@ impl DotrainOrder {
             StrictYaml::Hash(networks_hash),
         );
 
-        let registry_value = clone_section_entry(&documents, "registries", &registry_key)
+        let rainlang_value = clone_section_entry(&documents, "rainlangs", &rainlang_key)
             .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
-        let mut registries_hash = StrictYamlHash::new();
-        registries_hash.insert(StrictYaml::String(registry_key.clone()), registry_value);
+        let mut rainlangs_hash = StrictYamlHash::new();
+        rainlangs_hash.insert(StrictYaml::String(rainlang_key.clone()), rainlang_value);
         root_hash.insert(
-            StrictYaml::String("registries".to_string()),
-            StrictYaml::Hash(registries_hash),
+            StrictYaml::String("rainlangs".to_string()),
+            StrictYaml::Hash(rainlangs_hash),
         );
 
         if let Some(orderbook_key) = orderbook_key {
@@ -830,8 +830,8 @@ impl DotrainOrder {
     fn scenario_to_yaml(scenario: &ScenarioCfg) -> Result<StrictYaml, DotrainOrderError> {
         let mut scenario_hash = StrictYamlHash::new();
         scenario_hash.insert(
-            StrictYaml::String("registry".to_string()),
-            StrictYaml::String(scenario.registry.key.clone()),
+            StrictYaml::String("rainlang".to_string()),
+            StrictYaml::String(scenario.rainlang.key.clone()),
         );
 
         if let Some(runs) = scenario.runs {
@@ -904,12 +904,12 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-registries:
+rainlangs:
     polygon:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
-        registry: polygon
+        rainlang: polygon
         bindings:
             key1: 10
 ---
@@ -955,14 +955,14 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-registries:
+rainlangs:
     polygon:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
         bindings:
             key1: 10
-        registry: polygon
+        rainlang: polygon
 ---
 #key1 !Test binding
 #calculate-io
@@ -1033,7 +1033,7 @@ networks:
     chain-id: 137
     network-id: 137
     currency: MATIC
-registries:
+rainlangs:
   polygon:
     address: 0x1234567890123456789012345678901234567890
 tokens:
@@ -1058,7 +1058,7 @@ deployments:
     order: polygon-order
 scenarios:
   polygon:
-    registry: polygon
+    rainlang: polygon
 ---
 #calculate-io
 _ _: 0 0;
@@ -1138,7 +1138,7 @@ networks:
     chain-id: 137
     network-id: 137
     currency: MATIC
-registries:
+rainlangs:
   polygon:
     address: 0x1234567890123456789012345678901234567890
     network: polygon
@@ -1176,7 +1176,7 @@ deployments:
     order: polygon-order
 scenarios:
   polygon:
-    registry: polygon
+    rainlang: polygon
 gui:
   deployments:
     polygon-deployment:
@@ -1252,12 +1252,12 @@ networks:
     rpcs:
       - http://example.com
     chain-id: 137
-registries:
+rainlangs:
   polygon:
     address: 0x1234567890123456789012345678901234567890
 scenarios:
   polygon:
-    registry: polygon
+    rainlang: polygon
 orders:
   polygon:
     network: polygon
@@ -1306,12 +1306,12 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-registries:
+rainlangs:
     polygon:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
-        registry: polygon
+        rainlang: polygon
         bindings:
             key1: 10
 ---
@@ -1415,12 +1415,12 @@ networks:
         rpcs:
             - {rpc_url}
         chain-id: 0
-registries:
+rainlangs:
     sepolia:
         address: 0x017F5651eB8fa4048BBc17433149c6c035d391A6
 scenarios:
     sepolia:
-        registry: sepolia
+        rainlang: sepolia
         bindings:
             key1: 10
 ---
@@ -1459,12 +1459,12 @@ _ _: 0 0;
             rpcs:
                 - {rpc_url}
             chain-id: 0
-    registries:
+    rainlangs:
         sepolia:
             address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
-            registry: sepolia
+            rainlang: sepolia
             bindings:
                 key1: 10
     metaboards:
@@ -1510,12 +1510,12 @@ _ _: 0 0;
             rpcs:
                 - {rpc_url}
             chain-id: 0
-    registries:
+    rainlangs:
         sepolia:
             address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
     scenarios:
         sepolia:
-            registry: sepolia
+            rainlang: sepolia
             bindings:
                 key1: 10
     metaboards:
@@ -1555,9 +1555,9 @@ _ _: 0 0;
     }
 
     #[tokio::test]
-    async fn test_get_registry_words_for_scenario() {
+    async fn test_get_rainlang_words_for_scenario() {
         let server = mock_server(vec![]);
-        let deployer = Address::random();
+        let rainlang_addr = Address::random();
         let dotrain = format!(
             r#"
     version: {spec_version}
@@ -1566,12 +1566,12 @@ _ _: 0 0;
             rpcs:
                 - {rpc_url}
             chain-id: 0
-    registries:
+    rainlangs:
         sepolia:
-            address: {deployer_address}
+            address: {rainlang_address}
     scenarios:
         sepolia:
-            registry: sepolia
+            rainlang: sepolia
             bindings:
                 key1: 10
     metaboards:
@@ -1585,7 +1585,7 @@ _ _: 0 0;
     :;"#,
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
-            deployer_address = encode_prefixed(deployer),
+            rainlang_address = encode_prefixed(rainlang_addr),
             spec_version = SpecVersion::current()
         );
 
@@ -1594,11 +1594,11 @@ _ _: 0 0;
             .unwrap();
 
         let result = dotrain_order
-            .get_registry_words_for_scenario("sepolia")
+            .get_rainlang_words_for_scenario("sepolia")
             .await
             .unwrap();
 
-        assert_eq!(result.address, deployer);
+        assert_eq!(result.address, rainlang_addr);
         assert!(matches!(result.words, WordsResult::Success(_)));
         if let WordsResult::Success(authoring_meta) = &result.words {
             assert_eq!(&authoring_meta.words[0].word, "some-word");
@@ -1611,7 +1611,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_get_all_words_for_scenario() {
-        let deployer = Address::random();
+        let rainlang_addr = Address::random();
         let pragma_addresses = vec![Address::random()];
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
@@ -1622,12 +1622,12 @@ _ _: 0 0;
             rpcs:
                 - {rpc_url}
             chain-id: 0
-    registries:
+    rainlangs:
         sepolia:
-            address: {deployer_address}
+            address: {rainlang_address}
     scenarios:
         sepolia:
-            registry: sepolia
+            rainlang: sepolia
             bindings:
                 key1: 10
     metaboards:
@@ -1642,7 +1642,7 @@ _ _: 0 0;
     :;"#,
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
-            deployer_address = encode_prefixed(deployer),
+            rainlang_address = encode_prefixed(rainlang_addr),
             spec_version = SpecVersion::current()
         );
 
@@ -1657,12 +1657,12 @@ _ _: 0 0;
 
         assert_eq!(&result.scenario, "sepolia");
 
-        assert_eq!(result.registry_words.address, deployer);
+        assert_eq!(result.rainlang_words.address, rainlang_addr);
         assert!(matches!(
-            result.registry_words.words,
+            result.rainlang_words.words,
             WordsResult::Success(_)
         ));
-        if let WordsResult::Success(authoring_meta) = &result.registry_words.words {
+        if let WordsResult::Success(authoring_meta) = &result.rainlang_words.words {
             assert_eq!(&authoring_meta.words[0].word, "some-word");
             assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
@@ -1687,7 +1687,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_get_all_scenarios_all_words() {
-        let deployer = Address::random();
+        let rainlang_addr = Address::random();
         let pragma_addresses = vec![Address::random()];
         let server = mock_server(pragma_addresses.clone());
         let dotrain = format!(
@@ -1698,16 +1698,16 @@ _ _: 0 0;
             rpcs:
                 - {rpc_url}
             chain-id: 0
-    registries:
+    rainlangs:
         sepolia:
-            address: {deployer_address}
+            address: {rainlang_address}
     scenarios:
         sepolia:
-            registry: sepolia
+            rainlang: sepolia
             bindings:
                 key1: 10
         other-scenario:
-            registry: sepolia
+            rainlang: sepolia
             bindings:
                 key1: 40
     metaboards:
@@ -1722,7 +1722,7 @@ _ _: 0 0;
     :;"#,
             rpc_url = server.url("/rpc"),
             metaboard_url = server.url("/sg"),
-            deployer_address = encode_prefixed(deployer),
+            rainlang_address = encode_prefixed(rainlang_addr),
             spec_version = SpecVersion::current()
         );
         let dotrain_order = DotrainOrder::create(dotrain.to_string(), None)
@@ -1738,12 +1738,12 @@ _ _: 0 0;
             .find(|r| r.scenario == "other-scenario")
             .expect("Did not find results for 'other-scenario'");
 
-        assert_eq!(other_scenario_result.registry_words.address, deployer);
+        assert_eq!(other_scenario_result.rainlang_words.address, rainlang_addr);
         assert!(matches!(
-            other_scenario_result.registry_words.words,
+            other_scenario_result.rainlang_words.words,
             WordsResult::Success(_)
         ));
-        if let WordsResult::Success(authoring_meta) = &other_scenario_result.registry_words.words {
+        if let WordsResult::Success(authoring_meta) = &other_scenario_result.rainlang_words.words {
             assert_eq!(&authoring_meta.words[0].word, "some-word");
             assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
@@ -1772,12 +1772,12 @@ _ _: 0 0;
             .find(|r| r.scenario == "sepolia")
             .expect("Did not find results for 'sepolia'");
 
-        assert_eq!(sepolia_result.registry_words.address, deployer);
+        assert_eq!(sepolia_result.rainlang_words.address, rainlang_addr);
         assert!(matches!(
-            sepolia_result.registry_words.words,
+            sepolia_result.rainlang_words.words,
             WordsResult::Success(_)
         ));
-        if let WordsResult::Success(authoring_meta) = &sepolia_result.registry_words.words {
+        if let WordsResult::Success(authoring_meta) = &sepolia_result.rainlang_words.words {
             assert_eq!(&authoring_meta.words[0].word, "some-word");
             assert_eq!(&authoring_meta.words[0].description, "some-desc");
 
@@ -1893,7 +1893,7 @@ _ _: 0 0;
                         rpcs:
                             - http://example.com
                         chain-id: 0
-                registries:
+                rainlangs:
                     sepolia:
                         address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
                 ---
@@ -1919,7 +1919,7 @@ _ _: 0 0;
                         rpcs:
                             - http://example.com
                         chain-id: 0
-                registries:
+                rainlangs:
                     sepolia:
                         address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
                 ---
@@ -1949,7 +1949,7 @@ _ _: 0 0;
                     sepolia:
                         rpc: http://example.com
                         chain-id: 0
-                registries:
+                rainlangs:
                     sepolia:
                         address: 0x3131baC3E2Ec97b0ee93C74B16180b1e93FABd59
                 ---
@@ -1983,12 +1983,12 @@ networks:
         chain-id: 137
         network-id: 137
         currency: MATIC
-registries:
+rainlangs:
     polygon:
         address: 0x1234567890123456789012345678901234567890
 scenarios:
     polygon:
-        registry: polygon
+        rainlang: polygon
         bindings:
             key1: 10
 tokens:
