@@ -65,7 +65,9 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
         if (outputVaultId == bytes32(0)) {
             mockVault0Output(outputToken, address(this), uint256(int256(type(int224).max)));
         } else {
-            iOrderbook.deposit4(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0));
+            iOrderbook.deposit4(
+                outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0)
+            );
             assertTrue(
                 iOrderbook.vaultBalance2(address(this), outputToken, vaultId)
                     .eq(LibDecimalFloat.packLossless(type(int224).max, -18))

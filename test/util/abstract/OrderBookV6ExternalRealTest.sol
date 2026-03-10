@@ -91,9 +91,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
             abi.encode(depositAmount18)
         );
         vm.mockCall(
-            token,
-            abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook)),
-            abi.encode(true)
+            token, abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iOrderbook)), abi.encode(true)
         );
     }
 
@@ -102,11 +100,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
     /// the expected amount is non-zero.
     function mockVault0Input(address token, address owner, uint256 expectAmount18) internal {
         vm.mockCall(token, abi.encodeWithSelector(IERC20.balanceOf.selector, owner), abi.encode(0));
-        vm.mockCall(
-            token,
-            abi.encodeWithSelector(IERC20.allowance.selector, owner, address(iOrderbook)),
-            abi.encode(0)
-        );
+        vm.mockCall(token, abi.encodeWithSelector(IERC20.allowance.selector, owner, address(iOrderbook)), abi.encode(0));
         if (expectAmount18 > 0) {
             vm.mockCall(
                 token, abi.encodeWithSelector(IERC20.transfer.selector, owner, expectAmount18), abi.encode(true)

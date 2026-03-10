@@ -25,10 +25,7 @@ import {
     WrongTask
 } from "src/abstract/OrderBookV6ArbCommon.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBookV6.sol";
-import {
-    StateNamespace,
-    FullyQualifiedNamespace
-} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
+import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract GenericPoolOrderBookV6ArbOrderTakerExpressionTest is GenericPoolOrderBookV6ArbOrderTakerTest {

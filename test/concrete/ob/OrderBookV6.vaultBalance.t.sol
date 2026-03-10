@@ -16,5 +16,4 @@ contract OrderBookV6VaultBalanceTest is OrderBookV6ExternalMockTest {
         vm.assume(vaultId != bytes32(0));
         assertTrue(iOrderbook.vaultBalance2(owner, token, vaultId).isZero());
     }
-
 }

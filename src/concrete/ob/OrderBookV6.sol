@@ -26,10 +26,7 @@ import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
 import {LibOrderBook} from "../../lib/LibOrderBook.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
-import {
-    LibTOFUTokenDecimals,
-    TOFUOutcome
-} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals, TOFUOutcome} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {ITOFUTokenDecimals} from "rain.tofu.erc20-decimals/interface/ITOFUTokenDecimals.sol";
 
 import {
@@ -717,7 +714,9 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     (TOFUOutcome inputOutcome, uint8 inputDecimals) =
                         LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validInputs[inputIOIndex].token);
                     if (inputOutcome != TOFUOutcome.Consistent && inputOutcome != TOFUOutcome.Initial) {
-                        revert ITOFUTokenDecimals.TokenDecimalsReadFailure(order.validInputs[inputIOIndex].token, inputOutcome);
+                        revert ITOFUTokenDecimals.TokenDecimalsReadFailure(
+                            order.validInputs[inputIOIndex].token, inputOutcome
+                        );
                     }
 
                     Float inputTokenVaultBalance = _vaultBalance(
@@ -737,7 +736,9 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     (TOFUOutcome outputOutcome, uint8 outputDecimals) =
                         LibTOFUTokenDecimals.decimalsForTokenReadOnly(order.validOutputs[outputIOIndex].token);
                     if (outputOutcome != TOFUOutcome.Consistent && outputOutcome != TOFUOutcome.Initial) {
-                        revert ITOFUTokenDecimals.TokenDecimalsReadFailure(order.validOutputs[outputIOIndex].token, outputOutcome);
+                        revert ITOFUTokenDecimals.TokenDecimalsReadFailure(
+                            order.validOutputs[outputIOIndex].token, outputOutcome
+                        );
                     }
 
                     Float outputTokenVaultBalance = _vaultBalance(

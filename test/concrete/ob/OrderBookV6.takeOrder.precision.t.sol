@@ -155,9 +155,7 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
         }
 
         if (outputVaultId != bytes32(0)) {
-            assertTrue(
-                iOrderbook.vaultBalance2(address(this), outputToken, outputVaultId).isZero(), "vault balance"
-            );
+            assertTrue(iOrderbook.vaultBalance2(address(this), outputToken, outputVaultId).isZero(), "vault balance");
         }
     }
 

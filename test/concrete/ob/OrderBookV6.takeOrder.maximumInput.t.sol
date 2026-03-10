@@ -127,7 +127,9 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
                     Float balanceBefore =
                         iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, testVaults[i].vaultId);
                     vm.prank(testVaults[i].owner);
-                    iOrderbook.deposit4(testVaults[i].token, testVaults[i].vaultId, testVaults[i].deposit, new TaskV2[](0));
+                    iOrderbook.deposit4(
+                        testVaults[i].token, testVaults[i].vaultId, testVaults[i].deposit, new TaskV2[](0)
+                    );
 
                     Float balanceAfter =
                         iOrderbook.vaultBalance2(testVaults[i].owner, testVaults[i].token, testVaults[i].vaultId);
@@ -215,7 +217,15 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         testVaults[0] = TestVault(owner, address(iToken1), bytes32(uint256(0x01)), expectedTakerInput, Float.wrap(0));
         testVaults[1] = TestVault(owner, address(iToken0), bytes32(uint256(0x01)), Float.wrap(0), expectedTakerOutput);
 
-        checkTakeOrderMaximumInput(testOrders, testVaults, expectedTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)), bytes32(uint256(0x01)));
+        checkTakeOrderMaximumInput(
+            testOrders,
+            testVaults,
+            expectedTakerInput,
+            expectedTakerInput,
+            expectedTakerOutput,
+            bytes32(uint256(0x01)),
+            bytes32(uint256(0x01))
+        );
     }
 
     /// Add an order with less than the maximum output. Only the limit from the
@@ -237,7 +247,15 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         testVaults[0] = TestVault(owner, address(iToken1), bytes32(uint256(0x01)), expectedTakerInput, Float.wrap(0));
         testVaults[1] = TestVault(owner, address(iToken0), bytes32(uint256(0x01)), Float.wrap(0), expectedTakerOutput);
 
-        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)), bytes32(uint256(0x01)));
+        checkTakeOrderMaximumInput(
+            testOrders,
+            testVaults,
+            maximumTakerInput,
+            expectedTakerInput,
+            expectedTakerOutput,
+            bytes32(uint256(0x01)),
+            bytes32(uint256(0x01))
+        );
     }
 
     /// If the vault balance is less than both the maximum input and the order
@@ -263,7 +281,15 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         testVaults[0] = TestVault(owner, address(iToken1), bytes32(uint256(0x01)), ownerDepositAmount, Float.wrap(0));
         testVaults[1] = TestVault(owner, address(iToken0), bytes32(uint256(0x01)), Float.wrap(0), expectedTakerOutput);
 
-        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)), bytes32(uint256(0x01)));
+        checkTakeOrderMaximumInput(
+            testOrders,
+            testVaults,
+            maximumTakerInput,
+            expectedTakerInput,
+            expectedTakerOutput,
+            bytes32(uint256(0x01)),
+            bytes32(uint256(0x01))
+        );
     }
 
     /// The deposit amount can be anything actually, the order taking should
@@ -293,11 +319,26 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         Float expectedTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(expectedTakerOutput18, 18);
 
         TestVault[] memory testVaults = new TestVault[](2);
-        testVaults[0] =
-            TestVault(owner, address(iToken1), bytes32(uint256(0x01)), ownerDepositAmount, ownerDepositAmount.sub(expectedTakerInput));
-        testVaults[1] = TestVault(owner, address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(0, 0), expectedTakerOutput);
+        testVaults[0] = TestVault(
+            owner,
+            address(iToken1),
+            bytes32(uint256(0x01)),
+            ownerDepositAmount,
+            ownerDepositAmount.sub(expectedTakerInput)
+        );
+        testVaults[1] = TestVault(
+            owner, address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(0, 0), expectedTakerOutput
+        );
 
-        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)), bytes32(uint256(0x01)));
+        checkTakeOrderMaximumInput(
+            testOrders,
+            testVaults,
+            maximumTakerInput,
+            expectedTakerInput,
+            expectedTakerOutput,
+            bytes32(uint256(0x01)),
+            bytes32(uint256(0x01))
+        );
     }
 
     /// The taker input can be sourced from multiple orders. Tests two orders
@@ -330,11 +371,26 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         Float expectedTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(expectedTakerOutput18, 18);
 
         TestVault[] memory testVaults = new TestVault[](2);
-        testVaults[0] =
-            TestVault(owner, address(iToken1), bytes32(uint256(0x01)), ownerDepositAmount, ownerDepositAmount.sub(expectedTakerInput));
-        testVaults[1] = TestVault(owner, address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(0, 0), expectedTakerOutput);
+        testVaults[0] = TestVault(
+            owner,
+            address(iToken1),
+            bytes32(uint256(0x01)),
+            ownerDepositAmount,
+            ownerDepositAmount.sub(expectedTakerInput)
+        );
+        testVaults[1] = TestVault(
+            owner, address(iToken0), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(0, 0), expectedTakerOutput
+        );
 
-        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(uint256(0x01)), bytes32(uint256(0x01)));
+        checkTakeOrderMaximumInput(
+            testOrders,
+            testVaults,
+            maximumTakerInput,
+            expectedTakerInput,
+            expectedTakerOutput,
+            bytes32(uint256(0x01)),
+            bytes32(uint256(0x01))
+        );
     }
 
     /// The taker input can be source from multiple orders with multiple owners.
@@ -443,10 +499,13 @@ contract OrderBookV6TakeOrderMaximumInputTest is OrderBookV6ExternalRealTest {
         Float expectedTakerOutput = LibDecimalFloat.fromFixedDecimalLosslessPacked(expectedTakerOutput18, 18);
 
         TestVault[] memory testVaults = new TestVault[](2);
-        testVaults[0] =
-            TestVault(owner, address(iToken1), bytes32(0), ownerDepositAmount, ownerDepositAmount.sub(expectedTakerInput));
+        testVaults[0] = TestVault(
+            owner, address(iToken1), bytes32(0), ownerDepositAmount, ownerDepositAmount.sub(expectedTakerInput)
+        );
         testVaults[1] = TestVault(owner, address(iToken0), bytes32(0), Float.wrap(0), expectedTakerOutput);
 
-        checkTakeOrderMaximumInput(testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(0), bytes32(0));
+        checkTakeOrderMaximumInput(
+            testOrders, testVaults, maximumTakerInput, expectedTakerInput, expectedTakerOutput, bytes32(0), bytes32(0)
+        );
     }
 }

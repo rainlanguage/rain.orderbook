@@ -42,9 +42,7 @@ contract OrderBookV6DepositTest is OrderBookV6ExternalMockTest {
         vm.assume(vaultId != bytes32(0));
         vm.prank(depositor);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IRaindexV6.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId
-            )
+            abi.encodeWithSelector(IRaindexV6.ZeroDepositAmount.selector, address(depositor), address(iToken0), vaultId)
         );
         iOrderbook.deposit4(address(iToken0), vaultId, LibDecimalFloat.packLossless(0, 0), new TaskV2[](0));
     }

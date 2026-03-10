@@ -9,12 +9,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {
-    IRaindexV6,
-    TakeOrdersConfigV5,
-    TaskV2,
-    Float
-} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {IRaindexV6, TakeOrdersConfigV5, TaskV2, Float} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {OrderBookV6ArbConfig, OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";

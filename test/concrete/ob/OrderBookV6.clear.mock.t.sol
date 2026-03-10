@@ -340,7 +340,8 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
 
             if (clear.bobConfig.validOutputs[0].vaultId == bytes32(0)) {
                 // Match pullTokens logic: toFixedDecimalLossy + round up.
-                (uint256 bobAmount18, bool bobLossless) = LibDecimalFloat.toFixedDecimalLossy(clear.expectedBobOutput, 18);
+                (uint256 bobAmount18, bool bobLossless) =
+                    LibDecimalFloat.toFixedDecimalLossy(clear.expectedBobOutput, 18);
                 if (!bobLossless) {
                     ++bobAmount18;
                 }
@@ -395,7 +396,9 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             if (clear.aliceConfig.validOutputs[0].vaultId != bytes32(0)) {
                 assertTrue(
                     iOrderbook.vaultBalance2(
-                            clear.alice, clear.aliceConfig.validOutputs[0].token, clear.aliceConfig.validOutputs[0].vaultId
+                            clear.alice,
+                            clear.aliceConfig.validOutputs[0].token,
+                            clear.aliceConfig.validOutputs[0].vaultId
                         ).eq(clear.aliceAmount.sub(clear.expectedAliceOutput)),
                     "Alice output vault"
                 );
@@ -404,7 +407,9 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             if (clear.aliceConfig.validInputs[0].vaultId != bytes32(0)) {
                 assertTrue(
                     iOrderbook.vaultBalance2(
-                            clear.alice, clear.aliceConfig.validInputs[0].token, clear.aliceConfig.validInputs[0].vaultId
+                            clear.alice,
+                            clear.aliceConfig.validInputs[0].token,
+                            clear.aliceConfig.validInputs[0].vaultId
                         ).eq(clear.expectedAliceInput),
                     "Alice input vault"
                 );
@@ -429,13 +434,15 @@ contract OrderBookV6ClearTest is OrderBookV6ExternalMockTest {
             }
 
             assertTrue(
-                iOrderbook.vaultBalance2(clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId)
-                    .eq(clear.expectedAliceOutput.sub(clear.expectedBobInput)),
+                iOrderbook.vaultBalance2(
+                        clear.bountyBot, clear.aliceConfig.validOutputs[0].token, clear.aliceBountyVaultId
+                    ).eq(clear.expectedAliceOutput.sub(clear.expectedBobInput)),
                 "Alice bounty"
             );
             assertTrue(
-                iOrderbook.vaultBalance2(clear.bountyBot, clear.aliceConfig.validInputs[0].token, clear.aliceBountyVaultId)
-                    .isZero(),
+                iOrderbook.vaultBalance2(
+                        clear.bountyBot, clear.aliceConfig.validInputs[0].token, clear.aliceBountyVaultId
+                    ).isZero(),
                 "Alice bounty input"
             );
             assertTrue(

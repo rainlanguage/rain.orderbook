@@ -17,10 +17,7 @@ import {
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {WrongTask} from "src/abstract/OrderBookV6ArbCommon.sol";
 import {RouteProcessorOrderBookV6ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
-import {
-    StateNamespace,
-    FullyQualifiedNamespace
-} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
+import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorOrderBookV6ArbOrderTakerTest {
