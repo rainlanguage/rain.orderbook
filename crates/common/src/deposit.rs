@@ -9,7 +9,7 @@ use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use rain_math_float::{Float, FloatError};
 #[cfg(not(target_family = "wasm"))]
 use rain_orderbook_bindings::IERC20::approveCall;
-use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::allowanceCall};
+use rain_orderbook_bindings::{IRaindexV6::deposit4Call, IERC20::allowanceCall};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -96,7 +96,7 @@ impl DepositArgs {
         if !current_allowance_float.eq(self.amount)? {
             let approve_call = approveCall {
                 spender: transaction_args.orderbook_address,
-                amount: self.amount.to_fixed_decimal(self.decimals)?,
+                value: self.amount.to_fixed_decimal(self.decimals)?,
             };
             let params =
                 transaction_args.try_into_write_contract_parameters(approve_call, self.token)?;
@@ -232,7 +232,7 @@ mod tests {
         };
         let approve_call = approveCall {
             spender: Address::ZERO,
-            amount: U256::from(100),
+            value: U256::from(100),
         };
         let params = args
             .try_into_write_contract_parameters(approve_call.clone(), Address::ZERO)

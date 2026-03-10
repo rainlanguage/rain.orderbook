@@ -2,7 +2,7 @@ use super::simulation::SimulationResult;
 use crate::raindex_client::RaindexError;
 use alloy::primitives::{Bytes, U256};
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV6::{
+use rain_orderbook_bindings::IRaindexV6::{
     SignedContextV1, TakeOrderConfigV4, TakeOrdersConfigV5,
 };
 use serde::{Deserialize, Serialize};

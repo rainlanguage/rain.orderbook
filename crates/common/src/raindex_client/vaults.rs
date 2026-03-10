@@ -24,7 +24,7 @@ use alloy::{
 };
 use async_trait::async_trait;
 use rain_math_float::Float;
-use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::approveCall};
+use rain_orderbook_bindings::{IRaindexV6::deposit4Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
@@ -517,7 +517,7 @@ impl RaindexVault {
 
         let calldata = approveCall {
             spender: transaction_args.orderbook_address,
-            amount: amount.to_fixed_decimal(self.token.decimals)?,
+            value: amount.to_fixed_decimal(self.token.decimals)?,
         }
         .abi_encode();
 
@@ -2154,9 +2154,9 @@ mod tests {
         use alloy::primitives::{address, b256};
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
-        use rain_orderbook_bindings::IERC20::decimalsCall;
+        use rain_orderbook_bindings::IERC20Metadata::decimalsCall;
         use rain_orderbook_bindings::{
-            IOrderBookV6::{deposit4Call, withdraw4Call},
+            IRaindexV6::{deposit4Call, withdraw4Call},
             IERC20::approveCall,
         };
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -3160,7 +3160,7 @@ mod tests {
                 Bytes::copy_from_slice(
                     &approveCall {
                         spender: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                        amount: U256::from(600000000000000000000u128),
+                        value: U256::from(600000000000000000000u128),
                     }
                     .abi_encode(),
                 )

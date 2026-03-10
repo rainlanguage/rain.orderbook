@@ -478,7 +478,7 @@ pub mod local_evm {
 
 pub mod orders {
     use alloy::primitives::{Address, U256};
-    use rain_orderbook_bindings::IOrderBookV6::{EvaluableV4, OrderV4, IOV2};
+    use rain_orderbook_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
 
     pub fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
         OrderV4 {
@@ -531,7 +531,7 @@ pub mod orders {
         }
 
         use super::super::local_evm::MultiOrderbookTestSetup;
-        use rain_orderbook_bindings::IOrderBookV6::OrderV4;
+        use rain_orderbook_bindings::IRaindexV6::OrderV4;
 
         pub async fn deploy_order_to_orderbook(
             setup: &MultiOrderbookTestSetup,

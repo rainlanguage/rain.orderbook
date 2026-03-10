@@ -5,7 +5,7 @@ use alloy_ethers_typecast::ReadContractParametersBuilderError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
 use rain_orderbook_app_settings::token::TokenCfg;
 use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider, ReadProviderError};
-use rain_orderbook_bindings::IERC20::IERC20Instance;
+use rain_orderbook_bindings::IERC20Metadata::IERC20MetadataInstance;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -87,14 +87,14 @@ impl ERC20 {
         Self { rpcs, address }
     }
 
-    fn get_instance(&self) -> Result<IERC20Instance<ReadProvider, AnyNetwork>, Error> {
+    fn get_metadata_instance(&self) -> Result<IERC20MetadataInstance<ReadProvider, AnyNetwork>, Error> {
         let provider = mk_read_provider(&self.rpcs)?;
-        let erc20 = IERC20Instance::new(self.address, provider);
+        let erc20 = IERC20MetadataInstance::new(self.address, provider);
         Ok(erc20)
     }
 
     pub async fn decimals(&self) -> Result<u8, Error> {
-        let erc20 = self.get_instance()?;
+        let erc20 = self.get_metadata_instance()?;
         let decimals = erc20.decimals().call().await;
 
         match decimals {
@@ -104,7 +104,7 @@ impl ERC20 {
     }
 
     pub async fn name(&self) -> Result<String, Error> {
-        let erc20 = self.get_instance()?;
+        let erc20 = self.get_metadata_instance()?;
         let name = erc20.name().call().await;
 
         match name {
@@ -114,7 +114,7 @@ impl ERC20 {
     }
 
     pub async fn symbol(&self) -> Result<String, Error> {
-        let erc20 = self.get_instance()?;
+        let erc20 = self.get_metadata_instance()?;
         let symbol = erc20.symbol().call().await;
 
         match symbol {
@@ -124,7 +124,7 @@ impl ERC20 {
     }
 
     pub async fn allowance(&self, owner: Address, spender: Address) -> Result<U256, Error> {
-        let erc20 = self.get_instance()?;
+        let erc20 = self.get_metadata_instance()?;
         let allowance = erc20.allowance(owner, spender).call().await;
 
         match allowance {
@@ -134,7 +134,7 @@ impl ERC20 {
     }
 
     pub async fn token_info(&self, multicall_address: Option<Address>) -> Result<TokenInfo, Error> {
-        let erc20 = self.get_instance()?;
+        let erc20 = self.get_metadata_instance()?;
 
         let multicaller = if let Some(address) = multicall_address {
             erc20.provider().multicall().address(address)
@@ -172,7 +172,7 @@ impl ERC20 {
     }
 
     pub async fn get_account_balance(&self, account: Address) -> Result<U256, Error> {
-        let erc20 = self.get_instance()?;
+        let erc20 = self.get_metadata_instance()?;
         let balance = erc20.balanceOf(account).call().await;
 
         match balance {

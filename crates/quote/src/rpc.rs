@@ -9,7 +9,7 @@ use alloy::{
 };
 use rain_error_decoding::{AbiDecodedErrorType, ErrorRegistry};
 use rain_orderbook_bindings::provider::{mk_read_provider, ReadProvider};
-use rain_orderbook_bindings::IOrderBookV6::{quote2Call, quote2Return, IOrderBookV6Instance};
+use rain_orderbook_bindings::IRaindexV6::{quote2Call, quote2Return, IRaindexV6Instance};
 use url::Url;
 
 const DEFAULT_QUOTE_CHUNK_SIZE: usize = 16;
@@ -51,7 +51,7 @@ async fn quote_chunk_once(
     }
 
     for quote_target in quote_targets {
-        let ob_instance = IOrderBookV6Instance::new(quote_target.orderbook, provider.clone());
+        let ob_instance = IRaindexV6Instance::new(quote_target.orderbook, provider.clone());
         let call = ob_instance
             .quote2(quote_target.quote_config.clone())
             .into_call(true);
@@ -251,7 +251,7 @@ mod tests {
     use httpmock::{Method::POST, MockServer};
     use rain_error_decoding::ErrorRegistry;
     use rain_math_float::Float;
-    use rain_orderbook_bindings::IOrderBookV6::{quote2Call, quote2Return};
+    use rain_orderbook_bindings::IRaindexV6::{quote2Call, quote2Return};
     use serde_json::json;
 
     #[test]

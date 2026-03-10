@@ -32,7 +32,7 @@ use rain_metadata::{
 };
 use rain_metadata_bindings::MetaBoard::emitMetaCall;
 use rain_orderbook_app_settings::deployment::DeploymentCfg;
-use rain_orderbook_bindings::IOrderBookV6::{
+use rain_orderbook_bindings::IRaindexV6::{
     addOrder4Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
 };
 use serde::{Deserialize, Serialize};
