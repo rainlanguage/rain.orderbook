@@ -107,6 +107,7 @@ async fn test_single_order_take_happy_path_buy_up_to() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -139,6 +140,7 @@ async fn test_single_order_take_happy_path_buy_up_to() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with BuyUpTo mode");
@@ -215,6 +217,7 @@ async fn test_single_order_take_happy_path_buy_exact() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -248,6 +251,7 @@ async fn test_single_order_take_happy_path_buy_exact() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with BuyExact mode");
@@ -318,6 +322,7 @@ async fn test_single_order_take_happy_path_spend_up_to() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -350,6 +355,7 @@ async fn test_single_order_take_happy_path_spend_up_to() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with SpendUpTo mode");
@@ -544,6 +550,7 @@ async fn test_single_order_take_buy_exact_insufficient_liquidity() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -576,6 +583,7 @@ async fn test_single_order_take_buy_exact_insufficient_liquidity() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await;
 
@@ -635,6 +643,7 @@ async fn test_single_order_take_price_exceeds_cap() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -667,6 +676,7 @@ async fn test_single_order_take_price_exceeds_cap() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await;
 
@@ -799,6 +809,7 @@ async fn test_single_order_take_preflight_insufficient_balance() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with approval result");
@@ -904,6 +915,7 @@ async fn test_single_order_take_preflight_insufficient_allowance() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with approval result");
@@ -1010,6 +1022,7 @@ async fn test_single_order_take_approval_then_ready_flow() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with approval result");
@@ -1056,6 +1069,7 @@ async fn test_single_order_take_approval_then_ready_flow() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with ready result after approval");
@@ -1134,6 +1148,7 @@ async fn test_single_order_take_calldata_encoding_buy_mode() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -1168,6 +1183,7 @@ async fn test_single_order_take_calldata_encoding_buy_mode() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed");
@@ -1243,6 +1259,7 @@ async fn test_single_order_take_expected_spend_calculation() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -1275,6 +1292,7 @@ async fn test_single_order_take_expected_spend_calculation() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed");
@@ -1353,6 +1371,7 @@ async fn test_single_order_take_spend_exact_mode() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -1386,6 +1405,7 @@ async fn test_single_order_take_spend_exact_mode() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed with SpendExact mode");
@@ -1584,6 +1604,7 @@ async fn test_single_order_take_spend_exact_insufficient_liquidity() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -1616,6 +1637,7 @@ async fn test_single_order_take_spend_exact_insufficient_liquidity() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await;
 
@@ -1675,6 +1697,7 @@ async fn test_single_order_take_calldata_encoding_spend_mode() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -1709,6 +1732,7 @@ async fn test_single_order_take_calldata_encoding_spend_mode() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed");
@@ -1793,6 +1817,7 @@ async fn test_single_order_take_expected_receive_calculation() {
     fund_and_approve_taker(
         &setup,
         setup.token1,
+        None,
         taker,
         setup.orderbook,
         U256::from(10).pow(U256::from(22)),
@@ -1825,6 +1850,7 @@ async fn test_single_order_take_expected_receive_calculation() {
         &rpc_urls,
         None,
         setup.token1,
+        None,
     )
     .await
     .expect("Should succeed");

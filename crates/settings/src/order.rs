@@ -9,7 +9,7 @@ use std::{
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml};
 use thiserror::Error;
 
-const ALLOWED_ORDER_KEYS: [&str; 4] = ["deployer", "inputs", "orderbook", "outputs"];
+const ALLOWED_ORDER_KEYS: [&str; 5] = ["deployer", "inputs", "oracle-url", "orderbook", "outputs"];
 const ALLOWED_ORDER_IO_KEYS: [&str; 2] = ["token", "vault-id"];
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 use yaml::{
@@ -56,6 +56,9 @@ pub struct OrderCfg {
     pub deployer: Option<Arc<DeployerCfg>>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub orderbook: Option<Arc<OrderbookCfg>>,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    #[serde(rename = "oracle-url")]
+    pub oracle_url: Option<String>,
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(OrderCfg);
@@ -640,6 +643,8 @@ impl YamlParsableHash for OrderCfg {
                         None => None,
                     };
 
+                    let oracle_url = optional_string(order_yaml, "oracle-url");
+
                     let inputs = require_vec(
                         order_yaml,
                         "inputs",
@@ -820,6 +825,7 @@ impl YamlParsableHash for OrderCfg {
                         )?,
                         deployer,
                         orderbook,
+                        oracle_url,
                     };
 
                     if orders.contains_key(&order_key) {
@@ -929,6 +935,7 @@ impl Default for OrderCfg {
             network: Arc::new(NetworkCfg::default()),
             deployer: None,
             orderbook: None,
+            oracle_url: None,
         }
     }
 }
@@ -941,6 +948,7 @@ impl PartialEq for OrderCfg {
             && self.network == other.network
             && self.deployer == other.deployer
             && self.orderbook == other.orderbook
+            && self.oracle_url == other.oracle_url
     }
 }
 

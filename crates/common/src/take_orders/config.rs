@@ -93,7 +93,7 @@ pub fn build_take_orders_config_from_simulation(
             order: leg.candidate.order.clone(),
             inputIOIndex: U256::from(leg.candidate.input_io_index),
             outputIOIndex: U256::from(leg.candidate.output_io_index),
-            signedContext: vec![] as Vec<SignedContextV1>,
+            signedContext: leg.candidate.signed_context.clone(),
         })
         .collect();
 
