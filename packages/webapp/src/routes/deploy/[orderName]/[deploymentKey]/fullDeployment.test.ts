@@ -83,21 +83,22 @@ vi.mock('$lib/stores/wagmi', () => ({
 	wagmiConfig: mockWagmiConfigStore
 }));
 
+// Shared across all describe blocks to avoid duplicate HTTP fetches to the
+// remote registry/settings/token-list endpoints, which are rate-limited on CI.
+let rainlang: DotrainRainlang;
+beforeAll(async () => {
+	const rainlangResult = await DotrainRainlang.new(RAINLANG_URL);
+	if (rainlangResult.error) {
+		throw new Error('Failed to create rainlang: ' + rainlangResult.error.msg);
+	}
+	rainlang = rainlangResult.value;
+});
+
 describe('GUI deployment args isolation tests', () => {
-	let rainlang: DotrainRainlang | null = null;
-
-	beforeAll(async () => {
-		const rainlangResult = await DotrainRainlang.new(RAINLANG_URL);
-		if (rainlangResult.error) {
-			throw new Error('Failed to create rainlang: ' + rainlangResult.error.msg);
-		}
-		rainlang = rainlangResult.value;
-	});
-
 	it(
 		'standalone GUI without callback produces deployment args',
 		async () => {
-			const gui = await createConfiguredGui(rainlang!);
+			const gui = await createConfiguredGui(rainlang);
 			const result = await gui.getDeploymentTransactionArgs(ACCOUNT);
 			expect(result.error).toBeUndefined();
 			const args = result.value!;
@@ -113,7 +114,7 @@ describe('GUI deployment args isolation tests', () => {
 		'standalone GUI with noop state callback produces deployment args',
 		async () => {
 			const callback = vi.fn();
-			const gui = await createConfiguredGui(rainlang!, callback);
+			const gui = await createConfiguredGui(rainlang, callback);
 			const result = await gui.getDeploymentTransactionArgs(ACCOUNT);
 			expect(result.error).toBeUndefined();
 			const args = result.value!;
@@ -127,7 +128,7 @@ describe('GUI deployment args isolation tests', () => {
 	it(
 		'generateAddOrderCalldata works standalone',
 		async () => {
-			const gui = await createConfiguredGui(rainlang!);
+			const gui = await createConfiguredGui(rainlang);
 			const result = await gui.generateAddOrderCalldata();
 			expect(result.error).toBeUndefined();
 			expect(result.value).toBeDefined();
@@ -138,7 +139,7 @@ describe('GUI deployment args isolation tests', () => {
 	it(
 		'generateApprovalCalldatas works standalone',
 		async () => {
-			const gui = await createConfiguredGui(rainlang!);
+			const gui = await createConfiguredGui(rainlang);
 			const result = await gui.generateApprovalCalldatas(ACCOUNT);
 			expect(result.error).toBeUndefined();
 			expect(result.value).toBeDefined();
@@ -149,7 +150,7 @@ describe('GUI deployment args isolation tests', () => {
 	it(
 		'generateDepositCalldatas works standalone',
 		async () => {
-			const gui = await createConfiguredGui(rainlang!);
+			const gui = await createConfiguredGui(rainlang);
 			const result = await gui.generateDepositCalldatas();
 			expect(result.error).toBeUndefined();
 			expect(result.value).toBeDefined();
@@ -160,11 +161,11 @@ describe('GUI deployment args isolation tests', () => {
 	it(
 		'serializeState and restore produce deployment args',
 		async () => {
-			const gui1 = await createConfiguredGui(rainlang!);
+			const gui1 = await createConfiguredGui(rainlang);
 			const serialized = gui1.serializeState();
 			expect(serialized.error).toBeUndefined();
 
-			const gui2Result = await rainlang!.getGui('fixed-limit', 'base', serialized.value);
+			const gui2Result = await rainlang.getGui('fixed-limit', 'base', serialized.value);
 			expect(gui2Result.error).toBeUndefined();
 			const gui2 = gui2Result.value!;
 
@@ -179,8 +180,6 @@ describe('GUI deployment args isolation tests', () => {
 });
 
 describe('Full Deployment Tests', () => {
-	let rainlang: DotrainRainlang | null = null;
-
 	function findLockRegion(a: string, b: string): { prefixEnd: number; suffixEnd: number } {
 		expect(a.length).toEqual(b.length);
 		const length = a.length;
@@ -196,14 +195,6 @@ describe('Full Deployment Tests', () => {
 		}
 		return { prefixEnd, suffixEnd };
 	}
-
-	beforeAll(async () => {
-		const rainlangResult = await DotrainRainlang.new(RAINLANG_URL);
-		if (rainlangResult.error) {
-			throw new Error('Failed to create rainlang');
-		}
-		rainlang = rainlangResult.value;
-	});
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
@@ -236,10 +227,6 @@ describe('Full Deployment Tests', () => {
 	it(
 		'Fixed limit order',
 		async () => {
-			if (!rainlang) {
-				throw new Error('No rainlang available');
-			}
-
 			const fixedLimitDeploymentDetails = rainlang.getDeploymentDetails('fixed-limit');
 			if (fixedLimitDeploymentDetails.error) {
 				throw new Error('Failed to get deployment details');
