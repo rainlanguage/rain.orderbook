@@ -15,33 +15,47 @@ import {
 	type NameAndDescriptionCfg
 } from '@rainlanguage/orderbook';
 import { RAINLANG_URL } from '$lib/constants';
+import { retry } from '$lib/retry';
 import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
 const ACCOUNT = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E';
 const TOKEN1_ADDRESS = '0x000000000000012def132e61759048be5b5c6033';
 const TOKEN2_ADDRESS = '0x00000000000007c8612ba63df8ddefd9e6077c97';
 
+async function createRainlang(): Promise<DotrainRainlang> {
+	return retry(async () => {
+		const result = await DotrainRainlang.new(RAINLANG_URL);
+		if (result.error) {
+			throw new Error('Failed to create rainlang: ' + result.error.msg);
+		}
+		return result.value;
+	});
+}
+
 async function createConfiguredGui(
-	rainlang: DotrainRainlang,
+	rl: DotrainRainlang,
 	stateCallback?: (state: string) => void
 ): Promise<DotrainOrderGui> {
-	const guiResult = await rainlang.getGui('fixed-limit', 'base', undefined, stateCallback ?? null);
-	if (guiResult.error) {
-		throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
-	}
-	const gui = guiResult.value;
-	const token1Result = await gui.setSelectToken('token1', TOKEN1_ADDRESS);
-	if (token1Result.error) {
-		throw new Error('setSelectToken token1: ' + token1Result.error.msg);
-	}
-	const token2Result = await gui.setSelectToken('token2', TOKEN2_ADDRESS);
-	if (token2Result.error) {
-		throw new Error('setSelectToken token2: ' + token2Result.error.msg);
-	}
-	gui.setVaultId('output', 'token2', '234');
-	gui.setVaultId('input', 'token1', '123');
-	gui.setFieldValue('fixed-io', '10');
-	return gui;
+	return retry(async () => {
+		const guiResult = await rl.getGui('fixed-limit', 'base', undefined, stateCallback ?? null);
+		if (guiResult.error) {
+			throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
+		}
+		return guiResult.value;
+	}).then(async (gui) => {
+		const token1Result = await gui.setSelectToken('token1', TOKEN1_ADDRESS);
+		if (token1Result.error) {
+			throw new Error('setSelectToken token1: ' + token1Result.error.msg);
+		}
+		const token2Result = await gui.setSelectToken('token2', TOKEN2_ADDRESS);
+		if (token2Result.error) {
+			throw new Error('setSelectToken token2: ' + token2Result.error.msg);
+		}
+		gui.setVaultId('output', 'token2', '234');
+		gui.setVaultId('input', 'token1', '123');
+		gui.setFieldValue('fixed-io', '10');
+		return gui;
+	});
 }
 
 const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
@@ -87,11 +101,7 @@ vi.mock('$lib/stores/wagmi', () => ({
 // remote registry/settings/token-list endpoints, which are rate-limited on CI.
 let rainlang: DotrainRainlang;
 beforeAll(async () => {
-	const rainlangResult = await DotrainRainlang.new(RAINLANG_URL);
-	if (rainlangResult.error) {
-		throw new Error('Failed to create rainlang: ' + rainlangResult.error.msg);
-	}
-	rainlang = rainlangResult.value;
+	rainlang = await createRainlang();
 });
 
 describe('GUI deployment args isolation tests', () => {
