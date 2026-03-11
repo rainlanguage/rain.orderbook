@@ -289,7 +289,7 @@ mod tests {
         assert!(decoded.is_ok());
         let decoded = decoded.unwrap();
         assert_eq!(decoded.spender, spender);
-        assert_eq!(decoded.value, amount);
+        assert_eq!(decoded.amount, amount);
     }
 }
 
