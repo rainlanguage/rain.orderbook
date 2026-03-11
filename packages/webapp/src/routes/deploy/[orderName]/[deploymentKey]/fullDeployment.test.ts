@@ -1,4 +1,4 @@
-import { vi, describe } from 'vitest';
+import { vi, describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import Page from './+page.svelte';
 import { render, waitFor } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
@@ -9,9 +9,40 @@ import {
 	type TransactionConfirmationProps
 } from '@rainlanguage/ui-components';
 import { readable, writable } from 'svelte/store';
-import { DotrainRainlang, type NameAndDescriptionCfg } from '@rainlanguage/orderbook';
+import {
+	DotrainRainlang,
+	type DotrainOrderGui,
+	type NameAndDescriptionCfg
+} from '@rainlanguage/orderbook';
 import { RAINLANG_URL } from '$lib/constants';
 import { handleTransactionConfirmationModal } from '$lib/services/modal';
+
+const ACCOUNT = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E';
+const TOKEN1_ADDRESS = '0x000000000000012def132e61759048be5b5c6033';
+const TOKEN2_ADDRESS = '0x00000000000007c8612ba63df8ddefd9e6077c97';
+
+async function createConfiguredGui(
+	rainlang: DotrainRainlang,
+	stateCallback?: (state: string) => void
+): Promise<DotrainOrderGui> {
+	const guiResult = await rainlang.getGui('fixed-limit', 'base', undefined, stateCallback ?? null);
+	if (guiResult.error) {
+		throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
+	}
+	const gui = guiResult.value;
+	const token1Result = await gui.setSelectToken('token1', TOKEN1_ADDRESS);
+	if (token1Result.error) {
+		throw new Error('setSelectToken token1: ' + token1Result.error.msg);
+	}
+	const token2Result = await gui.setSelectToken('token2', TOKEN2_ADDRESS);
+	if (token2Result.error) {
+		throw new Error('setSelectToken token2: ' + token2Result.error.msg);
+	}
+	gui.setVaultId('output', 'token2', '234');
+	gui.setVaultId('input', 'token1', '123');
+	gui.setFieldValue('fixed-io', '10');
+	return gui;
+}
 
 const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
 
@@ -51,6 +82,98 @@ vi.mock('$lib/stores/wagmi', () => ({
 	appKitModal: mockAppKitModalStore,
 	wagmiConfig: mockWagmiConfigStore
 }));
+
+describe('GUI deployment args isolation tests', () => {
+	let rainlang: DotrainRainlang | null = null;
+
+	beforeAll(async () => {
+		const rainlangResult = await DotrainRainlang.new(RAINLANG_URL);
+		if (rainlangResult.error) {
+			throw new Error('Failed to create rainlang: ' + rainlangResult.error.msg);
+		}
+		rainlang = rainlangResult.value;
+	});
+
+	it(
+		'standalone GUI without callback produces deployment args',
+		async () => {
+			const gui = await createConfiguredGui(rainlang!);
+			const result = await gui.getDeploymentTransactionArgs(ACCOUNT);
+			expect(result.error).toBeUndefined();
+			expect(result.value).toBeDefined();
+			expect(result.value.deploymentCalldata).toBeDefined();
+			expect(result.value.orderbookAddress).toBeDefined();
+			expect(result.value.chainId).toBeDefined();
+		},
+		{ timeout: 30000 }
+	);
+
+	it(
+		'standalone GUI with noop state callback produces deployment args',
+		async () => {
+			const callback = vi.fn();
+			const gui = await createConfiguredGui(rainlang!, callback);
+			const result = await gui.getDeploymentTransactionArgs(ACCOUNT);
+			expect(result.error).toBeUndefined();
+			expect(result.value).toBeDefined();
+			expect(result.value.deploymentCalldata).toBeDefined();
+			expect(callback).toHaveBeenCalled();
+		},
+		{ timeout: 30000 }
+	);
+
+	it(
+		'generateAddOrderCalldata works standalone',
+		async () => {
+			const gui = await createConfiguredGui(rainlang!);
+			const result = await gui.generateAddOrderCalldata();
+			expect(result.error).toBeUndefined();
+			expect(result.value).toBeDefined();
+		},
+		{ timeout: 30000 }
+	);
+
+	it(
+		'generateApprovalCalldatas works standalone',
+		async () => {
+			const gui = await createConfiguredGui(rainlang!);
+			const result = await gui.generateApprovalCalldatas(ACCOUNT);
+			expect(result.error).toBeUndefined();
+			expect(result.value).toBeDefined();
+		},
+		{ timeout: 30000 }
+	);
+
+	it(
+		'generateDepositCalldatas works standalone',
+		async () => {
+			const gui = await createConfiguredGui(rainlang!);
+			const result = await gui.generateDepositCalldatas();
+			expect(result.error).toBeUndefined();
+			expect(result.value).toBeDefined();
+		},
+		{ timeout: 30000 }
+	);
+
+	it(
+		'serializeState and restore produce deployment args',
+		async () => {
+			const gui1 = await createConfiguredGui(rainlang!);
+			const serialized = gui1.serializeState();
+			expect(serialized.error).toBeUndefined();
+
+			const gui2Result = await rainlang!.getGui('fixed-limit', 'base', serialized.value);
+			expect(gui2Result.error).toBeUndefined();
+			const gui2 = gui2Result.value;
+
+			const result = await gui2.getDeploymentTransactionArgs(ACCOUNT);
+			expect(result.error).toBeUndefined();
+			expect(result.value).toBeDefined();
+			expect(result.value.deploymentCalldata).toBeDefined();
+		},
+		{ timeout: 30000 }
+	);
+});
 
 describe('Full Deployment Tests', () => {
 	let rainlang: DotrainRainlang | null = null;
@@ -176,6 +299,10 @@ describe('Full Deployment Tests', () => {
 				},
 				{ timeout: 30000 }
 			);
+			// Allow async WASM operations (getTokenInfo, getAccountBalance) to
+			// settle so their &self borrows are released before setFieldValue
+			// takes &mut self.
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 			await userEvent.clear(customValueInput);
 			await userEvent.type(customValueInput, '10');
 
@@ -201,34 +328,14 @@ describe('Full Deployment Tests', () => {
 					const disclaimerButton = screen.getByText('Deploy');
 					await userEvent.click(disclaimerButton);
 				},
-				{ timeout: 30000 }
+				{ timeout: 5000 }
 			);
 
-			const getDeploymentArgs = async () => {
-				if (!rainlang) {
-					throw new Error('Rainlang not initialized');
-				}
-				const guiResult = await rainlang.getGui('fixed-limit', 'base');
-				if (guiResult.error) {
-					throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
-				}
-				const gui = guiResult.value;
-				await gui.setSelectToken('token1', '0x000000000000012def132e61759048be5b5c6033');
-				await gui.setSelectToken('token2', '0x00000000000007c8612ba63df8ddefd9e6077c97');
-				gui.setVaultId('output', 'token2', '234');
-				gui.setVaultId('input', 'token1', '123');
-				gui.setFieldValue('fixed-io', '10');
-				const args = await gui.getDeploymentTransactionArgs(
-					'0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E'
-				);
-				return args.value;
-			};
 			await new Promise((resolve) => setTimeout(resolve, 10000));
-			const args = await getDeploymentArgs().catch((error) => {
-				// eslint-disable-next-line no-console
-				console.log('Fixed limit order error', error);
-				return null;
-			});
+
+			const gui = await createConfiguredGui(rainlang);
+			const standaloneArgs = await gui.getDeploymentTransactionArgs(ACCOUNT);
+			const args = standaloneArgs.value;
 
 			// @ts-expect-error mock is not typed
 			const callArgs = handleTransactionConfirmationModal.mock.calls.at(-1)?.[0] as
@@ -260,7 +367,7 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 30000 }
+		{ timeout: 60000 }
 	);
 
 	// TODO: Issue #2037
