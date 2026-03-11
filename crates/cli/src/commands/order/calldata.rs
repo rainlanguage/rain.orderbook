@@ -138,12 +138,12 @@ mod tests {
             })
         };
 
-        let selector_hex = |selector: &[u8; 4]| encode_prefixed(selector);
+        let selector_hex = |selector: [u8; 4]| encode_prefixed(selector);
 
         // mock expressionDeployerAddress() call
         rpc_server.mock(|when, then| {
             when.path("/rpc")
-                .body_contains(&selector_hex(&expressionDeployerAddressCall::SELECTOR));
+                .body_contains(selector_hex(expressionDeployerAddressCall::SELECTOR));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(1));
@@ -152,7 +152,7 @@ mod tests {
         // mock interpreterAddress() call
         rpc_server.mock(|when, then| {
             when.path("/rpc")
-                .body_contains(&selector_hex(&interpreterAddressCall::SELECTOR));
+                .body_contains(selector_hex(interpreterAddressCall::SELECTOR));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(2));
@@ -161,7 +161,7 @@ mod tests {
         // mock storeAddress() call
         rpc_server.mock(|when, then| {
             when.path("/rpc")
-                .body_contains(&selector_hex(&storeAddressCall::SELECTOR));
+                .body_contains(selector_hex(storeAddressCall::SELECTOR));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(3));
@@ -170,7 +170,7 @@ mod tests {
         // mock parserAddress() call
         rpc_server.mock(|when, then| {
             when.path("/rpc")
-                .body_contains(&selector_hex(&parserAddressCall::SELECTOR));
+                .body_contains(selector_hex(parserAddressCall::SELECTOR));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(4));
@@ -179,7 +179,7 @@ mod tests {
         // mock parse2() call
         rpc_server.mock(|when, then| {
             when.path("/rpc")
-                .body_contains(&selector_hex(&parse2Call::SELECTOR));
+                .body_contains(selector_hex(parse2Call::SELECTOR));
 
             let encoded_ret = <sol!((bytes,))>::abi_encode(&(vec![0x01u8, 0x02u8],));
             then.status(200)
