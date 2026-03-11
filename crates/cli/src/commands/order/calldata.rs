@@ -71,6 +71,10 @@ mod tests {
     use alloy::sol;
     use clap::CommandFactory;
     use httpmock::MockServer;
+    use rain_interpreter_bindings::IParserV2::parse2Call;
+    use rain_interpreter_bindings::Rainlang::{
+        expressionDeployerAddressCall, interpreterAddressCall, parserAddressCall, storeAddressCall,
+    };
     use rain_orderbook_app_settings::spec_version::SpecVersion;
     use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
     use serde_json::json;
@@ -134,40 +138,55 @@ mod tests {
             })
         };
 
-        // mock I_INTERPRETER() call
+        let selector_hex = |selector: &[u8; 4]| encode_prefixed(selector);
+
+        // mock expressionDeployerAddress() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x56fb83e9");
+            when.path("/rpc")
+                .body_contains(&selector_hex(&expressionDeployerAddressCall::SELECTOR));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(1));
         });
 
-        // mock I_STORE() call
+        // mock interpreterAddress() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0x251ac32e");
+            when.path("/rpc")
+                .body_contains(&selector_hex(&interpreterAddressCall::SELECTOR));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(2));
         });
 
-        // mock I_PARSER() call
+        // mock storeAddress() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xf79693f4");
+            when.path("/rpc")
+                .body_contains(&selector_hex(&storeAddressCall::SELECTOR));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(build_address_return(3));
         });
 
+        // mock parserAddress() call
+        rpc_server.mock(|when, then| {
+            when.path("/rpc")
+                .body_contains(&selector_hex(&parserAddressCall::SELECTOR));
+            then.status(200)
+                .header("content-type", "application/json")
+                .json_body(build_address_return(4));
+        });
+
         // mock parse2() call
         rpc_server.mock(|when, then| {
-            when.path("/rpc").body_contains("0xa3869e14");
+            when.path("/rpc")
+                .body_contains(&selector_hex(&parse2Call::SELECTOR));
 
             let encoded_ret = <sol!((bytes,))>::abi_encode(&(vec![0x01u8, 0x02u8],));
             then.status(200)
                 .header("content-type", "application/json")
                 .json_body(json!({
                     "jsonrpc": "2.0",
-                    "id": 4,
+                    "id": 5,
                     "result": encode_prefixed(encoded_ret)
                 }));
         });

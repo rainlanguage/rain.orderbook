@@ -140,10 +140,7 @@ pub async fn check_taker_balance_and_allowance(
 }
 
 pub fn build_approval_calldata(spender: Address, amount: U256) -> Bytes {
-    let call = approveCall {
-        spender,
-        amount,
-    };
+    let call = approveCall { spender, amount };
     Bytes::from(call.abi_encode())
 }
 
