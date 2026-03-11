@@ -202,7 +202,7 @@ auction-dca http://localhost:8231/auction-dca.rain`;
 
 			const result = await DotrainRainlang.new('http://localhost:8231/empty.txt');
 			assert(result.error);
-			assert(result.error.readableMsg.includes('Invalid registry format'));
+			assert(result.error.readableMsg.includes('Invalid rainlang format'));
 		});
 
 		it('should handle settings fetch error', async () => {
