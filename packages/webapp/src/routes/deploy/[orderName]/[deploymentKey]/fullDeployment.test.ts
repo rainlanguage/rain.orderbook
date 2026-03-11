@@ -100,10 +100,11 @@ describe('GUI deployment args isolation tests', () => {
 			const gui = await createConfiguredGui(rainlang!);
 			const result = await gui.getDeploymentTransactionArgs(ACCOUNT);
 			expect(result.error).toBeUndefined();
-			expect(result.value).toBeDefined();
-			expect(result.value.deploymentCalldata).toBeDefined();
-			expect(result.value.orderbookAddress).toBeDefined();
-			expect(result.value.chainId).toBeDefined();
+			const args = result.value!;
+			expect(args).toBeDefined();
+			expect(args.deploymentCalldata).toBeDefined();
+			expect(args.orderbookAddress).toBeDefined();
+			expect(args.chainId).toBeDefined();
 		},
 		{ timeout: 30000 }
 	);
@@ -115,8 +116,9 @@ describe('GUI deployment args isolation tests', () => {
 			const gui = await createConfiguredGui(rainlang!, callback);
 			const result = await gui.getDeploymentTransactionArgs(ACCOUNT);
 			expect(result.error).toBeUndefined();
-			expect(result.value).toBeDefined();
-			expect(result.value.deploymentCalldata).toBeDefined();
+			const args = result.value!;
+			expect(args).toBeDefined();
+			expect(args.deploymentCalldata).toBeDefined();
 			expect(callback).toHaveBeenCalled();
 		},
 		{ timeout: 30000 }
@@ -164,12 +166,13 @@ describe('GUI deployment args isolation tests', () => {
 
 			const gui2Result = await rainlang!.getGui('fixed-limit', 'base', serialized.value);
 			expect(gui2Result.error).toBeUndefined();
-			const gui2 = gui2Result.value;
+			const gui2 = gui2Result.value!;
 
 			const result = await gui2.getDeploymentTransactionArgs(ACCOUNT);
 			expect(result.error).toBeUndefined();
-			expect(result.value).toBeDefined();
-			expect(result.value.deploymentCalldata).toBeDefined();
+			const args = result.value!;
+			expect(args).toBeDefined();
+			expect(args.deploymentCalldata).toBeDefined();
 		},
 		{ timeout: 30000 }
 	);
