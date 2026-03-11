@@ -35,7 +35,7 @@ impl OrderbookYaml {
     /// ```javascript
     /// // Basic usage with single YAML source
     /// const yamlConfig = `
-    /// version: "4"
+    /// version: "5"
     /// networks:
     ///   mainnet:
     ///     rpc: https://mainnet.infura.io

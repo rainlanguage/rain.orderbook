@@ -1,2 +1,2 @@
 export const RAINLANG_URL =
-	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/73ed4eaf38641f8f802ac64be9ccd76ab082b495/registry';
+	'https://raw.githubusercontent.com/rainlanguage/rain.strategies/e843bc2a747e21ad77e25a93773e3af5a3acaa30/registry';

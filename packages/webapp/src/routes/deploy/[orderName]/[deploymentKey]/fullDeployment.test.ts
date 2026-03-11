@@ -167,10 +167,15 @@ describe('Full Deployment Tests', () => {
 				},
 				{ timeout: 30000 }
 			);
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-
-			// Get the input component and write "10" into it
-			const customValueInput = screen.getAllByPlaceholderText('Enter custom value')[0];
+			// Wait for field definitions to render after token selection
+			let customValueInput!: HTMLElement;
+			await waitFor(
+				() => {
+					customValueInput = screen.getAllByPlaceholderText('Enter custom value')[0];
+					expect(customValueInput).toBeInTheDocument();
+				},
+				{ timeout: 30000 }
+			);
 			await userEvent.clear(customValueInput);
 			await userEvent.type(customValueInput, '10');
 
