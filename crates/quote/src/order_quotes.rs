@@ -396,7 +396,7 @@ amount price: 2 3;
         let expected_ratio = Float::parse("3".to_string()).unwrap();
 
         let block_number = setup.local_evm.provider.get_block_number().await.unwrap();
-        let expected = vec![
+        let expected = [
             BatchOrderQuotesResponse {
                 pair: Pair {
                     pair_name: "Token1/Token2".to_string(),
