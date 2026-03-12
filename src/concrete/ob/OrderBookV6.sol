@@ -679,6 +679,9 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         handleIO(bobOrderIOCalculation);
 
         // Do this last so we don't swallow errors from the handle IO.
+        // Slither false positive. clearStateChange is a memory variable that
+        // cannot be modified by reentrancy, and clear3 is nonReentrant.
+        //slither-disable-next-line reentrancy-balance
         if (clearStateChange.aliceOutput.isZero() && clearStateChange.bobOutput.isZero()) {
             revert ClearZeroAmount();
         }
