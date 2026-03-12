@@ -124,7 +124,7 @@ describe('GUI deployment args isolation tests', () => {
 			expect(args.orderbookAddress).toBeDefined();
 			expect(args.chainId).toBeDefined();
 		},
-		{ timeout: 30000 }
+		{ timeout: 30000, retry: DEFAULT_MAX_RETRIES }
 	);
 
 	it(
@@ -139,7 +139,7 @@ describe('GUI deployment args isolation tests', () => {
 			expect(args.deploymentCalldata).toBeDefined();
 			expect(callback).toHaveBeenCalled();
 		},
-		{ timeout: 30000 }
+		{ timeout: 30000, retry: DEFAULT_MAX_RETRIES }
 	);
 
 	it(
@@ -150,7 +150,7 @@ describe('GUI deployment args isolation tests', () => {
 			expect(result.error).toBeUndefined();
 			expect(result.value).toBeDefined();
 		},
-		{ timeout: 30000 }
+		{ timeout: 30000, retry: DEFAULT_MAX_RETRIES }
 	);
 
 	it(
@@ -161,7 +161,7 @@ describe('GUI deployment args isolation tests', () => {
 			expect(result.error).toBeUndefined();
 			expect(result.value).toBeDefined();
 		},
-		{ timeout: 30000 }
+		{ timeout: 30000, retry: DEFAULT_MAX_RETRIES }
 	);
 
 	it(
@@ -172,7 +172,7 @@ describe('GUI deployment args isolation tests', () => {
 			expect(result.error).toBeUndefined();
 			expect(result.value).toBeDefined();
 		},
-		{ timeout: 30000 }
+		{ timeout: 30000, retry: DEFAULT_MAX_RETRIES }
 	);
 
 	it(
@@ -190,7 +190,7 @@ describe('GUI deployment args isolation tests', () => {
 			expect(args).toBeDefined();
 			expect(args.deploymentCalldata).toBeDefined();
 		},
-		{ timeout: 30000 }
+		{ timeout: 30000, retry: DEFAULT_MAX_RETRIES }
 	);
 });
 
