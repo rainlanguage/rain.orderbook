@@ -548,14 +548,14 @@ mod tests {
     use alloy::primitives::{Address, U256};
     use js_sys::{eval, Reflect};
     use rain_orderbook_app_settings::{
-        network::NetworkCfg, order::VaultType, spec_version::SpecVersion, yaml::YamlParsableHash,
+        network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
     };
     use rain_orderbook_common::dotrain::RainDocument;
     use rain_orderbook_common::dotrain_order::DotrainOrder;
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21Qy2rDMBCU0tJS6CkUeir0Ayos2S5YgR7bmjb4UEIOvQRHURJjRTLOmrx-Ip8cnEgOMdnDzo5mtLtsB53iweI405NMzwhDLm4sMkrbJh_bB4qayhV3FsHkUgfXul13XrJHy5ZmIYmWsDJl7v69WJwDFD3PU0akam6W0Ito9O6VhSBVqXa1A9cZu9Gfg_jJlt1wuN63Eu7ieysP6h1eA3zr-G8SoA46x8WyrJnAOMdt1W9Un_M3ZwQq6JDwUI03f6zaQtzPov80qfTPV5jqeDTVZb_4TiqRfzy7U0glBZBjUzKRhTKbhdRwAGw0tlzJAQAA";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTYvCMBBt3GWXhT3Jwp4Ef4ChTVVsBU9FVPy4WL2nNWhpTGpNUfFP-JO1OqlYnMO8N3kvM5NUjEf8AAaRWEVijYmh4wOQWFbZZCM4sIyCafIFqGTMRPNdt_fO1-oXqr3cMiyYOsg01vdqgBulkq5pchlSvpF71XUsp22mSYizlJ9zB8oz0qP7_vAPaLW1PF5KCVXRN8h-vkO9iT51PZ7dXlIxnvGyLSlGENdFZdUuVNt1G0ADuouOo2A3o77MPOrFNk1jJ0s8hifzybSzWAwIWU_bHdHv_eu_YJyFCt-b4hVLuDxtmVBX9NlCVMoBAAA=";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
@@ -825,6 +825,7 @@ mod tests {
             label: Some("Replaced Token 3".to_string()),
             symbol: Some("NEW3".to_string()),
             logo_uri: None,
+            extensions: None,
         };
 
         let dotrain_order = DotrainOrder::create(dotrain_with_existing_token.clone(), None)

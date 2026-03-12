@@ -101,6 +101,12 @@ impl ValidationConfig for OrderbookYamlValidation {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct FetchedRemoteData {
+    pub remote_networks: HashMap<String, NetworkCfg>,
+    pub remote_tokens: HashMap<String, TokenCfg>,
+}
+
 impl YamlParsable for OrderbookYaml {
     type ValidationConfig = OrderbookYamlValidation;
 
@@ -261,6 +267,26 @@ impl OrderbookYaml {
     pub fn get_remote_tokens(&self) -> Result<Option<RemoteTokensCfg>, YamlError> {
         let context = self.build_context();
         RemoteTokensCfg::parse_from_yaml_optional(self.documents.clone(), Some(&context))
+    }
+
+    pub async fn fetch_remote_data(&mut self) -> Result<FetchedRemoteData, YamlError> {
+        let remote_networks =
+            RemoteNetworksCfg::fetch_networks(self.get_remote_networks()?).await?;
+        if !remote_networks.is_empty() {
+            self.cache.update_remote_networks(remote_networks.clone());
+        }
+        let remote_tokens = if let Some(remote_tokens_cfg) = self.get_remote_tokens()? {
+            let networks = self.get_networks()?;
+            let tokens = RemoteTokensCfg::fetch_tokens(&networks, remote_tokens_cfg).await?;
+            self.cache.update_remote_tokens(tokens.clone());
+            tokens
+        } else {
+            HashMap::new()
+        };
+        Ok(FetchedRemoteData {
+            remote_networks,
+            remote_tokens,
+        })
     }
 
     pub fn get_subgraph_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -1228,6 +1254,7 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );
@@ -1247,6 +1274,7 @@ local-db-sync:
         assert_eq!(cfg.rate_limit_delay_ms, 5);
         assert_eq!(cfg.finality_depth, 6);
         assert_eq!(cfg.bootstrap_block_threshold, 7);
+        assert_eq!(cfg.sync_interval_ms, 5000);
     }
 
     #[test]
@@ -1263,6 +1291,7 @@ local-db-sync:
     rate-limit-delay-ms: 50
     finality-depth: 60
     bootstrap-block-threshold: 70
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );
@@ -1277,6 +1306,7 @@ local-db-sync:
         assert_eq!(cfg.rate_limit_delay_ms, 50);
         assert_eq!(cfg.finality_depth, 60);
         assert_eq!(cfg.bootstrap_block_threshold, 70);
+        assert_eq!(cfg.sync_interval_ms, 5000);
     }
 
     #[test]
@@ -1293,6 +1323,7 @@ local-db-sync:
     rate-limit-delay-ms: 5
     finality-depth: 6
     bootstrap-block-threshold: 7
+    sync-interval-ms: 5000
 "#,
             version = SpecVersion::current()
         );

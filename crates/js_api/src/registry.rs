@@ -1,6 +1,7 @@
 use crate::gui::{DotrainOrderGui, GuiError};
 use crate::yaml::{OrderbookYaml, OrderbookYamlError};
 use rain_orderbook_app_settings::gui::NameAndDescriptionCfg;
+use rain_orderbook_common::raindex_client::{RaindexClient, RaindexError as RaindexClientError};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -147,6 +148,8 @@ pub enum DotrainRegistryError {
     GuiError(#[from] GuiError),
     #[error(transparent)]
     OrderbookYamlError(#[from] OrderbookYamlError),
+    #[error(transparent)]
+    RaindexClientError(#[from] RaindexClientError),
 }
 
 impl DotrainRegistryError {
@@ -178,6 +181,7 @@ impl DotrainRegistryError {
             }
             DotrainRegistryError::GuiError(err) => err.to_readable_msg(),
             DotrainRegistryError::OrderbookYamlError(err) => err.to_readable_msg(),
+            DotrainRegistryError::RaindexClientError(err) => err.to_readable_msg(),
         }
     }
 }
@@ -544,6 +548,72 @@ impl DotrainRegistry {
     }
 }
 
+#[cfg(target_family = "wasm")]
+#[wasm_export]
+impl DotrainRegistry {
+    /// Creates a RaindexClient instance from the registry's shared settings.
+    ///
+    /// ## Examples
+    ///
+    /// ```javascript
+    /// const clientResult = await registry.getRaindexClient(
+    ///   localDb.query.bind(localDb),
+    ///   localDb.wipeAndRecreate.bind(localDb),
+    ///   updateStatus,
+    /// );
+    /// if (clientResult.error) {
+    ///   console.error("Failed to get RaindexClient:", clientResult.error.readableMsg);
+    ///   return;
+    /// }
+    /// const raindexClient = clientResult.value;
+    /// ```
+    #[wasm_export(
+        js_name = "getRaindexClient",
+        preserve_js_class,
+        unchecked_return_type = "RaindexClient",
+        return_description = "RaindexClient instance from registry settings"
+    )]
+    pub async fn get_raindex_client(
+        &self,
+        #[wasm_export(
+            js_name = "queryCallback",
+            param_description = "Optional JavaScript function to execute local database queries"
+        )]
+        query_callback: Option<js_sys::Function>,
+        #[wasm_export(
+            js_name = "wipeCallback",
+            param_description = "Optional JavaScript function to wipe and recreate the database"
+        )]
+        wipe_callback: Option<js_sys::Function>,
+        #[wasm_export(
+            js_name = "statusCallback",
+            param_description = "Optional callback invoked with the current local DB sync status"
+        )]
+        status_callback: Option<js_sys::Function>,
+    ) -> Result<RaindexClient, DotrainRegistryError> {
+        let client = RaindexClient::new(
+            vec![self.settings.clone()],
+            None,
+            query_callback,
+            wipe_callback,
+            status_callback,
+        )
+        .await?;
+        Ok(client)
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl DotrainRegistry {
+    pub async fn get_raindex_client(
+        &self,
+        db_path: Option<std::path::PathBuf>,
+    ) -> Result<RaindexClient, DotrainRegistryError> {
+        let client = RaindexClient::new(vec![self.settings.clone()], None, db_path).await?;
+        Ok(client)
+    }
+}
+
 impl DotrainRegistry {
     fn settings_sources(&self) -> Option<Vec<String>> {
         if self.settings.is_empty() {
@@ -694,10 +764,12 @@ orderbooks:
     address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
     network: flare
     subgraph: flare
+    deployment-block: 0
   base:
     address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7
     network: base
     subgraph: base
+    deployment-block: 0
 deployers:
   flare:
     address: 0xE3989Ea7486c0F418C764e6c511e86f6E8830FAb
@@ -1569,6 +1641,39 @@ _ _: 0 0;
 
             let orderbook_yaml = registry.get_orderbook_yaml();
             assert!(orderbook_yaml.is_ok());
+        }
+
+        #[tokio::test]
+        async fn test_get_raindex_client_returns_valid_instance() {
+            let server = MockServer::start_async().await;
+
+            let test_registry_content = format!(
+                "{}/settings.yaml\ntest-order {}/order.rain",
+                server.url(""),
+                server.url("")
+            );
+
+            server.mock(|when, then| {
+                when.method("GET").path("/registry.txt");
+                then.status(200).body(test_registry_content.clone());
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/settings.yaml");
+                then.status(200).body(mock_settings_with_tokens());
+            });
+
+            server.mock(|when, then| {
+                when.method("GET").path("/order.rain");
+                then.status(200).body(MOCK_DOTRAIN_SIMPLE);
+            });
+
+            let registry = DotrainRegistry::new(format!("{}/registry.txt", server.url("")))
+                .await
+                .unwrap();
+
+            let raindex_client = registry.get_raindex_client(None).await;
+            assert!(raindex_client.is_ok());
         }
     }
 }

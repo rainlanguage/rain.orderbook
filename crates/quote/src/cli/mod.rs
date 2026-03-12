@@ -93,8 +93,8 @@ impl Quoter {
                 .do_quote(
                     vec![self.rpc.to_string()],
                     self.block_number,
-                    None,
                     self.multicall_address,
+                    None,
                 )
                 .await?
                 .into(),
@@ -104,8 +104,8 @@ impl Quoter {
                         sg.as_str(),
                         vec![self.rpc.to_string()],
                         self.block_number,
-                        None,
                         self.multicall_address,
+                        None,
                     )
                     .await?
                     .into()

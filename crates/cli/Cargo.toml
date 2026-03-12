@@ -33,7 +33,7 @@ serde_json = { workspace = true }
 futures = { workspace = true }
 itertools = { workspace = true }
 flate2 = "1.0.34"
-rusqlite = { version = "0.31", features = ["functions"] }
+rusqlite = { version = "0.32", features = ["functions"] }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["full"] }

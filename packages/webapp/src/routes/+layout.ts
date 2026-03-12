@@ -1,13 +1,13 @@
 import {
 	DotrainRegistry,
-	RaindexClient,
-	type AccountCfg,
+	type RaindexClient,
 	type Address,
 	type Hex
 } from '@rainlanguage/orderbook';
 import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { REGISTRY_URL } from '$lib/constants';
+import { updateStatus } from '$lib/stores/localDbStatus';
 import { writable } from 'svelte/store';
 import type { LayoutLoad } from './$types';
 
@@ -58,20 +58,6 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 		}
 	}
 
-	let raindexClient: RaindexClient | null = null;
-	try {
-		if (!errorMessage && registry) {
-			const raindexClientRes = RaindexClient.new([registry.settings as string]);
-			if (raindexClientRes.error) {
-				errorMessage = raindexClientRes.error.readableMsg;
-			} else {
-				raindexClient = raindexClientRes.value;
-			}
-		}
-	} catch (error: unknown) {
-		errorMessage = 'Error initializing RaindexClient: ' + (error as Error).message;
-	}
-
 	let localDb: SQLiteWasmDatabase | null = null;
 	if (!errorMessage) {
 		try {
@@ -87,6 +73,24 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 		}
 	}
 
+	let raindexClient: RaindexClient | null = null;
+	try {
+		if (!errorMessage && registry) {
+			const raindexClientRes = await registry.getRaindexClient(
+				localDb?.query?.bind(localDb),
+				localDb?.wipeAndRecreate?.bind(localDb),
+				updateStatus
+			);
+			if (raindexClientRes.error) {
+				errorMessage = raindexClientRes.error.readableMsg;
+			} else {
+				raindexClient = raindexClientRes.value;
+			}
+		}
+	} catch (error: unknown) {
+		errorMessage = 'Error initializing RaindexClient: ' + (error as Error).message;
+	}
+
 	if (errorMessage) {
 		return {
 			errorMessage,
@@ -97,23 +101,18 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 		};
 	}
 
-	if (localDb && raindexClient) {
-		raindexClient.setDbCallback(localDb.query.bind(localDb), localDb.wipeAndRecreate.bind(localDb));
-	}
-
 	return {
 		stores: {
 			selectedChainIds: writable<number[]>([]),
-			accounts: writable<Record<string, AccountCfg>>({}),
-			activeAccountsItems: writable<Record<string, Address>>({}),
 			showInactiveOrders: writable<boolean>(false),
 			// @ts-expect-error initially the value is empty
 			orderHash: writable<Hex>(''),
 			hideZeroBalanceVaults: writable<boolean>(false),
 			hideInactiveOrdersVaults: writable<boolean>(false),
-			showMyItemsOnly: writable<boolean>(false),
 			activeTokens: writable<Address[]>([]),
-			activeOrderbookAddresses: writable<Address[]>([])
+			activeOrderbookAddresses: writable<Address[]>([]),
+			// @ts-expect-error initially the value is empty
+			ownerFilter: writable<Address>('')
 		},
 		registry,
 		localDb,
@@ -126,9 +125,9 @@ export const ssr = false;
 if (import.meta.vitest) {
 	const { describe, it, expect, beforeEach, vi } = import.meta.vitest;
 
-	const { mockRegistryNew, mockRaindexClientNew, mockInit, mockLocalDbNew } = vi.hoisted(() => ({
+	const { mockRegistryNew, mockGetRaindexClient, mockInit, mockLocalDbNew } = vi.hoisted(() => ({
 		mockRegistryNew: vi.fn(),
-		mockRaindexClientNew: vi.fn(),
+		mockGetRaindexClient: vi.fn(),
 		mockInit: vi.fn(),
 		mockLocalDbNew: vi.fn()
 	}));
@@ -139,9 +138,6 @@ if (import.meta.vitest) {
 			...original,
 			DotrainRegistry: {
 				new: mockRegistryNew
-			},
-			RaindexClient: {
-				new: mockRaindexClientNew
 			}
 		};
 	});
@@ -170,7 +166,9 @@ if (import.meta.vitest) {
 				}
 			};
 			mockInit.mockResolvedValue(undefined);
-			mockLocalDbNew.mockReturnValue({ value: { db: true } });
+			mockLocalDbNew.mockReturnValue({
+				value: { db: true, query: vi.fn(), wipeAndRecreate: vi.fn() }
+			});
 		});
 
 		it('should return errorMessage if registry fails to load', async () => {
@@ -184,12 +182,12 @@ if (import.meta.vitest) {
 		});
 
 		it('should return errorMessage if RaindexClient fails to initialize', async () => {
-			const mockRegistry = { settings: vi.fn().mockReturnValue('settings') };
+			mockGetRaindexClient.mockResolvedValue({
+				error: { readableMsg: 'Malformed settings' }
+			});
+			const mockRegistry = { getRaindexClient: mockGetRaindexClient };
 			mockRegistryNew.mockResolvedValueOnce({
 				value: mockRegistry
-			});
-			mockRaindexClientNew.mockReturnValue({
-				error: { readableMsg: 'Malformed settings' }
 			});
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,12 +198,9 @@ if (import.meta.vitest) {
 		});
 
 		it('should return errorMessage if local database fails to initialize', async () => {
-			const mockRegistry = { settings: 'settings' };
+			const mockRegistry = { getRaindexClient: mockGetRaindexClient };
 			mockRegistryNew.mockResolvedValueOnce({
 				value: mockRegistry
-			});
-			mockRaindexClientNew.mockReturnValue({
-				value: { client: true }
 			});
 			mockLocalDbNew.mockReturnValue({
 				error: { readableMsg: 'Database init failed' }
@@ -219,12 +214,12 @@ if (import.meta.vitest) {
 		});
 
 		it('should initialize when registry and RaindexClient succeed', async () => {
-			const mockRegistry = { settings: 'settings' };
+			mockGetRaindexClient.mockResolvedValue({
+				value: { client: true }
+			});
+			const mockRegistry = { getRaindexClient: mockGetRaindexClient };
 			mockRegistryNew.mockResolvedValueOnce({
 				value: mockRegistry
-			});
-			mockRaindexClientNew.mockReturnValue({
-				value: { client: true, setDbCallback: vi.fn() }
 			});
 			mockLocalDbNew.mockReturnValue({
 				value: { db: true, query: vi.fn(), wipeAndRecreate: vi.fn() }
