@@ -14,13 +14,14 @@ import {
     EvaluableV4,
     SignedContextV1
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {OrderBookV6, IERC20} from "src/concrete/ob/OrderBookV6.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
+import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 
 abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
     IInterpreterV4 internal immutable iInterpreter;
@@ -36,12 +37,13 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
         LibInterpreterDeploy.etchRainlang(vm);
+        LibOrderBookDeploy.etchOrderBook(vm);
 
         iInterpreter = IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS);
         iStore = IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS);
         iParserV2 = IParserV2(LibInterpreterDeploy.EXPRESSION_DEPLOYER_DEPLOYED_ADDRESS);
 
-        iOrderbook = IRaindexV6(address(new OrderBookV6()));
+        iOrderbook = IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);
@@ -51,7 +53,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
         vm.etch(address(iToken1), REVERTING_MOCK_BYTECODE);
         vm.mockCall(address(iToken1), abi.encodeWithSelector(IERC20Metadata.decimals.selector), abi.encode(18));
 
-        iSubParser = new OrderBookV6SubParser();
+        iSubParser = OrderBookV6SubParser(LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS);
     }
 
     function assumeEtchable(address account) internal view {
@@ -61,10 +63,10 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
         vm.assume(account != address(iParserV2));
         vm.assume(account != LibInterpreterDeploy.PARSER_DEPLOYED_ADDRESS);
 
-        vm.assume(account != address(iOrderbook));
+        vm.assume(account != LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
         vm.assume(account != address(iToken0));
         vm.assume(account != address(iToken1));
-        vm.assume(account != address(iSubParser));
+        vm.assume(account != LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS);
 
         vm.assume(account != address(this));
         vm.assume(account != address(vm));
