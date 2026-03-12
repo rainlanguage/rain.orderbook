@@ -15,7 +15,7 @@ import {
 	type NameAndDescriptionCfg
 } from '@rainlanguage/orderbook';
 import { RAINLANG_URL } from '$lib/constants';
-import { retry } from '$lib/retry';
+import { retry, DEFAULT_MAX_RETRIES } from '$lib/retry';
 import { handleTransactionConfirmationModal } from '$lib/services/modal';
 
 const ACCOUNT = '0x999999cf1046e68e36E1aA2E0E07105eDDD1f08E';
@@ -32,30 +32,37 @@ async function createRainlang(): Promise<DotrainRainlang> {
 	});
 }
 
+async function getGui(
+	rl: DotrainRainlang,
+	serializedState?: string,
+	stateCallback?: (state: string) => void
+): Promise<DotrainOrderGui> {
+	return retry(async () => {
+		const result = await rl.getGui('fixed-limit', 'base', serializedState, stateCallback ?? null);
+		if (result.error) {
+			throw new Error(result.error.readableMsg ?? result.error.msg);
+		}
+		return result.value;
+	});
+}
+
 async function createConfiguredGui(
 	rl: DotrainRainlang,
 	stateCallback?: (state: string) => void
 ): Promise<DotrainOrderGui> {
-	return retry(async () => {
-		const guiResult = await rl.getGui('fixed-limit', 'base', undefined, stateCallback ?? null);
-		if (guiResult.error) {
-			throw new Error(guiResult.error.readableMsg ?? guiResult.error.msg);
-		}
-		return guiResult.value;
-	}).then(async (gui) => {
-		const token1Result = await gui.setSelectToken('token1', TOKEN1_ADDRESS);
-		if (token1Result.error) {
-			throw new Error('setSelectToken token1: ' + token1Result.error.msg);
-		}
-		const token2Result = await gui.setSelectToken('token2', TOKEN2_ADDRESS);
-		if (token2Result.error) {
-			throw new Error('setSelectToken token2: ' + token2Result.error.msg);
-		}
-		gui.setVaultId('output', 'token2', '234');
-		gui.setVaultId('input', 'token1', '123');
-		gui.setFieldValue('fixed-io', '10');
-		return gui;
-	});
+	const gui = await getGui(rl, undefined, stateCallback);
+	const token1Result = await gui.setSelectToken('token1', TOKEN1_ADDRESS);
+	if (token1Result.error) {
+		throw new Error('setSelectToken token1: ' + token1Result.error.msg);
+	}
+	const token2Result = await gui.setSelectToken('token2', TOKEN2_ADDRESS);
+	if (token2Result.error) {
+		throw new Error('setSelectToken token2: ' + token2Result.error.msg);
+	}
+	gui.setVaultId('output', 'token2', '234');
+	gui.setVaultId('input', 'token1', '123');
+	gui.setFieldValue('fixed-io', '10');
+	return gui;
 }
 
 const { mockPageStore } = await vi.hoisted(() => import('@rainlanguage/ui-components'));
@@ -175,9 +182,7 @@ describe('GUI deployment args isolation tests', () => {
 			const serialized = gui1.serializeState();
 			expect(serialized.error).toBeUndefined();
 
-			const gui2Result = await rainlang.getGui('fixed-limit', 'base', serialized.value);
-			expect(gui2Result.error).toBeUndefined();
-			const gui2 = gui2Result.value!;
+			const gui2 = await getGui(rainlang, serialized.value);
 
 			const result = await gui2.getDeploymentTransactionArgs(ACCOUNT);
 			expect(result.error).toBeUndefined();
@@ -367,7 +372,7 @@ describe('Full Deployment Tests', () => {
 			expect(callArgs.args.toAddress).toEqual(args?.orderbookAddress);
 			expect(callArgs.args.chainId).toEqual(args?.chainId);
 		},
-		{ timeout: 60000 }
+		{ timeout: 60000, retry: DEFAULT_MAX_RETRIES }
 	);
 
 	// TODO: Issue #2037

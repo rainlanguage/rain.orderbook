@@ -1,4 +1,4 @@
-const DEFAULT_MAX_RETRIES = 3;
+export const DEFAULT_MAX_RETRIES = 3;
 
 export async function retry<T>(fn: () => Promise<T>, retries = DEFAULT_MAX_RETRIES): Promise<T> {
 	for (let i = 0; i < retries; i++) {
