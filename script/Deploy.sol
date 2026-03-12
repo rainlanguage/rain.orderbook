@@ -103,7 +103,9 @@ contract Deploy is Script {
             vm.startBroadcast(deployerPrivateKey);
             bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookV6SubParser.rain.meta");
             LibDescribedByMeta.emitForDescribedAddress(
-                metaboard, OrderBookV6SubParser(LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS), subParserDescribedByMeta
+                metaboard,
+                OrderBookV6SubParser(LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS),
+                subParserDescribedByMeta
             );
             vm.stopBroadcast();
         }

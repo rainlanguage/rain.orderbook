@@ -33,7 +33,10 @@ contract BuildPointers is Script {
             string.concat(
                 addressConstantString(deployed),
                 LibCodeGen.bytesConstantString(
-                    vm, "/// @dev The creation bytecode of the contract.", "CREATION_CODE", type(OrderBookV6).creationCode
+                    vm,
+                    "/// @dev The creation bytecode of the contract.",
+                    "CREATION_CODE",
+                    type(OrderBookV6).creationCode
                 ),
                 LibCodeGen.bytesConstantString(
                     vm, "/// @dev The runtime bytecode of the contract.", "RUNTIME_CODE", deployed.code

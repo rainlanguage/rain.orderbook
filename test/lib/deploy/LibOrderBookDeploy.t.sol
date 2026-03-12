@@ -100,9 +100,7 @@ contract LibOrderBookDeployTest is Test {
     function testEtchOrderBook() external {
         LibOrderBookDeploy.etchOrderBook(vm);
 
-        assertEq(
-            LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH
-        );
+        assertEq(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH);
         assertEq(
             LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.SUB_PARSER_DEPLOYED_CODEHASH
         );
@@ -114,9 +112,7 @@ contract LibOrderBookDeployTest is Test {
         LibOrderBookDeploy.etchOrderBook(vm);
         LibOrderBookDeploy.etchOrderBook(vm);
 
-        assertEq(
-            LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH
-        );
+        assertEq(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH);
         assertEq(
             LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.SUB_PARSER_DEPLOYED_CODEHASH
         );
