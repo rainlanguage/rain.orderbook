@@ -11,6 +11,7 @@ import {GenericPoolOrderBookV6FlashBorrower} from "src/concrete/arb/GenericPoolO
 import {OrderBookV6ArbConfig} from "src/abstract/OrderBookV6ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
+import {LibMetaBoardDeploy} from "rain.metadata/lib/deploy/LibMetaBoardDeploy.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
@@ -57,7 +58,7 @@ contract Deploy is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        IMetaBoardV1_2 metaboard = IMetaBoardV1_2(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
+        IMetaBoardV1_2 metaboard = IMetaBoardV1_2(LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS);
         string memory suiteString = vm.envOr("DEPLOYMENT_SUITE", string("all"));
         bytes32 suite = keccak256(bytes(suiteString));
 
