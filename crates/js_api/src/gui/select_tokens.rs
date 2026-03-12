@@ -797,10 +797,9 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
         use crate::gui::{DotrainOrderGui, GuiError};
-        use alloy::primitives::{Address, U256};
+        use alloy::primitives::Address;
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_common::raindex_client::vaults::AccountBalance;
         use serde_json::json;
         use std::str::FromStr;
 

@@ -13,12 +13,15 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 ///   injects select-tokens for that deployment, and avoids parsing unrelated orders so
 ///   handlebars/missing-token templates in other orders don't fail. Use this for GUI/WASM
 ///   flows where the user works within a single deployment at a time.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub enum ContextProfile {
+    #[default]
     Strict,
-    Gui { current_deployment: String },
+    Gui {
+        current_deployment: String,
+    },
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ContextProfile);
@@ -30,12 +33,6 @@ impl ContextProfile {
 
     pub fn gui(current_deployment: String) -> Self {
         Self::Gui { current_deployment }
-    }
-}
-
-impl Default for ContextProfile {
-    fn default() -> Self {
-        Self::Strict
     }
 }
 
