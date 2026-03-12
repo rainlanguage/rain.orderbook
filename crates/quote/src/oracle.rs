@@ -109,11 +109,12 @@ pub async fn fetch_signed_context(
         .await?;
     
     if response.len() != 1 {
-        return Err(OracleError::InvalidResponse(
-            format!("Expected 1 response, got {}", response.len())
-        ));
+        return Err(OracleError::InvalidResponse(format!(
+            "Expected 1 response, got {}",
+            response.len()
+        )));
     }
-    
+
     Ok(response.into_iter().next().unwrap().into())
 }
 
