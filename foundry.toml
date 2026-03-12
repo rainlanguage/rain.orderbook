@@ -51,3 +51,17 @@ remappings = [
 
 [fuzz]
 runs = 5096
+
+[rpc_endpoints]
+arbitrum = "${CI_DEPLOY_ARBITRUM_RPC_URL}"
+base = "${CI_DEPLOY_BASE_RPC_URL}"
+base_sepolia = "${CI_DEPLOY_BASE_SEPOLIA_RPC_URL}"
+flare = "${CI_DEPLOY_FLARE_RPC_URL}"
+polygon = "${CI_DEPLOY_POLYGON_RPC_URL}"
+
+[etherscan]
+arbitrum = { key = "${CI_DEPLOY_ARBITRUM_ETHERSCAN_API_KEY}" }
+base = { key = "${CI_DEPLOY_BASE_ETHERSCAN_API_KEY}" }
+base_sepolia = { key = "${CI_DEPLOY_BASE_SEPOLIA_ETHERSCAN_API_KEY}" }
+flare = { key = "${CI_DEPLOY_FLARE_ETHERSCAN_API_KEY}" }
+polygon = { key = "${CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY}" }
