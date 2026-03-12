@@ -12,6 +12,16 @@ pragma solidity ^0.8.25;
 /// @dev Hash of the known bytecode.
 bytes32 constant BYTECODE_HASH = bytes32(0xcc41ddc72f90411fb2f95d4dce54c75fc90837097d0caed2fd983c1a14622bdc);
 
+/// @dev The deterministic deploy address of the contract when deployed via
+/// the Zoltu factory.
+address constant DEPLOYED_ADDRESS = address(0);
+
+/// @dev The creation bytecode of the contract.
+bytes constant CREATION_CODE = hex"00";
+
+/// @dev The runtime bytecode of the contract.
+bytes constant RUNTIME_CODE = hex"00";
+
 /// @dev The hash of the meta that describes the contract.
 bytes32 constant DESCRIBED_BY_META_HASH = bytes32(0x3457291434660c589b0e6c287e12b513e5194a5129c75fa47d01ce03fbc52178);
 
