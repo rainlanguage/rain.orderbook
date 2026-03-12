@@ -122,8 +122,10 @@ impl RaindexOrder {
         chunk_size: Option<u32>,
     ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
         let rpcs = self.get_rpc_urls()?;
+        let sg_order = self.clone().into_sg_order()?;
+
         let order_quotes = get_order_quotes(
-            vec![self.clone().into_sg_order()?],
+            vec![sg_order],
             block_number,
             rpcs.iter().map(|s| s.to_string()).collect(),
             chunk_size.map(|v| v as usize),

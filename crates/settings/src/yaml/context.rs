@@ -438,6 +438,7 @@ mod tests {
             network: mock_network(),
             rainlang: None,
             orderbook: None,
+            oracle_url: None,
         })
     }
 
@@ -454,6 +455,7 @@ mod tests {
             network: mock_network(),
             rainlang: None,
             orderbook: None,
+            oracle_url: None,
         })
     }
 
@@ -588,6 +590,7 @@ mod tests {
             network: mock_network(),
             rainlang: Some(mock_rainlang()),
             orderbook: Some(mock_orderbook()),
+            oracle_url: None,
         };
         context.add_order(Arc::new(order));
 
