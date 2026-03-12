@@ -11,8 +11,8 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {
     IERC3156FlashBorrower,
     ON_FLASH_LOAN_CALLBACK_SUCCESS
-} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
+} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC3156FlashLender} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashLender.sol";
 import {FlashLenderCallbackFailed} from "src/abstract/OrderBookV6FlashLender.sol";
 
 contract TKN is ERC20 {

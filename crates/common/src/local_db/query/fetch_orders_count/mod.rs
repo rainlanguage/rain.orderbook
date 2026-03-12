@@ -1,8 +1,5 @@
-use super::fetch_orders::{FetchOrdersActiveFilter, FetchOrdersArgs};
-use super::fetch_orders_common::{
-    bind_common_order_filters, INPUT_TOKENS_CLAUSE, LATEST_ADD_CHAIN_IDS_CLAUSE,
-    MAIN_CHAIN_IDS_CLAUSE, ORDER_HASH_CLAUSE, OUTPUT_TOKENS_CLAUSE, OWNERS_CLAUSE,
-};
+use super::fetch_orders::FetchOrdersArgs;
+use super::fetch_orders_common::bind_common_order_filters;
 use crate::local_db::query::{SqlBuildError, SqlStatement};
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +24,11 @@ pub fn extract_orders_count(rows: &[LocalDbOrdersCountRow]) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use super::super::fetch_orders::FetchOrdersActiveFilter;
+    use super::super::fetch_orders_common::{
+        INPUT_TOKENS_CLAUSE, LATEST_ADD_CHAIN_IDS_CLAUSE, MAIN_CHAIN_IDS_CLAUSE, ORDER_HASH_CLAUSE,
+        OUTPUT_TOKENS_CLAUSE, OWNERS_CLAUSE,
+    };
     use super::*;
     use alloy::primitives::{address, b256, Address};
 

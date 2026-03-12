@@ -50,7 +50,7 @@ All of the code snippets below reuse the same fixed-limit dotrain/settings sourc
 
 ```ts
 const FIXED_LIMIT_SOURCE = `
-version: 4
+version: 5
 
 networks:
   base:
@@ -91,7 +91,7 @@ tokens:
     label: Wrapped Ether
     symbol: WETH
 
-deployers:
+rainlangs:
   base:
     network: base
     address: 0x6557778Db274f04B9E9f39F8Ff2D621c2036e978
@@ -105,7 +105,7 @@ orders:
     outputs:
       - token: weth
         vault-id: 1
-    deployer: base
+    rainlang: base
 
 scenarios:
   base:
@@ -559,7 +559,7 @@ const ordersResult = await client.getOrders([8453]);
 
 ### Build a deployment GUI
 
-Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `DotrainOrderGui`. The `FIXED_LIMIT_SOURCE` constant declared earlier already includes the required networks/tokens/deployers plus a full `gui` definition, so you can reference it directly (or trim it to your own bindings) instead of copying pieces of `settings.yaml` inline in this guide. Always cross-check the source you feed in with the latest definitions in [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies); that repository tracks the real configurations our UI ships with.
+Any dotrain file that includes a `gui:` block plus the usual settings YAML is enough to drive `DotrainOrderGui`. The `FIXED_LIMIT_SOURCE` constant declared earlier already includes the required networks/tokens/rainlangs plus a full `gui` definition, so you can reference it directly (or trim it to your own bindings) instead of copying pieces of `settings.yaml` inline in this guide. Always cross-check the source you feed in with the latest definitions in [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies); that repository tracks the real configurations our UI ships with.
 
 With that single source string (read from disk or built dynamically) you can drive the full GUI workflow:
 
@@ -569,8 +569,8 @@ import { DotrainOrderGui } from '@rainlanguage/orderbook';
 const dotrainWithGui = FIXED_LIMIT_SOURCE;
 const SAMPLE_YAML = `
 ...
-deployers:
-    deployer1:
+rainlangs:
+    rainlang1:
         network: mainnet
         address: 0x...
 orderbooks:

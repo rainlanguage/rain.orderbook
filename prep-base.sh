@@ -36,7 +36,7 @@ nix develop -i ${keep[@]} -c bash \
   -c '(cd lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float && rainix-rs-prelude)'
 
 echo "Setting up rain.tofu.erc20-decimals..."
-(cd lib/rain.tofu.erc20-decimals && nix develop -c forge build)
+(cd lib/rain.interpreter/lib/rain.tofu.erc20-decimals && nix develop -c forge build)
 
 echo "Setting up rain.interpreter..."
 nix develop -i ${keep[@]} -c bash -c '(cd lib/rain.interpreter && rainix-sol-prelude)'
@@ -51,6 +51,9 @@ echo "Setting up main project dependencies..."
 nix develop -i ${keep[@]} -c rainix-sol-prelude
 nix develop -i ${keep[@]} -c rainix-rs-prelude
 nix develop -i ${keep[@]} -c raindex-prelude
+
+echo "Building Solidity contracts..."
+nix develop -i ${keep[@]} -c forge build
 
 # Temporarily disable command echoing
 set +x

@@ -3,11 +3,7 @@ use crate::utils::serde::bool_from_int_or_bool;
 use alloy::primitives::{Address, Bytes, B256};
 use serde::{Deserialize, Serialize};
 
-use super::fetch_orders_common::{
-    bind_common_order_filters, INPUT_TOKENS_CLAUSE, LATEST_ADD_CHAIN_IDS_CLAUSE,
-    LATEST_ADD_ORDERBOOKS_CLAUSE, MAIN_CHAIN_IDS_CLAUSE, MAIN_ORDERBOOKS_CLAUSE, ORDER_HASH_CLAUSE,
-    ORDER_HASH_CLAUSE_BODY, OUTPUT_TOKENS_CLAUSE, OWNERS_CLAUSE,
-};
+use super::fetch_orders_common::bind_common_order_filters;
 
 const QUERY_TEMPLATE: &str = include_str!("query.sql");
 
@@ -136,6 +132,11 @@ pub fn build_fetch_orders_stmt(args: &FetchOrdersArgs) -> Result<SqlStatement, S
 
 #[cfg(test)]
 mod tests {
+    use super::super::fetch_orders_common::{
+        INPUT_TOKENS_CLAUSE, LATEST_ADD_CHAIN_IDS_CLAUSE, LATEST_ADD_ORDERBOOKS_CLAUSE,
+        MAIN_CHAIN_IDS_CLAUSE, MAIN_ORDERBOOKS_CLAUSE, ORDER_HASH_CLAUSE, ORDER_HASH_CLAUSE_BODY,
+        OUTPUT_TOKENS_CLAUSE, OWNERS_CLAUSE,
+    };
     use super::*;
     use alloy::hex;
     use alloy::primitives::{address, b256};

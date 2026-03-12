@@ -16,7 +16,7 @@ import {
     OrderConfigV4,
     OrderV4,
     IInterpreterV4
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBookV6.sol";
@@ -54,10 +54,7 @@ contract OrderBookV6ArbOrderTakerContextTest is OrderBookV6ExternalRealTest {
         });
 
         TakeOrderConfigV4 memory aliceTakeOrderConfig = TakeOrderConfigV4({
-            order: aliceOrder,
-            inputIOIndex: 0,
-            outputIOIndex: 0,
-            signedContext: new SignedContextV1[](0)
+            order: aliceOrder, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)
         });
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);

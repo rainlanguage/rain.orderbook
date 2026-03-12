@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RouteProcessorOrderBookV6ArbOrderTakerTest} from
-    "test/util/abstract/RouteProcessorOrderBookV6ArbOrderTakerTest.sol";
+import {
+    RouteProcessorOrderBookV6ArbOrderTakerTest
+} from "test/util/abstract/RouteProcessorOrderBookV6ArbOrderTakerTest.sol";
 import {
     OrderV4,
     EvaluableV4,
@@ -13,12 +14,10 @@ import {
     IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {WrongTask} from "src/abstract/OrderBookV6ArbCommon.sol";
 import {RouteProcessorOrderBookV6ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
-import {
-    StateNamespace, FullyQualifiedNamespace
-} from "rain.interpreter.interface/interface/unstable/IInterpreterV4.sol";
+import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorOrderBookV6ArbOrderTakerTest {
@@ -41,9 +40,10 @@ contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorO
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        RouteProcessorOrderBookV6ArbOrderTaker(iArb).arb5(
-            iOrderBook,
-            TakeOrdersConfigV5({
+        RouteProcessorOrderBookV6ArbOrderTaker(iArb)
+            .arb5(
+                iOrderBook,
+                TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -51,8 +51,8 @@ contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorO
                 orders: orders,
                 data: abi.encode(iRefundoor, iRefundoor, "")
             }),
-            TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
-        );
+                TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
+            );
     }
 
     /// forge-config: default.fuzz.runs = 100
@@ -79,9 +79,10 @@ contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorO
             vm.expectCall(address(iInterpreterStore), abi.encodeWithSelector(IInterpreterStoreV3.set.selector, ns));
         }
 
-        RouteProcessorOrderBookV6ArbOrderTaker(iArb).arb5(
-            iOrderBook,
-            TakeOrdersConfigV5({
+        RouteProcessorOrderBookV6ArbOrderTaker(iArb)
+            .arb5(
+                iOrderBook,
+                TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -89,10 +90,10 @@ contract RouteProcessorOrderBookV6ArbOrderTakerExpressionTest is RouteProcessorO
                 orders: orders,
                 data: abi.encode(iRefundoor, iRefundoor, "")
             }),
-            TaskV2({
+                TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)
             })
-        );
+            );
     }
 }

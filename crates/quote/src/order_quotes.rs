@@ -5,7 +5,7 @@ use crate::{
 };
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::ReadableClient;
-use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2};
+use rain_orderbook_bindings::IRaindexV6::{OrderV4, QuoteV2};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -257,9 +257,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-deployers:
+rainlangs:
     some-key:
-        address: {deployer}
+        address: {rainlang_address}
 tokens:
     t2:
         network: some-key
@@ -288,7 +288,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        deployer: some-key
+        rainlang: some-key
         bindings:
             key1: 10
 deployments:
@@ -298,8 +298,7 @@ deployments:
 ---
 #key1 !Test binding
 #calculate-io
-/* use io addresses in context as calculate-io maxoutput and ratio */
-amount price: context<3 0>() context<4 0>();
+amount price: 2 3;
 #handle-add-order
 :;
 #handle-io
@@ -307,7 +306,7 @@ amount price: context<3 0>() context<4 0>();
 "#,
             rpc_url = setup.local_evm.url(),
             orderbook = setup.orderbook,
-            deployer = setup.local_evm.deployer.address(),
+            rainlang_address = setup.local_evm.rainlang,
             token1 = setup.token1.address.0,
             token2 = setup.token2.address.0,
             spec_version = SpecVersion::current(),
@@ -426,10 +425,8 @@ amount price: context<3 0>() context<4 0>();
             .await
             .unwrap();
 
-        let token1_as_float =
-            Float::from_raw(B256::from(U256::from_str(&setup.token1.address.0).unwrap()));
-        let token2_as_float =
-            Float::from_raw(B256::from(U256::from_str(&setup.token2.address.0).unwrap()));
+        let expected_max_output = Float::parse("2".to_string()).unwrap();
+        let expected_ratio = Float::parse("3".to_string()).unwrap();
 
         let block_number = setup.local_evm.provider.get_block_number().await.unwrap();
         let expected = vec![
@@ -441,8 +438,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token1_as_float,
-                    ratio: token2_as_float,
+                    max_output: expected_max_output,
+                    ratio: expected_ratio,
                 }),
                 success: true,
                 error: None,
@@ -455,8 +452,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token2_as_float,
-                    ratio: token1_as_float,
+                    max_output: expected_max_output,
+                    ratio: expected_ratio,
                 }),
                 success: true,
                 error: None,

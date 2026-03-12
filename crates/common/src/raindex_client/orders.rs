@@ -608,7 +608,7 @@ impl RaindexOrder {
         Ok(sg_order)
     }
 
-    /// Generates calldata for `IOrderBookV6.takeOrders4` targeting this specific order.
+    /// Generates calldata for `IRaindexV6.takeOrders4` targeting this specific order.
     ///
     /// Unlike `getTakeOrdersCalldata` on `RaindexClient` which discovers orders from the subgraph,
     /// this method generates calldata for taking this single known order that the user has already
