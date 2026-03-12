@@ -24,6 +24,8 @@ dataSources:
           file: ../out/ERC20.sol/ERC20.json
         - name: DecimalFloat
           file: ../lib/rain.interpreter/lib/rain.interpreter.interface/lib/rain.math.float/out/DecimalFloat.sol/DecimalFloat.json
+        - name: Multicall3
+          file: ../lib/rain.interpreter/lib/rain.interpreter.interface/lib/forge-std/out/IMulticall3.sol/IMulticall3.json
       eventHandlers:
         - event: DepositV2(address,address,bytes32,uint256)
           handler: handleDeposit
@@ -41,4 +43,6 @@ dataSources:
           handler: handleClear
         - event: AfterClearV2(address,(bytes32,bytes32,bytes32,bytes32))
           handler: handleAfterClear
+      blockHandlers:
+        - handler: vaultBlockHandler
       file: ./src/handlers.ts

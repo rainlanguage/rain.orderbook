@@ -6,9 +6,18 @@ import {
   afterEach,
   clearInBlockStore,
   beforeEach,
+  createMockedFunction,
+  dataSourceMock,
 } from "matchstick-as";
-import { handleVaultBalanceChange, vaultEntityId } from "../src/vault";
-import { Bytes, BigInt, Address } from "@graphprotocol/graph-ts";
+import {
+  createEmptyVault,
+  handleVaultBalanceChange,
+  handleVaultlessBalance,
+  MUTLICALL3_ADDRESS,
+  vaultEntityId,
+  ZERO_BYTES_32
+} from "../src/vault";
+import { Bytes, BigInt, Address, ethereum } from "@graphprotocol/graph-ts";
 import { createDepositEvent, createWithdrawEvent } from "./event-mocks.test";
 import { createMockERC20Functions } from "./erc20.test";
 import {
@@ -264,5 +273,254 @@ describe("Vault balance changes", () => {
     );
 
     assert.bytesEquals(balanceChange.oldVaultBalance, FLOAT_100);
+  });
+});
+
+describe("Vaultless balance updates", () => {
+  beforeEach(createMockDecimalFloatFunctions);
+
+  afterEach(() => {
+    clearStore();
+    clearInBlockStore();
+  });
+
+  test("handleVaultlessBalance() updates balances for vaultless vaults", () => {
+    let token1 = "0x1111111111111111111111111111111111111111";
+    let token2 = "0x2222222222222222222222222222222222222222";
+    createMockERC20Functions(Address.fromString(token1));
+    createMockERC20Functions(Address.fromString(token2));
+
+    let owner1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let owner2 = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    let orderbook = Address.fromString("0xcccccccccccccccccccccccccccccccccccccccc");
+    dataSourceMock.setAddress("0xcccccccccccccccccccccccccccccccccccccccc");
+
+    // Create vaultless vaults (vaultId = 0x00...00)
+    createEmptyVault(
+      orderbook,
+      Bytes.fromHexString(owner1),
+      Bytes.fromHexString(ZERO_BYTES_32),
+      Bytes.fromHexString(token1),
+    );
+    createEmptyVault(
+      orderbook,
+      Bytes.fromHexString(owner2),
+      Bytes.fromHexString(ZERO_BYTES_32),
+      Bytes.fromHexString(token2),
+    );
+
+    // mock multicall vaultBalance2() calls
+    const call1 = changetype<ethereum.Tuple>([
+      ethereum.Value.fromAddress(orderbook),
+      ethereum.Value.fromBoolean(true),
+      ethereum.Value.fromBytes(
+        ethereum.encode(
+          ethereum.Value.fromTuple(
+            changetype<ethereum.Tuple>([
+              ethereum.Value.fromAddress(Address.fromString(owner1)),
+              ethereum.Value.fromAddress(Address.fromString(token1)),
+              ethereum.Value.fromFixedBytes(Bytes.fromHexString(ZERO_BYTES_32))
+            ])
+          )
+        )!
+      )
+    ]);
+    const call2 = changetype<ethereum.Tuple>([
+      ethereum.Value.fromAddress(orderbook),
+      ethereum.Value.fromBoolean(true),
+      ethereum.Value.fromBytes(
+        ethereum.encode(
+          ethereum.Value.fromTuple(
+            changetype<ethereum.Tuple>([
+              ethereum.Value.fromAddress(Address.fromString(owner2)),
+              ethereum.Value.fromAddress(Address.fromString(token2)),
+              ethereum.Value.fromFixedBytes(Bytes.fromHexString(ZERO_BYTES_32))
+            ])
+          )
+        )!
+      )
+    ]);
+
+    // Mock multicall3 aggregate3 response
+    // Result format: ((bool success, bytes returnData)[])
+    let result1 = changetype<ethereum.Tuple>([
+      ethereum.Value.fromBoolean(true),
+      ethereum.Value.fromBytes(FLOAT_100)
+    ]);
+    let result2 = changetype<ethereum.Tuple>([
+      ethereum.Value.fromBoolean(true),
+      ethereum.Value.fromBytes(FLOAT_200)
+    ]);
+
+    createMockedFunction(
+      Address.fromString(MUTLICALL3_ADDRESS),
+      "aggregate3",
+      "aggregate3((address,bool,bytes)[]):((bool,bytes)[])"
+    )
+      .withArgs([ethereum.Value.fromTupleArray([
+        call1,
+        call2,
+      ])])
+      .returns([ethereum.Value.fromTupleArray([result1, result2])]);
+    createMockedFunction(
+      Address.fromString(MUTLICALL3_ADDRESS),
+      "aggregate3",
+      "aggregate3((address,bool,bytes)[]):((bool,bytes)[])"
+    )
+      .withArgs([ethereum.Value.fromTupleArray([
+        call2,
+        call1,
+      ])])
+      .returns([ethereum.Value.fromTupleArray([result2, result1])]);
+
+    // Execute
+    handleVaultlessBalance();
+
+    // Verify balances were updated
+    let vault1Id = vaultEntityId(
+      orderbook,
+      Bytes.fromHexString(owner1),
+      Bytes.fromHexString(ZERO_BYTES_32),
+      Bytes.fromHexString(token1)
+    );
+    let vault2Id = vaultEntityId(
+      orderbook,
+      Bytes.fromHexString(owner2),
+      Bytes.fromHexString(ZERO_BYTES_32),
+      Bytes.fromHexString(token2)
+    );
+
+    assert.fieldEquals(
+      "Vault",
+      vault1Id.toHexString(),
+      "balance",
+      FLOAT_100.toHexString()
+    );
+    assert.fieldEquals(
+      "Vault",
+      vault2Id.toHexString(),
+      "balance",
+      FLOAT_200.toHexString()
+    );
+  });
+
+  test("handleVaultlessBalance() ignores non-vaultless vaults", () => {
+    let token = "0x1111111111111111111111111111111111111111";
+    createMockERC20Functions(Address.fromString(token));
+
+    let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let orderbook = Address.fromString("0xcccccccccccccccccccccccccccccccccccccccc");
+    let nonZeroVaultId = "0x1111111111111111111111111111111111111111111111111111111111111111";
+    dataSourceMock.setAddress("0xcccccccccccccccccccccccccccccccccccccccc");
+
+    // Create a non-vaultless vault
+    const vault =createEmptyVault(
+      orderbook,
+      Bytes.fromHexString(owner),
+      Bytes.fromHexString(nonZeroVaultId),
+      Bytes.fromHexString(token),
+    );
+    vault.balance = FLOAT_100;
+    vault.save();
+
+    // Mock empty multicall response since no vaultless vaults exist
+    createMockedFunction(
+      Address.fromString(MUTLICALL3_ADDRESS),
+      "aggregate3",
+      "aggregate3((address,bool,bytes)[]):((bool,bytes)[])"
+    )
+      .withArgs([ethereum.Value.fromTupleArray([])])
+      .returns([ethereum.Value.fromTupleArray([])]);
+
+    handleVaultlessBalance();
+
+    // Balance should remain unchanged
+    let vaultId = vaultEntityId(
+      orderbook,
+      Bytes.fromHexString(owner),
+      Bytes.fromHexString(nonZeroVaultId),
+      Bytes.fromHexString(token)
+    );
+
+    assert.fieldEquals(
+      "Vault",
+      vaultId.toHexString(),
+      "balance",
+      FLOAT_100.toHexString()
+    );
+  });
+
+  test("handleVaultlessBalance() handles multicall failures gracefully", () => {
+    let token = "0x1111111111111111111111111111111111111111";
+    createMockERC20Functions(Address.fromString(token));
+
+    let owner = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    let orderbook = Address.fromString("0xcccccccccccccccccccccccccccccccccccccccc");
+    dataSourceMock.setAddress("0xcccccccccccccccccccccccccccccccccccccccc");
+
+    // Create vaultless vault
+    const vault = createEmptyVault(
+      orderbook,
+      Bytes.fromHexString(owner),
+      Bytes.fromHexString(ZERO_BYTES_32),
+      Bytes.fromHexString(token),
+    );
+    vault.balance = FLOAT_100;
+    vault.save();
+
+    // mock multicall vaultBalance2() calls
+    const call = changetype<ethereum.Tuple>([
+      ethereum.Value.fromAddress(orderbook),
+      ethereum.Value.fromBoolean(true),
+      ethereum.Value.fromBytes(
+        ethereum.encode(
+          ethereum.Value.fromTuple(
+            changetype<ethereum.Tuple>([
+              ethereum.Value.fromAddress(Address.fromString(owner)),
+              ethereum.Value.fromAddress(Address.fromString(token)),
+              ethereum.Value.fromFixedBytes(Bytes.fromHexString(ZERO_BYTES_32))
+            ])
+          )
+        )!
+      )
+    ]);
+
+    // Mock failed result
+    let failedResult = changetype<ethereum.Tuple>([
+      ethereum.Value.fromBoolean(false),
+      ethereum.Value.fromBytes(Bytes.fromHexString("0x"))
+    ]);
+
+    createMockedFunction(
+      Address.fromString(MUTLICALL3_ADDRESS),
+      "aggregate3",
+      "aggregate3((address,bool,bytes)[]):((bool,bytes)[])"
+    )
+      .withArgs([ethereum.Value.fromTupleArray([call])])
+      .returns([ethereum.Value.fromTupleArray([failedResult])]);
+
+    handleVaultlessBalance();
+
+    // Balance should remain unchanged on failure
+    let vaultId = vaultEntityId(
+      orderbook,
+      Bytes.fromHexString(owner),
+      Bytes.fromHexString(ZERO_BYTES_32),
+      Bytes.fromHexString(token)
+    );
+
+    assert.fieldEquals(
+      "Vault",
+      vaultId.toHexString(),
+      "balance",
+      FLOAT_100.toHexString()
+    );
+  });
+
+  test("handleVaultlessBalance() handles empty vault list", () => {
+    // No vaults created - should not error
+    handleVaultlessBalance();
+    
+    assert.entityCount("Vault", 0);
   });
 });
