@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {TaskV2} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrderBook} from "./LibOrderBook.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
@@ -62,6 +62,9 @@ library LibOrderBookArb {
             // See https://github.com/crytic/slither/issues/1658
             uint256 gasBalance = address(this).balance;
             Address.sendValue(payable(msg.sender), gasBalance);
+            // gasBalance can't overflow int256 because there isn't enough gas
+            // in existence for that to happen on every production chain.
+            // forge-lint: disable-next-line(unsafe-typecast)
             col[2] = Float.unwrap(LibDecimalFloat.packLossless(int256(gasBalance), -18));
         }
 

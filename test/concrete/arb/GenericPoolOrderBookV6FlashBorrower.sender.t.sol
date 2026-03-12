@@ -17,7 +17,7 @@ import {
     IInterpreterStoreV3,
     TaskV2,
     SignedContextV1
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract GenericPoolOrderBookV6FlashBorrowerTest is ArbTest {
@@ -35,9 +35,10 @@ contract GenericPoolOrderBookV6FlashBorrowerTest is ArbTest {
     ) public {
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
-        GenericPoolOrderBookV6FlashBorrower(iArb).arb4(
-            iOrderBook,
-            TakeOrdersConfigV5({
+        GenericPoolOrderBookV6FlashBorrower(iArb)
+            .arb4(
+                iOrderBook,
+                TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -45,11 +46,10 @@ contract GenericPoolOrderBookV6FlashBorrowerTest is ArbTest {
                 orders: orders,
                 data: ""
             }),
-            abi.encode(iRefundoor, iRefundoor, ""),
-            TaskV2({
-                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
-                signedContext: new SignedContextV1[](0)
+                abi.encode(iRefundoor, iRefundoor, ""),
+                TaskV2({
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)
             })
-        );
+            );
     }
 }

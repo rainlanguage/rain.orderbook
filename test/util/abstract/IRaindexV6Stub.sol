@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {
-    IOrderBookV6,
+    IRaindexV6,
     OrderConfigV4,
     OrderV4,
     ClearConfigV2,
@@ -13,37 +13,37 @@ import {
     TaskV2,
     QuoteV2,
     Float
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
-import {IERC3156FlashLender} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashLender.sol";
-import {IERC3156FlashBorrower} from "rain.orderbook.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {IERC3156FlashLender} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashLender.sol";
+import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
-abstract contract IOrderBookV6Stub is IOrderBookV6 {
-    /// @inheritdoc IOrderBookV6
+abstract contract IRaindexV6Stub is IRaindexV6 {
+    /// @inheritdoc IRaindexV6
     function entask2(TaskV2[] calldata) external pure {
         revert("eval");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function quote2(QuoteV2 calldata) external pure returns (bool, Float, Float) {
         revert("quote");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function addOrder4(OrderConfigV4 calldata, TaskV2[] calldata) external pure returns (bool) {
         revert("addOrder");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function orderExists(bytes32) external pure returns (bool) {
         revert("orderExists");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function removeOrder3(OrderV4 calldata, TaskV2[] calldata) external pure returns (bool) {
         revert("removeOrder");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function clear3(
         OrderV4 memory,
         OrderV4 memory,
@@ -54,22 +54,22 @@ abstract contract IOrderBookV6Stub is IOrderBookV6 {
         revert("clear");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function deposit4(address, bytes32, Float, TaskV2[] calldata) external pure {
         revert("deposit");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function takeOrders4(TakeOrdersConfigV5 calldata) external pure returns (Float, Float) {
         revert("takeOrders");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function vaultBalance2(address, address, bytes32) external pure returns (Float) {
         revert("vaultBalance");
     }
 
-    /// @inheritdoc IOrderBookV6
+    /// @inheritdoc IRaindexV6
     function withdraw4(address, bytes32, Float, TaskV2[] calldata) external pure {
         revert("withdraw");
     }

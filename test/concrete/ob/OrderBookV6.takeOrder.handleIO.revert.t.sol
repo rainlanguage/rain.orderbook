@@ -14,7 +14,7 @@ import {
     EvaluableV4,
     SignedContextV1,
     TaskV2
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -26,7 +26,17 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
     using LibDecimalFloat for Float;
 
     function checkTakeOrderHandleIO(bytes[] memory configs, bytes memory err, Float maxInput) internal {
-        bytes32 vaultId = 0;
+        checkTakeOrderHandleIO(configs, err, maxInput, bytes32(uint256(0x01)), bytes32(uint256(0x01)));
+    }
+
+    function checkTakeOrderHandleIO(
+        bytes[] memory configs,
+        bytes memory err,
+        Float maxInput,
+        bytes32 outputVaultId,
+        bytes32 inputVaultId
+    ) internal {
+        bytes32 vaultId = outputVaultId;
         address inputToken = address(0x100);
         address outputToken = address(0x101);
 
@@ -35,9 +45,9 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
         IOV2[] memory validInputs;
         {
             validInputs = new IOV2[](1);
-            validInputs[0] = IOV2(inputToken, vaultId);
+            validInputs[0] = IOV2(inputToken, inputVaultId);
             validOutputs = new IOV2[](1);
-            validOutputs[0] = IOV2(outputToken, vaultId);
+            validOutputs[0] = IOV2(outputToken, outputVaultId);
             // Etch with invalid.
             vm.etch(outputToken, hex"fe");
             vm.etch(inputToken, hex"fe");
@@ -52,12 +62,20 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
             vm.mockCall(outputToken, abi.encodeWithSelector(IERC20.transfer.selector, address(this)), abi.encode(true));
             vm.mockCall(inputToken, bytes(""), abi.encode(true));
         }
-        iOrderbook.deposit4(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0));
-        assertTrue(
-            iOrderbook.vaultBalance2(address(this), outputToken, vaultId).eq(
-                LibDecimalFloat.packLossless(type(int224).max, -18)
-            )
-        );
+        if (outputVaultId == bytes32(0)) {
+            mockVault0Output(outputToken, address(this), uint256(int256(type(int224).max)));
+        } else {
+            iOrderbook.deposit4(
+                outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, -18), new TaskV2[](0)
+            );
+            assertTrue(
+                iOrderbook.vaultBalance2(address(this), outputToken, vaultId)
+                    .eq(LibDecimalFloat.packLossless(type(int224).max, -18))
+            );
+        }
+        if (inputVaultId == bytes32(0)) {
+            mockVault0Input(inputToken, address(this), 0);
+        }
 
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](configs.length);
 
@@ -234,6 +252,14 @@ contract OrderBookV6TakeOrderHandleIORevertTest is OrderBookV6ExternalRealTest {
             configs,
             abi.encodeWithSelector(SourceIndexOutOfBounds.selector, 1, hex"010000020200020110000001100000"),
             LibDecimalFloat.packLossless(type(int224).max, 0)
+        );
+    }
+
+    function testTakeOrderHandleIO00BothVaultIdZero() external {
+        bytes[] memory configs = new bytes[](1);
+        configs[0] = "_ _:max-positive-value() 1;:ensure(0 \"err\");";
+        checkTakeOrderHandleIO(
+            configs, "err", LibDecimalFloat.packLossless(type(int224).max, 0), bytes32(0), bytes32(0)
         );
     }
 }

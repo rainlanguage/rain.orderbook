@@ -9,7 +9,7 @@ use crate::take_orders::{
 use alloy::primitives::Address;
 use rain_math_float::Float;
 use rain_orderbook_bindings::provider::mk_read_provider;
-use rain_orderbook_bindings::IOrderBookV6::OrderV4;
+use rain_orderbook_bindings::IRaindexV6::OrderV4;
 use std::ops::{Div, Mul};
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;

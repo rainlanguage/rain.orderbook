@@ -12,7 +12,7 @@ import {
     TaskV2,
     TakeOrdersConfigV5,
     TakeOrderConfigV4
-} from "rain.orderbook.interface/interface/unstable/IOrderBookV6.sol";
+} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {UnsupportedCalculateOutputs} from "src/concrete/ob/OrderBookV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";

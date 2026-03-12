@@ -3,7 +3,7 @@ use alloy::sol;
 sol!(
     #![sol(all_derives = true, rpc)]
     #![sol(extra_derives(serde::Serialize, serde::Deserialize))]
-    IOrderBookV6, "../../out/IOrderBookV6.sol/IOrderBookV6.json"
+    IRaindexV6, "../../out/IRaindexV6.sol/IRaindexV6.json"
 );
 
 sol!(
@@ -23,6 +23,11 @@ sol!(
 );
 
 sol!(
+    #![sol(all_derives = true, rpc)]
+    IERC20Metadata, "../../out/IERC20Metadata.sol/IERC20Metadata.json"
+);
+
+sol!(
     #![sol(all_derives = true)]
     #![sol(extra_derives(serde::Serialize, serde::Deserialize))]
     IInterpreterStoreV3, "../../out/IInterpreterStoreV3.sol/IInterpreterStoreV3.json"
@@ -39,7 +44,7 @@ pub mod wasm_traits;
 pub mod topics {
     use crate::{
         IInterpreterStoreV3::Set,
-        IOrderBookV6::{
+        IRaindexV6::{
             AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
         },
         OrderBook::MetaV1_2,
