@@ -517,7 +517,7 @@ impl RaindexVault {
 
         let calldata = approveCall {
             spender: transaction_args.orderbook_address,
-            value: amount.to_fixed_decimal(self.token.decimals)?,
+            amount: amount.to_fixed_decimal(self.token.decimals)?,
         }
         .abi_encode();
 
@@ -3160,7 +3160,7 @@ mod tests {
                 Bytes::copy_from_slice(
                     &approveCall {
                         spender: Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
-                        value: U256::from(600000000000000000000u128),
+                        amount: U256::from(600000000000000000000u128),
                     }
                     .abi_encode(),
                 )
