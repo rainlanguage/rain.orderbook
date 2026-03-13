@@ -67,6 +67,7 @@ contract Deploy is Script {
         assembly ("memory-safe") {
             routeProcessor4 := create(0, add(routeProcessor4Code, 0x20), mload(routeProcessor4Code))
         }
+        require(routeProcessor4 != address(0), "Router deployment failed");
         return routeProcessor4;
     }
 

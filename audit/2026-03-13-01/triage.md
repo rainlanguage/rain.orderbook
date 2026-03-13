@@ -19,8 +19,8 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 2 | A03-P2-3 | P2 | OrderBookV6FlashBorrower.sol | Mock skips token transfers, hiding A03-2 | PENDING | Related to A03-2 |
 | 3 | A05-1 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Unlimited approval to arbitrary spender with caller-controlled data | PENDING | |
 | 4 | A05-P2-1 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | `onTakeOrders2` is completely untested | PENDING | |
-| 5 | A15-1 | P1 | Deploy.sol | Route processor bytecode hash check runs unconditionally | PENDING | Dup: A15-P5-1 |
-| 6 | A15-P5-1 | P5 | Deploy.sol | Confirms A15-1 | PENDING | Dup of A15-1 |
+| 5 | A15-1 | P1 | Deploy.sol | Route processor bytecode hash check runs unconditionally | DISMISSED | Intentional: verifies route processor before deploying arb contracts |
+| 6 | A15-P5-1 | P5 | Deploy.sol | Confirms A15-1 | DISMISSED | Dup of A15-1 |
 
 ## MEDIUM
 
@@ -42,12 +42,12 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | # | ID | Pass | File | Title | Status | Notes |
 |---|-----|------|------|-------|--------|-------|
 | 17 | A02-1 | P1 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 callback has no access control | DISMISSED | By design: contract holds no value between ops; NatSpec documents this |
-| 18 | A04-2 | P1 | OrderBookV6FlashLender.sol | flashLoan lacks reentrancy guard, nested flash loans | PENDING | Same issue as A08-1 |
+| 18 | A04-2 | P1 | OrderBookV6FlashLender.sol | flashLoan lacks reentrancy guard, nested flash loans | DISMISSED | By design: flash loan callbacks need to call takeOrders; tested in reentrant.t.sol |
 | 19 | A05-3 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Non-payable fallback with misleading comment | FIXED | Comment fixed; fallback tested in fallback.t.sol |
 | 20 | A06-2 | P1 | GenericPoolOrderBookV6FlashBorrower.sol | fallback accepts arbitrary calls without payable | FIXED | Dup of A05-3; comment fixed, fallback tested |
 | 21 | A07-1 | P1 | RouteProcessorOrderBookV6ArbOrderTaker.sol | onTakeOrders2 is public with no access control | DISMISSED | By design: same as A02-1 |
-| 22 | A08-1 | P1 | OrderBookV6.sol | flashLoan lacks nonReentrant guard | PENDING | Same issue as A04-2 |
-| 23 | A15-2 | P1 | Deploy.sol | No explicit revert on failed create in deployRouter() | PENDING | Dup: A15-P5-3 |
+| 22 | A08-1 | P1 | OrderBookV6.sol | flashLoan lacks nonReentrant guard | DISMISSED | By design: same as A04-2 |
+| 23 | A15-2 | P1 | Deploy.sol | No explicit revert on failed create in deployRouter() | FIXED | Added require(routeProcessor4 != address(0)) |
 | 24 | A01-P2-1 | P2 | OrderBookV6ArbCommon.sol | No test for WrongTask revert through FlashBorrower path | FIXED | Dup of A03-P2-6 |
 | 25 | A01-P2-2 | P2 | OrderBookV6ArbCommon.sol | No direct unit test for constructor iTaskHash assignment | PENDING | |
 | 26 | A01-P2-3 | P2 | OrderBookV6ArbCommon.sol | No test for onlyValidTask bypass when iTaskHash == 0 | DISMISSED | Implicitly tested: sender tests deploy with empty expression (iTaskHash==0) and pass |
@@ -107,12 +107,12 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 80 | A06-P4-1 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashLender | FIXED | Removed |
 | 81 | A06-P4-2 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashBorrower | FIXED | Removed |
 | 82 | A07-P4-1 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Unused import Address | FIXED | Removed import + unused using statement |
-| 83 | A07-P4-2 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No explicit remapping for sushixswap-v2 | PENDING | |
+| 83 | A07-P4-2 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No explicit remapping for sushixswap-v2 | DISMISSED | Resolved via libs=['lib'] fallback; explicit remapping unnecessary |
 | 84 | A15-P4-1 | P4 | Deploy.sol | Unused import OrderBookV6 | FIXED | Removed; EvaluableV4/TaskV2/SignedContextV1 now from canonical sources |
 | 85 | A15-P4-2 | P4 | Deploy.sol | Imports through concrete contract rather than canonical source | FIXED | Now imports from interface packages directly |
 | 86 | A15-P4-3 | P4 | Deploy.sol | Inconsistent address() cast on raindex variable | DISMISSED | Cast required: TOFU_DECIMALS_DEPLOYMENT is a contract type, others are address |
 | 87 | A15-P4-4 | P4 | Deploy.sol | Missing "memory-safe" annotation on second assembly block | FIXED | Added to both assembly blocks |
-| 88 | A15-P4-5 | P4 | Deploy.sol | Repeated TaskV2/EvaluableV4 zero-value boilerplate | PENDING | |
+| 88 | A15-P4-5 | P4 | Deploy.sol | Repeated TaskV2/EvaluableV4 zero-value boilerplate | DISMISSED | Deploy script only; extracting a helper adds complexity for no runtime benefit |
 | 89 | A01-P5-1 | P5 | OrderBookV6ArbCommon.sol | NatSpec @param tasks does not match field name task | FIXED | Dup of A01-P3-1 |
 | 90 | A03-P5-1 | P5 | OrderBookV6FlashBorrower.sol | BadInitiator NatSpec inaccurately describes the check | FIXED | NatSpec now says "this contract" not "the order book" |
 | 91 | A03-P5-2 | P5 | OrderBookV6FlashBorrower.sol | NatSpec for arb4 describes stale "access gate" evaluation | FIXED | Dup of A03-P3-2 |
@@ -120,7 +120,7 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 93 | A05-P5-01 | P5 | GenericPoolOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
 | 94 | A06-P5-01 | P5 | GenericPoolOrderBookV6FlashBorrower.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
 | 95 | A07-P5-01 | P5 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
-| 96 | A15-P5-3 | P5 | Deploy.sol | No require/revert on create returning address(0) (confirms A15-2) | PENDING | Dup of A15-2 |
+| 96 | A15-P5-3 | P5 | Deploy.sol | No require/revert on create returning address(0) (confirms A15-2) | FIXED | Dup of A15-2 |
 | 97 | A15-P5-4 | P5 | Deploy.sol | No mechanism to reject unknown suite values | DISMISSED | Already handled: line 175 has revert("Unknown deployment suite") |
 
 ## INFO
