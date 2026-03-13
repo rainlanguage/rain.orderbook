@@ -15,10 +15,10 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 
 | # | ID | Pass | File | Title | Status | Notes |
 |---|-----|------|------|-------|--------|-------|
-| 1 | A03-2 | P1 | OrderBookV6FlashBorrower.sol | Missing ERC20 approval for flash loan repayment token | PENDING | |
-| 2 | A03-P2-3 | P2 | OrderBookV6FlashBorrower.sol | Mock skips token transfers, hiding A03-2 | PENDING | Related to A03-2 |
-| 3 | A05-1 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Unlimited approval to arbitrary spender with caller-controlled data | PENDING | |
-| 4 | A05-P2-1 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | `onTakeOrders2` is completely untested | PENDING | |
+| 1 | A03-2 | P1 | OrderBookV6FlashBorrower.sol | Missing ERC20 approval for flash loan repayment token | FIXED | Added approve-call-revoke for ordersOutputToken; end-to-end test in missingApproval.t.sol |
+| 2 | A03-P2-3 | P2 | OrderBookV6FlashBorrower.sol | Mock skips token transfers, hiding A03-2 | FIXED | RealisticFlashLendingMockOrderBook does real ERC3156 transfers |
+| 3 | A05-1 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Unlimited approval to arbitrary spender with caller-controlled data | DOCUMENTED | By design: approve-call-revoke; contract stateless between ops; added inline comment |
+| 4 | A05-P2-1 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | `onTakeOrders2` is completely untested | FIXED | End-to-end test in onTakeOrders2.t.sol with realistic mock + exchange |
 | 5 | A15-1 | P1 | Deploy.sol | Route processor bytecode hash check runs unconditionally | DISMISSED | Intentional: verifies route processor before deploying arb contracts |
 | 6 | A15-P5-1 | P5 | Deploy.sol | Confirms A15-1 | DISMISSED | Dup of A15-1 |
 
@@ -26,10 +26,10 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 
 | # | ID | Pass | File | Title | Status | Notes |
 |---|-----|------|------|-------|--------|-------|
-| 7 | A03-1 | P1 | OrderBookV6FlashBorrower.sol | Missing msg.sender (lender) validation in onFlashLoan | PENDING | |
-| 8 | A03-3 | P1 | OrderBookV6FlashBorrower.sol | Flash loan amount computed with wrong token decimals | PENDING | Dup: A03-P2-7 |
+| 7 | A03-1 | P1 | OrderBookV6FlashBorrower.sol | Missing msg.sender (lender) validation in onFlashLoan | FIXED | Added iOrderBook immutable + BadLender check; test in lenderValidation.t.sol |
+| 8 | A03-3 | P1 | OrderBookV6FlashBorrower.sol | Flash loan amount computed with wrong token decimals | FIXED | Changed inputDecimals → outputDecimals; test in mixedDecimals.t.sol |
 | 9 | A05-2 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Arbitrary external call sends entire ETH balance | PENDING | |
-| 10 | A06-1 | P1 | GenericPoolOrderBookV6FlashBorrower.sol | Unlimited approval to arbitrary spender with no validation | PENDING | Similar to A05-1 |
+| 10 | A06-1 | P1 | GenericPoolOrderBookV6FlashBorrower.sol | Unlimited approval to arbitrary spender with no validation | DOCUMENTED | Dup of A05-1; approve-call-revoke; added inline comment |
 | 11 | A03-P2-1 | P2 | OrderBookV6FlashBorrower.sol | onFlashLoan has zero direct test coverage for error paths | FIXED | BadInitiator tested in badInitiator.t.sol |
 | 12 | A03-P2-2 | P2 | OrderBookV6FlashBorrower.sol | FlashLoanFailed error path is never tested | PENDING | |
 | 13 | A03-P2-6 | P2 | OrderBookV6FlashBorrower.sol | WrongTask revert path has no test for flash borrower arb contracts | FIXED | Added wrongTask.t.sol |
@@ -56,7 +56,7 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | PENDING | |
 | 30 | A03-P2-4 | P2 | OrderBookV6FlashBorrower.sol | SwapFailed error declared but never used/tested | FIXED | Removed dead error; Dup: A03-P4-2 |
 | 31 | A03-P2-5 | P2 | OrderBookV6FlashBorrower.sol | NoOrders revert path has no test through flash borrower | FIXED | Added FlashBorrower.noOrders.t.sol |
-| 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | PENDING | Dup of A03-3 |
+| 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | FIXED | Dup of A03-3 |
 | 33 | A05-P2-3 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | Constructor event emission tested only indirectly | DISMISSED | ArbTest constructor uses vm.expectEmit + emit Construct — this IS a test |
 | 34 | A07-P2-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for onTakeOrders2 called directly by attacker | PENDING | |
 | 35 | A07-P2-3 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for constructor with invalid implementationData | PENDING | |

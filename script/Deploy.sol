@@ -144,7 +144,6 @@ contract Deploy is Script {
             vm.startBroadcast(deployerPrivateKey);
             new GenericPoolOrderBookV6ArbOrderTaker(
                 OrderBookV6ArbConfig(
-                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
@@ -154,7 +153,6 @@ contract Deploy is Script {
             );
             new RouteProcessorOrderBookV6ArbOrderTaker(
                 OrderBookV6ArbConfig(
-                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
@@ -164,7 +162,6 @@ contract Deploy is Script {
             );
             new GenericPoolOrderBookV6FlashBorrower(
                 OrderBookV6ArbConfig(
-                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)

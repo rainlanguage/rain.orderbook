@@ -29,6 +29,9 @@ contract GenericPoolOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         (address spender, address pool, bytes memory encodedFunctionCall) =
             abi.decode(takeOrdersData, (address, address, bytes));
 
+        // Approve-call-revoke: the caller controls spender and pool, which is
+        // safe because the contract holds no tokens or ETH between arb
+        // operations — there is nothing for a malicious caller to extract.
         IERC20(inputToken).forceApprove(spender, type(uint256).max);
         // Nothing can be done with returnData as `takeOrders` does not support
         // it.

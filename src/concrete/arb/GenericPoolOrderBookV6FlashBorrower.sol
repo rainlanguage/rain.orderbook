@@ -36,6 +36,9 @@ contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
 
         address borrowedToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
+        // Approve-call-revoke: the caller controls spender and pool, which is
+        // safe because the contract holds no tokens or ETH between arb
+        // operations — there is nothing for a malicious caller to extract.
         IERC20(borrowedToken).forceApprove(spender, type(uint256).max);
         // Nothing can be done with returnData as 3156 does not support it.
         //slither-disable-next-line unused-return

@@ -23,6 +23,7 @@ import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
+import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}
@@ -66,11 +67,14 @@ abstract contract ArbTest is Test {
         vm.label(address(iTakerOutput), "iTakerOutput");
         iRefundoor = address(new Refundoor());
         vm.label(iRefundoor, "iRefundoor");
-        iOrderBook = new FlashLendingMockOrderBook();
+        // Deploy the mock then etch its code at the deterministic orderbook
+        // address so that onFlashLoan's BadLender check passes.
+        FlashLendingMockOrderBook mockOb = new FlashLendingMockOrderBook();
+        vm.etch(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS, address(mockOb).code);
+        iOrderBook = FlashLendingMockOrderBook(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
         vm.label(address(iOrderBook), "iOrderBook");
 
         OrderBookV6ArbConfig memory config = OrderBookV6ArbConfig(
-            address(iOrderBook),
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)

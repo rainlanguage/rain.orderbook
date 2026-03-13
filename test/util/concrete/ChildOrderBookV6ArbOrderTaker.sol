@@ -17,7 +17,6 @@ import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV
 contract ChildOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     constructor()
         OrderBookV6ArbOrderTaker(OrderBookV6ArbConfig(
-                address(0),
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), ""),
                     signedContext: new SignedContextV1[](0)
