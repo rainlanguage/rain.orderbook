@@ -10,13 +10,6 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-/// Thrown when the stack is not empty after the access control dispatch.
-error NonZeroBeforeArbStack();
-
-/// Thrown when the lender is not the trusted `OrderBook`.
-/// @param badLender The untrusted lender calling `onFlashLoan`.
-error BadLender(address badLender);
-
 /// @title LibOrderBookArb
 library LibOrderBookArb {
     using SafeERC20 for IERC20;
@@ -65,7 +58,9 @@ library LibOrderBookArb {
             // calling `arb` is going to lose their tokens/gas.
             // See https://github.com/crytic/slither/issues/1658
             uint256 gasBalance = address(this).balance;
-            Address.sendValue(payable(msg.sender), gasBalance);
+            if (gasBalance > 0) {
+                Address.sendValue(payable(msg.sender), gasBalance);
+            }
             // gasBalance can't overflow int256 because there isn't enough gas
             // in existence for that to happen on every production chain.
             // forge-lint: disable-next-line(unsafe-typecast)

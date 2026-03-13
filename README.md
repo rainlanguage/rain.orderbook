@@ -58,7 +58,7 @@ Optional env vars:
 
 Example:
 ```bash
-DEPLOYMENT_KEY=<key> DEPLOYMENT_SUITE=raindex forge script script/Deploy.sol --broadcast
+DEPLOYMENT_KEY=<key> DEPLOYMENT_SUITE=raindex forge script script/Deploy.sol --broadcast --rpc-url <rpc-url>
 ```
 
 ## Legal stuff

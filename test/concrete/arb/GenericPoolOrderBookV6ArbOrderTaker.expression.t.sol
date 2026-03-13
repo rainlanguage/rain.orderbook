@@ -18,12 +18,9 @@ import {
     TaskV2
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {
-    LibNamespace,
-    DEFAULT_STATE_NAMESPACE,
-    BEFORE_ARB_SOURCE_INDEX,
-    WrongTask
-} from "src/abstract/OrderBookV6ArbCommon.sol";
+import {BEFORE_ARB_SOURCE_INDEX, WrongTask} from "src/abstract/OrderBookV6ArbCommon.sol";
+import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
+import {DEFAULT_STATE_NAMESPACE} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {CALCULATE_ORDER_ENTRYPOINT} from "src/concrete/ob/OrderBookV6.sol";
 import {StateNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
