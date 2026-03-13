@@ -81,7 +81,7 @@ jobs:
 
       - name: Run ${{ matrix.task }}
         env:
-          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_SEPOLIA_RPC_URL || vars.CI_DEPLOY_SEPOLIA_RPC_URL || 'https://sepolia.gateway.tenderly.co' }}
+          ETH_RPC_URL: ${{ secrets.CI_DEPLOY_BASE_RPC_URL || vars.CI_DEPLOY_BASE_RPC_URL || '' }}
           CI_DEPLOY_ARBITRUM_RPC_URL: ${{ secrets.CI_DEPLOY_ARBITRUM_RPC_URL || vars.CI_DEPLOY_ARBITRUM_RPC_URL || '' }}
           CI_DEPLOY_BASE_RPC_URL: ${{ secrets.CI_DEPLOY_BASE_RPC_URL || vars.CI_DEPLOY_BASE_RPC_URL || '' }}
           CI_DEPLOY_BASE_SEPOLIA_RPC_URL: ${{ secrets.CI_DEPLOY_BASE_SEPOLIA_RPC_URL || vars.CI_DEPLOY_BASE_SEPOLIA_RPC_URL || '' }}
