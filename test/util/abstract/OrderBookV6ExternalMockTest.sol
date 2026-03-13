@@ -14,7 +14,7 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpr
 import {IRaindexV6, OrderConfigV4, OrderV4, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
-import {OrderBookV6} from "src/concrete/ob/OrderBookV6.sol";
+import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 import {EvaluableV4} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
@@ -48,7 +48,8 @@ abstract contract OrderBookV6ExternalMockTest is Test, IMetaV1_2, IRaindexV6Stub
         vm.etch(address(iInterpreter), REVERTING_MOCK_BYTECODE);
         iStore = IInterpreterStoreV3(address(uint160(uint256(keccak256("store.rain.test")))));
         vm.etch(address(iStore), REVERTING_MOCK_BYTECODE);
-        iOrderbook = IRaindexV6(address(new OrderBookV6()));
+        LibOrderBookDeploy.etchOrderBook(vm);
+        iOrderbook = IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
 
         iToken0 = IERC20(address(uint160(uint256(keccak256("token0.rain.test")))));
         vm.etch(address(iToken0), REVERTING_MOCK_BYTECODE);

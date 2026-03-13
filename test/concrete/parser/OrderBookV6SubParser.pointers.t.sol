@@ -11,8 +11,13 @@ import {
     OrderBookV6SubParser
 } from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {LibGenParseMeta} from "rain.interpreter.interface/lib/codegen/LibGenParseMeta.sol";
+import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 
 contract OrderBookV6SubParserPointersTest is Test {
+    function setUp() public {
+        LibOrderBookDeploy.etchOrderBook(vm);
+    }
+
     function testSubParserParseMeta() external pure {
         bytes memory authoringMetaBytes = LibOrderBookSubParser.authoringMetaV2();
         AuthoringMetaV2[] memory authoringMeta = abi.decode(authoringMetaBytes, (AuthoringMetaV2[]));
@@ -21,15 +26,15 @@ contract OrderBookV6SubParserPointersTest is Test {
         assertEq(actual, expected);
     }
 
-    function testSubParserFunctionPointers() external {
-        OrderBookV6SubParser extern = new OrderBookV6SubParser();
+    function testSubParserFunctionPointers() external pure {
+        OrderBookV6SubParser extern = OrderBookV6SubParser(LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS);
         bytes memory expected = extern.buildSubParserWordParsers();
         bytes memory actual = SUB_PARSER_WORD_PARSERS;
         assertEq(actual, expected);
     }
 
-    function testSubParserOperandParsers() external {
-        OrderBookV6SubParser extern = new OrderBookV6SubParser();
+    function testSubParserOperandParsers() external pure {
+        OrderBookV6SubParser extern = OrderBookV6SubParser(LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS);
         bytes memory expected = extern.buildOperandHandlerFunctionPointers();
         bytes memory actual = SUB_PARSER_OPERAND_HANDLERS;
         assertEq(actual, expected);

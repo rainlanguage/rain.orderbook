@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console2} from "forge-std/Script.sol";
 import {OrderBookV6, EvaluableV4, TaskV2, SignedContextV1} from "src/concrete/ob/OrderBookV6.sol";
 import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
@@ -11,8 +11,15 @@ import {GenericPoolOrderBookV6FlashBorrower} from "src/concrete/arb/GenericPoolO
 import {OrderBookV6ArbConfig} from "src/abstract/OrderBookV6ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
+import {LibMetaBoardDeploy} from "rain.metadata/lib/deploy/LibMetaBoardDeploy.sol";
+import {LibDecimalFloatDeploy} from "rain.math.float/lib/deploy/LibDecimalFloatDeploy.sol";
+import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
+import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
+import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {CREATION_CODE as ORDERBOOK_CREATION_CODE} from "src/generated/OrderBookV6.pointers.sol";
+import {CREATION_CODE as SUB_PARSER_CREATION_CODE} from "src/generated/OrderBookV6SubParser.pointers.sol";
 
 bytes32 constant DEPLOYMENT_SUITE_ALL = keccak256("all");
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
@@ -40,15 +47,7 @@ error BadRouteProcessor(bytes32 expected, bytes32 actual);
 /// @notice A script that deploys all contracts. This is intended to be run on
 /// every commit by CI to a testnet such as mumbai.
 contract Deploy is Script {
-    function deployRaindex() internal returns (OrderBookV6) {
-        return new OrderBookV6();
-    }
-
-    function deploySubParser(IMetaBoardV1_2 metaboard) internal {
-        OrderBookV6SubParser subParser = new OrderBookV6SubParser();
-        bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookV6SubParser.rain.meta");
-        LibDescribedByMeta.emitForDescribedAddress(metaboard, subParser, subParserDescribedByMeta);
-    }
+    mapping(string => mapping(address => bytes32)) internal sDepCodeHashes;
 
     function deployRouter() internal returns (address) {
         bytes memory routeProcessor4Code = ROUTE_PROCESSOR_4_CREATION_CODE;
@@ -61,17 +60,31 @@ contract Deploy is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        IMetaBoardV1_2 metaboard = IMetaBoardV1_2(vm.envAddress("DEPLOY_METABOARD_ADDRESS"));
+        IMetaBoardV1_2 metaboard = IMetaBoardV1_2(LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS);
         string memory suiteString = vm.envOr("DEPLOYMENT_SUITE", string("all"));
         bytes32 suite = keccak256(bytes(suiteString));
-
-        vm.startBroadcast(deployerPrivateKey);
 
         address raindex = address(0);
         address routeProcessor = vm.envOr("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS", address(0));
 
         if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
-            raindex = address(deployRaindex());
+            console2.log("Deploying OrderBookV6...");
+            address[] memory deps = new address[](3);
+            deps[0] = LibDecimalFloatDeploy.ZOLTU_DEPLOYED_LOG_TABLES_ADDRESS;
+            deps[1] = address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT);
+            deps[2] = LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS;
+            LibRainDeploy.deployAndBroadcast(
+                vm,
+                LibRainDeploy.supportedNetworks(),
+                deployerPrivateKey,
+                ORDERBOOK_CREATION_CODE,
+                "src/concrete/ob/OrderBookV6.sol:OrderBookV6",
+                LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
+                LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH,
+                deps,
+                sDepCodeHashes
+            );
+            raindex = LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS;
         }
 
         if (raindex == address(0)) {
@@ -79,13 +92,39 @@ contract Deploy is Script {
         }
 
         if (suite == DEPLOYMENT_SUITE_SUBPARSER || suite == DEPLOYMENT_SUITE_ALL) {
-            deploySubParser(metaboard);
+            console2.log("Deploying OrderBookV6SubParser...");
+            address[] memory deps = new address[](3);
+            deps[0] = LibDecimalFloatDeploy.ZOLTU_DEPLOYED_LOG_TABLES_ADDRESS;
+            deps[1] = address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT);
+            deps[2] = LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS;
+            LibRainDeploy.deployAndBroadcast(
+                vm,
+                LibRainDeploy.supportedNetworks(),
+                deployerPrivateKey,
+                SUB_PARSER_CREATION_CODE,
+                "src/concrete/parser/OrderBookV6SubParser.sol:OrderBookV6SubParser",
+                LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS,
+                LibOrderBookDeploy.SUB_PARSER_DEPLOYED_CODEHASH,
+                deps,
+                sDepCodeHashes
+            );
+            // Emit described-by meta for offchain processing.
+            vm.startBroadcast(deployerPrivateKey);
+            bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookV6SubParser.rain.meta");
+            LibDescribedByMeta.emitForDescribedAddress(
+                metaboard,
+                OrderBookV6SubParser(LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS),
+                subParserDescribedByMeta
+            );
+            vm.stopBroadcast();
         }
 
         if (
             suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR || (suite == DEPLOYMENT_SUITE_ALL && routeProcessor == address(0))
         ) {
+            vm.startBroadcast(deployerPrivateKey);
             routeProcessor = deployRouter();
+            vm.stopBroadcast();
         }
         bytes32 routeProcessor4BytecodeHash;
         assembly {
@@ -96,6 +135,7 @@ contract Deploy is Script {
         }
 
         if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
+            vm.startBroadcast(deployerPrivateKey);
             // Order takers.
             new GenericPoolOrderBookV6ArbOrderTaker(
                 OrderBookV6ArbConfig(
@@ -130,7 +170,7 @@ contract Deploy is Script {
                     ""
                 )
             );
+            vm.stopBroadcast();
         }
-        vm.stopBroadcast();
     }
 }

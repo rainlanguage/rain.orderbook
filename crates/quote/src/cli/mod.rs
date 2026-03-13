@@ -1,6 +1,6 @@
 use crate::{OrderQuoteValue, QuoteResult};
 use alloy::primitives::Address;
-use clap::{command, ArgAction, Parser};
+use clap::{ArgAction, Parser};
 use serde::{Deserialize, Serialize};
 use std::{fs::write, io::Write, path::PathBuf};
 use url::Url;
