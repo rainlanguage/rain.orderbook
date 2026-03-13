@@ -74,36 +74,36 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 47 | A06-P2-GAP4 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for NoOrders revert in arb4 | PENDING | |
 | 48 | A06-P2-GAP5 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for _exchange failure propagation | PENDING | |
 | 49 | A09-P2-GAP1 | P2 | OrderBookV6SubParser.sol | No tests for deposit word parsing (11 words, 0 tests) | PENDING | |
-| 50 | A01-P3-1 | P3 | OrderBookV6ArbCommon.sol | Struct @param name mismatch: tasks vs task | PENDING | Dup: A01-P5-1 |
-| 51 | A01-P3-2 | P3 | OrderBookV6ArbCommon.sol | Missing documentation on contract, event, state variable, constructor, modifier | PENDING | |
-| 52 | A01-P3-3 | P3 | OrderBookV6ArbCommon.sol | BEFORE_ARB_SOURCE_INDEX doc inaccurately scoped to flash loans | PENDING | |
-| 53 | A02-P3-1 | P3 | OrderBookV6ArbOrderTaker.sol | Contract-level NatSpec missing | PENDING | |
-| 54 | A02-P3-2 | P3 | OrderBookV6ArbOrderTaker.sol | Typo: "evaluabled" in BEFORE_ARB_SOURCE_INDEX doc | PENDING | |
-| 55 | A02-P3-3 | P3 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 empty body contradicts interface MUST requirement | PENDING | |
-| 56 | A03-P3-1 | P3 | OrderBookV6FlashBorrower.sol | Stale @title tag: OrderBookV5FlashBorrower | PENDING | Dup: A03-P4-3 |
-| 57 | A03-P3-2 | P3 | OrderBookV6FlashBorrower.sol | Stale interface/contract references in arb4 param docs | PENDING | Dup: A03-P5-2 |
-| 58 | A03-P3-3 | P3 | OrderBookV6FlashBorrower.sol | Missing @param for orderBook and task in arb4 | PENDING | |
-| 59 | A04-P3-1 | P3 | OrderBookV6FlashLender.sol | Misleading NatSpec on maxFlashLoan | PENDING | Dup: A04-P5-1 |
-| 60 | A05-P3-1 | P3 | GenericPoolOrderBookV6ArbOrderTaker.sol | Missing contract-level NatSpec | PENDING | |
-| 61 | A06-P3-1 | P3 | GenericPoolOrderBookV6FlashBorrower.sol | Misleading fallback comment | PENDING | Dup of A05-3 |
-| 62 | A07-P3-1 | P3 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Missing contract-level NatSpec | PENDING | |
-| 63 | A07-P3-2 | P3 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Undocumented lossy conversion and silent discard of precision flag | PENDING | |
-| 64 | A08-P3-1 | P3 | OrderBookV6.sol | Stale comment in recordVaultIO contradicts code execution order | PENDING | |
-| 65 | A11-P3-1 | P3 | LibOrderBook.sol | Missing NatSpec on doPost | PENDING | |
-| 66 | A12-P3-1 | P3 | LibOrderBookArb.sol | Missing NatSpec on finalizeArb | PENDING | |
-| 67 | A13-P3-1 | P3 | LibOrderBookSubParser.sol | No NatSpec on any of the 28 SubParser functions | PENDING | |
-| 68 | A15-P3-1 | P3 | Deploy.sol | @notice references deprecated "mumbai" testnet | PENDING | |
-| 69 | A15-P3-2 | P3 | Deploy.sol | deployRouter() has no documentation | PENDING | |
-| 70 | A15-P3-3 | P3 | Deploy.sol | run() has no documentation | PENDING | |
-| 71 | A15-P3-4 | P3 | Deploy.sol | Five DEPLOYMENT_SUITE_* constants have no documentation | PENDING | |
-| 72 | P3-A09-01 | P3 | OrderBookV6SubParser.sol | buildSubParserWordParsers() has no NatSpec | PENDING | |
+| 50 | A01-P3-1 | P3 | OrderBookV6ArbCommon.sol | Struct @param name mismatch: tasks vs task | FIXED | Dup: A01-P5-1 |
+| 51 | A01-P3-2 | P3 | OrderBookV6ArbCommon.sol | Missing documentation on contract, event, state variable, constructor, modifier | FIXED | |
+| 52 | A01-P3-3 | P3 | OrderBookV6ArbCommon.sol | BEFORE_ARB_SOURCE_INDEX doc inaccurately scoped to flash loans | FIXED | |
+| 53 | A02-P3-1 | P3 | OrderBookV6ArbOrderTaker.sol | Contract-level NatSpec missing | FIXED | |
+| 54 | A02-P3-2 | P3 | OrderBookV6ArbOrderTaker.sol | Typo: "evaluabled" in BEFORE_ARB_SOURCE_INDEX doc | FIXED | |
+| 55 | A02-P3-3 | P3 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 empty body contradicts interface MUST requirement | FIXED | Added @dev explaining default no-op |
+| 56 | A03-P3-1 | P3 | OrderBookV6FlashBorrower.sol | Stale @title tag: OrderBookV5FlashBorrower | FIXED | Dup: A03-P4-3 |
+| 57 | A03-P3-2 | P3 | OrderBookV6FlashBorrower.sol | Stale interface/contract references in arb4 param docs | FIXED | Dup: A03-P5-2 |
+| 58 | A03-P3-3 | P3 | OrderBookV6FlashBorrower.sol | Missing @param for orderBook and task in arb4 | FIXED | |
+| 59 | A04-P3-1 | P3 | OrderBookV6FlashLender.sol | Misleading NatSpec on maxFlashLoan | FIXED | Dup: A04-P5-1 |
+| 60 | A05-P3-1 | P3 | GenericPoolOrderBookV6ArbOrderTaker.sol | Missing contract-level NatSpec | FIXED | |
+| 61 | A06-P3-1 | P3 | GenericPoolOrderBookV6FlashBorrower.sol | Misleading fallback comment | FIXED | Dup of A05-3 |
+| 62 | A07-P3-1 | P3 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Missing contract-level NatSpec | FIXED | |
+| 63 | A07-P3-2 | P3 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Undocumented lossy conversion and silent discard of precision flag | FIXED | |
+| 64 | A08-P3-1 | P3 | OrderBookV6.sol | Stale comment in recordVaultIO contradicts code execution order | FIXED | |
+| 65 | A11-P3-1 | P3 | LibOrderBook.sol | Missing NatSpec on doPost | FIXED | |
+| 66 | A12-P3-1 | P3 | LibOrderBookArb.sol | Missing NatSpec on finalizeArb | FIXED | |
+| 67 | A13-P3-1 | P3 | LibOrderBookSubParser.sol | No NatSpec on any of the 28 SubParser functions | FIXED | |
+| 68 | A15-P3-1 | P3 | Deploy.sol | @notice references deprecated "mumbai" testnet | FIXED | |
+| 69 | A15-P3-2 | P3 | Deploy.sol | deployRouter() has no documentation | FIXED | |
+| 70 | A15-P3-3 | P3 | Deploy.sol | run() has no documentation | FIXED | |
+| 71 | A15-P3-4 | P3 | Deploy.sol | Five DEPLOYMENT_SUITE_* constants have no documentation | FIXED | |
+| 72 | P3-A09-01 | P3 | OrderBookV6SubParser.sol | buildSubParserWordParsers() has no NatSpec | FIXED | |
 | 73 | A01-P4-1 | P4 | OrderBookV6ArbCommon.sol | Multiple unused imports | PENDING | |
 | 74 | A02-P4-1 | P4 | OrderBookV6ArbOrderTaker.sol | 10 unused imports | PENDING | |
 | 75 | A02-P4-2 | P4 | OrderBookV6ArbOrderTaker.sol | Duplicate constant BEFORE_ARB_SOURCE_INDEX | PENDING | |
-| 76 | A02-P4-3 | P4 | OrderBookV6ArbOrderTaker.sol | Dead error NonZeroBeforeArbInputs | PENDING | Related: A12-P2-1 |
+| 76 | A02-P4-3 | P4 | OrderBookV6ArbOrderTaker.sol | Dead error NonZeroBeforeArbInputs | FIXED | Related: A12-P2-1 |
 | 77 | A03-P4-1 | P4 | OrderBookV6FlashBorrower.sol | 7 unused imports | PENDING | |
 | 78 | A03-P4-2 | P4 | OrderBookV6FlashBorrower.sol | Dead error SwapFailed | PENDING | Dup of A03-P2-4 |
-| 79 | A03-P4-3 | P4 | OrderBookV6FlashBorrower.sol | Stale NatSpec @title OrderBookV5FlashBorrower | PENDING | Dup of A03-P3-1 |
+| 79 | A03-P4-3 | P4 | OrderBookV6FlashBorrower.sol | Stale NatSpec @title OrderBookV5FlashBorrower | FIXED | Dup of A03-P3-1 |
 | 80 | A06-P4-1 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashLender | PENDING | |
 | 81 | A06-P4-2 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashBorrower | PENDING | |
 | 82 | A07-P4-1 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Unused import Address | PENDING | |
@@ -113,12 +113,27 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 86 | A15-P4-3 | P4 | Deploy.sol | Inconsistent address() cast on raindex variable | PENDING | |
 | 87 | A15-P4-4 | P4 | Deploy.sol | Missing "memory-safe" annotation on second assembly block | PENDING | |
 | 88 | A15-P4-5 | P4 | Deploy.sol | Repeated TaskV2/EvaluableV4 zero-value boilerplate | PENDING | |
-| 89 | A01-P5-1 | P5 | OrderBookV6ArbCommon.sol | NatSpec @param tasks does not match field name task | PENDING | Dup of A01-P3-1 |
+| 89 | A01-P5-1 | P5 | OrderBookV6ArbCommon.sol | NatSpec @param tasks does not match field name task | FIXED | Dup of A01-P3-1 |
 | 90 | A03-P5-1 | P5 | OrderBookV6FlashBorrower.sol | BadInitiator NatSpec inaccurately describes the check | PENDING | |
-| 91 | A03-P5-2 | P5 | OrderBookV6FlashBorrower.sol | NatSpec for arb4 describes stale "access gate" evaluation | PENDING | Dup of A03-P3-2 |
-| 92 | A04-P5-1 | P5 | OrderBookV6FlashLender.sol | maxFlashLoan NatSpec falsely claims active-debt disabling | PENDING | Dup of A04-P3-1 |
-| 93 | A05-P5-01 | P5 | GenericPoolOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | PENDING | Dup of A05-3 |
-| 94 | A06-P5-01 | P5 | GenericPoolOrderBookV6FlashBorrower.sol | Misleading "Allow receiving gas" comment on non-payable fallback | PENDING | Dup of A05-3 |
-| 95 | A07-P5-01 | P5 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | PENDING | Dup of A05-3 |
+| 91 | A03-P5-2 | P5 | OrderBookV6FlashBorrower.sol | NatSpec for arb4 describes stale "access gate" evaluation | FIXED | Dup of A03-P3-2 |
+| 92 | A04-P5-1 | P5 | OrderBookV6FlashLender.sol | maxFlashLoan NatSpec falsely claims active-debt disabling | FIXED | Dup of A04-P3-1 |
+| 93 | A05-P5-01 | P5 | GenericPoolOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
+| 94 | A06-P5-01 | P5 | GenericPoolOrderBookV6FlashBorrower.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
+| 95 | A07-P5-01 | P5 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
 | 96 | A15-P5-3 | P5 | Deploy.sol | No require/revert on create returning address(0) (confirms A15-2) | PENDING | Dup of A15-2 |
 | 97 | A15-P5-4 | P5 | Deploy.sol | No mechanism to reject unknown suite values | PENDING | |
+
+## INFO
+
+| # | ID | Pass | File | Title | Status | Notes |
+|---|-----|------|------|-------|--------|-------|
+| 98 | A04-P3-2 | P3 | OrderBookV6FlashLender.sol | flashFee drops parameter names | DISMISSED | Idiomatic Solidity for unused params |
+| 99 | A04-P3-3 | P3 | OrderBookV6FlashLender.sol | No @param/@return on maxFlashLoan | DISMISSED | Has @inheritdoc |
+| 100 | A05-P3-3 | P3 | GenericPoolOrderBookV6ArbOrderTaker.sol | No impl-specific param docs on onTakeOrders2 | DISMISSED | Has @inheritdoc + contract notice |
+| 101 | A06-P3-3 | P3 | GenericPoolOrderBookV6FlashBorrower.sol | Interface references stale V5 name | UPSTREAM | External dependency (rain.raindex.interface) |
+| 102 | A07-P3-4 | P3 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No NatSpec on iRouteProcessor | FIXED | |
+| 103 | A08-P3-3 | P3 | OrderBookV6.sol | Contract-level NatSpec minimal (internal functions) | FIXED | Added @dev to 9 internal functions |
+| 104 | A11-P3-4 | P3 | LibOrderBook.sol | No docs on deposit/withdraw/signed context constants | FIXED | Added group @dev comments |
+| 105 | A13-P3-3 | P3 | LibOrderBookSubParser.sol | Missing @notice on LibOrderBookSubParser | FIXED | |
+| 106 | A15-P3-7 | P3 | Deploy.sol | sDepCodeHashes state var no docs | FIXED | |
+| 107 | A15-P3-8 | P3 | README.md | README missing deploy info | FIXED | Added Deployment section |
