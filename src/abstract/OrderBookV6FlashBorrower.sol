@@ -100,8 +100,8 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
         // keep anything left over according to active balances.
-        (Float totalInput, Float totalOutput) = IRaindexV6(msg.sender).takeOrders4(takeOrders);
-        (totalInput, totalOutput);
+        //slither-disable-next-line unused-return
+        IRaindexV6(msg.sender).takeOrders4(takeOrders);
 
         return ON_FLASH_LOAN_CALLBACK_SUCCESS;
     }

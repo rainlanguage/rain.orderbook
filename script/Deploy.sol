@@ -56,6 +56,8 @@ error BadRouteProcessor(bytes32 expected, bytes32 actual);
 /// `DEPLOYMENT_SUITE` env var to select which subset to deploy, and
 /// `DEPLOYMENT_KEY` for the deployer private key.
 contract Deploy is Script {
+    /// @dev Tracks on-chain code hashes of dependencies per network, passed to
+    /// `LibRainDeploy.deployAndBroadcast` to verify dependency integrity.
     mapping(string => mapping(address => bytes32)) internal sDepCodeHashes;
 
     /// @dev Deploys the Sushi RouteProcessor4 contract from its stored creation

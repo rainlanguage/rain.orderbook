@@ -40,11 +40,15 @@ uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH = 0;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER = 1;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY = 2;
 
+/// @dev Context rows for the deposit calling context column. Available to the
+/// deposit post-action entrypoint.
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN = 0;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID = 1;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE = 2;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER = 3;
 
+/// @dev Context rows for the withdraw calling context column. Available to the
+/// withdraw post-action entrypoint.
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN = 0;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID = 1;
 uint256 constant CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE = 2;
@@ -85,10 +89,14 @@ uint256 constant CONTEXT_VAULT_IO_BALANCE_DIFF = 4;
 /// @dev Length of a vault IO column.
 uint256 constant CONTEXT_VAULT_IO_ROWS = 5;
 
+/// @dev Signed context signer addresses occupy their own column so that each
+/// signer can be matched to its corresponding signed context column.
 uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN = 5;
 uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW = 0;
 
+/// @dev Signed context data columns start after the signers column. Each
+/// signer's data is a separate column at this offset + signer index.
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_COLUMN = 6;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROW = 0;
@@ -105,7 +113,8 @@ library LibOrderBook {
         for (uint256 i = 0; i < post.length; ++i) {
             task = post[i];
             if (task.evaluable.bytecode.length > 0) {
-                (StackItem[] memory stack, bytes32[] memory writes) = task.evaluable.interpreter
+                //slither-disable-next-line unused-return
+                (, bytes32[] memory writes) = task.evaluable.interpreter
                     .eval4(
                         EvalV4({
                             store: task.evaluable.store,
@@ -117,7 +126,6 @@ library LibOrderBook {
                             stateOverlay: emptyStateOverlay
                         })
                     );
-                (stack);
                 if (writes.length > 0) {
                     task.evaluable.store.set(namespace, writes);
                 }

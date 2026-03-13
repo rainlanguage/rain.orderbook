@@ -14,12 +14,13 @@ import {
 } from "../../abstract/OrderBookV6FlashBorrower.sol";
 
 /// @title GenericPoolOrderBookV6FlashBorrower
-/// Implements the OrderBookV6FlashBorrower interface for an external liquidity
-/// source that behaves vaguely like a standard AMM. The `exchangeData` from
-/// `arb` is decoded into a spender, pool and callData. The `callData` is
-/// literally the encoded function call to the pool. This allows the `arb`
-/// caller to process a trade against any liquidity source that can swap tokens
-/// within a single function call.
+/// @notice Flash-loan arb that swaps via an arbitrary external pool call.
+/// @dev Implements the OrderBookV6FlashBorrower interface for an external
+/// liquidity source that behaves vaguely like a standard AMM. The
+/// `exchangeData` from `arb` is decoded into a spender, pool and callData.
+/// The `callData` is literally the encoded function call to the pool. This
+/// allows the `arb` caller to process a trade against any liquidity source
+/// that can swap tokens within a single function call.
 /// The `spender` is the address that will be approved to spend the input token
 /// on `takeOrders`, which is almost always going to be the pool itself. If you
 /// are unsure, simply set it to the pool address.
@@ -37,9 +38,9 @@ contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
         address borrowedToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
         IERC20(borrowedToken).forceApprove(spender, type(uint256).max);
-        bytes memory returnData = pool.functionCallWithValue(encodedFunctionCall, address(this).balance);
         // Nothing can be done with returnData as 3156 does not support it.
-        (returnData);
+        //slither-disable-next-line unused-return
+        pool.functionCallWithValue(encodedFunctionCall, address(this).balance);
         IERC20(borrowedToken).forceApprove(spender, 0);
     }
 

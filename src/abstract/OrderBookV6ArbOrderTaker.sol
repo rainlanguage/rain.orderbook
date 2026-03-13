@@ -21,9 +21,6 @@ import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrder
 import {IRaindexV6OrderTaker} from "rain.raindex.interface/interface/IRaindexV6OrderTaker.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
-/// Thrown when "before arb" wants inputs that we don't have.
-error NonZeroBeforeArbInputs(uint256 inputs);
-
 /// @dev "Before arb" is evaluated before the arb is executed. Ostensibly this
 /// is to allow for access control to the arb, the return values are ignored.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
@@ -65,8 +62,8 @@ abstract contract OrderBookV6ArbOrderTaker is
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
         IERC20(ordersInputToken).forceApprove(address(orderBook), type(uint256).max);
-        (Float totalTakerInput, Float totalTakerOutput) = orderBook.takeOrders4(takeOrders);
-        (totalTakerInput, totalTakerOutput);
+        //slither-disable-next-line unused-return
+        orderBook.takeOrders4(takeOrders);
         IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
 
         LibOrderBookArb.finalizeArb(

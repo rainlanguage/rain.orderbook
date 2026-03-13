@@ -95,6 +95,8 @@ uint256 constant WITHDRAW_WORD_TARGET_AMOUNT = 5;
 uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 
 /// @title LibOrderBookSubParser
+/// @notice Sub-parser word dispatch and authoring metadata for OrderBook
+/// context columns (base, calling, calculations, vault IO, signed).
 library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
 

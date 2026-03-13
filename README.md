@@ -42,6 +42,27 @@ chmod +x prep-all.sh
 cd packages/webapp && nix develop -c npm run dev
 ```
 
+## Deployment
+
+Contracts are deployed via the Foundry script at `script/Deploy.sol`. The script is controlled by two environment variables:
+
+- `DEPLOYMENT_KEY` — the deployer private key
+- `DEPLOYMENT_SUITE` — which contracts to deploy. One of:
+  - `all` (default) — deploy everything
+  - `raindex` — OrderBookV6 only
+  - `subparser` — OrderBookV6SubParser only
+  - `route-processor` — Sushi RouteProcessor4 only
+  - `arb` — arb contracts only (order takers and flash borrowers)
+
+Optional env vars:
+- `DEPLOY_RAINDEX_ADDRESS` — use an existing OrderBook address (required when `DEPLOYMENT_SUITE` is not `all` or `raindex`)
+- `DEPLOY_ROUTE_PROCESSOR_4_ADDRESS` — use an existing RouteProcessor4 address instead of deploying a new one
+
+Example:
+```bash
+DEPLOYMENT_KEY=<key> DEPLOYMENT_SUITE=all forge script script/Deploy.sol --broadcast
+```
+
 ## Legal stuff
 
 Everything is under DecentraLicense 1.0 (DCL-1.0) which can be found in `LICENSES/`.
