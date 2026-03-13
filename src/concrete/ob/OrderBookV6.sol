@@ -935,10 +935,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // the caller controls which orders are eval'd as they can drop
         // failing calls and resubmit a new transaction.
         // https://github.com/crytic/slither/issues/880
-        //slither-disable-next-line calls-loop
-        //slither-disable-next-line unused-return
-        (, bytes32[] memory handleIOKVs) = orderIOCalculation.order.evaluable
-            .interpreter
+        //slither-disable-next-line calls-loop,unused-return
+        (, bytes32[] memory handleIOKVs) = orderIOCalculation.order.evaluable.interpreter
             .eval4(
                 EvalV4({
                     store: orderIOCalculation.order.evaluable.store,

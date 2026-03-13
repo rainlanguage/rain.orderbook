@@ -47,9 +47,7 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
             outputTokenAmount++;
         }
         //slither-disable-next-line unused-return
-        iRouteProcessor.processRoute(
-            inputToken, inputTokenAmount, outputToken, outputTokenAmount, address(this), route
-        );
+        iRouteProcessor.processRoute(inputToken, inputTokenAmount, outputToken, outputTokenAmount, address(this), route);
         IERC20(inputToken).forceApprove(address(iRouteProcessor), 0);
     }
 
