@@ -17,9 +17,13 @@ error NonZeroBeforeArbStack();
 /// @param badLender The untrusted lender calling `onFlashLoan`.
 error BadLender(address badLender);
 
+/// @title LibOrderBookArb
 library LibOrderBookArb {
     using SafeERC20 for IERC20;
 
+    /// @dev Sends all remaining token balances and native gas to `msg.sender`,
+    /// then evaluates the post-arb task with a context column containing the
+    /// amounts sent as Floats.
     function finalizeArb(
         TaskV2 memory task,
         address ordersInputToken,
@@ -36,8 +40,8 @@ library LibOrderBookArb {
             if (inputBalance > 0) {
                 IERC20(ordersInputToken).safeTransfer(msg.sender, inputBalance);
             }
-            (Float input, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(inputBalance, inputDecimals);
-            (lossless);
+            //slither-disable-next-line unused-return
+            (Float input,) = LibDecimalFloat.fromFixedDecimalLossyPacked(inputBalance, inputDecimals);
             col[0] = Float.unwrap(input);
         }
 
@@ -48,8 +52,8 @@ library LibOrderBookArb {
                 IERC20(ordersOutputToken).safeTransfer(msg.sender, outputBalance);
             }
 
-            (Float output, bool lossless) = LibDecimalFloat.fromFixedDecimalLossyPacked(outputBalance, outputDecimals);
-            (lossless);
+            //slither-disable-next-line unused-return
+            (Float output,) = LibDecimalFloat.fromFixedDecimalLossyPacked(outputBalance, outputDecimals);
             col[1] = Float.unwrap(output);
         }
 

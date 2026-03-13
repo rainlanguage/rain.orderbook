@@ -146,31 +146,28 @@ uint16 constant CALCULATE_ORDER_MAX_OUTPUTS = 2;
 
 /// @dev Handle IO has no outputs as it only responds to vault movements.
 uint256 constant HANDLE_IO_MIN_OUTPUTS = 0;
-/// @dev Handle IO has no outputs as it only response to vault movements.
+/// @dev Handle IO has no outputs as it only responds to vault movements.
 uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
-/// @param outputMax The UNSCALED maximum output calculated by the order
-/// expression. WILL BE RESCALED ACCORDING TO TOKEN DECIMALS to an 18 fixed
-/// point decimal number for the purpose of calculating actual vault movements.
+/// @param outputMax The maximum output calculated by the order expression as a
+/// Float. WILL BE RESCALED ACCORDING TO TOKEN DECIMALS (read via TOFU) for the
+/// purpose of calculating actual vault movements.
 /// The output max is CAPPED AT THE OUTPUT VAULT BALANCE OF THE ORDER OWNER.
 /// The order is guaranteed that the total output of this single clearance cannot
 /// exceed this (subject to rescaling). It is up to the order expression to track
 /// values over time if the output max is to impose a global limit across many
 /// transactions and counterparties.
-/// @param IORatio The UNSCALED order ratio as input/output from the perspective
-/// of the order. As each counterparty's input is the other's output, the IORatio
-/// calculated by each order is inverse of its counterparty. IORatio is SCALED
-/// ACCORDING TO TOKEN DECIMALS to allow 18 decimal fixed point math over the
-/// vault balances. I.e. `1e18` returned from the expression is ALWAYS "one" as
-/// ECONOMIC EQUIVALENCE between two tokens, but this will be rescaled according
-/// to the decimals of the token. For example, if DAI and USDT have a ratio of
-/// `1e18` then in reality `1e12` DAI will move in the vault for every `1` USDT
-/// that moves, because DAI has `1e18` decimals per $1 peg and USDT has `1e6`
-/// decimals per $1 peg. THE ORDER DEFINES THE DECIMALS for each token, NOT the
-/// token itself, because the token MAY NOT report its decimals as per it being
-/// optional in the ERC20 specification.
+/// @param IORatio The order ratio as input/output from the perspective of the
+/// order, as a Float. As each counterparty's input is the other's output, the
+/// IORatio calculated by each order is inverse of its counterparty. IORatio is
+/// RESCALED ACCORDING TO TOKEN DECIMALS (read via TOFU) when applied to vault
+/// balances. I.e. a ratio of `1` is ALWAYS "one" as ECONOMIC EQUIVALENCE
+/// between two tokens, but this will be rescaled according to the decimals of
+/// the token. For example, if DAI and USDT have a ratio of `1` then in reality
+/// `1e12` DAI will move in the vault for every `1` USDT that moves, because DAI
+/// has `1e18` decimals per $1 peg and USDT has `1e6` decimals per $1 peg.
 /// @param context The entire 2D context array, initialized from the context
 /// passed into the order calculations and then populated with the order
 /// calculations and vault IO before being passed back to handle IO entrypoint.
@@ -188,10 +185,6 @@ struct OrderIOCalculationV4 {
     StateNamespace namespace;
     bytes32[] kvs;
 }
-
-type Output18Amount is uint256;
-
-type Input18Amount is uint256;
 
 /// @title OrderBookV6
 /// See `IRaindexV6` for more documentation.
@@ -227,6 +220,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return _vaultBalance(owner, token, vaultId);
     }
 
+    /// @dev Returns the effective vault balance. For vault ID 0, returns the
+    /// minimum of the owner's token balance and their approval to this contract.
     //slither-disable-next-line calls-loop
     function _vaultBalance(address owner, address token, bytes32 vaultId) internal view returns (Float) {
         if (vaultId != bytes32(0)) {
@@ -403,6 +398,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
+    /// @dev Reverts with `TokenSelfTrade` if the input and output tokens are
+    /// the same address.
     function checkTokenSelfTrade(OrderV4 memory order, uint256 inputIOIndex, uint256 outputIOIndex) internal pure {
         if (order.validInputs[inputIOIndex].token == order.validOutputs[outputIOIndex].token) {
             revert TokenSelfTrade();
@@ -820,6 +817,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
+    /// @dev Increases a vault balance by `amount`. For vault ID 0, pushes tokens
+    /// directly to the owner instead. Returns (oldBalance, newBalance).
     function increaseVaultBalance(address owner, address token, bytes32 vaultId, Float amount)
         internal
         returns (Float, Float)
@@ -851,6 +850,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
+    /// @dev Decreases a vault balance by `amount`. For vault ID 0, pulls tokens
+    /// directly from the owner instead. Returns (oldBalance, newBalance).
     function decreaseVaultBalance(address owner, address token, bytes32 vaultId, Float amount)
         internal
         returns (Float, Float)
@@ -899,8 +900,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
             orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID],
             input
         );
-        // Decrease before increasing so that if vault id == 0 then we pull
-        // tokens before pushing them.
+        // Increase before decreasing so that if vault id == 0 then we push
+        // tokens before pulling them.
         decreaseVaultBalance(
             orderIOCalculation.order.owner,
             address(uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))),
@@ -913,6 +914,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         emit ContextV2(msg.sender, orderIOCalculation.context);
     }
 
+    /// @dev Persists interpreter state writes then evaluates the handle IO
+    /// entrypoint for an order, if it has one.
     function handleIO(OrderIOCalculationV4 memory orderIOCalculation) internal {
         // Apply state changes to the interpreter store after the vault balances
         // are updated, but before we call handle IO. We want handle IO to see
@@ -932,9 +935,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         // the caller controls which orders are eval'd as they can drop
         // failing calls and resubmit a new transaction.
         // https://github.com/crytic/slither/issues/880
-        //slither-disable-next-line calls-loop
-        (StackItem[] memory handleIOStack, bytes32[] memory handleIOKVs) = orderIOCalculation.order.evaluable
-            .interpreter
+        //slither-disable-next-line calls-loop,unused-return
+        (, bytes32[] memory handleIOKVs) = orderIOCalculation.order.evaluable.interpreter
             .eval4(
                 EvalV4({
                     store: orderIOCalculation.order.evaluable.store,
@@ -946,8 +948,6 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
                     stateOverlay: new bytes32[](0)
                 })
             );
-        // There's nothing to be done with the stack.
-        (handleIOStack);
         // Apply state changes to the interpreter store from the handle IO
         // entrypoint.
         if (handleIOKVs.length > 0) {
@@ -981,6 +981,9 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
             calculateClearStateAlice(bobOrderIOCalculation, aliceOrderIOCalculation);
     }
 
+    /// @dev Calculates Alice's input and output given both order calculations.
+    /// Alice's output is capped by Bob's max output, and her input is derived
+    /// from her IO ratio.
     function calculateClearStateAlice(
         OrderIOCalculationV4 memory aliceOrderIOCalculation,
         OrderIOCalculationV4 memory bobOrderIOCalculation
@@ -1000,6 +1003,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
+    /// @dev Pulls `amount` of `token` from `account` via `safeTransferFrom`.
+    /// Returns the fixed-decimal amount transferred and the token decimals.
     function pullTokens(address account, address token, Float amount) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
@@ -1022,6 +1027,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return (amount18, decimals);
     }
 
+    /// @dev Pushes `amountFloat` of `token` to `account` via `safeTransfer`.
+    /// Returns the fixed-decimal amount transferred and the token decimals.
     function pushTokens(address account, address token, Float amountFloat) internal returns (uint256, uint8) {
         (TOFUOutcome tofuOutcome, uint8 decimals) = LibTOFUTokenDecimals.decimalsForToken(token);
         if (tofuOutcome != TOFUOutcome.Consistent && tofuOutcome != TOFUOutcome.Initial) {
@@ -1032,9 +1039,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
             revert NegativePush();
         }
 
-        (uint256 amount, bool lossless) = LibDecimalFloat.toFixedDecimalLossy(amountFloat, decimals);
-        // Truncate when pushing.
-        (lossless);
+        //slither-disable-next-line unused-return
+        (uint256 amount,) = LibDecimalFloat.toFixedDecimalLossy(amountFloat, decimals);
         if (amount > 0) {
             IERC20(token).safeTransfer(account, amount);
         }
@@ -1042,6 +1048,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         return (amount, decimals);
     }
 
+    /// @dev Reverts with `ZeroVaultId` if `vaultId` is zero.
     function _nonZeroVaultId(address vaultOwner, address token, bytes32 vaultId) internal pure {
         if (vaultId == bytes32(0)) {
             revert ZeroVaultId(vaultOwner, token);

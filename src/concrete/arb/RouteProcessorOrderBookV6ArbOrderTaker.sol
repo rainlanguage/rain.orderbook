@@ -11,10 +11,13 @@ import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstr
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+/// @title RouteProcessorOrderBookV6ArbOrderTaker
+/// @notice Order-taker arb that swaps via a Sushi RouteProcessor.
 contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
 
+    /// @dev The Sushi RouteProcessor used to execute swaps.
     IRouteProcessor public immutable iRouteProcessor;
 
     constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbOrderTaker(config) {
@@ -33,21 +36,21 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         super.onTakeOrders2(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
         IERC20(inputToken).forceApprove(address(iRouteProcessor), type(uint256).max);
         bytes memory route = abi.decode(takeOrdersData, (bytes));
-        (uint256 inputTokenAmount, bool losslessInputAmount) =
+        // Input amount precision loss is acceptable as the route processor
+        // only needs an approximate amount to execute the swap.
+        //slither-disable-next-line unused-return
+        (uint256 inputTokenAmount,) =
             LibDecimalFloat.toFixedDecimalLossy(inputAmountSent, IERC20Metadata(inputToken).decimals());
-        (losslessInputAmount);
         (uint256 outputTokenAmount, bool lossless) =
             LibDecimalFloat.toFixedDecimalLossy(totalOutputAmount, IERC20Metadata(outputToken).decimals());
         if (!lossless) {
             outputTokenAmount++;
         }
-        (uint256 amountOut) = iRouteProcessor.processRoute(
-            inputToken, inputTokenAmount, outputToken, outputTokenAmount, address(this), route
-        );
+        //slither-disable-next-line unused-return
+        iRouteProcessor.processRoute(inputToken, inputTokenAmount, outputToken, outputTokenAmount, address(this), route);
         IERC20(inputToken).forceApprove(address(iRouteProcessor), 0);
-        (amountOut);
     }
 
-    /// Allow receiving gas.
+    /// Allow arbitrary calls to this contract without reverting.
     fallback() external {}
 }

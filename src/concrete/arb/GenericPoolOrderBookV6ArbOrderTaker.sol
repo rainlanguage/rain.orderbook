@@ -8,6 +8,9 @@ import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
 
+/// @title GenericPoolOrderBookV6ArbOrderTaker
+/// @notice Order-taker arb that swaps via an arbitrary external pool call.
+/// The `takeOrdersData` is decoded as `(spender, pool, encodedFunctionCall)`.
 contract GenericPoolOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -27,13 +30,13 @@ contract GenericPoolOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
             abi.decode(takeOrdersData, (address, address, bytes));
 
         IERC20(inputToken).forceApprove(spender, type(uint256).max);
-        bytes memory returnData = pool.functionCallWithValue(encodedFunctionCall, address(this).balance);
         // Nothing can be done with returnData as `takeOrders` does not support
         // it.
-        (returnData);
+        //slither-disable-next-line unused-return
+        pool.functionCallWithValue(encodedFunctionCall, address(this).balance);
         IERC20(inputToken).forceApprove(spender, 0);
     }
 
-    /// Allow receiving gas.
+    /// Allow arbitrary calls to this contract without reverting.
     fallback() external {}
 }
