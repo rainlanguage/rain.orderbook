@@ -21,8 +21,6 @@ import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 import {CREATION_CODE as ORDERBOOK_CREATION_CODE} from "src/generated/OrderBookV6.pointers.sol";
 import {CREATION_CODE as SUB_PARSER_CREATION_CODE} from "src/generated/OrderBookV6SubParser.pointers.sol";
 
-/// @dev Deploy everything.
-bytes32 constant DEPLOYMENT_SUITE_ALL = keccak256("all");
 /// @dev Deploy only the OrderBookV6 (raindex) contract.
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
 /// @dev Deploy only the OrderBookV6SubParser contract.
@@ -75,14 +73,10 @@ contract Deploy is Script {
     /// then deploys the selected contracts via `LibRainDeploy`.
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYMENT_KEY");
-        IMetaBoardV1_2 metaboard = IMetaBoardV1_2(LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS);
-        string memory suiteString = vm.envOr("DEPLOYMENT_SUITE", string("all"));
+        string memory suiteString = vm.envString("DEPLOYMENT_SUITE");
         bytes32 suite = keccak256(bytes(suiteString));
 
-        address raindex = address(0);
-        address routeProcessor = vm.envOr("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS", address(0));
-
-        if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
+        if (suite == DEPLOYMENT_SUITE_RAINDEX) {
             console2.log("Deploying OrderBookV6...");
             address[] memory deps = new address[](3);
             deps[0] = LibDecimalFloatDeploy.ZOLTU_DEPLOYED_LOG_TABLES_ADDRESS;
@@ -99,14 +93,7 @@ contract Deploy is Script {
                 deps,
                 sDepCodeHashes
             );
-            raindex = LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS;
-        }
-
-        if (raindex == address(0)) {
-            raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
-        }
-
-        if (suite == DEPLOYMENT_SUITE_SUBPARSER || suite == DEPLOYMENT_SUITE_ALL) {
+        } else if (suite == DEPLOYMENT_SUITE_SUBPARSER) {
             console2.log("Deploying OrderBookV6SubParser...");
             address[] memory deps = new address[](3);
             deps[0] = LibDecimalFloatDeploy.ZOLTU_DEPLOYED_LOG_TABLES_ADDRESS;
@@ -123,7 +110,7 @@ contract Deploy is Script {
                 deps,
                 sDepCodeHashes
             );
-            // Emit described-by meta for offchain processing.
+            IMetaBoardV1_2 metaboard = IMetaBoardV1_2(LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS);
             vm.startBroadcast(deployerPrivateKey);
             bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/OrderBookV6SubParser.rain.meta");
             LibDescribedByMeta.emitForDescribedAddress(
@@ -132,29 +119,30 @@ contract Deploy is Script {
                 subParserDescribedByMeta
             );
             vm.stopBroadcast();
-        }
-
-        if (
-            suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR || (suite == DEPLOYMENT_SUITE_ALL && routeProcessor == address(0))
-        ) {
+        } else if (suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR) {
             vm.startBroadcast(deployerPrivateKey);
-            routeProcessor = deployRouter();
+            address routeProcessor = deployRouter();
             vm.stopBroadcast();
-        }
-        bytes32 routeProcessor4BytecodeHash;
-        assembly {
-            routeProcessor4BytecodeHash := extcodehash(routeProcessor)
-        }
-        if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {
-            revert BadRouteProcessor(ROUTE_PROCESSOR_4_BYTECODE_HASH, routeProcessor4BytecodeHash);
-        }
-
-        if (suite == DEPLOYMENT_SUITE_ARB || suite == DEPLOYMENT_SUITE_ALL) {
+            bytes32 routeProcessor4BytecodeHash;
+            assembly {
+                routeProcessor4BytecodeHash := extcodehash(routeProcessor)
+            }
+            if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {
+                revert BadRouteProcessor(ROUTE_PROCESSOR_4_BYTECODE_HASH, routeProcessor4BytecodeHash);
+            }
+        } else if (suite == DEPLOYMENT_SUITE_ARB) {
+            address routeProcessor = vm.envAddress("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS");
+            bytes32 routeProcessor4BytecodeHash;
+            assembly {
+                routeProcessor4BytecodeHash := extcodehash(routeProcessor)
+            }
+            if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {
+                revert BadRouteProcessor(ROUTE_PROCESSOR_4_BYTECODE_HASH, routeProcessor4BytecodeHash);
+            }
             vm.startBroadcast(deployerPrivateKey);
-            // Order takers.
             new GenericPoolOrderBookV6ArbOrderTaker(
                 OrderBookV6ArbConfig(
-                    address(raindex),
+                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
@@ -162,10 +150,9 @@ contract Deploy is Script {
                     ""
                 )
             );
-
             new RouteProcessorOrderBookV6ArbOrderTaker(
                 OrderBookV6ArbConfig(
-                    address(raindex),
+                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
@@ -173,11 +160,9 @@ contract Deploy is Script {
                     abi.encode(routeProcessor)
                 )
             );
-
-            // Flash borrowers.
             new GenericPoolOrderBookV6FlashBorrower(
                 OrderBookV6ArbConfig(
-                    raindex,
+                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
@@ -186,6 +171,8 @@ contract Deploy is Script {
                 )
             );
             vm.stopBroadcast();
+        } else {
+            revert("Unknown deployment suite");
         }
     }
 }

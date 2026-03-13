@@ -26,8 +26,6 @@ jobs:
             task: rainix-sol-test
           - os: ubuntu-latest
             task: rainix-sol-static
-          - os: ubuntu-latest
-            task: rainix-sol-artifacts
           # We don't need to do rust static analysis on multiple platforms
           - os: ubuntu-latest
             task: rainix-rs-static
@@ -80,19 +78,6 @@ jobs:
           gc-max-store-size-linux: 10G
 
       - run: ./pointers.sh
-
-      - name: Generate ephemeral deployment key
-        run: |
-          # Generate wallet within nix develop environment
-          WALLET_OUTPUT=$(nix develop -c cast wallet new)
-
-          # Extract the private key
-          KEY=$(echo "$WALLET_OUTPUT" | grep "Private key:" | awk '{print $3}')
-
-          # Store in GitHub environment (overwrites the hardcoded test key)
-          echo "DEPLOYMENT_KEY=$KEY" >> "$GITHUB_ENV"
-
-          echo "Generated ephemeral deployment key for this run"
 
       - name: Run ${{ matrix.task }}
         env:

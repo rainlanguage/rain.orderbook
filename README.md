@@ -48,19 +48,17 @@ Contracts are deployed via the Foundry script at `script/Deploy.sol`. The script
 
 - `DEPLOYMENT_KEY` — the deployer private key
 - `DEPLOYMENT_SUITE` — which contracts to deploy. One of:
-  - `all` (default) — deploy everything
   - `raindex` — OrderBookV6 only
   - `subparser` — OrderBookV6SubParser only
   - `route-processor` — Sushi RouteProcessor4 only
   - `arb` — arb contracts only (order takers and flash borrowers)
 
 Optional env vars:
-- `DEPLOY_RAINDEX_ADDRESS` — use an existing OrderBook address (required when `DEPLOYMENT_SUITE` is not `all` or `raindex`)
-- `DEPLOY_ROUTE_PROCESSOR_4_ADDRESS` — use an existing RouteProcessor4 address instead of deploying a new one
+- `DEPLOY_ROUTE_PROCESSOR_4_ADDRESS` — existing RouteProcessor4 address (required for `arb` suite)
 
 Example:
 ```bash
-DEPLOYMENT_KEY=<key> DEPLOYMENT_SUITE=all forge script script/Deploy.sol --broadcast
+DEPLOYMENT_KEY=<key> DEPLOYMENT_SUITE=raindex forge script script/Deploy.sol --broadcast
 ```
 
 ## Legal stuff
