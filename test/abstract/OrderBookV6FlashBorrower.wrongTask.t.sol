@@ -49,9 +49,10 @@ contract OrderBookV6FlashBorrowerWrongTaskTest is ArbTest {
         TakeOrderConfigV4[] memory orders = buildTakeOrderConfig(order, inputIOIndex, outputIOIndex);
 
         vm.expectRevert(abi.encodeWithSelector(WrongTask.selector));
-        GenericPoolOrderBookV6FlashBorrower(iArb).arb4(
-            iOrderBook,
-            TakeOrdersConfigV5({
+        GenericPoolOrderBookV6FlashBorrower(iArb)
+            .arb4(
+                iOrderBook,
+                TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -59,8 +60,8 @@ contract OrderBookV6FlashBorrowerWrongTaskTest is ArbTest {
                 orders: orders,
                 data: ""
             }),
-            "",
-            TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
-        );
+                "",
+                TaskV2({evaluable: evaluable, signedContext: new SignedContextV1[](0)})
+            );
     }
 }

@@ -145,9 +145,11 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // expected to process an exchange against external liq to pay back the
         // flash loan, cover the orders and remain in profit.
         IERC20(ordersInputToken).forceApprove(address(orderBook), type(uint256).max);
+        IERC20(ordersOutputToken).forceApprove(address(orderBook), type(uint256).max);
         if (!orderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
             revert FlashLoanFailed();
         }
+        IERC20(ordersOutputToken).forceApprove(address(orderBook), 0);
         IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
 
         LibOrderBookArb.finalizeArb(task, ordersInputToken, inputDecimals, ordersOutputToken, outputDecimals);

@@ -26,9 +26,10 @@ contract OrderBookV6ArbOrderTakerNoOrdersTest is GenericPoolOrderBookV6ArbOrderT
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](0);
 
         vm.expectRevert(abi.encodeWithSelector(IRaindexV6.NoOrders.selector));
-        GenericPoolOrderBookV6ArbOrderTaker(iArb).arb5(
-            iOrderBook,
-            TakeOrdersConfigV5({
+        GenericPoolOrderBookV6ArbOrderTaker(iArb)
+            .arb5(
+                iOrderBook,
+                TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(0, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -36,10 +37,9 @@ contract OrderBookV6ArbOrderTakerNoOrdersTest is GenericPoolOrderBookV6ArbOrderT
                 orders: orders,
                 data: abi.encode(iRefundoor, iRefundoor, "")
             }),
-            TaskV2({
-                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""),
-                signedContext: new SignedContextV1[](0)
+                TaskV2({
+                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)
             })
-        );
+            );
     }
 }

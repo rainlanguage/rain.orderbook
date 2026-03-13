@@ -31,8 +31,7 @@ contract OrderBookV6FlashBorrowerBadInitiatorTest is ArbTest {
         vm.assume(badInitiator != iArb);
 
         vm.expectRevert(abi.encodeWithSelector(BadInitiator.selector, badInitiator));
-        GenericPoolOrderBookV6FlashBorrower(iArb).onFlashLoan(
-            badInitiator, address(0), 0, 0, abi.encode(new bytes(0), new bytes(0))
-        );
+        GenericPoolOrderBookV6FlashBorrower(iArb)
+            .onFlashLoan(badInitiator, address(0), 0, 0, abi.encode(new bytes(0), new bytes(0)));
     }
 }
