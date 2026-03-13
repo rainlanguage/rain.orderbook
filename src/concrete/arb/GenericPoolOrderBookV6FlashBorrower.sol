@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {IERC3156FlashLender} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashLender.sol";
 import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 
 import {
@@ -44,6 +43,6 @@ contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
         IERC20(borrowedToken).forceApprove(spender, 0);
     }
 
-    /// Allow receiving gas.
+    /// Allow arbitrary calls to this contract without reverting.
     fallback() external {}
 }

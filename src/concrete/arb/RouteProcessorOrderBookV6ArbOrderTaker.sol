@@ -11,6 +11,8 @@ import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstr
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+/// @title RouteProcessorOrderBookV6ArbOrderTaker
+/// @notice Order-taker arb that swaps via a Sushi RouteProcessor.
 contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     using SafeERC20 for IERC20;
     using Address for address;
@@ -33,6 +35,8 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         super.onTakeOrders2(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
         IERC20(inputToken).forceApprove(address(iRouteProcessor), type(uint256).max);
         bytes memory route = abi.decode(takeOrdersData, (bytes));
+        // Input amount precision loss is acceptable as the route processor
+        // only needs an approximate amount to execute the swap.
         (uint256 inputTokenAmount, bool losslessInputAmount) =
             LibDecimalFloat.toFixedDecimalLossy(inputAmountSent, IERC20Metadata(inputToken).decimals());
         (losslessInputAmount);
@@ -48,6 +52,6 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         (amountOut);
     }
 
-    /// Allow receiving gas.
+    /// Allow arbitrary calls to this contract without reverting.
     fallback() external {}
 }

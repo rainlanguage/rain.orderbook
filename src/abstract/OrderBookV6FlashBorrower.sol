@@ -29,8 +29,8 @@ error FlashLoanFailed();
 /// Thrown when the swap fails.
 error SwapFailed();
 
-/// @title OrderBookV5FlashBorrower
-/// @notice Abstract contract that liq-source specifialized contracts can inherit
+/// @title OrderBookV6FlashBorrower
+/// @notice Abstract contract that liq-source specialized contracts can inherit
 /// to provide flash loan based arbitrage against external liquidity sources to
 /// fill orderbook orders.
 ///
@@ -38,8 +38,8 @@ error SwapFailed();
 ///
 /// input = DAI
 /// output = USDT
-/// IORatio = 1.01e18
-/// Order amount = 100e18
+/// IORatio = 1.01
+/// Order amount = 100
 ///
 /// Assume external liq is offering 102 DAI per USDT so it exceeds the IO ratio
 /// but the order itself has no way to interact with the external contract.
@@ -70,7 +70,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         return interfaceId == type(IERC3156FlashBorrower).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    /// Hook that inheriting contracts MUST implement in order to achieve
+    /// Hook that inheriting contracts SHOULD override in order to achieve
     /// anything other than raising the ambient temperature of the room.
     /// `_exchange` is responsible for converting the flash loaned assets into
     /// the assets required to fill the orders. Generally this can only be
@@ -95,7 +95,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // type and amount to fill the orders.
         _exchange(takeOrders, exchangeData);
 
-        // At this point `exchange` should have sent the tokens required to match
+        // At this point `_exchange` should have sent the tokens required to match
         // the orders so take orders now.
         // We don't do anything with the total input/output amounts here because
         // the flash loan itself will take back what it needs, and we simply
@@ -107,26 +107,24 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     }
 
     /// Primary function to process arbitrage opportunities.
-    /// Firstly the access gate is evaluated to ensure the sender is allowed to
-    /// submit arbitrage. If there is no access control the sender should expect
+    /// The configured task hash is validated via `onlyValidTask` to gate access.
+    /// If there is no task configured, anyone can call this and should expect
     /// to be front run on the arb for any sufficiently profitable opportunity.
-    /// This may be desirable in some cases, as the sender may simply want to
-    /// be clearing the orderbook and they are expecting profit/utility from the
-    /// orderbook strategies themselves somehow.
     ///
-    /// Secondly the flash loan is taken and the `_exchange` hook is called to
-    /// allow the inheriting contract to convert the flash loaned assets into
-    /// the assets required to fill the orders.
+    /// A flash loan is taken from the orderbook, then inside the callback
+    /// `_exchange` converts the borrowed tokens into the tokens needed to fill
+    /// the orders, and the orders are taken. After the flash loan repays,
+    /// remaining assets are sent to the sender via `finalizeArb`.
     ///
-    /// Finally the orders are taken and the remaining assets are sent to the
-    /// sender.
-    ///
-    /// @param takeOrders As per `IOrderBookV5.takeOrders3`.
+    /// @param orderBook The `OrderBook` contract to take orders from and flash
+    /// loan against.
+    /// @param takeOrders As per `IRaindexV6.takeOrders4`.
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with
-    /// the external liquidity. For example, `GenericPoolOrderBookV5FlashBorrower`
+    /// the external liquidity. For example, `GenericPoolOrderBookV6FlashBorrower`
     /// uses this data as a literal encoded external call.
+    /// @param task The task to evaluate after the arb completes.
     function arb4(
         IRaindexV6 orderBook,
         TakeOrdersConfigV5 calldata takeOrders,

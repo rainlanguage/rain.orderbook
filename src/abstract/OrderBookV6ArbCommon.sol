@@ -13,9 +13,8 @@ import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
 
-/// Configuration for an arb contract to construct.
 /// @param orderBook The `OrderBook` contract to arb against.
-/// @param tasks The tasks to use as post for each arb.
+/// @param task The task to run as post for each arb.
 /// @param implementationData The constructor data for the specific
 /// implementation of the arb contract.
 struct OrderBookV6ArbConfig {
@@ -27,17 +26,27 @@ struct OrderBookV6ArbConfig {
 /// Thrown when the task does not match the expected hash.
 error WrongTask();
 
-/// @dev "Before arb" is evaluated before the flash loan is taken. Ostensibly
+/// @dev "Before arb" is evaluated before the arb is executed. Ostensibly
 /// allows for some kind of access control to the arb.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
+/// @title OrderBookV6ArbCommon
+/// @notice Common base for arb contracts that interact with `OrderBook`.
+/// Stores a task hash at construction time and validates it on each arb call
+/// via the `onlyValidTask` modifier.
 abstract contract OrderBookV6ArbCommon {
     using LibEvaluable for EvaluableV4;
 
+    /// @notice Emitted on construction with the full config.
+    /// @param sender The deployer address.
+    /// @param config The arb config used to construct this contract.
     event Construct(address sender, OrderBookV6ArbConfig config);
 
+    /// @notice Hash of the configured task, or `bytes32(0)` if no task was set.
+    /// Used by `onlyValidTask` to gate arb calls.
     bytes32 public immutable iTaskHash = 0;
 
+    /// @param config The arb config for this contract.
     constructor(OrderBookV6ArbConfig memory config) {
         // Emit events before any external calls are made.
         emit Construct(msg.sender, config);
@@ -47,6 +56,9 @@ abstract contract OrderBookV6ArbCommon {
         }
     }
 
+    /// @notice Reverts with `WrongTask` if `iTaskHash` is nonzero and does not
+    /// match the hash of the provided task. Passes through if no task was
+    /// configured at construction.
     modifier onlyValidTask(TaskV2 memory task) {
         if (iTaskHash != bytes32(0) && iTaskHash != keccak256(abi.encode(task))) {
             revert WrongTask();

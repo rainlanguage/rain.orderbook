@@ -9,8 +9,6 @@ import {
     IParserToolingV1
 } from "rain.interpreter/abstract/BaseRainterpreterSubParser.sol";
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
-import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
-import {LibExternOpContextSender} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSender.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 
 import {
@@ -183,6 +181,8 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
         return LibConvert.unsafeTo16BitBytes(handlersUint256.flatten());
     }
 
+    /// @dev Builds the packed word-parser function pointer table for all
+    /// orderbook sub-parser words across every context column.
     function buildSubParserWordParsers() external pure returns (bytes memory) {
         // Add 2 columns for signers and signed context start.
         // Add 1 for deposit context

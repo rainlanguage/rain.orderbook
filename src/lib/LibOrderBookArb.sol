@@ -20,6 +20,9 @@ error BadLender(address badLender);
 library LibOrderBookArb {
     using SafeERC20 for IERC20;
 
+    /// @dev Sends all remaining token balances and native gas to `msg.sender`,
+    /// then evaluates the post-arb task with a context column containing the
+    /// amounts sent as Floats.
     function finalizeArb(
         TaskV2 memory task,
         address ordersInputToken,

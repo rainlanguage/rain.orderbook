@@ -146,31 +146,28 @@ uint16 constant CALCULATE_ORDER_MAX_OUTPUTS = 2;
 
 /// @dev Handle IO has no outputs as it only responds to vault movements.
 uint256 constant HANDLE_IO_MIN_OUTPUTS = 0;
-/// @dev Handle IO has no outputs as it only response to vault movements.
+/// @dev Handle IO has no outputs as it only responds to vault movements.
 uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
 
 /// All information resulting from an order calculation that allows for vault IO
 /// to be calculated and applied, then the handle IO entrypoint to be dispatched.
-/// @param outputMax The UNSCALED maximum output calculated by the order
-/// expression. WILL BE RESCALED ACCORDING TO TOKEN DECIMALS to an 18 fixed
-/// point decimal number for the purpose of calculating actual vault movements.
+/// @param outputMax The maximum output calculated by the order expression as a
+/// Float. WILL BE RESCALED ACCORDING TO TOKEN DECIMALS (read via TOFU) for the
+/// purpose of calculating actual vault movements.
 /// The output max is CAPPED AT THE OUTPUT VAULT BALANCE OF THE ORDER OWNER.
 /// The order is guaranteed that the total output of this single clearance cannot
 /// exceed this (subject to rescaling). It is up to the order expression to track
 /// values over time if the output max is to impose a global limit across many
 /// transactions and counterparties.
-/// @param IORatio The UNSCALED order ratio as input/output from the perspective
-/// of the order. As each counterparty's input is the other's output, the IORatio
-/// calculated by each order is inverse of its counterparty. IORatio is SCALED
-/// ACCORDING TO TOKEN DECIMALS to allow 18 decimal fixed point math over the
-/// vault balances. I.e. `1e18` returned from the expression is ALWAYS "one" as
-/// ECONOMIC EQUIVALENCE between two tokens, but this will be rescaled according
-/// to the decimals of the token. For example, if DAI and USDT have a ratio of
-/// `1e18` then in reality `1e12` DAI will move in the vault for every `1` USDT
-/// that moves, because DAI has `1e18` decimals per $1 peg and USDT has `1e6`
-/// decimals per $1 peg. THE ORDER DEFINES THE DECIMALS for each token, NOT the
-/// token itself, because the token MAY NOT report its decimals as per it being
-/// optional in the ERC20 specification.
+/// @param IORatio The order ratio as input/output from the perspective of the
+/// order, as a Float. As each counterparty's input is the other's output, the
+/// IORatio calculated by each order is inverse of its counterparty. IORatio is
+/// RESCALED ACCORDING TO TOKEN DECIMALS (read via TOFU) when applied to vault
+/// balances. I.e. a ratio of `1` is ALWAYS "one" as ECONOMIC EQUIVALENCE
+/// between two tokens, but this will be rescaled according to the decimals of
+/// the token. For example, if DAI and USDT have a ratio of `1` then in reality
+/// `1e12` DAI will move in the vault for every `1` USDT that moves, because DAI
+/// has `1e18` decimals per $1 peg and USDT has `1e6` decimals per $1 peg.
 /// @param context The entire 2D context array, initialized from the context
 /// passed into the order calculations and then populated with the order
 /// calculations and vault IO before being passed back to handle IO entrypoint.
@@ -899,8 +896,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
             orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_VAULT_ID],
             input
         );
-        // Decrease before increasing so that if vault id == 0 then we pull
-        // tokens before pushing them.
+        // Increase before decreasing so that if vault id == 0 then we push
+        // tokens before pulling them.
         decreaseVaultBalance(
             orderIOCalculation.order.owner,
             address(uint160(uint256(orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_TOKEN]))),

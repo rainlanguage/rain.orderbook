@@ -24,10 +24,14 @@ import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDec
 /// Thrown when "before arb" wants inputs that we don't have.
 error NonZeroBeforeArbInputs(uint256 inputs);
 
-/// @dev "Before arb" is evaluabled before the arb is executed. Ostensibly this
+/// @dev "Before arb" is evaluated before the arb is executed. Ostensibly this
 /// is to allow for access control to the arb, the return values are ignored.
 SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
 
+/// @title OrderBookV6ArbOrderTaker
+/// @notice Arb contract that takes orders directly from an `OrderBook` without
+/// flash loans. Inheritors implement the strategy for sourcing the input token
+/// (e.g. routing through a DEX).
 abstract contract OrderBookV6ArbOrderTaker is
     IRaindexV6OrderTaker,
     IRaindexV6ArbOrderTaker,
@@ -75,5 +79,8 @@ abstract contract OrderBookV6ArbOrderTaker is
     }
 
     /// @inheritdoc IRaindexV6OrderTaker
+    /// @dev Empty no-op. The contract holds no value between operations and the
+    /// caller chooses which orderbook to interact with, so there is nothing to
+    /// protect via `msg.sender` validation here.
     function onTakeOrders2(address, address, Float, Float, bytes calldata) public virtual override {}
 }
