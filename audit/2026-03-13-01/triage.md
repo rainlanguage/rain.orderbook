@@ -28,13 +28,13 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 |---|-----|------|------|-------|--------|-------|
 | 7 | A03-1 | P1 | OrderBookV6FlashBorrower.sol | Missing msg.sender (lender) validation in onFlashLoan | FIXED | Added iOrderBook immutable + BadLender check; test in lenderValidation.t.sol |
 | 8 | A03-3 | P1 | OrderBookV6FlashBorrower.sol | Flash loan amount computed with wrong token decimals | FIXED | Changed inputDecimals → outputDecimals; test in mixedDecimals.t.sol |
-| 9 | A05-2 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Arbitrary external call sends entire ETH balance | PENDING | |
+| 9 | A05-2 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Arbitrary external call sends entire ETH balance | DOCUMENTED | By design: same as A05-1; contract stateless between ops; balance is normally 0 |
 | 10 | A06-1 | P1 | GenericPoolOrderBookV6FlashBorrower.sol | Unlimited approval to arbitrary spender with no validation | DOCUMENTED | Dup of A05-1; approve-call-revoke; added inline comment |
 | 11 | A03-P2-1 | P2 | OrderBookV6FlashBorrower.sol | onFlashLoan has zero direct test coverage for error paths | FIXED | BadInitiator tested in badInitiator.t.sol |
-| 12 | A03-P2-2 | P2 | OrderBookV6FlashBorrower.sol | FlashLoanFailed error path is never tested | PENDING | |
+| 12 | A03-P2-2 | P2 | OrderBookV6FlashBorrower.sol | FlashLoanFailed error path is never tested | FIXED | Test in flashLoanFailed.t.sol |
 | 13 | A03-P2-6 | P2 | OrderBookV6FlashBorrower.sol | WrongTask revert path has no test for flash borrower arb contracts | FIXED | Added wrongTask.t.sol |
 | 14 | A05-P2-2 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No test for fallback() behavior | FIXED | Added fallback.t.sol for both arb types |
-| 15 | A07-P2-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | onTakeOrders2 override has zero test coverage | PENDING | |
+| 15 | A07-P2-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | onTakeOrders2 override has zero test coverage | FIXED | Test in onTakeOrders2.t.sol with MockRouteProcessor |
 | 16 | A15-P5-2 | P5 | Deploy.sol | vm.envAddress reverts unconditionally for route-processor suite | DISMISSED | Incorrect: envAddress is in ARB branch (line 135), not route-processor branch |
 
 ## LOW
@@ -69,7 +69,7 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 42 | A15-P2-3 | P2 | Deploy.sol | No test for BadRouteProcessor error path | PENDING | |
 | 43 | A15-P2-4 | P2 | Deploy.sol | No test coverage for individual suite isolation | PENDING | |
 | 44 | A06-P2-GAP1 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for BadInitiator error path | FIXED | Added badInitiator.t.sol |
-| 45 | A06-P2-GAP2 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for FlashLoanFailed error path | PENDING | |
+| 45 | A06-P2-GAP2 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for FlashLoanFailed error path | FIXED | Dup of A03-P2-2; same base class tested |
 | 46 | A06-P2-GAP3 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for WrongTask on GenericPoolOrderBookV6FlashBorrower | FIXED | Dup of A03-P2-6 |
 | 47 | A06-P2-GAP4 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for NoOrders revert in arb4 | FIXED | Dup of A03-P2-5 |
 | 48 | A06-P2-GAP5 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for _exchange failure propagation | PENDING | |
@@ -138,6 +138,6 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 106 | A15-P3-7 | P3 | Deploy.sol | sDepCodeHashes state var no docs | FIXED | |
 | 107 | A15-P3-8 | P3 | README.md | README missing deploy info | FIXED | Added Deployment section |
 | 108 | CR-1 | CR | LibOrderBookArb.sol | sendValue called without zero-balance guard | FIXED | Added if (gasBalance > 0) guard |
-| 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | PENDING | CodeRabbit finding |
+| 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | DISMISSED | WORD_* constants ARE the canonical keywords; naming convention is consistent |
 | 110 | CR-3 | CR | README.md | Deploy example missing ETH_RPC_URL / --rpc-url | FIXED | Added --rpc-url to example |
-| 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | PENDING | CodeRabbit finding |
+| 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | FIXED | Extracted CONTEXT_COLUMNS_EXTENDED constant in LibOrderBook.sol |

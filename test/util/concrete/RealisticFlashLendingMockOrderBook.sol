@@ -15,6 +15,7 @@ import {MockOrderBookBase} from "test/util/abstract/MockOrderBookBase.sol";
 /// takeOrders4 transfers (no onTakeOrders2 callback).
 contract RealisticFlashLendingMockOrderBook is MockOrderBookBase {
     using SafeERC20 for IERC20;
+
     function flashLoan(IERC3156FlashBorrower receiver, address token, uint256 amount, bytes calldata data)
         external
         override

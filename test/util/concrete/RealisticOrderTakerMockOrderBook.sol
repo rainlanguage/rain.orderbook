@@ -12,6 +12,7 @@ import {MockOrderBookBase} from "test/util/abstract/MockOrderBookBase.sol";
 /// callback, matching the real orderbook flow for order taker arb contracts.
 contract RealisticOrderTakerMockOrderBook is MockOrderBookBase {
     using SafeERC20 for IERC20;
+
     function takeOrders4(TakeOrdersConfigV5 calldata config) external override returns (Float, Float) {
         address ordersInputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
         address ordersOutputToken = config.orders[0].order.validOutputs[config.orders[0].outputIOIndex].token;
@@ -22,9 +23,8 @@ contract RealisticOrderTakerMockOrderBook is MockOrderBookBase {
         IERC20(ordersOutputToken).safeTransfer(msg.sender, outputAmount);
 
         // Callback: taker swaps received tokens for the tokens the OB will pull.
-        IRaindexV6OrderTaker(msg.sender).onTakeOrders2(
-            ordersOutputToken, ordersInputToken, Float.wrap(0), Float.wrap(0), config.data
-        );
+        IRaindexV6OrderTaker(msg.sender)
+            .onTakeOrders2(ordersOutputToken, ordersInputToken, Float.wrap(0), Float.wrap(0), config.data);
 
         // Pull ordersInputToken from taker.
         uint256 inputBalance = IERC20(ordersInputToken).balanceOf(msg.sender);
