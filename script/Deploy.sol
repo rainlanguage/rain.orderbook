@@ -12,6 +12,8 @@ import {OrderBookV6ArbConfig} from "src/abstract/OrderBookV6ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 import {LibMetaBoardDeploy} from "rain.metadata/lib/deploy/LibMetaBoardDeploy.sol";
+import {LibDecimalFloatDeploy} from "rain.math.float/lib/deploy/LibDecimalFloatDeploy.sol";
+import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
@@ -67,7 +69,10 @@ contract Deploy is Script {
 
         if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
             console2.log("Deploying OrderBookV6...");
-            address[] memory deps = new address[](0);
+            address[] memory deps = new address[](3);
+            deps[0] = LibDecimalFloatDeploy.ZOLTU_DEPLOYED_LOG_TABLES_ADDRESS;
+            deps[1] = address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT);
+            deps[2] = LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS;
             LibRainDeploy.deployAndBroadcast(
                 vm,
                 LibRainDeploy.supportedNetworks(),
@@ -88,7 +93,10 @@ contract Deploy is Script {
 
         if (suite == DEPLOYMENT_SUITE_SUBPARSER || suite == DEPLOYMENT_SUITE_ALL) {
             console2.log("Deploying OrderBookV6SubParser...");
-            address[] memory deps = new address[](0);
+            address[] memory deps = new address[](3);
+            deps[0] = LibDecimalFloatDeploy.ZOLTU_DEPLOYED_LOG_TABLES_ADDRESS;
+            deps[1] = address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT);
+            deps[2] = LibMetaBoardDeploy.METABOARD_DEPLOYED_ADDRESS;
             LibRainDeploy.deployAndBroadcast(
                 vm,
                 LibRainDeploy.supportedNetworks(),
