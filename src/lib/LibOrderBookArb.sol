@@ -10,13 +10,6 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-/// Thrown when the stack is not empty after the access control dispatch.
-error NonZeroBeforeArbStack();
-
-/// Thrown when the lender is not the trusted `OrderBook`.
-/// @param badLender The untrusted lender calling `onFlashLoan`.
-error BadLender(address badLender);
-
 /// @title LibOrderBookArb
 library LibOrderBookArb {
     using SafeERC20 for IERC20;

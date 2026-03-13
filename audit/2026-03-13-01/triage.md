@@ -30,12 +30,12 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 8 | A03-3 | P1 | OrderBookV6FlashBorrower.sol | Flash loan amount computed with wrong token decimals | PENDING | Dup: A03-P2-7 |
 | 9 | A05-2 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Arbitrary external call sends entire ETH balance | PENDING | |
 | 10 | A06-1 | P1 | GenericPoolOrderBookV6FlashBorrower.sol | Unlimited approval to arbitrary spender with no validation | PENDING | Similar to A05-1 |
-| 11 | A03-P2-1 | P2 | OrderBookV6FlashBorrower.sol | onFlashLoan has zero direct test coverage for error paths | PENDING | |
+| 11 | A03-P2-1 | P2 | OrderBookV6FlashBorrower.sol | onFlashLoan has zero direct test coverage for error paths | FIXED | BadInitiator tested in badInitiator.t.sol |
 | 12 | A03-P2-2 | P2 | OrderBookV6FlashBorrower.sol | FlashLoanFailed error path is never tested | PENDING | |
-| 13 | A03-P2-6 | P2 | OrderBookV6FlashBorrower.sol | WrongTask revert path has no test for flash borrower arb contracts | PENDING | |
-| 14 | A05-P2-2 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No test for fallback() behavior | PENDING | |
+| 13 | A03-P2-6 | P2 | OrderBookV6FlashBorrower.sol | WrongTask revert path has no test for flash borrower arb contracts | FIXED | Added wrongTask.t.sol |
+| 14 | A05-P2-2 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No test for fallback() behavior | FIXED | Added fallback.t.sol for both arb types |
 | 15 | A07-P2-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | onTakeOrders2 override has zero test coverage | PENDING | |
-| 16 | A15-P5-2 | P5 | Deploy.sol | vm.envAddress reverts unconditionally for route-processor suite | PENDING | |
+| 16 | A15-P5-2 | P5 | Deploy.sol | vm.envAddress reverts unconditionally for route-processor suite | DISMISSED | Incorrect: envAddress is in ARB branch (line 135), not route-processor branch |
 
 ## LOW
 
@@ -48,19 +48,19 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 21 | A07-1 | P1 | RouteProcessorOrderBookV6ArbOrderTaker.sol | onTakeOrders2 is public with no access control | PENDING | Similar: A02-1 |
 | 22 | A08-1 | P1 | OrderBookV6.sol | flashLoan lacks nonReentrant guard | PENDING | Same issue as A04-2 |
 | 23 | A15-2 | P1 | Deploy.sol | No explicit revert on failed create in deployRouter() | PENDING | Dup: A15-P5-3 |
-| 24 | A01-P2-1 | P2 | OrderBookV6ArbCommon.sol | No test for WrongTask revert through FlashBorrower path | PENDING | |
+| 24 | A01-P2-1 | P2 | OrderBookV6ArbCommon.sol | No test for WrongTask revert through FlashBorrower path | FIXED | Dup of A03-P2-6 |
 | 25 | A01-P2-2 | P2 | OrderBookV6ArbCommon.sol | No direct unit test for constructor iTaskHash assignment | PENDING | |
 | 26 | A01-P2-3 | P2 | OrderBookV6ArbCommon.sol | No test for onlyValidTask bypass when iTaskHash == 0 | PENDING | |
-| 27 | A02-P2-1 | P2 | OrderBookV6ArbOrderTaker.sol | No test for arb5 reverting on zero orders | PENDING | |
+| 27 | A02-P2-1 | P2 | OrderBookV6ArbOrderTaker.sol | No test for arb5 reverting on zero orders | FIXED | Added noOrders.t.sol |
 | 28 | A02-P2-2 | P2 | OrderBookV6ArbOrderTaker.sol | No test for reentrancy guard on arb5 | PENDING | |
 | 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | PENDING | |
 | 30 | A03-P2-4 | P2 | OrderBookV6FlashBorrower.sol | SwapFailed error declared but never used/tested | FIXED | Removed dead error; Dup: A03-P4-2 |
-| 31 | A03-P2-5 | P2 | OrderBookV6FlashBorrower.sol | NoOrders revert path has no test through flash borrower | PENDING | |
+| 31 | A03-P2-5 | P2 | OrderBookV6FlashBorrower.sol | NoOrders revert path has no test through flash borrower | FIXED | Added FlashBorrower.noOrders.t.sol |
 | 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | PENDING | Dup of A03-3 |
 | 33 | A05-P2-3 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | Constructor event emission tested only indirectly | PENDING | |
 | 34 | A07-P2-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for onTakeOrders2 called directly by attacker | PENDING | |
 | 35 | A07-P2-3 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for constructor with invalid implementationData | PENDING | |
-| 36 | A12-P2-1 | P2 | LibOrderBookArb.sol | NonZeroBeforeArbStack and BadLender errors are dead code | PENDING | Related: A02-P4-3 |
+| 36 | A12-P2-1 | P2 | LibOrderBookArb.sol | NonZeroBeforeArbStack and BadLender errors are dead code | FIXED | Removed both dead errors |
 | 37 | A12-P2-2 | P2 | LibOrderBookArb.sol | No test verifies token transfers in finalizeArb | PENDING | |
 | 38 | A12-P2-3 | P2 | LibOrderBookArb.sol | No test verifies native gas sent to msg.sender | PENDING | |
 | 39 | A12-P2-4 | P2 | LibOrderBookArb.sol | No test exercises finalizeArb with realistic non-zero balances | PENDING | |
@@ -68,10 +68,10 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 41 | A15-P2-2 | P2 | Deploy.sol | ROUTE_PROCESSOR_4_BYTECODE_HASH constant never verified | PENDING | |
 | 42 | A15-P2-3 | P2 | Deploy.sol | No test for BadRouteProcessor error path | PENDING | |
 | 43 | A15-P2-4 | P2 | Deploy.sol | No test coverage for individual suite isolation | PENDING | |
-| 44 | A06-P2-GAP1 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for BadInitiator error path | PENDING | |
+| 44 | A06-P2-GAP1 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for BadInitiator error path | FIXED | Added badInitiator.t.sol |
 | 45 | A06-P2-GAP2 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for FlashLoanFailed error path | PENDING | |
-| 46 | A06-P2-GAP3 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for WrongTask on GenericPoolOrderBookV6FlashBorrower | PENDING | |
-| 47 | A06-P2-GAP4 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for NoOrders revert in arb4 | PENDING | |
+| 46 | A06-P2-GAP3 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for WrongTask on GenericPoolOrderBookV6FlashBorrower | FIXED | Dup of A03-P2-6 |
+| 47 | A06-P2-GAP4 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for NoOrders revert in arb4 | FIXED | Dup of A03-P2-5 |
 | 48 | A06-P2-GAP5 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for _exchange failure propagation | PENDING | |
 | 49 | A09-P2-GAP1 | P2 | OrderBookV6SubParser.sol | No tests for deposit word parsing (11 words, 0 tests) | PENDING | |
 | 50 | A01-P3-1 | P3 | OrderBookV6ArbCommon.sol | Struct @param name mismatch: tasks vs task | FIXED | Dup: A01-P5-1 |
@@ -110,18 +110,18 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 83 | A07-P4-2 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No explicit remapping for sushixswap-v2 | PENDING | |
 | 84 | A15-P4-1 | P4 | Deploy.sol | Unused import OrderBookV6 | FIXED | Removed; EvaluableV4/TaskV2/SignedContextV1 now from canonical sources |
 | 85 | A15-P4-2 | P4 | Deploy.sol | Imports through concrete contract rather than canonical source | FIXED | Now imports from interface packages directly |
-| 86 | A15-P4-3 | P4 | Deploy.sol | Inconsistent address() cast on raindex variable | PENDING | |
+| 86 | A15-P4-3 | P4 | Deploy.sol | Inconsistent address() cast on raindex variable | DISMISSED | Cast required: TOFU_DECIMALS_DEPLOYMENT is a contract type, others are address |
 | 87 | A15-P4-4 | P4 | Deploy.sol | Missing "memory-safe" annotation on second assembly block | FIXED | Added to both assembly blocks |
 | 88 | A15-P4-5 | P4 | Deploy.sol | Repeated TaskV2/EvaluableV4 zero-value boilerplate | PENDING | |
 | 89 | A01-P5-1 | P5 | OrderBookV6ArbCommon.sol | NatSpec @param tasks does not match field name task | FIXED | Dup of A01-P3-1 |
-| 90 | A03-P5-1 | P5 | OrderBookV6FlashBorrower.sol | BadInitiator NatSpec inaccurately describes the check | PENDING | |
+| 90 | A03-P5-1 | P5 | OrderBookV6FlashBorrower.sol | BadInitiator NatSpec inaccurately describes the check | FIXED | NatSpec now says "this contract" not "the order book" |
 | 91 | A03-P5-2 | P5 | OrderBookV6FlashBorrower.sol | NatSpec for arb4 describes stale "access gate" evaluation | FIXED | Dup of A03-P3-2 |
 | 92 | A04-P5-1 | P5 | OrderBookV6FlashLender.sol | maxFlashLoan NatSpec falsely claims active-debt disabling | FIXED | Dup of A04-P3-1 |
 | 93 | A05-P5-01 | P5 | GenericPoolOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
 | 94 | A06-P5-01 | P5 | GenericPoolOrderBookV6FlashBorrower.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
 | 95 | A07-P5-01 | P5 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Misleading "Allow receiving gas" comment on non-payable fallback | FIXED | Dup of A05-3; comment updated |
 | 96 | A15-P5-3 | P5 | Deploy.sol | No require/revert on create returning address(0) (confirms A15-2) | PENDING | Dup of A15-2 |
-| 97 | A15-P5-4 | P5 | Deploy.sol | No mechanism to reject unknown suite values | PENDING | |
+| 97 | A15-P5-4 | P5 | Deploy.sol | No mechanism to reject unknown suite values | DISMISSED | Already handled: line 175 has revert("Unknown deployment suite") |
 
 ## INFO
 
@@ -139,5 +139,5 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 107 | A15-P3-8 | P3 | README.md | README missing deploy info | FIXED | Added Deployment section |
 | 108 | CR-1 | CR | LibOrderBookArb.sol | sendValue called without zero-balance guard | PENDING | CodeRabbit finding |
 | 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | PENDING | CodeRabbit finding |
-| 110 | CR-3 | CR | README.md | Deploy example missing ETH_RPC_URL / --rpc-url | PENDING | CodeRabbit finding |
+| 110 | CR-3 | CR | README.md | Deploy example missing ETH_RPC_URL / --rpc-url | FIXED | Added --rpc-url to example |
 | 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | PENDING | CodeRabbit finding |

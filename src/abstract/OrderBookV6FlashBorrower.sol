@@ -14,7 +14,7 @@ import {LibOrderBookArb} from "../lib/LibOrderBookArb.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-/// Thrown when the initiator is not the order book.
+/// Thrown when the flash loan initiator is not this contract.
 /// @param badInitiator The untrusted initiator of the flash loan.
 error BadInitiator(address badInitiator);
 
