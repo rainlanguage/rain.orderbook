@@ -7,7 +7,6 @@ on:
         required: true
         type: choice
         options:
-          - all
           - raindex
           - subparser
           - route-processor
