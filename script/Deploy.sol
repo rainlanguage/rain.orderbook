@@ -64,7 +64,6 @@ contract Deploy is Script {
         string memory suiteString = vm.envOr("DEPLOYMENT_SUITE", string("all"));
         bytes32 suite = keccak256(bytes(suiteString));
 
-        address raindex = address(0);
         address routeProcessor = vm.envOr("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS", address(0));
 
         if (suite == DEPLOYMENT_SUITE_RAINDEX || suite == DEPLOYMENT_SUITE_ALL) {
@@ -84,11 +83,6 @@ contract Deploy is Script {
                 deps,
                 sDepCodeHashes
             );
-            raindex = LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS;
-        }
-
-        if (raindex == address(0)) {
-            raindex = vm.envAddress("DEPLOY_RAINDEX_ADDRESS");
         }
 
         if (suite == DEPLOYMENT_SUITE_SUBPARSER || suite == DEPLOYMENT_SUITE_ALL) {
@@ -139,7 +133,7 @@ contract Deploy is Script {
             // Order takers.
             new GenericPoolOrderBookV6ArbOrderTaker(
                 OrderBookV6ArbConfig(
-                    address(raindex),
+                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
@@ -150,7 +144,7 @@ contract Deploy is Script {
 
             new RouteProcessorOrderBookV6ArbOrderTaker(
                 OrderBookV6ArbConfig(
-                    address(raindex),
+                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
@@ -162,7 +156,7 @@ contract Deploy is Script {
             // Flash borrowers.
             new GenericPoolOrderBookV6FlashBorrower(
                 OrderBookV6ArbConfig(
-                    raindex,
+                    LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
                     TaskV2({
                         evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                         signedContext: new SignedContextV1[](0)
