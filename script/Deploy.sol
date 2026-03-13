@@ -3,7 +3,8 @@
 pragma solidity =0.8.25;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {OrderBookV6, EvaluableV4, TaskV2, SignedContextV1} from "src/concrete/ob/OrderBookV6.sol";
+import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
+import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
 import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {RouteProcessorOrderBookV6ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
@@ -124,7 +125,7 @@ contract Deploy is Script {
             address routeProcessor = deployRouter();
             vm.stopBroadcast();
             bytes32 routeProcessor4BytecodeHash;
-            assembly {
+            assembly ("memory-safe") {
                 routeProcessor4BytecodeHash := extcodehash(routeProcessor)
             }
             if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {
@@ -133,7 +134,7 @@ contract Deploy is Script {
         } else if (suite == DEPLOYMENT_SUITE_ARB) {
             address routeProcessor = vm.envAddress("DEPLOY_ROUTE_PROCESSOR_4_ADDRESS");
             bytes32 routeProcessor4BytecodeHash;
-            assembly {
+            assembly ("memory-safe") {
                 routeProcessor4BytecodeHash := extcodehash(routeProcessor)
             }
             if (routeProcessor4BytecodeHash != ROUTE_PROCESSOR_4_BYTECODE_HASH) {

@@ -4,18 +4,13 @@ pragma solidity ^0.8.19;
 
 import {ERC165, IERC165} from "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
-import {LibBytecode} from "rain.interpreter.interface/lib/bytecode/LibBytecode.sol";
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IRaindexV6, TakeOrdersConfigV5, TaskV2, Float} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {IRaindexV6, TakeOrdersConfigV5, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {OrderBookV6ArbConfig, OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
-import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
-import {LibOrderBook} from "../lib/LibOrderBook.sol";
-import {LibOrderBookArb, NonZeroBeforeArbStack, BadLender} from "../lib/LibOrderBookArb.sol";
+import {LibOrderBookArb} from "../lib/LibOrderBookArb.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
@@ -25,9 +20,6 @@ error BadInitiator(address badInitiator);
 
 /// Thrown when the flash loan fails somehow.
 error FlashLoanFailed();
-
-/// Thrown when the swap fails.
-error SwapFailed();
 
 /// @title OrderBookV6FlashBorrower
 /// @notice Abstract contract that liq-source specialized contracts can inherit
@@ -60,7 +52,6 @@ error SwapFailed();
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
 abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV6ArbCommon {
-    using Address for address;
     using SafeERC20 for IERC20;
 
     constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbCommon(config) {}

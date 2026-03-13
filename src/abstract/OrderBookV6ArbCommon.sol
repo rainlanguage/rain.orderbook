@@ -3,14 +3,8 @@
 pragma solidity ^0.8.19;
 
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
-import {
-    IInterpreterV4,
-    SourceIndexV2,
-    DEFAULT_STATE_NAMESPACE
-} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
+import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IRaindexV6, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
-import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
 
 /// @param orderBook The `OrderBook` contract to arb against.

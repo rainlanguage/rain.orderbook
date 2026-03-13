@@ -5,7 +5,6 @@ pragma solidity =0.8.25;
 import {IRouteProcessor} from "sushixswap-v2/src/interfaces/IRouteProcessor.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
@@ -15,7 +14,6 @@ import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/exten
 /// @notice Order-taker arb that swaps via a Sushi RouteProcessor.
 contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     using SafeERC20 for IERC20;
-    using Address for address;
 
     /// @dev The Sushi RouteProcessor used to execute swaps.
     IRouteProcessor public immutable iRouteProcessor;

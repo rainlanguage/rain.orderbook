@@ -2,13 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 
 import {
     OrderBookV6FlashBorrower,
     SafeERC20,
     IERC20,
-    Address,
     TakeOrdersConfigV5,
     OrderBookV6ArbConfig
 } from "../../abstract/OrderBookV6FlashBorrower.sol";

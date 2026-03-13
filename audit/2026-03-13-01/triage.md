@@ -54,7 +54,7 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 27 | A02-P2-1 | P2 | OrderBookV6ArbOrderTaker.sol | No test for arb5 reverting on zero orders | PENDING | |
 | 28 | A02-P2-2 | P2 | OrderBookV6ArbOrderTaker.sol | No test for reentrancy guard on arb5 | PENDING | |
 | 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | PENDING | |
-| 30 | A03-P2-4 | P2 | OrderBookV6FlashBorrower.sol | SwapFailed error declared but never used/tested | PENDING | Dup: A03-P4-2 |
+| 30 | A03-P2-4 | P2 | OrderBookV6FlashBorrower.sol | SwapFailed error declared but never used/tested | FIXED | Removed dead error; Dup: A03-P4-2 |
 | 31 | A03-P2-5 | P2 | OrderBookV6FlashBorrower.sol | NoOrders revert path has no test through flash borrower | PENDING | |
 | 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | PENDING | Dup of A03-3 |
 | 33 | A05-P2-3 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | Constructor event emission tested only indirectly | PENDING | |
@@ -97,21 +97,21 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 70 | A15-P3-3 | P3 | Deploy.sol | run() has no documentation | FIXED | |
 | 71 | A15-P3-4 | P3 | Deploy.sol | Five DEPLOYMENT_SUITE_* constants have no documentation | FIXED | |
 | 72 | P3-A09-01 | P3 | OrderBookV6SubParser.sol | buildSubParserWordParsers() has no NatSpec | FIXED | |
-| 73 | A01-P4-1 | P4 | OrderBookV6ArbCommon.sol | Multiple unused imports | PENDING | |
-| 74 | A02-P4-1 | P4 | OrderBookV6ArbOrderTaker.sol | 10 unused imports | PENDING | |
-| 75 | A02-P4-2 | P4 | OrderBookV6ArbOrderTaker.sol | Duplicate constant BEFORE_ARB_SOURCE_INDEX | PENDING | |
+| 73 | A01-P4-1 | P4 | OrderBookV6ArbCommon.sol | Multiple unused imports | FIXED | Removed 4 unused imports |
+| 74 | A02-P4-1 | P4 | OrderBookV6ArbOrderTaker.sol | 10 unused imports | FIXED | Removed 10 unused imports |
+| 75 | A02-P4-2 | P4 | OrderBookV6ArbOrderTaker.sol | Duplicate constant BEFORE_ARB_SOURCE_INDEX | FIXED | Removed duplicate, kept in ArbCommon |
 | 76 | A02-P4-3 | P4 | OrderBookV6ArbOrderTaker.sol | Dead error NonZeroBeforeArbInputs | FIXED | Related: A12-P2-1 |
-| 77 | A03-P4-1 | P4 | OrderBookV6FlashBorrower.sol | 7 unused imports | PENDING | |
-| 78 | A03-P4-2 | P4 | OrderBookV6FlashBorrower.sol | Dead error SwapFailed | PENDING | Dup of A03-P2-4 |
+| 77 | A03-P4-1 | P4 | OrderBookV6FlashBorrower.sol | 7 unused imports | FIXED | Removed 8 unused imports + unused using statement |
+| 78 | A03-P4-2 | P4 | OrderBookV6FlashBorrower.sol | Dead error SwapFailed | FIXED | Removed dead error |
 | 79 | A03-P4-3 | P4 | OrderBookV6FlashBorrower.sol | Stale NatSpec @title OrderBookV5FlashBorrower | FIXED | Dup of A03-P3-1 |
-| 80 | A06-P4-1 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashLender | PENDING | |
-| 81 | A06-P4-2 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashBorrower | PENDING | |
-| 82 | A07-P4-1 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Unused import Address | PENDING | |
+| 80 | A06-P4-1 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashLender | FIXED | Removed |
+| 81 | A06-P4-2 | P4 | GenericPoolOrderBookV6FlashBorrower.sol | Unused import IERC3156FlashBorrower | FIXED | Removed |
+| 82 | A07-P4-1 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | Unused import Address | FIXED | Removed import + unused using statement |
 | 83 | A07-P4-2 | P4 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No explicit remapping for sushixswap-v2 | PENDING | |
-| 84 | A15-P4-1 | P4 | Deploy.sol | Unused import OrderBookV6 | PENDING | |
-| 85 | A15-P4-2 | P4 | Deploy.sol | Imports through concrete contract rather than canonical source | PENDING | |
+| 84 | A15-P4-1 | P4 | Deploy.sol | Unused import OrderBookV6 | FIXED | Removed; EvaluableV4/TaskV2/SignedContextV1 now from canonical sources |
+| 85 | A15-P4-2 | P4 | Deploy.sol | Imports through concrete contract rather than canonical source | FIXED | Now imports from interface packages directly |
 | 86 | A15-P4-3 | P4 | Deploy.sol | Inconsistent address() cast on raindex variable | PENDING | |
-| 87 | A15-P4-4 | P4 | Deploy.sol | Missing "memory-safe" annotation on second assembly block | PENDING | |
+| 87 | A15-P4-4 | P4 | Deploy.sol | Missing "memory-safe" annotation on second assembly block | FIXED | Added to both assembly blocks |
 | 88 | A15-P4-5 | P4 | Deploy.sol | Repeated TaskV2/EvaluableV4 zero-value boilerplate | PENDING | |
 | 89 | A01-P5-1 | P5 | OrderBookV6ArbCommon.sol | NatSpec @param tasks does not match field name task | FIXED | Dup of A01-P3-1 |
 | 90 | A03-P5-1 | P5 | OrderBookV6FlashBorrower.sol | BadInitiator NatSpec inaccurately describes the check | PENDING | |
@@ -137,3 +137,7 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 105 | A13-P3-3 | P3 | LibOrderBookSubParser.sol | Missing @notice on LibOrderBookSubParser | FIXED | |
 | 106 | A15-P3-7 | P3 | Deploy.sol | sDepCodeHashes state var no docs | FIXED | |
 | 107 | A15-P3-8 | P3 | README.md | README missing deploy info | FIXED | Added Deployment section |
+| 108 | CR-1 | CR | LibOrderBookArb.sol | sendValue called without zero-balance guard | PENDING | CodeRabbit finding |
+| 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | PENDING | CodeRabbit finding |
+| 110 | CR-3 | CR | README.md | Deploy example missing ETH_RPC_URL / --rpc-url | PENDING | CodeRabbit finding |
+| 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | PENDING | CodeRabbit finding |

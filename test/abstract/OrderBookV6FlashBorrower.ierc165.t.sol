@@ -8,10 +8,9 @@ import {
     OrderBookV6FlashBorrower,
     IERC3156FlashBorrower,
     OrderBookV6ArbConfig,
-    TaskV2,
-    SignedContextV1,
-    EvaluableV4
+    TaskV2
 } from "src/abstract/OrderBookV6FlashBorrower.sol";
+import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 
