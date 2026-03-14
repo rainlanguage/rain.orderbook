@@ -17,8 +17,7 @@ import {
     IOV2,
     EvaluableV4,
     SignedContextV1,
-    TaskV2,
-    Float
+    TaskV2
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
@@ -29,17 +28,17 @@ import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockExchange} from "test/util/concrete/MockExchange.sol";
 import {RealisticOrderTakerMockOrderBook} from "test/util/concrete/RealisticOrderTakerMockOrderBook.sol";
 
-contract OrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
-    /// arb5 completes a full order-taker cycle with real ERC20 transfers:
-    /// takeOrders, onTakeOrders2 callback with exchange, and finalize.
-    function testArb5RealTokenTransfers() external {
+contract LibOrderBookArbFinalizeArbTokenTransfersTest is Test {
+    /// finalizeArb MUST transfer remaining input token profit to msg.sender.
+    function testFinalizeArbTransfersInputTokenProfit() external {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook(100e18);
+        // OB will pull 80e18, exchange gives 100e18 → 20e18 profit.
+        RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook(80e18);
         MockExchange exchange = new MockExchange();
 
         outputToken.mint(address(orderBook), 100e18);
@@ -93,12 +92,14 @@ contract OrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
             })
         );
 
-        // OB received all inputToken from arb.
-        assertEq(inputToken.balanceOf(address(orderBook)), 100e18);
-        // Exchange received all outputToken from arb.
-        assertEq(outputToken.balanceOf(address(exchange)), 100e18);
-        // Arb contract has no remaining tokens.
-        assertEq(inputToken.balanceOf(address(arb)), 0);
-        assertEq(outputToken.balanceOf(address(arb)), 0);
+        // 20e18 input token profit swept to msg.sender by finalizeArb.
+        assertEq(inputToken.balanceOf(address(this)), 20e18, "sender inputToken profit");
+        // Arb contract is empty after finalizeArb.
+        assertEq(inputToken.balanceOf(address(arb)), 0, "arb inputToken");
+        assertEq(outputToken.balanceOf(address(arb)), 0, "arb outputToken");
+        // OB got exactly what it pulled.
+        assertEq(inputToken.balanceOf(address(orderBook)), 80e18, "OB inputToken");
+        // Exchange did a full swap.
+        assertEq(outputToken.balanceOf(address(exchange)), 100e18, "exchange outputToken");
     }
 }

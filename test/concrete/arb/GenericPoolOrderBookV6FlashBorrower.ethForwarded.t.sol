@@ -17,8 +17,7 @@ import {
     IOV2,
     EvaluableV4,
     SignedContextV1,
-    TaskV2,
-    Float
+    TaskV2
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
@@ -27,13 +26,15 @@ import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
-import {MockExchange} from "test/util/concrete/MockExchange.sol";
+import {AllowanceCheckingExchange} from "test/util/concrete/AllowanceCheckingExchange.sol";
 import {RealisticFlashLendingMockOrderBook} from "test/util/concrete/RealisticFlashLendingMockOrderBook.sol";
 
-contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
-    /// arb4 completes a full flash loan cycle with real ERC20 transfers:
-    /// flash loan, exchange, take orders, repayment, and finalize.
-    function testArb4RealTokenTransfers() external {
+/// When the arb contract holds ETH, functionCallWithValue forwards it
+/// to the pool during _exchange.
+contract GenericPoolOrderBookV6FlashBorrowerEthForwardedTest is Test {
+    receive() external payable {}
+
+    function testEthForwardedToExchangeDuringExchange() external {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
@@ -44,7 +45,8 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
         vm.etch(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS, address(mockOb).code);
         RealisticFlashLendingMockOrderBook orderBook =
             RealisticFlashLendingMockOrderBook(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
-        MockExchange exchange = new MockExchange();
+
+        AllowanceCheckingExchange exchange = new AllowanceCheckingExchange();
 
         outputToken.mint(address(orderBook), 1000e18);
         inputToken.mint(address(exchange), 100e18);
@@ -58,6 +60,9 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
                 ""
             )
         );
+
+        // Send ETH to the arb contract before calling arb4.
+        vm.deal(address(arb), 1 ether);
 
         IOV2[] memory validInputs = new IOV2[](1);
         validInputs[0] = IOV2(address(inputToken), bytes32(0));
@@ -78,7 +83,9 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
         bytes memory exchangeData = abi.encode(
             address(exchange),
             address(exchange),
-            abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18))
+            abi.encodeCall(
+                AllowanceCheckingExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18)
+            )
         );
 
         arb.arb4(
@@ -97,5 +104,11 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
                 signedContext: new SignedContextV1[](0)
             })
         );
+
+        // The exchange received the ETH during the call.
+        assertEq(exchange.lastEthReceived(), 1 ether);
+        // The arb contract has no remaining ETH — it was swept to msg.sender
+        // by finalizeArb.
+        assertEq(address(arb).balance, 0);
     }
 }

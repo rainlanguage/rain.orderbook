@@ -49,31 +49,31 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 22 | A08-1 | P1 | OrderBookV6.sol | flashLoan lacks nonReentrant guard | DISMISSED | By design: same as A04-2 |
 | 23 | A15-2 | P1 | Deploy.sol | No explicit revert on failed create in deployRouter() | FIXED | Added require(routeProcessor4 != address(0)) |
 | 24 | A01-P2-1 | P2 | OrderBookV6ArbCommon.sol | No test for WrongTask revert through FlashBorrower path | FIXED | Dup of A03-P2-6 |
-| 25 | A01-P2-2 | P2 | OrderBookV6ArbCommon.sol | No direct unit test for constructor iTaskHash assignment | PENDING | |
+| 25 | A01-P2-2 | P2 | OrderBookV6ArbCommon.sol | No direct unit test for constructor iTaskHash assignment | FIXED | Test in iTaskHash.t.sol for both non-empty and empty bytecode |
 | 26 | A01-P2-3 | P2 | OrderBookV6ArbCommon.sol | No test for onlyValidTask bypass when iTaskHash == 0 | DISMISSED | Implicitly tested: sender tests deploy with empty expression (iTaskHash==0) and pass |
 | 27 | A02-P2-1 | P2 | OrderBookV6ArbOrderTaker.sol | No test for arb5 reverting on zero orders | FIXED | Added noOrders.t.sol |
-| 28 | A02-P2-2 | P2 | OrderBookV6ArbOrderTaker.sol | No test for reentrancy guard on arb5 | PENDING | |
-| 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | PENDING | |
+| 28 | A02-P2-2 | P2 | OrderBookV6ArbOrderTaker.sol | No test for reentrancy guard on arb5 | FIXED | Test in reentrancy.t.sol with ReentrantMockOrderBook |
+| 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | FIXED | Test in onTakeOrders2Direct.t.sol |
 | 30 | A03-P2-4 | P2 | OrderBookV6FlashBorrower.sol | SwapFailed error declared but never used/tested | FIXED | Removed dead error; Dup: A03-P4-2 |
 | 31 | A03-P2-5 | P2 | OrderBookV6FlashBorrower.sol | NoOrders revert path has no test through flash borrower | FIXED | Added FlashBorrower.noOrders.t.sol |
 | 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | FIXED | Dup of A03-3 |
 | 33 | A05-P2-3 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | Constructor event emission tested only indirectly | DISMISSED | ArbTest constructor uses vm.expectEmit + emit Construct — this IS a test |
-| 34 | A07-P2-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for onTakeOrders2 called directly by attacker | PENDING | |
-| 35 | A07-P2-3 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for constructor with invalid implementationData | PENDING | |
+| 34 | A07-P2-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for onTakeOrders2 called directly by attacker | FIXED | Test in onTakeOrders2Direct.t.sol |
+| 35 | A07-P2-3 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for constructor with invalid implementationData | FIXED | Test in invalidConstructor.t.sol |
 | 36 | A12-P2-1 | P2 | LibOrderBookArb.sol | NonZeroBeforeArbStack and BadLender errors are dead code | FIXED | Removed both dead errors |
-| 37 | A12-P2-2 | P2 | LibOrderBookArb.sol | No test verifies token transfers in finalizeArb | PENDING | |
-| 38 | A12-P2-3 | P2 | LibOrderBookArb.sol | No test verifies native gas sent to msg.sender | PENDING | |
-| 39 | A12-P2-4 | P2 | LibOrderBookArb.sol | No test exercises finalizeArb with realistic non-zero balances | PENDING | |
-| 40 | A15-P2-1 | P2 | Deploy.sol | No unit test for deployRouter() return value on create failure | PENDING | |
-| 41 | A15-P2-2 | P2 | Deploy.sol | ROUTE_PROCESSOR_4_BYTECODE_HASH constant never verified | PENDING | |
-| 42 | A15-P2-3 | P2 | Deploy.sol | No test for BadRouteProcessor error path | PENDING | |
-| 43 | A15-P2-4 | P2 | Deploy.sol | No test coverage for individual suite isolation | PENDING | |
+| 37 | A12-P2-2 | P2 | LibOrderBookArb.sol | No test verifies token transfers in finalizeArb | FIXED | Test in finalizeArbTokenTransfers.t.sol |
+| 38 | A12-P2-3 | P2 | LibOrderBookArb.sol | No test verifies native gas sent to msg.sender | FIXED | Test in finalizeArbNativeGas.t.sol; made fallback payable + added receive() |
+| 39 | A12-P2-4 | P2 | LibOrderBookArb.sol | No test exercises finalizeArb with realistic non-zero balances | FIXED | Covered by finalizeArbTokenTransfers.t.sol (20e18 profit) and finalizeArbNativeGas.t.sol (1 ETH) |
+| 40 | A15-P2-1 | P2 | Deploy.sol | No unit test for deployRouter() return value on create failure | DISMISSED | deployRouter() removed; RP4 now deployed via LibRainDeploy.deployAndBroadcast |
+| 41 | A15-P2-2 | P2 | Deploy.sol | ROUTE_PROCESSOR_4_BYTECODE_HASH constant never verified | DISMISSED | Inline constant removed; codehash now in generated pointers, verified by LibRouteProcessor4CreationCode test |
+| 42 | A15-P2-3 | P2 | Deploy.sol | No test for BadRouteProcessor error path | DISMISSED | BadRouteProcessor error removed; deployAndBroadcast handles failures internally |
+| 43 | A15-P2-4 | P2 | Deploy.sol | No test coverage for individual suite isolation | DISMISSED | Deploy.sol is a forge script; suite branches are a simple if/else chain, integration-tested by running them |
 | 44 | A06-P2-GAP1 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for BadInitiator error path | FIXED | Added badInitiator.t.sol |
 | 45 | A06-P2-GAP2 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for FlashLoanFailed error path | FIXED | Dup of A03-P2-2; same base class tested |
 | 46 | A06-P2-GAP3 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for WrongTask on GenericPoolOrderBookV6FlashBorrower | FIXED | Dup of A03-P2-6 |
 | 47 | A06-P2-GAP4 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for NoOrders revert in arb4 | FIXED | Dup of A03-P2-5 |
-| 48 | A06-P2-GAP5 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for _exchange failure propagation | PENDING | |
-| 49 | A09-P2-GAP1 | P2 | OrderBookV6SubParser.sol | No tests for deposit word parsing (11 words, 0 tests) | PENDING | |
+| 48 | A06-P2-GAP5 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for _exchange failure propagation | FIXED | Added exchangeRevert, approvalRevoked, and ethForwarded tests |
+| 49 | A09-P2-GAP1 | P2 | OrderBookV6SubParser.sol | No tests for deposit word parsing (11 words, 0 tests) | DISMISSED | Trivial constant lookups into LibSubParse.subParserContext; compile-time index bounds checking via array assignments; testing requires parallel context fixture for minimal value |
 | 50 | A01-P3-1 | P3 | OrderBookV6ArbCommon.sol | Struct @param name mismatch: tasks vs task | FIXED | Dup: A01-P5-1 |
 | 51 | A01-P3-2 | P3 | OrderBookV6ArbCommon.sol | Missing documentation on contract, event, state variable, constructor, modifier | FIXED | |
 | 52 | A01-P3-3 | P3 | OrderBookV6ArbCommon.sol | BEFORE_ARB_SOURCE_INDEX doc inaccurately scoped to flash loans | FIXED | |
@@ -141,3 +141,8 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | DISMISSED | WORD_* constants ARE the canonical keywords; naming convention is consistent |
 | 110 | CR-3 | CR | README.md | Deploy example missing ETH_RPC_URL / --rpc-url | FIXED | Added --rpc-url to example |
 | 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | FIXED | Extracted CONTEXT_COLUMNS_EXTENDED constant in LibOrderBook.sol |
+| 112 | CR-5 | CR | OrderBookV6FlashBorrower.sol | Lender validation runs after forceApprove calls | FIXED | Added badLenderApproval test: malicious orderbook triggers BadLender, approvals atomically reverted |
+| 113 | CR-6 | CR | OrderBookV6ArbOrderTaker.onTakeOrders2.t.sol | Missing post-execution balance assertions in testArb5RealTokenTransfers | FIXED | Added balance assertions to all three real-token-transfer tests |
+| 114 | CR-7 | CR | OrderBookV6FlashBorrower.lenderValidation.t.sol | Unused RealisticFlashLendingMockOrderBook instance | FIXED | Removed unused import and instance |
+| 115 | CR-8 | CR | OrderBookV6FlashBorrower.missingApproval.t.sol | Filename doesn't match test purpose | FIXED | Renamed to realTokenTransfers.t.sol |
+| 116 | CR-9 | CR | RouteProcessorOrderBookV6ArbOrderTaker.onTakeOrders2.t.sol | Missing state verification assertions | FIXED | Added balance assertions for all participants |

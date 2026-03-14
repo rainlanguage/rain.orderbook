@@ -46,6 +46,8 @@ contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
         IERC20(borrowedToken).forceApprove(spender, 0);
     }
 
-    /// Allow arbitrary calls to this contract without reverting.
-    fallback() external {}
+    /// Allow arbitrary calls and ETH transfers to this contract without
+    /// reverting. Any ETH received is swept to msg.sender by finalizeArb.
+    receive() external payable {}
+    fallback() external payable {}
 }

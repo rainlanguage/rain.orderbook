@@ -14,13 +14,11 @@ import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {MaliciousLender} from "test/util/concrete/MaliciousLender.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
-import {RealisticFlashLendingMockOrderBook} from "test/util/concrete/RealisticFlashLendingMockOrderBook.sol";
 
 contract OrderBookV6FlashBorrowerLenderValidationTest is Test {
     /// A malicious lender calls onFlashLoan directly. The call reverts with
     /// BadLender because msg.sender is not the configured orderbook.
     function testMaliciousLenderCannotExploitOnFlashLoan() external {
-        RealisticFlashLendingMockOrderBook orderBook = new RealisticFlashLendingMockOrderBook();
         MockToken token = new MockToken("Token", "TKN", 18);
 
         GenericPoolOrderBookV6FlashBorrower arb = new GenericPoolOrderBookV6FlashBorrower(

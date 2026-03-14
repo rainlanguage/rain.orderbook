@@ -41,7 +41,7 @@ abstract contract ArbTest is Test {
     Token immutable iTakerOutput;
     address immutable iRefundoor;
     FlashLendingMockOrderBook immutable iOrderBook;
-    address immutable iArb;
+    address payable immutable iArb;
 
     /// Mimics the `Construct` event from `OrderBookV6ArbCommon`.
     event Construct(address sender, OrderBookV6ArbConfig config);
@@ -50,7 +50,7 @@ abstract contract ArbTest is Test {
         return "";
     }
 
-    function buildArb(OrderBookV6ArbConfig memory config) internal virtual returns (address);
+    function buildArb(OrderBookV6ArbConfig memory config) internal virtual returns (address payable);
 
     constructor() {
         LibRainDeploy.etchZoltuFactory(vm);

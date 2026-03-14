@@ -9,9 +9,16 @@ import {IRaindexV6OrderTaker} from "rain.raindex.interface/interface/IRaindexV6O
 import {MockOrderBookBase} from "test/util/abstract/MockOrderBookBase.sol";
 
 /// @dev Mock orderbook with real takeOrders4 transfers and onTakeOrders2
-/// callback, matching the real orderbook flow for order taker arb contracts.
+/// callback. Pulls a configurable amount of inputToken from the taker,
+/// leaving any surplus as profit for finalizeArb to sweep.
 contract RealisticOrderTakerMockOrderBook is MockOrderBookBase {
     using SafeERC20 for IERC20;
+
+    uint256 public immutable iPullAmount;
+
+    constructor(uint256 pullAmount) {
+        iPullAmount = pullAmount;
+    }
 
     function takeOrders4(TakeOrdersConfigV5 calldata config) external override returns (Float, Float) {
         address ordersInputToken = config.orders[0].order.validInputs[config.orders[0].inputIOIndex].token;
@@ -26,9 +33,8 @@ contract RealisticOrderTakerMockOrderBook is MockOrderBookBase {
         IRaindexV6OrderTaker(msg.sender)
             .onTakeOrders2(ordersOutputToken, ordersInputToken, Float.wrap(0), Float.wrap(0), config.data);
 
-        // Pull ordersInputToken from taker.
-        uint256 inputBalance = IERC20(ordersInputToken).balanceOf(msg.sender);
-        IERC20(ordersInputToken).safeTransferFrom(msg.sender, address(this), inputBalance);
+        // Pull iPullAmount of inputToken from taker.
+        IERC20(ordersInputToken).safeTransferFrom(msg.sender, address(this), iPullAmount);
 
         return (Float.wrap(0), Float.wrap(0));
     }

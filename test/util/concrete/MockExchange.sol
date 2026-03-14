@@ -8,8 +8,13 @@ import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/Safe
 contract MockExchange {
     using SafeERC20 for IERC20;
 
-    function swap(IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn) external {
+    function swap(IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn) external payable {
         tokenIn.safeTransferFrom(msg.sender, address(this), amountIn);
         tokenOut.safeTransfer(msg.sender, amountIn);
+        // Return any ETH received back to the caller so it can be swept by
+        // finalizeArb later.
+        if (msg.value > 0) {
+            payable(msg.sender).transfer(msg.value);
+        }
     }
 }

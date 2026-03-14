@@ -53,9 +53,6 @@ Contracts are deployed via the Foundry script at `script/Deploy.sol`. The script
   - `route-processor` — Sushi RouteProcessor4 only
   - `arb` — arb contracts only (order takers and flash borrowers)
 
-Optional env vars:
-- `DEPLOY_ROUTE_PROCESSOR_4_ADDRESS` — existing RouteProcessor4 address (required for `arb` suite)
-
 Example:
 ```bash
 DEPLOYMENT_KEY=<key> DEPLOYMENT_SUITE=raindex forge script script/Deploy.sol --broadcast --rpc-url <rpc-url>

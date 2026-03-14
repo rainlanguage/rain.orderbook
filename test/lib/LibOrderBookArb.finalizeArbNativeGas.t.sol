@@ -29,10 +29,12 @@ import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockExchange} from "test/util/concrete/MockExchange.sol";
 import {RealisticOrderTakerMockOrderBook} from "test/util/concrete/RealisticOrderTakerMockOrderBook.sol";
 
-contract OrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
-    /// arb5 completes a full order-taker cycle with real ERC20 transfers:
-    /// takeOrders, onTakeOrders2 callback with exchange, and finalize.
-    function testArb5RealTokenTransfers() external {
+contract LibOrderBookArbFinalizeArbNativeGasTest is Test {
+    /// finalizeArb MUST send native gas balance to msg.sender.
+    /// ETH is sent with arb5{value:}, forwarded to the exchange during
+    /// onTakeOrders2 via functionCallWithValue, returned by MockExchange,
+    /// and swept to msg.sender by finalizeArb.
+    function testFinalizeArbSendsNativeGas() external {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
@@ -77,7 +79,9 @@ contract OrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
             abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18))
         );
 
-        arb.arb5(
+        uint256 senderBalanceBefore = address(this).balance;
+
+        arb.arb5{value: 1 ether}(
             IRaindexV6(address(orderBook)),
             TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(100, 0),
@@ -93,12 +97,14 @@ contract OrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
             })
         );
 
-        // OB received all inputToken from arb.
-        assertEq(inputToken.balanceOf(address(orderBook)), 100e18);
-        // Exchange received all outputToken from arb.
-        assertEq(outputToken.balanceOf(address(exchange)), 100e18);
-        // Arb contract has no remaining tokens.
-        assertEq(inputToken.balanceOf(address(arb)), 0);
-        assertEq(outputToken.balanceOf(address(arb)), 0);
+        // ETH swept back to msg.sender by finalizeArb — net zero.
+        assertEq(address(this).balance, senderBalanceBefore, "sender ETH");
+        // Arb contract has no remaining ETH.
+        assertEq(address(arb).balance, 0, "arb ETH");
+        // Exchange has no remaining ETH.
+        assertEq(address(exchange).balance, 0, "exchange ETH");
     }
+
+    /// Needed to receive ETH from finalizeArb.
+    receive() external payable {}
 }
