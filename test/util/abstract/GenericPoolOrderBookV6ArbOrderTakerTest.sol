@@ -6,7 +6,7 @@ import {ArbTest} from "./ArbTest.sol";
 import {
     GenericPoolOrderBookV6ArbOrderTaker,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+} from "../../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 
 contract GenericPoolOrderBookV6ArbOrderTakerTest is ArbTest {
     function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address payable) {

@@ -6,7 +6,7 @@ import {ArbTest} from "./ArbTest.sol";
 import {
     RouteProcessorOrderBookV6ArbOrderTaker,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+} from "../../../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 
 contract RouteProcessorOrderBookV6ArbOrderTakerTest is ArbTest {
     function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address payable) {

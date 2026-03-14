@@ -7,9 +7,9 @@ import {Test} from "forge-std/Test.sol";
 import {
     GenericPoolOrderBookV6FlashBorrower,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
-import {BadInitiator} from "src/abstract/OrderBookV6FlashBorrower.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+} from "../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {BadInitiator} from "../../src/abstract/OrderBookV6FlashBorrower.sol";
+import {LibOrderBookDeploy} from "../../src/lib/deploy/LibOrderBookDeploy.sol";
 import {EvaluableV4, SignedContextV1, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";

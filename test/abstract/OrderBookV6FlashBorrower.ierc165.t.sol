@@ -9,7 +9,7 @@ import {
     IERC3156FlashBorrower,
     OrderBookV6ArbConfig,
     TaskV2
-} from "src/abstract/OrderBookV6FlashBorrower.sol";
+} from "../../src/abstract/OrderBookV6FlashBorrower.sol";
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
@@ -28,10 +28,10 @@ contract ChildOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
     {}
 }
 
-contract OrderBookV5FlashBorrowerIERC165Test is Test {
+contract OrderBookV6FlashBorrowerIERC165Test is Test {
     /// Test that ERC165 and IERC3156FlashBorrower are supported interfaces
     /// as per ERC165.
-    function testOrderBookV5FlashBorrowerIERC165(bytes4 badInterfaceId) external {
+    function testOrderBookV6FlashBorrowerIERC165(bytes4 badInterfaceId) external {
         vm.assume(badInterfaceId != type(IERC165).interfaceId);
         vm.assume(badInterfaceId != type(IERC3156FlashBorrower).interfaceId);
 

@@ -48,6 +48,8 @@ remappings = [
   "rain.math.float/=lib/rain.raindex.interface/lib/rain.interpreter.interface/lib/rain.math.float/src/",
   "rain.tofu.erc20-decimals/=lib/rain.interpreter/lib/rain.tofu.erc20-decimals/src/",
   "rain.deploy/=lib/rain.interpreter/lib/rain.deploy/src/",
+  "rain.lib.typecast/=lib/rain.raindex.interface/lib/rain.interpreter.interface/lib/rain.lib.typecast/src/",
+  "sushixswap-v2/=lib/sushixswap-v2/",
 ]
 
 [fuzz]

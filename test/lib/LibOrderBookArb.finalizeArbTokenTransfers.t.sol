@@ -8,7 +8,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {
     GenericPoolOrderBookV6ArbOrderTaker,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+} from "../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,

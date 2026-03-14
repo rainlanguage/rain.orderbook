@@ -60,6 +60,8 @@ error FlashLoanFailed();
 abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV6ArbCommon {
     using SafeERC20 for IERC20;
 
+    /// @param config The arb contract configuration specifying the task hash
+    /// and implementation address.
     constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbCommon(config) {}
 
     /// @inheritdoc IERC165
@@ -67,7 +69,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         return interfaceId == type(IERC3156FlashBorrower).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    /// Hook that inheriting contracts SHOULD override in order to achieve
+    /// @dev Hook that inheriting contracts SHOULD override in order to achieve
     /// anything other than raising the ambient temperature of the room.
     /// `_exchange` is responsible for converting the flash loaned assets into
     /// the assets required to fill the orders. Generally this can only be

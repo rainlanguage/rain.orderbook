@@ -11,7 +11,7 @@ import {
     EvaluableV4,
     SignedContextV1
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {TokenMismatch} from "src/concrete/ob/OrderBookV6.sol";
+import {TokenMismatch} from "../../../src/concrete/ob/OrderBookV6.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title OrderBookV6TakeOrderTokenMismatchTest

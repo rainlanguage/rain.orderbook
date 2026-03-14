@@ -78,10 +78,6 @@ error TokenMismatch();
 /// Thrown when the input token is the output token.
 error TokenSelfTrade();
 
-/// Thrown when the input and output token decimals don't match, in either
-/// direction.
-error TokenDecimalsMismatch();
-
 /// Thrown when the minimum input is not met.
 /// @param minimumIO The minimum io required.
 /// @param actualIO The io that was achieved.
@@ -90,19 +86,9 @@ error MinimumIO(Float minimumIO, Float actualIO);
 /// Thrown when two orders have the same owner during clear.
 error SameOwner();
 
-/// Thrown when calculate order expression wants inputs.
-/// @param inputs The inputs the expression wants.
-error UnsupportedCalculateInputs(uint256 inputs);
-
 /// Thrown when calculate order expression offers too few outputs.
 /// @param outputs The outputs the expression offers.
 error UnsupportedCalculateOutputs(uint256 outputs);
-
-/// Thrown when a negative input is being recorded against vault balances.
-error NegativeInput();
-
-/// Thrown when a negative output is being recorded against vault balances.
-error NegativeOutput();
 
 /// Thrown when a negative vault balance is being recorded.
 /// @param vaultBalance The negative vault balance being recorded.
@@ -208,7 +194,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
     mapping(bytes32 orderHash => uint256 liveness) internal sOrders;
 
     /// @dev Vault balances are stored in a mapping of owner => token => vault ID
-    /// This gives 1:1 parity with the `IOrderBookV1` interface but keeping the
+    /// This gives 1:1 parity with the `IRaindexV6` interface but keeping the
     /// `sFoo` naming convention for storage variables.
     // Solhint and slither disagree on this. Slither wins.
     //solhint-disable-next-line private-vars-leading-underscore
@@ -685,9 +671,8 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
     }
 
     /// Main entrypoint into an order calculates the amount and IO ratio. Both
-    /// are always treated as 18 decimal fixed point values and then rescaled
-    /// according to the order's definition of each token's actual fixed point
-    /// decimals.
+    /// are always treated as Float values and then rescaled according to the
+    /// order's definition of each token's actual fixed point decimals.
     /// @param order The order to evaluate.
     /// @param inputIOIndex The index of the input token being calculated for.
     /// @param outputIOIndex The index of the output token being calculated for.
@@ -884,12 +869,17 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         }
     }
 
-    /// Given an order, final input and output amounts and the IO calculation
-    /// verbatim from `_calculateOrderIO`, dispatch the handle IO entrypoint if
-    /// it exists and update the order owner's vault balances.
-    /// @param input The input amount.
-    /// @param output The output amount.
+    /// @dev Given an order, final input and output amounts and the IO
+    /// calculation verbatim from `_calculateOrderIO`, update the order owner's
+    /// vault balances accordingly. The input and output balance diffs are
+    /// written into the context matrix before vault balances are adjusted.
+    /// @param input The Float input amount to credit to the order owner's
+    /// input vault.
+    /// @param output The Float output amount to debit from the order owner's
+    /// output vault.
     /// @param orderIOCalculation The order IO calculation produced by
+    /// `_calculateOrderIO`, containing the order, context matrix and
+    /// namespace.
     function recordVaultIO(Float input, Float output, OrderIOCalculationV4 memory orderIOCalculation) internal {
         orderIOCalculation.context[CONTEXT_VAULT_INPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = Float.unwrap(input);
         orderIOCalculation.context[CONTEXT_VAULT_OUTPUTS_COLUMN][CONTEXT_VAULT_IO_BALANCE_DIFF] = Float.unwrap(output);

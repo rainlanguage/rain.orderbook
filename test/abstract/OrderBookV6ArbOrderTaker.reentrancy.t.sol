@@ -7,7 +7,7 @@ import {Test} from "forge-std/Test.sol";
 import {
     GenericPoolOrderBookV6ArbOrderTaker,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+} from "../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,

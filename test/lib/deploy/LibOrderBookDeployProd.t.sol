@@ -18,6 +18,12 @@ contract LibOrderBookDeployProdTest is Test {
         assertEq(
             LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.SUB_PARSER_DEPLOYED_CODEHASH
         );
+
+        assertTrue(LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS.code.length > 0, "RouteProcessor4 not deployed");
+        assertEq(
+            LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS.codehash,
+            LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH
+        );
     }
 
     /// Both contracts MUST be deployed on Arbitrum.

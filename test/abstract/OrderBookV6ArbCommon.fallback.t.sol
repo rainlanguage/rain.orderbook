@@ -3,12 +3,12 @@
 pragma solidity =0.8.25;
 
 import {GenericPoolOrderBookV6ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV6ArbOrderTakerTest.sol";
-import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {GenericPoolOrderBookV6ArbOrderTaker} from "../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {ArbTest} from "test/util/abstract/ArbTest.sol";
 import {
     GenericPoolOrderBookV6FlashBorrower,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+} from "../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 
 /// @dev Tests fallback behavior on the order taker arb contract.
 contract OrderBookV6ArbOrderTakerFallbackTest is GenericPoolOrderBookV6ArbOrderTakerTest {
