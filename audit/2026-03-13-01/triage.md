@@ -141,3 +141,8 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | DISMISSED | WORD_* constants ARE the canonical keywords; naming convention is consistent |
 | 110 | CR-3 | CR | README.md | Deploy example missing ETH_RPC_URL / --rpc-url | FIXED | Added --rpc-url to example |
 | 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | FIXED | Extracted CONTEXT_COLUMNS_EXTENDED constant in LibOrderBook.sol |
+| 112 | CR-5 | CR | OrderBookV6FlashBorrower.sol | Lender validation runs after forceApprove calls | PENDING | |
+| 113 | CR-6 | CR | OrderBookV6ArbOrderTaker.onTakeOrders2.t.sol | Missing post-execution balance assertions in testArb5RealTokenTransfers | FIXED | Added balance assertions to all three real-token-transfer tests |
+| 114 | CR-7 | CR | OrderBookV6FlashBorrower.lenderValidation.t.sol | Unused RealisticFlashLendingMockOrderBook instance | FIXED | Removed unused import and instance |
+| 115 | CR-8 | CR | OrderBookV6FlashBorrower.missingApproval.t.sol | Filename doesn't match test purpose | FIXED | Renamed to realTokenTransfers.t.sol |
+| 116 | CR-9 | CR | RouteProcessorOrderBookV6ArbOrderTaker.onTakeOrders2.t.sol | Missing state verification assertions | FIXED | Added balance assertions for all participants |

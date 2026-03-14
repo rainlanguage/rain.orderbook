@@ -92,5 +92,13 @@ contract OrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
                 signedContext: new SignedContextV1[](0)
             })
         );
+
+        // OB received all inputToken from arb.
+        assertEq(inputToken.balanceOf(address(orderBook)), 100e18);
+        // Exchange received all outputToken from arb.
+        assertEq(outputToken.balanceOf(address(exchange)), 100e18);
+        // Arb contract has no remaining tokens.
+        assertEq(inputToken.balanceOf(address(arb)), 0);
+        assertEq(outputToken.balanceOf(address(arb)), 0);
     }
 }

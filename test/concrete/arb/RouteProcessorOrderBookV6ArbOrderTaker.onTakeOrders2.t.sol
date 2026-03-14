@@ -91,5 +91,17 @@ contract RouteProcessorOrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
                 signedContext: new SignedContextV1[](0)
             })
         );
+
+        // Arb contract has no remaining tokens.
+        assertEq(inputToken.balanceOf(address(arb)), 0, "arb inputToken");
+        assertEq(outputToken.balanceOf(address(arb)), 0, "arb outputToken");
+        // OB started with outputToken, swapped for inputToken via arb.
+        assertEq(inputToken.balanceOf(address(orderBook)), 100e18, "OB inputToken");
+        assertEq(outputToken.balanceOf(address(orderBook)), 0, "OB outputToken");
+        // RouteProcessor started with inputToken, received nothing (amountIn=0).
+        assertEq(inputToken.balanceOf(address(routeProcessor)), 0, "RP inputToken");
+        assertEq(outputToken.balanceOf(address(routeProcessor)), 0, "RP outputToken");
+        // Test contract received profit (outputToken) via finalizeArb.
+        assertEq(outputToken.balanceOf(address(this)), 100e18, "test outputToken");
     }
 }

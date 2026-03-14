@@ -30,7 +30,7 @@ import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockExchange} from "test/util/concrete/MockExchange.sol";
 import {RealisticFlashLendingMockOrderBook} from "test/util/concrete/RealisticFlashLendingMockOrderBook.sol";
 
-contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
+contract OrderBookV6FlashBorrowerRealTokenTransfersTest is Test {
     /// arb4 completes a full flash loan cycle with real ERC20 transfers:
     /// flash loan, exchange, take orders, repayment, and finalize.
     function testArb4RealTokenTransfers() external {
@@ -97,5 +97,13 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
                 signedContext: new SignedContextV1[](0)
             })
         );
+
+        // OB received all inputToken from arb.
+        assertEq(inputToken.balanceOf(address(orderBook)), 100e18);
+        // Exchange received outputToken from arb (100e18 of the 1000e18 OB had).
+        assertEq(outputToken.balanceOf(address(exchange)), 100e18);
+        // Arb contract has no remaining tokens.
+        assertEq(inputToken.balanceOf(address(arb)), 0);
+        assertEq(outputToken.balanceOf(address(arb)), 0);
     }
 }
