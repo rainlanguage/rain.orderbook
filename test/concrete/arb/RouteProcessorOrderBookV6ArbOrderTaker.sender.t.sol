@@ -18,7 +18,7 @@ import {
 import {
     RouteProcessorOrderBookV6ArbOrderTaker,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+} from "../../../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract RouteProcessorOrderBookV6ArbOrderTakerSenderTest is RouteProcessorOrderBookV6ArbOrderTakerTest {

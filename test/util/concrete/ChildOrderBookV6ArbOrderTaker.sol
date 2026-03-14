@@ -4,11 +4,11 @@ pragma solidity =0.8.25;
 
 import {
     OrderBookV6ArbOrderTaker,
-    SignedContextV1,
-    EvaluableV4,
     TaskV2,
     OrderBookV6ArbConfig
-} from "src/abstract/OrderBookV6ArbOrderTaker.sol";
+} from "../../../src/abstract/OrderBookV6ArbOrderTaker.sol";
+import {SignedContextV1} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {EvaluableV4} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 

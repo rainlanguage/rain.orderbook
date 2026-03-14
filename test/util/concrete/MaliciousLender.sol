@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {GenericPoolOrderBookV6FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {GenericPoolOrderBookV6FlashBorrower} from "../../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 
 /// @dev Malicious lender that calls onFlashLoan directly, pretending to be a
 /// flash loan provider while passing the arb's own address as initiator.

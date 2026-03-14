@@ -19,7 +19,7 @@ import {
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {StateNamespace, LibNamespace} from "src/concrete/ob/OrderBookV6.sol";
+import {StateNamespace, LibNamespace} from "../../src/concrete/ob/OrderBookV6.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookV6ArbOrderTakerContextTest is OrderBookV6ExternalRealTest {

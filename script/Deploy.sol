@@ -5,11 +5,11 @@ pragma solidity =0.8.25;
 import {Script, console2} from "forge-std/Script.sol";
 import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
 import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
-import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
-import {RouteProcessorOrderBookV6ArbOrderTaker} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
-import {GenericPoolOrderBookV6FlashBorrower} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
-import {OrderBookV6ArbConfig} from "src/abstract/OrderBookV6ArbCommon.sol";
+import {OrderBookV6SubParser} from "../src/concrete/parser/OrderBookV6SubParser.sol";
+import {GenericPoolOrderBookV6ArbOrderTaker} from "../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV6ArbOrderTaker} from "../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+import {GenericPoolOrderBookV6FlashBorrower} from "../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {OrderBookV6ArbConfig} from "../src/abstract/OrderBookV6ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 import {LibMetaBoardDeploy} from "rain.metadata/lib/deploy/LibMetaBoardDeploy.sol";
@@ -18,10 +18,10 @@ import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDec
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
-import {CREATION_CODE as ORDERBOOK_CREATION_CODE} from "src/generated/OrderBookV6.pointers.sol";
-import {CREATION_CODE as SUB_PARSER_CREATION_CODE} from "src/generated/OrderBookV6SubParser.pointers.sol";
-import {ROUTE_PROCESSOR_4_CREATION_CODE} from "src/lib/deploy/LibRouteProcessor4CreationCode.sol";
+import {LibOrderBookDeploy} from "../src/lib/deploy/LibOrderBookDeploy.sol";
+import {CREATION_CODE as ORDERBOOK_CREATION_CODE} from "../src/generated/OrderBookV6.pointers.sol";
+import {CREATION_CODE as SUB_PARSER_CREATION_CODE} from "../src/generated/OrderBookV6SubParser.pointers.sol";
+import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 
 /// @dev Deploy only the OrderBookV6 (raindex) contract.
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");

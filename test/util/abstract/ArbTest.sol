@@ -17,13 +17,13 @@ import {
     SignedContextV1,
     EvaluableV4
 } from "test/util/concrete/FlashLendingMockOrderBook.sol";
-import {OrderBookV6ArbConfig} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {OrderBookV6ArbConfig} from "../../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
 
 contract Token is ERC20 {
     constructor() ERC20("Token", "TKN") {}

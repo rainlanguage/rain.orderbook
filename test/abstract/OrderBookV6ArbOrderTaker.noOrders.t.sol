@@ -7,7 +7,7 @@ import {GenericPoolOrderBookV6ArbOrderTakerTest} from "test/util/abstract/Generi
 import {
     GenericPoolOrderBookV6ArbOrderTaker,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+} from "../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {
     IRaindexV6,
     EvaluableV4,

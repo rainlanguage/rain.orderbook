@@ -29,11 +29,13 @@ import {
     WITHDRAW_WORDS_LENGTH
 } from "../../lib/LibOrderBookSubParser.sol";
 import {
-    CONTEXT_COLUMNS_EXTENDED,
-    CONTEXT_BASE_ROWS,
+    CONTEXT_BASE_COLUMN,
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
-    CONTEXT_BASE_COLUMN,
+    CONTEXT_BASE_ROWS
+} from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {
+    CONTEXT_COLUMNS_EXTENDED,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
@@ -65,7 +67,12 @@ import {
     OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
 } from "../../generated/OrderBookV6SubParser.pointers.sol";
 import {IDescribedByMetaV1} from "rain.metadata/interface/IDescribedByMetaV1.sol";
+import {ISubParserToolingV1} from "rain.sol.codegen/interface/ISubParserToolingV1.sol";
 
+/// @title OrderBookV6SubParser
+/// @notice Sub-parser that provides orderbook-specific context words (sender,
+/// order hash, vault IO, deposit/withdraw, signed context, etc.) to the
+/// Rain interpreter.
 contract OrderBookV6SubParser is BaseRainterpreterSubParser {
     using LibUint256Matrix for uint256[][];
 
@@ -178,8 +185,7 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
         return LibConvert.unsafeTo16BitBytes(handlersUint256.flatten());
     }
 
-    /// @dev Builds the packed word-parser function pointer table for all
-    /// orderbook sub-parser words across every context column.
+    /// @inheritdoc ISubParserToolingV1
     function buildSubParserWordParsers() external pure returns (bytes memory) {
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[][] memory
             parsers =

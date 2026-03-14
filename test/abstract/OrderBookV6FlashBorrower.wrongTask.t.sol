@@ -7,8 +7,8 @@ import {ArbTest} from "test/util/abstract/ArbTest.sol";
 import {
     GenericPoolOrderBookV6FlashBorrower,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
-import {WrongTask} from "src/abstract/OrderBookV6ArbCommon.sol";
+} from "../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {WrongTask} from "../../src/abstract/OrderBookV6ArbCommon.sol";
 import {
     OrderV4,
     EvaluableV4,

@@ -7,12 +7,12 @@ import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC
 import {
     OrderBookV6ArbOrderTaker,
     IRaindexV6ArbOrderTaker,
-    EvaluableV4,
     OrderBookV6ArbConfig,
     IRaindexV6OrderTaker,
-    TaskV2,
-    SignedContextV1
-} from "src/abstract/OrderBookV6ArbOrderTaker.sol";
+    TaskV2
+} from "../../src/abstract/OrderBookV6ArbOrderTaker.sol";
+import {EvaluableV4} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
+import {SignedContextV1} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {ChildOrderBookV6ArbOrderTaker} from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";

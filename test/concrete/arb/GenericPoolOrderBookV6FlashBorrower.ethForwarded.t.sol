@@ -8,7 +8,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {
     GenericPoolOrderBookV6FlashBorrower,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+} from "../../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,
@@ -24,7 +24,7 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpr
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {AllowanceCheckingExchange} from "test/util/concrete/AllowanceCheckingExchange.sol";
 import {RealisticFlashLendingMockOrderBook} from "test/util/concrete/RealisticFlashLendingMockOrderBook.sol";

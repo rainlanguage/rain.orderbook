@@ -5,12 +5,12 @@ pragma solidity =0.8.25;
 import {Script} from "forge-std/Script.sol";
 import {LibCodeGen} from "rain.sol.codegen/lib/LibCodeGen.sol";
 import {LibFs} from "rain.sol.codegen/lib/LibFs.sol";
-import {OrderBookV6} from "src/concrete/ob/OrderBookV6.sol";
-import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
-import {LibOrderBookSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "src/lib/LibOrderBookSubParser.sol";
+import {OrderBookV6} from "../src/concrete/ob/OrderBookV6.sol";
+import {OrderBookV6SubParser} from "../src/concrete/parser/OrderBookV6SubParser.sol";
+import {LibOrderBookSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibOrderBookSubParser.sol";
 import {LibGenParseMeta} from "rain.interpreter.interface/lib/codegen/LibGenParseMeta.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
-import {ROUTE_PROCESSOR_4_CREATION_CODE} from "src/lib/deploy/LibRouteProcessor4CreationCode.sol";
+import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 
 contract BuildPointers is Script {
     function addressConstantString(address addr) internal pure returns (string memory) {

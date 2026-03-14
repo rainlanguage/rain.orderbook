@@ -7,7 +7,7 @@ import {ArbTest} from "test/util/abstract/ArbTest.sol";
 import {
     GenericPoolOrderBookV6FlashBorrower,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+} from "../../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 import {
     OrderV4,
     TakeOrderConfigV4,

@@ -3,12 +3,13 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std/Test.sol";
-import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {OrderBookV6SubParser} from "../../../src/concrete/parser/OrderBookV6SubParser.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibEtchOrderBook} from "test/util/lib/LibEtchOrderBook.sol";
 
 contract OrderBookV6SubParserDescribedByMetaV1Test is Test {
     function setUp() public {
-        LibOrderBookDeploy.etchOrderBook(vm);
+        LibEtchOrderBook.etchOrderBook(vm);
     }
 
     function testOrderBookV6SubParserDescribedByMetaV1Happy() external view {

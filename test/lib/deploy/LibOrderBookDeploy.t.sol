@@ -5,6 +5,7 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibEtchOrderBook} from "test/util/lib/LibEtchOrderBook.sol";
 import {OrderBookV6} from "../../../src/concrete/ob/OrderBookV6.sol";
 import {OrderBookV6SubParser} from "../../../src/concrete/parser/OrderBookV6SubParser.sol";
 import {
@@ -17,6 +18,12 @@ import {
     RUNTIME_CODE as SUB_PARSER_RUNTIME_CODE,
     DEPLOYED_ADDRESS as SUB_PARSER_GENERATED_ADDRESS
 } from "../../../src/generated/OrderBookV6SubParser.pointers.sol";
+import {
+    RUNTIME_CODE as ROUTE_PROCESSOR_RUNTIME_CODE,
+    DEPLOYED_ADDRESS as ROUTE_PROCESSOR_GENERATED_ADDRESS,
+    BYTECODE_HASH as ROUTE_PROCESSOR_GENERATED_CODEHASH
+} from "../../../src/generated/RouteProcessor4.pointers.sol";
+import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../../../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 
 contract LibOrderBookDeployTest is Test {
     /// Deploying OrderBookV6 via Zoltu MUST produce the expected address and
@@ -95,26 +102,70 @@ contract LibOrderBookDeployTest is Test {
         assertEq(SUB_PARSER_GENERATED_ADDRESS, LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS);
     }
 
-    /// After calling etchOrderBook, both contracts MUST have the expected
+    /// Deploying RouteProcessor4 via Zoltu MUST produce the expected address
+    /// and codehash.
+    function testDeployAddressRouteProcessor() external {
+        LibRainDeploy.etchZoltuFactory(vm);
+
+        address deployedAddress = LibRainDeploy.deployZoltu(ROUTE_PROCESSOR_4_CREATION_CODE);
+
+        assertEq(deployedAddress, LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS);
+        assertTrue(address(deployedAddress).code.length > 0, "Deployed address has no code");
+        assertEq(address(deployedAddress).codehash, LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH);
+    }
+
+    /// The precompiled runtime code constant for RouteProcessor4 MUST match
+    /// the deployed runtime bytecode.
+    function testRuntimeCodeRouteProcessor() external {
+        bytes memory creationCode = ROUTE_PROCESSOR_4_CREATION_CODE;
+        address deployed;
+        assembly ("memory-safe") {
+            deployed := create(0, add(creationCode, 0x20), mload(creationCode))
+        }
+        assertTrue(deployed != address(0), "RouteProcessor4 deployment failed");
+        assertEq(keccak256(ROUTE_PROCESSOR_RUNTIME_CODE), keccak256(deployed.code));
+    }
+
+    /// The generated deployed address for RouteProcessor4 MUST match the
+    /// deploy library constant.
+    function testGeneratedDeployedAddressRouteProcessor() external pure {
+        assertEq(ROUTE_PROCESSOR_GENERATED_ADDRESS, LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS);
+    }
+
+    /// The generated codehash for RouteProcessor4 MUST match the deploy
+    /// library constant.
+    function testGeneratedCodehashRouteProcessor() external pure {
+        assertEq(ROUTE_PROCESSOR_GENERATED_CODEHASH, LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH);
+    }
+
+    /// After calling etchOrderBook, all three contracts MUST have the expected
     /// codehash at their expected addresses.
     function testEtchOrderBook() external {
-        LibOrderBookDeploy.etchOrderBook(vm);
+        LibEtchOrderBook.etchOrderBook(vm);
 
         assertEq(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH);
         assertEq(
             LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.SUB_PARSER_DEPLOYED_CODEHASH
+        );
+        assertEq(
+            LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS.codehash,
+            LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH
         );
     }
 
     /// Calling etchOrderBook twice MUST be idempotent — codehashes remain
     /// correct on the second call.
     function testEtchOrderBookIdempotent() external {
-        LibOrderBookDeploy.etchOrderBook(vm);
-        LibOrderBookDeploy.etchOrderBook(vm);
+        LibEtchOrderBook.etchOrderBook(vm);
+        LibEtchOrderBook.etchOrderBook(vm);
 
         assertEq(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH);
         assertEq(
             LibOrderBookDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibOrderBookDeploy.SUB_PARSER_DEPLOYED_CODEHASH
+        );
+        assertEq(
+            LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS.codehash,
+            LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH
         );
     }
 }

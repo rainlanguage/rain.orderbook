@@ -2,10 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
-import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
-import {IRaindexV6, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
+import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 
 /// @param task The task to run as post for each arb.
 /// @param implementationData The constructor data for the specific
@@ -18,17 +15,11 @@ struct OrderBookV6ArbConfig {
 /// Thrown when the task does not match the expected hash.
 error WrongTask();
 
-/// @dev "Before arb" is evaluated before the arb is executed. Ostensibly
-/// allows for some kind of access control to the arb.
-SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
-
 /// @title OrderBookV6ArbCommon
 /// @notice Common base for arb contracts that interact with `OrderBook`.
 /// Stores a task hash at construction time and validates it on each arb call
 /// via the `onlyValidTask` modifier.
 abstract contract OrderBookV6ArbCommon {
-    using LibEvaluable for EvaluableV4;
-
     /// @notice Emitted on construction with the full config.
     /// @param sender The deployer address.
     /// @param config The arb config used to construct this contract.
