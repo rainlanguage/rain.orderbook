@@ -4,11 +4,14 @@ pragma solidity =0.8.25;
 
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {
-    GenericPoolOrderBookV6ArbOrderTaker
-} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
-import {
-    IRaindexV6, TakeOrdersConfigV5, TaskV2, EvaluableV4, SignedContextV1, Float
+    IRaindexV6,
+    TakeOrdersConfigV5,
+    TaskV2,
+    EvaluableV4,
+    SignedContextV1,
+    Float
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
@@ -30,14 +33,15 @@ contract ReentrantMockOrderBook is MockOrderBookBase {
         if (!sReentered) {
             sReentered = true;
             // Re-enter arb5 from the OB callback.
-            GenericPoolOrderBookV6ArbOrderTaker(payable(msg.sender)).arb5(
-                IRaindexV6(address(this)),
-                config,
-                TaskV2({
+            GenericPoolOrderBookV6ArbOrderTaker(payable(msg.sender))
+                .arb5(
+                    IRaindexV6(address(this)),
+                    config,
+                    TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                     signedContext: new SignedContextV1[](0)
                 })
-            );
+                );
         }
 
         return (Float.wrap(0), Float.wrap(0));

@@ -84,7 +84,9 @@ contract GenericPoolOrderBookV6FlashBorrowerEthForwardedTest is Test {
         bytes memory exchangeData = abi.encode(
             address(exchange),
             address(exchange),
-            abi.encodeCall(AllowanceCheckingExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18))
+            abi.encodeCall(
+                AllowanceCheckingExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18)
+            )
         );
 
         arb.arb4(
