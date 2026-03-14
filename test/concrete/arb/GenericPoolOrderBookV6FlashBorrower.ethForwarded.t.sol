@@ -17,8 +17,7 @@ import {
     IOV2,
     EvaluableV4,
     SignedContextV1,
-    TaskV2,
-    Float
+    TaskV2
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
@@ -108,5 +107,8 @@ contract GenericPoolOrderBookV6FlashBorrowerEthForwardedTest is Test {
 
         // The exchange received the ETH during the call.
         assertEq(exchange.lastEthReceived(), 1 ether);
+        // The arb contract has no remaining ETH — it was swept to msg.sender
+        // by finalizeArb.
+        assertEq(address(arb).balance, 0);
     }
 }

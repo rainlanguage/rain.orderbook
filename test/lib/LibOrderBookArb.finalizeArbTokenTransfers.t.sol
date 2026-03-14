@@ -17,8 +17,7 @@ import {
     IOV2,
     EvaluableV4,
     SignedContextV1,
-    TaskV2,
-    Float
+    TaskV2
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";

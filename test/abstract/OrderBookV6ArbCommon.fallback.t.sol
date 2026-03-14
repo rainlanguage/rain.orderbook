@@ -25,11 +25,18 @@ contract OrderBookV6ArbOrderTakerFallbackTest is GenericPoolOrderBookV6ArbOrderT
         assertTrue(success, "fallback should accept empty calldata");
     }
 
-    /// The fallback MUST accept ETH transfers (payable).
-    function testFallbackAcceptsETH() external {
+    /// The receive function MUST accept plain ETH transfers.
+    function testReceiveAcceptsETH() external {
         vm.deal(address(this), 1 ether);
         (bool success,) = iArb.call{value: 1}("");
-        assertTrue(success, "fallback should accept ETH");
+        assertTrue(success, "receive should accept ETH");
+    }
+
+    /// The fallback MUST accept ETH with non-matching calldata (payable).
+    function testFallbackAcceptsETHWithCalldata() external {
+        vm.deal(address(this), 1 ether);
+        (bool success,) = iArb.call{value: 1}(hex"deadbeef");
+        assertTrue(success, "fallback should accept ETH with calldata");
     }
 }
 
@@ -53,10 +60,17 @@ contract OrderBookV6FlashBorrowerFallbackTest is ArbTest {
         assertTrue(success, "fallback should accept empty calldata");
     }
 
-    /// The fallback MUST accept ETH transfers (payable).
-    function testFallbackAcceptsETH() external {
+    /// The receive function MUST accept plain ETH transfers.
+    function testReceiveAcceptsETH() external {
         vm.deal(address(this), 1 ether);
         (bool success,) = iArb.call{value: 1}("");
-        assertTrue(success, "fallback should accept ETH");
+        assertTrue(success, "receive should accept ETH");
+    }
+
+    /// The fallback MUST accept ETH with non-matching calldata (payable).
+    function testFallbackAcceptsETHWithCalldata() external {
+        vm.deal(address(this), 1 ether);
+        (bool success,) = iArb.call{value: 1}(hex"deadbeef");
+        assertTrue(success, "fallback should accept ETH with calldata");
     }
 }
