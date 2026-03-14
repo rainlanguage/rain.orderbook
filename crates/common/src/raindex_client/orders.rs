@@ -1022,7 +1022,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
                     page_size: effective_page_size,
                 },
             )
-            .await;
+            .await?;
 
         let orders = orders
             .iter()
