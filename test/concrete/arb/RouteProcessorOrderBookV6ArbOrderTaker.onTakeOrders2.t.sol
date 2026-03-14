@@ -39,7 +39,7 @@ contract RouteProcessorOrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook();
+        RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook(100e18);
         MockRouteProcessor routeProcessor = new MockRouteProcessor();
 
         // OB has outputToken to send to taker.

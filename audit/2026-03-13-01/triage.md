@@ -49,21 +49,21 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 22 | A08-1 | P1 | OrderBookV6.sol | flashLoan lacks nonReentrant guard | DISMISSED | By design: same as A04-2 |
 | 23 | A15-2 | P1 | Deploy.sol | No explicit revert on failed create in deployRouter() | FIXED | Added require(routeProcessor4 != address(0)) |
 | 24 | A01-P2-1 | P2 | OrderBookV6ArbCommon.sol | No test for WrongTask revert through FlashBorrower path | FIXED | Dup of A03-P2-6 |
-| 25 | A01-P2-2 | P2 | OrderBookV6ArbCommon.sol | No direct unit test for constructor iTaskHash assignment | PENDING | |
+| 25 | A01-P2-2 | P2 | OrderBookV6ArbCommon.sol | No direct unit test for constructor iTaskHash assignment | FIXED | Test in iTaskHash.t.sol for both non-empty and empty bytecode |
 | 26 | A01-P2-3 | P2 | OrderBookV6ArbCommon.sol | No test for onlyValidTask bypass when iTaskHash == 0 | DISMISSED | Implicitly tested: sender tests deploy with empty expression (iTaskHash==0) and pass |
 | 27 | A02-P2-1 | P2 | OrderBookV6ArbOrderTaker.sol | No test for arb5 reverting on zero orders | FIXED | Added noOrders.t.sol |
-| 28 | A02-P2-2 | P2 | OrderBookV6ArbOrderTaker.sol | No test for reentrancy guard on arb5 | PENDING | |
-| 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | PENDING | |
+| 28 | A02-P2-2 | P2 | OrderBookV6ArbOrderTaker.sol | No test for reentrancy guard on arb5 | FIXED | Test in reentrancy.t.sol with ReentrantMockOrderBook |
+| 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | FIXED | Test in onTakeOrders2Direct.t.sol |
 | 30 | A03-P2-4 | P2 | OrderBookV6FlashBorrower.sol | SwapFailed error declared but never used/tested | FIXED | Removed dead error; Dup: A03-P4-2 |
 | 31 | A03-P2-5 | P2 | OrderBookV6FlashBorrower.sol | NoOrders revert path has no test through flash borrower | FIXED | Added FlashBorrower.noOrders.t.sol |
 | 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | FIXED | Dup of A03-3 |
 | 33 | A05-P2-3 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | Constructor event emission tested only indirectly | DISMISSED | ArbTest constructor uses vm.expectEmit + emit Construct — this IS a test |
-| 34 | A07-P2-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for onTakeOrders2 called directly by attacker | PENDING | |
-| 35 | A07-P2-3 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for constructor with invalid implementationData | PENDING | |
+| 34 | A07-P2-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for onTakeOrders2 called directly by attacker | FIXED | Test in onTakeOrders2Direct.t.sol |
+| 35 | A07-P2-3 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for constructor with invalid implementationData | FIXED | Test in invalidConstructor.t.sol |
 | 36 | A12-P2-1 | P2 | LibOrderBookArb.sol | NonZeroBeforeArbStack and BadLender errors are dead code | FIXED | Removed both dead errors |
-| 37 | A12-P2-2 | P2 | LibOrderBookArb.sol | No test verifies token transfers in finalizeArb | PENDING | |
-| 38 | A12-P2-3 | P2 | LibOrderBookArb.sol | No test verifies native gas sent to msg.sender | PENDING | |
-| 39 | A12-P2-4 | P2 | LibOrderBookArb.sol | No test exercises finalizeArb with realistic non-zero balances | PENDING | |
+| 37 | A12-P2-2 | P2 | LibOrderBookArb.sol | No test verifies token transfers in finalizeArb | FIXED | Test in finalizeArbTokenTransfers.t.sol |
+| 38 | A12-P2-3 | P2 | LibOrderBookArb.sol | No test verifies native gas sent to msg.sender | FIXED | Test in finalizeArbNativeGas.t.sol; made fallback payable + added receive() |
+| 39 | A12-P2-4 | P2 | LibOrderBookArb.sol | No test exercises finalizeArb with realistic non-zero balances | FIXED | Covered by finalizeArbTokenTransfers.t.sol (20e18 profit) and finalizeArbNativeGas.t.sol (1 ETH) |
 | 40 | A15-P2-1 | P2 | Deploy.sol | No unit test for deployRouter() return value on create failure | PENDING | |
 | 41 | A15-P2-2 | P2 | Deploy.sol | ROUTE_PROCESSOR_4_BYTECODE_HASH constant never verified | PENDING | |
 | 42 | A15-P2-3 | P2 | Deploy.sol | No test for BadRouteProcessor error path | PENDING | |

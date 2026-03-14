@@ -23,8 +23,8 @@ import {
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookV6FlashBorrowerWrongTaskTest is ArbTest {
-    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address) {
-        return address(new GenericPoolOrderBookV6FlashBorrower(config));
+    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address payable) {
+        return payable(address(new GenericPoolOrderBookV6FlashBorrower(config)));
     }
 
     function expression() internal pure override returns (bytes memory) {

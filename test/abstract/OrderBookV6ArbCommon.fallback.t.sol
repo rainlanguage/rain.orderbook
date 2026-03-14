@@ -25,18 +25,18 @@ contract OrderBookV6ArbOrderTakerFallbackTest is GenericPoolOrderBookV6ArbOrderT
         assertTrue(success, "fallback should accept empty calldata");
     }
 
-    /// The fallback MUST reject ETH transfers (non-payable).
-    function testFallbackRejectsETH() external {
+    /// The fallback MUST accept ETH transfers (payable).
+    function testFallbackAcceptsETH() external {
         vm.deal(address(this), 1 ether);
         (bool success,) = iArb.call{value: 1}("");
-        assertFalse(success, "fallback should reject ETH");
+        assertTrue(success, "fallback should accept ETH");
     }
 }
 
 /// @dev Tests fallback behavior on the flash borrower arb contract.
 contract OrderBookV6FlashBorrowerFallbackTest is ArbTest {
-    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address) {
-        return address(new GenericPoolOrderBookV6FlashBorrower(config));
+    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address payable) {
+        return payable(address(new GenericPoolOrderBookV6FlashBorrower(config)));
     }
 
     constructor() ArbTest() {}
@@ -53,10 +53,10 @@ contract OrderBookV6FlashBorrowerFallbackTest is ArbTest {
         assertTrue(success, "fallback should accept empty calldata");
     }
 
-    /// The fallback MUST reject ETH transfers (non-payable).
-    function testFallbackRejectsETH() external {
+    /// The fallback MUST accept ETH transfers (payable).
+    function testFallbackAcceptsETH() external {
         vm.deal(address(this), 1 ether);
         (bool success,) = iArb.call{value: 1}("");
-        assertFalse(success, "fallback should reject ETH");
+        assertTrue(success, "fallback should accept ETH");
     }
 }

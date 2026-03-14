@@ -9,8 +9,8 @@ import {
 } from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 
 contract GenericPoolOrderBookV6ArbOrderTakerTest is ArbTest {
-    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address) {
-        return address(new GenericPoolOrderBookV6ArbOrderTaker(config));
+    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address payable) {
+        return payable(address(new GenericPoolOrderBookV6ArbOrderTaker(config)));
     }
 
     constructor() ArbTest() {}
