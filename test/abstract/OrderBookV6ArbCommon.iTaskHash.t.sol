@@ -23,8 +23,7 @@ contract OrderBookV6ArbCommonITaskHashTest is Test {
             signedContext: new SignedContextV1[](0)
         });
 
-        GenericPoolOrderBookV6ArbOrderTaker arb =
-            new GenericPoolOrderBookV6ArbOrderTaker(OrderBookV6ArbConfig(task, ""));
+        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker(OrderBookV6ArbConfig(task));
 
         assertEq(arb.iTaskHash(), keccak256(abi.encode(task)));
     }
@@ -36,8 +35,7 @@ contract OrderBookV6ArbCommonITaskHashTest is Test {
             signedContext: new SignedContextV1[](0)
         });
 
-        GenericPoolOrderBookV6ArbOrderTaker arb =
-            new GenericPoolOrderBookV6ArbOrderTaker(OrderBookV6ArbConfig(task, ""));
+        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker(OrderBookV6ArbConfig(task));
 
         assertEq(arb.iTaskHash(), bytes32(0));
     }

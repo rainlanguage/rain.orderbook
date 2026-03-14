@@ -25,6 +25,7 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpr
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockRouteProcessor} from "test/util/concrete/MockRouteProcessor.sol";
 import {RealisticOrderTakerMockOrderBook} from "test/util/concrete/RealisticOrderTakerMockOrderBook.sol";
@@ -40,20 +41,21 @@ contract RouteProcessorOrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
         RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook(100e18);
-        MockRouteProcessor routeProcessor = new MockRouteProcessor();
+        MockRouteProcessor mockRp = new MockRouteProcessor();
+        vm.etch(LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS, address(mockRp).code);
+        address routeProcessor = LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS;
 
         // OB has outputToken to send to taker.
         outputToken.mint(address(orderBook), 100e18);
         // RouteProcessor has inputToken to give back after swap.
-        inputToken.mint(address(routeProcessor), 100e18);
+        inputToken.mint(routeProcessor, 100e18);
 
         RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker(
             OrderBookV6ArbConfig(
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                     signedContext: new SignedContextV1[](0)
-                }),
-                abi.encode(address(routeProcessor))
+                })
             )
         );
 
@@ -99,8 +101,8 @@ contract RouteProcessorOrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
         assertEq(inputToken.balanceOf(address(orderBook)), 100e18, "OB inputToken");
         assertEq(outputToken.balanceOf(address(orderBook)), 0, "OB outputToken");
         // RouteProcessor started with inputToken, received nothing (amountIn=0).
-        assertEq(inputToken.balanceOf(address(routeProcessor)), 0, "RP inputToken");
-        assertEq(outputToken.balanceOf(address(routeProcessor)), 0, "RP outputToken");
+        assertEq(inputToken.balanceOf(routeProcessor), 0, "RP inputToken");
+        assertEq(outputToken.balanceOf(routeProcessor), 0, "RP outputToken");
         // Test contract received profit (outputToken) via finalizeArb.
         assertEq(outputToken.balanceOf(address(this)), 100e18, "test outputToken");
     }

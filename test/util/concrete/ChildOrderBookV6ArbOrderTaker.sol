@@ -20,8 +20,7 @@ contract ChildOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), ""),
                     signedContext: new SignedContextV1[](0)
-                }),
-                abi.encode(address(0))
+                })
             ))
     {}
 }

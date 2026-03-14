@@ -78,8 +78,7 @@ abstract contract ArbTest is Test {
             TaskV2({
                 evaluable: EvaluableV4(iInterpreter, iInterpreterStore, expression()),
                 signedContext: new SignedContextV1[](0)
-            }),
-            abi.encode(iRefundoor)
+            })
         );
 
         vm.expectEmit();

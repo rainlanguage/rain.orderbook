@@ -106,35 +106,16 @@ contract Deploy is Script {
                 sDepCodeHashes
             );
         } else if (suite == DEPLOYMENT_SUITE_ARB) {
-            address routeProcessor = LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS;
             vm.startBroadcast(deployerPrivateKey);
-            new GenericPoolOrderBookV6ArbOrderTaker(
-                OrderBookV6ArbConfig(
-                    TaskV2({
-                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                        signedContext: new SignedContextV1[](0)
-                    }),
-                    ""
-                )
+            OrderBookV6ArbConfig memory arbConfig = OrderBookV6ArbConfig(
+                TaskV2({
+                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
+                    signedContext: new SignedContextV1[](0)
+                })
             );
-            new RouteProcessorOrderBookV6ArbOrderTaker(
-                OrderBookV6ArbConfig(
-                    TaskV2({
-                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                        signedContext: new SignedContextV1[](0)
-                    }),
-                    abi.encode(routeProcessor)
-                )
-            );
-            new GenericPoolOrderBookV6FlashBorrower(
-                OrderBookV6ArbConfig(
-                    TaskV2({
-                        evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                        signedContext: new SignedContextV1[](0)
-                    }),
-                    ""
-                )
-            );
+            new GenericPoolOrderBookV6ArbOrderTaker(arbConfig);
+            new RouteProcessorOrderBookV6ArbOrderTaker(arbConfig);
+            new GenericPoolOrderBookV6FlashBorrower(arbConfig);
             vm.stopBroadcast();
         } else {
             revert("Unknown deployment suite");

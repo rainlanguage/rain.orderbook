@@ -5,11 +5,8 @@ pragma solidity ^0.8.19;
 import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 
 /// @param task The task to run as post for each arb.
-/// @param implementationData The constructor data for the specific
-/// implementation of the arb contract.
 struct OrderBookV6ArbConfig {
     TaskV2 task;
-    bytes implementationData;
 }
 
 /// Thrown when the task does not match the expected hash.

@@ -22,8 +22,7 @@ contract ChildOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                     signedContext: new SignedContextV1[](0)
-                }),
-                abi.encode(address(0))
+                })
             ))
     {}
 }

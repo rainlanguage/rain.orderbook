@@ -52,8 +52,7 @@ contract LibOrderBookArbFinalizeArbNativeGasTest is Test {
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                     signedContext: new SignedContextV1[](0)
-                }),
-                ""
+                })
             )
         );
 
