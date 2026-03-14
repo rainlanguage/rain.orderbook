@@ -6,9 +6,9 @@ import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {
-    GenericPoolOrderBookV6FlashBorrower,
+    RouteProcessorOrderBookV6ArbOrderTaker,
     OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,
@@ -25,37 +25,35 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpr
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
-import {MockExchange} from "test/util/concrete/MockExchange.sol";
-import {RealisticFlashLendingMockOrderBook} from "test/util/concrete/RealisticFlashLendingMockOrderBook.sol";
+import {MockRouteProcessor} from "test/util/concrete/MockRouteProcessor.sol";
+import {RealisticOrderTakerMockOrderBook} from "test/util/concrete/RealisticOrderTakerMockOrderBook.sol";
 
-contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
-    /// arb4 completes a full flash loan cycle with real ERC20 transfers:
-    /// flash loan, exchange, take orders, repayment, and finalize.
-    function testArb4RealTokenTransfers() external {
+contract RouteProcessorOrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
+    /// arb5 with RouteProcessor completes a full order-taker cycle:
+    /// takeOrders, onTakeOrders2 callback via mock route processor, finalize.
+    function testRouteProcessorArb5() external {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticFlashLendingMockOrderBook mockOb = new RealisticFlashLendingMockOrderBook();
-        vm.etch(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS, address(mockOb).code);
-        RealisticFlashLendingMockOrderBook orderBook =
-            RealisticFlashLendingMockOrderBook(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
-        MockExchange exchange = new MockExchange();
+        RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook();
+        MockRouteProcessor routeProcessor = new MockRouteProcessor();
 
-        outputToken.mint(address(orderBook), 1000e18);
-        inputToken.mint(address(exchange), 100e18);
+        // OB has outputToken to send to taker.
+        outputToken.mint(address(orderBook), 100e18);
+        // RouteProcessor has inputToken to give back after swap.
+        inputToken.mint(address(routeProcessor), 100e18);
 
-        GenericPoolOrderBookV6FlashBorrower arb = new GenericPoolOrderBookV6FlashBorrower(
+        RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker(
             OrderBookV6ArbConfig(
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                     signedContext: new SignedContextV1[](0)
                 }),
-                ""
+                abi.encode(address(routeProcessor))
             )
         );
 
@@ -75,13 +73,10 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
 
-        bytes memory exchangeData = abi.encode(
-            address(exchange),
-            address(exchange),
-            abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18))
-        );
+        // Route bytes are ignored by MockRouteProcessor.
+        bytes memory takeOrdersData = abi.encode(hex"");
 
-        arb.arb4(
+        arb.arb5(
             IRaindexV6(address(orderBook)),
             TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(100, 0),
@@ -89,9 +84,8 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
                 maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
                 IOIsInput: true,
                 orders: orders,
-                data: ""
+                data: takeOrdersData
             }),
-            exchangeData,
             TaskV2({
                 evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                 signedContext: new SignedContextV1[](0)

@@ -30,15 +30,16 @@ import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockExchange} from "test/util/concrete/MockExchange.sol";
 import {RealisticFlashLendingMockOrderBook} from "test/util/concrete/RealisticFlashLendingMockOrderBook.sol";
 
-contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
-    /// arb4 completes a full flash loan cycle with real ERC20 transfers:
-    /// flash loan, exchange, take orders, repayment, and finalize.
-    function testArb4RealTokenTransfers() external {
+contract OrderBookV6FlashBorrowerMixedDecimalsTest is Test {
+    /// arb4 with mixed-decimal tokens: 6-decimal output (USDT-like) and
+    /// 18-decimal input (DAI-like). The flash loan amount must use
+    /// outputDecimals, not inputDecimals.
+    function testArb4MixedDecimals() external {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
-        MockToken inputToken = new MockToken("Input", "IN", 18);
-        MockToken outputToken = new MockToken("Output", "OUT", 18);
+        MockToken inputToken = new MockToken("DAI", "DAI", 18);
+        MockToken outputToken = new MockToken("USDT", "USDT", 6);
 
         RealisticFlashLendingMockOrderBook mockOb = new RealisticFlashLendingMockOrderBook();
         vm.etch(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS, address(mockOb).code);
@@ -46,8 +47,10 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
             RealisticFlashLendingMockOrderBook(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
         MockExchange exchange = new MockExchange();
 
-        outputToken.mint(address(orderBook), 1000e18);
-        inputToken.mint(address(exchange), 100e18);
+        // OB needs outputToken for both the flash loan and takeOrders4.
+        outputToken.mint(address(orderBook), 1000e6);
+        // Exchange has 100e6 of inputToken for the swap.
+        inputToken.mint(address(exchange), 100e6);
 
         GenericPoolOrderBookV6FlashBorrower arb = new GenericPoolOrderBookV6FlashBorrower(
             OrderBookV6ArbConfig(
@@ -78,7 +81,7 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
         bytes memory exchangeData = abi.encode(
             address(exchange),
             address(exchange),
-            abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18))
+            abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e6))
         );
 
         arb.arb4(

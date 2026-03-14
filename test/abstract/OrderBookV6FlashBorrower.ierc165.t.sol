@@ -19,7 +19,6 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpr
 contract ChildOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
     constructor()
         OrderBookV6FlashBorrower(OrderBookV6ArbConfig(
-                address(0),
                 TaskV2({
                     evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                     signedContext: new SignedContextV1[](0)

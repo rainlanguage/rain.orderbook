@@ -15,10 +15,10 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 
 | # | ID | Pass | File | Title | Status | Notes |
 |---|-----|------|------|-------|--------|-------|
-| 1 | A03-2 | P1 | OrderBookV6FlashBorrower.sol | Missing ERC20 approval for flash loan repayment token | PENDING | |
-| 2 | A03-P2-3 | P2 | OrderBookV6FlashBorrower.sol | Mock skips token transfers, hiding A03-2 | PENDING | Related to A03-2 |
-| 3 | A05-1 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Unlimited approval to arbitrary spender with caller-controlled data | PENDING | |
-| 4 | A05-P2-1 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | `onTakeOrders2` is completely untested | PENDING | |
+| 1 | A03-2 | P1 | OrderBookV6FlashBorrower.sol | Missing ERC20 approval for flash loan repayment token | FIXED | Added approve-call-revoke for ordersOutputToken; end-to-end test in missingApproval.t.sol |
+| 2 | A03-P2-3 | P2 | OrderBookV6FlashBorrower.sol | Mock skips token transfers, hiding A03-2 | FIXED | RealisticFlashLendingMockOrderBook does real ERC3156 transfers |
+| 3 | A05-1 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Unlimited approval to arbitrary spender with caller-controlled data | DOCUMENTED | By design: approve-call-revoke; contract stateless between ops; added inline comment |
+| 4 | A05-P2-1 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | `onTakeOrders2` is completely untested | FIXED | End-to-end test in onTakeOrders2.t.sol with realistic mock + exchange |
 | 5 | A15-1 | P1 | Deploy.sol | Route processor bytecode hash check runs unconditionally | DISMISSED | Intentional: verifies route processor before deploying arb contracts |
 | 6 | A15-P5-1 | P5 | Deploy.sol | Confirms A15-1 | DISMISSED | Dup of A15-1 |
 
@@ -26,15 +26,15 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 
 | # | ID | Pass | File | Title | Status | Notes |
 |---|-----|------|------|-------|--------|-------|
-| 7 | A03-1 | P1 | OrderBookV6FlashBorrower.sol | Missing msg.sender (lender) validation in onFlashLoan | PENDING | |
-| 8 | A03-3 | P1 | OrderBookV6FlashBorrower.sol | Flash loan amount computed with wrong token decimals | PENDING | Dup: A03-P2-7 |
-| 9 | A05-2 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Arbitrary external call sends entire ETH balance | PENDING | |
-| 10 | A06-1 | P1 | GenericPoolOrderBookV6FlashBorrower.sol | Unlimited approval to arbitrary spender with no validation | PENDING | Similar to A05-1 |
+| 7 | A03-1 | P1 | OrderBookV6FlashBorrower.sol | Missing msg.sender (lender) validation in onFlashLoan | FIXED | Added iOrderBook immutable + BadLender check; test in lenderValidation.t.sol |
+| 8 | A03-3 | P1 | OrderBookV6FlashBorrower.sol | Flash loan amount computed with wrong token decimals | FIXED | Changed inputDecimals → outputDecimals; test in mixedDecimals.t.sol |
+| 9 | A05-2 | P1 | GenericPoolOrderBookV6ArbOrderTaker.sol | Arbitrary external call sends entire ETH balance | DOCUMENTED | By design: same as A05-1; contract stateless between ops; balance is normally 0 |
+| 10 | A06-1 | P1 | GenericPoolOrderBookV6FlashBorrower.sol | Unlimited approval to arbitrary spender with no validation | DOCUMENTED | Dup of A05-1; approve-call-revoke; added inline comment |
 | 11 | A03-P2-1 | P2 | OrderBookV6FlashBorrower.sol | onFlashLoan has zero direct test coverage for error paths | FIXED | BadInitiator tested in badInitiator.t.sol |
-| 12 | A03-P2-2 | P2 | OrderBookV6FlashBorrower.sol | FlashLoanFailed error path is never tested | PENDING | |
+| 12 | A03-P2-2 | P2 | OrderBookV6FlashBorrower.sol | FlashLoanFailed error path is never tested | FIXED | Test in flashLoanFailed.t.sol |
 | 13 | A03-P2-6 | P2 | OrderBookV6FlashBorrower.sol | WrongTask revert path has no test for flash borrower arb contracts | FIXED | Added wrongTask.t.sol |
 | 14 | A05-P2-2 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No test for fallback() behavior | FIXED | Added fallback.t.sol for both arb types |
-| 15 | A07-P2-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | onTakeOrders2 override has zero test coverage | PENDING | |
+| 15 | A07-P2-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | onTakeOrders2 override has zero test coverage | FIXED | Test in onTakeOrders2.t.sol with MockRouteProcessor |
 | 16 | A15-P5-2 | P5 | Deploy.sol | vm.envAddress reverts unconditionally for route-processor suite | DISMISSED | Incorrect: envAddress is in ARB branch (line 135), not route-processor branch |
 
 ## LOW
@@ -56,7 +56,7 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 29 | A02-P2-3 | P2 | OrderBookV6ArbOrderTaker.sol | onTakeOrders2 has no direct test | PENDING | |
 | 30 | A03-P2-4 | P2 | OrderBookV6FlashBorrower.sol | SwapFailed error declared but never used/tested | FIXED | Removed dead error; Dup: A03-P4-2 |
 | 31 | A03-P2-5 | P2 | OrderBookV6FlashBorrower.sol | NoOrders revert path has no test through flash borrower | FIXED | Added FlashBorrower.noOrders.t.sol |
-| 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | PENDING | Dup of A03-3 |
+| 32 | A03-P2-7 | P2 | OrderBookV6FlashBorrower.sol | Flash loan amount wrong decimals not caught by tests | FIXED | Dup of A03-3 |
 | 33 | A05-P2-3 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | Constructor event emission tested only indirectly | DISMISSED | ArbTest constructor uses vm.expectEmit + emit Construct — this IS a test |
 | 34 | A07-P2-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for onTakeOrders2 called directly by attacker | PENDING | |
 | 35 | A07-P2-3 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for constructor with invalid implementationData | PENDING | |
@@ -69,7 +69,7 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 42 | A15-P2-3 | P2 | Deploy.sol | No test for BadRouteProcessor error path | PENDING | |
 | 43 | A15-P2-4 | P2 | Deploy.sol | No test coverage for individual suite isolation | PENDING | |
 | 44 | A06-P2-GAP1 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for BadInitiator error path | FIXED | Added badInitiator.t.sol |
-| 45 | A06-P2-GAP2 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for FlashLoanFailed error path | PENDING | |
+| 45 | A06-P2-GAP2 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for FlashLoanFailed error path | FIXED | Dup of A03-P2-2; same base class tested |
 | 46 | A06-P2-GAP3 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for WrongTask on GenericPoolOrderBookV6FlashBorrower | FIXED | Dup of A03-P2-6 |
 | 47 | A06-P2-GAP4 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for NoOrders revert in arb4 | FIXED | Dup of A03-P2-5 |
 | 48 | A06-P2-GAP5 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for _exchange failure propagation | PENDING | |
@@ -138,6 +138,6 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 106 | A15-P3-7 | P3 | Deploy.sol | sDepCodeHashes state var no docs | FIXED | |
 | 107 | A15-P3-8 | P3 | README.md | README missing deploy info | FIXED | Added Deployment section |
 | 108 | CR-1 | CR | LibOrderBookArb.sol | sendValue called without zero-balance guard | FIXED | Added if (gasBalance > 0) guard |
-| 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | PENDING | CodeRabbit finding |
+| 109 | CR-2 | CR | LibOrderBookSubParser.sol | NatSpec word names don't match canonical parser keywords | DISMISSED | WORD_* constants ARE the canonical keywords; naming convention is consistent |
 | 110 | CR-3 | CR | README.md | Deploy example missing ETH_RPC_URL / --rpc-url | FIXED | Added --rpc-url to example |
-| 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | PENDING | CodeRabbit finding |
+| 111 | CR-4 | CR | OrderBookV6SubParser.sol / LibOrderBookSubParser.sol | Repeated magic expression CONTEXT_COLUMNS + 2 + 1 + 1 should be named constant | FIXED | Extracted CONTEXT_COLUMNS_EXTENDED constant in LibOrderBook.sol |

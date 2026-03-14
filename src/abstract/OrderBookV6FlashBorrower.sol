@@ -11,12 +11,18 @@ import {IRaindexV6, TakeOrdersConfigV5, TaskV2} from "rain.raindex.interface/int
 import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {OrderBookV6ArbConfig, OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
 import {LibOrderBookArb} from "../lib/LibOrderBookArb.sol";
+import {LibOrderBookDeploy} from "../lib/deploy/LibOrderBookDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Thrown when the flash loan initiator is not this contract.
 /// @param badInitiator The untrusted initiator of the flash loan.
 error BadInitiator(address badInitiator);
+
+/// Thrown when onFlashLoan is called by an address other than the deterministic
+/// orderbook deployment. Prevents malicious contracts from invoking the callback.
+/// @param badLender The untrusted caller of onFlashLoan.
+error BadLender(address badLender);
 
 /// Thrown when the flash loan fails somehow.
 error FlashLoanFailed();
@@ -74,6 +80,10 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
 
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data) external returns (bytes32) {
+        // Only the deterministic orderbook deployment may call this callback.
+        if (msg.sender != LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS) {
+            revert BadLender(msg.sender);
+        }
         // As per reference implementation.
         if (initiator != address(this)) {
             revert BadInitiator(initiator);
@@ -139,7 +149,7 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
 
         // We can't repay more than the minimum that the orders are going to
         // give us and there's no reason to borrow less.
-        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(takeOrders.minimumIO, inputDecimals);
+        uint256 flashLoanAmount = LibDecimalFloat.toFixedDecimalLossless(takeOrders.minimumIO, outputDecimals);
 
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the

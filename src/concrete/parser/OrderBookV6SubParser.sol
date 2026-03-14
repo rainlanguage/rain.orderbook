@@ -29,7 +29,7 @@ import {
     WITHDRAW_WORDS_LENGTH
 } from "../../lib/LibOrderBookSubParser.sol";
 import {
-    CONTEXT_COLUMNS,
+    CONTEXT_COLUMNS_EXTENDED,
     CONTEXT_BASE_ROWS,
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
@@ -96,11 +96,8 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
 
     /// @inheritdoc IParserToolingV1
     function buildOperandHandlerFunctionPointers() external pure returns (bytes memory) {
-        // Add 2 columns for signers and signed context start.
-        // Add 1 for deposit context
-        // Add 1 for withdraw context
         function(bytes32[] memory) internal pure returns (OperandV2)[][] memory handlers =
-            new function(bytes32[] memory) internal pure returns (OperandV2)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
+            new function(bytes32[] memory) internal pure returns (OperandV2)[][](CONTEXT_COLUMNS_EXTENDED);
 
         function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextBaseHandlers =
             new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_BASE_ROWS);
@@ -184,14 +181,11 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
     /// @dev Builds the packed word-parser function pointer table for all
     /// orderbook sub-parser words across every context column.
     function buildSubParserWordParsers() external pure returns (bytes memory) {
-        // Add 2 columns for signers and signed context start.
-        // Add 1 for deposit context
-        // Add 1 for withdraw context
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[][] memory
             parsers =
             new function(uint256, uint256, OperandV2)
             internal
-            view returns (bool, bytes memory, bytes32[] memory)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
+            view returns (bool, bytes memory, bytes32[] memory)[][](CONTEXT_COLUMNS_EXTENDED);
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextBaseParsers =

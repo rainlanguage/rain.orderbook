@@ -11,6 +11,7 @@ import {
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
     CONTEXT_BASE_ROWS,
     CONTEXT_COLUMNS,
+    CONTEXT_COLUMNS_EXTENDED,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
@@ -403,10 +404,7 @@ library LibOrderBookSubParser {
     /// deposit, withdraw).
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
-        // Add 2 for the signed context signers and signed context start columns.
-        // 1 for the deposit context.
-        // 1 for the withdraw context.
-        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2 + 1 + 1);
+        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS_EXTENDED);
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(

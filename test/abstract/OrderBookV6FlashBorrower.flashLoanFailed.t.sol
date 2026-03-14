@@ -9,6 +9,7 @@ import {
     GenericPoolOrderBookV6FlashBorrower,
     OrderBookV6ArbConfig
 } from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {FlashLoanFailed} from "src/abstract/OrderBookV6FlashBorrower.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,
@@ -27,27 +28,23 @@ import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
-import {MockExchange} from "test/util/concrete/MockExchange.sol";
-import {RealisticFlashLendingMockOrderBook} from "test/util/concrete/RealisticFlashLendingMockOrderBook.sol";
+import {MockOrderBookBase} from "test/util/abstract/MockOrderBookBase.sol";
 
-contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
-    /// arb4 completes a full flash loan cycle with real ERC20 transfers:
-    /// flash loan, exchange, take orders, repayment, and finalize.
-    function testArb4RealTokenTransfers() external {
+/// @dev Mock orderbook that returns false from flashLoan (inherits default stub).
+contract FalseFlashLoanMockOrderBook is MockOrderBookBase {}
+
+contract OrderBookV6FlashBorrowerFlashLoanFailedTest is Test {
+    /// arb4 reverts with FlashLoanFailed when the orderbook's flashLoan
+    /// returns false.
+    function testFlashLoanFailed() external {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticFlashLendingMockOrderBook mockOb = new RealisticFlashLendingMockOrderBook();
+        FalseFlashLoanMockOrderBook mockOb = new FalseFlashLoanMockOrderBook();
         vm.etch(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS, address(mockOb).code);
-        RealisticFlashLendingMockOrderBook orderBook =
-            RealisticFlashLendingMockOrderBook(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS);
-        MockExchange exchange = new MockExchange();
-
-        outputToken.mint(address(orderBook), 1000e18);
-        inputToken.mint(address(exchange), 100e18);
 
         GenericPoolOrderBookV6FlashBorrower arb = new GenericPoolOrderBookV6FlashBorrower(
             OrderBookV6ArbConfig(
@@ -75,14 +72,9 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
         TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
         orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
 
-        bytes memory exchangeData = abi.encode(
-            address(exchange),
-            address(exchange),
-            abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), 100e18))
-        );
-
+        vm.expectRevert(FlashLoanFailed.selector);
         arb.arb4(
-            IRaindexV6(address(orderBook)),
+            IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS),
             TakeOrdersConfigV5({
                 minimumIO: LibDecimalFloat.packLossless(100, 0),
                 maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
@@ -91,7 +83,7 @@ contract OrderBookV6FlashBorrowerMissingApprovalTest is Test {
                 orders: orders,
                 data: ""
             }),
-            exchangeData,
+            "",
             TaskV2({
                 evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
                 signedContext: new SignedContextV1[](0)

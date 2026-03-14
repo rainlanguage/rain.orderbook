@@ -7,12 +7,10 @@ import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV4
 import {IRaindexV6, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
 
-/// @param orderBook The `OrderBook` contract to arb against.
 /// @param task The task to run as post for each arb.
 /// @param implementationData The constructor data for the specific
 /// implementation of the arb contract.
 struct OrderBookV6ArbConfig {
-    address orderBook;
     TaskV2 task;
     bytes implementationData;
 }
