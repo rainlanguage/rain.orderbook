@@ -14,6 +14,11 @@ import {
     DEPLOYED_ADDRESS as SUB_PARSER_ADDR,
     RUNTIME_CODE as SUB_PARSER_RUNTIME_CODE
 } from "../../generated/OrderBookV6SubParser.pointers.sol";
+import {
+    BYTECODE_HASH as ROUTE_PROCESSOR_HASH,
+    DEPLOYED_ADDRESS as ROUTE_PROCESSOR_ADDR,
+    RUNTIME_CODE as ROUTE_PROCESSOR_RUNTIME_CODE
+} from "../../generated/RouteProcessor4.pointers.sol";
 
 /// @title LibOrderBookDeploy
 /// @notice A library containing the deployed address and code hash of the
@@ -37,6 +42,14 @@ library LibOrderBookDeploy {
     /// The code hash of the `OrderBookV6SubParser` contract when deployed with
     /// the rain standard zoltu deployer.
     bytes32 constant SUB_PARSER_DEPLOYED_CODEHASH = SUB_PARSER_HASH;
+
+    /// The address of the `RouteProcessor4` contract when deployed with the
+    /// rain standard zoltu deployer.
+    address constant ROUTE_PROCESSOR_DEPLOYED_ADDRESS = ROUTE_PROCESSOR_ADDR;
+
+    /// The code hash of the `RouteProcessor4` contract when deployed with the
+    /// rain standard zoltu deployer.
+    bytes32 constant ROUTE_PROCESSOR_DEPLOYED_CODEHASH = ROUTE_PROCESSOR_HASH;
 
     /// @notice Etches the runtime bytecode of the orderbook and sub parser at
     /// their expected deterministic addresses. Skips any contract whose

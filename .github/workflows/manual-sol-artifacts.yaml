@@ -65,8 +65,6 @@ jobs:
           CI_DEPLOY_FLARE_ETHERSCAN_API_KEY: ${{ secrets.CI_DEPLOY_FLARE_ETHERSCAN_API_KEY || vars.CI_DEPLOY_FLARE_ETHERSCAN_API_KEY || '' }}
           CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY: ${{ secrets.CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY || vars.CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY || '' }}
 
-          DEPLOY_ROUTE_PROCESSOR_4_ADDRESS: ${{ secrets.DEPLOY_ROUTE_PROCESSOR_4_ADDRESS || vars.DEPLOY_ROUTE_PROCESSOR_4_ADDRESS || '' }}
-
       # forwards status to telegram chat if this ci fails or gets canceled, only runs for default branch
       - name: Forward CI Status
         if: always()

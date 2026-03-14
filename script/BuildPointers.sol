@@ -10,6 +10,7 @@ import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol
 import {LibOrderBookSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "src/lib/LibOrderBookSubParser.sol";
 import {LibGenParseMeta} from "rain.interpreter.interface/lib/codegen/LibGenParseMeta.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
+import {ROUTE_PROCESSOR_4_CREATION_CODE} from "src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 
 contract BuildPointers is Script {
     function addressConstantString(address addr) internal pure returns (string memory) {
@@ -81,10 +82,27 @@ contract BuildPointers is Script {
         );
     }
 
+    function buildRouteProcessor4Pointers() internal {
+        address deployed = LibRainDeploy.deployZoltu(ROUTE_PROCESSOR_4_CREATION_CODE);
+
+        LibFs.buildFileForContract(
+            vm,
+            deployed,
+            "RouteProcessor4",
+            string.concat(
+                addressConstantString(deployed),
+                LibCodeGen.bytesConstantString(
+                    vm, "/// @dev The runtime bytecode of the contract.", "RUNTIME_CODE", deployed.code
+                )
+            )
+        );
+    }
+
     function run() external {
         LibRainDeploy.etchZoltuFactory(vm);
 
         buildOrderBookV6Pointers();
         buildOrderBookSubParserPointers();
+        buildRouteProcessor4Pointers();
     }
 }
