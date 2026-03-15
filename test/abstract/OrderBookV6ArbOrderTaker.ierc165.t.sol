@@ -4,17 +4,8 @@ pragma solidity =0.8.25;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
-import {
-    OrderBookV6ArbOrderTaker,
-    IRaindexV6ArbOrderTaker,
-    OrderBookV6ArbConfig,
-    IRaindexV6OrderTaker,
-    TaskV2
-} from "../../src/abstract/OrderBookV6ArbOrderTaker.sol";
-import {EvaluableV4} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
-import {SignedContextV1} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
+import {IRaindexV6ArbOrderTaker} from "rain.raindex.interface/interface/IRaindexV6ArbOrderTaker.sol";
+import {IRaindexV6OrderTaker} from "rain.raindex.interface/interface/IRaindexV6OrderTaker.sol";
 import {ChildOrderBookV6ArbOrderTaker} from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";
 
 contract OrderBookV6ArbOrderTakerIERC165Test is Test {

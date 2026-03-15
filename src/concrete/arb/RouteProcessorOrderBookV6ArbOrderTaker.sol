@@ -6,7 +6,7 @@ import {IRouteProcessor} from "sushixswap-v2/src/interfaces/IRouteProcessor.sol"
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
+import {OrderBookV6ArbOrderTaker, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibOrderBookDeploy} from "../../lib/deploy/LibOrderBookDeploy.sol";
@@ -17,8 +17,7 @@ import {LibOrderBookDeploy} from "../../lib/deploy/LibOrderBookDeploy.sol";
 contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     using SafeERC20 for IERC20;
 
-    /// @param config The arb contract configuration specifying the task hash.
-    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbOrderTaker(config) {}
+    constructor() {}
 
     /// @inheritdoc OrderBookV6ArbOrderTaker
     function onTakeOrders2(

@@ -2,16 +2,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
+import {OrderBookV6ArbOrderTaker, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
 import {LibGenericPoolExchange} from "../../lib/LibGenericPoolExchange.sol";
 
 /// @title GenericPoolOrderBookV6ArbOrderTaker
 /// @notice Order-taker arb that swaps via an arbitrary external pool call.
 /// The `takeOrdersData` is decoded as `(spender, pool, encodedFunctionCall)`.
 contract GenericPoolOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
-    /// @param config The arb contract configuration specifying the task hash
-    /// and implementation address.
-    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbOrderTaker(config) {}
+    constructor() {}
 
     /// @inheritdoc OrderBookV6ArbOrderTaker
     /// @dev Decodes `takeOrdersData` as `(spender, pool, encodedFunctionCall)`

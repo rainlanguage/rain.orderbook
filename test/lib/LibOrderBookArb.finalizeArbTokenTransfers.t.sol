@@ -5,10 +5,7 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import {
-    GenericPoolOrderBookV6ArbOrderTaker,
-    OrderBookV6ArbConfig
-} from "../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {GenericPoolOrderBookV6ArbOrderTaker} from "../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,
@@ -44,14 +41,7 @@ contract LibOrderBookArbFinalizeArbTokenTransfersTest is Test {
         outputToken.mint(address(orderBook), 100e18);
         inputToken.mint(address(exchange), 100e18);
 
-        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker(
-            OrderBookV6ArbConfig(
-                TaskV2({
-                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                    signedContext: new SignedContextV1[](0)
-                })
-            )
-        );
+        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker();
 
         IOV2[] memory validInputs = new IOV2[](1);
         validInputs[0] = IOV2(address(inputToken), bytes32(0));

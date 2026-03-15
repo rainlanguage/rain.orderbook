@@ -4,10 +4,7 @@ pragma solidity =0.8.25;
 
 import {ArbTest} from "test/util/abstract/ArbTest.sol";
 
-import {
-    GenericPoolOrderBookV6FlashBorrower,
-    OrderBookV6ArbConfig
-} from "../../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {GenericPoolOrderBookV6FlashBorrower} from "../../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 import {
     OrderV4,
     TakeOrderConfigV4,
@@ -19,10 +16,11 @@ import {
     SignedContextV1
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 
 contract GenericPoolOrderBookV6FlashBorrowerTest is ArbTest {
-    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address payable) {
-        return payable(address(new GenericPoolOrderBookV6FlashBorrower(config)));
+    function buildArb() internal override returns (address payable) {
+        return payable(address(new GenericPoolOrderBookV6FlashBorrower()));
     }
 
     constructor() ArbTest() {}
@@ -48,7 +46,12 @@ contract GenericPoolOrderBookV6FlashBorrowerTest is ArbTest {
             }),
                 abi.encode(iRefundoor, iRefundoor, ""),
                 TaskV2({
-                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)
+                evaluable: EvaluableV4(
+                    IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
+                    IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
+                    ""
+                ),
+                signedContext: new SignedContextV1[](0)
             })
             );
     }

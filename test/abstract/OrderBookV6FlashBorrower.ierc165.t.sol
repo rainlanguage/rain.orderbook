@@ -4,27 +4,12 @@ pragma solidity =0.8.25;
 
 import {Test} from "forge-std/Test.sol";
 import {IERC165} from "openzeppelin-contracts/contracts/utils/introspection/IERC165.sol";
-import {
-    OrderBookV6FlashBorrower,
-    IERC3156FlashBorrower,
-    OrderBookV6ArbConfig,
-    TaskV2
-} from "../../src/abstract/OrderBookV6FlashBorrower.sol";
-import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
-import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
+import {OrderBookV6FlashBorrower, IERC3156FlashBorrower} from "../../src/abstract/OrderBookV6FlashBorrower.sol";
 
 /// @dev We need a contract that is deployable in order to test the abstract
 /// base contract.
 contract ChildOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
-    constructor()
-        OrderBookV6FlashBorrower(OrderBookV6ArbConfig(
-                TaskV2({
-                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                    signedContext: new SignedContextV1[](0)
-                })
-            ))
-    {}
+    constructor() {}
 }
 
 contract OrderBookV6FlashBorrowerIERC165Test is Test {

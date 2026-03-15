@@ -2,11 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {
-    OrderBookV6FlashBorrower,
-    TakeOrdersConfigV5,
-    OrderBookV6ArbConfig
-} from "../../abstract/OrderBookV6FlashBorrower.sol";
+import {OrderBookV6FlashBorrower, TakeOrdersConfigV5} from "../../abstract/OrderBookV6FlashBorrower.sol";
 import {LibGenericPoolExchange} from "../../lib/LibGenericPoolExchange.sol";
 
 /// @title GenericPoolOrderBookV6FlashBorrower
@@ -21,9 +17,7 @@ import {LibGenericPoolExchange} from "../../lib/LibGenericPoolExchange.sol";
 /// on `takeOrders`, which is almost always going to be the pool itself. If you
 /// are unsure, simply set it to the pool address.
 contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
-    /// @param config The arb contract configuration specifying the task hash
-    /// and implementation address.
-    constructor(OrderBookV6ArbConfig memory config) OrderBookV6FlashBorrower(config) {}
+    constructor() {}
 
     /// @inheritdoc OrderBookV6FlashBorrower
     /// @dev Decodes `exchangeData` as `(spender, pool, encodedFunctionCall)`

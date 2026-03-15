@@ -3,25 +3,20 @@
 pragma solidity =0.8.25;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
-import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {OrderBookV6SubParser} from "../src/concrete/parser/OrderBookV6SubParser.sol";
-import {GenericPoolOrderBookV6ArbOrderTaker} from "../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
-import {RouteProcessorOrderBookV6ArbOrderTaker} from "../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
-import {GenericPoolOrderBookV6FlashBorrower} from "../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
-import {OrderBookV6ArbConfig} from "../src/abstract/OrderBookV6ArbCommon.sol";
 import {IMetaBoardV1_2} from "rain.metadata/interface/unstable/IMetaBoardV1_2.sol";
 import {LibDescribedByMeta} from "rain.metadata/lib/LibDescribedByMeta.sol";
 import {LibMetaBoardDeploy} from "rain.metadata/lib/deploy/LibMetaBoardDeploy.sol";
 import {LibDecimalFloatDeploy} from "rain.math.float/lib/deploy/LibDecimalFloatDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
-import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibOrderBookDeploy} from "../src/lib/deploy/LibOrderBookDeploy.sol";
 import {CREATION_CODE as ORDERBOOK_CREATION_CODE} from "../src/generated/OrderBookV6.pointers.sol";
 import {CREATION_CODE as SUB_PARSER_CREATION_CODE} from "../src/generated/OrderBookV6SubParser.pointers.sol";
 import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
+import {GenericPoolOrderBookV6ArbOrderTaker} from "../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {RouteProcessorOrderBookV6ArbOrderTaker} from "../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+import {GenericPoolOrderBookV6FlashBorrower} from "../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 
 /// @dev Deploy only the OrderBookV6 (raindex) contract.
 bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
@@ -106,17 +101,41 @@ contract Deploy is Script {
                 sDepCodeHashes
             );
         } else if (suite == DEPLOYMENT_SUITE_ARB) {
-            vm.startBroadcast(deployerPrivateKey);
-            OrderBookV6ArbConfig memory arbConfig = OrderBookV6ArbConfig(
-                TaskV2({
-                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                    signedContext: new SignedContextV1[](0)
-                })
+            console2.log("Deploying arb contracts...");
+            address[] memory deps = new address[](0);
+            LibRainDeploy.deployAndBroadcast(
+                vm,
+                LibRainDeploy.supportedNetworks(),
+                deployerPrivateKey,
+                type(GenericPoolOrderBookV6ArbOrderTaker).creationCode,
+                "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol:GenericPoolOrderBookV6ArbOrderTaker",
+                LibOrderBookDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS,
+                LibOrderBookDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
+                deps,
+                sDepCodeHashes
             );
-            new GenericPoolOrderBookV6ArbOrderTaker(arbConfig);
-            new RouteProcessorOrderBookV6ArbOrderTaker(arbConfig);
-            new GenericPoolOrderBookV6FlashBorrower(arbConfig);
-            vm.stopBroadcast();
+            LibRainDeploy.deployAndBroadcast(
+                vm,
+                LibRainDeploy.supportedNetworks(),
+                deployerPrivateKey,
+                type(RouteProcessorOrderBookV6ArbOrderTaker).creationCode,
+                "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol:RouteProcessorOrderBookV6ArbOrderTaker",
+                LibOrderBookDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_ADDRESS,
+                LibOrderBookDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
+                deps,
+                sDepCodeHashes
+            );
+            LibRainDeploy.deployAndBroadcast(
+                vm,
+                LibRainDeploy.supportedNetworks(),
+                deployerPrivateKey,
+                type(GenericPoolOrderBookV6FlashBorrower).creationCode,
+                "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol:GenericPoolOrderBookV6FlashBorrower",
+                LibOrderBookDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_ADDRESS,
+                LibOrderBookDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH,
+                deps,
+                sDepCodeHashes
+            );
         } else {
             revert("Unknown deployment suite");
         }

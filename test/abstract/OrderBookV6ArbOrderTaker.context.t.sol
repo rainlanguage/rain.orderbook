@@ -2,12 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {
-    ChildOrderBookV6ArbOrderTaker,
-    TaskV2,
-    SignedContextV1,
-    EvaluableV4
-} from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";
+import {ChildOrderBookV6ArbOrderTaker} from "../util/concrete/ChildOrderBookV6ArbOrderTaker.sol";
+import {TaskV2, SignedContextV1, EvaluableV4} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {OrderBookV6ExternalRealTest} from "../util/abstract/OrderBookV6ExternalRealTest.sol";
 import {
     TakeOrdersConfigV5,

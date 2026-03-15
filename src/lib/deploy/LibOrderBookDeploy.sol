@@ -14,6 +14,18 @@ import {
     BYTECODE_HASH as ROUTE_PROCESSOR_HASH,
     DEPLOYED_ADDRESS as ROUTE_PROCESSOR_ADDR
 } from "../../generated/RouteProcessor4.pointers.sol";
+import {
+    BYTECODE_HASH as GENERIC_POOL_ARB_OT_HASH,
+    DEPLOYED_ADDRESS as GENERIC_POOL_ARB_OT_ADDR
+} from "../../generated/GenericPoolOrderBookV6ArbOrderTaker.pointers.sol";
+import {
+    BYTECODE_HASH as RP_ARB_OT_HASH,
+    DEPLOYED_ADDRESS as RP_ARB_OT_ADDR
+} from "../../generated/RouteProcessorOrderBookV6ArbOrderTaker.pointers.sol";
+import {
+    BYTECODE_HASH as GENERIC_POOL_FB_HASH,
+    DEPLOYED_ADDRESS as GENERIC_POOL_FB_ADDR
+} from "../../generated/GenericPoolOrderBookV6FlashBorrower.pointers.sol";
 
 /// @title LibOrderBookDeploy
 /// @notice A library containing the deployed address and code hash of the
@@ -45,4 +57,28 @@ library LibOrderBookDeploy {
     /// The code hash of the `RouteProcessor4` contract when deployed with the
     /// rain standard zoltu deployer.
     bytes32 constant ROUTE_PROCESSOR_DEPLOYED_CODEHASH = ROUTE_PROCESSOR_HASH;
+
+    /// The address of the `GenericPoolOrderBookV6ArbOrderTaker` contract when
+    /// deployed with the rain standard zoltu deployer.
+    address constant GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS = GENERIC_POOL_ARB_OT_ADDR;
+
+    /// The code hash of the `GenericPoolOrderBookV6ArbOrderTaker` contract when
+    /// deployed with the rain standard zoltu deployer.
+    bytes32 constant GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH = GENERIC_POOL_ARB_OT_HASH;
+
+    /// The address of the `RouteProcessorOrderBookV6ArbOrderTaker` contract
+    /// when deployed with the rain standard zoltu deployer.
+    address constant ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_ADDRESS = RP_ARB_OT_ADDR;
+
+    /// The code hash of the `RouteProcessorOrderBookV6ArbOrderTaker` contract
+    /// when deployed with the rain standard zoltu deployer.
+    bytes32 constant ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH = RP_ARB_OT_HASH;
+
+    /// The address of the `GenericPoolOrderBookV6FlashBorrower` contract when
+    /// deployed with the rain standard zoltu deployer.
+    address constant GENERIC_POOL_FLASH_BORROWER_DEPLOYED_ADDRESS = GENERIC_POOL_FB_ADDR;
+
+    /// The code hash of the `GenericPoolOrderBookV6FlashBorrower` contract when
+    /// deployed with the rain standard zoltu deployer.
+    bytes32 constant GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH = GENERIC_POOL_FB_HASH;
 }

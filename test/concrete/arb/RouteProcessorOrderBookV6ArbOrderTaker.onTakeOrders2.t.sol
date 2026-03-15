@@ -6,8 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 import {
-    RouteProcessorOrderBookV6ArbOrderTaker,
-    OrderBookV6ArbConfig
+    RouteProcessorOrderBookV6ArbOrderTaker
 } from "../../../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 import {
     IRaindexV6,
@@ -50,14 +49,7 @@ contract RouteProcessorOrderBookV6ArbOrderTakerOnTakeOrders2Test is Test {
         // RouteProcessor has inputToken to give back after swap.
         inputToken.mint(routeProcessor, 100e18);
 
-        RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker(
-            OrderBookV6ArbConfig(
-                TaskV2({
-                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                    signedContext: new SignedContextV1[](0)
-                })
-            )
-        );
+        RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker();
 
         IOV2[] memory validInputs = new IOV2[](1);
         validInputs[0] = IOV2(address(inputToken), bytes32(0));
