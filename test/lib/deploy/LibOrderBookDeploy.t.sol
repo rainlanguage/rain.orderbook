@@ -24,6 +24,26 @@ import {
     BYTECODE_HASH as ROUTE_PROCESSOR_GENERATED_CODEHASH
 } from "../../../src/generated/RouteProcessor4.pointers.sol";
 import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../../../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
+import {GenericPoolOrderBookV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {
+    RouteProcessorOrderBookV6ArbOrderTaker
+} from "../../../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+import {GenericPoolOrderBookV6FlashBorrower} from "../../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {
+    RUNTIME_CODE as GENERIC_POOL_ARB_OT_RUNTIME_CODE,
+    DEPLOYED_ADDRESS as GENERIC_POOL_ARB_OT_GENERATED_ADDRESS,
+    BYTECODE_HASH as GENERIC_POOL_ARB_OT_GENERATED_CODEHASH
+} from "../../../src/generated/GenericPoolOrderBookV6ArbOrderTaker.pointers.sol";
+import {
+    RUNTIME_CODE as RP_ARB_OT_RUNTIME_CODE,
+    DEPLOYED_ADDRESS as RP_ARB_OT_GENERATED_ADDRESS,
+    BYTECODE_HASH as RP_ARB_OT_GENERATED_CODEHASH
+} from "../../../src/generated/RouteProcessorOrderBookV6ArbOrderTaker.pointers.sol";
+import {
+    RUNTIME_CODE as GENERIC_POOL_FB_RUNTIME_CODE,
+    DEPLOYED_ADDRESS as GENERIC_POOL_FB_GENERATED_ADDRESS,
+    BYTECODE_HASH as GENERIC_POOL_FB_GENERATED_CODEHASH
+} from "../../../src/generated/GenericPoolOrderBookV6FlashBorrower.pointers.sol";
 
 contract LibOrderBookDeployTest is Test {
     /// Deploying OrderBookV6 via Zoltu MUST produce the expected address and
@@ -136,6 +156,126 @@ contract LibOrderBookDeployTest is Test {
     /// library constant.
     function testGeneratedCodehashRouteProcessor() external pure {
         assertEq(ROUTE_PROCESSOR_GENERATED_CODEHASH, LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH);
+    }
+
+    /// Deploying GenericPoolOrderBookV6ArbOrderTaker via Zoltu MUST produce
+    /// the expected address and codehash.
+    function testDeployAddressGenericPoolArbOrderTaker() external {
+        LibRainDeploy.etchZoltuFactory(vm);
+
+        address deployedAddress = LibRainDeploy.deployZoltu(type(GenericPoolOrderBookV6ArbOrderTaker).creationCode);
+
+        assertEq(deployedAddress, LibOrderBookDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS);
+        assertTrue(address(deployedAddress).code.length > 0, "Deployed address has no code");
+        assertEq(address(deployedAddress).codehash, LibOrderBookDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH);
+    }
+
+    /// Deploying RouteProcessorOrderBookV6ArbOrderTaker via Zoltu MUST produce
+    /// the expected address and codehash.
+    function testDeployAddressRouteProcessorArbOrderTaker() external {
+        LibRainDeploy.etchZoltuFactory(vm);
+
+        address deployedAddress = LibRainDeploy.deployZoltu(type(RouteProcessorOrderBookV6ArbOrderTaker).creationCode);
+
+        assertEq(deployedAddress, LibOrderBookDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_ADDRESS);
+        assertTrue(address(deployedAddress).code.length > 0, "Deployed address has no code");
+        assertEq(
+            address(deployedAddress).codehash, LibOrderBookDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH
+        );
+    }
+
+    /// Deploying GenericPoolOrderBookV6FlashBorrower via Zoltu MUST produce
+    /// the expected address and codehash.
+    function testDeployAddressGenericPoolFlashBorrower() external {
+        LibRainDeploy.etchZoltuFactory(vm);
+
+        address deployedAddress = LibRainDeploy.deployZoltu(type(GenericPoolOrderBookV6FlashBorrower).creationCode);
+
+        assertEq(deployedAddress, LibOrderBookDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_ADDRESS);
+        assertTrue(address(deployedAddress).code.length > 0, "Deployed address has no code");
+        assertEq(address(deployedAddress).codehash, LibOrderBookDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH);
+    }
+
+    /// The codehash of a freshly deployed GenericPoolOrderBookV6ArbOrderTaker
+    /// MUST match the expected codehash constant.
+    function testExpectedCodeHashGenericPoolArbOrderTaker() external {
+        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker();
+        assertEq(address(arb).codehash, LibOrderBookDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH);
+    }
+
+    /// The codehash of a freshly deployed RouteProcessorOrderBookV6ArbOrderTaker
+    /// MUST match the expected codehash constant.
+    function testExpectedCodeHashRouteProcessorArbOrderTaker() external {
+        RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker();
+        assertEq(address(arb).codehash, LibOrderBookDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH);
+    }
+
+    /// The codehash of a freshly deployed GenericPoolOrderBookV6FlashBorrower
+    /// MUST match the expected codehash constant.
+    function testExpectedCodeHashGenericPoolFlashBorrower() external {
+        GenericPoolOrderBookV6FlashBorrower fb = new GenericPoolOrderBookV6FlashBorrower();
+        assertEq(address(fb).codehash, LibOrderBookDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH);
+    }
+
+    /// The precompiled runtime code for GenericPoolOrderBookV6ArbOrderTaker
+    /// MUST match the deployed runtime bytecode.
+    function testRuntimeCodeGenericPoolArbOrderTaker() external {
+        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker();
+        assertEq(keccak256(GENERIC_POOL_ARB_OT_RUNTIME_CODE), keccak256(address(arb).code));
+    }
+
+    /// The precompiled runtime code for RouteProcessorOrderBookV6ArbOrderTaker
+    /// MUST match the deployed runtime bytecode.
+    function testRuntimeCodeRouteProcessorArbOrderTaker() external {
+        RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker();
+        assertEq(keccak256(RP_ARB_OT_RUNTIME_CODE), keccak256(address(arb).code));
+    }
+
+    /// The precompiled runtime code for GenericPoolOrderBookV6FlashBorrower
+    /// MUST match the deployed runtime bytecode.
+    function testRuntimeCodeGenericPoolFlashBorrower() external {
+        GenericPoolOrderBookV6FlashBorrower fb = new GenericPoolOrderBookV6FlashBorrower();
+        assertEq(keccak256(GENERIC_POOL_FB_RUNTIME_CODE), keccak256(address(fb).code));
+    }
+
+    /// The generated deployed address for GenericPoolOrderBookV6ArbOrderTaker
+    /// MUST match the deploy library constant.
+    function testGeneratedDeployedAddressGenericPoolArbOrderTaker() external pure {
+        assertEq(
+            GENERIC_POOL_ARB_OT_GENERATED_ADDRESS, LibOrderBookDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS
+        );
+    }
+
+    /// The generated deployed address for RouteProcessorOrderBookV6ArbOrderTaker
+    /// MUST match the deploy library constant.
+    function testGeneratedDeployedAddressRouteProcessorArbOrderTaker() external pure {
+        assertEq(RP_ARB_OT_GENERATED_ADDRESS, LibOrderBookDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_ADDRESS);
+    }
+
+    /// The generated deployed address for GenericPoolOrderBookV6FlashBorrower
+    /// MUST match the deploy library constant.
+    function testGeneratedDeployedAddressGenericPoolFlashBorrower() external pure {
+        assertEq(GENERIC_POOL_FB_GENERATED_ADDRESS, LibOrderBookDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_ADDRESS);
+    }
+
+    /// The generated codehash for GenericPoolOrderBookV6ArbOrderTaker MUST
+    /// match the deploy library constant.
+    function testGeneratedCodehashGenericPoolArbOrderTaker() external pure {
+        assertEq(
+            GENERIC_POOL_ARB_OT_GENERATED_CODEHASH, LibOrderBookDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH
+        );
+    }
+
+    /// The generated codehash for RouteProcessorOrderBookV6ArbOrderTaker MUST
+    /// match the deploy library constant.
+    function testGeneratedCodehashRouteProcessorArbOrderTaker() external pure {
+        assertEq(RP_ARB_OT_GENERATED_CODEHASH, LibOrderBookDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH);
+    }
+
+    /// The generated codehash for GenericPoolOrderBookV6FlashBorrower MUST
+    /// match the deploy library constant.
+    function testGeneratedCodehashGenericPoolFlashBorrower() external pure {
+        assertEq(GENERIC_POOL_FB_GENERATED_CODEHASH, LibOrderBookDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH);
     }
 
     /// After calling etchOrderBook, all three contracts MUST have the expected

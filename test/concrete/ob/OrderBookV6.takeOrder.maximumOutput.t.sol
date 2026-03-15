@@ -15,6 +15,7 @@ import {
     EvaluableV4,
     TaskV2
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
@@ -95,8 +96,7 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
                 iOrderbook.addOrder4(orderConfig, new TaskV2[](0));
                 Vm.Log[] memory logs = vm.getRecordedLogs();
                 assertEq(logs.length, 1);
-                (,, OrderV4 memory order) = abi.decode(logs[0].data, (address, bytes32, OrderV4));
-                orders[i] = order;
+                orders[i] = LibTestTakeOrder.extractOrderFromLogs(logs);
             }
         }
 
@@ -152,14 +152,9 @@ contract OrderBookV6TakeOrderMaximumOutputTest is OrderBookV6ExternalRealTest {
             });
         }
 
-        TakeOrdersConfigV5 memory config = TakeOrdersConfigV5({
-            orders: takeOrders,
-            minimumIO: LibDecimalFloat.packLossless(0, 0),
-            maximumIO: maximumTakerOutput,
-            maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
-            IOIsInput: false,
-            data: ""
-        });
+        TakeOrdersConfigV5 memory config = LibTestTakeOrder.defaultTakeConfig(takeOrders);
+        config.maximumIO = maximumTakerOutput;
+        config.IOIsInput = false;
 
         {
             (uint256 expectedTakerInput18,) = LibDecimalFloat.toFixedDecimalLossy(expectedTakerInput, 18);

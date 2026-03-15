@@ -10,7 +10,9 @@ on:
           - raindex
           - subparser
           - route-processor
-          - arb
+          - arb-generic-pool-order-taker
+          - arb-route-processor-order-taker
+          - arb-generic-pool-flash-borrower
 
 jobs:
   deploy:

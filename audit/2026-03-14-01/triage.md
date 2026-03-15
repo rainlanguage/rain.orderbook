@@ -16,12 +16,12 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | # | ID | Pass | File | Title | Status | Notes |
 |---|-----|------|------|-------|--------|-------|
 | 1 | A01-2 | P0 | AGENTS.md | No nix shell guidance in AGENTS.md | DISMISSED | Carried from prior triage; same as 2026-03-13-01 A01-2; process doc, not code |
-| 2 | A07-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for non-18-decimal tokens in onTakeOrders2 | PENDING | |
-| 3 | A08-1 | P2 | OrderBookV6.sol | No test for `MinimumIO` revert in `takeOrders4` | PENDING | |
-| 4 | A08-2 | P2 | OrderBookV6.sol | No test for `SameOwner` revert in `clear3` | PENDING | |
-| 5 | A08-3 | P2 | OrderBookV6.sol | No test for `OrderExceedsMaxRatio` event/skip path in `takeOrders4` | PENDING | |
-| 6 | GAP-A12-2 | P2 | LibOrderBookArb.sol | No test for output token profit sweep | PENDING | |
-| 7 | GAP-A12-3 | P2 | LibOrderBookArb.sol | No test verifying post-arb task context values | PENDING | |
+| 2 | A07-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for non-18-decimal tokens in onTakeOrders2 | FIXED | Added nonStandardDecimals.t.sol (6-decimal e2e) and lossyRounding.t.sol (lossy conversion round-up) |
+| 3 | A08-1 | P2 | OrderBookV6.sol | No test for `MinimumIO` revert in `takeOrders4` | FIXED | Added minimumIO.t.sol with specific MinimumIO revert expectation |
+| 4 | A08-2 | P2 | OrderBookV6.sol | No test for `SameOwner` revert in `clear3` | FIXED | Added clear.sameOwner.t.sol with fuzz test |
+| 5 | A08-3 | P2 | OrderBookV6.sol | No test for `OrderExceedsMaxRatio` event/skip path in `takeOrders4` | FIXED | Added exceedsMaxRatio.t.sol with event expectation and zero IO assertion |
+| 6 | GAP-A12-2 | P2 | LibOrderBookArb.sol | No test for output token profit sweep | FIXED | Added finalizeArbOutputTokenProfit.t.sol verifying 20e18 output token swept to sender |
+| 7 | GAP-A12-3 | P2 | LibOrderBookArb.sol | No test verifying post-arb task context values | FIXED | Added finalizeArbTaskContext.t.sol with rainlang ensure expressions verifying Float-encoded context<1 0..2> |
 | 8 | A14-1 | P2 | LibOrderBookDeploy.sol | RouteProcessor constants not tested in deploy tests | FIXED | Added RouteProcessor deploy/codehash/address/runtime tests to LibOrderBookDeploy.t.sol; added to prod fork tests |
 | 9 | A14-2 | P2 | LibOrderBookDeploy.sol | `etchOrderBook` RouteProcessor branch not verified | FIXED | testEtchOrderBook and testEtchOrderBookIdempotent now assert RouteProcessor codehash |
 | 10 | A14-1 | P4 | LibOrderBookDeploy.sol | Production `src/` library imports forge-std `Vm` | FIXED | Extracted `etchOrderBook` to test helper `LibEtchOrderBook`; removed `Vm` import from production code |
@@ -35,9 +35,9 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 13 | A01-4 | P0 | ~/.claude/CLAUDE.md | Global CLAUDE.md applies audit rules universally | DISMISSED | Carried from prior triage; process doc |
 | 14 | A08-1 | P1 | OrderBookV6.sol | `clear3` computes order hashes twice each (gas) | DISMISSED | Carried from prior triage 2026-03-13-01; intentional for readability, gas cost minimal vs. external calls |
 | 15 | A15-1 | P1 | Deploy.sol | String revert used for unknown deployment suite | DISMISSED | Carried from prior triage 2026-03-13-01; deploy script only |
-| 16 | GAP-A03-1 | P2 | OrderBookV6FlashBorrower.sol | No reentrancy test for `arb4` (flash borrower path) | PENDING | |
-| 17 | A05-1 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No dedicated test for approval revocation after onTakeOrders2 | PENDING | |
-| 18 | A05-2 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No test for pool call revert propagation (order-taker path) | PENDING | |
+| 16 | GAP-A03-1 | P2 | OrderBookV6FlashBorrower.sol | No reentrancy test for `arb4` (flash borrower path) | FIXED | Added OrderBookV6FlashBorrower.reentrancy.t.sol with ReentrantExchange that re-enters arb4 during _exchange pool call |
+| 17 | A05-1 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No dedicated test for approval revocation after onTakeOrders2 | FIXED | Added approvalRevoked.t.sol asserting max allowance during call and zero after arb5 |
+| 18 | A05-2 | P2 | GenericPoolOrderBookV6ArbOrderTaker.sol | No test for pool call revert propagation (order-taker path) | FIXED | Added exchangeRevert.t.sol using LibTestArb.setup abstraction; also refactored 3 flash borrower tests + order-taker approvalRevoked to use shared LibTestFlashBorrowerArb/LibTestArb setup helpers |
 | 19 | A06-1 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No test for `spender != pool` in `_exchange` | PENDING | |
 | 20 | A06-2 | P2 | GenericPoolOrderBookV6FlashBorrower.sol | No fuzz test over `exchangeData` decoding in `_exchange` | PENDING | |
 | 21 | A07-2 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for receive() and fallback() payable functions | PENDING | |
@@ -95,3 +95,13 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 73 | A04-1 | P5 | OrderBookV6FlashLender.sol | `flashFee` does not revert for unsupported tokens per ERC-3156 | PENDING | |
 | 74 | A08-1 | P5 | OrderBookV6.sol | NatSpec says "18 decimal fixed point" but uses Floats | FIXED | Updated NatSpec to say "Float values" |
 | 75 | A13-1 | P5 | LibOrderBookSubParser.sol | Test uses hardcoded depth `2` instead of `EXTERN_PARSE_META_BUILD_DEPTH` (1) | FIXED | Test now uses `EXTERN_PARSE_META_BUILD_DEPTH` constant |
+
+## CodeRabbit (PR #2512)
+
+| # | ID | File | Title | Status | Notes |
+|---|-----|------|-------|--------|-------|
+| 76 | CR-1 | LibGenericPoolExchange.sol | No zero-address guards for decoded spender/pool | PENDING | |
+| 77 | CR-2 | LibOrderBookDeployProd.t.sol | Comments say "Both contracts" but 3 are verified | PENDING | |
+| 78 | CR-3 | OrderBookV6FlashBorrower.sol | NatSpec references obsolete `onlyValidTask`; code uses `_beforeArb` | PENDING | |
+| 79 | CR-4 | Tests (multiple) | Repeated TaskV2 literal with deploy addresses should be shared helper | FIXED | Extracted to LibTestArb.noopTask() shared helper |
+| 80 | CR-5 | Tests (multiple) | Inconsistent use of `address(0)` vs `LibInterpreterDeploy` constants | FIXED | LibTestArb.noopTask() and setupAndArb() use deploy constants throughout |

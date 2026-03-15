@@ -7,7 +7,6 @@ import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6Externa
 import {
     ClearConfigV2,
     OrderV4,
-    TakeOrderConfigV4,
     IOV2,
     OrderConfigV4,
     EvaluableV4,
@@ -17,6 +16,7 @@ import {
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {SourceIndexOutOfBounds} from "rain.interpreter.interface/error/ErrBytecode.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 
 /// @title OrderBookV6ClearHandleIORevertTest
 /// @notice A test harness for testing the OrderBook clear function will run
@@ -81,9 +81,8 @@ contract OrderBookV6ClearHandleIORevertTest is OrderBookV6ExternalRealTest {
         iOrderbook.addOrder4(config, new TaskV2[](0));
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries.length, 1);
-        (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
 
-        return order;
+        return LibTestTakeOrder.extractOrderFromLogs(entries);
     }
 
     function checkClearOrderHandleIO(
