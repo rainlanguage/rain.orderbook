@@ -16,9 +16,9 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | # | ID | Pass | File | Title | Status | Notes |
 |---|-----|------|------|-------|--------|-------|
 | 1 | A01-2 | P0 | AGENTS.md | No nix shell guidance in AGENTS.md | DISMISSED | Carried from prior triage; same as 2026-03-13-01 A01-2; process doc, not code |
-| 2 | A07-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for non-18-decimal tokens in onTakeOrders2 | PENDING | |
-| 3 | A08-1 | P2 | OrderBookV6.sol | No test for `MinimumIO` revert in `takeOrders4` | PENDING | |
-| 4 | A08-2 | P2 | OrderBookV6.sol | No test for `SameOwner` revert in `clear3` | PENDING | |
+| 2 | A07-1 | P2 | RouteProcessorOrderBookV6ArbOrderTaker.sol | No test for non-18-decimal tokens in onTakeOrders2 | FIXED | Added nonStandardDecimals.t.sol (6-decimal e2e) and lossyRounding.t.sol (lossy conversion round-up) |
+| 3 | A08-1 | P2 | OrderBookV6.sol | No test for `MinimumIO` revert in `takeOrders4` | FIXED | Added minimumIO.t.sol with specific MinimumIO revert expectation |
+| 4 | A08-2 | P2 | OrderBookV6.sol | No test for `SameOwner` revert in `clear3` | FIXED | Added clear.sameOwner.t.sol with fuzz test |
 | 5 | A08-3 | P2 | OrderBookV6.sol | No test for `OrderExceedsMaxRatio` event/skip path in `takeOrders4` | PENDING | |
 | 6 | GAP-A12-2 | P2 | LibOrderBookArb.sol | No test for output token profit sweep | PENDING | |
 | 7 | GAP-A12-3 | P2 | LibOrderBookArb.sol | No test verifying post-arb task context values | PENDING | |
@@ -95,3 +95,13 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 73 | A04-1 | P5 | OrderBookV6FlashLender.sol | `flashFee` does not revert for unsupported tokens per ERC-3156 | PENDING | |
 | 74 | A08-1 | P5 | OrderBookV6.sol | NatSpec says "18 decimal fixed point" but uses Floats | FIXED | Updated NatSpec to say "Float values" |
 | 75 | A13-1 | P5 | LibOrderBookSubParser.sol | Test uses hardcoded depth `2` instead of `EXTERN_PARSE_META_BUILD_DEPTH` (1) | FIXED | Test now uses `EXTERN_PARSE_META_BUILD_DEPTH` constant |
+
+## CodeRabbit (PR #2512)
+
+| # | ID | File | Title | Status | Notes |
+|---|-----|------|-------|--------|-------|
+| 76 | CR-1 | LibGenericPoolExchange.sol | No zero-address guards for decoded spender/pool | PENDING | |
+| 77 | CR-2 | LibOrderBookDeployProd.t.sol | Comments say "Both contracts" but 3 are verified | PENDING | |
+| 78 | CR-3 | OrderBookV6FlashBorrower.sol | NatSpec references obsolete `onlyValidTask`; code uses `_beforeArb` | PENDING | |
+| 79 | CR-4 | Tests (multiple) | Repeated TaskV2 literal with deploy addresses should be shared helper | PENDING | |
+| 80 | CR-5 | Tests (multiple) | Inconsistent use of `address(0)` vs `LibInterpreterDeploy` constants | PENDING | |
