@@ -6,6 +6,7 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Multicall} from "openzeppelin-contracts/contracts/utils/Multicall.sol";
 import {OrderBookV6ExternalRealTest} from "test/util/abstract/OrderBookV6ExternalRealTest.sol";
 import {IRaindexV6, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// Test that the Multicall inherited from OpenZeppelin works correctly on the
@@ -17,12 +18,12 @@ contract OrderBookV6MulticallTest is OrderBookV6ExternalRealTest {
         // Mock transferFrom for both tokens.
         vm.mockCall(
             address(iToken0),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook)),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS),
             abi.encode(true)
         );
         vm.mockCall(
             address(iToken1),
-            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, address(iOrderbook)),
+            abi.encodeWithSelector(IERC20.transferFrom.selector, alice, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS),
             abi.encode(true)
         );
 
@@ -44,15 +45,21 @@ contract OrderBookV6MulticallTest is OrderBookV6ExternalRealTest {
         );
 
         vm.prank(alice);
-        Multicall(address(iOrderbook)).multicall(calls);
+        Multicall(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS).multicall(calls);
 
         // Verify both vault balances were set.
         assertEq(
-            Float.unwrap(iOrderbook.vaultBalance2(alice, address(iToken0), bytes32(uint256(0x01)))),
+            Float.unwrap(
+                IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS)
+                    .vaultBalance2(alice, address(iToken0), bytes32(uint256(0x01)))
+            ),
             Float.unwrap(LibDecimalFloat.packLossless(10, 0))
         );
         assertEq(
-            Float.unwrap(iOrderbook.vaultBalance2(alice, address(iToken1), bytes32(uint256(0x02)))),
+            Float.unwrap(
+                IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS)
+                    .vaultBalance2(alice, address(iToken1), bytes32(uint256(0x02)))
+            ),
             Float.unwrap(LibDecimalFloat.packLossless(20, 0))
         );
     }

@@ -7,15 +7,17 @@ import {
     TaskV2,
     EvaluableV4,
     SignedContextV1,
-    IInterpreterStoreV3
+    IInterpreterStoreV3,
+    IRaindexV6
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
+import {LibOrderBookDeploy} from "../../src/lib/deploy/LibOrderBookDeploy.sol";
 
 /// Tests for `LibOrderBook.doPost` behavior via the `entask2` entry point.
 contract LibOrderBookDoPostTest is OrderBookV6ExternalRealTest {
     /// Empty post array is a no-op.
     function testDoPostEmptyArray() external {
         TaskV2[] memory emptyTasks = new TaskV2[](0);
-        iOrderbook.entask2(emptyTasks);
+        IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS).entask2(emptyTasks);
     }
 
     /// Task with empty bytecode is silently skipped.
@@ -25,7 +27,7 @@ contract LibOrderBookDoPostTest is OrderBookV6ExternalRealTest {
             evaluable: EvaluableV4({interpreter: iInterpreter, store: iStore, bytecode: ""}),
             signedContext: new SignedContextV1[](0)
         });
-        iOrderbook.entask2(tasks);
+        IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS).entask2(tasks);
     }
 
     /// store.set is not called when eval produces no writes.
@@ -39,7 +41,7 @@ contract LibOrderBookDoPostTest is OrderBookV6ExternalRealTest {
         });
 
         vm.record();
-        iOrderbook.entask2(tasks);
+        IRaindexV6(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS).entask2(tasks);
         (, bytes32[] memory writes) = vm.accesses(address(iStore));
 
         assertEq(writes.length, 0, "store.set should not be called when eval has no writes");
