@@ -105,5 +105,6 @@ Where a finding was flagged in multiple passes, the primary finding is listed an
 | 78 | CR-3 | OrderBookV6FlashBorrower.sol | NatSpec references obsolete `onlyValidTask`; code uses `_beforeArb` | FIXED | Updated NatSpec to reference `_beforeArb` |
 | 79 | CR-4 | Tests (multiple) | Repeated TaskV2 literal with deploy addresses should be shared helper | FIXED | Extracted to LibTestArb.noopTask() shared helper |
 | 80 | CR-5 | Tests (multiple) | Inconsistent use of `address(0)` vs `LibInterpreterDeploy` constants | FIXED | LibTestArb.noopTask() and setupAndArb() use deploy constants throughout |
-| 81 | CR-6 | OrderBookV6ExternalRealTest.sol | `iOrderbook` should use `LibOrderBookDeploy` constant directly | PENDING | `iOrderbook` is already assigned from `ORDERBOOK_DEPLOYED_ADDRESS` but stored as `IRaindexV6` — consider using the constant directly instead of the immutable |
+| 81 | CR-6 | OrderBookV6ExternalRealTest.sol | `iOrderbook` should use `LibOrderBookDeploy` constant directly | FIXED | Removed `iOrderbook` immutable; replaced all 312+ references across 46 test files with `LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS` and `IRaindexV6(...)` casts |
 | 82 | CR-7 | Codebase-wide | Rename orderbook references to raindex | PENDING | |
+| 83 | CR-8 | OrderBookV6ExternalRealTest.sol | `iInterpreter`, `iStore`, `iParserV2`, `iSubParser` should use deploy constants directly | PENDING | Same pattern as CR-6; immutables are assigned from deploy constants |
