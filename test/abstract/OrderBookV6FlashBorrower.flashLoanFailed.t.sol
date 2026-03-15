@@ -5,11 +5,8 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import {
-    GenericPoolOrderBookV6FlashBorrower,
-    OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
-import {FlashLoanFailed} from "src/abstract/OrderBookV6FlashBorrower.sol";
+import {GenericPoolOrderBookV6FlashBorrower} from "../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {FlashLoanFailed} from "../../src/abstract/OrderBookV6FlashBorrower.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,
@@ -26,7 +23,7 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpr
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibOrderBookDeploy} from "../../src/lib/deploy/LibOrderBookDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockOrderBookBase} from "test/util/abstract/MockOrderBookBase.sol";
 
@@ -46,15 +43,7 @@ contract OrderBookV6FlashBorrowerFlashLoanFailedTest is Test {
         FalseFlashLoanMockOrderBook mockOb = new FalseFlashLoanMockOrderBook();
         vm.etch(LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS, address(mockOb).code);
 
-        GenericPoolOrderBookV6FlashBorrower arb = new GenericPoolOrderBookV6FlashBorrower(
-            OrderBookV6ArbConfig(
-                TaskV2({
-                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                    signedContext: new SignedContextV1[](0)
-                }),
-                ""
-            )
-        );
+        GenericPoolOrderBookV6FlashBorrower arb = new GenericPoolOrderBookV6FlashBorrower();
 
         IOV2[] memory validInputs = new IOV2[](1);
         validInputs[0] = IOV2(address(inputToken), bytes32(0));

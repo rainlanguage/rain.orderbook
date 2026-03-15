@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std/Test.sol";
-import {ROUTE_PROCESSOR_4_CREATION_CODE} from "src/lib/deploy/LibRouteProcessor4CreationCode.sol";
+import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../../../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 
 /// @dev Known codehash of the RouteProcessor4 runtime bytecode, verified
 /// against the Sushi deployment on Ethereum mainnet.

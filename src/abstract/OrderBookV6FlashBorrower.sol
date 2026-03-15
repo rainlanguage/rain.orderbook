@@ -9,7 +9,7 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/Reentrancy
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IRaindexV6, TakeOrdersConfigV5, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {OrderBookV6ArbConfig, OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
+import {OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
 import {LibOrderBookArb} from "../lib/LibOrderBookArb.sol";
 import {LibOrderBookDeploy} from "../lib/deploy/LibOrderBookDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
@@ -60,14 +60,14 @@ error FlashLoanFailed();
 abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV6ArbCommon {
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbCommon(config) {}
+    constructor() {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IERC3156FlashBorrower).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    /// Hook that inheriting contracts SHOULD override in order to achieve
+    /// @dev Hook that inheriting contracts SHOULD override in order to achieve
     /// anything other than raising the ambient temperature of the room.
     /// `_exchange` is responsible for converting the flash loaned assets into
     /// the assets required to fill the orders. Generally this can only be
@@ -131,7 +131,8 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         TakeOrdersConfigV5 calldata takeOrders,
         bytes calldata exchangeData,
         TaskV2 calldata task
-    ) external payable nonReentrant onlyValidTask(task) {
+    ) external payable nonReentrant {
+        _beforeArb(task);
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert IRaindexV6.NoOrders();

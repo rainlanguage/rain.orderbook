@@ -6,13 +6,14 @@ import {StackAllocationMismatch} from "rain.interpreter/error/ErrIntegrity.sol";
 import {OpTest, StackItem} from "rain.interpreter/../test/abstract/OpTest.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {LibOrderBookSubParserContextFixture} from "test/util/fixture/LibOrderBookSubParserContextFixture.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibEtchOrderBook} from "test/util/lib/LibEtchOrderBook.sol";
 
 abstract contract OrderBookV6SubParserContextTest is OpTest {
     using Strings for address;
 
     function setUp() public {
-        LibOrderBookDeploy.etchOrderBook(vm);
+        LibEtchOrderBook.etchOrderBook(vm);
     }
 
     function word() internal pure virtual returns (string memory);

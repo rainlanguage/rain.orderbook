@@ -2,59 +2,29 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {EvaluableV4, SignedContextV1} from "rain.interpreter.interface/interface/IInterpreterCallerV4.sol";
-import {SourceIndexV2} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
-import {IRaindexV6, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {LibEvaluable} from "rain.interpreter.interface/lib/caller/LibEvaluable.sol";
+import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 
 /// @param task The task to run as post for each arb.
-/// @param implementationData The constructor data for the specific
-/// implementation of the arb contract.
 struct OrderBookV6ArbConfig {
     TaskV2 task;
-    bytes implementationData;
 }
 
 /// Thrown when the task does not match the expected hash.
 error WrongTask();
 
-/// @dev "Before arb" is evaluated before the arb is executed. Ostensibly
-/// allows for some kind of access control to the arb.
-SourceIndexV2 constant BEFORE_ARB_SOURCE_INDEX = SourceIndexV2.wrap(0);
-
 /// @title OrderBookV6ArbCommon
 /// @notice Common base for arb contracts that interact with `OrderBook`.
-/// Stores a task hash at construction time and validates it on each arb call
-/// via the `onlyValidTask` modifier.
+/// Provides a `_beforeArb` hook that is called at the start of every arb
+/// operation. The base implementation is a no-op; task-gated variants
+/// override it to validate the task hash.
 abstract contract OrderBookV6ArbCommon {
-    using LibEvaluable for EvaluableV4;
-
     /// @notice Emitted on construction with the full config.
     /// @param sender The deployer address.
     /// @param config The arb config used to construct this contract.
     event Construct(address sender, OrderBookV6ArbConfig config);
 
-    /// @notice Hash of the configured task, or `bytes32(0)` if no task was set.
-    /// Used by `onlyValidTask` to gate arb calls.
-    bytes32 public immutable iTaskHash = 0;
-
-    /// @param config The arb config for this contract.
-    constructor(OrderBookV6ArbConfig memory config) {
-        // Emit events before any external calls are made.
-        emit Construct(msg.sender, config);
-
-        if (config.task.evaluable.bytecode.length != 0) {
-            iTaskHash = keccak256(abi.encode(config.task));
-        }
-    }
-
-    /// @notice Reverts with `WrongTask` if `iTaskHash` is nonzero and does not
-    /// match the hash of the provided task. Passes through if no task was
-    /// configured at construction.
-    modifier onlyValidTask(TaskV2 memory task) {
-        if (iTaskHash != bytes32(0) && iTaskHash != keccak256(abi.encode(task))) {
-            revert WrongTask();
-        }
-        _;
-    }
+    /// @dev Hook called at the start of every arb. Base implementation is a
+    /// no-op. Overridden by `OrderBookV6ArbTaskGated` to validate the task
+    /// hash.
+    function _beforeArb(TaskV2 memory task) internal virtual {}
 }

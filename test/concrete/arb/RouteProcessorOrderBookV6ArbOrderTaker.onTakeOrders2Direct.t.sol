@@ -5,14 +5,12 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 
 import {
-    RouteProcessorOrderBookV6ArbOrderTaker,
-    OrderBookV6ArbConfig
-} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
-import {EvaluableV4, SignedContextV1, TaskV2, Float} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
+    RouteProcessorOrderBookV6ArbOrderTaker
+} from "../../../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+import {Float} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockRouteProcessor} from "test/util/concrete/MockRouteProcessor.sol";
 
@@ -26,17 +24,10 @@ contract RouteProcessorOrderBookV6ArbOrderTakerOnTakeOrders2DirectTest is Test {
 
         MockToken tokenA = new MockToken("A", "A", 18);
         MockToken tokenB = new MockToken("B", "B", 18);
-        MockRouteProcessor routeProcessor = new MockRouteProcessor();
+        MockRouteProcessor mockRp = new MockRouteProcessor();
+        vm.etch(LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS, address(mockRp).code);
 
-        RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker(
-            OrderBookV6ArbConfig(
-                TaskV2({
-                    evaluable: EvaluableV4(IInterpreterV4(address(0)), IInterpreterStoreV3(address(0)), hex""),
-                    signedContext: new SignedContextV1[](0)
-                }),
-                abi.encode(address(routeProcessor))
-            )
-        );
+        RouteProcessorOrderBookV6ArbOrderTaker arb = new RouteProcessorOrderBookV6ArbOrderTaker();
 
         // Attacker calls onTakeOrders2 directly with zero amounts.
         // processRoute is called with 0 amountIn so no tokens move.

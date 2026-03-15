@@ -15,13 +15,14 @@ import {
     SignedContextV1
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {OrderBookV6SubParser} from "src/concrete/parser/OrderBookV6SubParser.sol";
+import {OrderBookV6SubParser} from "../../../src/concrete/parser/OrderBookV6SubParser.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibEtchOrderBook} from "test/util/lib/LibEtchOrderBook.sol";
 
 abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
     IInterpreterV4 internal immutable iInterpreter;
@@ -37,7 +38,7 @@ abstract contract OrderBookV6ExternalRealTest is Test, IRaindexV6Stub {
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
         LibInterpreterDeploy.etchRainlang(vm);
-        LibOrderBookDeploy.etchOrderBook(vm);
+        LibEtchOrderBook.etchOrderBook(vm);
 
         iInterpreter = IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS);
         iStore = IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS);

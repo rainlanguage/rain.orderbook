@@ -7,13 +7,14 @@ import {ExpectedOperand, UnexpectedOperandValue} from "rain.interpreter/error/Er
 import {OpTest, StackItem} from "rain.interpreter/../test/abstract/OpTest.sol";
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {LibOrderBookSubParserContextFixture} from "test/util/fixture/LibOrderBookSubParserContextFixture.sol";
-import {LibOrderBookDeploy} from "src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibOrderBookDeploy} from "../../../src/lib/deploy/LibOrderBookDeploy.sol";
+import {LibEtchOrderBook} from "test/util/lib/LibEtchOrderBook.sol";
 
 contract OrderBookV6SubParserSignersTest is OpTest {
     using Strings for address;
 
     function setUp() public {
-        LibOrderBookDeploy.etchOrderBook(vm);
+        LibEtchOrderBook.etchOrderBook(vm);
     }
 
     /// Test signer-0

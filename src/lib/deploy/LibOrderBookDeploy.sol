@@ -2,23 +2,30 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.25;
 
-import {Vm} from "forge-std/Vm.sol";
-
 import {
     BYTECODE_HASH as ORDERBOOK_HASH,
-    DEPLOYED_ADDRESS as ORDERBOOK_ADDR,
-    RUNTIME_CODE as ORDERBOOK_RUNTIME_CODE
+    DEPLOYED_ADDRESS as ORDERBOOK_ADDR
 } from "../../generated/OrderBookV6.pointers.sol";
 import {
     BYTECODE_HASH as SUB_PARSER_HASH,
-    DEPLOYED_ADDRESS as SUB_PARSER_ADDR,
-    RUNTIME_CODE as SUB_PARSER_RUNTIME_CODE
+    DEPLOYED_ADDRESS as SUB_PARSER_ADDR
 } from "../../generated/OrderBookV6SubParser.pointers.sol";
 import {
     BYTECODE_HASH as ROUTE_PROCESSOR_HASH,
-    DEPLOYED_ADDRESS as ROUTE_PROCESSOR_ADDR,
-    RUNTIME_CODE as ROUTE_PROCESSOR_RUNTIME_CODE
+    DEPLOYED_ADDRESS as ROUTE_PROCESSOR_ADDR
 } from "../../generated/RouteProcessor4.pointers.sol";
+import {
+    BYTECODE_HASH as GENERIC_POOL_ARB_OT_HASH,
+    DEPLOYED_ADDRESS as GENERIC_POOL_ARB_OT_ADDR
+} from "../../generated/GenericPoolOrderBookV6ArbOrderTaker.pointers.sol";
+import {
+    BYTECODE_HASH as RP_ARB_OT_HASH,
+    DEPLOYED_ADDRESS as RP_ARB_OT_ADDR
+} from "../../generated/RouteProcessorOrderBookV6ArbOrderTaker.pointers.sol";
+import {
+    BYTECODE_HASH as GENERIC_POOL_FB_HASH,
+    DEPLOYED_ADDRESS as GENERIC_POOL_FB_ADDR
+} from "../../generated/GenericPoolOrderBookV6FlashBorrower.pointers.sol";
 
 /// @title LibOrderBookDeploy
 /// @notice A library containing the deployed address and code hash of the
@@ -51,19 +58,27 @@ library LibOrderBookDeploy {
     /// rain standard zoltu deployer.
     bytes32 constant ROUTE_PROCESSOR_DEPLOYED_CODEHASH = ROUTE_PROCESSOR_HASH;
 
-    /// @notice Etches the runtime bytecode of the orderbook and sub parser at
-    /// their expected deterministic addresses. Skips any contract whose
-    /// codehash already matches.
-    /// @param vm The Forge `Vm` cheatcode interface.
-    function etchOrderBook(Vm vm) internal {
-        if (ORDERBOOK_DEPLOYED_CODEHASH != ORDERBOOK_DEPLOYED_ADDRESS.codehash) {
-            vm.etch(ORDERBOOK_DEPLOYED_ADDRESS, ORDERBOOK_RUNTIME_CODE);
-        }
-        if (SUB_PARSER_DEPLOYED_CODEHASH != SUB_PARSER_DEPLOYED_ADDRESS.codehash) {
-            vm.etch(SUB_PARSER_DEPLOYED_ADDRESS, SUB_PARSER_RUNTIME_CODE);
-        }
-        if (ROUTE_PROCESSOR_DEPLOYED_CODEHASH != ROUTE_PROCESSOR_DEPLOYED_ADDRESS.codehash) {
-            vm.etch(ROUTE_PROCESSOR_DEPLOYED_ADDRESS, ROUTE_PROCESSOR_RUNTIME_CODE);
-        }
-    }
+    /// The address of the `GenericPoolOrderBookV6ArbOrderTaker` contract when
+    /// deployed with the rain standard zoltu deployer.
+    address constant GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS = GENERIC_POOL_ARB_OT_ADDR;
+
+    /// The code hash of the `GenericPoolOrderBookV6ArbOrderTaker` contract when
+    /// deployed with the rain standard zoltu deployer.
+    bytes32 constant GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH = GENERIC_POOL_ARB_OT_HASH;
+
+    /// The address of the `RouteProcessorOrderBookV6ArbOrderTaker` contract
+    /// when deployed with the rain standard zoltu deployer.
+    address constant ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_ADDRESS = RP_ARB_OT_ADDR;
+
+    /// The code hash of the `RouteProcessorOrderBookV6ArbOrderTaker` contract
+    /// when deployed with the rain standard zoltu deployer.
+    bytes32 constant ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH = RP_ARB_OT_HASH;
+
+    /// The address of the `GenericPoolOrderBookV6FlashBorrower` contract when
+    /// deployed with the rain standard zoltu deployer.
+    address constant GENERIC_POOL_FLASH_BORROWER_DEPLOYED_ADDRESS = GENERIC_POOL_FB_ADDR;
+
+    /// The code hash of the `GenericPoolOrderBookV6FlashBorrower` contract when
+    /// deployed with the rain standard zoltu deployer.
+    bytes32 constant GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH = GENERIC_POOL_FB_HASH;
 }

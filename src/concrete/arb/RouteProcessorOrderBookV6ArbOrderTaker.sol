@@ -6,22 +6,18 @@ import {IRouteProcessor} from "sushixswap-v2/src/interfaces/IRouteProcessor.sol"
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {OrderBookV6ArbOrderTaker, OrderBookV6ArbConfig, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
+import {OrderBookV6ArbOrderTaker, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {LibOrderBookDeploy} from "../../lib/deploy/LibOrderBookDeploy.sol";
 
 /// @title RouteProcessorOrderBookV6ArbOrderTaker
-/// @notice Order-taker arb that swaps via a Sushi RouteProcessor.
+/// @notice Order-taker arb that swaps via the deterministic Sushi
+/// RouteProcessor4 deployment.
 contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
     using SafeERC20 for IERC20;
 
-    /// @dev The Sushi RouteProcessor used to execute swaps.
-    IRouteProcessor public immutable iRouteProcessor;
-
-    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbOrderTaker(config) {
-        (address routeProcessor) = abi.decode(config.implementationData, (address));
-        iRouteProcessor = IRouteProcessor(routeProcessor);
-    }
+    constructor() {}
 
     /// @inheritdoc OrderBookV6ArbOrderTaker
     function onTakeOrders2(
@@ -32,7 +28,8 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
         bytes calldata takeOrdersData
     ) public virtual override {
         super.onTakeOrders2(inputToken, outputToken, inputAmountSent, totalOutputAmount, takeOrdersData);
-        IERC20(inputToken).forceApprove(address(iRouteProcessor), type(uint256).max);
+        address routeProcessor = LibOrderBookDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS;
+        IERC20(inputToken).forceApprove(routeProcessor, type(uint256).max);
         bytes memory route = abi.decode(takeOrdersData, (bytes));
         // Input amount precision loss is acceptable as the route processor
         // only needs an approximate amount to execute the swap.
@@ -45,8 +42,9 @@ contract RouteProcessorOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
             outputTokenAmount++;
         }
         //slither-disable-next-line unused-return
-        iRouteProcessor.processRoute(inputToken, inputTokenAmount, outputToken, outputTokenAmount, address(this), route);
-        IERC20(inputToken).forceApprove(address(iRouteProcessor), 0);
+        IRouteProcessor(routeProcessor)
+            .processRoute(inputToken, inputTokenAmount, outputToken, outputTokenAmount, address(this), route);
+        IERC20(inputToken).forceApprove(routeProcessor, 0);
     }
 
     /// Allow arbitrary calls and ETH transfers to this contract without

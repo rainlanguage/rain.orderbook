@@ -9,7 +9,9 @@ import {
     CONTEXT_BASE_COLUMN,
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
-    CONTEXT_BASE_ROWS,
+    CONTEXT_BASE_ROWS
+} from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {
     CONTEXT_COLUMNS,
     CONTEXT_COLUMNS_EXTENDED,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
@@ -399,9 +401,9 @@ library LibOrderBookSubParser {
     }
 
     /// @dev Builds the complete authoring metadata for all orderbook context
-    /// words. Returns ABI-encoded `AuthoringMetaV2[][]` covering every context
+    /// words. Returns ABI-encoded `AuthoringMetaV2[]` covering every context
     /// column (base, calling, calculations, vault IO, signers, signed context,
-    /// deposit, withdraw).
+    /// deposit, withdraw). The inner arrays are flattened before encoding.
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
         AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS_EXTENDED);
@@ -550,29 +552,29 @@ library LibOrderBookSubParser {
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedMeta;
 
         AuthoringMetaV2[] memory depositMeta = new AuthoringMetaV2[](DEPOSIT_WORDS_LENGTH);
-        depositMeta[0] =
+        depositMeta[DEPOSIT_WORD_DEPOSITOR] =
         // constant WORD_DEPOSITOR defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)
         AuthoringMetaV2(bytes32(WORD_DEPOSITOR), "The address of the depositor that is depositing the token.");
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN + 1] =
+        depositMeta[DEPOSIT_WORD_TOKEN] =
         // constant WORD_DEPOSIT_TOKEN defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)
         AuthoringMetaV2(bytes32(WORD_DEPOSIT_TOKEN), "The address of the token that is being deposited.");
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
+        depositMeta[DEPOSIT_WORD_VAULT_ID] = AuthoringMetaV2(
             // constant WORD_DEPOSIT_VAULT_ID defined above is less than
             // 32 bytes, so this conversion is safe.
             // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_DEPOSIT_VAULT_ID),
             "The ID of the vault that the token is being deposited into."
         );
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE + 1] =
+        depositMeta[DEPOSIT_WORD_VAULT_BEFORE] =
         // constant WORD_DEPOSIT_VAULT_BEFORE defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)
         AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_BEFORE), "The balance of the vault before the deposit.");
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER + 1] =
+        depositMeta[DEPOSIT_WORD_VAULT_AFTER] =
         // constant WORD_DEPOSIT_VAULT_AFTER defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)

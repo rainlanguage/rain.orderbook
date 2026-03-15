@@ -8,7 +8,7 @@ import {IERC20, SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/ut
 import {IRaindexV6} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IRaindexV6ArbOrderTaker, TaskV2} from "rain.raindex.interface/interface/IRaindexV6ArbOrderTaker.sol";
 import {TakeOrdersConfigV5, Float} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {OrderBookV6ArbConfig, EvaluableV4, OrderBookV6ArbCommon, SignedContextV1} from "./OrderBookV6ArbCommon.sol";
+import {OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
 import {LibOrderBookArb} from "../lib/LibOrderBookArb.sol";
 import {IRaindexV6OrderTaker} from "rain.raindex.interface/interface/IRaindexV6OrderTaker.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
@@ -26,7 +26,7 @@ abstract contract OrderBookV6ArbOrderTaker is
 {
     using SafeERC20 for IERC20;
 
-    constructor(OrderBookV6ArbConfig memory config) OrderBookV6ArbCommon(config) {}
+    constructor() {}
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -39,8 +39,8 @@ abstract contract OrderBookV6ArbOrderTaker is
         external
         payable
         nonReentrant
-        onlyValidTask(task)
     {
+        _beforeArb(task);
         // Mimic what OB would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert IRaindexV6.NoOrders();

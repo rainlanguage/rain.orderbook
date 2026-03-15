@@ -3,12 +3,9 @@
 pragma solidity =0.8.25;
 
 import {GenericPoolOrderBookV6ArbOrderTakerTest} from "test/util/abstract/GenericPoolOrderBookV6ArbOrderTakerTest.sol";
-import {GenericPoolOrderBookV6ArbOrderTaker} from "src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {GenericPoolOrderBookV6ArbOrderTaker} from "../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
 import {ArbTest} from "test/util/abstract/ArbTest.sol";
-import {
-    GenericPoolOrderBookV6FlashBorrower,
-    OrderBookV6ArbConfig
-} from "src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
+import {GenericPoolOrderBookV6FlashBorrower} from "../../src/concrete/arb/GenericPoolOrderBookV6FlashBorrower.sol";
 
 /// @dev Tests fallback behavior on the order taker arb contract.
 contract OrderBookV6ArbOrderTakerFallbackTest is GenericPoolOrderBookV6ArbOrderTakerTest {
@@ -42,8 +39,8 @@ contract OrderBookV6ArbOrderTakerFallbackTest is GenericPoolOrderBookV6ArbOrderT
 
 /// @dev Tests fallback behavior on the flash borrower arb contract.
 contract OrderBookV6FlashBorrowerFallbackTest is ArbTest {
-    function buildArb(OrderBookV6ArbConfig memory config) internal override returns (address payable) {
-        return payable(address(new GenericPoolOrderBookV6FlashBorrower(config)));
+    function buildArb() internal override returns (address payable) {
+        return payable(address(new GenericPoolOrderBookV6FlashBorrower()));
     }
 
     constructor() ArbTest() {}

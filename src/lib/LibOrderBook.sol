@@ -2,12 +2,6 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {
-    CONTEXT_BASE_ROWS,
-    CONTEXT_BASE_ROW_SENDER,
-    CONTEXT_BASE_ROW_CALLING_CONTRACT,
-    CONTEXT_BASE_COLUMN
-} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {
     SourceIndexV2,
