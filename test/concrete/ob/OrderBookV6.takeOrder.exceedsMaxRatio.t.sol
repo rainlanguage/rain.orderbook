@@ -31,7 +31,13 @@ contract OrderBookV6TakeOrderExceedsMaxRatioTest is OrderBookV6ExternalRealTest 
 
         // Order with outputMax=1 and IORatio=100.
         OrderV4 memory order = LibTestTakeOrder.addOrderWithExpression(
-            vm, alice, "_ _:1 100;:;", address(iToken0), bytes32(uint256(0x01)), address(iToken1), bytes32(uint256(0x01))
+            vm,
+            alice,
+            "_ _:1 100;:;",
+            address(iToken0),
+            bytes32(uint256(0x01)),
+            address(iToken1),
+            bytes32(uint256(0x01))
         );
 
         // maximumIORatio = 1, but order ratio is 100 -> skip.

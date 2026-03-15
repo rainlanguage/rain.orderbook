@@ -29,7 +29,13 @@ contract OrderBookV6TakeOrderMinimumIOTest is OrderBookV6ExternalRealTest {
 
         // Order outputs 1e-18 at ratio 1.
         OrderV4 memory order = LibTestTakeOrder.addOrderWithExpression(
-            vm, alice, "_ _:1e-18 1;:;", address(iToken0), bytes32(uint256(0x01)), address(iToken1), bytes32(uint256(0x01))
+            vm,
+            alice,
+            "_ _:1e-18 1;:;",
+            address(iToken0),
+            bytes32(uint256(0x01)),
+            address(iToken1),
+            bytes32(uint256(0x01))
         );
 
         // Take with minimumIO = 1, but order only provides 1e-18.
