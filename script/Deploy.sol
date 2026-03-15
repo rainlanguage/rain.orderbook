@@ -24,8 +24,12 @@ bytes32 constant DEPLOYMENT_SUITE_RAINDEX = keccak256("raindex");
 bytes32 constant DEPLOYMENT_SUITE_SUBPARSER = keccak256("subparser");
 /// @dev Deploy only the RouteProcessor4 contract.
 bytes32 constant DEPLOYMENT_SUITE_ROUTE_PROCESSOR = keccak256("route-processor");
-/// @dev Deploy only the arb contracts (order takers and flash borrowers).
-bytes32 constant DEPLOYMENT_SUITE_ARB = keccak256("arb");
+/// @dev Deploy only GenericPoolOrderBookV6ArbOrderTaker.
+bytes32 constant DEPLOYMENT_SUITE_ARB_GENERIC_POOL_ORDER_TAKER = keccak256("arb-generic-pool-order-taker");
+/// @dev Deploy only RouteProcessorOrderBookV6ArbOrderTaker.
+bytes32 constant DEPLOYMENT_SUITE_ARB_ROUTE_PROCESSOR_ORDER_TAKER = keccak256("arb-route-processor-order-taker");
+/// @dev Deploy only GenericPoolOrderBookV6FlashBorrower.
+bytes32 constant DEPLOYMENT_SUITE_ARB_GENERIC_POOL_FLASH_BORROWER = keccak256("arb-generic-pool-flash-borrower");
 
 /// @title Deploy
 /// @notice Foundry script that deploys orderbook contracts. Controlled by the
@@ -100,8 +104,8 @@ contract Deploy is Script {
                 deps,
                 sDepCodeHashes
             );
-        } else if (suite == DEPLOYMENT_SUITE_ARB) {
-            console2.log("Deploying arb contracts...");
+        } else if (suite == DEPLOYMENT_SUITE_ARB_GENERIC_POOL_ORDER_TAKER) {
+            console2.log("Deploying GenericPoolOrderBookV6ArbOrderTaker...");
             address[] memory deps = new address[](0);
             LibRainDeploy.deployAndBroadcast(
                 vm,
@@ -114,6 +118,9 @@ contract Deploy is Script {
                 deps,
                 sDepCodeHashes
             );
+        } else if (suite == DEPLOYMENT_SUITE_ARB_ROUTE_PROCESSOR_ORDER_TAKER) {
+            console2.log("Deploying RouteProcessorOrderBookV6ArbOrderTaker...");
+            address[] memory deps = new address[](0);
             LibRainDeploy.deployAndBroadcast(
                 vm,
                 LibRainDeploy.supportedNetworks(),
@@ -125,6 +132,9 @@ contract Deploy is Script {
                 deps,
                 sDepCodeHashes
             );
+        } else if (suite == DEPLOYMENT_SUITE_ARB_GENERIC_POOL_FLASH_BORROWER) {
+            console2.log("Deploying GenericPoolOrderBookV6FlashBorrower...");
+            address[] memory deps = new address[](0);
             LibRainDeploy.deployAndBroadcast(
                 vm,
                 LibRainDeploy.supportedNetworks(),
