@@ -3,13 +3,13 @@ use alloy::sol;
 sol!(
     #![sol(all_derives = true, rpc)]
     #![sol(extra_derives(serde::Serialize, serde::Deserialize))]
-    IOrderBookV6, "../../out/IOrderBookV6.sol/IOrderBookV6.json"
+    IOrderBookV5, "../../out/IOrderBookV5.sol/IOrderBookV5.json"
 );
 
 sol!(
     #![sol(all_derives = true)]
     #![sol(extra_derives(serde::Serialize, serde::Deserialize))]
-    OrderBook, "../../out/OrderBookV6.sol/OrderBookV6.json"
+    OrderBook, "../../out/OrderBook.sol/OrderBook.json"
 );
 
 sol!(
@@ -39,7 +39,7 @@ pub mod wasm_traits;
 pub mod topics {
     use crate::{
         IInterpreterStoreV3::Set,
-        IOrderBookV6::{
+        IOrderBookV5::{
             AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
         },
         OrderBook::MetaV1_2,

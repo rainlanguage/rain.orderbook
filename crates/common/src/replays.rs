@@ -188,7 +188,7 @@ amount price: 2 1;
 
         let amount = Float::parse("10".to_string()).unwrap().get_inner();
         let tx_req = orderbook
-            .deposit4(
+            .deposit3(
                 *token1.address(),
                 B256::from(U256::from(0x01)),
                 amount,
@@ -214,7 +214,7 @@ amount price: 2 1;
         .unwrap()
         .get_inner();
         let one_float = Float::parse("1".to_string()).unwrap().get_inner();
-        let config = Orderbook::TakeOrdersConfigV5 {
+        let config = Orderbook::TakeOrdersConfigV4 {
             orders: vec![Orderbook::TakeOrderConfigV4 {
                 order,
                 inputIOIndex: U256::from(0),
@@ -222,14 +222,13 @@ amount price: 2 1;
                 signedContext: vec![],
             }],
             maximumIORatio: max_float,
-            maximumIO: max_float,
-            minimumIO: one_float,
-            IOIsInput: true,
+            maximumInput: max_float,
+            minimumInput: one_float,
             data: Bytes::new(),
         };
 
         let tx_req = orderbook
-            .takeOrders4(config)
+            .takeOrders3(config)
             .from(token2_holder)
             .into_transaction_request();
 
