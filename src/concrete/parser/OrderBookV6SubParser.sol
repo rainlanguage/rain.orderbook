@@ -9,8 +9,6 @@ import {
     IParserToolingV1
 } from "rain.interpreter/abstract/BaseRainterpreterSubParser.sol";
 import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
-import {BadDynamicLength} from "rain.interpreter/error/ErrOpList.sol";
-import {LibExternOpContextSender} from "rain.interpreter/lib/extern/reference/op/LibExternOpContextSender.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 
 import {
@@ -31,11 +29,13 @@ import {
     WITHDRAW_WORDS_LENGTH
 } from "../../lib/LibOrderBookSubParser.sol";
 import {
-    CONTEXT_COLUMNS,
-    CONTEXT_BASE_ROWS,
+    CONTEXT_BASE_COLUMN,
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
-    CONTEXT_BASE_COLUMN,
+    CONTEXT_BASE_ROWS
+} from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {
+    CONTEXT_COLUMNS_EXTENDED,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
@@ -67,7 +67,12 @@ import {
     OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
 } from "../../generated/OrderBookV6SubParser.pointers.sol";
 import {IDescribedByMetaV1} from "rain.metadata/interface/IDescribedByMetaV1.sol";
+import {ISubParserToolingV1} from "rain.sol.codegen/interface/ISubParserToolingV1.sol";
 
+/// @title OrderBookV6SubParser
+/// @notice Sub-parser that provides orderbook-specific context words (sender,
+/// order hash, vault IO, deposit/withdraw, signed context, etc.) to the
+/// Rain interpreter.
 contract OrderBookV6SubParser is BaseRainterpreterSubParser {
     using LibUint256Matrix for uint256[][];
 
@@ -98,11 +103,8 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
 
     /// @inheritdoc IParserToolingV1
     function buildOperandHandlerFunctionPointers() external pure returns (bytes memory) {
-        // Add 2 columns for signers and signed context start.
-        // Add 1 for deposit context
-        // Add 1 for withdraw context
         function(bytes32[] memory) internal pure returns (OperandV2)[][] memory handlers =
-            new function(bytes32[] memory) internal pure returns (OperandV2)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
+            new function(bytes32[] memory) internal pure returns (OperandV2)[][](CONTEXT_COLUMNS_EXTENDED);
 
         function(bytes32[] memory) internal pure returns (OperandV2)[] memory contextBaseHandlers =
             new function(bytes32[] memory) internal pure returns (OperandV2)[](CONTEXT_BASE_ROWS);
@@ -183,15 +185,13 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
         return LibConvert.unsafeTo16BitBytes(handlersUint256.flatten());
     }
 
+    /// @inheritdoc ISubParserToolingV1
     function buildSubParserWordParsers() external pure returns (bytes memory) {
-        // Add 2 columns for signers and signed context start.
-        // Add 1 for deposit context
-        // Add 1 for withdraw context
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[][] memory
             parsers =
             new function(uint256, uint256, OperandV2)
             internal
-            view returns (bool, bytes memory, bytes32[] memory)[][](CONTEXT_COLUMNS + 2 + 1 + 1);
+            view returns (bool, bytes memory, bytes32[] memory)[][](CONTEXT_COLUMNS_EXTENDED);
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextBaseParsers =

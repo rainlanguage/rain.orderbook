@@ -1466,7 +1466,7 @@ _ _: 1 1;
             assert!(registry.order_urls.contains_key("second-order"));
             assert_eq!(registry.orders.len(), 2);
 
-            let mut gui1 = registry
+            let gui1 = registry
                 .get_gui("first-order".to_string(), "flare".to_string(), None, None)
                 .await
                 .unwrap();

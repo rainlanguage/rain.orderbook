@@ -11,7 +11,7 @@ import {
     SignedContextV1
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {LibOrder} from "src/lib/LibOrder.sol";
+import {LibOrder} from "../../../src/lib/LibOrder.sol";
 
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 
