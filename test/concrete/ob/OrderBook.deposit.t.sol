@@ -10,6 +10,7 @@ import {Reenteroor} from "test/util/concrete/Reenteroor.sol";
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
 /// @title OrderBookDepositTest
 /// Tests depositing to an order book.
@@ -133,6 +134,8 @@ contract OrderBookDepositTest is OrderBookExternalMockTest {
             // Avoid errors from attempting to etch test harness internals.
             vm.assume(actions[i].token != address(CONSOLE_ADDRESS));
             vm.assume(actions[i].token != address(vm));
+            // Avoid overwriting the TOFU decimals singleton deployment.
+            vm.assume(actions[i].token != address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT));
         }
 
         for (uint256 i = 0; i < actions.length; i++) {
