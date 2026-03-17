@@ -70,16 +70,14 @@ pub async fn build_take_order_candidates_for_pair(
 
         for quote in &quotes {
             let signed_context = match &oracle_url {
-                Some(url) => {
-                    fetch_oracle_for_pair(
-                        url,
-                        &order_v4,
-                        quote.pair.input_index,
-                        quote.pair.output_index,
-                        Address::ZERO,
-                    )
-                    .await
-                }
+                Some(url) => fetch_oracle_for_pair(
+                    url,
+                    &order_v4,
+                    quote.pair.input_index,
+                    quote.pair.output_index,
+                    Address::ZERO,
+                )
+                .await?,
                 None => vec![],
             };
 
@@ -100,27 +98,21 @@ pub async fn build_take_order_candidates_for_pair(
 }
 
 /// Fetch signed context from an order's oracle endpoint for a specific IO pair.
-/// Returns empty vec if no oracle URL or if fetch fails (best-effort).
 async fn fetch_oracle_for_pair(
     oracle_url: &str,
     order: &OrderV4,
     input_io_index: u32,
     output_io_index: u32,
     counterparty: Address,
-) -> Vec<SignedContextV1> {
+) -> Result<Vec<SignedContextV1>, RaindexError> {
     let body =
         crate::oracle::encode_oracle_body(order, input_io_index, output_io_index, counterparty);
     match crate::oracle::fetch_signed_context(oracle_url, body).await {
-        Ok(ctx) => vec![ctx],
-        Err(e) => {
-            tracing::warn!(
-                "Failed to fetch oracle for pair ({}, {}): {}",
-                input_io_index,
-                output_io_index,
-                e
-            );
-            vec![]
-        }
+        Ok(ctx) => Ok(vec![ctx]),
+        Err(e) => Err(RaindexError::OracleFetchError(format!(
+            "Oracle fetch failed for pair ({}, {}): {}",
+            input_io_index, output_io_index, e
+        ))),
     }
 }
 
