@@ -11,11 +11,11 @@ import {
     IOV2,
     OrderConfigV4,
     EvaluableV4,
-    SignedContextV1,
     TaskV2
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 
 /// @title OrderBookV6TakeOrderPrecisionTest
 /// @notice A test harness for testing the OrderBook takeOrder function.
@@ -137,18 +137,10 @@ contract OrderBookV6TakeOrderPrecisionTest is OrderBookV6ExternalRealTest {
             iOrderbook.addOrder4(config, new TaskV2[](0));
             Vm.Log[] memory entries = vm.getRecordedLogs();
             assertEq(entries.length, 1);
-            (,, OrderV4 memory order) = abi.decode(entries[0].data, (address, bytes32, OrderV4));
+            OrderV4 memory order = LibTestTakeOrder.extractOrderFromLogs(entries);
 
-            TakeOrderConfigV4[] memory orders = new TakeOrderConfigV4[](1);
-            orders[0] = TakeOrderConfigV4(order, 0, 0, new SignedContextV1[](0));
-            TakeOrdersConfigV5 memory takeOrdersConfig = TakeOrdersConfigV5({
-                minimumIO: LibDecimalFloat.packLossless(0, 0),
-                maximumIO: LibDecimalFloat.packLossless(type(int224).max, 0),
-                maximumIORatio: LibDecimalFloat.packLossless(type(int224).max, 0),
-                IOIsInput: true,
-                orders: orders,
-                data: ""
-            });
+            TakeOrdersConfigV5 memory takeOrdersConfig =
+                LibTestTakeOrder.defaultTakeConfig(LibTestTakeOrder.wrapSingle(order));
             (Float totalTakerInput, Float totalTakerOutput) = iOrderbook.takeOrders4(takeOrdersConfig);
             assertTrue(totalTakerInput.eq(expectedTakerTotalInput), "input");
             assertTrue(totalTakerOutput.eq(expectedTakerTotalOutput), "output");

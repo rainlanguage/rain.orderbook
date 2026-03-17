@@ -9,8 +9,11 @@ import {
     CONTEXT_BASE_COLUMN,
     CONTEXT_BASE_ROW_SENDER,
     CONTEXT_BASE_ROW_CALLING_CONTRACT,
-    CONTEXT_BASE_ROWS,
+    CONTEXT_BASE_ROWS
+} from "rain.interpreter.interface/lib/caller/LibContext.sol";
+import {
     CONTEXT_COLUMNS,
+    CONTEXT_COLUMNS_EXTENDED,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_INPUTS_COLUMN,
     CONTEXT_CALCULATIONS_COLUMN,
@@ -95,14 +98,18 @@ uint256 constant WITHDRAW_WORD_TARGET_AMOUNT = 5;
 uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 
 /// @title LibOrderBookSubParser
+/// @notice Sub-parser word dispatch and authoring metadata for OrderBook
+/// context columns (base, calling, calculations, vault IO, signed).
 library LibOrderBookSubParser {
     using LibUint256Matrix for uint256[][];
 
+    /// @dev Maps the "sender" word to the base context column sender row.
     function subParserSender(uint256, uint256, OperandV2) internal pure returns (bool, bytes memory, bytes32[] memory) {
         //slither-disable-next-line unused-return
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_SENDER);
     }
 
+    /// @dev Maps the "calling-contract" word to the base context column.
     function subParserCallingContract(uint256, uint256, OperandV2)
         internal
         pure
@@ -112,6 +119,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_BASE_COLUMN, CONTEXT_BASE_ROW_CALLING_CONTRACT);
     }
 
+    /// @dev Maps the "order-hash" word to the calling context column.
     function subParserOrderHash(uint256, uint256, OperandV2)
         internal
         pure
@@ -121,6 +129,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH);
     }
 
+    /// @dev Maps the "order-owner" word to the calling context column.
     function subParserOrderOwner(uint256, uint256, OperandV2)
         internal
         pure
@@ -130,6 +139,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER);
     }
 
+    /// @dev Maps the "order-counterparty" word to the calling context column.
     function subParserOrderCounterparty(uint256, uint256, OperandV2)
         internal
         pure
@@ -140,6 +150,7 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY);
     }
 
+    /// @dev Maps the "max-output" word to the calculations context column.
     function subParserMaxOutput(uint256, uint256, OperandV2)
         internal
         pure
@@ -149,6 +160,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT);
     }
 
+    /// @dev Maps the "io-ratio" word to the calculations context column.
     function subParserIORatio(uint256, uint256, OperandV2)
         internal
         pure
@@ -158,6 +170,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALCULATIONS_COLUMN, CONTEXT_CALCULATIONS_ROW_IO_RATIO);
     }
 
+    /// @dev Maps the "input-token" word to the vault inputs context column.
     function subParserInputToken(uint256, uint256, OperandV2)
         internal
         pure
@@ -167,6 +180,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN);
     }
 
+    /// @dev Maps the "input-token-decimals" word to the vault inputs context column.
     function subParserInputTokenDecimals(uint256, uint256, OperandV2)
         internal
         pure
@@ -176,6 +190,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN_DECIMALS);
     }
 
+    /// @dev Maps the "input-vault-id" word to the vault inputs context column.
     function subParserInputVaultId(uint256, uint256, OperandV2)
         internal
         pure
@@ -185,6 +200,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_VAULT_ID);
     }
 
+    /// @dev Maps the "input-balance-before" word to the vault inputs context column.
     function subParserInputBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
@@ -194,6 +210,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_BEFORE);
     }
 
+    /// @dev Maps the "input-balance-diff" word to the vault inputs context column.
     function subParserInputBalanceDiff(uint256, uint256, OperandV2)
         internal
         pure
@@ -203,6 +220,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_INPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
+    /// @dev Maps the "output-token" word to the vault outputs context column.
     function subParserOutputToken(uint256, uint256, OperandV2)
         internal
         pure
@@ -212,6 +230,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN);
     }
 
+    /// @dev Maps the "output-token-decimals" word to the vault outputs context column.
     function subParserOutputTokenDecimals(uint256, uint256, OperandV2)
         internal
         pure
@@ -221,6 +240,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_TOKEN_DECIMALS);
     }
 
+    /// @dev Maps the "output-vault-id" word to the vault outputs context column.
     function subParserOutputVaultId(uint256, uint256, OperandV2)
         internal
         pure
@@ -230,6 +250,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_VAULT_ID);
     }
 
+    /// @dev Maps the "output-balance-before" word to the vault outputs context column.
     function subParserOutputBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
@@ -239,6 +260,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_BEFORE);
     }
 
+    /// @dev Maps the "output-balance-diff" word to the vault outputs context column.
     function subParserOutputBalanceDiff(uint256, uint256, OperandV2)
         internal
         pure
@@ -248,6 +270,8 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_VAULT_OUTPUTS_COLUMN, CONTEXT_VAULT_IO_BALANCE_DIFF);
     }
 
+    /// @dev Maps the "signers" word to the signed context signers column.
+    /// Uses the operand to select the row.
     function subParserSigners(uint256, uint256, OperandV2 operand)
         internal
         pure
@@ -257,6 +281,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN, uint256(OperandV2.unwrap(operand)));
     }
 
+    /// @dev Maps the "deposit-token" word to the calling context column.
     function subParserDepositToken(uint256, uint256, OperandV2)
         internal
         pure
@@ -266,6 +291,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN);
     }
 
+    /// @dev Maps the "deposit-vault-id" word to the calling context column.
     function subParserDepositVaultId(uint256, uint256, OperandV2)
         internal
         pure
@@ -276,6 +302,7 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID);
     }
 
+    /// @dev Maps the "deposit-vault-balance-before" word to the calling context column.
     function subParserDepositVaultBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
@@ -288,6 +315,7 @@ library LibOrderBookSubParser {
             );
     }
 
+    /// @dev Maps the "deposit-vault-balance-after" word to the calling context column.
     function subParserDepositVaultBalanceAfter(uint256, uint256, OperandV2)
         internal
         pure
@@ -300,6 +328,7 @@ library LibOrderBookSubParser {
             );
     }
 
+    /// @dev Maps the "withdraw-token" word to the calling context column.
     function subParserWithdrawToken(uint256, uint256, OperandV2)
         internal
         pure
@@ -309,6 +338,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TOKEN);
     }
 
+    /// @dev Maps the "withdraw-vault-id" word to the calling context column.
     function subParserWithdrawVaultId(uint256, uint256, OperandV2)
         internal
         pure
@@ -319,6 +349,7 @@ library LibOrderBookSubParser {
             LibSubParse.subParserContext(CONTEXT_CALLING_CONTEXT_COLUMN, CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_ID);
     }
 
+    /// @dev Maps the "withdraw-vault-balance-before" word to the calling context column.
     function subParserWithdrawVaultBalanceBefore(uint256, uint256, OperandV2)
         internal
         pure
@@ -331,6 +362,7 @@ library LibOrderBookSubParser {
             );
     }
 
+    /// @dev Maps the "withdraw-vault-balance-after" word to the calling context column.
     function subParserWithdrawVaultBalanceAfter(uint256, uint256, OperandV2)
         internal
         pure
@@ -343,6 +375,7 @@ library LibOrderBookSubParser {
             );
     }
 
+    /// @dev Maps the "withdraw-target-amount" word to the calling context column.
     function subParserWithdrawTargetAmount(uint256, uint256, OperandV2)
         internal
         pure
@@ -354,6 +387,8 @@ library LibOrderBookSubParser {
         );
     }
 
+    /// @dev Maps the "signed-context" word to a signed context column/row.
+    /// The operand low byte selects the column offset, the next byte selects the row.
     function subParserSignedContext(uint256, uint256, OperandV2 operand)
         internal
         pure
@@ -365,12 +400,13 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_START_COLUMN + column, row);
     }
 
+    /// @dev Builds the complete authoring metadata for all orderbook context
+    /// words. Returns ABI-encoded `AuthoringMetaV2[]` covering every context
+    /// column (base, calling, calculations, vault IO, signers, signed context,
+    /// deposit, withdraw). The inner arrays are flattened before encoding.
     //slither-disable-next-line dead-code
     function authoringMetaV2() internal pure returns (bytes memory) {
-        // Add 2 for the signed context signers and signed context start columns.
-        // 1 for the deposit context.
-        // 1 for the withdraw context.
-        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS + 2 + 1 + 1);
+        AuthoringMetaV2[][] memory meta = new AuthoringMetaV2[][](CONTEXT_COLUMNS_EXTENDED);
 
         AuthoringMetaV2[] memory contextBaseMeta = new AuthoringMetaV2[](CONTEXT_BASE_ROWS);
         contextBaseMeta[CONTEXT_BASE_ROW_SENDER] = AuthoringMetaV2(
@@ -504,7 +540,7 @@ library LibOrderBookSubParser {
             // conversion is safe.
             // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("signed-context"),
-            "Signed context is provided by the order clearer/taker and can be signed by anyone. Orderbook will check the signature, but the expression author much authorize the signer's public key."
+            "Signed context is provided by the order clearer/taker and can be signed by anyone. Orderbook will check the signature, but the expression author must authorize the signer's public key."
         );
 
         meta[CONTEXT_BASE_COLUMN] = contextBaseMeta;
@@ -516,29 +552,29 @@ library LibOrderBookSubParser {
         meta[CONTEXT_SIGNED_CONTEXT_START_COLUMN] = contextSignedMeta;
 
         AuthoringMetaV2[] memory depositMeta = new AuthoringMetaV2[](DEPOSIT_WORDS_LENGTH);
-        depositMeta[0] =
+        depositMeta[DEPOSIT_WORD_DEPOSITOR] =
         // constant WORD_DEPOSITOR defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)
         AuthoringMetaV2(bytes32(WORD_DEPOSITOR), "The address of the depositor that is depositing the token.");
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_TOKEN + 1] =
+        depositMeta[DEPOSIT_WORD_TOKEN] =
         // constant WORD_DEPOSIT_TOKEN defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)
         AuthoringMetaV2(bytes32(WORD_DEPOSIT_TOKEN), "The address of the token that is being deposited.");
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_ID + 1] = AuthoringMetaV2(
+        depositMeta[DEPOSIT_WORD_VAULT_ID] = AuthoringMetaV2(
             // constant WORD_DEPOSIT_VAULT_ID defined above is less than
             // 32 bytes, so this conversion is safe.
             // forge-lint: disable-next-line(unsafe-typecast)
             bytes32(WORD_DEPOSIT_VAULT_ID),
             "The ID of the vault that the token is being deposited into."
         );
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_BEFORE + 1] =
+        depositMeta[DEPOSIT_WORD_VAULT_BEFORE] =
         // constant WORD_DEPOSIT_VAULT_BEFORE defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)
         AuthoringMetaV2(bytes32(WORD_DEPOSIT_VAULT_BEFORE), "The balance of the vault before the deposit.");
-        depositMeta[CONTEXT_CALLING_CONTEXT_ROW_DEPOSIT_VAULT_AFTER + 1] =
+        depositMeta[DEPOSIT_WORD_VAULT_AFTER] =
         // constant WORD_DEPOSIT_VAULT_AFTER defined above is less than
         // 32 bytes, so this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)

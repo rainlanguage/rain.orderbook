@@ -16,10 +16,10 @@ import {
     SignedContextV1
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {
-    RouteProcessorOrderBookV6ArbOrderTaker,
-    OrderBookV6ArbConfig
-} from "src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
+    RouteProcessorOrderBookV6ArbOrderTaker
+} from "../../../src/concrete/arb/RouteProcessorOrderBookV6ArbOrderTaker.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
+import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 
 contract RouteProcessorOrderBookV6ArbOrderTakerSenderTest is RouteProcessorOrderBookV6ArbOrderTakerTest {
     /// forge-config: default.fuzz.runs = 100
@@ -40,7 +40,12 @@ contract RouteProcessorOrderBookV6ArbOrderTakerSenderTest is RouteProcessorOrder
                 data: abi.encode(bytes("0x00"))
             }),
                 TaskV2({
-                evaluable: EvaluableV4(iInterpreter, iInterpreterStore, ""), signedContext: new SignedContextV1[](0)
+                evaluable: EvaluableV4(
+                    IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
+                    IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
+                    ""
+                ),
+                signedContext: new SignedContextV1[](0)
             })
             );
     }
