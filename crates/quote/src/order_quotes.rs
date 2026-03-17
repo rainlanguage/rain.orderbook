@@ -59,6 +59,7 @@ pub async fn get_order_quotes(
 
     let mut all_pairs: Vec<Pair> = Vec::new();
     let mut all_quote_targets: Vec<QuoteTarget> = Vec::new();
+    let mut oracle_errors: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     for order in &orders {
         let order_struct: OrderV4 = order.clone().try_into()?;
@@ -107,38 +108,48 @@ pub async fn get_order_quotes(
                             Address::ZERO, // counterparty unknown at quote time
                         );
                         match crate::oracle::fetch_signed_context(url, body).await {
-                            Ok(ctx) => vec![ctx],
-                            Err(e) => {
-                                tracing::warn!(
-                                    "Failed to fetch oracle for pair ({}, {}): {}",
-                                    input_index,
-                                    output_index,
-                                    e
-                                );
-                                vec![]
-                            }
+                            Ok(ctx) => Ok(vec![ctx]),
+                            Err(e) => Err(format!(
+                                "Oracle fetch failed for pair ({}, {}): {}",
+                                input_index, output_index, e
+                            )),
                         }
                     } else {
-                        vec![]
+                        Ok(vec![])
                     }
                 } else {
-                    vec![]
+                    Ok(vec![])
                 };
 
-                all_pairs.push(Pair {
+                let pair = Pair {
                     pair_name,
                     input_index: input_index as u32,
                     output_index: output_index as u32,
-                });
-                all_quote_targets.push(QuoteTarget {
-                    orderbook,
-                    quote_config: QuoteV2 {
-                        order: order_struct.clone(),
-                        inputIOIndex: U256::from(input_index),
-                        outputIOIndex: U256::from(output_index),
-                        signedContext: signed_context,
-                    },
-                });
+                };
+
+                match signed_context {
+                    Ok(ctx) => {
+                        all_pairs.push(pair);
+                        all_quote_targets.push(QuoteTarget {
+                            orderbook,
+                            quote_config: QuoteV2 {
+                                order: order_struct.clone(),
+                                inputIOIndex: U256::from(input_index),
+                                outputIOIndex: U256::from(output_index),
+                                signedContext: ctx,
+                            },
+                        });
+                    }
+                    Err(e) => {
+                        oracle_errors.push(BatchOrderQuotesResponse {
+                            pair,
+                            block_number: req_block_number,
+                            success: false,
+                            data: None,
+                            error: Some(e),
+                        });
+                    }
+                }
             }
         }
     }
@@ -182,7 +193,9 @@ pub async fn get_order_quotes(
         }
     };
 
-    Ok(results)
+    let mut all_results = oracle_errors;
+    all_results.extend(results);
+    Ok(all_results)
 }
 
 #[cfg(test)]
