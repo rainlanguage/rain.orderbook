@@ -23,4 +23,5 @@ packages/orderbook/esm.d.ts
 .claude/
 .ai_docs/
 .ai_spec/
-.cursor/
+.cursor/lib/rain.orderbook.interface
+lib/rain.tofu.erc20-decimals
