@@ -671,6 +671,7 @@ impl RaindexError {
             RaindexError::InvalidDotrainSourceMetadata => {
                 "Found metadata but it could not be parsed as valid dotrain source".to_string()
             }
+            RaindexError::OracleFetchError(err) => err.clone(),
         }
     }
 }
