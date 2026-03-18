@@ -70,14 +70,16 @@ pub async fn build_take_order_candidates_for_pair(
 
         for quote in &quotes {
             let signed_context = match &oracle_url {
-                Some(url) => fetch_oracle_for_pair(
-                    url,
-                    &order_v4,
-                    quote.pair.input_index,
-                    quote.pair.output_index,
-                    Address::ZERO,
-                )
-                .await?,
+                Some(url) => {
+                    fetch_oracle_for_pair(
+                        url,
+                        &order_v4,
+                        quote.pair.input_index,
+                        quote.pair.output_index,
+                        Address::ZERO,
+                    )
+                    .await?
+                }
                 None => vec![],
             };
 

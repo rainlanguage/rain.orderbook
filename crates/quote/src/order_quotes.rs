@@ -154,7 +154,7 @@ pub async fn get_order_quotes(
         }
     }
 
-    let results = match BatchQuoteTarget(all_quote_targets)
+    let results: Vec<BatchOrderQuotesResponse> = match BatchQuoteTarget(all_quote_targets)
         .do_quote(rpcs, Some(req_block_number), None, chunk_size)
         .await
     {
