@@ -98,24 +98,24 @@ pub async fn get_order_quotes(
                         .unwrap_or("UNKNOWN".to_string())
                 );
 
-                // Fetch signed oracle context for this pair if oracle URL is present
+                // Fetch signed oracle context for this pair if oracle URL is present.
+                // NOTE: Oracle context is always fetched live (current price), even when
+                // the quote is pinned to a historical block. This means historical quotes
+                // for oracle-backed orders reflect current oracle prices against past chain
+                // state, which may not represent a quote that actually existed.
                 let signed_context = if let Some(ref url) = oracle_url {
-                    if input.token != output.token {
-                        let body = crate::oracle::encode_oracle_body(
-                            &order_struct,
-                            input_index as u32,
-                            output_index as u32,
-                            Address::ZERO, // counterparty unknown at quote time
-                        );
-                        match crate::oracle::fetch_signed_context(url, body).await {
-                            Ok(ctx) => Ok(vec![ctx]),
-                            Err(e) => Err(format!(
-                                "Oracle fetch failed for pair ({}, {}): {}",
-                                input_index, output_index, e
-                            )),
-                        }
-                    } else {
-                        Ok(vec![])
+                    let body = crate::oracle::encode_oracle_body(
+                        &order_struct,
+                        input_index as u32,
+                        output_index as u32,
+                        Address::ZERO, // counterparty unknown at quote time
+                    );
+                    match crate::oracle::fetch_signed_context(url, body).await {
+                        Ok(ctx) => Ok(vec![ctx]),
+                        Err(e) => Err(format!(
+                            "Oracle fetch failed for pair ({}, {}): {}",
+                            input_index, output_index, e
+                        )),
                     }
                 } else {
                     Ok(vec![])

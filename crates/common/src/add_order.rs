@@ -136,13 +136,22 @@ impl AddOrderArgs {
             });
         }
 
-        // If the order has an oracle URL, add a RaindexSignedContextOracleV1 meta item
+        // If the order has an oracle URL and one isn't already present in
+        // additional_meta, add a RaindexSignedContextOracleV1 meta item.
         let additional_meta = {
             let mut meta = additional_meta.unwrap_or_default();
             if let Some(ref oracle_url) = deployment.order.oracle_url {
-                let oracle = RaindexSignedContextOracleV1::parse(oracle_url)
-                    .map_err(AddOrderArgsError::RainMetaError)?;
-                meta.push(oracle.to_meta_item());
+                let already_has_oracle = meta.iter().any(|item| {
+                    RaindexSignedContextOracleV1::find_in_items(&[item.clone()])
+                        .ok()
+                        .flatten()
+                        .is_some()
+                });
+                if !already_has_oracle {
+                    let oracle = RaindexSignedContextOracleV1::parse(oracle_url)
+                        .map_err(AddOrderArgsError::RainMetaError)?;
+                    meta.push(oracle.to_meta_item());
+                }
             }
             if meta.is_empty() {
                 None

@@ -76,6 +76,10 @@ pub async fn build_take_order_candidates_for_pair(
                         &order_v4,
                         quote.pair.input_index,
                         quote.pair.output_index,
+                        // Counterparty is unknown at candidate-building time (the taker
+                        // address isn't known until the transaction is submitted).
+                        // The oracle server ignores this field — it only uses the order's
+                        // input/output tokens to determine the price pair.
                         Address::ZERO,
                     )
                     .await?

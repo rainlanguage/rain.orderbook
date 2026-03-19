@@ -4,12 +4,29 @@ use rain_orderbook_bindings::IRaindexV6::{OrderV4, SignedContextV1};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use url::Url;
+
+/// Validate that an oracle URL is safe to POST to.
+/// Only http and https schemes are allowed to prevent SSRF.
+fn validate_oracle_url(url: &str) -> Result<(), OracleError> {
+    let parsed =
+        Url::parse(url).map_err(|e| OracleError::InvalidUrl(format!("Cannot parse URL: {e}")))?;
+    match parsed.scheme() {
+        "http" | "https" => Ok(()),
+        scheme => Err(OracleError::InvalidUrl(format!(
+            "Unsupported scheme '{scheme}', only http and https are allowed"
+        ))),
+    }
+}
 
 /// Error types for oracle fetching
 #[derive(Debug, thiserror::Error)]
 pub enum OracleError {
     #[error("HTTP request failed: {0}")]
     RequestFailed(#[from] reqwest::Error),
+
+    #[error("Invalid oracle URL: {0}")]
+    InvalidUrl(String),
 
     #[error("Invalid oracle response: {0}")]
     InvalidResponse(String),
@@ -83,13 +100,12 @@ pub fn encode_oracle_body_batch(requests: Vec<(&OrderV4, u32, u32, Address)>) ->
 /// that will be used for calculateOrderIO:
 /// `abi.encode(OrderV4, uint256 inputIOIndex, uint256 outputIOIndex, address counterparty)`
 ///
-/// The endpoint must respond with a JSON body matching a single `OracleResponse`.
-///
-/// NOTE: This is a legacy function. The batch format is preferred.
+/// The endpoint must respond with a JSON array containing exactly one `OracleResponse`.
 pub async fn fetch_signed_context(
     url: &str,
     body: Vec<u8>,
 ) -> Result<SignedContextV1, OracleError> {
+    validate_oracle_url(url)?;
     let builder = Client::builder();
     #[cfg(not(target_family = "wasm"))]
     let builder = builder.timeout(std::time::Duration::from_secs(10));
@@ -126,7 +142,9 @@ pub async fn fetch_signed_context(
 pub async fn fetch_signed_context_batch(
     url: &str,
     body: Vec<u8>,
+    expected_count: usize,
 ) -> Result<Vec<SignedContextV1>, OracleError> {
+    validate_oracle_url(url)?;
     let builder = Client::builder();
     #[cfg(not(target_family = "wasm"))]
     let builder = builder.timeout(std::time::Duration::from_secs(10));
@@ -141,6 +159,14 @@ pub async fn fetch_signed_context_batch(
         .error_for_status()?
         .json()
         .await?;
+
+    if response.len() != expected_count {
+        return Err(OracleError::InvalidResponse(format!(
+            "Expected {} oracle responses, got {}",
+            expected_count,
+            response.len()
+        )));
+    }
 
     Ok(response.into_iter().map(|resp| resp.into()).collect())
 }
@@ -244,14 +270,28 @@ mod tests {
 
     #[tokio::test]
     async fn test_fetch_signed_context_batch_invalid_url() {
-        let result = fetch_signed_context_batch("not-a-url", vec![]).await;
+        let result = fetch_signed_context_batch("not-a-url", vec![], 0).await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_fetch_signed_context_batch_unreachable() {
-        let result = fetch_signed_context_batch("http://127.0.0.1:1/oracle", vec![]).await;
+        let result = fetch_signed_context_batch("http://127.0.0.1:1/oracle", vec![], 0).await;
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_oracle_url_rejects_non_http() {
+        assert!(validate_oracle_url("ftp://example.com").is_err());
+        assert!(validate_oracle_url("javascript:alert(1)").is_err());
+        assert!(validate_oracle_url("file:///etc/passwd").is_err());
+        assert!(validate_oracle_url("data:text/html,<h1>hi</h1>").is_err());
+    }
+
+    #[test]
+    fn test_validate_oracle_url_accepts_http() {
+        assert!(validate_oracle_url("http://localhost:8080/oracle").is_ok());
+        assert!(validate_oracle_url("https://oracle.example.com/context").is_ok());
     }
 
     fn create_test_order() -> OrderV4 {

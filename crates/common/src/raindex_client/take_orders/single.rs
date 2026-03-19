@@ -114,23 +114,6 @@ pub async fn execute_single_take(
     sell_token: Address,
     oracle_url: Option<String>,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
-    // Fetch signed context from oracle if URL provided
-    let mut candidate = candidate;
-    if let Some(url) = oracle_url {
-        let body = crate::oracle::encode_oracle_body(
-            &candidate.order,
-            candidate.input_io_index,
-            candidate.output_io_index,
-            taker,
-        );
-        match crate::oracle::fetch_signed_context(&url, body).await {
-            Ok(ctx) => candidate.signed_context = vec![ctx],
-            Err(e) => {
-                tracing::warn!("Failed to fetch oracle data from {}: {}", url, e);
-            }
-        }
-    }
-
     let zero = Float::zero()?;
 
     if candidate.ratio.gt(price_cap)? {
@@ -150,6 +133,24 @@ pub async fn execute_single_take(
 
     if let Some(approval_result) = check_approval_needed(&approval_params).await? {
         return Ok(approval_result);
+    }
+
+    // Fetch signed context from oracle after early exits (price-cap, approval)
+    // to avoid unnecessary network calls for orders that won't be taken.
+    let mut candidate = candidate;
+    if let Some(url) = oracle_url {
+        let body = crate::oracle::encode_oracle_body(
+            &candidate.order,
+            candidate.input_io_index,
+            candidate.output_io_index,
+            taker,
+        );
+        match crate::oracle::fetch_signed_context(&url, body).await {
+            Ok(ctx) => candidate.signed_context = vec![ctx],
+            Err(e) => {
+                tracing::warn!("Failed to fetch oracle data: {}", e);
+            }
+        }
     }
 
     let target = mode.target_amount();
