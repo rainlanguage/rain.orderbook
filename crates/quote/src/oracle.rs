@@ -30,9 +30,6 @@ pub enum OracleError {
 
     #[error("Invalid oracle response: {0}")]
     InvalidResponse(String),
-
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(String),
 }
 
 /// JSON response format from an oracle endpoint.
