@@ -142,7 +142,7 @@ impl AddOrderArgs {
             let mut meta = additional_meta.unwrap_or_default();
             if let Some(ref oracle_url) = deployment.order.oracle_url {
                 let already_has_oracle = meta.iter().any(|item| {
-                    RaindexSignedContextOracleV1::find_in_items(&[item.clone()])
+                    RaindexSignedContextOracleV1::find_in_items(std::slice::from_ref(item))
                         .ok()
                         .flatten()
                         .is_some()
