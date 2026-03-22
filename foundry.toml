@@ -5,6 +5,7 @@ libs = ['lib']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
+ffi = true
 solc = "0.8.25"
 evm_version = "cancun"
 
