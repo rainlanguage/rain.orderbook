@@ -12,6 +12,8 @@ contract LibOrderBookDeployNetworksJsonStartBlockPolygonTest is Test {
     function testNetworksJsonStartBlockPolygon() external view {
         string memory json = vm.readFile("subgraph/networks.json");
         uint256 startBlock = vm.parseJsonUint(json, ".matic.OrderBook.startBlock");
-        assertEq(startBlock, LibOrderBookDeploy.ORDERBOOK_START_BLOCK_POLYGON, "networks.json startBlock mismatch: matic");
+        assertEq(
+            startBlock, LibOrderBookDeploy.ORDERBOOK_START_BLOCK_POLYGON, "networks.json startBlock mismatch: matic"
+        );
     }
 }

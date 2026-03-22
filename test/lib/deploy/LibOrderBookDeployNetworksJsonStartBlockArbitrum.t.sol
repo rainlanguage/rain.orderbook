@@ -12,6 +12,10 @@ contract LibOrderBookDeployNetworksJsonStartBlockArbitrumTest is Test {
     function testNetworksJsonStartBlockArbitrum() external view {
         string memory json = vm.readFile("subgraph/networks.json");
         uint256 startBlock = vm.parseJsonUint(json, ".arbitrum-one.OrderBook.startBlock");
-        assertEq(startBlock, LibOrderBookDeploy.ORDERBOOK_START_BLOCK_ARBITRUM, "networks.json startBlock mismatch: arbitrum-one");
+        assertEq(
+            startBlock,
+            LibOrderBookDeploy.ORDERBOOK_START_BLOCK_ARBITRUM,
+            "networks.json startBlock mismatch: arbitrum-one"
+        );
     }
 }

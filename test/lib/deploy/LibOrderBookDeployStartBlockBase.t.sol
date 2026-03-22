@@ -15,10 +15,7 @@ contract LibOrderBookDeployStartBlockBaseTest is Test {
         vm.skip(vm.envOr("CI", false));
         vm.createSelectFork(LibRainDeploy.BASE);
         uint256 startBlock = LibRainDeploy.findDeployBlock(
-            vm,
-            LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS,
-            LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH,
-            0
+            vm, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS, LibOrderBookDeploy.ORDERBOOK_DEPLOYED_CODEHASH, 0
         );
         assertEq(startBlock, LibOrderBookDeploy.ORDERBOOK_START_BLOCK_BASE);
     }
