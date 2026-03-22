@@ -81,4 +81,9 @@ library LibOrderBookDeploy {
     /// The code hash of the `GenericPoolOrderBookV6FlashBorrower` contract when
     /// deployed with the rain standard zoltu deployer.
     bytes32 constant GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH = GENERIC_POOL_FB_HASH;
+
+    uint256 constant ORDERBOOK_START_BLOCK_ARBITRUM = 441612693;
+    uint256 constant ORDERBOOK_START_BLOCK_BASE = 43339885;
+    uint256 constant ORDERBOOK_START_BLOCK_FLARE = 56972130;
+    uint256 constant ORDERBOOK_START_BLOCK_POLYGON = 84174550;
 }

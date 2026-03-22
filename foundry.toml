@@ -5,6 +5,7 @@ libs = ['lib']
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
+ffi = true
 solc = "0.8.25"
 evm_version = "cancun"
 
@@ -34,6 +35,7 @@ fs_permissions = [
   { access = "read", path = "./lib/rain.interpreter/deployments/latest/RainterpreterExpressionDeployerNPE2" },
   { access = "read-write", path = "./meta/OrderBookV6SubParserAuthoringMeta.rain.meta"},
   { access = "read-write", path = "src/generated" },
+  { access = "read", path = "./subgraph" },
 ]
 
 remappings = [
@@ -47,7 +49,7 @@ remappings = [
   "rain.solmem/=lib/rain.raindex.interface/lib/rain.interpreter.interface/lib/rain.solmem/src",
   "rain.math.float/=lib/rain.raindex.interface/lib/rain.interpreter.interface/lib/rain.math.float/src/",
   "rain.tofu.erc20-decimals/=lib/rain.interpreter/lib/rain.tofu.erc20-decimals/src/",
-  "rain.deploy/=lib/rain.interpreter/lib/rain.deploy/src/",
+  "rain.deploy/=lib/rain.deploy/src/",
   "rain.lib.typecast/=lib/rain.raindex.interface/lib/rain.interpreter.interface/lib/rain.lib.typecast/src/",
   "sushixswap-v2/=lib/sushixswap-v2/",
 ]
