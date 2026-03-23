@@ -2,6 +2,7 @@ use crate::local_db::OrderbookIdentifier;
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
 use crate::raindex_client::take_orders::single::{
     build_candidate_from_quote, estimate_take_order, execute_single_take,
+    TakeOrderExecutionParams, RpcContext,
 };
 use crate::raindex_client::RaindexClient;
 use crate::raindex_client::RaindexError;
@@ -131,15 +132,16 @@ async fn test_single_order_take_happy_path_buy_up_to() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
+    let execution_params = create_execution_params(mode, price_cap, taker, setup.token1, None);
+    let rpc_context = RpcContext {
+        rpc_urls: &rpc_urls,
+        block_number: None,
+    };
+
     let result = execute_single_take(
         candidate,
-        mode,
-        price_cap,
-        taker,
-        &rpc_urls,
-        None,
-        setup.token1,
-        None,
+        execution_params,
+        rpc_context,
     )
     .await
     .expect("Should succeed with BuyUpTo mode");
@@ -241,15 +243,16 @@ async fn test_single_order_take_happy_path_buy_exact() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
+    let execution_params = create_execution_params(mode, price_cap, taker, setup.token1, None);
+    let rpc_context = RpcContext {
+        rpc_urls: &rpc_urls,
+        block_number: None,
+    };
+
     let result = execute_single_take(
         candidate,
-        mode,
-        price_cap,
-        taker,
-        &rpc_urls,
-        None,
-        setup.token1,
-        None,
+        execution_params,
+        rpc_context,
     )
     .await
     .expect("Should succeed with BuyExact mode");
@@ -344,15 +347,16 @@ async fn test_single_order_take_happy_path_spend_up_to() {
     let price_cap = Float::parse(high_price_cap()).unwrap();
     let rpc_urls = vec![url::Url::parse(&setup.local_evm.url()).unwrap()];
 
+    let execution_params = create_execution_params(mode, price_cap, taker, setup.token1, None);
+    let rpc_context = RpcContext {
+        rpc_urls: &rpc_urls,
+        block_number: None,
+    };
+
     let result = execute_single_take(
         candidate,
-        mode,
-        price_cap,
-        taker,
-        &rpc_urls,
-        None,
-        setup.token1,
-        None,
+        execution_params,
+        rpc_context,
     )
     .await
     .expect("Should succeed with SpendUpTo mode");
@@ -1756,6 +1760,23 @@ async fn test_single_order_take_calldata_encoding_spend_mode() {
     );
 
     assert_eq!(config.orders.len(), 1, "Should have exactly 1 order");
+}
+
+/// Helper function to create execution parameters for tests.
+fn create_execution_params(
+    mode: ParsedTakeOrdersMode,
+    price_cap: Float,
+    taker: Address,
+    sell_token: Address,
+    oracle_url: Option<String>,
+) -> TakeOrderExecutionParams {
+    TakeOrderExecutionParams {
+        mode,
+        price_cap,
+        taker,
+        sell_token,
+        oracle_url,
+    }
 }
 
 #[tokio::test]
