@@ -204,26 +204,46 @@ pub async fn execute_single_take(
         total_output: output,
     };
 
-    let built = build_take_orders_config_from_simulation(sim, execution_params.mode, execution_params.price_cap)?
-        .ok_or(RaindexError::NoLiquidity)?;
+    let built = build_take_orders_config_from_simulation(
+        sim,
+        execution_params.mode,
+        execution_params.price_cap,
+    )?
+    .ok_or(RaindexError::NoLiquidity)?;
 
-    let provider =
-        mk_read_provider(rpc_context.rpc_urls).map_err(|e| RaindexError::PreflightError(e.to_string()))?;
+    let provider = mk_read_provider(rpc_context.rpc_urls)
+        .map_err(|e| RaindexError::PreflightError(e.to_string()))?;
 
-    let sim_result =
-        simulate_take_orders(&provider, orderbook, execution_params.taker, &built.config, rpc_context.block_number).await;
+    let sim_result = simulate_take_orders(
+        &provider,
+        orderbook,
+        execution_params.taker,
+        &built.config,
+        rpc_context.block_number,
+    )
+    .await;
 
     match sim_result {
-        Ok(()) => build_calldata_result(orderbook, built, execution_params.mode, execution_params.price_cap),
+        Ok(()) => build_calldata_result(
+            orderbook,
+            built,
+            execution_params.mode,
+            execution_params.price_cap,
+        ),
         Err(sim_error) => {
             if built.config.orders.len() == 1 {
                 Err(RaindexError::PreflightError(format!(
                     "Order failed simulation: {}",
                     sim_error
                 )))
-            } else if let Some(_failing_idx) =
-                find_failing_order_index(&provider, orderbook, execution_params.taker, &built.config, rpc_context.block_number)
-                    .await
+            } else if let Some(_failing_idx) = find_failing_order_index(
+                &provider,
+                orderbook,
+                execution_params.taker,
+                &built.config,
+                rpc_context.block_number,
+            )
+            .await
             {
                 Err(RaindexError::PreflightError(format!(
                     "Order failed simulation: {}",

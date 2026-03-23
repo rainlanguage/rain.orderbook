@@ -9,6 +9,7 @@ use crate::local_db::query::fetch_vaults::LocalDbVault;
 use crate::local_db::OrderbookIdentifier;
 use crate::parsed_meta::ParsedMeta;
 use crate::raindex_client::order_quotes::RaindexOrderQuote;
+use crate::raindex_client::take_orders::single::{RpcContext, TakeOrderExecutionParams};
 use crate::raindex_client::take_orders::{
     build_candidate_from_quote, estimate_take_order, execute_single_take, TakeOrderEstimate,
     TakeOrdersCalldataResult,
@@ -710,17 +711,19 @@ impl RaindexOrder {
         let candidate =
             build_candidate_from_quote(self, &fresh_quote)?.ok_or(RaindexError::NoLiquidity)?;
 
-        execute_single_take(
-            candidate,
-            parsed_mode,
-            parsed_price_cap,
-            taker_addr,
-            &rpc_urls,
-            Some(block_number),
+        let execution_params = TakeOrderExecutionParams {
+            mode: parsed_mode,
+            price_cap: parsed_price_cap,
+            taker: taker_addr,
             sell_token,
-            self.oracle_url(),
-        )
-        .await
+            oracle_url: self.oracle_url(),
+        };
+        let rpc_context = RpcContext {
+            rpc_urls: &rpc_urls,
+            block_number: Some(block_number),
+        };
+
+        execute_single_take(candidate, execution_params, rpc_context).await
     }
 
     #[wasm_export(
