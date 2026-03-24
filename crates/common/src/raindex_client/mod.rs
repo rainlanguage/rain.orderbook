@@ -359,6 +359,8 @@ impl From<serde_wasm_bindgen::Error> for SerdeWasmBindgenErrorWrapper {
 pub enum RaindexError {
     #[error("Invalid yaml configuration")]
     InvalidYamlConfig,
+    #[error("{0}")]
+    OracleFetchError(String),
     #[error("Chain ID not found: {0}")]
     ChainIdNotFound(u32),
     #[error("No networks configured")]
@@ -669,6 +671,7 @@ impl RaindexError {
             RaindexError::InvalidDotrainSourceMetadata => {
                 "Found metadata but it could not be parsed as valid dotrain source".to_string()
             }
+            RaindexError::OracleFetchError(err) => err.clone(),
         }
     }
 }
