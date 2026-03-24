@@ -643,7 +643,7 @@ describe('OrderDetail', () => {
 			});
 
 			await waitFor(() => {
-				// Check that Oracle section is present 
+				// Check that Oracle section is present
 				expect(screen.getByText('Oracle')).toBeInTheDocument();
 				// Check that the Oracle URL is displayed
 				expect(screen.getByText(oracleUrl)).toBeInTheDocument();
