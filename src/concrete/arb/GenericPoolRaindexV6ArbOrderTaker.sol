@@ -2,16 +2,16 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookV6ArbOrderTaker, Float} from "../../abstract/OrderBookV6ArbOrderTaker.sol";
+import {RaindexV6ArbOrderTaker, Float} from "../../abstract/RaindexV6ArbOrderTaker.sol";
 import {LibGenericPoolExchange} from "../../lib/LibGenericPoolExchange.sol";
 
-/// @title GenericPoolOrderBookV6ArbOrderTaker
+/// @title GenericPoolRaindexV6ArbOrderTaker
 /// @notice Order-taker arb that swaps via an arbitrary external pool call.
 /// The `takeOrdersData` is decoded as `(spender, pool, encodedFunctionCall)`.
-contract GenericPoolOrderBookV6ArbOrderTaker is OrderBookV6ArbOrderTaker {
+contract GenericPoolRaindexV6ArbOrderTaker is RaindexV6ArbOrderTaker {
     constructor() {}
 
-    /// @inheritdoc OrderBookV6ArbOrderTaker
+    /// @inheritdoc RaindexV6ArbOrderTaker
     /// @dev Decodes `takeOrdersData` as `(spender, pool, encodedFunctionCall)`
     /// and routes the swap through the specified pool via `LibGenericPoolExchange`.
     function onTakeOrders2(

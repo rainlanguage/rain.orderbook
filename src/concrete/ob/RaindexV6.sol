@@ -24,7 +24,7 @@ import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpr
 import {LibNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibMeta} from "rain.metadata/lib/LibMeta.sol";
 import {IMetaV1_2} from "rain.metadata/interface/unstable/IMetaV1_2.sol";
-import {LibOrderBook} from "../../lib/LibOrderBook.sol";
+import {LibRaindex} from "../../lib/LibRaindex.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibTOFUTokenDecimals, TOFUOutcome} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {ITOFUTokenDecimals} from "rain.tofu.erc20-decimals/interface/ITOFUTokenDecimals.sol";
@@ -57,8 +57,8 @@ import {
     CONTEXT_VAULT_IO_TOKEN,
     CONTEXT_VAULT_OUTPUTS_COLUMN,
     CONTEXT_VAULT_IO_VAULT_ID
-} from "../../lib/LibOrderBook.sol";
-import {OrderBookV6FlashLender} from "../../abstract/OrderBookV6FlashLender.sol";
+} from "../../lib/LibRaindex.sol";
+import {RaindexV6FlashLender} from "../../abstract/RaindexV6FlashLender.sol";
 import {LibBytes32Array} from "rain.solmem/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain.solmem/lib/LibBytes32Matrix.sol";
 
@@ -172,9 +172,9 @@ struct OrderIOCalculationV4 {
     bytes32[] kvs;
 }
 
-/// @title OrderBookV6
+/// @title RaindexV6
 /// See `IRaindexV6` for more documentation.
-contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, OrderBookV6FlashLender {
+contract RaindexV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, RaindexV6FlashLender {
     using LibUint256Array for uint256[];
     using SafeERC20 for IERC20;
     using LibOrder for OrderV4;
@@ -233,7 +233,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
     /// @inheritdoc IRaindexV6
     function entask2(TaskV2[] calldata post) external nonReentrant {
-        LibOrderBook.doPost(new bytes32[][](0), post);
+        LibRaindex.doPost(new bytes32[][](0), post);
     }
 
     /// @inheritdoc IRaindexV6
@@ -248,7 +248,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
 
         (uint256 depositAmountUint256, uint8 decimals) = pullTokens(msg.sender, token, depositAmount);
 
-        // It is safest with vault deposits to move tokens in to the Orderbook
+        // It is safest with vault deposits to move tokens in to the Raindex
         // before updating internal vault balances although we have a reentrancy
         // guard in place anyway.
         emit DepositV2(msg.sender, token, vaultId, depositAmountUint256);
@@ -256,7 +256,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         (Float beforeBalance, Float afterBalance) = increaseVaultBalance(msg.sender, token, vaultId, depositAmount);
 
         if (post.length != 0) {
-            LibOrderBook.doPost(
+            LibRaindex.doPost(
                 LibBytes32Matrix.matrixFrom(
                     LibBytes32Array.arrayFrom(
                         bytes32(uint256(uint160(token))),
@@ -306,7 +306,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
         bytes32[][] memory context = LibBytes32Matrix.matrixFrom(contextColumn);
 
         if (post.length != 0) {
-            LibOrderBook.doPost(context, post);
+            LibRaindex.doPost(context, post);
         }
     }
 
@@ -349,7 +349,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
                 emit MetaV1_2(order.owner, orderHash, orderConfig.meta);
             }
 
-            LibOrderBook.doPost(
+            LibRaindex.doPost(
                 LibBytes32Matrix.matrixFrom(
                     LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))
                 ),
@@ -375,7 +375,7 @@ contract OrderBookV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Order
             sOrders[orderHash] = ORDER_DEAD;
             emit RemoveOrderV3(msg.sender, orderHash, order);
 
-            LibOrderBook.doPost(
+            LibRaindex.doPost(
                 LibBytes32Matrix.matrixFrom(
                     LibBytes32Array.arrayFrom(orderHash, bytes32(uint256(uint160(msg.sender))))
                 ),

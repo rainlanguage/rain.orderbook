@@ -4,13 +4,13 @@ pragma solidity ^0.8.19;
 
 import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {LibOrderBook} from "./LibOrderBook.sol";
+import {LibRaindex} from "./LibRaindex.sol";
 import {Address} from "openzeppelin-contracts/contracts/utils/Address.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
-/// @title LibOrderBookArb
-library LibOrderBookArb {
+/// @title LibRaindexArb
+library LibRaindexArb {
     using SafeERC20 for IERC20;
 
     /// @dev Sends all remaining token balances and native gas to `msg.sender`,
@@ -70,6 +70,6 @@ library LibOrderBookArb {
 
         TaskV2[] memory post = new TaskV2[](1);
         post[0] = task;
-        LibOrderBook.doPost(context, post);
+        LibRaindex.doPost(context, post);
     }
 }

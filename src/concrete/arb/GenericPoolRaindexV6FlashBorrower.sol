@@ -2,12 +2,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {OrderBookV6FlashBorrower, TakeOrdersConfigV5} from "../../abstract/OrderBookV6FlashBorrower.sol";
+import {RaindexV6FlashBorrower, TakeOrdersConfigV5} from "../../abstract/RaindexV6FlashBorrower.sol";
 import {LibGenericPoolExchange} from "../../lib/LibGenericPoolExchange.sol";
 
-/// @title GenericPoolOrderBookV6FlashBorrower
+/// @title GenericPoolRaindexV6FlashBorrower
 /// @notice Flash-loan arb that swaps via an arbitrary external pool call.
-/// @dev Implements the OrderBookV6FlashBorrower interface for an external
+/// @dev Implements the RaindexV6FlashBorrower interface for an external
 /// liquidity source that behaves vaguely like a standard AMM. The
 /// `exchangeData` from `arb` is decoded into a spender, pool and callData.
 /// The `callData` is literally the encoded function call to the pool. This
@@ -16,10 +16,10 @@ import {LibGenericPoolExchange} from "../../lib/LibGenericPoolExchange.sol";
 /// The `spender` is the address that will be approved to spend the input token
 /// on `takeOrders`, which is almost always going to be the pool itself. If you
 /// are unsure, simply set it to the pool address.
-contract GenericPoolOrderBookV6FlashBorrower is OrderBookV6FlashBorrower {
+contract GenericPoolRaindexV6FlashBorrower is RaindexV6FlashBorrower {
     constructor() {}
 
-    /// @inheritdoc OrderBookV6FlashBorrower
+    /// @inheritdoc RaindexV6FlashBorrower
     /// @dev Decodes `exchangeData` as `(spender, pool, encodedFunctionCall)`
     /// and routes the swap through the specified pool via `LibGenericPoolExchange`.
     function _exchange(TakeOrdersConfigV5 memory takeOrders, bytes memory exchangeData) internal virtual override {

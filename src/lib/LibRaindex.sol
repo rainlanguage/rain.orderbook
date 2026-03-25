@@ -12,7 +12,7 @@ import {
 import {LibNamespace, FullyQualifiedNamespace} from "rain.interpreter.interface/lib/ns/LibNamespace.sol";
 import {LibContext} from "rain.interpreter.interface/lib/caller/LibContext.sol";
 
-/// @dev Orderbook context is actually fairly complex. The calling context column
+/// @dev Raindex context is actually fairly complex. The calling context column
 /// is populated before calculate order, but the remaining columns are only
 /// available to handle IO as they depend on the full evaluation of calculate
 /// order, and cross referencing against the same from the counterparty, as well
@@ -99,7 +99,7 @@ uint256 constant CONTEXT_SIGNED_CONTEXT_START_COLUMN = 6;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROWS = 1;
 uint256 constant CONTEXT_SIGNED_CONTEXT_START_ROW = 0;
 
-library LibOrderBook {
+library LibRaindex {
     /// @dev Evaluates each task in `post` against the provided `context`.
     /// Tasks with empty bytecode are skipped.
     function doPost(bytes32[][] memory context, TaskV2[] memory post) internal {

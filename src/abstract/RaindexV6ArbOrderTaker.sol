@@ -8,21 +8,21 @@ import {IERC20, SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/ut
 import {IRaindexV6} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IRaindexV6ArbOrderTaker, TaskV2} from "rain.raindex.interface/interface/IRaindexV6ArbOrderTaker.sol";
 import {TakeOrdersConfigV5, Float} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
-import {LibOrderBookArb} from "../lib/LibOrderBookArb.sol";
+import {RaindexV6ArbCommon} from "./RaindexV6ArbCommon.sol";
+import {LibRaindexArb} from "../lib/LibRaindexArb.sol";
 import {IRaindexV6OrderTaker} from "rain.raindex.interface/interface/IRaindexV6OrderTaker.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 
-/// @title OrderBookV6ArbOrderTaker
-/// @notice Arb contract that takes orders directly from an `OrderBook` without
+/// @title RaindexV6ArbOrderTaker
+/// @notice Arb contract that takes orders directly from a `Raindex` without
 /// flash loans. Inheritors implement the strategy for sourcing the input token
 /// (e.g. routing through a DEX).
-abstract contract OrderBookV6ArbOrderTaker is
+abstract contract RaindexV6ArbOrderTaker is
     IRaindexV6OrderTaker,
     IRaindexV6ArbOrderTaker,
     ReentrancyGuard,
     ERC165,
-    OrderBookV6ArbCommon
+    RaindexV6ArbCommon
 {
     using SafeERC20 for IERC20;
 
@@ -35,13 +35,13 @@ abstract contract OrderBookV6ArbOrderTaker is
     }
 
     /// @inheritdoc IRaindexV6ArbOrderTaker
-    function arb5(IRaindexV6 orderBook, TakeOrdersConfigV5 calldata takeOrders, TaskV2 calldata task)
+    function arb5(IRaindexV6 raindex, TakeOrdersConfigV5 calldata takeOrders, TaskV2 calldata task)
         external
         payable
         nonReentrant
     {
         _beforeArb(task);
-        // Mimic what OB would do anyway if called with zero orders.
+        // Mimic what Raindex would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert IRaindexV6.NoOrders();
         }
@@ -49,12 +49,12 @@ abstract contract OrderBookV6ArbOrderTaker is
         address ordersInputToken = takeOrders.orders[0].order.validInputs[takeOrders.orders[0].inputIOIndex].token;
         address ordersOutputToken = takeOrders.orders[0].order.validOutputs[takeOrders.orders[0].outputIOIndex].token;
 
-        IERC20(ordersInputToken).forceApprove(address(orderBook), type(uint256).max);
+        IERC20(ordersInputToken).forceApprove(address(raindex), type(uint256).max);
         //slither-disable-next-line unused-return
-        orderBook.takeOrders4(takeOrders);
-        IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
+        raindex.takeOrders4(takeOrders);
+        IERC20(ordersInputToken).forceApprove(address(raindex), 0);
 
-        LibOrderBookArb.finalizeArb(
+        LibRaindexArb.finalizeArb(
             task,
             ordersInputToken,
             LibTOFUTokenDecimals.safeDecimalsForToken(ordersInputToken),
@@ -65,7 +65,7 @@ abstract contract OrderBookV6ArbOrderTaker is
 
     /// @inheritdoc IRaindexV6OrderTaker
     /// @dev Empty no-op. The contract holds no value between operations and the
-    /// caller chooses which orderbook to interact with, so there is nothing to
+    /// caller chooses which raindex to interact with, so there is nothing to
     /// protect via `msg.sender` validation here.
     function onTakeOrders2(address, address, Float, Float, bytes calldata) public virtual override {}
 }

@@ -46,13 +46,13 @@ import {
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_BEFORE,
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_VAULT_AFTER,
     CONTEXT_CALLING_CONTEXT_ROW_WITHDRAW_TARGET_AMOUNT
-} from "./LibOrderBook.sol";
+} from "./LibRaindex.sol";
 
 uint256 constant SUB_PARSER_WORD_PARSERS_LENGTH = 2;
 uint8 constant EXTERN_PARSE_META_BUILD_DEPTH = 1;
 
 bytes constant WORD_ORDER_CLEARER = "order-clearer";
-bytes constant WORD_ORDERBOOK = "orderbook";
+bytes constant WORD_RAINDEX = "raindex";
 bytes constant WORD_ORDER_HASH = "order-hash";
 bytes constant WORD_ORDER_OWNER = "order-owner";
 bytes constant WORD_ORDER_COUNTERPARTY = "order-counterparty";
@@ -97,10 +97,10 @@ uint256 constant WITHDRAW_WORD_VAULT_AFTER = 4;
 uint256 constant WITHDRAW_WORD_TARGET_AMOUNT = 5;
 uint256 constant WITHDRAW_WORDS_LENGTH = 6;
 
-/// @title LibOrderBookSubParser
-/// @notice Sub-parser word dispatch and authoring metadata for OrderBook
+/// @title LibRaindexSubParser
+/// @notice Sub-parser word dispatch and authoring metadata for Raindex
 /// context columns (base, calling, calculations, vault IO, signed).
-library LibOrderBookSubParser {
+library LibRaindexSubParser {
     using LibUint256Matrix for uint256[][];
 
     /// @dev Maps the "sender" word to the base context column sender row.
@@ -400,7 +400,7 @@ library LibOrderBookSubParser {
         return LibSubParse.subParserContext(CONTEXT_SIGNED_CONTEXT_START_COLUMN + column, row);
     }
 
-    /// @dev Builds the complete authoring metadata for all orderbook context
+    /// @dev Builds the complete authoring metadata for all raindex context
     /// words. Returns ABI-encoded `AuthoringMetaV2[]` covering every context
     /// column (base, calling, calculations, vault IO, signers, signed context,
     /// deposit, withdraw). The inner arrays are flattened before encoding.
@@ -417,10 +417,10 @@ library LibOrderBookSubParser {
             "The order clearer is the address that submitted the transaction that is causing the order to execute. This MAY be the counterparty, e.g. when an order is being taken directly, but it MAY NOT be the counterparty if a third party is clearing two orders against each other."
         );
         contextBaseMeta[CONTEXT_BASE_ROW_CALLING_CONTRACT] =
-        // constant WORD_ORDERBOOK defined above is less than 32 bytes, so
+        // constant WORD_RAINDEX defined above is less than 32 bytes, so
         // this conversion is safe.
         // forge-lint: disable-next-line(unsafe-typecast)
-        AuthoringMetaV2(bytes32(WORD_ORDERBOOK), "The address of the orderbook that the order is being run on.");
+        AuthoringMetaV2(bytes32(WORD_RAINDEX), "The address of the raindex that the order is being run on.");
 
         AuthoringMetaV2[] memory contextCallingContextMeta = new AuthoringMetaV2[](CONTEXT_CALLING_CONTEXT_ROWS);
         contextCallingContextMeta[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] =
@@ -540,7 +540,7 @@ library LibOrderBookSubParser {
             // conversion is safe.
             // forge-lint: disable-next-line(unsafe-typecast)
             bytes32("signed-context"),
-            "Signed context is provided by the order clearer/taker and can be signed by anyone. Orderbook will check the signature, but the expression author must authorize the signer's public key."
+            "Signed context is provided by the order clearer/taker and can be signed by anyone. Raindex will check the signature, but the expression author must authorize the signer's public key."
         );
 
         meta[CONTEXT_BASE_COLUMN] = contextBaseMeta;

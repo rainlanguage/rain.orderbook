@@ -9,9 +9,9 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/Reentrancy
 import {ON_FLASH_LOAN_CALLBACK_SUCCESS} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {IRaindexV6, TakeOrdersConfigV5, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IERC3156FlashBorrower} from "rain.raindex.interface/interface/ierc3156/IERC3156FlashBorrower.sol";
-import {OrderBookV6ArbCommon} from "./OrderBookV6ArbCommon.sol";
-import {LibOrderBookArb} from "../lib/LibOrderBookArb.sol";
-import {LibOrderBookDeploy} from "../lib/deploy/LibOrderBookDeploy.sol";
+import {RaindexV6ArbCommon} from "./RaindexV6ArbCommon.sol";
+import {LibRaindexArb} from "../lib/LibRaindexArb.sol";
+import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 
@@ -20,17 +20,17 @@ import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 error BadInitiator(address badInitiator);
 
 /// Thrown when onFlashLoan is called by an address other than the deterministic
-/// orderbook deployment. Prevents malicious contracts from invoking the callback.
+/// raindex deployment. Prevents malicious contracts from invoking the callback.
 /// @param badLender The untrusted caller of onFlashLoan.
 error BadLender(address badLender);
 
 /// Thrown when the flash loan fails somehow.
 error FlashLoanFailed();
 
-/// @title OrderBookV6FlashBorrower
+/// @title RaindexV6FlashBorrower
 /// @notice Abstract contract that liq-source specialized contracts can inherit
 /// to provide flash loan based arbitrage against external liquidity sources to
-/// fill orderbook orders.
+/// fill raindex orders.
 ///
 /// For example consider a simple order:
 ///
@@ -41,9 +41,9 @@ error FlashLoanFailed();
 ///
 /// Assume external liq is offering 102 DAI per USDT so it exceeds the IO ratio
 /// but the order itself has no way to interact with the external contract.
-/// The `OrderBookFlashBorrower` can:
+/// The `RaindexFlashBorrower` can:
 ///
-/// - Flash loan 100 USDT from `Orderbook`
+/// - Flash loan 100 USDT from `Raindex`
 /// - Sell the 100 USDT for 102 DAI on external liq
 /// - Take the order, giving 101 DAI and paying down 100 USDT loan
 /// - Keep 1 DAI profit
@@ -57,7 +57,7 @@ error FlashLoanFailed();
 /// - The arb operator wants to attempt to prevent front running by other bots.
 /// - The arb operator may prefer a dedicated instance of the contract to make
 ///   it easier to track profits, etc.
-abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, OrderBookV6ArbCommon {
+abstract contract RaindexV6FlashBorrower is IERC3156FlashBorrower, ReentrancyGuard, ERC165, RaindexV6ArbCommon {
     using SafeERC20 for IERC20;
 
     constructor() {}
@@ -80,8 +80,8 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
 
     /// @inheritdoc IERC3156FlashBorrower
     function onFlashLoan(address initiator, address, uint256, uint256, bytes calldata data) external returns (bytes32) {
-        // Only the deterministic orderbook deployment may call this callback.
-        if (msg.sender != LibOrderBookDeploy.ORDERBOOK_DEPLOYED_ADDRESS) {
+        // Only the deterministic raindex deployment may call this callback.
+        if (msg.sender != LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS) {
             revert BadLender(msg.sender);
         }
         // As per reference implementation.
@@ -112,28 +112,28 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
     /// If there is no task configured, anyone can call this and should expect
     /// to be front run on the arb for any sufficiently profitable opportunity.
     ///
-    /// A flash loan is taken from the orderbook, then inside the callback
+    /// A flash loan is taken from the raindex, then inside the callback
     /// `_exchange` converts the borrowed tokens into the tokens needed to fill
     /// the orders, and the orders are taken. After the flash loan repays,
     /// remaining assets are sent to the sender via `finalizeArb`.
     ///
-    /// @param orderBook The `OrderBook` contract to take orders from and flash
+    /// @param raindex The `Raindex` contract to take orders from and flash
     /// loan against.
     /// @param takeOrders As per `IRaindexV6.takeOrders4`.
     /// @param exchangeData Arbitrary bytes that will be passed to `_exchange`
     /// after the flash loan is taken. The inheriting contract is responsible
     /// for decoding this data and defining how it controls interactions with
-    /// the external liquidity. For example, `GenericPoolOrderBookV6FlashBorrower`
+    /// the external liquidity. For example, `GenericPoolRaindexV6FlashBorrower`
     /// uses this data as a literal encoded external call.
     /// @param task The task to evaluate after the arb completes.
     function arb4(
-        IRaindexV6 orderBook,
+        IRaindexV6 raindex,
         TakeOrdersConfigV5 calldata takeOrders,
         bytes calldata exchangeData,
         TaskV2 calldata task
     ) external payable nonReentrant {
         _beforeArb(task);
-        // Mimic what OB would do anyway if called with zero orders.
+        // Mimic what Raindex would do anyway if called with zero orders.
         if (takeOrders.orders.length == 0) {
             revert IRaindexV6.NoOrders();
         }
@@ -155,14 +155,14 @@ abstract contract OrderBookV6FlashBorrower is IERC3156FlashBorrower, ReentrancyG
         // Take the flash loan, which will in turn call `onFlashLoan`, which is
         // expected to process an exchange against external liq to pay back the
         // flash loan, cover the orders and remain in profit.
-        IERC20(ordersInputToken).forceApprove(address(orderBook), type(uint256).max);
-        IERC20(ordersOutputToken).forceApprove(address(orderBook), type(uint256).max);
-        if (!orderBook.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
+        IERC20(ordersInputToken).forceApprove(address(raindex), type(uint256).max);
+        IERC20(ordersOutputToken).forceApprove(address(raindex), type(uint256).max);
+        if (!raindex.flashLoan(this, ordersOutputToken, flashLoanAmount, data)) {
             revert FlashLoanFailed();
         }
-        IERC20(ordersOutputToken).forceApprove(address(orderBook), 0);
-        IERC20(ordersInputToken).forceApprove(address(orderBook), 0);
+        IERC20(ordersOutputToken).forceApprove(address(raindex), 0);
+        IERC20(ordersInputToken).forceApprove(address(raindex), 0);
 
-        LibOrderBookArb.finalizeArb(task, ordersInputToken, inputDecimals, ordersOutputToken, outputDecimals);
+        LibRaindexArb.finalizeArb(task, ordersInputToken, inputDecimals, ordersOutputToken, outputDecimals);
     }
 }

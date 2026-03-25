@@ -17,16 +17,16 @@ import {IERC3156FlashLender} from "rain.raindex.interface/interface/ierc3156/IER
 /// @param result The value that was returned by `onFlashLoan`.
 error FlashLenderCallbackFailed(bytes32 result);
 
-/// @dev Flash fee is always 0 for orderbook as there's no entity to take
-/// revenue for `Orderbook` and its more important anyway that flashloans happen
+/// @dev Flash fee is always 0 for raindex as there's no entity to take
+/// revenue for `Raindex` and its more important anyway that flashloans happen
 /// to connect external liquidity to live orders via arbitrage.
 uint256 constant FLASH_FEE = 0;
 
-/// @title OrderBookV6FlashLender
-/// @notice Implements `IERC3156FlashLender` for `OrderBook`. Based on the
+/// @title RaindexV6FlashLender
+/// @notice Implements `IERC3156FlashLender` for `Raindex`. Based on the
 /// reference implementation by Alberto Cuesta Cañada found at
 /// https://eips.ethereum.org/EIPS/eip-3156#flash-loan-reference-implementation
-abstract contract OrderBookV6FlashLender is IERC3156FlashLender, ERC165 {
+abstract contract RaindexV6FlashLender is IERC3156FlashLender, ERC165 {
     using SafeERC20 for IERC20;
 
     /// @inheritdoc IERC165
@@ -49,9 +49,9 @@ abstract contract OrderBookV6FlashLender is IERC3156FlashLender, ERC165 {
 
         // This behaviour is copied almost verbatim from the ERC3156 spec.
         // Slither is complaining because this kind of logic can normally be used
-        // to grief the token holder. Consider if alice were to approve order book
+        // to grief the token holder. Consider if alice were to approve raindex
         // for the sake of depositing and then bob could cause alice to send
-        // tokens to order book without their consent. However, in this case the
+        // tokens to raindex without their consent. However, in this case the
         // flash loan spec provides two reasons that this is not a problem:
         // - We just sent this exact amount to the receiver as the loan, so
         // transferring them back with a 0 fee is net neutral.
@@ -71,8 +71,8 @@ abstract contract OrderBookV6FlashLender is IERC3156FlashLender, ERC165 {
         return FLASH_FEE;
     }
 
-    /// There's no limit to the size of a flash loan from `Orderbook` other than
-    /// the current tokens deposited in `Orderbook`.
+    /// There's no limit to the size of a flash loan from `Raindex` other than
+    /// the current tokens deposited in `Raindex`.
     /// @inheritdoc IERC3156FlashLender
     function maxFlashLoan(address token) external view override returns (uint256) {
         return IERC20(token).balanceOf(address(this));

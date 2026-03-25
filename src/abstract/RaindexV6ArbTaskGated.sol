@@ -2,19 +2,19 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {OrderBookV6ArbCommon, OrderBookV6ArbConfig, WrongTask} from "./OrderBookV6ArbCommon.sol";
+import {RaindexV6ArbCommon, RaindexV6ArbConfig, WrongTask} from "./RaindexV6ArbCommon.sol";
 import {TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 
-/// @title OrderBookV6ArbTaskGated
+/// @title RaindexV6ArbTaskGated
 /// @notice Mixin that adds task-hash gating to arb contracts. Stores a task
 /// hash at construction time. Concrete task-gated contracts override
-/// `_beforeArb` from `OrderBookV6ArbCommon` to call `_checkTaskHash`.
-abstract contract OrderBookV6ArbTaskGated is OrderBookV6ArbCommon {
+/// `_beforeArb` from `RaindexV6ArbCommon` to call `_checkTaskHash`.
+abstract contract RaindexV6ArbTaskGated is RaindexV6ArbCommon {
     /// @notice Hash of the configured task, or `bytes32(0)` if no task was set.
     bytes32 public immutable iTaskHash = 0;
 
     /// @param config The arb config for this contract.
-    constructor(OrderBookV6ArbConfig memory config) {
+    constructor(RaindexV6ArbConfig memory config) {
         emit Construct(msg.sender, config);
 
         if (config.task.evaluable.bytecode.length != 0) {

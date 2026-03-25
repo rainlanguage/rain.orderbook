@@ -12,7 +12,7 @@ import {LibConvert} from "rain.lib.typecast/LibConvert.sol";
 import {LibUint256Matrix} from "rain.solmem/lib/LibUint256Matrix.sol";
 
 import {
-    LibOrderBookSubParser,
+    LibRaindexSubParser,
     SUB_PARSER_WORD_PARSERS_LENGTH,
     DEPOSIT_WORD_VAULT_ID,
     DEPOSIT_WORD_TOKEN,
@@ -27,7 +27,7 @@ import {
     WITHDRAW_WORD_VAULT_AFTER,
     WITHDRAW_WORD_TARGET_AMOUNT,
     WITHDRAW_WORDS_LENGTH
-} from "../../lib/LibOrderBookSubParser.sol";
+} from "../../lib/LibRaindexSubParser.sol";
 import {
     CONTEXT_BASE_COLUMN,
     CONTEXT_BASE_ROW_SENDER,
@@ -59,21 +59,21 @@ import {
     CONTEXT_SIGNED_CONTEXT_SIGNERS_COLUMN,
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW,
     CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS
-} from "../../lib/LibOrderBook.sol";
+} from "../../lib/LibRaindex.sol";
 import {
     DESCRIBED_BY_META_HASH,
     PARSE_META as SUB_PARSER_PARSE_META,
     SUB_PARSER_WORD_PARSERS,
     OPERAND_HANDLER_FUNCTION_POINTERS as SUB_PARSER_OPERAND_HANDLERS
-} from "../../generated/OrderBookV6SubParser.pointers.sol";
+} from "../../generated/RaindexV6SubParser.pointers.sol";
 import {IDescribedByMetaV1} from "rain.metadata/interface/IDescribedByMetaV1.sol";
 import {ISubParserToolingV1} from "rain.sol.codegen/interface/ISubParserToolingV1.sol";
 
-/// @title OrderBookV6SubParser
-/// @notice Sub-parser that provides orderbook-specific context words (sender,
+/// @title RaindexV6SubParser
+/// @notice Sub-parser that provides raindex-specific context words (sender,
 /// order hash, vault IO, deposit/withdraw, signed context, etc.) to the
 /// Rain interpreter.
-contract OrderBookV6SubParser is BaseRainterpreterSubParser {
+contract RaindexV6SubParser is BaseRainterpreterSubParser {
     using LibUint256Matrix for uint256[][];
 
     /// @inheritdoc IDescribedByMetaV1
@@ -198,63 +198,63 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
             new function(uint256, uint256, OperandV2)
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_BASE_ROWS);
-        contextBaseParsers[CONTEXT_BASE_ROW_SENDER] = LibOrderBookSubParser.subParserSender;
-        contextBaseParsers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibOrderBookSubParser.subParserCallingContract;
+        contextBaseParsers[CONTEXT_BASE_ROW_SENDER] = LibRaindexSubParser.subParserSender;
+        contextBaseParsers[CONTEXT_BASE_ROW_CALLING_CONTRACT] = LibRaindexSubParser.subParserCallingContract;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextCallingContextParsers =
             new function(uint256, uint256, OperandV2)
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_CALLING_CONTEXT_ROWS);
-        contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = LibOrderBookSubParser.subParserOrderHash;
+        contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = LibRaindexSubParser.subParserOrderHash;
         contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] =
-        LibOrderBookSubParser.subParserOrderOwner;
+        LibRaindexSubParser.subParserOrderOwner;
         contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
-        LibOrderBookSubParser.subParserOrderCounterparty;
+        LibRaindexSubParser.subParserOrderCounterparty;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextCalculationsParsers =
             new function(uint256, uint256, OperandV2)
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_CALCULATIONS_ROWS);
-        contextCalculationsParsers[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = LibOrderBookSubParser.subParserMaxOutput;
-        contextCalculationsParsers[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = LibOrderBookSubParser.subParserIORatio;
+        contextCalculationsParsers[CONTEXT_CALCULATIONS_ROW_MAX_OUTPUT] = LibRaindexSubParser.subParserMaxOutput;
+        contextCalculationsParsers[CONTEXT_CALCULATIONS_ROW_IO_RATIO] = LibRaindexSubParser.subParserIORatio;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextVaultInputsParsers =
             new function(uint256, uint256, OperandV2)
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_VAULT_IO_ROWS);
-        contextVaultInputsParsers[CONTEXT_VAULT_IO_TOKEN] = LibOrderBookSubParser.subParserInputToken;
-        contextVaultInputsParsers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibOrderBookSubParser.subParserInputTokenDecimals;
-        contextVaultInputsParsers[CONTEXT_VAULT_IO_VAULT_ID] = LibOrderBookSubParser.subParserInputVaultId;
-        contextVaultInputsParsers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibOrderBookSubParser.subParserInputBalanceBefore;
-        contextVaultInputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserInputBalanceDiff;
+        contextVaultInputsParsers[CONTEXT_VAULT_IO_TOKEN] = LibRaindexSubParser.subParserInputToken;
+        contextVaultInputsParsers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibRaindexSubParser.subParserInputTokenDecimals;
+        contextVaultInputsParsers[CONTEXT_VAULT_IO_VAULT_ID] = LibRaindexSubParser.subParserInputVaultId;
+        contextVaultInputsParsers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibRaindexSubParser.subParserInputBalanceBefore;
+        contextVaultInputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibRaindexSubParser.subParserInputBalanceDiff;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextVaultOutputsParsers =
             new function(uint256, uint256, OperandV2)
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_VAULT_IO_ROWS);
-        contextVaultOutputsParsers[CONTEXT_VAULT_IO_TOKEN] = LibOrderBookSubParser.subParserOutputToken;
-        contextVaultOutputsParsers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibOrderBookSubParser.subParserOutputTokenDecimals;
-        contextVaultOutputsParsers[CONTEXT_VAULT_IO_VAULT_ID] = LibOrderBookSubParser.subParserOutputVaultId;
-        contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibOrderBookSubParser.subParserOutputBalanceBefore;
-        contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibOrderBookSubParser.subParserOutputBalanceDiff;
+        contextVaultOutputsParsers[CONTEXT_VAULT_IO_TOKEN] = LibRaindexSubParser.subParserOutputToken;
+        contextVaultOutputsParsers[CONTEXT_VAULT_IO_TOKEN_DECIMALS] = LibRaindexSubParser.subParserOutputTokenDecimals;
+        contextVaultOutputsParsers[CONTEXT_VAULT_IO_VAULT_ID] = LibRaindexSubParser.subParserOutputVaultId;
+        contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_BEFORE] = LibRaindexSubParser.subParserOutputBalanceBefore;
+        contextVaultOutputsParsers[CONTEXT_VAULT_IO_BALANCE_DIFF] = LibRaindexSubParser.subParserOutputBalanceDiff;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextSignersParsers =
             new function(uint256, uint256, OperandV2)
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_SIGNED_CONTEXT_SIGNERS_ROWS);
-        contextSignersParsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibOrderBookSubParser.subParserSigners;
+        contextSignersParsers[CONTEXT_SIGNED_CONTEXT_SIGNERS_ROW] = LibRaindexSubParser.subParserSigners;
 
         function(uint256, uint256, OperandV2) internal view returns (bool, bytes memory, bytes32[] memory)[] memory
             contextSignedContextParsers =
             new function(uint256, uint256, OperandV2)
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_SIGNED_CONTEXT_START_ROWS);
-        contextSignedContextParsers[CONTEXT_SIGNED_CONTEXT_START_ROW] = LibOrderBookSubParser.subParserSignedContext;
+        contextSignedContextParsers[CONTEXT_SIGNED_CONTEXT_START_ROW] = LibRaindexSubParser.subParserSignedContext;
 
         parsers[CONTEXT_BASE_COLUMN] = contextBaseParsers;
         parsers[CONTEXT_CALLING_CONTEXT_COLUMN] = contextCallingContextParsers;
@@ -272,11 +272,11 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](DEPOSIT_WORDS_LENGTH);
 
-        depositParsers[DEPOSIT_WORD_DEPOSITOR] = LibOrderBookSubParser.subParserSender;
-        depositParsers[DEPOSIT_WORD_TOKEN] = LibOrderBookSubParser.subParserDepositToken;
-        depositParsers[DEPOSIT_WORD_VAULT_ID] = LibOrderBookSubParser.subParserDepositVaultId;
-        depositParsers[DEPOSIT_WORD_VAULT_BEFORE] = LibOrderBookSubParser.subParserDepositVaultBalanceBefore;
-        depositParsers[DEPOSIT_WORD_VAULT_AFTER] = LibOrderBookSubParser.subParserDepositVaultBalanceAfter;
+        depositParsers[DEPOSIT_WORD_DEPOSITOR] = LibRaindexSubParser.subParserSender;
+        depositParsers[DEPOSIT_WORD_TOKEN] = LibRaindexSubParser.subParserDepositToken;
+        depositParsers[DEPOSIT_WORD_VAULT_ID] = LibRaindexSubParser.subParserDepositVaultId;
+        depositParsers[DEPOSIT_WORD_VAULT_BEFORE] = LibRaindexSubParser.subParserDepositVaultBalanceBefore;
+        depositParsers[DEPOSIT_WORD_VAULT_AFTER] = LibRaindexSubParser.subParserDepositVaultBalanceAfter;
 
         parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 1] = depositParsers;
 
@@ -288,12 +288,12 @@ contract OrderBookV6SubParser is BaseRainterpreterSubParser {
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](WITHDRAW_WORDS_LENGTH);
 
-        withdrawParsers[WITHDRAW_WORD_WITHDRAWER] = LibOrderBookSubParser.subParserSender;
-        withdrawParsers[WITHDRAW_WORD_TOKEN] = LibOrderBookSubParser.subParserWithdrawToken;
-        withdrawParsers[WITHDRAW_WORD_VAULT_ID] = LibOrderBookSubParser.subParserWithdrawVaultId;
-        withdrawParsers[WITHDRAW_WORD_VAULT_BEFORE] = LibOrderBookSubParser.subParserWithdrawVaultBalanceBefore;
-        withdrawParsers[WITHDRAW_WORD_VAULT_AFTER] = LibOrderBookSubParser.subParserWithdrawVaultBalanceAfter;
-        withdrawParsers[WITHDRAW_WORD_TARGET_AMOUNT] = LibOrderBookSubParser.subParserWithdrawTargetAmount;
+        withdrawParsers[WITHDRAW_WORD_WITHDRAWER] = LibRaindexSubParser.subParserSender;
+        withdrawParsers[WITHDRAW_WORD_TOKEN] = LibRaindexSubParser.subParserWithdrawToken;
+        withdrawParsers[WITHDRAW_WORD_VAULT_ID] = LibRaindexSubParser.subParserWithdrawVaultId;
+        withdrawParsers[WITHDRAW_WORD_VAULT_BEFORE] = LibRaindexSubParser.subParserWithdrawVaultBalanceBefore;
+        withdrawParsers[WITHDRAW_WORD_VAULT_AFTER] = LibRaindexSubParser.subParserWithdrawVaultBalanceAfter;
+        withdrawParsers[WITHDRAW_WORD_TARGET_AMOUNT] = LibRaindexSubParser.subParserWithdrawTargetAmount;
 
         parsers[CONTEXT_SIGNED_CONTEXT_START_COLUMN + 2] = withdrawParsers;
 
