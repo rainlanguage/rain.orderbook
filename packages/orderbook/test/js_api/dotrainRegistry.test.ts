@@ -34,6 +34,13 @@ subgraphs:
 metaboards:
   flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn
   base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn
+rainlangs:
+  flare:
+    address: 0x1111111111111111111111111111111111111111
+    network: flare
+  base:
+    address: 0x2222222222222222222222222222222222222222
+    network: base
 orderbooks:
   flare:
     address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
@@ -107,12 +114,14 @@ scenarios:
     runs: 1
 orders:
   flare:
+    rainlang: flare
     orderbook: flare
     inputs:
       - token: token1
     outputs:
       - token: token1
   base:
+    rainlang: base
     orderbook: base
     inputs:
       - token: token2
@@ -129,6 +138,7 @@ deployments:
 const FIRST_DOTRAIN_CONTENT = `
 ${MOCK_DOTRAIN_PREFIX}
 ---
+#test-binding !
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -139,6 +149,7 @@ _ _: 0 0;
 const SECOND_DOTRAIN_CONTENT = `
 ${MOCK_DOTRAIN_PREFIX}
 ---
+#test-binding !
 #calculate-io
 _ _: 1 1;
 #handle-io
@@ -159,7 +170,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Dotrain Registry', async
 	});
 
 	describe('DotrainRegistry Constructor', () => {
-
 		it('should create registry and fetch all content successfully', async () => {
 			const registryContent = `http://localhost:8231/settings.yaml
 fixed-limit http://localhost:8231/fixed-limit.rain
@@ -407,6 +417,10 @@ tokens:
     decimals: 6
     label: USD Coin
     symbol: USDC
+rainlangs:
+  mainnet:
+    address: 0x1111111111111111111111111111111111111111
+    network: mainnet
 orderbooks:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
@@ -440,6 +454,7 @@ scenarios:
     runs: 1
 orders:
   mainnet:
+    rainlang: mainnet
     orderbook: mainnet
     inputs:
       - token: weth
@@ -450,6 +465,7 @@ deployments:
     scenario: mainnet
     order: mainnet
 ---
+#test-binding !
 #calculate-io
 _ _: 0 0;
 #handle-io
@@ -457,7 +473,6 @@ _ _: 0 0;
 `;
 
 	describe('DotrainRegistry getOrderbookYaml', () => {
-
 		it('should return OrderbookYaml instance from settings', async () => {
 			const registryContent = `http://localhost:8231/settings.yaml
 test-order http://localhost:8231/order.rain`;
