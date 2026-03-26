@@ -20,7 +20,7 @@ vi.mock('../lib/components/charts/TanstackLightweightChartLine.svelte', async ()
 	return { default: MockLightweightChart };
 });
 
-test('calls getVaultBalanceChanges with correct arguments', async () => {
+test('calls getBalanceChanges with correct arguments', async () => {
 	const queryClient = new QueryClient();
 	const mockVault: RaindexVault = {
 		id: 'vault1',

@@ -4,9 +4,11 @@
 	import { createQuery } from '@tanstack/svelte-query';
 	import TanstackLightweightChartLine from '../charts/TanstackLightweightChartLine.svelte';
 	import { QKEY_VAULT_CHANGES } from '../../queries/keys';
+	import type { LightweightChartsTheme } from '../../utils/lightweightChartsThemes';
+	import type { Readable } from 'svelte/store';
 
 	export let vault: RaindexVault;
-	export let lightweightChartsTheme;
+	export let lightweightChartsTheme: Readable<LightweightChartsTheme> | undefined = undefined;
 
 	$: query = createQuery({
 		queryKey: [vault.id, QKEY_VAULT_CHANGES + vault.id, QKEY_VAULT_CHANGES],

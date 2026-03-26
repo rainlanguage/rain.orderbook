@@ -11,7 +11,7 @@
 		type Hex,
 		type RaindexVault
 	} from '@rainlanguage/orderbook';
-	import type { ChartTheme } from '../../utils/lightweightChartsThemes';
+	import type { LightweightChartsTheme } from '../../utils/lightweightChartsThemes';
 	import { toHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { onDestroy } from 'svelte';
@@ -34,7 +34,7 @@
 	export let id: Hex;
 	export let orderbookAddress: Address;
 	export let chainId: number;
-	export let lightweightChartsTheme: Readable<ChartTheme> | undefined = undefined;
+	export let lightweightChartsTheme: Readable<LightweightChartsTheme> | undefined = undefined;
 
 	/**
 	 * Required callback function when deposit action is triggered for a vault

@@ -1,8 +1,9 @@
 <script lang="ts">
-	import type { Readable } from 'svelte/store';
+	import { readable, type Readable } from 'svelte/store';
 	import { type RaindexOrder } from '@rainlanguage/orderbook';
 	import { createQuery } from '@tanstack/svelte-query';
 	import { QKEY_ORDER_TRADES_LIST } from '../../queries/keys';
+	import type { LightweightChartsTheme } from '../../utils/lightweightChartsThemes';
 	import {
 		CHART_COLORS,
 		extractPairsFromTrades,
@@ -33,7 +34,11 @@
 	import { onDestroy, onMount } from 'svelte';
 
 	export let order: RaindexOrder;
-	export let lightweightChartsTheme: Readable<Record<string, unknown>>;
+	export let lightweightChartsTheme: Readable<LightweightChartsTheme> | undefined = undefined;
+
+	const defaultLightweightChartsTheme = readable<LightweightChartsTheme>({});
+
+	$: resolvedLightweightChartsTheme = lightweightChartsTheme ?? defaultLightweightChartsTheme;
 
 	let chartElement: HTMLElement | undefined = undefined;
 	let chart: IChartApi | undefined;
@@ -192,7 +197,7 @@
 	function setChartOptions() {
 		if (!chart) return;
 		chart.applyOptions({
-			...$lightweightChartsTheme,
+			...$resolvedLightweightChartsTheme,
 			autoSize: true
 		});
 	}
@@ -241,7 +246,7 @@
 
 	$: if (chartElement && trades.length > 0 && selectedPair && !chart) setupChart();
 	$: if (chart && chartData) updateChartData();
-	$: if (chart && $lightweightChartsTheme) setChartOptions();
+	$: if (chart) setChartOptions();
 
 	onMount(() => {
 		if (trades.length > 0 && selectedPair) setupChart();
