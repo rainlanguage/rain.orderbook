@@ -20,26 +20,26 @@ import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain.tofu.erc20-decimals/lib/LibTOFUTokenDecimals.sol";
-import {GenericPoolOrderBookV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolOrderBookV6ArbOrderTaker.sol";
+import {GenericPoolRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {MockExchange} from "test/util/concrete/MockExchange.sol";
-import {RealisticOrderTakerMockOrderBook} from "test/util/concrete/RealisticOrderTakerMockOrderBook.sol";
+import {RealisticOrderTakerMockRaindex} from "test/util/concrete/RealisticOrderTakerMockRaindex.sol";
 
 /// @dev Return value from `setupAndArb`.
 struct ArbResult {
-    GenericPoolOrderBookV6ArbOrderTaker arb;
+    GenericPoolRaindexV6ArbOrderTaker arb;
     MockToken inputToken;
     MockToken outputToken;
-    RealisticOrderTakerMockOrderBook orderBook;
+    RealisticOrderTakerMockRaindex raindex;
     MockExchange exchange;
 }
 
 /// @dev Return value from `setup`. Caller keeps their own exchange reference.
 struct OrderTakerSetup {
-    GenericPoolOrderBookV6ArbOrderTaker arb;
+    GenericPoolRaindexV6ArbOrderTaker arb;
     MockToken inputToken;
     MockToken outputToken;
-    IRaindexV6 orderBook;
+    IRaindexV6 raindex;
     TakeOrdersConfigV5 takeOrdersConfig;
 }
 
@@ -85,13 +85,13 @@ library LibTestArb {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook(obPullAmount);
+        RealisticOrderTakerMockRaindex raindex = new RealisticOrderTakerMockRaindex(obPullAmount);
         MockExchange exchange = new MockExchange();
 
-        outputToken.mint(address(orderBook), obOutputAmount);
+        outputToken.mint(address(raindex), obOutputAmount);
         inputToken.mint(address(exchange), exchangeInputAmount);
 
-        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker();
+        GenericPoolRaindexV6ArbOrderTaker arb = new GenericPoolRaindexV6ArbOrderTaker();
 
         bytes memory exchangeData =
             abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), swapAmount));
@@ -128,10 +128,10 @@ library LibTestArb {
             });
         }
 
-        arb.arb5{value: ethValue}(IRaindexV6(address(orderBook)), takeOrdersConfig, task);
+        arb.arb5{value: ethValue}(IRaindexV6(address(raindex)), takeOrdersConfig, task);
 
         return ArbResult({
-            arb: arb, inputToken: inputToken, outputToken: outputToken, orderBook: orderBook, exchange: exchange
+            arb: arb, inputToken: inputToken, outputToken: outputToken, raindex: raindex, exchange: exchange
         });
     }
 
@@ -149,12 +149,12 @@ library LibTestArb {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticOrderTakerMockOrderBook orderBook = new RealisticOrderTakerMockOrderBook(amount);
+        RealisticOrderTakerMockRaindex raindex = new RealisticOrderTakerMockRaindex(amount);
 
-        outputToken.mint(address(orderBook), amount);
+        outputToken.mint(address(raindex), amount);
         inputToken.mint(exchange, amount);
 
-        GenericPoolOrderBookV6ArbOrderTaker arb = new GenericPoolOrderBookV6ArbOrderTaker();
+        GenericPoolRaindexV6ArbOrderTaker arb = new GenericPoolRaindexV6ArbOrderTaker();
 
         bytes memory exchangeData =
             abi.encodeCall(MockExchange.swap, (IERC20(address(outputToken)), IERC20(address(inputToken)), amount));
@@ -195,7 +195,7 @@ library LibTestArb {
             arb: arb,
             inputToken: inputToken,
             outputToken: outputToken,
-            orderBook: IRaindexV6(address(orderBook)),
+            raindex: IRaindexV6(address(raindex)),
             takeOrdersConfig: takeOrdersConfig
         });
     }
