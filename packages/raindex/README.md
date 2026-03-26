@@ -37,7 +37,7 @@ Before using this SDK, ensure you have:
 ## Installation
 
 ```bash
-npm install @rainlanguage/orderbook
+npm install @rainlanguage/raindex
 ```
 
 ## Quick Start
@@ -50,7 +50,7 @@ All of the code snippets below reuse the same fixed-limit dotrain/settings sourc
 
 ```ts
 const FIXED_LIMIT_SOURCE = `
-version: 5
+version: 6
 
 networks:
   base:
@@ -69,7 +69,7 @@ subgraphs:
 local-db-remotes:
   raindex: https://example.com/subgraph
 
-orderbooks:
+raindexes:
   base:
     network: base
     address: 0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775
@@ -98,7 +98,7 @@ rainlangs:
 
 orders:
   fixed-limit:
-    orderbook: base
+    raindex: base
     inputs:
       - token: usdc
         vault-id: 1
@@ -109,7 +109,7 @@ orders:
 
 scenarios:
   base:
-    orderbook: base
+    raindex: base
     runs: 1
     bindings:
       raindex-subparser: 0x22839F16281E67E5Fd395fAFd1571e820CbD46cB
@@ -185,7 +185,7 @@ io: if(
 :;
 `;
 
-const ORDERBOOK_SETTINGS = FIXED_LIMIT_SOURCE.split('---')[0];
+const RAINDEX_SETTINGS = FIXED_LIMIT_SOURCE.split('---')[0];
 ```
 
 ### 1. Create a raindex client
@@ -193,9 +193,9 @@ const ORDERBOOK_SETTINGS = FIXED_LIMIT_SOURCE.split('---')[0];
 This first snippet does three things: (1) load one or more settings YAML strings (these describe networks, accounts, and subgraph URLs), (2) feed those sources into `RaindexClient.new` so the WASM layer can parse and validate them, and (3) unwrap the resulting `WasmEncodedResult` so downstream samples can call the client with standard JS error handling expectations. The constructor is **async** — use `await`.
 
 ```ts
-import { RaindexClient } from '@rainlanguage/orderbook';
+import { RaindexClient } from '@rainlanguage/raindex';
 
-const clientResult = await RaindexClient.new([ORDERBOOK_SETTINGS]);
+const clientResult = await RaindexClient.new([RAINDEX_SETTINGS]);
 if (clientResult.error) throw new Error(clientResult.error.readableMsg);
 const client = clientResult.value;
 ```
@@ -206,7 +206,7 @@ When the YAML includes `local-db-sync` sections, pass optional callbacks to wire
 
 ```ts
 const clientResult = await RaindexClient.new(
-  [ORDERBOOK_SETTINGS],
+  [RAINDEX_SETTINGS],
   undefined,
   localDb.query.bind(localDb),
   localDb.wipeAndRecreate.bind(localDb),
@@ -221,7 +221,7 @@ The client will automatically start the sync scheduler and route queries to the 
 Here we scope the query by chain IDs and typical filters (owner, token, activity flag), ask the client to hydrate matching orders, and then walk the richer helpers on a single `RaindexOrder`—vault listings, trades, quotes, and detail lookups—to show how pagination + follow-up queries hang together.
 
 ```ts
-import type { ChainIds, GetOrdersFilters } from '@rainlanguage/orderbook';
+import type { ChainIds, GetOrdersFilters } from '@rainlanguage/raindex';
 
 const chainIds: ChainIds = [8453];
 const filters: GetOrdersFilters = {
@@ -259,7 +259,7 @@ Additional helpers worth wiring up:
 After you submit an `execute`/`addOrders` transaction you immediately have the transaction hash, but the subgraph still needs a few blocks to index the resulting order. Rather than re-querying every order and diffing manually, poll `client.getAddOrdersForTransaction` with that hash until it returns at least one `RaindexOrder`.
 
 ```ts
-import type { RaindexClient } from '@rainlanguage/orderbook';
+import type { RaindexClient } from '@rainlanguage/raindex';
 
 const POLL_INTERVAL_MS = 5_000;
 const MAX_ATTEMPTS = 12;
@@ -317,7 +317,7 @@ if (removeCalldataResult.error) throw new Error(removeCalldataResult.error.reada
 Vault workflows usually require combining filters, inspecting the returned `RaindexVaultsList`, and then producing calldata or math-heavy amounts. This example chains those steps: fetch vaults, narrow the list to withdrawable entries, pull history, parse human inputs with `Float`, and finally build deposit/withdraw/approval payloads while checking allowances.
 
 ```ts
-import { Float, type GetVaultsFilters } from '@rainlanguage/orderbook';
+import { Float, type GetVaultsFilters } from '@rainlanguage/raindex';
 
 const vaultFilters: GetVaultsFilters = {
   owners: ['0x1234...'],
@@ -376,7 +376,7 @@ if (balanceChangesResult.error) throw new Error(balanceChangesResult.error.reada
 Once you have hydrated orders, you typically need deterministic hashes plus calldata builders. The snippet below hashes an order struct, generates take-orders calldata, asks an order for its removal calldata, and fetches quotes—mirroring the usual "inspect -> prepare transaction -> submit" flow.
 
 ```ts
-import { getOrderHash, getTakeOrders3Calldata } from '@rainlanguage/orderbook';
+import { getOrderHash, getTakeOrders3Calldata } from '@rainlanguage/raindex';
 
 const orderHashResult = getOrderHash(orderV4Struct);
 if (orderHashResult.error) throw new Error(orderHashResult.error.readableMsg);
@@ -403,7 +403,7 @@ The SDK provides two approaches for executing `takeOrders4` transactions: auto-d
 Use `client.getTakeOrdersCalldata()` to discover and aggregate liquidity across all active orders for a given token pair:
 
 ```ts
-import type { TakeOrdersRequest } from '@rainlanguage/orderbook';
+import type { TakeOrdersRequest } from '@rainlanguage/raindex';
 
 const request: TakeOrdersRequest = {
   chainId: 137,
@@ -482,7 +482,7 @@ const {
 Use directional token filters to find orders matching specific trading pairs:
 
 ```ts
-import type { GetOrdersFilters, GetOrdersTokenFilter } from '@rainlanguage/orderbook';
+import type { GetOrdersFilters, GetOrdersTokenFilter } from '@rainlanguage/raindex';
 
 const tokenFilter: GetOrdersTokenFilter = {
   inputs: ['0xUSDC...'],  // Orders that accept USDC as input
@@ -504,7 +504,7 @@ const ordersResult = await client.getOrders([137], filters, 1);
 If you maintain a hosted registry, instantiate the helper, inspect what it exposes, and pull down any dotrain/GUI definitions you need:
 
 ```ts
-import { DotrainRegistry } from '@rainlanguage/orderbook';
+import { DotrainRegistry } from '@rainlanguage/raindex';
 
 const registryResult = await DotrainRegistry.new('https://example.com/registry.txt');
 if (registryResult.error) throw new Error(registryResult.error.readableMsg);
@@ -532,21 +532,21 @@ The SDK merges the shared settings YAML with each order's `.rain` content before
 
 #### Access tokens from registry settings
 
-Use `getOrderbookYaml()` to access the shared settings as an `OrderbookYaml` instance, then query tokens, networks, or orderbooks:
+Use `getRaindexYaml()` to access the shared settings as an `RaindexYaml` instance, then query tokens, networks, or raindexes:
 
 ```ts
-const orderbookYamlResult = registry.getOrderbookYaml();
-if (orderbookYamlResult.error) throw new Error(orderbookYamlResult.error.readableMsg);
-const orderbookYaml = orderbookYamlResult.value;
+const raindexYamlResult = registry.getRaindexYaml();
+if (raindexYamlResult.error) throw new Error(raindexYamlResult.error.readableMsg);
+const raindexYaml = raindexYamlResult.value;
 
-const tokensResult = await orderbookYaml.getTokens();
+const tokensResult = await raindexYaml.getTokens();
 if (tokensResult.error) throw new Error(tokensResult.error.readableMsg);
 const tokens = tokensResult.value; // TokenInfo[] with chain_id, address, decimals, symbol, name
 ```
 
 #### Get a RaindexClient from registry settings
 
-Use `getRaindexClient()` to create a `RaindexClient` directly from the registry's shared settings, without manually bridging through `OrderbookYaml`:
+Use `getRaindexClient()` to create a `RaindexClient` directly from the registry's shared settings, without manually bridging through `RaindexYaml`:
 
 ```ts
 const clientResult = registry.getRaindexClient();
@@ -564,7 +564,7 @@ Any dotrain file that includes a `gui:` block plus the usual settings YAML is en
 With that single source string (read from disk or built dynamically) you can drive the full GUI workflow:
 
 ```ts
-import { DotrainOrderGui } from '@rainlanguage/orderbook';
+import { DotrainOrderGui } from '@rainlanguage/raindex';
 
 const dotrainWithGui = FIXED_LIMIT_SOURCE;
 const SAMPLE_YAML = `
@@ -573,7 +573,7 @@ rainlangs:
     rainlang1:
         network: mainnet
         address: 0x...
-orderbooks:
+raindexes:
     orderbook1:
         address: 0x...
         network: mainnet
@@ -661,7 +661,7 @@ A typical deployment flow is:
 4. Poll `client.getAddOrdersForTransaction` (the helper shown earlier) with the deployment hash until the subgraph surfaces your `RaindexOrder`
 
 ```ts
-import type { RaindexClient } from '@rainlanguage/orderbook';
+import type { RaindexClient } from '@rainlanguage/raindex';
 
 const deploymentArgsResult = await gui.getDeploymentTransactionArgs(owner);
 if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
@@ -686,7 +686,7 @@ const raindexOrder = await waitForOrderFromTx(client as RaindexClient, {
 After you have a local GUI-aware dotrain source, you can also fetch equivalent sources from a registry and run the same flow:
 
 ```ts
-import { DotrainRegistry } from '@rainlanguage/orderbook';
+import { DotrainRegistry } from '@rainlanguage/raindex';
 
 const registryResult = await DotrainRegistry.new('https://example.com/registry.txt');
 if (registryResult.error) throw new Error(registryResult.error.readableMsg);
@@ -705,9 +705,9 @@ const guiFromRegistry = guiSourceResult.value;
 If you just need Rainlang composition (no GUI state), read the dotrain text plus shared settings yourself, instantiate a `DotrainOrder`, and then ask it to compose scenario/deployment/post-task Rainlang. The example below reuses `FIXED_LIMIT_SOURCE`, but you can replace it with the contents of any `.rain` file.
 
 ```ts
-import { DotrainOrder } from '@rainlanguage/orderbook';
+import { DotrainOrder } from '@rainlanguage/raindex';
 
-const dotrainResult = await DotrainOrder.create(FIXED_LIMIT_SOURCE, [ORDERBOOK_SETTINGS]);
+const dotrainResult = await DotrainOrder.create(FIXED_LIMIT_SOURCE, [RAINDEX_SETTINGS]);
 if (dotrainResult.error) throw new Error(dotrainResult.error.readableMsg);
 const dotrain = dotrainResult.value;
 
@@ -725,7 +725,7 @@ if (!postTaskResult.error) console.log(postTaskResult.value);
 
 - `getOrderHash`, `keccak256`, `keccak256HexString` – deterministic hashing helpers for Rain orders or arbitrary payloads.
 - `Float` – arbitrary-precision arithmetic with parsing, formatting, comparisons, math ops, fixed-decimal conversions, and helpers like `Float.zero()` or `.formatWithRange(...)`.
-- `OrderbookYaml.getTokens()` – async method returning all tokens from YAML configuration with `chain_id`, `address`, `decimals`, `symbol`, and `name`. Automatically fetches remote tokens from `using-tokens-from` URLs.
+- `RaindexYaml.getTokens()` – async method returning all tokens from YAML configuration with `chain_id`, `address`, `decimals`, `symbol`, and `name`. Automatically fetches remote tokens from `using-tokens-from` URLs.
 - `RaindexClient.getAllAccounts()` / `getAllVaultTokens()` – introspect accounts and ERC20 metadata defined in your YAML or discovered via subgraphs.
 - Local DB sync – pass `queryCallback`, `wipeCallback`, and `statusCallback` to `RaindexClient.new()` when YAML has `local-db-sync` sections to enable an offline-capable persistent cache. The scheduler starts automatically and queries route to the local DB once the first sync cycle completes.
 - `RaindexVaultsList.getWithdrawCalldata()` – multicall builder that withdraws every vault with a balance.

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { execSync } = require('child_process');
 
-const packagePrefix = 'rain_orderbook_';
+const packagePrefix = 'raindex_';
 
 // after using opt-level on wasm build, WasmEncodedResult and WasmEncodedError
 // are duplicated in the dts so we need to dedupe them
@@ -26,7 +26,7 @@ module.exports.buildCjs = function (pkg) {
     // in js modules in order to avoid using fetch or fs operations
     const wasmCjsBytes = fs.readFileSync(`./temp/node/${pkg}/${pkg}_bg.wasm`);
     fs.writeFileSync(
-        "./dist/cjs/orderbook_wbg.json",
+        "./dist/cjs/raindex_wbg.json",
         JSON.stringify({
             wasm: Buffer.from(wasmCjsBytes, 'binary').toString('base64')
         })
@@ -62,7 +62,7 @@ module.exports.buildCjs = function (pkg) {
 const bytes = require('fs').readFileSync(path);`,
         `
 const { Buffer } = require('buffer');
-const wasmB64 = require('./orderbook_wbg.json');
+const wasmB64 = require('./raindex_wbg.json');
 const bytes = Buffer.from(wasmB64.wasm, 'base64');`
     );
     cjs = cjs.replace('const { TextEncoder, TextDecoder } = require(`util`);', '');
@@ -83,7 +83,7 @@ module.exports.buildEsm = function (pkg) {
     // in js modules in order to avoid using fetch or fs operations
     const wasmEsmBytes = fs.readFileSync(`./temp/web/${pkg}/${pkg}_bg.wasm`);
     fs.writeFileSync(
-        `./dist/esm/orderbook_wbg.json`,
+        `./dist/esm/raindex_wbg.json`,
         JSON.stringify({
             wasm: Buffer.from(wasmEsmBytes, 'binary').toString('base64')
         })
@@ -121,7 +121,7 @@ module.exports.buildEsm = function (pkg) {
     esm = esm.replace(`export { initSync };
 export default __wbg_init;`,
         `import { Buffer } from 'buffer';
-import wasmB64 from './orderbook_wbg.json';
+import wasmB64 from './raindex_wbg.json';
 const bytes = Buffer.from(wasmB64.wasm, 'base64');\n
 initSync(bytes);`
         );

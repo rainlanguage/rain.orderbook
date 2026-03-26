@@ -1,11 +1,11 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { OrderbookYaml, OrderbookCfg, WasmEncodedResult } from '../../dist/cjs';
+import { RaindexYaml, RaindexCfg, WasmEncodedResult } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
-const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
+const SPEC_VERSION = RaindexYaml.getCurrentSpecVersion().value;
 
-const YAML_WITHOUT_ORDERBOOK = `
+const YAML_WITHOUT_RAINDEX = `
 version: ${SPEC_VERSION}
 
 networks:
@@ -28,10 +28,10 @@ rainlangs:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
 local-db-remotes:
-  some-orderbook: http://example.com
+  some-raindex: http://example.com
 
 local-db-sync:
-  some-orderbook:
+  some-raindex:
     batch-size: 2000
     max-concurrent-batches: 10
     retry-attempts: 3
@@ -41,8 +41,8 @@ local-db-sync:
     bootstrap-block-threshold: 1000
     sync-interval-ms: 5000
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -81,7 +81,7 @@ orders:
         - token: token2
           vault-id: 1
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
 
 deployments:
     some-deployment:
@@ -104,14 +104,14 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 	return result.value;
 };
 
-const buildYaml = (source: string, validate?: boolean): OrderbookYaml => {
-	const result = OrderbookYaml.new([source], validate);
-	return extractWasmEncodedData<OrderbookYaml>(result);
+const buildYaml = (source: string, validate?: boolean): RaindexYaml => {
+	const result = RaindexYaml.new([source], validate);
+	return extractWasmEncodedData<RaindexYaml>(result);
 };
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async function () {
+describe('Raindex JS API Package Bindgen Tests - Settings', async function () {
 	it('should return current spec version', async function () {
-		const result = OrderbookYaml.getCurrentSpecVersion();
+		const result = RaindexYaml.getCurrentSpecVersion();
 		if (result.error) assert.fail(result.error.msg);
 		const version = result.value;
 		assert.ok(version);
@@ -120,35 +120,35 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Settings', async functio
 	});
 
 	it('should create a new settings object', async function () {
-		const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
-		assert.ok(orderbookYaml);
+		const raindexYaml = buildYaml(YAML_WITHOUT_RAINDEX);
+		assert.ok(raindexYaml);
 	});
 
-	describe('orderbook tests', async function () {
-		it('should get the orderbook', async function () {
-			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
+	describe('raindex tests', async function () {
+		it('should get the raindex', async function () {
+			const raindexYaml = buildYaml(YAML_WITHOUT_RAINDEX);
 
-			const orderbook = extractWasmEncodedData<OrderbookCfg>(
-				orderbookYaml.getOrderbookByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6')
+			const raindexCfg = extractWasmEncodedData<RaindexCfg>(
+				raindexYaml.getRaindexByAddress('0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6')
 			);
-			assert.equal(orderbook.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
-			assert.equal(orderbook.network.chainId, 123);
-			assert.equal(orderbook.subgraph.url, 'https://www.some-sg.com/');
+			assert.equal(raindexCfg.address, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(raindexCfg.network.chainId, 123);
+			assert.equal(raindexCfg.subgraph.url, 'https://www.some-sg.com/');
 
-			let result = orderbookYaml.getOrderbookByAddress('invalid-address');
+			let result = raindexYaml.getRaindexByAddress('invalid-address');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe('Invalid address: odd number of digits');
 			expect(result.error.readableMsg).toBe(
 				'The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: "odd number of digits"'
 			);
 
-			result = orderbookYaml.getOrderbookByAddress('0x0000000000000000000000000000000000000000');
+			result = raindexYaml.getRaindexByAddress('0x0000000000000000000000000000000000000000');
 			if (!result.error) expect.fail('Expected error');
 			expect(result.error.msg).toBe(
-				'Orderbook yaml error: orderbook with address: 0x0000000000000000000000000000000000000000 not found'
+				'Raindex yaml error: raindex with address: 0x0000000000000000000000000000000000000000 not found'
 			);
 			expect(result.error.readableMsg).toBe(
-				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "orderbook with address: 0x0000000000000000000000000000000000000000 not found"'
+				'There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: "raindex with address: 0x0000000000000000000000000000000000000000 not found"'
 			);
 		});
 	});
@@ -164,8 +164,8 @@ networks:
         network-id: 123
         currency: ETH
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: nonexistent-network
         subgraph: nonexistent-subgraph
@@ -173,36 +173,36 @@ orderbooks:
 `;
 
 		it('should succeed with valid YAML and validation enabled', async function () {
-			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK, true);
-			assert.ok(orderbookYaml);
+			const raindexYaml = buildYaml(YAML_WITHOUT_RAINDEX, true);
+			assert.ok(raindexYaml);
 		});
 
 		it('should succeed with valid YAML and validation disabled', async function () {
-			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK, false);
-			assert.ok(orderbookYaml);
+			const raindexYaml = buildYaml(YAML_WITHOUT_RAINDEX, false);
+			assert.ok(raindexYaml);
 		});
 
 		it('should succeed with valid YAML and default validation', async function () {
-			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
-			assert.ok(orderbookYaml);
+			const raindexYaml = buildYaml(YAML_WITHOUT_RAINDEX);
+			assert.ok(raindexYaml);
 		});
 
 		it('should fail with invalid YAML and validation enabled', async function () {
-			const result = OrderbookYaml.new([INVALID_YAML], true);
+			const result = RaindexYaml.new([INVALID_YAML], true);
 			if (!result.error) expect.fail('Expected validation error with invalid YAML');
-			expect(result.error.msg).toContain('Orderbook yaml error');
+			expect(result.error.msg).toContain('Raindex yaml error');
 			expect(result.error.readableMsg).toContain(
 				'There was an error processing the YAML configuration'
 			);
 		});
 
 		it('should succeed construction but fail usage with invalid YAML when validation is disabled', async function () {
-			const orderbookYaml = buildYaml(INVALID_YAML, false);
-			const orderbookResult = orderbookYaml.getOrderbookByAddress(
+			const raindexYaml = buildYaml(INVALID_YAML, false);
+			const raindexResult = raindexYaml.getRaindexByAddress(
 				'0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6'
 			);
-			if (!orderbookResult.error) expect.fail('Expected error when using invalid YAML');
-			expect(orderbookResult.error.msg).toContain('Orderbook yaml error');
+			if (!raindexResult.error) expect.fail('Expected error when using invalid YAML');
+			expect(raindexResult.error.msg).toContain('Raindex yaml error');
 		});
 	});
 
@@ -222,8 +222,8 @@ orderbooks:
 		});
 
 		it('should return local tokens with chainId', async function () {
-			const orderbookYaml = buildYaml(YAML_WITHOUT_ORDERBOOK);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(YAML_WITHOUT_RAINDEX);
+			const tokensResult = await raindexYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
 
 			assert.strictEqual(tokens.length, 2);
@@ -263,8 +263,8 @@ tokens:
 			// No mock set up - RPC call will fail
 			// This tests that when token fields are missing, the code attempts to fetch from RPC
 			// (rather than immediately returning a "missing field" error)
-			const orderbookYaml = buildYaml(YAML_MISSING_FIELDS);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(YAML_MISSING_FIELDS);
+			const tokensResult = await raindexYaml.getTokens();
 
 			assert.ok(tokensResult.error, 'Expected error when RPC fetch fails');
 			expect(tokensResult.error.readableMsg).toContain('Failed to fetch token information');
@@ -296,8 +296,8 @@ tokens:
         label: USD Coin PoS
         symbol: USDC
 `;
-			const orderbookYaml = buildYaml(MULTI_NETWORK_YAML);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(MULTI_NETWORK_YAML);
+			const tokensResult = await raindexYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
 
 			assert.strictEqual(tokens.length, 2);
@@ -366,8 +366,8 @@ networks:
 using-tokens-from:
     - http://localhost:8232/tokens.json
 `;
-			const orderbookYaml = buildYaml(yaml);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(yaml);
+			const tokensResult = await raindexYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
 
 			assert.strictEqual(tokens.length, 2);
@@ -421,8 +421,8 @@ tokens:
         label: Wrapped Ether
         symbol: WETH
 `;
-			const orderbookYaml = buildYaml(yaml);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(yaml);
+			const tokensResult = await raindexYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
 
 			assert.strictEqual(tokens.length, 2);
@@ -484,8 +484,8 @@ using-tokens-from:
     - http://localhost:8232/tokens1.json
     - http://localhost:8232/tokens2.json
 `;
-			const orderbookYaml = buildYaml(yaml);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(yaml);
+			const tokensResult = await raindexYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
 
 			assert.strictEqual(tokens.length, 2);
@@ -540,8 +540,8 @@ networks:
 using-tokens-from:
     - http://localhost:8232/tokens-ext.json
 `;
-			const orderbookYaml = buildYaml(yaml);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(yaml);
+			const tokensResult = await raindexYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
 
 			const usdc = tokens.find((t: { symbol: string }) => t.symbol === 'USDC');
@@ -596,8 +596,8 @@ networks:
 using-tokens-from:
     - http://localhost:8232/tokens.json
 `;
-			const orderbookYaml = buildYaml(yaml);
-			const tokensResult = await orderbookYaml.getTokens();
+			const raindexYaml = buildYaml(yaml);
+			const tokensResult = await raindexYaml.getTokens();
 			const tokens = extractWasmEncodedData(tokensResult);
 
 			assert.strictEqual(tokens.length, 2);

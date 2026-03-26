@@ -1,18 +1,18 @@
 {
-    "name": "@rainlanguage/orderbook",
-    "description": "Provides RainLanguage Orderbook rust crates' functionalities in typescript through wasm bindgen",
+    "name": "@rainlanguage/raindex",
+    "description": "Provides RainLanguage Raindex rust crates' functionalities in typescript through wasm bindgen",
     "version": "0.0.1-alpha.229",
     "license": "LicenseRef-DCL-1.0",
     "author": "Rain Open Source Software Ltd",
     "repository": {
         "type": "git",
-        "url": "https://github.com/rainlanguage/rain.orderbook.git"
+        "url": "https://github.com/rainlanguage/raindex.git"
     },
     "keywords": [],
     "bugs": {
-        "url": "https://github.com/rainlanguage/rain.orderbook/issues"
+        "url": "https://github.com/rainlanguage/raindex/issues"
     },
-    "homepage": "https://github.com/rainlanguage/rain.orderbook#readme",
+    "homepage": "https://github.com/rainlanguage/raindex#readme",
     "main": "./dist/cjs/index.js",
     "module": "./dist/esm/index.js",
     "browser": {
@@ -32,7 +32,7 @@
     "scripts": {
         "prepublish": "node ./scripts/setup",
         "build": "npm run rm-dist && npm run rm-temp && npm run build-wasm && node ./scripts/build && npm run check",
-        "build-wasm": "cargo build --target wasm32-unknown-unknown --lib --profile release-wasm -p rain_orderbook_js_api",
+        "build-wasm": "cargo build --target wasm32-unknown-unknown --lib --profile release-wasm -p raindex_js_api",
         "rm-dist": "rimraf ./dist",
         "rm-temp": "rimraf ./temp",
         "test": "npm run check && vitest run --dir test",
