@@ -17,6 +17,8 @@ export interface ChartTheme {
 	};
 }
 
+export type LightweightChartsTheme = ChartTheme | Record<string, unknown>;
+
 export const darkChartTheme = {
 	layout: {
 		textColor: 'white',

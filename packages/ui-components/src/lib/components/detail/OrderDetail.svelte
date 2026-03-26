@@ -36,11 +36,13 @@
 	} from '@rainlanguage/orderbook';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
+	import type { LightweightChartsTheme } from '../../utils/lightweightChartsThemes';
+	import type { Readable } from 'svelte/store';
 
 	export let handleQuoteDebugModal: QuoteDebugModalHandler | undefined = undefined;
 	export let handleDebugTradeModal: DebugTradeModalHandler | undefined = undefined;
 	export let codeMirrorTheme;
-	export let lightweightChartsTheme;
+	export let lightweightChartsTheme: Readable<LightweightChartsTheme> | undefined = undefined;
 	export let orderbookAddress: Address;
 	export let orderHash: Hex;
 	export let chainId: number;

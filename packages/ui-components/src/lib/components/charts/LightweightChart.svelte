@@ -1,5 +1,6 @@
 <script lang="ts" generics="T extends keyof SeriesOptionsMap, O">
-	import type { Readable } from 'svelte/store';
+	import { readable, type Readable } from 'svelte/store';
+	import type { LightweightChartsTheme } from '../../utils/lightweightChartsThemes';
 
 	// eslint-disable-next-line no-undef
 	type ISeriesApiType = ISeriesApi<
@@ -37,7 +38,11 @@
 	export let title: string | undefined = undefined;
 	export let priceSymbol: string | undefined = undefined;
 	export let createSeries: (chart: IChartApi) => ISeriesApiType;
-	export let lightweightChartsTheme: Readable<Record<string, unknown>>;
+	export let lightweightChartsTheme: Readable<LightweightChartsTheme> | undefined = undefined;
+
+	const defaultLightweightChartsTheme = readable<LightweightChartsTheme>({});
+
+	$: resolvedLightweightChartsTheme = lightweightChartsTheme ?? defaultLightweightChartsTheme;
 
 	let chartElement: HTMLElement | undefined = undefined;
 	let chart: IChartApi | undefined;
@@ -62,7 +67,7 @@
 		if (chart === undefined) return;
 
 		chart.applyOptions({
-			...$lightweightChartsTheme,
+			...$resolvedLightweightChartsTheme,
 			autoSize: true,
 			localization: {
 				priceFormatter: (p: BarPrice) =>
@@ -107,7 +112,7 @@
 
 	$: if (data || series) updateNewDataPoints();
 	$: if (timeDelta) setTimeScale();
-	$: if ($lightweightChartsTheme) setOptions();
+	$: if (chart) setOptions();
 	$: if (chartElement && data.length > 0 && !chart) setupChart();
 
 	onMount(() => {
