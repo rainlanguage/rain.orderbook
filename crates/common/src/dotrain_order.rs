@@ -8,16 +8,16 @@ use dotrain::{error::ComposeError, types::patterns::FRONTMATTER_SEPARATOR, RainD
 use futures::future::join_all;
 use rain_interpreter_parser::{Parser2, ParserError, ParserV2};
 pub use rain_metadata::types::authoring::v2::*;
-use rain_orderbook_app_settings::yaml::{
+use raindex_app_settings::yaml::{
     clone_section_entry, context::ContextProfile, dotrain::DotrainYaml, orderbook::OrderbookYaml,
     FieldErrorKind, YamlError, YamlParsable,
 };
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     remote_networks::ParseRemoteNetworksError,
     remote_tokens::ParseRemoteTokensError,
     yaml::{dotrain::DotrainYamlValidation, orderbook::OrderbookYamlValidation},
 };
-use rain_orderbook_app_settings::{scenario::ScenarioCfg, spec_version::SpecVersion};
+use raindex_app_settings::{scenario::ScenarioCfg, spec_version::SpecVersion};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{strict_yaml::Hash as StrictYamlHash, StrictYaml, StrictYamlLoader};
@@ -867,7 +867,7 @@ mod tests {
     use alloy::{hex::encode_prefixed, primitives::B256, sol, sol_types::SolValue};
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
-    use rain_orderbook_app_settings::yaml::FieldErrorKind;
+    use raindex_app_settings::yaml::FieldErrorKind;
     use serde_bytes::ByteBuf;
     use serde_json::json;
     use strict_yaml_rust::{strict_yaml::Hash as StrictYamlHash, StrictYaml, StrictYamlLoader};

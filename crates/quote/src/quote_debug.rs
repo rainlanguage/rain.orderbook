@@ -7,7 +7,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
     trace::{RainEvalResult, RainEvalResultFromRawCallResultError},
 };
-use rain_orderbook_bindings::IRaindexV6::quote2Call;
+use raindex_bindings::IRaindexV6::quote2Call;
 use url::Url;
 
 pub struct NewQuoteDebugger {
@@ -88,11 +88,11 @@ mod tests {
     use alloy::primitives::{fixed_bytes, U256};
     use alloy::sol_types::{SolCall, SolValue};
     use httpmock::MockServer;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IRaindexV6::{OrderV4, QuoteV2};
-    use rain_orderbook_common::add_order::AddOrderArgs;
-    use rain_orderbook_common::dotrain_order::DotrainOrder;
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_bindings::IRaindexV6::{OrderV4, QuoteV2};
+    use raindex_common::add_order::AddOrderArgs;
+    use raindex_common::dotrain_order::DotrainOrder;
+    use raindex_test_fixtures::LocalEvm;
     use std::str::FromStr;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]

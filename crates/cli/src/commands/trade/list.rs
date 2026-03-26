@@ -5,7 +5,7 @@ use crate::{
 use anyhow::Result;
 use clap::Args;
 use comfy_table::Table;
-use rain_orderbook_common::{
+use raindex_common::{
     csv::TryIntoCsv,
     subgraph::SubgraphArgs,
     types::{FlattenError, OrderTakeFlattened, NO_SYMBOL},
@@ -98,7 +98,7 @@ mod tests {
         primitives::{Address, B256},
     };
     use httpmock::MockServer;
-    use rain_orderbook_subgraph_client::utils::float::*;
+    use raindex_subgraph_client::utils::float::*;
     use serde_json::{json, Value};
 
     #[tokio::test]

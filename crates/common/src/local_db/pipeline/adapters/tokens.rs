@@ -298,7 +298,7 @@ mod tests {
     mod non_wasm_tests {
         use super::*;
         use alloy::primitives::Address;
-        use rain_orderbook_test_fixtures::LocalEvm;
+        use raindex_test_fixtures::LocalEvm;
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
         async fn fetch_missing_delegates_to_concurrent_fetcher() {

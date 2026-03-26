@@ -1,4 +1,4 @@
-# rain_orderbook_quote — Architecture & Design
+# raindex_quote — Architecture & Design
 
 This crate provides all functionality to quote Rain Orderbook orders from Rust, expose the API to WASM/TypeScript, and ship a small CLI for ad‑hoc quoting and debugging. It stitches together three external systems:
 
@@ -11,7 +11,7 @@ It also includes a debugger that can fork an EVM and trace a `quote2` call for s
 
 ## Targets and Build Modes
 
-- Library: `rain_orderbook_quote` (default). Always built.
+- Library: `raindex_quote` (default). Always built.
 - Binary: uses `src/main.rs` which calls the crate CLI entry `cli::main()`.
 - WASM: many types derive `Tsify` and use `wasm-bindgen-utils` helpers. The `cli` and `quote_debug` modules are disabled for wasm via `#[cfg(not(target_family = "wasm"))]`.
 
@@ -86,7 +86,7 @@ Key gating:
 Purpose: execute `quote2` for many `QuoteTarget`s in one multicall.
 
 Flow:
-1. Parse RPC URLs into `Url` and build a `ReadProvider` via `mk_read_provider(&rpcs)` from `rain_orderbook_bindings`.
+1. Parse RPC URLs into `Url` and build a `ReadProvider` via `mk_read_provider(&rpcs)` from `raindex_bindings`.
 2. Create a dynamic `multicall` builder; override its address if `multicall_address` is provided.
 3. Optionally pin to `block_number` via `BlockId::Number(block)`.
 4. For each target, push `IOrderBookV5::quote2(QuoteV2)` into the multicall.
@@ -130,7 +130,7 @@ Result: a flat `Vec<BatchOrderQuotesResponse>` that UIs can render per pair.
 ## CLI: `cli` module and `src/main.rs`
 
 Entrypoint:
-- `src/main.rs` calls `rain_orderbook_quote::cli::main()` which initializes tracing, parses args, and delegates to `Quoter::run()`.
+- `src/main.rs` calls `raindex_quote::cli::main()` which initializes tracing, parses args, and delegates to `Quoter::run()`.
 
 Arguments (selected):
 - `--rpc <URL>` (required): JSON‑RPC endpoint.
@@ -190,8 +190,8 @@ Purpose: Help users debug a `quote2` call by forking a chain, executing the call
 ## External Dependencies of Note
 
 - `alloy` primitives and `sol_types`: ABI encode/decode, EVM types, and contract call modeling.
-- `rain_orderbook_bindings`: contract bindings (`IOrderBookV5`, provider helpers like `mk_read_provider`).
-- `rain_orderbook_subgraph_client`: GraphQL client and types; provides `order_detail` and `batch_order_detail`.
+- `raindex_bindings`: contract bindings (`IOrderBookV5`, provider helpers like `mk_read_provider`).
+- `raindex_subgraph_client`: GraphQL client and types; provides `order_detail` and `batch_order_detail`.
 - `rain-error-decoding`: decodes revert selectors (known/unknown) into structured errors.
 - `alloy-ethers-typecast::ReadableClient`: convenience for fetching block number across multiple HTTP RPCs.
 - `rain_math_float::Float`: canonical numeric type used in quotes; serializes to hex strings and provides safe equality/formatting.
@@ -209,7 +209,7 @@ The crate has extensive unit tests across modules, including:
 
 Tests use:
 - `httpmock` for simulating JSON‑RPC and subgraph HTTP responses.
-- `rain_orderbook_test_fixtures::LocalEvm` to spawn a local chain with tokens and an orderbook.
+- `raindex_test_fixtures::LocalEvm` to spawn a local chain with tokens and an orderbook.
 
 
 ## Invariants and Edge Cases
@@ -231,7 +231,7 @@ Tests use:
   - Or build `QuoteSpec`s and call `BatchQuoteSpec::do_quote(subgraph_url, rpcs, block, None, None)`.
 
 - CLI:
-  - Direct targets: `cargo run -p rain_orderbook_quote -- --rpc <RPC> --target <ORDERBOOK> <IN_IO> <OUT_IO> <ORDER_BYTES>`
+  - Direct targets: `cargo run -p raindex_quote -- --rpc <RPC> --target <ORDERBOOK> <IN_IO> <OUT_IO> <ORDER_BYTES>`
   - Specs via subgraph: `--spec <ORDERBOOK> <IN_IO> <OUT_IO> <ORDER_HASH> --sg <SUBGRAPH>`
   - Packed bytes: `-i <HEX> --sg <SUBGRAPH>` where `<HEX>` is repeated 54‑byte chunks.
 

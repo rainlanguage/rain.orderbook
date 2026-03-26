@@ -4,7 +4,7 @@ use base64::{engine::general_purpose::URL_SAFE, Engine};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rain_math_float::FloatError;
 use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClientError;
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     deployment::DeploymentCfg,
     gui::{
         GuiCfg, GuiDeploymentCfg, GuiFieldDefinitionCfg, GuiPresetCfg, NameAndDescriptionCfg,
@@ -17,8 +17,8 @@ use rain_orderbook_app_settings::{
         emitter, YamlError, YamlParsable,
     },
 };
-pub use rain_orderbook_common::erc20::ExtendedTokenInfo;
-use rain_orderbook_common::{
+pub use raindex_common::erc20::ExtendedTokenInfo;
+use raindex_common::{
     dotrain::{types::patterns::FRONTMATTER_SEPARATOR, RainDocument},
     dotrain_order::{DotrainOrder, DotrainOrderError},
     erc20::ERC20,
@@ -668,7 +668,7 @@ pub enum GuiError {
     #[error(transparent)]
     ReadableClientError(#[from] ReadableClientError),
     #[error(transparent)]
-    DepositError(#[from] rain_orderbook_common::deposit::DepositError),
+    DepositError(#[from] raindex_common::deposit::DepositError),
     #[error(transparent)]
     ParseError(#[from] alloy::primitives::ruint::ParseError),
     #[error(transparent)]
@@ -679,12 +679,12 @@ pub enum GuiError {
     UnitsError(#[from] alloy::primitives::utils::UnitsError),
     #[error(transparent)]
     WritableTransactionExecuteError(
-        #[from] rain_orderbook_common::transaction::WritableTransactionExecuteError,
+        #[from] raindex_common::transaction::WritableTransactionExecuteError,
     ),
     #[error(transparent)]
-    AddOrderArgsError(#[from] rain_orderbook_common::add_order::AddOrderArgsError),
+    AddOrderArgsError(#[from] raindex_common::add_order::AddOrderArgsError),
     #[error(transparent)]
-    ERC20Error(#[from] rain_orderbook_common::erc20::Error),
+    ERC20Error(#[from] raindex_common::erc20::Error),
     #[error(transparent)]
     SolTypesError(#[from] alloy::sol_types::Error),
     #[error(transparent)]
@@ -820,8 +820,8 @@ impl From<GuiError> for WasmEncodedError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_app_settings::yaml::FieldErrorKind;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::yaml::FieldErrorKind;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     pub fn get_yaml() -> String {

@@ -2,7 +2,7 @@ use super::{cache::Cache, sanitize_all_documents, ValidationConfig, *};
 use crate::{
     accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, local_db_sync::LocalDbSyncCfg,
     metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg,
-    sentry::Sentry, spec_version::SpecVersion, subgraph::SubgraphCfg, NetworkCfg, OrderbookCfg,
+    sentry::Sentry, spec_version::SpecVersion, subgraph::SubgraphCfg, NetworkCfg, RaindexCfg,
     RainlangCfg, TokenCfg,
 };
 use alloy::primitives::Address;
@@ -21,17 +21,17 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
 #[derive(Debug, Clone, Default)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct OrderbookYaml {
+pub struct RaindexYaml {
     #[cfg_attr(target_family = "wasm", tsify(type = "string[]"))]
     pub documents: Vec<Arc<RwLock<StrictYaml>>>,
     pub cache: Cache,
     pub profile: ContextProfile,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(OrderbookYaml);
+impl_wasm_traits!(RaindexYaml);
 
 #[derive(Debug, Clone, Default)]
-pub struct OrderbookYamlValidation {
+pub struct RaindexYamlValidation {
     pub networks: bool,
     pub remote_networks: bool,
     pub tokens: bool,
@@ -39,13 +39,13 @@ pub struct OrderbookYamlValidation {
     pub subgraphs: bool,
     pub local_db_remotes: bool,
     pub local_db_sync: bool,
-    pub orderbooks: bool,
+    pub raindexes: bool,
     pub metaboards: bool,
     pub rainlangs: bool,
 }
-impl OrderbookYamlValidation {
+impl RaindexYamlValidation {
     pub fn full() -> Self {
-        OrderbookYamlValidation {
+        RaindexYamlValidation {
             networks: true,
             remote_networks: true,
             tokens: true,
@@ -53,13 +53,13 @@ impl OrderbookYamlValidation {
             subgraphs: true,
             local_db_remotes: true,
             local_db_sync: true,
-            orderbooks: true,
+            raindexes: true,
             metaboards: true,
             rainlangs: true,
         }
     }
 }
-impl ValidationConfig for OrderbookYamlValidation {
+impl ValidationConfig for RaindexYamlValidation {
     fn should_validate_networks(&self) -> bool {
         self.networks
     }
@@ -81,8 +81,8 @@ impl ValidationConfig for OrderbookYamlValidation {
     fn should_validate_local_db_sync(&self) -> bool {
         self.local_db_sync
     }
-    fn should_validate_orderbooks(&self) -> bool {
-        self.orderbooks
+    fn should_validate_raindexes(&self) -> bool {
+        self.raindexes
     }
     fn should_validate_metaboards(&self) -> bool {
         self.metaboards
@@ -107,10 +107,10 @@ pub struct FetchedRemoteData {
     pub remote_tokens: HashMap<String, TokenCfg>,
 }
 
-impl YamlParsable for OrderbookYaml {
-    type ValidationConfig = OrderbookYamlValidation;
+impl YamlParsable for RaindexYaml {
+    type ValidationConfig = RaindexYamlValidation;
 
-    fn new(sources: Vec<String>, validate: OrderbookYamlValidation) -> Result<Self, YamlError> {
+    fn new(sources: Vec<String>, validate: RaindexYamlValidation) -> Result<Self, YamlError> {
         let mut documents = Vec::new();
 
         for source in sources {
@@ -148,8 +148,8 @@ impl YamlParsable for OrderbookYaml {
         if validate.should_validate_local_db_sync() {
             LocalDbSyncCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
-        if validate.should_validate_orderbooks() {
-            OrderbookCfg::parse_all_from_yaml(documents.clone(), None)?;
+        if validate.should_validate_raindexes() {
+            RaindexCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
         if validate.should_validate_metaboards() {
             MetaboardCfg::parse_all_from_yaml(documents.clone(), None)?;
@@ -158,7 +158,7 @@ impl YamlParsable for OrderbookYaml {
             RainlangCfg::parse_all_from_yaml(documents.clone(), None)?;
         }
 
-        Ok(OrderbookYaml {
+        Ok(RaindexYaml {
             documents,
             cache: Cache::default(),
             profile: ContextProfile::Strict,
@@ -166,23 +166,23 @@ impl YamlParsable for OrderbookYaml {
     }
 
     fn from_documents(documents: Vec<Arc<RwLock<StrictYaml>>>) -> Self {
-        OrderbookYaml {
+        RaindexYaml {
             documents,
             cache: Cache::default(),
             profile: ContextProfile::Strict,
         }
     }
 
-    fn from_orderbook_yaml(orderbook_yaml: OrderbookYaml) -> Self {
-        OrderbookYaml {
-            documents: orderbook_yaml.documents,
-            cache: orderbook_yaml.cache,
-            profile: orderbook_yaml.profile,
+    fn from_raindex_yaml(raindex_yaml: RaindexYaml) -> Self {
+        RaindexYaml {
+            documents: raindex_yaml.documents,
+            cache: raindex_yaml.cache,
+            profile: raindex_yaml.profile,
         }
     }
 
     fn from_dotrain_yaml(dotrain_yaml: DotrainYaml) -> Self {
-        OrderbookYaml {
+        RaindexYaml {
             documents: dotrain_yaml.documents,
             cache: dotrain_yaml.cache,
             profile: dotrain_yaml.profile,
@@ -190,7 +190,7 @@ impl YamlParsable for OrderbookYaml {
     }
 }
 
-impl ContextProvider for OrderbookYaml {
+impl ContextProvider for RaindexYaml {
     fn get_remote_networks_from_cache(&self) -> HashMap<String, NetworkCfg> {
         self.cache.get_remote_networks()
     }
@@ -200,10 +200,10 @@ impl ContextProvider for OrderbookYaml {
     }
 }
 
-impl OrderbookYaml {
+impl RaindexYaml {
     pub fn new_with_profile(
         sources: Vec<String>,
-        validate: OrderbookYamlValidation,
+        validate: RaindexYamlValidation,
         profile: ContextProfile,
     ) -> Result<Self, YamlError> {
         let mut instance = Self::new(sources, validate)?;
@@ -326,20 +326,20 @@ impl OrderbookYaml {
     }
 
     pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
-        Ok(self.get_orderbooks()?.keys().cloned().collect())
+        Ok(self.get_raindexes()?.keys().cloned().collect())
     }
-    pub fn get_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, YamlError> {
+    pub fn get_raindexes(&self) -> Result<HashMap<String, RaindexCfg>, YamlError> {
         let context = self.build_context();
-        OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
+        RaindexCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
-    pub fn get_orderbook(&self, key: &str) -> Result<OrderbookCfg, YamlError> {
+    pub fn get_orderbook(&self, key: &str) -> Result<RaindexCfg, YamlError> {
         let context = self.build_context();
-        OrderbookCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
+        RaindexCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
-    pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, YamlError> {
+    pub fn get_orderbook_by_address(&self, address: Address) -> Result<RaindexCfg, YamlError> {
         let context = self.build_context();
-        let orderbooks = OrderbookCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        for (_, orderbook) in orderbooks {
+        let raindexes = RaindexCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
+        for (_, orderbook) in raindexes {
             if orderbook.address == address {
                 return Ok(orderbook);
             }
@@ -349,47 +349,47 @@ impl OrderbookYaml {
             address
         )))
     }
-    pub fn get_orderbooks_by_network_key(
+    pub fn get_raindexes_by_network_key(
         &self,
         network_key: &str,
-    ) -> Result<Vec<OrderbookCfg>, YamlError> {
-        let mut orderbooks: Vec<_> = self
-            .get_orderbooks()?
+    ) -> Result<Vec<RaindexCfg>, YamlError> {
+        let mut raindexes: Vec<_> = self
+            .get_raindexes()?
             .into_iter()
             .filter(|(_, ob)| ob.network.key == network_key)
             .map(|(_, ob)| ob)
             .collect();
-        orderbooks.sort_by(|a, b| a.key.cmp(&b.key));
+        raindexes.sort_by(|a, b| a.key.cmp(&b.key));
 
-        if orderbooks.is_empty() {
+        if raindexes.is_empty() {
             return Err(YamlError::NotFound(format!(
                 "orderbook with network key: {}",
                 network_key
             )));
         }
-        Ok(orderbooks)
+        Ok(raindexes)
     }
 
-    pub fn get_orderbooks_by_chain_id(
+    pub fn get_raindexes_by_chain_id(
         &self,
         chain_id: u32,
-    ) -> Result<Vec<OrderbookCfg>, YamlError> {
+    ) -> Result<Vec<RaindexCfg>, YamlError> {
         let network = self.get_network_by_chain_id(chain_id)?;
-        let mut orderbooks: Vec<_> = self
-            .get_orderbooks()?
+        let mut raindexes: Vec<_> = self
+            .get_raindexes()?
             .into_iter()
             .filter(|(_, ob)| ob.network.key == network.key)
             .map(|(_, ob)| ob)
             .collect();
-        orderbooks.sort_by(|a, b| a.key.cmp(&b.key));
+        raindexes.sort_by(|a, b| a.key.cmp(&b.key));
 
-        if orderbooks.is_empty() {
+        if raindexes.is_empty() {
             return Err(YamlError::NotFound(format!(
                 "orderbook with chain-id: {}",
                 chain_id
             )));
         }
-        Ok(orderbooks)
+        Ok(raindexes)
     }
 
     pub fn get_metaboard_keys(&self) -> Result<Vec<String>, YamlError> {
@@ -457,7 +457,7 @@ impl OrderbookYaml {
     }
 }
 
-impl Serialize for OrderbookYaml {
+impl Serialize for RaindexYaml {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -468,22 +468,22 @@ impl Serialize for OrderbookYaml {
             documents.push(yaml_str);
         }
 
-        let mut state = serializer.serialize_struct("OrderbookYaml", 2)?;
+        let mut state = serializer.serialize_struct("RaindexYaml", 2)?;
         state.serialize_field("documents", &documents)?;
         state.serialize_field("profile", &self.profile)?;
         state.end()
     }
 }
 
-impl<'de> Deserialize<'de> for OrderbookYaml {
+impl<'de> Deserialize<'de> for RaindexYaml {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        struct OrderbookYamlVisitor;
+        struct RaindexYamlVisitor;
 
-        impl<'de> Visitor<'de> for OrderbookYamlVisitor {
-            type Value = OrderbookYaml;
+        impl<'de> Visitor<'de> for RaindexYamlVisitor {
+            type Value = RaindexYaml;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("a sequence of YAML documents as strings")
@@ -526,7 +526,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
                     })
                     .collect::<Result<Vec<_>, M::Error>>()?;
 
-                Ok(OrderbookYaml {
+                Ok(RaindexYaml {
                     documents,
                     cache: Cache::default(),
                     profile,
@@ -549,7 +549,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
                     documents.push(Arc::new(RwLock::new(doc)));
                 }
 
-                Ok(OrderbookYaml {
+                Ok(RaindexYaml {
                     documents,
                     cache: Cache::default(),
                     profile: ContextProfile::Strict,
@@ -557,7 +557,7 @@ impl<'de> Deserialize<'de> for OrderbookYaml {
             }
         }
 
-        deserializer.deserialize_any(OrderbookYamlVisitor)
+        deserializer.deserialize_any(RaindexYamlVisitor)
     }
 }
 
@@ -571,11 +571,11 @@ mod tests {
     use url::Url;
 
     #[test]
-    fn test_orderbook_yaml_profile_helpers() {
+    fn test_raindex_yaml_profile_helpers() {
         let sources = vec![full_yaml()];
-        let ob = OrderbookYaml::new_with_profile(
+        let ob = RaindexYaml::new_with_profile(
             sources.clone(),
-            OrderbookYamlValidation::default(),
+            RaindexYamlValidation::default(),
             ContextProfile::Gui {
                 current_deployment: "deployment1".to_string(),
             },
@@ -583,7 +583,7 @@ mod tests {
         .unwrap();
         assert!(matches!(ob.profile, ContextProfile::Gui { .. }));
 
-        let ob_default = OrderbookYaml::new(sources, OrderbookYamlValidation::default()).unwrap();
+        let ob_default = RaindexYaml::new(sources, RaindexYamlValidation::default()).unwrap();
         assert!(matches!(ob_default.profile, ContextProfile::Strict));
 
         let ob_strict = ob.with_profile(ContextProfile::Strict);
@@ -591,10 +591,10 @@ mod tests {
     }
 
     #[test]
-    fn test_orderbook_yaml_serialization_preserves_profile() {
-        let ob = OrderbookYaml::new_with_profile(
+    fn test_raindex_yaml_serialization_preserves_profile() {
+        let ob = RaindexYaml::new_with_profile(
             vec![full_yaml()],
-            OrderbookYamlValidation::default(),
+            RaindexYamlValidation::default(),
             ContextProfile::Gui {
                 current_deployment: "deployment1".to_string(),
             },
@@ -602,7 +602,7 @@ mod tests {
         .unwrap();
 
         let serialized = serde_json::to_string(&ob).unwrap();
-        let round_tripped: OrderbookYaml = serde_json::from_str(&serialized).unwrap();
+        let round_tripped: RaindexYaml = serde_json::from_str(&serialized).unwrap();
         match round_tripped.profile {
             ContextProfile::Gui { current_deployment } => {
                 assert_eq!(current_deployment, "deployment1");
@@ -612,9 +612,9 @@ mod tests {
     }
 
     #[test]
-    fn test_orderbook_yaml_legacy_sequence_deserialization_defaults_profile() {
+    fn test_raindex_yaml_legacy_sequence_deserialization_defaults_profile() {
         let legacy_serialized = serde_json::to_string(&vec![full_yaml()]).unwrap();
-        let deserialized: OrderbookYaml = serde_json::from_str(&legacy_serialized).unwrap();
+        let deserialized: RaindexYaml = serde_json::from_str(&legacy_serialized).unwrap();
 
         assert!(matches!(deserialized.profile, ContextProfile::Strict));
         assert_eq!(deserialized.documents.len(), 1);
@@ -646,7 +646,7 @@ mod tests {
     metaboards:
         board1: https://meta.example.com/board1
         board2: https://meta.example.com/board2
-    orderbooks:
+    raindexes:
         orderbook1:
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
@@ -684,7 +684,7 @@ mod tests {
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
     metaboards:
         board1: https://meta.example.com/board1
-    orderbooks:
+    raindexes:
         orderbook1:
             address: 0x1234567890abcdef
             deployment-block: 12345
@@ -700,7 +700,7 @@ mod tests {
     #[test]
     fn test_full_yaml() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         assert_eq!(ob_yaml.get_network_keys().unwrap().len(), 1);
         let network = ob_yaml.get_network("mainnet").unwrap();
@@ -764,7 +764,7 @@ mod tests {
         assert_eq!(orderbook.subgraph, subgraph.into());
         assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
         assert_eq!(
-            OrderbookCfg::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
+            RaindexCfg::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
             "mainnet"
         );
         let orderbook_by_address = ob_yaml
@@ -814,7 +814,7 @@ mod tests {
     #[test]
     fn test_update_network_rpc() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         let mut network = ob_yaml.get_network("mainnet").unwrap();
         assert_eq!(
@@ -853,7 +853,7 @@ mod tests {
     #[test]
     fn test_update_token_address() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         let mut token = ob_yaml.get_token("token1").unwrap();
         assert_eq!(
@@ -889,7 +889,7 @@ networks:
 "#,
             version = SpecVersion::current()
         );
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         TokenCfg::add_record_to_yaml(
             ob_yaml.documents.clone(),
@@ -917,7 +917,7 @@ networks:
     #[test]
     fn test_remove_token_from_yaml() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         assert!(ob_yaml.get_token("token1").is_ok());
         TokenCfg::remove_record_from_yaml(ob_yaml.documents.clone(), "token1").unwrap();
@@ -933,7 +933,7 @@ test: test
 "#,
             version = SpecVersion::current()
         );
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         ob_yaml
             .add_metaboard("test-metaboard", "https://test-metaboard.com")
@@ -952,7 +952,7 @@ test: test
     #[test]
     fn test_get_network_by_chain_id() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         // Test successful lookup
         let network = ob_yaml.get_network_by_chain_id(1).unwrap();
@@ -982,21 +982,21 @@ test: test
     #[test]
     fn test_get_orderbook_by_network_key() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         // Test successful lookup
-        let orderbooks = ob_yaml.get_orderbooks_by_network_key("mainnet").unwrap();
-        assert_eq!(orderbooks.len(), 1);
-        assert_eq!(orderbooks[0].key, "orderbook1");
-        assert_eq!(orderbooks[0].network.key, "mainnet");
+        let raindexes = ob_yaml.get_raindexes_by_network_key("mainnet").unwrap();
+        assert_eq!(raindexes.len(), 1);
+        assert_eq!(raindexes[0].key, "orderbook1");
+        assert_eq!(raindexes[0].network.key, "mainnet");
         assert_eq!(
-            orderbooks[0].address,
+            raindexes[0].address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
 
         // Test error case - network key not found
         let error = ob_yaml
-            .get_orderbooks_by_network_key("nonexistent")
+            .get_raindexes_by_network_key("nonexistent")
             .unwrap_err();
         assert_eq!(
             error,
@@ -1037,7 +1037,7 @@ test: test
             currency: ETH
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    orderbooks:
+    raindexes:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
@@ -1060,7 +1060,7 @@ test: test
             spec_version = SpecVersion::current()
         );
 
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         // Test each network
         let mainnet = ob_yaml.get_network_by_chain_id(1).unwrap();
@@ -1076,21 +1076,21 @@ test: test
         assert_eq!(arbitrum.chain_id, 42161);
 
         // Test orderbook lookup by network key
-        let orderbooks = ob_yaml.get_orderbooks_by_network_key("mainnet").unwrap();
-        assert_eq!(orderbooks.len(), 2);
-        assert_eq!(orderbooks[0].key, "mainnet-orderbook");
-        assert_eq!(orderbooks[0].network.key, "mainnet");
-        assert_eq!(orderbooks[1].key, "other-orderbook");
-        assert_eq!(orderbooks[1].network.key, "mainnet");
+        let raindexes = ob_yaml.get_raindexes_by_network_key("mainnet").unwrap();
+        assert_eq!(raindexes.len(), 2);
+        assert_eq!(raindexes[0].key, "mainnet-orderbook");
+        assert_eq!(raindexes[0].network.key, "mainnet");
+        assert_eq!(raindexes[1].key, "other-orderbook");
+        assert_eq!(raindexes[1].network.key, "mainnet");
 
-        let orderbooks = ob_yaml.get_orderbooks_by_network_key("polygon").unwrap();
-        assert_eq!(orderbooks.len(), 1);
-        assert_eq!(orderbooks[0].key, "polygon-orderbook");
-        assert_eq!(orderbooks[0].network.key, "polygon");
+        let raindexes = ob_yaml.get_raindexes_by_network_key("polygon").unwrap();
+        assert_eq!(raindexes.len(), 1);
+        assert_eq!(raindexes[0].key, "polygon-orderbook");
+        assert_eq!(raindexes[0].network.key, "polygon");
 
         // Test error for network without orderbook
         let error = ob_yaml
-            .get_orderbooks_by_network_key("arbitrum")
+            .get_raindexes_by_network_key("arbitrum")
             .unwrap_err();
         assert_eq!(
             error,
@@ -1099,20 +1099,20 @@ test: test
     }
 
     #[test]
-    fn test_get_orderbooks_by_chain_id_single_network() {
+    fn test_get_raindexes_by_chain_id_single_network() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
-        let orderbooks = ob_yaml.get_orderbooks_by_chain_id(1).unwrap();
-        assert_eq!(orderbooks.len(), 1);
-        assert_eq!(orderbooks[0].key, "orderbook1");
-        assert_eq!(orderbooks[0].network.key, "mainnet");
+        let raindexes = ob_yaml.get_raindexes_by_chain_id(1).unwrap();
+        assert_eq!(raindexes.len(), 1);
+        assert_eq!(raindexes[0].key, "orderbook1");
+        assert_eq!(raindexes[0].network.key, "mainnet");
         assert_eq!(
-            orderbooks[0].address,
+            raindexes[0].address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
 
-        let err = ob_yaml.get_orderbooks_by_chain_id(999).unwrap_err();
+        let err = ob_yaml.get_raindexes_by_chain_id(999).unwrap_err();
         assert_eq!(
             err,
             YamlError::NotFound("network with chain-id: 999".to_string())
@@ -1124,7 +1124,7 @@ test: test
     }
 
     #[test]
-    fn test_get_orderbooks_by_chain_id_multiple_networks() {
+    fn test_get_raindexes_by_chain_id_multiple_networks() {
         let yaml = format!(
             r#"
     version: {spec_version}
@@ -1143,7 +1143,7 @@ test: test
             chain-id: 42161
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
-    orderbooks:
+    raindexes:
         mainnet-orderbook:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
@@ -1166,21 +1166,21 @@ test: test
             spec_version = SpecVersion::current()
         );
 
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         // mainnet chain id
-        let orderbooks = ob_yaml.get_orderbooks_by_chain_id(1).unwrap();
-        assert_eq!(orderbooks.len(), 2);
-        assert_eq!(orderbooks[0].network.key, "mainnet");
-        assert_eq!(orderbooks[1].network.key, "mainnet");
+        let raindexes = ob_yaml.get_raindexes_by_chain_id(1).unwrap();
+        assert_eq!(raindexes.len(), 2);
+        assert_eq!(raindexes[0].network.key, "mainnet");
+        assert_eq!(raindexes[1].network.key, "mainnet");
 
         // polygon chain id
-        let orderbooks = ob_yaml.get_orderbooks_by_chain_id(137).unwrap();
-        assert_eq!(orderbooks.len(), 1);
-        assert_eq!(orderbooks[0].network.key, "polygon");
+        let raindexes = ob_yaml.get_raindexes_by_chain_id(137).unwrap();
+        assert_eq!(raindexes.len(), 1);
+        assert_eq!(raindexes[0].network.key, "polygon");
 
-        // arbitrum chain id has no orderbooks
-        let err = ob_yaml.get_orderbooks_by_chain_id(42161).unwrap_err();
+        // arbitrum chain id has no raindexes
+        let err = ob_yaml.get_raindexes_by_chain_id(42161).unwrap_err();
         assert_eq!(
             err,
             YamlError::NotFound("orderbook with chain-id: 42161".to_string())
@@ -1190,7 +1190,7 @@ test: test
     #[test]
     fn test_get_local_db_remote_keys() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         let keys = ob_yaml.get_local_db_remote_keys().unwrap();
         assert_eq!(keys, vec!["mainnet".to_string()]);
@@ -1199,7 +1199,7 @@ test: test
     #[test]
     fn test_get_local_db_remotes_and_single_remote() {
         let ob_yaml =
-            OrderbookYaml::new(vec![full_yaml()], OrderbookYamlValidation::default()).unwrap();
+            RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
         let remotes = ob_yaml.get_local_db_remotes().unwrap();
         assert_eq!(remotes.len(), 1);
@@ -1235,7 +1235,7 @@ subgraphs:
             version = SpecVersion::current()
         );
 
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
         let err = ob_yaml.get_local_db_remote("polygon").unwrap_err();
         assert_eq!(err, YamlError::KeyNotFound("polygon".to_string()));
     }
@@ -1258,7 +1258,7 @@ local-db-sync:
 "#,
             version = SpecVersion::current()
         );
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         let keys = ob_yaml.get_local_db_sync_keys().unwrap();
         assert_eq!(keys, vec!["test".to_string()]);
@@ -1295,7 +1295,7 @@ local-db-sync:
 "#,
             version = SpecVersion::current()
         );
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         let cfg = ob_yaml.get_local_db_sync("test").unwrap();
         assert_eq!(cfg.key, "test");
@@ -1327,7 +1327,7 @@ local-db-sync:
 "#,
             version = SpecVersion::current()
         );
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         let err = ob_yaml.get_local_db_sync("nonexistent").unwrap_err();
         assert_eq!(err, YamlError::KeyNotFound("nonexistent".to_string()));
@@ -1341,7 +1341,7 @@ version: {version}
 test: test"#,
             version = SpecVersion::current()
         );
-        let ob_yaml = OrderbookYaml::new(vec![yaml], OrderbookYamlValidation::default()).unwrap();
+        let ob_yaml = RaindexYaml::new(vec![yaml], RaindexYamlValidation::default()).unwrap();
 
         let syncs = ob_yaml.get_local_db_syncs().unwrap();
         assert!(syncs.is_empty());

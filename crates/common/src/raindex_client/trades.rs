@@ -11,7 +11,7 @@ use crate::raindex_client::{
     vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
-use rain_orderbook_subgraph_client::types::{common::SgTrade, Id};
+use raindex_subgraph_client::types::{common::SgTrade, Id};
 use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -368,7 +368,7 @@ mod test_helpers {
         };
         use alloy::primitives::{address, b256, bytes, Address, Bytes, B256, U256};
         use js_sys::Array;
-        use rain_orderbook_subgraph_client::utils::float::{F1, F2, F3, NEG2};
+        use raindex_subgraph_client::utils::float::{F1, F2, F3, NEG2};
         use serde_json::{self, json};
         use std::collections::HashMap;
         use std::str::FromStr;
@@ -769,7 +769,7 @@ mod test_helpers {
         use alloy::primitives::{b256, Bytes};
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_subgraph_client::utils::float::*;
+        use raindex_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
 
         fn get_order1_json() -> Value {

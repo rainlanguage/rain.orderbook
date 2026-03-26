@@ -366,7 +366,7 @@ mod tests {
     use crate::local_db::FetchConfig;
     use alloy::primitives::{b256, Address, Bytes, FixedBytes, B256, U256};
     use async_trait::async_trait;
-    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
+    use raindex_bindings::IInterpreterStoreV3::Set;
     use serde_json;
     use std::collections::VecDeque;
     use std::sync::{Arc, Mutex};
@@ -408,7 +408,7 @@ mod tests {
         token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IRaindexV6::DepositV2;
+        use raindex_bindings::IRaindexV6::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
             block_number: U256::from(block),
@@ -432,7 +432,7 @@ mod tests {
         output_token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IRaindexV6::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
+        use raindex_bindings::IRaindexV6::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
         DecodedEventData {
             event_type: EventType::AddOrderV3,
             block_number: U256::from(block),

@@ -279,7 +279,7 @@ mod fork_parse {
 
         use super::*;
         use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
-        use rain_orderbook_test_fixtures::LocalEvm;
+        use raindex_test_fixtures::LocalEvm;
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
         async fn test_parse_rainlang_on_fork_ok() {

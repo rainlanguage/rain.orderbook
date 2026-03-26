@@ -1,5 +1,5 @@
 use super::*;
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     accounts::AccountCfg, network::NetworkCfg, orderbook::OrderbookCfg, token::TokenCfg,
 };
 use std::collections::{HashMap, HashSet};

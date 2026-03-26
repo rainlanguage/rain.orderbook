@@ -7,8 +7,8 @@ use crate::raindex_client::QuerySource;
 use alloy::primitives::{Address, B256, U256};
 #[cfg(target_family = "wasm")]
 use gloo_timers::future::TimeoutFuture;
-use rain_orderbook_subgraph_client::types::{common::SgTransaction, Id};
-use rain_orderbook_subgraph_client::OrderbookSubgraphClientError;
+use raindex_subgraph_client::types::{common::SgTransaction, Id};
+use raindex_subgraph_client::OrderbookSubgraphClientError;
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_family = "wasm"))]
 use std::time::Duration;

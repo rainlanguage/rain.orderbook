@@ -163,7 +163,7 @@ mod local_evm_tests {
     use super::*;
     use crate::take_orders::TakeOrdersMode;
     use alloy::primitives::U256;
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_test_fixtures::LocalEvm;
     use url::Url;
 
     fn make_mode(mode: TakeOrdersMode, amount: &str) -> ParsedTakeOrdersMode {

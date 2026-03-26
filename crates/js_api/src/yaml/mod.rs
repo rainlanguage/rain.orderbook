@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use alloy::{hex::FromHexError, primitives::Address};
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     orderbook::OrderbookCfg,
     remote_tokens::{ParseRemoteTokensError, RemoteTokensCfg},
     spec_version::CURRENT_SPEC_VERSION,
@@ -10,7 +10,7 @@ use rain_orderbook_app_settings::{
         YamlError, YamlParsable,
     },
 };
-use rain_orderbook_common::erc20::ExtendedTokenInfo;
+use raindex_common::erc20::ExtendedTokenInfo;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -175,7 +175,7 @@ pub enum OrderbookYamlError {
     #[error(transparent)]
     ParseRemoteTokensError(#[from] ParseRemoteTokensError),
     #[error(transparent)]
-    ERC20Error(#[from] rain_orderbook_common::erc20::Error),
+    ERC20Error(#[from] raindex_common::erc20::Error),
 }
 
 impl OrderbookYamlError {
@@ -212,7 +212,7 @@ impl From<OrderbookYamlError> for WasmEncodedError {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     pub fn get_yaml() -> String {
@@ -464,7 +464,7 @@ pub(crate) mod tests {
 mod non_wasm_tests {
     use super::*;
     use httpmock::MockServer;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
     use serde_json::json;
 
     #[tokio::test]

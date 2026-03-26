@@ -8,7 +8,7 @@ use crate::{
 };
 use alloy::primitives::U256;
 use rain_math_float::Float;
-use rain_orderbook_math::{BigUintMath, ONE18};
+use raindex_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::HashMap;

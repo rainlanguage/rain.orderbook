@@ -6,7 +6,7 @@ use crate::{
     accounts::AccountCfg, local_db_remotes::LocalDbRemoteCfg, local_db_sync::LocalDbSyncCfg,
     metaboard::MetaboardCfg, remote_networks::RemoteNetworksCfg, remote_tokens::RemoteTokensCfg,
     sentry::Sentry, spec_version::SpecVersion, subgraph::SubgraphCfg, ChartCfg, DeploymentCfg,
-    GuiCfg, NetworkCfg, OrderCfg, OrderbookCfg, RainlangCfg, ScenarioCfg, TokenCfg,
+    GuiCfg, NetworkCfg, OrderCfg, RaindexCfg, RainlangCfg, ScenarioCfg, TokenCfg,
 };
 use std::sync::{Arc, RwLock};
 use strict_yaml_rust::{strict_yaml::Hash, StrictYaml, StrictYamlEmitter};
@@ -19,7 +19,7 @@ const CANONICAL_ROOT_KEYS: &[&str] = &[
     "metaboards",
     "tokens",
     "rainlangs",
-    "orderbooks",
+    "raindexes",
     "orders",
     "scenarios",
     "deployments",
@@ -43,7 +43,7 @@ pub fn validate_and_emit_documents(
     validate_hash_section::<SubgraphCfg>(documents, context)?;
     validate_hash_section::<MetaboardCfg>(documents, context)?;
     validate_hash_section::<TokenCfg>(documents, context)?;
-    validate_hash_section::<OrderbookCfg>(documents, context)?;
+    validate_hash_section::<RaindexCfg>(documents, context)?;
     validate_hash_section::<RainlangCfg>(documents, context)?;
 
     ChartCfg::parse_all_from_yaml(documents.to_vec(), context)?;

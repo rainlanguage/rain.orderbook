@@ -3,8 +3,8 @@ use crate::output::{output, SupportedOutputEncoding};
 use alloy::sol_types::SolCall;
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use rain_orderbook_common::add_order::AddOrderArgs;
-use rain_orderbook_common::dotrain_order::DotrainOrder;
+use raindex_common::add_order::AddOrderArgs;
+use raindex_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
@@ -75,8 +75,8 @@ mod tests {
     use rain_interpreter_bindings::Rainlang::{
         expressionDeployerAddressCall, interpreterAddressCall, parserAddressCall, storeAddressCall,
     };
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_app_settings::yaml::{FieldErrorKind, YamlError};
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::yaml::{FieldErrorKind, YamlError};
     use serde_json::json;
     use std::io::Write;
     use std::str::FromStr;

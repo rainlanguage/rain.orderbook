@@ -32,8 +32,8 @@ use rain_metadata::{
     ContentLanguage, ContentType, Error as RainMetaError, KnownMagic, RainMetaDocumentV1Item,
 };
 use rain_metadata_bindings::MetaBoard::emitMetaCall;
-use rain_orderbook_app_settings::deployment::DeploymentCfg;
-use rain_orderbook_bindings::IRaindexV6::{
+use raindex_app_settings::deployment::DeploymentCfg;
+use raindex_bindings::IRaindexV6::{
     addOrder4Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
 };
 use serde::{Deserialize, Serialize};
@@ -472,7 +472,7 @@ mod tests {
     use rain_metadata::{
         types::dotrain::source_v1::DotrainSourceV1, Error as RainMetaError, KnownMagic,
     };
-    use rain_orderbook_app_settings::{
+    use raindex_app_settings::{
         network::NetworkCfg,
         order::{OrderCfg, OrderIOCfg},
         rainlang::RainlangCfg,
@@ -481,7 +481,7 @@ mod tests {
         token::TokenCfg,
         yaml::{default_document, default_documents},
     };
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_test_fixtures::LocalEvm;
     use std::{
         collections::BTreeMap,
         str::FromStr,

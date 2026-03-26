@@ -1,4 +1,4 @@
-use rain_orderbook_common::local_db::pipeline::{
+use raindex_common::local_db::pipeline::{
     adapters::{
         apply::DefaultApplyPipeline, events::DefaultEventsPipeline, tokens::DefaultTokensPipeline,
         window::DefaultWindowPipeline,
@@ -59,11 +59,11 @@ pub fn default_environment(
 mod tests {
     use super::*;
     use alloy::primitives::address;
-    use rain_orderbook_common::local_db::fetch::FetchConfig;
-    use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
-    use rain_orderbook_common::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
-    use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
-    use rain_orderbook_common::rpc_client::RpcClientError;
+    use raindex_common::local_db::fetch::FetchConfig;
+    use raindex_common::local_db::pipeline::engine::SyncInputs;
+    use raindex_common::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
+    use raindex_common::local_db::{LocalDbError, OrderbookIdentifier};
+    use raindex_common::rpc_client::RpcClientError;
     use url::Url;
 
     fn sample_target(chain_id: u32) -> RunnerTarget {

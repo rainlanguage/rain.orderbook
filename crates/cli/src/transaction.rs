@@ -1,6 +1,6 @@
 use alloy::primitives::Address;
 use clap::Args;
-use rain_orderbook_common::transaction::TransactionArgs;
+use raindex_common::transaction::TransactionArgs;
 
 #[derive(Args, Clone)]
 pub struct CliTransactionArgs {

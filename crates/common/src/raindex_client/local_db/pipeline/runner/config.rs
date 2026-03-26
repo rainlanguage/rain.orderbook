@@ -2,8 +2,8 @@ use crate::local_db::pipeline::runner::utils::{
     build_runner_targets, ParsedRunnerSettings, RunnerTarget,
 };
 use crate::local_db::LocalDbError;
-use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
-use rain_orderbook_app_settings::orderbook::OrderbookCfg;
+use raindex_app_settings::local_db_sync::LocalDbSyncCfg;
+use raindex_app_settings::orderbook::OrderbookCfg;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -69,7 +69,7 @@ impl NetworkRunnerConfig {
 mod tests {
     use super::*;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
 
     fn sample_settings_yaml() -> String {
         format!(

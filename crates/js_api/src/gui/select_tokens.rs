@@ -1,11 +1,11 @@
 use super::*;
 use futures::StreamExt;
 use rain_math_float::Float;
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     deployment::DeploymentCfg, gui::GuiSelectTokensCfg, network::NetworkCfg, order::OrderCfg,
     token::TokenCfg, yaml::YamlParsableHash,
 };
-use rain_orderbook_common::raindex_client::vaults::AccountBalance;
+use raindex_common::raindex_client::vaults::AccountBalance;
 use std::str::FromStr;
 
 const MAX_CONCURRENT_FETCHES: usize = 5;
@@ -799,7 +799,7 @@ mod tests {
         use crate::gui::{DotrainOrderGui, GuiError};
         use alloy::primitives::Address;
         use httpmock::MockServer;
-        use rain_orderbook_app_settings::spec_version::SpecVersion;
+        use raindex_app_settings::spec_version::SpecVersion;
         use serde_json::json;
         use std::str::FromStr;
 

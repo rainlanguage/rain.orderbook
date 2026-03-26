@@ -8,8 +8,8 @@ use crate::take_orders::{
 };
 use alloy::primitives::Address;
 use rain_math_float::Float;
-use rain_orderbook_bindings::provider::mk_read_provider;
-use rain_orderbook_bindings::IRaindexV6::OrderV4;
+use raindex_bindings::provider::mk_read_provider;
+use raindex_bindings::IRaindexV6::OrderV4;
 use std::ops::{Div, Mul};
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
@@ -265,7 +265,7 @@ mod tests {
     use super::*;
     use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
     use rain_math_float::Float;
-    use rain_orderbook_quote::Pair;
+    use raindex_quote::Pair;
     use std::ops::Mul;
 
     fn make_quote_value(max_output: Float, ratio: Float) -> RaindexOrderQuoteValue {
@@ -357,7 +357,7 @@ mod tests {
         rt.block_on(async {
             use alloy::primitives::b256;
             use httpmock::MockServer;
-            use rain_orderbook_subgraph_client::utils::float::F1;
+            use raindex_subgraph_client::utils::float::F1;
             use serde_json::json;
 
             let server = MockServer::start_async().await;
@@ -458,7 +458,7 @@ mod tests {
         rt.block_on(async {
             use alloy::primitives::b256;
             use httpmock::MockServer;
-            use rain_orderbook_subgraph_client::utils::float::F1;
+            use raindex_subgraph_client::utils::float::F1;
             use serde_json::json;
 
             let server = MockServer::start_async().await;
@@ -561,7 +561,7 @@ mod tests {
         rt.block_on(async {
             use alloy::primitives::b256;
             use httpmock::MockServer;
-            use rain_orderbook_subgraph_client::utils::float::F1;
+            use raindex_subgraph_client::utils::float::F1;
             use serde_json::json;
 
             let server = MockServer::start_async().await;

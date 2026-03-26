@@ -2,7 +2,7 @@ use crate::execute::Execute;
 use crate::output::{output, SupportedOutputEncoding};
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use rain_orderbook_common::dotrain_order::DotrainOrder;
+use raindex_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
@@ -65,7 +65,7 @@ impl Execute for OrderbookAddress {
 mod tests {
     use super::*;
     use clap::CommandFactory;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
     use std::str::FromStr;
     use tempfile::NamedTempFile;
 

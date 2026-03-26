@@ -57,8 +57,8 @@ mod tests {
         sol_types::SolCall,
     };
     use rain_math_float::Float;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook};
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_test_fixtures::{LocalEvm, Orderbook};
     use std::str::FromStr;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]

@@ -2,9 +2,9 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::orders_list::RaindexOrders;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IRaindexV6::OrderV4;
-use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
-use rain_orderbook_subgraph_client::utils::float::{F0, F1};
+use raindex_bindings::IRaindexV6::OrderV4;
+use raindex_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
+use raindex_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
@@ -275,7 +275,7 @@ mod tests {
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_subgraph_client::utils::float::{F0_5, F2};
+        use raindex_subgraph_client::utils::float::{F0_5, F2};
         use serde_json::{json, Value};
 
         sol!(

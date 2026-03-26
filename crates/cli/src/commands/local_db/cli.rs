@@ -2,7 +2,7 @@ use super::pipeline::runner::ProducerRunReport;
 use crate::commands::local_db::pipeline::runner::ProducerRunner;
 use anyhow::Result;
 use clap::Parser;
-use rain_orderbook_common::local_db::pipeline::runner::TargetFailure;
+use raindex_common::local_db::pipeline::runner::TargetFailure;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use url::Url;
@@ -176,15 +176,15 @@ mod tests {
 
     use super::*;
     use alloy::primitives::{address, Address};
-    use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
-    use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
-    use rain_orderbook_common::local_db::pipeline::runner::{
+    use raindex_common::local_db::pipeline::engine::SyncInputs;
+    use raindex_common::local_db::pipeline::runner::utils::RunnerTarget;
+    use raindex_common::local_db::pipeline::runner::{
         TargetFailure, TargetStage, TargetSuccess,
     };
-    use rain_orderbook_common::local_db::pipeline::{
+    use raindex_common::local_db::pipeline::{
         FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
     };
-    use rain_orderbook_common::local_db::{FetchConfig, LocalDbError, OrderbookIdentifier};
+    use raindex_common::local_db::{FetchConfig, LocalDbError, OrderbookIdentifier};
     use std::collections::HashMap;
 
     #[test]

@@ -227,7 +227,7 @@ mod tests {
 
     fn deposit_event(addr: Address) -> DecodedEventData<DecodedEvent> {
         use crate::local_db::decode::EventType;
-        use rain_orderbook_bindings::IRaindexV6::DepositV2;
+        use raindex_bindings::IRaindexV6::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
             block_number: U256::from(1),
@@ -247,7 +247,7 @@ mod tests {
 
     fn withdraw_event(addr: Address) -> DecodedEventData<DecodedEvent> {
         use crate::local_db::decode::EventType;
-        use rain_orderbook_bindings::IRaindexV6::WithdrawV2;
+        use raindex_bindings::IRaindexV6::WithdrawV2;
         DecodedEventData {
             event_type: EventType::WithdrawV2,
             block_number: U256::from(0x10),

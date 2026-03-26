@@ -1,5 +1,5 @@
 **Overview**
-- Purpose: `rain_orderbook_js_api` exposes a single, browser-friendly WebAssembly surface for the Rain Orderbook application. It bridges YAML-based “dotrain” order configuration, on-chain ERC‑20/token metadata, and contract call generation into a typed JavaScript/TypeScript API.
+- Purpose: `raindex_js_api` exposes a single, browser-friendly WebAssembly surface for the Rain Orderbook application. It bridges YAML-based “dotrain” order configuration, on-chain ERC‑20/token metadata, and contract call generation into a typed JavaScript/TypeScript API.
 - Target: Compiles as a `cdylib` for wasm and is designed to be consumed from JS environments (webapps). All public APIs are exported via `wasm_bindgen_utils` macros and return ergonomic results with rich, user‑readable errors.
 - Scope: Includes high-level GUI helpers for interactive order building, a fetchable registry of orders, and low-level helpers for hashing and ABI calldata generation. It re-exports certain sibling crates so their wasm bindings are reachable from a single import.
 
@@ -11,7 +11,7 @@
 **Top-Level Layout**
 - `src/lib.rs`
   - Exposes modules only when targeting wasm: `bindings`, `gui`, `registry`, `yaml`.
-  - Re-exports crates so their wasm bindings are available from this single module: `rain_orderbook_app_settings`, `rain_orderbook_common`, `rain_orderbook_subgraph_client`.
+  - Re-exports crates so their wasm bindings are available from this single module: `raindex_app_settings`, `raindex_common`, `raindex_subgraph_client`.
   - Appends a small TS section defining `Address` and `Hex` template literal types for better typing on the JS side.
 
 **FFI & Error Conventions**
@@ -143,9 +143,9 @@
   - Errors: `OrderbookYamlError` with readable messaging, converted to JS.
 
 **External Crates & Interactions**
-- `rain_orderbook_app_settings`: typed config model + YAML parsing helpers for GUI sections, deployments, networks, orders, select-tokens, and validation rules.
-- `rain_orderbook_common`: higher-level order manipulation (compose Rainlang, add order args), ERC‑20 RPC client, transaction helpers, and formatting utilities.
-- `rain_orderbook_bindings`: generated Solidity bindings for `IOrderBookV5` (e.g., `deposit3`, `multicall`, `takeOrders3`).
+- `raindex_app_settings`: typed config model + YAML parsing helpers for GUI sections, deployments, networks, orders, select-tokens, and validation rules.
+- `raindex_common`: higher-level order manipulation (compose Rainlang, add order args), ERC‑20 RPC client, transaction helpers, and formatting utilities.
+- `raindex_bindings`: generated Solidity bindings for `IOrderBookV5` (e.g., `deposit3`, `multicall`, `takeOrders3`).
 - `alloy`: ABI encoding/decoding, primitives (`Address`, `Bytes`, `U256`, keccak256), and Solidity type utilities.
 - `wasm-bindgen-utils`: export macro, JS bridging, `WasmEncodedError` packaging.
 
@@ -191,4 +191,4 @@
   - `const registry = await DotrainRegistry.new(registryUrl)` → inspect orders/deployments → `await registry.getGui(orderKey, deploymentKey, serializedState?, onStateChanged?)`.
 
 **Summary**
-- `rain_orderbook_js_api` is the JS/WASM gateway for building, validating, and deploying Rain Orderbook orders from YAML+Rainlang definitions. It centralizes: YAML parsing and validation, user input state, token selection and metadata, field and deposit validation, vault ID management, transaction calldata generation (approvals, deposits, add order, multicall), registry-driven content fetching, and robust error handling—exposed as a typed, ergonomic TypeScript surface.
+- `raindex_js_api` is the JS/WASM gateway for building, validating, and deploying Rain Orderbook orders from YAML+Rainlang definitions. It centralizes: YAML parsing and validation, user input state, token selection and metadata, field and deposit validation, vault ID management, transaction calldata generation (approvals, deposits, add order, multicall), registry-driven content fetching, and robust error handling—exposed as a typed, ergonomic TypeScript surface.

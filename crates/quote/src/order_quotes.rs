@@ -5,8 +5,8 @@ use crate::{
 };
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::ReadableClient;
-use rain_orderbook_bindings::IRaindexV6::{OrderV4, QuoteV2};
-use rain_orderbook_subgraph_client::types::common::SgOrder;
+use raindex_bindings::IRaindexV6::{OrderV4, QuoteV2};
+use raindex_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 #[cfg(target_family = "wasm")]
@@ -209,14 +209,14 @@ mod tests {
     };
     use alloy_ethers_typecast::ReadableClientError;
     use rain_math_float::Float;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_subgraph_client::types::{
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
+    use raindex_subgraph_client::types::{
         common::{SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault},
         order_detail_traits::OrderDetailError,
     };
-    use rain_orderbook_subgraph_client::utils::float::*;
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_subgraph_client::utils::float::*;
+    use raindex_test_fixtures::LocalEvm;
 
     struct TestSetup {
         local_evm: LocalEvm,

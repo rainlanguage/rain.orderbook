@@ -17,8 +17,8 @@ use crate::raindex_client::local_db::pipeline::status::{
 use crate::raindex_client::local_db::{LocalDb, NetworkSyncStatus, SchedulerState, SyncReadiness};
 use gloo_timers::future::TimeoutFuture;
 use js_sys::Function;
-use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
-use rain_orderbook_app_settings::network::NetworkCfg;
+use raindex_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
+use raindex_app_settings::network::NetworkCfg;
 use std::cell::Cell;
 use std::collections::HashMap;
 use std::future::Future;

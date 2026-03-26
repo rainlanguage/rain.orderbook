@@ -138,7 +138,7 @@ impl RaindexClient {
                         {
                             Ok(orders) => orders,
                             Err(RaindexError::OrderbookSubgraphClientError(
-                                rain_orderbook_subgraph_client::OrderbookSubgraphClientError::Empty,
+                                raindex_subgraph_client::OrderbookSubgraphClientError::Empty,
                             )) => return Err(PollError::Empty),
                             Err(e) => return Err(PollError::Inner(e)),
                         };
@@ -191,7 +191,7 @@ mod tests {
         use alloy::primitives::{b256, Address, Bytes, U256};
         use async_trait::async_trait;
         use httpmock::MockServer;
-        use rain_orderbook_subgraph_client::utils::float::*;
+        use raindex_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
         use std::{
             str::FromStr,

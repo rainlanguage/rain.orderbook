@@ -2,7 +2,7 @@ use crate::execute::Execute;
 use crate::output::{output, SupportedOutputEncoding};
 use anyhow::{anyhow, Result};
 use clap::Args;
-use rain_orderbook_common::dotrain_order::DotrainOrder;
+use raindex_common::dotrain_order::DotrainOrder;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 
@@ -62,7 +62,7 @@ impl Execute for Compose {
 
 #[cfg(test)]
 mod tests {
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
     use tempfile::NamedTempFile;
 
     use super::*;

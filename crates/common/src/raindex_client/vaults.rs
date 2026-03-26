@@ -24,8 +24,8 @@ use alloy::{
 };
 use async_trait::async_trait;
 use rain_math_float::Float;
-use rain_orderbook_bindings::{IRaindexV6::deposit4Call, IERC20::approveCall};
-use rain_orderbook_subgraph_client::{
+use raindex_bindings::{IRaindexV6::deposit4Call, IERC20::approveCall};
+use raindex_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
         common::{
@@ -2154,12 +2154,12 @@ mod tests {
         use alloy::primitives::{address, b256};
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
-        use rain_orderbook_bindings::IERC20Metadata::decimalsCall;
-        use rain_orderbook_bindings::{
+        use raindex_bindings::IERC20Metadata::decimalsCall;
+        use raindex_bindings::{
             IRaindexV6::{deposit4Call, withdraw4Call},
             IERC20::approveCall,
         };
-        use rain_orderbook_subgraph_client::utils::float::*;
+        use raindex_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
         use std::sync::Arc;
         use LocalDbVault;
@@ -3501,7 +3501,7 @@ mod tests {
 
         #[test]
         fn get_vaults_filters_to_sg_filter_args_maps_orderbook_addresses() {
-            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+            use raindex_subgraph_client::types::common::SgVaultsListFilterArgs;
 
             let filters = GetVaultsFilters {
                 owners: vec![],
@@ -3529,7 +3529,7 @@ mod tests {
 
         #[test]
         fn get_vaults_filters_to_sg_filter_args_empty_orderbook_addresses() {
-            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+            use raindex_subgraph_client::types::common::SgVaultsListFilterArgs;
 
             let filters = GetVaultsFilters {
                 owners: vec![],
@@ -3546,7 +3546,7 @@ mod tests {
 
         #[test]
         fn get_vaults_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
-            use rain_orderbook_subgraph_client::types::common::SgVaultsListFilterArgs;
+            use raindex_subgraph_client::types::common::SgVaultsListFilterArgs;
 
             let filters = GetVaultsFilters {
                 owners: vec![],

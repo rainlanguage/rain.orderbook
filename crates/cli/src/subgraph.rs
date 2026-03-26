@@ -1,6 +1,6 @@
 use clap::Args;
-use rain_orderbook_common::subgraph::SubgraphArgs;
-use rain_orderbook_subgraph_client::{
+use raindex_common::subgraph::SubgraphArgs;
+use raindex_subgraph_client::{
     types::common::{
         SgBytes, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs, SgVaultsListFilterArgs,
     },

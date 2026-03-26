@@ -7,8 +7,8 @@ use crate::raindex_client::QuerySource;
 use crate::retry::{retry_with_constant_interval, RetryError};
 use alloy::primitives::{hex::decode, Bytes, B256};
 use alloy::sol_types::{SolCall, SolValue};
-use rain_orderbook_bindings::IRaindexV6::{removeOrder3Call, OrderV4};
-use rain_orderbook_subgraph_client::types::order_detail_traits::OrderDetailError;
+use raindex_bindings::IRaindexV6::{removeOrder3Call, OrderV4};
+use raindex_subgraph_client::types::order_detail_traits::OrderDetailError;
 
 const DEFAULT_REMOVE_ORDER_POLL_ATTEMPTS: usize = 10;
 const DEFAULT_REMOVE_ORDER_POLL_INTERVAL_MS: u64 = 1_000;
@@ -141,7 +141,7 @@ impl RaindexClient {
                         {
                             Ok(orders) => orders,
                             Err(RaindexError::OrderbookSubgraphClientError(
-                                rain_orderbook_subgraph_client::OrderbookSubgraphClientError::Empty,
+                                raindex_subgraph_client::OrderbookSubgraphClientError::Empty,
                             )) => return Err(PollError::Empty),
                             Err(e) => return Err(PollError::Inner(e)),
                         };
@@ -236,7 +236,7 @@ mod tests {
         use alloy::primitives::{b256, Address, Bytes, U256};
         use async_trait::async_trait;
         use httpmock::MockServer;
-        use rain_orderbook_subgraph_client::utils::float::*;
+        use raindex_subgraph_client::utils::float::*;
         use serde_json::{json, Value};
         use std::{
             str::FromStr,
