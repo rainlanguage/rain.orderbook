@@ -14,7 +14,7 @@ use rain_orderbook_app_settings::{
     orderbook::OrderbookCfg,
 };
 use rain_orderbook_bindings::{
-    IOrderBookV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
+    IRaindexV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
 };
 use rain_orderbook_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,

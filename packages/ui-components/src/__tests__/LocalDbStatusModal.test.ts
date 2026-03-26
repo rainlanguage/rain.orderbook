@@ -534,5 +534,4 @@ describe('LocalDbStatusModal', () => {
 
 		expect(screen.queryByTestId('ob-block-progress')).not.toBeInTheDocument();
 	});
-
 });

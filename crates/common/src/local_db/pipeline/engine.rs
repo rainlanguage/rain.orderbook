@@ -372,7 +372,6 @@ mod tests {
     use async_trait::async_trait;
     use rain_orderbook_bindings::IInterpreterStoreV3::Set;
     use serde_json;
-    use std::cell::RefCell;
     use std::collections::VecDeque;
     use std::sync::{Arc, Mutex};
     use tokio::sync::Barrier;
@@ -413,7 +412,7 @@ mod tests {
         token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IOrderBookV6::DepositV2;
+        use rain_orderbook_bindings::IRaindexV6::DepositV2;
         DecodedEventData {
             event_type: EventType::DepositV2,
             block_number: U256::from(block),
@@ -437,7 +436,7 @@ mod tests {
         output_token: Address,
         tx: u8,
     ) -> DecodedEventData<DecodedEvent> {
-        use rain_orderbook_bindings::IOrderBookV6::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
+        use rain_orderbook_bindings::IRaindexV6::{AddOrderV3, EvaluableV4, OrderV4, IOV2};
         DecodedEventData {
             event_type: EventType::AddOrderV3,
             block_number: U256::from(block),
@@ -1069,7 +1068,8 @@ mod tests {
         }
     }
 
-    #[async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait)]
     impl LocalDbQueryExecutor for TestDb {
         async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             self.executed_batches.lock().unwrap().push(batch.clone());
@@ -1997,15 +1997,15 @@ mod tests {
     }
 
     struct MockExecutor {
-        response: RefCell<Result<Vec<StoreAddressRow>, LocalDbQueryError>>,
-        statements: RefCell<Vec<SqlStatement>>,
+        response: Mutex<Result<Vec<StoreAddressRow>, LocalDbQueryError>>,
+        statements: Mutex<Vec<SqlStatement>>,
     }
 
     impl MockExecutor {
         fn with_response(response: Result<Vec<StoreAddressRow>, LocalDbQueryError>) -> Self {
             Self {
-                response: RefCell::new(response),
-                statements: RefCell::new(Vec::new()),
+                response: Mutex::new(response),
+                statements: Mutex::new(Vec::new()),
             }
         }
 
@@ -2018,11 +2018,12 @@ mod tests {
         }
 
         fn recorded(&self) -> Vec<SqlStatement> {
-            self.statements.borrow().clone()
+            self.statements.lock().unwrap().clone()
         }
     }
 
-    #[async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait)]
     impl LocalDbQueryExecutor for MockExecutor {
         async fn execute_batch(&self, _batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             panic!("execute_batch should not be called");
@@ -2032,8 +2033,8 @@ mod tests {
         where
             T: crate::local_db::query::FromDbJson,
         {
-            self.statements.borrow_mut().push(stmt.clone());
-            match self.response.borrow().clone() {
+            self.statements.lock().unwrap().push(stmt.clone());
+            match self.response.lock().unwrap().clone() {
                 Ok(rows) => {
                     let value = serde_json::to_value(rows).expect("serialize rows");
                     serde_json::from_value(value)

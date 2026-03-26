@@ -797,10 +797,9 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod non_wasm_tests {
         use crate::gui::{DotrainOrderGui, GuiError};
-        use alloy::primitives::{Address, U256};
+        use alloy::primitives::Address;
         use httpmock::MockServer;
         use rain_orderbook_app_settings::spec_version::SpecVersion;
-        use rain_orderbook_common::raindex_client::vaults::AccountBalance;
         use serde_json::json;
         use std::str::FromStr;
 
@@ -856,8 +855,8 @@ subgraphs:
   some-sg: https://www.some-sg.com
 metaboards:
   some-network: https://metaboard.com
-deployers:
-  some-deployer:
+rainlangs:
+  some-rainlang:
     network: some-network
     address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 orderbooks:
@@ -868,7 +867,7 @@ orderbooks:
     deployment-block: 12345
 scenarios:
   some-scenario:
-    deployer: some-deployer
+    rainlang: some-rainlang
     bindings:
       test-binding: 5
     scenarios:
@@ -877,7 +876,7 @@ scenarios:
           another-binding: 300
 orders:
   some-order:
-    deployer: some-deployer
+    rainlang: some-rainlang
     inputs:
       - token: token3
     outputs:

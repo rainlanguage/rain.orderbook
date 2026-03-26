@@ -25,7 +25,10 @@ use crate::local_db::{
     LocalDbError, OrderbookIdentifier,
 };
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
+#[cfg(target_family = "wasm")]
 use crate::raindex_client::local_db::pipeline::status::ClientStatusBus;
+#[cfg(not(target_family = "wasm"))]
+use crate::raindex_client::local_db::pipeline::status::TracingStatusBus;
 use alloy::primitives::Address;
 use config::NetworkRunnerConfig;
 use environment::default_environment;
@@ -242,11 +245,11 @@ where
 
                 match engine.run(db, &target.inputs).await {
                     Ok(outcome) => {
-                        let bus = ClientStatusBus::with_ob_id(ob_id);
-                        bus.emit_active_with_blocks(
-                            outcome.latest_block,
-                            outcome.target_block,
-                        );
+                        #[cfg(target_family = "wasm")]
+                        {
+                            let bus = ClientStatusBus::with_ob_id(ob_id);
+                            bus.emit_active_with_blocks(outcome.latest_block, outcome.target_block);
+                        }
                         Ok(TargetSuccess { outcome })
                     }
                     Err(error) => Err(TargetFailure {
@@ -277,6 +280,7 @@ where
     }
 }
 
+#[cfg(target_family = "wasm")]
 impl
     ClientRunner<
         ClientBootstrapAdapter,
@@ -285,6 +289,24 @@ impl
         DefaultTokensPipeline,
         DefaultApplyPipeline,
         ClientStatusBus,
+        DefaultLeadership,
+    >
+{
+    pub fn new(settings_yaml: String) -> Result<Self, LocalDbError> {
+        let environment = default_environment();
+        Self::with_environment(settings_yaml, environment, DefaultLeadership::new())
+    }
+}
+
+#[cfg(not(target_family = "wasm"))]
+impl
+    ClientRunner<
+        ClientBootstrapAdapter,
+        DefaultWindowPipeline,
+        DefaultEventsPipeline,
+        DefaultTokensPipeline,
+        DefaultApplyPipeline,
+        TracingStatusBus,
         DefaultLeadership,
     >
 {
@@ -573,7 +595,8 @@ mod tests {
         }
     }
 
-    #[async_trait(?Send)]
+    #[cfg_attr(target_family = "wasm", async_trait(?Send))]
+    #[cfg_attr(not(target_family = "wasm"), async_trait)]
     impl LocalDbQueryExecutor for RecordingDb {
         async fn execute_batch(&self, batch: &SqlStatementBatch) -> Result<(), LocalDbQueryError> {
             let statements: Vec<String> = batch
@@ -1008,6 +1031,7 @@ local-db-sync:
     rate-limit-delay-ms: 1
     finality-depth: 12
     bootstrap-block-threshold: 10000
+    sync-interval-ms: 5000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
@@ -1048,6 +1072,7 @@ local-db-sync:
     rate-limit-delay-ms: 1
     finality-depth: 12
     bootstrap-block-threshold: 10000
+    sync-interval-ms: 5000
 orderbooks:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
