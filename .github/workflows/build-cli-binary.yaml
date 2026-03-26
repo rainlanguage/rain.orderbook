@@ -51,7 +51,7 @@ jobs:
           BUILD_TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
           echo "TAG_NAME=cli-${SHORT_SHA}-${BUILD_TIMESTAMP}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=CLI Binary ${SHORT_SHA} (${BUILD_TIMESTAMP})" >> "$GITHUB_ENV"
-          echo "ASSET_PATH=crates/cli/bin/rain-orderbook-cli.tar.gz" >> "$GITHUB_ENV"
+          echo "ASSET_PATH=crates/cli/bin/raindex-cli.tar.gz" >> "$GITHUB_ENV"
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
