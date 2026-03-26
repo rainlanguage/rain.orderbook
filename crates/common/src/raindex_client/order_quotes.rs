@@ -68,6 +68,11 @@ impl RaindexOrderQuoteValue {
             inverse_ratio.format()?
         };
 
+        // FIXME: Handle decimal mismatch for USDC(6) / st0x tokens(18) pairs
+        // The ioRatio from contract assumes both tokens have same decimals, 
+        // but USDC has 6 decimals while st0x tokens have 18 decimals (12 decimal difference).
+        // This causes max_input calculation to be off by 10^12 for USDC pairs.
+        // TODO: Get actual token decimals from order context and adjust accordingly
         let max_input = value.max_output.mul(value.ratio)?;
 
         Ok(Self {
