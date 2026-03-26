@@ -30,8 +30,6 @@ use tokio::task::JoinError;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 
-const SUPPORTED_LOCAL_DB_CHAINS: &[u32] = &[137, 8453, 42161];
-
 #[derive(Debug, thiserror::Error)]
 pub enum LocalDbError {
     #[error("{0}")]
@@ -359,10 +357,6 @@ impl OrderbookIdentifier {
             orderbook_address,
         }
     }
-}
-
-pub fn is_chain_supported_local_db(chain_id: u32) -> bool {
-    SUPPORTED_LOCAL_DB_CHAINS.contains(&chain_id)
 }
 
 #[cfg(test)]
