@@ -49,4 +49,11 @@
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
-<VaultDetail id={parsedId} {orderbookAddress} chainId={parsedChainId} {onDeposit} {onWithdraw} {lightweightChartsTheme} />
+<VaultDetail
+	id={parsedId}
+	{orderbookAddress}
+	chainId={parsedChainId}
+	{onDeposit}
+	{onWithdraw}
+	{lightweightChartsTheme}
+/>
