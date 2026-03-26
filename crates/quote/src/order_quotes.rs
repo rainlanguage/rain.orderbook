@@ -5,7 +5,7 @@ use crate::{
 };
 use alloy::primitives::{Address, U256};
 use alloy_ethers_typecast::ReadableClient;
-use rain_orderbook_bindings::IOrderBookV6::{OrderV4, QuoteV2};
+use rain_orderbook_bindings::IRaindexV6::{OrderV4, QuoteV2};
 use rain_orderbook_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -38,6 +38,10 @@ pub struct Pair {
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(Pair);
 
+/// Get order quotes, automatically fetching signed oracle context from order meta.
+///
+/// For each order, if the meta contains a `RaindexSignedContextOracleV1` entry,
+/// the oracle URL is extracted and signed context is fetched per IO pair via POST.
 pub async fn get_order_quotes(
     orders: Vec<SgOrder>,
     block_number: Option<u64>,
@@ -55,10 +59,12 @@ pub async fn get_order_quotes(
 
     let mut all_pairs: Vec<Pair> = Vec::new();
     let mut all_quote_targets: Vec<QuoteTarget> = Vec::new();
+    let mut oracle_errors: Vec<BatchOrderQuotesResponse> = Vec::new();
 
     for order in &orders {
         let order_struct: OrderV4 = order.clone().try_into()?;
         let orderbook = Address::from_str(&order.orderbook.id.0)?;
+        let oracle_url = crate::oracle::extract_oracle_url(order);
 
         for (input_index, input) in order_struct.validInputs.iter().enumerate() {
             for (output_index, output) in order_struct.validOutputs.iter().enumerate() {
@@ -92,25 +98,63 @@ pub async fn get_order_quotes(
                         .unwrap_or("UNKNOWN".to_string())
                 );
 
-                all_pairs.push(Pair {
+                // Fetch signed oracle context for this pair if oracle URL is present.
+                // NOTE: Oracle context is always fetched live (current price), even when
+                // the quote is pinned to a historical block. This means historical quotes
+                // for oracle-backed orders reflect current oracle prices against past chain
+                // state, which may not represent a quote that actually existed.
+                let signed_context = if let Some(ref url) = oracle_url {
+                    let body = crate::oracle::encode_oracle_body(
+                        &order_struct,
+                        input_index as u32,
+                        output_index as u32,
+                        Address::ZERO, // counterparty unknown at quote time
+                    );
+                    match crate::oracle::fetch_signed_context(url, body).await {
+                        Ok(ctx) => Ok(vec![ctx]),
+                        Err(e) => Err(format!(
+                            "Oracle fetch failed for pair ({}, {}): {}",
+                            input_index, output_index, e
+                        )),
+                    }
+                } else {
+                    Ok(vec![])
+                };
+
+                let pair = Pair {
                     pair_name,
                     input_index: input_index as u32,
                     output_index: output_index as u32,
-                });
-                all_quote_targets.push(QuoteTarget {
-                    orderbook,
-                    quote_config: QuoteV2 {
-                        order: order_struct.clone(),
-                        inputIOIndex: U256::from(input_index),
-                        outputIOIndex: U256::from(output_index),
-                        signedContext: vec![],
-                    },
-                });
+                };
+
+                match signed_context {
+                    Ok(ctx) => {
+                        all_pairs.push(pair);
+                        all_quote_targets.push(QuoteTarget {
+                            orderbook,
+                            quote_config: QuoteV2 {
+                                order: order_struct.clone(),
+                                inputIOIndex: U256::from(input_index),
+                                outputIOIndex: U256::from(output_index),
+                                signedContext: ctx,
+                            },
+                        });
+                    }
+                    Err(e) => {
+                        oracle_errors.push(BatchOrderQuotesResponse {
+                            pair,
+                            block_number: req_block_number,
+                            success: false,
+                            data: None,
+                            error: Some(e),
+                        });
+                    }
+                }
             }
         }
     }
 
-    let results = match BatchQuoteTarget(all_quote_targets)
+    let results: Vec<BatchOrderQuotesResponse> = match BatchQuoteTarget(all_quote_targets)
         .do_quote(rpcs, Some(req_block_number), None, chunk_size)
         .await
     {
@@ -149,7 +193,9 @@ pub async fn get_order_quotes(
         }
     };
 
-    Ok(results)
+    let mut all_results = oracle_errors;
+    all_results.extend(results);
+    Ok(all_results)
 }
 
 #[cfg(test)]
@@ -224,9 +270,9 @@ networks:
         chain-id: 123
         network-id: 123
         currency: ETH
-deployers:
+rainlangs:
     some-key:
-        address: {deployer}
+        address: {rainlang_address}
 tokens:
     t2:
         network: some-key
@@ -255,7 +301,7 @@ orders:
               vault-id: 0x01
 scenarios:
     some-key:
-        deployer: some-key
+        rainlang: some-key
         bindings:
             key1: 10
 deployments:
@@ -265,8 +311,7 @@ deployments:
 ---
 #key1 !Test binding
 #calculate-io
-/* use io addresses in context as calculate-io maxoutput and ratio */
-amount price: context<3 0>() context<4 0>();
+amount price: 2 3;
 #handle-add-order
 :;
 #handle-io
@@ -274,7 +319,7 @@ amount price: context<3 0>() context<4 0>();
 "#,
             rpc_url = setup.local_evm.url(),
             orderbook = setup.orderbook,
-            deployer = setup.local_evm.deployer.address(),
+            rainlang_address = setup.local_evm.rainlang,
             token1 = setup.token1.address.0,
             token2 = setup.token2.address.0,
             spec_version = SpecVersion::current(),
@@ -393,13 +438,11 @@ amount price: context<3 0>() context<4 0>();
             .await
             .unwrap();
 
-        let token1_as_float =
-            Float::from_raw(B256::from(U256::from_str(&setup.token1.address.0).unwrap()));
-        let token2_as_float =
-            Float::from_raw(B256::from(U256::from_str(&setup.token2.address.0).unwrap()));
+        let expected_max_output = Float::parse("2".to_string()).unwrap();
+        let expected_ratio = Float::parse("3".to_string()).unwrap();
 
         let block_number = setup.local_evm.provider.get_block_number().await.unwrap();
-        let expected = vec![
+        let expected = [
             BatchOrderQuotesResponse {
                 pair: Pair {
                     pair_name: "Token1/Token2".to_string(),
@@ -408,8 +451,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token1_as_float,
-                    ratio: token2_as_float,
+                    max_output: expected_max_output,
+                    ratio: expected_ratio,
                 }),
                 success: true,
                 error: None,
@@ -422,8 +465,8 @@ amount price: context<3 0>() context<4 0>();
                 },
                 block_number,
                 data: Some(OrderQuoteValue {
-                    max_output: token2_as_float,
-                    ratio: token1_as_float,
+                    max_output: expected_max_output,
+                    ratio: expected_ratio,
                 }),
                 success: true,
                 error: None,

@@ -16,6 +16,8 @@ pub(crate) use local_db::{ClassifiedChains, LocalDbState, QuerySource};
 use rain_math_float::FloatError;
 use rain_orderbook_app_settings::{
     network::NetworkCfg,
+    remote_networks::ParseRemoteNetworksError,
+    remote_tokens::ParseRemoteTokensError,
     yaml::{
         orderbook::{OrderbookYaml, OrderbookYamlValidation},
         YamlError, YamlParsable,
@@ -150,13 +152,15 @@ impl RaindexClient {
         )]
         status_callback: Option<js_sys::Function>,
     ) -> Result<RaindexClient, RaindexError> {
-        let orderbook_yaml = OrderbookYaml::new(
+        let mut orderbook_yaml = OrderbookYaml::new(
             ob_yamls,
             match validate {
                 Some(true) => OrderbookYamlValidation::full(),
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
+        orderbook_yaml.fetch_remote_data().await?;
+
         let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
         let has_syncs = !sync_configured_chains.is_empty();
@@ -282,18 +286,20 @@ impl RaindexClient {
 
 #[cfg(not(target_family = "wasm"))]
 impl RaindexClient {
-    pub fn new(
+    pub async fn new(
         ob_yamls: Vec<String>,
         validate: Option<bool>,
         db_path: Option<std::path::PathBuf>,
     ) -> Result<RaindexClient, RaindexError> {
-        let orderbook_yaml = OrderbookYaml::new(
+        let mut orderbook_yaml = OrderbookYaml::new(
             ob_yamls,
             match validate {
                 Some(true) => OrderbookYamlValidation::full(),
                 _ => OrderbookYamlValidation::default(),
             },
         )?;
+        orderbook_yaml.fetch_remote_data().await?;
+
         let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
         let sync_readiness = SyncReadiness::new();
         let has_syncs = !sync_configured_chains.is_empty();
@@ -353,6 +359,8 @@ impl From<serde_wasm_bindgen::Error> for SerdeWasmBindgenErrorWrapper {
 pub enum RaindexError {
     #[error("Invalid yaml configuration")]
     InvalidYamlConfig,
+    #[error("{0}")]
+    OracleFetchError(String),
     #[error("Chain ID not found: {0}")]
     ChainIdNotFound(u32),
     #[error("No networks configured")]
@@ -363,6 +371,10 @@ pub enum RaindexError {
     TransactionIndexingTimeout { tx_hash: B256, attempts: usize },
     #[error(transparent)]
     YamlError(#[from] YamlError),
+    #[error(transparent)]
+    ParseRemoteNetworksError(#[from] ParseRemoteNetworksError),
+    #[error(transparent)]
+    ParseRemoteTokensError(#[from] ParseRemoteTokensError),
     #[error(transparent)]
     SerdeError(#[from] SerdeWasmBindgenErrorWrapper),
     #[error(transparent)]
@@ -505,6 +517,12 @@ impl RaindexError {
                 "YAML configuration parsing failed: {}. Check file syntax and structure.",
                 err
             ),
+            RaindexError::ParseRemoteNetworksError(e) => {
+                format!("Error parsing the remote networks configuration: {e}")
+            }
+            RaindexError::ParseRemoteTokensError(e) => {
+                format!("Error parsing the remote tokens configuration: {e}")
+            }
             RaindexError::SerdeError(err) => format!(
                 "Data conversion failed: {}. The data format may be incompatible.",
                 err
@@ -653,6 +671,7 @@ impl RaindexError {
             RaindexError::InvalidDotrainSourceMetadata => {
                 "Found metadata but it could not be parsed as valid dotrain source".to_string()
             }
+            RaindexError::OracleFetchError(err) => err.clone(),
         }
     }
 }
@@ -732,8 +751,8 @@ tokens:
         decimals: 6
         label: USD Coin
         symbol: USDC
-deployers:
-    mainnet-deployer:
+rainlangs:
+    mainnet-rainlang:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
         network: mainnet
 accounts:
@@ -746,12 +765,14 @@ accounts:
     }
 
     #[cfg(not(target_family = "wasm"))]
-    pub fn new_with_local_db(
+    pub async fn new_with_local_db(
         yamls: Vec<String>,
         local_db: super::local_db::LocalDb,
         chain_ids: Vec<u32>,
     ) -> RaindexClient {
-        let mut client = RaindexClient::new(yamls, None, None).expect("test yaml should be valid");
+        let mut client = RaindexClient::new(yamls, None, None)
+            .await
+            .expect("test yaml should be valid");
         client.local_db_state.db = Arc::new(std::sync::Mutex::new(Some(local_db)));
         for &id in &chain_ids {
             client.local_db_state.sync_readiness.mark_ready(id);
@@ -785,6 +806,126 @@ accounts:
                 sync_readiness,
                 db_chain_ids,
             ),
+        }
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    mod native_tests {
+        use super::*;
+        use httpmock::MockServer;
+        use std::str::FromStr;
+
+        #[tokio::test]
+        async fn test_create_fetches_remote_networks() {
+            let server = MockServer::start_async().await;
+            let response = r#"[
+                {
+                    "name": "Remote Network",
+                    "chain": "remote-network",
+                    "chainId": 999,
+                    "rpc": ["http://localhost:8085/rpc-url"],
+                    "networkId": 999,
+                    "nativeCurrency": {
+                        "name": "Remote",
+                        "symbol": "REM",
+                        "decimals": 18
+                    },
+                    "infoURL": "http://localhost:8085/info-url",
+                    "shortName": "remote-network"
+                }
+            ]"#;
+            server
+                .mock_async(|when, then| {
+                    when.method("GET").path("/");
+                    then.status(200)
+                        .header("content-type", "application/json")
+                        .body(response);
+                })
+                .await;
+
+            let yaml = format!(
+                r#"
+version: {spec_version}
+using-networks-from:
+    remote-source:
+        url: {url}
+        format: chainid
+"#,
+                spec_version = SpecVersion::current(),
+                url = server.base_url()
+            );
+
+            let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
+
+            let networks = client.get_all_networks().unwrap();
+            assert!(networks.contains_key("remote-network"));
+            let network = networks.get("remote-network").unwrap();
+            assert_eq!(network.chain_id, 999);
+            assert_eq!(network.key, "remote-network");
+            assert_eq!(
+                network.rpcs,
+                vec![Url::parse("http://localhost:8085/rpc-url").unwrap()]
+            );
+        }
+
+        #[tokio::test]
+        async fn test_create_fetches_remote_tokens() {
+            let server = MockServer::start_async().await;
+            let response = r#"{
+                "name": "Remote Tokens",
+                "timestamp": "2021-01-01T00:00:00.000Z",
+                "keywords": [],
+                "version": {"major": 1, "minor": 0, "patch": 0},
+                "tokens": [
+                    {
+                        "chainId": 123,
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "name": "RemoteToken",
+                        "symbol": "REM",
+                        "decimals": 18
+                    }
+                ],
+                "logoURI": "http://localhost.com"
+            }"#;
+            server
+                .mock_async(|when, then| {
+                    when.method("GET").path("/");
+                    then.status(200)
+                        .header("content-type", "application/json")
+                        .body(response);
+                })
+                .await;
+
+            let yaml = format!(
+                r#"
+version: {spec_version}
+networks:
+    test-network:
+        rpcs:
+            - http://localhost:8085/rpc
+        chain-id: 123
+using-tokens-from:
+    - {url}
+"#,
+                spec_version = SpecVersion::current(),
+                url = server.base_url()
+            );
+
+            let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
+
+            let tokens = client.orderbook_yaml.get_tokens().unwrap();
+            let expected_key =
+                "test-network-RemoteToken-0x0000000000000000000000000000000000000001";
+            assert!(tokens.contains_key(expected_key));
+            let token = tokens.get(expected_key).unwrap();
+            assert_eq!(token.key, expected_key);
+            assert_eq!(
+                token.address,
+                Address::from_str("0x0000000000000000000000000000000000000001").unwrap()
+            );
+            assert_eq!(token.network.chain_id, 123);
+            assert_eq!(token.network.key, "test-network");
+            assert_eq!(token.decimals, Some(18));
         }
     }
 
@@ -825,8 +966,8 @@ tokens:
         decimals: 6
         label: Token B
         symbol: TKNB
-deployers:
-    arb-deployer:
+rainlangs:
+    arb-rainlang:
         address: 0x1111111111111111111111111111111111111111
         network: arbitrum
 accounts:
@@ -1066,8 +1207,8 @@ accounts:
             network: isolated
             address: 0x1111111111111111111111111111111111111111
             decimals: 18
-    deployers:
-        test-deployer:
+    rainlangs:
+        test-rainlang:
             address: 0x2222222222222222222222222222222222222222
             network: isolated
     orderbooks:

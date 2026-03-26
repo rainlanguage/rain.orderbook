@@ -24,7 +24,7 @@ use alloy::{
 };
 use async_trait::async_trait;
 use rain_math_float::Float;
-use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::approveCall};
+use rain_orderbook_bindings::{IRaindexV6::deposit4Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
@@ -2154,9 +2154,9 @@ mod tests {
         use alloy::primitives::{address, b256};
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
-        use rain_orderbook_bindings::IERC20::decimalsCall;
+        use rain_orderbook_bindings::IERC20Metadata::decimalsCall;
         use rain_orderbook_bindings::{
-            IOrderBookV6::{deposit4Call, withdraw4Call},
+            IRaindexV6::{deposit4Call, withdraw4Call},
             IERC20::approveCall,
         };
         use rain_orderbook_subgraph_client::utils::float::*;
@@ -2306,6 +2306,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let local_vault = LocalDbVault {
@@ -2409,6 +2410,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let result = raindex_client
@@ -2474,6 +2476,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let vault = raindex_client
@@ -2564,6 +2567,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let err = raindex_client
                 .get_vault(
@@ -2654,6 +2658,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -2745,6 +2750,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let vault = raindex_client
@@ -2833,6 +2839,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -2944,6 +2951,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -2995,6 +3003,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3063,6 +3072,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3129,6 +3139,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3206,6 +3217,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(
@@ -3253,6 +3265,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let filters = GetVaultsFilters {
@@ -3311,6 +3324,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let filters = GetVaultsFilters {
@@ -3380,6 +3394,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             // Test with specific chain filter (only chain 1)
@@ -3418,6 +3433,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             // Test with specific chain filter (only chain 1)
@@ -3466,6 +3482,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let vault = raindex_client
                 .get_vault(

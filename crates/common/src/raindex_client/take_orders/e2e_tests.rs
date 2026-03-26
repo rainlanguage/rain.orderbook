@@ -24,7 +24,7 @@ use alloy::serde::WithOtherFields;
 use alloy::sol_types::SolCall;
 use httpmock::MockServer;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV6::{takeOrders4Call, TakeOrdersConfigV5};
+use rain_orderbook_bindings::IRaindexV6::{takeOrders4Call, TakeOrdersConfigV5};
 use serde_json::json;
 use std::ops::{Mul, Sub};
 
@@ -67,6 +67,7 @@ async fn test_get_take_orders_calldata_no_orders_returns_no_liquidity() {
         None,
         None,
     )
+    .await
     .unwrap();
 
     let res = client
@@ -124,7 +125,7 @@ async fn test_get_take_orders_calldata_no_candidates_returns_no_liquidity() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let res = client
         .get_take_orders_calldata(TakeOrdersRequest {
@@ -183,7 +184,7 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -287,7 +288,7 @@ async fn test_get_take_orders_calldata_min_receive_mode_exact_vs_partial() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -416,7 +417,7 @@ async fn test_get_take_orders_calldata_wrong_direction_returns_no_liquidity() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let fake_token = "0xcccccccccccccccccccccccccccccccccccccccc";
     let res = client
@@ -476,7 +477,7 @@ async fn test_min_receive_mode_exact_returns_error_when_insufficient_liquidity()
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -595,7 +596,7 @@ async fn test_maximum_io_ratio_enforcement_skips_overpriced_leg() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -814,7 +815,7 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -1030,7 +1031,7 @@ async fn test_cross_orderbook_selection_picks_best_book() {
         &setup.orderbook_b.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker_multi_orderbook(
@@ -1182,7 +1183,7 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
         &setup.orderbook_b.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker_multi_orderbook(
@@ -1324,7 +1325,7 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
         &setup.orderbook_b.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker_multi_orderbook(
@@ -1414,6 +1415,7 @@ async fn test_get_take_orders_calldata_invalid_address_returns_from_hex_error() 
         None,
         None,
     )
+    .await
     .unwrap();
 
     let res = client
@@ -1447,6 +1449,7 @@ async fn test_get_take_orders_calldata_invalid_float_returns_float_error() {
         None,
         None,
     )
+    .await
     .unwrap();
 
     let res = client
@@ -1528,7 +1531,7 @@ async fn test_prices_sorted_best_to_worst_matching_config_orders() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -1639,7 +1642,7 @@ async fn test_spend_up_to_mode_happy_path() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -1748,7 +1751,7 @@ async fn test_spend_exact_vs_spend_up_to_modes() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -1886,7 +1889,7 @@ async fn test_spend_exact_mode_insufficient_liquidity() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -1983,7 +1986,7 @@ async fn test_spend_mode_max_sell_cap_equals_spend_budget() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker(
@@ -2131,7 +2134,7 @@ async fn test_spend_mode_cross_orderbook_selection() {
         &setup.orderbook_b.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_and_approve_taker_multi_orderbook(
@@ -2219,7 +2222,7 @@ async fn test_get_take_orders_calldata_returns_approval_when_no_allowance() {
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_taker(
@@ -2303,7 +2306,7 @@ async fn test_get_take_orders_calldata_returns_approval_when_insufficient_allowa
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_taker(
@@ -2393,7 +2396,7 @@ async fn test_get_take_orders_calldata_returns_take_orders_when_sufficient_allow
         &setup.orderbook.to_string(),
     );
 
-    let client = RaindexClient::new(vec![yaml], None, None).unwrap();
+    let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
     fund_taker(

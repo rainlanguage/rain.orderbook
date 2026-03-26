@@ -9,7 +9,7 @@ use crate::take_orders::{
 use alloy::primitives::Address;
 use rain_math_float::Float;
 use rain_orderbook_bindings::provider::mk_read_provider;
-use rain_orderbook_bindings::IOrderBookV6::OrderV4;
+use rain_orderbook_bindings::IRaindexV6::OrderV4;
 use std::ops::{Div, Mul};
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
@@ -17,6 +17,23 @@ use url::Url;
 
 use super::approval::{check_approval_needed, ApprovalCheckParams};
 use super::result::{build_calldata_result, TakeOrderEstimate, TakeOrdersCalldataResult};
+
+/// Parameters for executing a take order.
+#[derive(Debug, Clone)]
+pub struct TakeOrderExecutionParams {
+    pub mode: ParsedTakeOrdersMode,
+    pub price_cap: Float,
+    pub taker: Address,
+    pub sell_token: Address,
+    pub oracle_url: Option<String>,
+}
+
+/// RPC context for blockchain interactions.
+#[derive(Debug, Clone)]
+pub struct RpcContext<'a> {
+    pub rpc_urls: &'a [Url],
+    pub block_number: Option<u64>,
+}
 
 pub fn build_candidate_from_quote(
     order: &RaindexOrder,
@@ -54,6 +71,7 @@ pub fn build_candidate_from_quote(
         output_io_index,
         max_output: data.max_output,
         ratio: data.ratio,
+        signed_context: vec![],
     }))
 }
 
@@ -104,36 +122,50 @@ pub fn estimate_take_order(
 
 pub async fn execute_single_take(
     candidate: TakeOrderCandidate,
-    mode: ParsedTakeOrdersMode,
-    price_cap: Float,
-    taker: Address,
-    rpc_urls: &[Url],
-    block_number: Option<u64>,
-    sell_token: Address,
+    execution_params: TakeOrderExecutionParams,
+    rpc_context: RpcContext<'_>,
 ) -> Result<TakeOrdersCalldataResult, RaindexError> {
     let zero = Float::zero()?;
 
-    if candidate.ratio.gt(price_cap)? {
+    if candidate.ratio.gt(execution_params.price_cap)? {
         return Err(RaindexError::NoLiquidity);
     }
 
     let orderbook = candidate.orderbook;
 
     let approval_params = ApprovalCheckParams {
-        rpc_urls: rpc_urls.to_vec(),
-        sell_token,
-        taker,
+        rpc_urls: rpc_context.rpc_urls.to_vec(),
+        sell_token: execution_params.sell_token,
+        taker: execution_params.taker,
         orderbook,
-        mode,
-        price_cap,
+        mode: execution_params.mode,
+        price_cap: execution_params.price_cap,
     };
 
     if let Some(approval_result) = check_approval_needed(&approval_params).await? {
         return Ok(approval_result);
     }
 
-    let target = mode.target_amount();
-    let is_buy_mode = mode.is_buy_mode();
+    // Fetch signed context from oracle after early exits (price-cap, approval)
+    // to avoid unnecessary network calls for orders that won't be taken.
+    let mut candidate = candidate;
+    if let Some(url) = execution_params.oracle_url {
+        let body = crate::oracle::encode_oracle_body(
+            &candidate.order,
+            candidate.input_io_index,
+            candidate.output_io_index,
+            execution_params.taker,
+        );
+        match crate::oracle::fetch_signed_context(&url, body).await {
+            Ok(ctx) => candidate.signed_context = vec![ctx],
+            Err(e) => {
+                tracing::warn!("Failed to fetch oracle data: {}", e);
+            }
+        }
+    }
+
+    let target = execution_params.mode.target_amount();
+    let is_buy_mode = execution_params.mode.is_buy_mode();
 
     let (output, input) = if is_buy_mode {
         let output = if candidate.max_output.lte(target)? {
@@ -172,26 +204,46 @@ pub async fn execute_single_take(
         total_output: output,
     };
 
-    let built = build_take_orders_config_from_simulation(sim, mode, price_cap)?
-        .ok_or(RaindexError::NoLiquidity)?;
+    let built = build_take_orders_config_from_simulation(
+        sim,
+        execution_params.mode,
+        execution_params.price_cap,
+    )?
+    .ok_or(RaindexError::NoLiquidity)?;
 
-    let provider =
-        mk_read_provider(rpc_urls).map_err(|e| RaindexError::PreflightError(e.to_string()))?;
+    let provider = mk_read_provider(rpc_context.rpc_urls)
+        .map_err(|e| RaindexError::PreflightError(e.to_string()))?;
 
-    let sim_result =
-        simulate_take_orders(&provider, orderbook, taker, &built.config, block_number).await;
+    let sim_result = simulate_take_orders(
+        &provider,
+        orderbook,
+        execution_params.taker,
+        &built.config,
+        rpc_context.block_number,
+    )
+    .await;
 
     match sim_result {
-        Ok(()) => build_calldata_result(orderbook, built, mode, price_cap),
+        Ok(()) => build_calldata_result(
+            orderbook,
+            built,
+            execution_params.mode,
+            execution_params.price_cap,
+        ),
         Err(sim_error) => {
             if built.config.orders.len() == 1 {
                 Err(RaindexError::PreflightError(format!(
                     "Order failed simulation: {}",
                     sim_error
                 )))
-            } else if let Some(_failing_idx) =
-                find_failing_order_index(&provider, orderbook, taker, &built.config, block_number)
-                    .await
+            } else if let Some(_failing_idx) = find_failing_order_index(
+                &provider,
+                orderbook,
+                execution_params.taker,
+                &built.config,
+                rpc_context.block_number,
+            )
+            .await
             {
                 Err(RaindexError::PreflightError(format!(
                     "Order failed simulation: {}",
@@ -374,6 +426,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order = raindex_client
@@ -474,6 +527,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order = raindex_client
@@ -576,6 +630,7 @@ mod tests {
                 None,
                 None,
             )
+            .await
             .unwrap();
 
             let order = raindex_client

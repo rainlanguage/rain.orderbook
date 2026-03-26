@@ -1109,6 +1109,7 @@ mod test_helpers {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
@@ -1296,6 +1297,7 @@ mod test_helpers {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
@@ -1480,6 +1482,7 @@ mod test_helpers {
                 None,
                 None,
             )
+            .await
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
