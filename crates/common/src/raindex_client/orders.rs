@@ -704,12 +704,24 @@ impl RaindexOrder {
         let fresh_quotes = self.get_quotes(Some(block_number), None).await?;
 
         // DEBUG: Log all fresh quotes
-        tracing::info!("DEBUG: Fresh quote generation results (count={}):", fresh_quotes.len());
+        tracing::info!(
+            "DEBUG: Fresh quote generation results (count={}):",
+            fresh_quotes.len()
+        );
         for (i, q) in fresh_quotes.iter().enumerate() {
-            tracing::info!("  Quote {}: pair={}, success={}, input_idx={}, output_idx={}", 
-                i, q.pair.pair_name, q.success, q.pair.input_index, q.pair.output_index);
+            tracing::info!(
+                "  Quote {}: pair={}, success={}, input_idx={}, output_idx={}",
+                i,
+                q.pair.pair_name,
+                q.success,
+                q.pair.input_index,
+                q.pair.output_index
+            );
             if !q.success {
-                tracing::error!("    ERROR: {}", q.error.as_deref().unwrap_or("Unknown error"));
+                tracing::error!(
+                    "    ERROR: {}",
+                    q.error.as_deref().unwrap_or("Unknown error")
+                );
             } else if let Some(data) = &q.data {
                 tracing::info!("    max_output={}, ratio={}", data.max_output, data.ratio);
             }
@@ -719,17 +731,23 @@ impl RaindexOrder {
             .into_iter()
             .find(|q| q.pair.input_index == input_index && q.pair.output_index == output_index)
             .ok_or_else(|| {
-                tracing::error!("DEBUG: No quote found for input_index={}, output_index={}", input_index, output_index);
+                tracing::error!(
+                    "DEBUG: No quote found for input_index={}, output_index={}",
+                    input_index,
+                    output_index
+                );
                 RaindexError::NoLiquidity
             })?;
 
-        tracing::info!("DEBUG: Found matching quote: success={}", fresh_quote.success);
+        tracing::info!(
+            "DEBUG: Found matching quote: success={}",
+            fresh_quote.success
+        );
 
-        let candidate =
-            build_candidate_from_quote(self, &fresh_quote)?.ok_or_else(|| {
-                tracing::error!("DEBUG: build_candidate_from_quote returned None");
-                RaindexError::NoLiquidity
-            })?;
+        let candidate = build_candidate_from_quote(self, &fresh_quote)?.ok_or_else(|| {
+            tracing::error!("DEBUG: build_candidate_from_quote returned None");
+            RaindexError::NoLiquidity
+        })?;
 
         let execution_params = TakeOrderExecutionParams {
             mode: parsed_mode,
