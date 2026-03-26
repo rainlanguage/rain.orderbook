@@ -248,12 +248,10 @@ where
                         #[cfg(target_family = "wasm")]
                         {
                             let bus = ClientStatusBus::with_ob_id(ob_id);
-                            let synced_block =
-                                outcome.target_block.max(outcome.start_block.saturating_sub(1));
-                            bus.emit_active_with_blocks(
-                                outcome.latest_block,
-                                synced_block,
-                            );
+                            let synced_block = outcome
+                                .target_block
+                                .max(outcome.start_block.saturating_sub(1));
+                            bus.emit_active_with_blocks(outcome.latest_block, synced_block);
                         }
                         Ok(TargetSuccess { outcome })
                     }
