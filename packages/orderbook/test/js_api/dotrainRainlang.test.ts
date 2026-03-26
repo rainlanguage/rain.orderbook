@@ -159,7 +159,6 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Dotrain Rainlang', async
 	});
 
 	describe('DotrainRainlang Constructor', () => {
-
 		it('should create rainlang and fetch all content successfully', async () => {
 			const rainlangContent = `http://localhost:8231/settings.yaml
 fixed-limit http://localhost:8231/fixed-limit.rain
@@ -457,7 +456,6 @@ _ _: 0 0;
 `;
 
 	describe('DotrainRainlang getOrderbookYaml', () => {
-
 		it('should return OrderbookYaml instance from settings', async () => {
 			const rainlangContent = `http://localhost:8231/settings.yaml
 test-order http://localhost:8231/order.rain`;

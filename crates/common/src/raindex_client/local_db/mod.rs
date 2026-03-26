@@ -1,3 +1,7 @@
+#[cfg(target_family = "wasm")]
+use super::{RaindexClient, RaindexError};
+#[cfg(target_family = "wasm")]
+use crate::local_db::pipeline::runner::utils::parse_runner_settings;
 pub use crate::local_db::pipeline::SyncPhase;
 use crate::local_db::query::{
     FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
@@ -238,6 +242,68 @@ impl From<LocalDbError> for WasmEncodedError {
     }
 }
 
+#[cfg(target_family = "wasm")]
+#[wasm_export]
+impl RaindexClient {
+    #[wasm_export(js_name = "startLocalDbScheduler", unchecked_return_type = "void")]
+    pub async fn start_local_db_scheduler(
+        &self,
+        #[wasm_export(
+            js_name = "settingsYaml",
+            param_description = "Full settings YAML string used by the client runner"
+        )]
+        settings_yaml: String,
+        #[wasm_export(
+            js_name = "statusCallback",
+            param_description = "Optional callback invoked with the current local DB status"
+        )]
+        status_callback: Option<js_sys::Function>,
+    ) -> Result<(), RaindexError> {
+        let local_db = {
+            let slot = self.local_db_state.db.borrow();
+            slot.clone()
+                .ok_or_else(|| RaindexError::JsError("Local DB not set".to_string()))?
+        };
+        let settings = parse_runner_settings(&settings_yaml)?;
+
+        let scheduler_cell = Rc::clone(&self.local_db_state.scheduler);
+        let existing = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
+
+        if let Some(handle) = existing {
+            handle.stop();
+        }
+
+        let handle = pipeline::runner::scheduler::start(
+            settings,
+            local_db,
+            status_callback,
+            self.local_db_state.sync_readiness.clone(),
+        )?;
+        {
+            let mut slot = scheduler_cell.borrow_mut();
+            *slot = Some(handle);
+        }
+        Ok(())
+    }
+
+    #[wasm_export(js_name = "stopLocalDbScheduler", unchecked_return_type = "void")]
+    pub fn stop_local_db_scheduler(&self) -> Result<(), RaindexError> {
+        let scheduler_cell = Rc::clone(&self.local_db_state.scheduler);
+        let handle = {
+            let mut slot = scheduler_cell.borrow_mut();
+            slot.take()
+        };
+
+        if let Some(handle) = handle {
+            handle.stop();
+        }
+
+        Ok(())
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

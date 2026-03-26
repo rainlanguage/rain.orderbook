@@ -71,6 +71,8 @@ pub struct SyncOutcome {
     pub start_block: u64,
     /// Target block (inclusive) that was used.
     pub target_block: u64,
+    /// Chain head block number at the time of this sync cycle.
+    pub latest_block: u64,
     /// Count of raw logs fetched across orderbook and stores.
     pub fetched_logs: usize,
     /// Count of decoded events materialized during the cycle.
@@ -125,6 +127,9 @@ impl SyncPhase {
 pub trait StatusBus {
     /// Publishes a typed sync phase.
     async fn send(&self, phase: SyncPhase) -> Result<(), LocalDbError>;
+
+    /// Stores block context so subsequent `send` calls can include progress.
+    fn set_block_progress(&self, _latest_block: u64, _synced_block: u64) {}
 }
 
 /// Computes the inclusive `[start_block, target_block]` for a cycle.
