@@ -3,8 +3,8 @@ use super::LocalDb;
 use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHandle;
 #[cfg(target_family = "wasm")]
 use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
-use rain_orderbook_app_settings::network::NetworkCfg;
-use rain_orderbook_app_settings::yaml::orderbook::OrderbookYaml;
+use raindex_app_settings::network::NetworkCfg;
+use raindex_app_settings::yaml::orderbook::OrderbookYaml;
 #[cfg(target_family = "wasm")]
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -223,9 +223,9 @@ mod tests {
     use crate::local_db::query::{
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
-    use rain_orderbook_app_settings::yaml::YamlParsable;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
+    use raindex_app_settings::yaml::YamlParsable;
 
     struct NoopExec;
 

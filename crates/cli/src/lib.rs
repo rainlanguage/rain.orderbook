@@ -3,7 +3,7 @@ use crate::execute::Execute;
 use anyhow::Result;
 use clap::Subcommand;
 use commands::local_db::LocalDbCommands;
-use rain_orderbook_quote::cli::Quoter;
+use raindex_quote::cli::Quoter;
 
 mod commands;
 mod execute;

@@ -2,14 +2,14 @@ use crate::commands::local_db::executor::RusqliteExecutor;
 use alloy::primitives::hex::encode_prefixed;
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use rain_orderbook_common::local_db::export::{export_data_only, ExportError};
-use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
-use rain_orderbook_common::local_db::pipeline::SyncOutcome;
-use rain_orderbook_common::local_db::query::fetch_target_watermark::{
+use raindex_common::local_db::export::{export_data_only, ExportError};
+use raindex_common::local_db::pipeline::runner::utils::RunnerTarget;
+use raindex_common::local_db::pipeline::SyncOutcome;
+use raindex_common::local_db::query::fetch_target_watermark::{
     fetch_target_watermark_stmt, TargetWatermarkRow,
 };
-use rain_orderbook_common::local_db::query::LocalDbQueryExecutor;
-use rain_orderbook_common::local_db::LocalDbError;
+use raindex_common::local_db::query::LocalDbQueryExecutor;
+use raindex_common::local_db::LocalDbError;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tokio::fs::create_dir_all;
@@ -73,7 +73,7 @@ mod tests {
     use super::*;
     use alloy::primitives::address;
     use flate2::read::GzDecoder;
-    use rain_orderbook_common::local_db::{
+    use raindex_common::local_db::{
         pipeline::{engine::SyncInputs, FinalityConfig, SyncConfig, WindowOverrides},
         FetchConfig, OrderbookIdentifier,
     };
@@ -89,7 +89,7 @@ mod tests {
         let db_path = temp_dir.path().join("orderbook.sqlite");
         let conn = Connection::open(&db_path).expect("open sqlite db");
         conn.execute_batch(
-            rain_orderbook_common::local_db::query::create_tables::CREATE_TABLES_SQL,
+            raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL,
         )
         .expect("create tables");
 
@@ -210,7 +210,7 @@ mod tests {
         let db_path = temp_dir.path().join("orderbook.sqlite");
         let conn = Connection::open(&db_path).expect("open sqlite db");
         conn.execute_batch(
-            rain_orderbook_common::local_db::query::create_tables::CREATE_TABLES_SQL,
+            raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL,
         )
         .expect("create tables");
         drop(conn);

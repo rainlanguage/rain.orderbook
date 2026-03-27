@@ -2,9 +2,9 @@ use super::utils::RunnerTarget;
 use crate::local_db::LocalDbError;
 use flate2::read::GzDecoder;
 use itertools::Itertools;
-use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
-use rain_orderbook_app_settings::orderbook::OrderbookCfg;
-use rain_orderbook_app_settings::remote::manifest::{fetch_multiple_manifests, ManifestMap};
+use raindex_app_settings::local_db_manifest::ManifestOrderbook;
+use raindex_app_settings::orderbook::OrderbookCfg;
+use raindex_app_settings::remote::manifest::{fetch_multiple_manifests, ManifestMap};
 use std::collections::HashMap;
 use std::io::Read;
 use url::Url;
@@ -80,14 +80,14 @@ mod tests {
     use alloy::primitives::{address, Bytes};
     use flate2::write::GzEncoder;
     use httpmock::prelude::*;
-    use rain_orderbook_app_settings::local_db_manifest::{
+    use raindex_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, MANIFEST_VERSION,
     };
-    use rain_orderbook_app_settings::local_db_remotes::LocalDbRemoteCfg;
-    use rain_orderbook_app_settings::orderbook::OrderbookCfg;
-    use rain_orderbook_app_settings::remote::manifest::{FetchManifestError, ManifestMap};
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_app_settings::yaml::default_document;
+    use raindex_app_settings::local_db_remotes::LocalDbRemoteCfg;
+    use raindex_app_settings::orderbook::OrderbookCfg;
+    use raindex_app_settings::remote::manifest::{FetchManifestError, ManifestMap};
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::yaml::default_document;
     use std::collections::{HashMap, HashSet};
     use std::io::Write;
     use std::sync::Arc;

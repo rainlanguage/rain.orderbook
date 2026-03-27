@@ -10,11 +10,11 @@ use alloy::{
 };
 use itertools::Itertools;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IRaindexV6::{
+use raindex_bindings::IRaindexV6::{
     AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     IOV2,
 };
-use rain_orderbook_bindings::OrderBook::MetaV1_2;
+use raindex_bindings::OrderBook::MetaV1_2;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use thiserror::Error;
@@ -967,8 +967,8 @@ mod tests {
     use crate::rpc_client::LogEntryResponse;
     use alloy::hex;
     use alloy::primitives::{address, b256, Address, Bytes, FixedBytes, B256, U256};
-    use rain_orderbook_bindings::IInterpreterStoreV3::Set;
-    use rain_orderbook_bindings::IRaindexV6::{
+    use raindex_bindings::IInterpreterStoreV3::Set;
+    use raindex_bindings::IRaindexV6::{
         ClearConfigV2, ClearStateChangeV2, EvaluableV4, SignedContextV1, TakeOrderConfigV4,
     };
     use std::collections::HashMap;

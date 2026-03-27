@@ -1,7 +1,7 @@
 use crate::gui::{DotrainOrderGui, GuiError};
 use crate::yaml::{OrderbookYaml, OrderbookYamlError};
-use rain_orderbook_app_settings::gui::NameAndDescriptionCfg;
-use rain_orderbook_common::raindex_client::{RaindexClient, RaindexError as RaindexClientError};
+use raindex_app_settings::gui::NameAndDescriptionCfg;
+use raindex_common::raindex_client::{RaindexClient, RaindexError as RaindexClientError};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -732,7 +732,7 @@ impl DotrainRainlang {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
     use std::collections::HashMap;
 
     const MOCK_REGISTRY_CONTENT: &str = r#"https://example.com/settings.yaml

@@ -5,7 +5,7 @@ Summary
 - Scope: ABI-based type generation via Alloy, a read‑only provider builder with multi‑RPC fallback, and WASM interop shims (TypeScript typings + conversions).
 
 File Layout
-- Cargo.toml: Declares the crate `rain_orderbook_bindings`. Key deps: `alloy` (codegen + types + RPC), `serde` (Serialize/Deserialize), `tower` (layers), `url`, `thiserror`. For WASM builds it uses `wasm-bindgen-utils` and `wasm-bindgen-test` for tests.
+- Cargo.toml: Declares the crate `raindex_bindings`. Key deps: `alloy` (codegen + types + RPC), `serde` (Serialize/Deserialize), `tower` (layers), `url`, `thiserror`. For WASM builds it uses `wasm-bindgen-utils` and `wasm-bindgen-test` for tests.
 - src/lib.rs: Declares contract bindings using Alloy’s `sol!` macro and re‑exports internal modules. Conditionally includes WASM modules.
 - src/provider.rs: Builds a read‑only provider with multi‑RPC fallback and sensible default request fillers.
 - src/js_api.rs (wasm only): JS/WASM interop. Implements wasm conversion traits and custom TypeScript interfaces for selected ABI types used in the GUI.
@@ -111,10 +111,10 @@ Error Handling
 - ABI call errors, revert decoding, and multicall aggregation are handled in consumer crates (e.g., `quote`), leveraging these bindings for encoding/decoding.
 
 Build and Test
-- Build (workspace): `nix develop -c cargo build -p rain_orderbook_bindings`.
+- Build (workspace): `nix develop -c cargo build -p raindex_bindings`.
 - Tests (native and wasm; wasm executed via runner in the flake):
-  - Native: `nix develop -c cargo test -p rain_orderbook_bindings`.
-  - WASM: the workspace’s Nix config sets `CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner'` and runs `cargo test --target wasm32-unknown-unknown -p rain_orderbook_bindings`.
+  - Native: `nix develop -c cargo test -p raindex_bindings`.
+  - WASM: the workspace’s Nix config sets `CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER='wasm-bindgen-test-runner'` and runs `cargo test --target wasm32-unknown-unknown -p raindex_bindings`.
 
 Examples
 - Constructing a read provider and querying via an instance (native):
@@ -123,7 +123,7 @@ Examples
   - Call a view: `let quote = ob.quote2(config).await?;`
 
 - Building calldata without an instance:
-  - `use rain_orderbook_bindings::IOrderBookV5::removeOrder3Call;`
+  - `use raindex_bindings::IOrderBookV5::removeOrder3Call;`
   - Construct the struct and encode: `let bytes = removeOrder3Call { order, tasks }.abi_encode();`
 
 Limitations and Notes

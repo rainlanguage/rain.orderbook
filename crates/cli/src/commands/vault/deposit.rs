@@ -5,7 +5,7 @@ use alloy::primitives::{Address, B256, U256};
 use anyhow::Result;
 use clap::Args;
 use rain_math_float::Float;
-use rain_orderbook_common::{deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs};
+use raindex_common::{deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs};
 use tracing::info;
 
 #[derive(Args, Clone)]

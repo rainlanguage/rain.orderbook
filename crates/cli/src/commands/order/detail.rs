@@ -1,7 +1,7 @@
 use crate::{execute::Execute, subgraph::CliSubgraphArgs};
 use anyhow::Result;
 use clap::Args;
-use rain_orderbook_common::{subgraph::SubgraphArgs, types::OrderDetailExtended};
+use raindex_common::{subgraph::SubgraphArgs, types::OrderDetailExtended};
 use tracing::info;
 
 #[derive(Args, Clone)]
@@ -32,7 +32,7 @@ mod tests {
     use super::*;
     use alloy::{hex::encode_prefixed, primitives::B256, sol_types::SolValue};
     use httpmock::MockServer;
-    use rain_orderbook_bindings::IRaindexV6::{OrderV4, IOV2};
+    use raindex_bindings::IRaindexV6::{OrderV4, IOV2};
     use serde_json::{json, Value};
 
     #[tokio::test]

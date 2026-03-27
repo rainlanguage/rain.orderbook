@@ -6,8 +6,8 @@ use alloy::sol_types::SolCall;
 use alloy_ethers_typecast::WritableClientError;
 #[cfg(not(target_family = "wasm"))]
 use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
-use rain_orderbook_bindings::IRaindexV6::removeOrder3Call;
-use rain_orderbook_subgraph_client::types::{
+use raindex_bindings::IRaindexV6::removeOrder3Call;
+use raindex_subgraph_client::types::{
     common::SgOrder, order_detail_traits::OrderDetailError,
 };
 use serde::{Deserialize, Serialize};
@@ -79,11 +79,11 @@ impl RemoveOrderArgs {
 mod tests {
     use super::*;
     use alloy::primitives::Address;
-    use rain_orderbook_bindings::IRaindexV6::removeOrder3Call;
-    use rain_orderbook_subgraph_client::types::common::{
+    use raindex_bindings::IRaindexV6::removeOrder3Call;
+    use raindex_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
     };
-    use rain_orderbook_subgraph_client::utils::float::*;
+    use raindex_subgraph_client::utils::float::*;
 
     fn get_order() -> SgOrder {
         SgOrder {

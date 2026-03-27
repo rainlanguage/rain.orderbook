@@ -21,14 +21,14 @@ use rain_interpreter_eval::eval::ForkParseArgs;
 use rain_interpreter_eval::fork::{Forker, NewForkedEvm};
 pub use rain_interpreter_eval::trace::{RainEvalResult, RainEvalResults, TraceSearchError};
 use rain_interpreter_eval::{error::ForkCallError, eval::ForkEvalArgs};
-use rain_orderbook_app_settings::blocks::BlockError;
-use rain_orderbook_app_settings::scenario::ScenarioCfg;
-use rain_orderbook_app_settings::yaml::dotrain::DotrainYamlValidation;
-use rain_orderbook_app_settings::{
+use raindex_app_settings::blocks::BlockError;
+use raindex_app_settings::scenario::ScenarioCfg;
+use raindex_app_settings::yaml::dotrain::DotrainYamlValidation;
+use raindex_app_settings::{
     order::OrderIOCfg,
     yaml::{dotrain::DotrainYaml, YamlError, YamlParsable},
 };
-use rain_orderbook_bindings::IERC20Metadata;
+use raindex_bindings::IERC20Metadata;
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
@@ -731,8 +731,8 @@ impl FuzzRunner {
 mod tests {
     use super::*;
     use alloy::providers::{ext::AnvilApi, Provider};
-    use rain_orderbook_app_settings::{spec_version::SpecVersion, yaml::FieldErrorKind};
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_app_settings::{spec_version::SpecVersion, yaml::FieldErrorKind};
+    use raindex_test_fixtures::LocalEvm;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 10)]
     async fn test_fuzz_runner_missing_spec_version() {

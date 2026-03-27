@@ -1,6 +1,6 @@
 use alloy::{primitives::Bytes, sol_types::SolCall};
 use rain_math_float::Float;
-use rain_orderbook_bindings::OrderBook::multicallCall;
+use raindex_bindings::OrderBook::multicallCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;

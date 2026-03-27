@@ -1,10 +1,10 @@
 use super::export::ExportMetadata;
 use alloy::primitives::{Address, Bytes};
-use rain_orderbook_app_settings::local_db_manifest::{LocalDbManifest, ManifestOrderbook};
-use rain_orderbook_app_settings::remote::manifest::ManifestMap;
-use rain_orderbook_common::local_db::pipeline::runner::utils::RunnerTarget;
-use rain_orderbook_common::local_db::pipeline::runner::TargetSuccess;
-use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
+use raindex_app_settings::local_db_manifest::{LocalDbManifest, ManifestOrderbook};
+use raindex_app_settings::remote::manifest::ManifestMap;
+use raindex_common::local_db::pipeline::runner::utils::RunnerTarget;
+use raindex_common::local_db::pipeline::runner::TargetSuccess;
+use raindex_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
 use std::path::Path;
 use std::str::FromStr;
@@ -156,14 +156,14 @@ mod tests {
     use super::*;
     use crate::commands::local_db::pipeline::runner::export::ExportMetadata;
     use alloy::primitives::address;
-    use rain_orderbook_app_settings::local_db_manifest::{
+    use raindex_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
     };
-    use rain_orderbook_common::local_db::pipeline::engine::SyncInputs;
-    use rain_orderbook_common::local_db::pipeline::{
+    use raindex_common::local_db::pipeline::engine::SyncInputs;
+    use raindex_common::local_db::pipeline::{
         FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
     };
-    use rain_orderbook_common::local_db::{FetchConfig, OrderbookIdentifier};
+    use raindex_common::local_db::{FetchConfig, OrderbookIdentifier};
     use std::collections::HashMap;
     use tempfile::TempDir;
 

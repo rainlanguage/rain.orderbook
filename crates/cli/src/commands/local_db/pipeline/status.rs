@@ -1,4 +1,4 @@
-use rain_orderbook_common::local_db::{
+use raindex_common::local_db::{
     pipeline::{StatusBus, SyncPhase},
     LocalDbError, OrderbookIdentifier,
 };

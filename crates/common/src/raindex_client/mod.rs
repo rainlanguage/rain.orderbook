@@ -14,7 +14,7 @@ use alloy::{
 };
 pub(crate) use local_db::{ClassifiedChains, LocalDbState, QuerySource};
 use rain_math_float::FloatError;
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     network::NetworkCfg,
     remote_networks::ParseRemoteNetworksError,
     remote_tokens::ParseRemoteTokensError,
@@ -23,7 +23,7 @@ use rain_orderbook_app_settings::{
         YamlError, YamlParsable,
     },
 };
-use rain_orderbook_subgraph_client::{
+use raindex_subgraph_client::{
     types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
     OrderbookSubgraphClientError,
 };
@@ -416,7 +416,7 @@ pub enum RaindexError {
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
     #[error(transparent)]
-    OrderbookQuoteError(#[from] rain_orderbook_quote::error::Error),
+    OrderbookQuoteError(#[from] raindex_quote::error::Error),
     #[error("Missing subgraph {0} for order {1}")]
     SubgraphNotFound(String, String),
     #[error("Invalid vault balance change type: {0}")]
@@ -694,7 +694,7 @@ impl From<RaindexError> for WasmEncodedError {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
 
     #[cfg(not(target_family = "wasm"))]
     pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
@@ -980,7 +980,7 @@ accounts:
     #[cfg(target_family = "wasm")]
     mod wasm_tests {
         use super::*;
-        use rain_orderbook_app_settings::yaml::YamlError;
+        use raindex_app_settings::yaml::YamlError;
         use url::Url;
         use wasm_bindgen_test::wasm_bindgen_test;
 

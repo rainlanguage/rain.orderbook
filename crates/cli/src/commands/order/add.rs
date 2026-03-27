@@ -3,11 +3,11 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args};
-use rain_orderbook_app_settings::yaml::dotrain::{DotrainYaml, DotrainYamlValidation};
-use rain_orderbook_app_settings::yaml::YamlParsable;
-use rain_orderbook_common::add_order::AddOrderArgs;
-use rain_orderbook_common::dotrain::RainDocument;
-use rain_orderbook_common::transaction::TransactionArgs;
+use raindex_app_settings::yaml::dotrain::{DotrainYaml, DotrainYamlValidation};
+use raindex_app_settings::yaml::YamlParsable;
+use raindex_common::add_order::AddOrderArgs;
+use raindex_common::dotrain::RainDocument;
+use raindex_common::transaction::TransactionArgs;
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use tracing::info;
@@ -79,8 +79,8 @@ impl Execute for CliOrderAddArgs {
 mod tests {
     use super::*;
     use alloy::primitives::{address, Address, B256, U256};
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_bindings::IRaindexV6::IOV2;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_bindings::IRaindexV6::IOV2;
     use std::{collections::HashMap, str::FromStr};
     use tempfile::NamedTempFile;
 

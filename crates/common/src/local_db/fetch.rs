@@ -6,7 +6,7 @@ use crate::{
 use alloy::primitives::{Address, U256};
 use alloy::rpc::types::Filter;
 use futures::{StreamExt, TryStreamExt};
-use rain_orderbook_bindings::topics::{ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
+use raindex_bindings::topics::{ORDERBOOK_EVENT_TOPICS, STORE_SET_TOPICS};
 use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
@@ -443,7 +443,7 @@ mod tests {
         use alloy::rpc::types::FilterBlockError;
         use alloy::sol_types::SolEvent;
         use httpmock::prelude::*;
-        use rain_orderbook_bindings::{IInterpreterStoreV3::Set, IRaindexV6::AddOrderV3};
+        use raindex_bindings::{IInterpreterStoreV3::Set, IRaindexV6::AddOrderV3};
         use serde_json::json;
         use std::str::FromStr;
         use std::sync::atomic::{AtomicUsize, Ordering};

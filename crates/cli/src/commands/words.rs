@@ -2,7 +2,7 @@ use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use clap::{ArgAction, Args, Parser};
 use csv::Writer;
-use rain_orderbook_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, WordsResult};
+use raindex_common::dotrain_order::{AuthoringMetaV2, DotrainOrder, WordsResult};
 use std::{fs::read_to_string, path::PathBuf};
 
 /// Get words of a rainlang contract from the given inputs
@@ -225,7 +225,7 @@ mod tests {
     use clap::CommandFactory;
     use httpmock::MockServer;
     use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
     use serde_bytes::ByteBuf;
     use serde_json::json;
     use tempfile::NamedTempFile;

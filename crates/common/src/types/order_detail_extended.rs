@@ -1,5 +1,5 @@
 use crate::meta::{TryDecodeRainlangSource, TryDecodeRainlangSourceError};
-use rain_orderbook_subgraph_client::types::common::SgOrder;
+use raindex_subgraph_client::types::common::SgOrder;
 use serde::{Deserialize, Serialize};
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
@@ -36,7 +36,7 @@ impl TryFrom<SgOrder> for OrderDetailExtended {
 mod tests {
     use super::*;
     use crate::meta::TryDecodeRainlangSourceError;
-    use rain_orderbook_subgraph_client::types::common::{
+    use raindex_subgraph_client::types::common::{
         SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderStructPartialTrade, SgOrderbook,
         SgRemoveOrder, SgTransaction, SgVault,
     };

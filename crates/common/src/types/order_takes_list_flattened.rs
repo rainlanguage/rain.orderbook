@@ -1,6 +1,6 @@
 use crate::{csv::TryIntoCsv, utils::timestamp::format_bigint_timestamp_display};
 use rain_math_float::Float;
-use rain_orderbook_subgraph_client::types::common::*;
+use raindex_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
 use super::FlattenError;
@@ -59,11 +59,11 @@ impl TryIntoCsv<OrderTakeFlattened> for Vec<OrderTakeFlattened> {}
 mod tests {
     use super::*;
     use rain_math_float::FloatError;
-    use rain_orderbook_subgraph_client::types::common::{
+    use raindex_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
-    use rain_orderbook_subgraph_client::utils::float::*;
+    use raindex_subgraph_client::utils::float::*;
 
     // Helper to build a default, valid SgTrade instance
     fn mock_sg_trade_default() -> SgTrade {

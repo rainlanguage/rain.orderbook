@@ -4,9 +4,9 @@ use alloy::providers::Provider;
 use alloy::rpc::types::TransactionRequest;
 use alloy::serde::WithOtherFields;
 use alloy::sol_types::SolCall;
-use rain_orderbook_bindings::provider::ReadProvider;
-use rain_orderbook_bindings::IRaindexV6::{takeOrders4Call, TakeOrdersConfigV5};
-use rain_orderbook_bindings::IERC20::approveCall;
+use raindex_bindings::provider::ReadProvider;
+use raindex_bindings::IRaindexV6::{takeOrders4Call, TakeOrdersConfigV5};
+use raindex_bindings::IERC20::approveCall;
 use thiserror::Error;
 
 use crate::erc20::ERC20;
@@ -295,9 +295,9 @@ mod local_evm_tests {
     use super::*;
     use crate::erc20::ERC20;
     use alloy::primitives::B256;
-    use rain_orderbook_bindings::provider::mk_read_provider;
-    use rain_orderbook_bindings::IRaindexV6::TakeOrderConfigV4;
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_bindings::provider::mk_read_provider;
+    use raindex_bindings::IRaindexV6::TakeOrderConfigV4;
+    use raindex_test_fixtures::LocalEvm;
     use url::Url;
 
     async fn setup_local_evm() -> (LocalEvm, Address, Address, Address) {
@@ -474,9 +474,9 @@ mod local_evm_tests {
         let provider = mk_read_provider(&[rpc_url]).unwrap();
 
         let fake_order = TakeOrderConfigV4 {
-            order: rain_orderbook_bindings::IRaindexV6::OrderV4 {
+            order: raindex_bindings::IRaindexV6::OrderV4 {
                 owner: Address::ZERO,
-                evaluable: rain_orderbook_bindings::IRaindexV6::EvaluableV4 {
+                evaluable: raindex_bindings::IRaindexV6::EvaluableV4 {
                     interpreter: Address::ZERO,
                     store: Address::ZERO,
                     bytecode: Bytes::new(),
@@ -531,9 +531,9 @@ mod local_evm_tests {
         let provider = mk_read_provider(&[rpc_url]).unwrap();
 
         let fake_order = TakeOrderConfigV4 {
-            order: rain_orderbook_bindings::IRaindexV6::OrderV4 {
+            order: raindex_bindings::IRaindexV6::OrderV4 {
                 owner: Address::ZERO,
-                evaluable: rain_orderbook_bindings::IRaindexV6::EvaluableV4 {
+                evaluable: raindex_bindings::IRaindexV6::EvaluableV4 {
                     interpreter: Address::ZERO,
                     store: Address::ZERO,
                     bytecode: Bytes::new(),

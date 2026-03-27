@@ -123,8 +123,8 @@ impl DotrainAddOrderLsp {
 #[cfg(all(test, not(target_family = "wasm")))]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_test_fixtures::LocalEvm;
     use url::Url;
 
     fn get_text() -> String {

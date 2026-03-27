@@ -8,8 +8,8 @@ use alloy_ethers_typecast::{
 use alloy_ethers_typecast::{WriteTransaction, WriteTransactionStatus};
 use rain_math_float::{Float, FloatError};
 #[cfg(not(target_family = "wasm"))]
-use rain_orderbook_bindings::IERC20::approveCall;
-use rain_orderbook_bindings::{IRaindexV6::deposit4Call, IERC20::allowanceCall};
+use raindex_bindings::IERC20::approveCall;
+use raindex_bindings::{IRaindexV6::deposit4Call, IERC20::allowanceCall};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

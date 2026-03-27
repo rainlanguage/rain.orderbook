@@ -12,15 +12,15 @@ use environment::default_environment;
 use export::export_dump;
 pub use export::ExportMetadata;
 use manifest::{build_manifest, write_manifest_to_path};
-use rain_orderbook_app_settings::local_db_manifest::ManifestOrderbook;
-use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipeline;
-use rain_orderbook_common::local_db::pipeline::runner::{
+use raindex_app_settings::local_db_manifest::ManifestOrderbook;
+use raindex_common::local_db::pipeline::adapters::apply::ApplyPipeline;
+use raindex_common::local_db::pipeline::runner::{
     environment::RunnerEnvironment,
     remotes::lookup_manifest_entry,
     utils::{build_runner_targets, parse_runner_settings, ParsedRunnerSettings, RunnerTarget},
     RunReport, TargetFailure, TargetStage, TargetSuccess,
 };
-use rain_orderbook_common::local_db::pipeline::{
+use raindex_common::local_db::pipeline::{
     adapters::{
         apply::DefaultApplyPipeline, bootstrap::BootstrapPipeline, events::DefaultEventsPipeline,
         tokens::DefaultTokensPipeline, window::DefaultWindowPipeline,
@@ -28,7 +28,7 @@ use rain_orderbook_common::local_db::pipeline::{
     engine::SyncInputs,
     EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
 };
-use rain_orderbook_common::local_db::{LocalDbError, OrderbookIdentifier};
+use raindex_common::local_db::{LocalDbError, OrderbookIdentifier};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -347,26 +347,26 @@ mod tests {
     use alloy::primitives::{address, hex::encode_prefixed, Address, Bytes, B256};
     use async_trait::async_trait;
     use flate2::read::GzDecoder;
-    use rain_orderbook_app_settings::local_db_manifest::{
+    use raindex_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
     };
-    use rain_orderbook_app_settings::orderbook::OrderbookCfg;
-    use rain_orderbook_app_settings::remote::manifest::ManifestMap;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_common::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
-    use rain_orderbook_common::local_db::pipeline::adapters::bootstrap::{
+    use raindex_app_settings::orderbook::OrderbookCfg;
+    use raindex_app_settings::remote::manifest::ManifestMap;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_common::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
+    use raindex_common::local_db::pipeline::adapters::bootstrap::{
         BootstrapConfig, BootstrapPipeline, BootstrapState,
     };
-    use rain_orderbook_common::local_db::pipeline::runner::environment::{
+    use raindex_common::local_db::pipeline::runner::environment::{
         DumpFuture, EnginePipelines, ManifestFuture,
     };
-    use rain_orderbook_common::local_db::pipeline::{
+    use raindex_common::local_db::pipeline::{
         EventsPipeline, StatusBus, SyncPhase, TokensPipeline, WindowPipeline,
     };
-    use rain_orderbook_common::local_db::query::{
+    use raindex_common::local_db::query::{
         LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use rain_orderbook_common::local_db::{FetchConfig, LocalDbError};
+    use raindex_common::local_db::{FetchConfig, LocalDbError};
     use std::collections::HashMap;
     use std::fs::File;
     use std::io::Read;
@@ -758,7 +758,7 @@ mod tests {
             &self,
             _db: &DB,
             _target: &OrderbookIdentifier,
-            _cfg: &rain_orderbook_common::local_db::pipeline::SyncConfig,
+            _cfg: &raindex_common::local_db::pipeline::SyncConfig,
             _latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
         where
@@ -785,7 +785,7 @@ mod tests {
             _from_block: u64,
             _to_block: u64,
             _cfg: &FetchConfig,
-        ) -> Result<Vec<rain_orderbook_common::rpc_client::LogEntryResponse>, LocalDbError>
+        ) -> Result<Vec<raindex_common::rpc_client::LogEntryResponse>, LocalDbError>
         {
             Ok(Vec::new())
         }
@@ -796,18 +796,18 @@ mod tests {
             _from_block: u64,
             _to_block: u64,
             _cfg: &FetchConfig,
-        ) -> Result<Vec<rain_orderbook_common::rpc_client::LogEntryResponse>, LocalDbError>
+        ) -> Result<Vec<raindex_common::rpc_client::LogEntryResponse>, LocalDbError>
         {
             Ok(Vec::new())
         }
 
         fn decode(
             &self,
-            _logs: &[rain_orderbook_common::rpc_client::LogEntryResponse],
+            _logs: &[raindex_common::rpc_client::LogEntryResponse],
         ) -> Result<
             Vec<
-                rain_orderbook_common::local_db::decode::DecodedEventData<
-                    rain_orderbook_common::local_db::decode::DecodedEvent,
+                raindex_common::local_db::decode::DecodedEventData<
+                    raindex_common::local_db::decode::DecodedEvent,
                 >,
             >,
             LocalDbError,
@@ -831,7 +831,7 @@ mod tests {
             _ob_id: &OrderbookIdentifier,
             _token_addrs_lower: &[Address],
         ) -> Result<
-            Vec<rain_orderbook_common::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
+            Vec<raindex_common::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
             LocalDbError,
         >
         where
@@ -844,7 +844,7 @@ mod tests {
             &self,
             _missing: Vec<Address>,
             _cfg: &FetchConfig,
-        ) -> Result<Vec<(Address, rain_orderbook_common::erc20::TokenInfo)>, LocalDbError> {
+        ) -> Result<Vec<(Address, raindex_common::erc20::TokenInfo)>, LocalDbError> {
             Ok(Vec::new())
         }
     }
@@ -865,14 +865,14 @@ mod tests {
         fn build_batch(
             &self,
             _target_info: &ApplyPipelineTargetInfo,
-            _raw_logs: &[rain_orderbook_common::rpc_client::LogEntryResponse],
-            _decoded_events: &[rain_orderbook_common::local_db::decode::DecodedEventData<
-                rain_orderbook_common::local_db::decode::DecodedEvent,
+            _raw_logs: &[raindex_common::rpc_client::LogEntryResponse],
+            _decoded_events: &[raindex_common::local_db::decode::DecodedEventData<
+                raindex_common::local_db::decode::DecodedEvent,
             >],
             _existing_tokens: &[
-                rain_orderbook_common::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow
+                raindex_common::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow
             ],
-            _tokens_to_upsert: &[(Address, rain_orderbook_common::erc20::TokenInfo)],
+            _tokens_to_upsert: &[(Address, raindex_common::erc20::TokenInfo)],
         ) -> Result<SqlStatementBatch, LocalDbError> {
             Ok(SqlStatementBatch::new())
         }

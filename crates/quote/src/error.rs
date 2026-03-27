@@ -4,8 +4,8 @@ use alloy::{
 };
 use alloy_ethers_typecast::ReadableClientError;
 use rain_error_decoding::{AbiDecodeFailedErrors, AbiDecodedErrorType};
-use rain_orderbook_bindings::provider::ReadProviderError;
-use rain_orderbook_subgraph_client::{
+use raindex_bindings::provider::ReadProviderError;
+use raindex_subgraph_client::{
     types::order_detail_traits::OrderDetailError, OrderbookSubgraphClientError,
 };
 use thiserror::Error;

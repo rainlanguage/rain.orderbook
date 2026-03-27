@@ -1,7 +1,7 @@
 use crate::execute::Execute;
 use anyhow::{anyhow, Result};
 use clap::Args;
-use rain_orderbook_common::fuzz::{FuzzRunner, FuzzRunnerContext};
+use raindex_common::fuzz::{FuzzRunner, FuzzRunnerContext};
 use std::fs::read_to_string;
 use std::path::PathBuf;
 use tracing::info;
@@ -31,8 +31,8 @@ impl Execute for Chart {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_test_fixtures::LocalEvm;
     use std::io::Write;
     use tempfile::NamedTempFile;
 

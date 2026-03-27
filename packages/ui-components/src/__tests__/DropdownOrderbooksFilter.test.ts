@@ -1,21 +1,21 @@
 import { render, fireEvent, screen, waitFor } from '@testing-library/svelte';
 import { get, writable } from 'svelte/store';
-import DropdownOrderbooksFilter from '../lib/components/dropdown/DropdownOrderbooksFilter.svelte';
+import DropdownRaindexesFilter from '../lib/components/dropdown/DropdownRaindexesFilter.svelte';
 import { expect, test, describe, beforeEach, vi, type Mock } from 'vitest';
-import type { Address } from '@rainlanguage/orderbook';
+import type { Address } from '@rainlanguage/raindex';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
 vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
 }));
 
-const mockOrderbooksData = new Map([
+const mockRaindexsData = new Map([
 	[
 		'orderbook1',
 		{
 			key: 'orderbook1',
 			address: '0x1234567890123456789012345678901234567890',
-			label: 'Orderbook One',
+			label: 'Raindex One',
 			network: { chainId: 1 }
 		}
 	],
@@ -24,7 +24,7 @@ const mockOrderbooksData = new Map([
 		{
 			key: 'orderbook2',
 			address: '0x2345678901234567890123456789012345678901',
-			label: 'Orderbook Two',
+			label: 'Raindex Two',
 			network: { chainId: 1 }
 		}
 	],
@@ -39,15 +39,15 @@ const mockOrderbooksData = new Map([
 	]
 ]);
 
-describe('DropdownOrderbooksFilter', () => {
-	let activeOrderbookAddresses: ReturnType<typeof writable<Address[]>>;
+describe('DropdownRaindexesFilter', () => {
+	let activeRaindexAddresses: ReturnType<typeof writable<Address[]>>;
 
 	beforeEach(() => {
-		activeOrderbookAddresses = writable([]);
+		activeRaindexAddresses = writable([]);
 
 		(useRaindexClient as Mock).mockReturnValue({
-			getAllOrderbooks: vi.fn(() => ({
-				value: mockOrderbooksData,
+			getAllRaindexs: vi.fn(() => ({
+				value: mockRaindexsData,
 				error: undefined
 			}))
 		});
@@ -56,16 +56,16 @@ describe('DropdownOrderbooksFilter', () => {
 	describe('Empty state', () => {
 		test('displays empty message when no orderbooks available', async () => {
 			(useRaindexClient as Mock).mockReturnValue({
-				getAllOrderbooks: vi.fn(() => ({
+				getAllRaindexs: vi.fn(() => ({
 					value: new Map(),
 					error: undefined
 				}))
 			});
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -79,18 +79,18 @@ describe('DropdownOrderbooksFilter', () => {
 
 		test('displays custom empty message', async () => {
 			(useRaindexClient as Mock).mockReturnValue({
-				getAllOrderbooks: vi.fn(() => ({
+				getAllRaindexs: vi.fn(() => ({
 					value: new Map(),
 					error: undefined
 				}))
 			});
 
-			const customEmptyMessage = 'Orderbook list is empty';
+			const customEmptyMessage = 'Raindex list is empty';
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: [],
 					emptyMessage: customEmptyMessage
 				}
@@ -105,19 +105,19 @@ describe('DropdownOrderbooksFilter', () => {
 	});
 
 	describe('Error state', () => {
-		test('displays error message when getAllOrderbooks returns error', async () => {
+		test('displays error message when getAllRaindexs returns error', async () => {
 			const errorMessage = 'Failed to load orderbooks';
 			(useRaindexClient as Mock).mockReturnValue({
-				getAllOrderbooks: vi.fn(() => ({
+				getAllRaindexs: vi.fn(() => ({
 					value: undefined,
 					error: { readableMsg: errorMessage }
 				}))
 			});
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -134,10 +134,10 @@ describe('DropdownOrderbooksFilter', () => {
 
 	describe('Selected orderbooks display', () => {
 		test('displays "Select orderbooks" when no orderbooks are selected', () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -146,14 +146,14 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('displays "All orderbooks" when all orderbooks are selected', () => {
-			const allAddresses = Array.from(mockOrderbooksData.values()).map(
+			const allAddresses = Array.from(mockRaindexsData.values()).map(
 				(ob) => ob.address
 			) as Address[];
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: allAddresses,
+					activeRaindexAddresses,
+					selectedRaindexAddresses: allAddresses,
 					selectedChainIds: []
 				}
 			});
@@ -162,15 +162,15 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('displays custom all label when all orderbooks are selected', () => {
-			const allAddresses = Array.from(mockOrderbooksData.values()).map(
+			const allAddresses = Array.from(mockRaindexsData.values()).map(
 				(ob) => ob.address
 			) as Address[];
 			const customAllLabel = 'Everything selected';
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: allAddresses,
+					activeRaindexAddresses,
+					selectedRaindexAddresses: allAddresses,
 					selectedChainIds: [],
 					allLabel: customAllLabel
 				}
@@ -180,12 +180,12 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('displays count when one orderbook is selected', () => {
-			const selectedAddress = Array.from(mockOrderbooksData.values())[0].address as Address;
+			const selectedAddress = Array.from(mockRaindexsData.values())[0].address as Address;
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [selectedAddress],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [selectedAddress],
 					selectedChainIds: []
 				}
 			});
@@ -194,14 +194,14 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('displays plural count when multiple orderbooks are selected', () => {
-			const selectedAddresses = Array.from(mockOrderbooksData.values())
+			const selectedAddresses = Array.from(mockRaindexsData.values())
 				.slice(0, 2)
 				.map((ob) => ob.address) as Address[];
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: selectedAddresses,
+					activeRaindexAddresses,
+					selectedRaindexAddresses: selectedAddresses,
 					selectedChainIds: []
 				}
 			});
@@ -210,10 +210,10 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('updates selected orderbooks when checkbox is clicked', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -224,18 +224,18 @@ describe('DropdownOrderbooksFilter', () => {
 			await fireEvent.click(checkboxes[0]);
 
 			await waitFor(() => {
-				const selected = get(activeOrderbookAddresses);
+				const selected = get(activeRaindexAddresses);
 				expect(selected.length).toBe(1);
 			});
 		});
 
 		test('shows selected orderbooks as checked', async () => {
-			const selectedAddress = Array.from(mockOrderbooksData.values())[0].address as Address;
+			const selectedAddress = Array.from(mockRaindexsData.values())[0].address as Address;
 
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [selectedAddress],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [selectedAddress],
 					selectedChainIds: []
 				}
 			});
@@ -250,10 +250,10 @@ describe('DropdownOrderbooksFilter', () => {
 
 	describe('Chain filtering', () => {
 		test('shows all orderbooks when selectedChainIds is empty', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -267,10 +267,10 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('filters orderbooks by selected chain ID', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: [1]
 				}
 			});
@@ -284,10 +284,10 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('shows orderbooks from multiple selected chains', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: [1, 137]
 				}
 			});
@@ -303,10 +303,10 @@ describe('DropdownOrderbooksFilter', () => {
 
 	describe('Display format', () => {
 		test('displays label with truncated address when label exists', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -314,16 +314,16 @@ describe('DropdownOrderbooksFilter', () => {
 			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
 
 			await waitFor(() => {
-				expect(screen.getByText(/Orderbook One/)).toBeInTheDocument();
+				expect(screen.getByText(/Raindex One/)).toBeInTheDocument();
 				expect(screen.getByText(/0x1234\.\.\.7890/)).toBeInTheDocument();
 			});
 		});
 
 		test('displays only truncated address when no label', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: [137]
 				}
 			});
@@ -336,10 +336,10 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('displays network name next to each orderbook', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -355,10 +355,10 @@ describe('DropdownOrderbooksFilter', () => {
 
 	describe('Search and keyboard navigation', () => {
 		test('filters orderbooks based on search term (label)', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -371,15 +371,15 @@ describe('DropdownOrderbooksFilter', () => {
 			await waitFor(() => {
 				const options = screen.getAllByTestId('dropdown-orderbooks-filter-option');
 				expect(options).toHaveLength(1);
-				expect(screen.getByText(/Orderbook One/)).toBeInTheDocument();
+				expect(screen.getByText(/Raindex One/)).toBeInTheDocument();
 			});
 		});
 
 		test('filters orderbooks based on search term (address)', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -396,10 +396,10 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('shows "No orderbooks match your search" when search yields no results', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -415,10 +415,10 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('keyboard navigation works correctly (ArrowDown/ArrowUp)', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -445,10 +445,10 @@ describe('DropdownOrderbooksFilter', () => {
 		});
 
 		test('Enter key selects highlighted orderbook', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});
@@ -467,16 +467,16 @@ describe('DropdownOrderbooksFilter', () => {
 			await fireEvent.keyDown(searchInput, { key: 'Enter' });
 
 			await waitFor(() => {
-				const selected = get(activeOrderbookAddresses);
+				const selected = get(activeRaindexAddresses);
 				expect(selected).toContain('0x1234567890123456789012345678901234567890'.toLowerCase());
 			});
 		});
 
 		test('Escape key clears search', async () => {
-			render(DropdownOrderbooksFilter, {
+			render(DropdownRaindexesFilter, {
 				props: {
-					activeOrderbookAddresses,
-					selectedOrderbookAddresses: [],
+					activeRaindexAddresses,
+					selectedRaindexAddresses: [],
 					selectedChainIds: []
 				}
 			});

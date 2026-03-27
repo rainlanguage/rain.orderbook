@@ -1,25 +1,25 @@
-# rain.orderbook
+# Raindex
 
-Rain Orderbook (also known as Raindex) is an open source, permissionless orderbook system with no fees or admin keys.
+Raindex is an open source, permissionless orderbook system with no fees or admin keys.
 
 ## Repository Structure
 
 This repository contains several components:
 
-- **Solidity Contracts**: The core smart contracts for the Rain Orderbook (`src`)
-- **Rust Crates**: Various tooling and libraries for interacting with the Rain Orderbook (`crates/*`)
+- **Solidity Contracts**: The core smart contracts for Raindex (`src`)
+- **Rust Crates**: Various tooling and libraries for interacting with Raindex (`crates/*`)
 - **JavaScript Packages (`packages/*`)**:
   - `webapp`: A SvelteKit site for Raindex
   - `ui-components`: A shared component library used in the webapp
-  - `orderbook`: A TypeScript package (published to npm) that provides bindings to the Rust crates
+  - `raindex`: A TypeScript package (published to npm) that provides bindings to the Rust crates
 
 ### Architecture
 
-We use wasm-bindgen to create the `orderbook` package from our Rust crates, which is then used by:
+We use wasm-bindgen to create the `raindex` package from our Rust crates, which is then used by:
 - The UI components library
 - The webapp
 
-This same package is [published to npm](https://www.npmjs.com/package/@rainlanguage/orderbook), allowing developers to more easily create their own frontends for Raindex.
+This same package is [published to npm](https://www.npmjs.com/package/@rainlanguage/raindex), allowing developers to more easily create their own frontends for Raindex.
 
 ## Setup for local development
 
@@ -48,8 +48,8 @@ Contracts are deployed via the Foundry script at `script/Deploy.sol`. The script
 
 - `DEPLOYMENT_KEY` — the deployer private key
 - `DEPLOYMENT_SUITE` — which contracts to deploy. One of:
-  - `raindex` — OrderBookV6 only
-  - `subparser` — OrderBookV6SubParser only
+  - `raindex` — RaindexV6 only
+  - `subparser` — RaindexV6SubParser only
   - `route-processor` — Sushi RouteProcessor4 only
   - `arb` — arb contracts only (order takers and flash borrowers)
 

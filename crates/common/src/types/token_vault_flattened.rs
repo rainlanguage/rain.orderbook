@@ -1,6 +1,6 @@
 use crate::csv::TryIntoCsv;
 use rain_math_float::Float;
-use rain_orderbook_subgraph_client::types::common::*;
+use raindex_subgraph_client::types::common::*;
 use serde::{Deserialize, Serialize};
 
 use super::FlattenError;
@@ -44,10 +44,10 @@ impl TryIntoCsv<TokenVaultFlattened> for Vec<TokenVaultFlattened> {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_subgraph_client::types::common::{
+    use raindex_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgVault, SgVaultBalanceChangeType,
     };
-    use rain_orderbook_subgraph_client::utils::float::*;
+    use raindex_subgraph_client::utils::float::*;
 
     #[allow(clippy::too_many_arguments)]
     fn create_sg_vault(

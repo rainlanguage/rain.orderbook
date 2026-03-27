@@ -1,7 +1,7 @@
 use alloy::primitives::{Address, Bytes, FixedBytes, U256};
 use alloy::sol_types::SolValue;
-use rain_orderbook_bindings::IRaindexV6::{OrderV4, SignedContextV1};
-use rain_orderbook_subgraph_client::types::common::SgOrder;
+use raindex_bindings::IRaindexV6::{OrderV4, SignedContextV1};
+use raindex_subgraph_client::types::common::SgOrder;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -187,7 +187,7 @@ pub fn extract_oracle_url(order: &SgOrder) -> Option<String> {
 mod tests {
     use super::*;
     use alloy::primitives::{address, FixedBytes};
-    use rain_orderbook_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
+    use raindex_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
 
     #[test]
     fn test_oracle_response_to_signed_context() {

@@ -12,7 +12,7 @@ The legacy subcommands in this directory have been replaced by a single orchestr
 Run the command from the workspace root so the CLI crate is available:
 
 ```bash
-nix develop -c cargo run -p rain_orderbook_cli -- local-db sync \
+nix develop -c cargo run -p raindex_cli -- local-db sync \
   --settings-yaml "https://github.com/rainlanguage/rain.strategies/blob/main/settings.yaml" \
   --api-token "$HYPERRPC_TOKEN" \
   --release-base-url "https://github.com/rainlanguage/rain.local-db.remote/releases/latest" \
@@ -32,7 +32,7 @@ The runner consumes the same schema as `crates/cli/settings.yaml`:
 - `local-db-remotes`: map of manifest aliases to URLs; manifests describe previously published dumps that can be used as a bootstrap baseline.
 - `local-db-sync`: per-network fetch configuration (batch size, concurrency, retry policy, finality depth).
 
-Validation is handled by `rain_orderbook_app_settings`, and missing sections will surface as CLI errors before any network calls are made.
+Validation is handled by `raindex_app_settings`, and missing sections will surface as CLI errors before any network calls are made.
 
 ## Outputs
 All artifacts live under `--out-root`:

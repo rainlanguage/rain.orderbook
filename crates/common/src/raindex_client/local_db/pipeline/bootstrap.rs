@@ -141,7 +141,7 @@ mod tests {
     };
     use alloy::primitives::{Address, Bytes};
     use async_trait::async_trait;
-    use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
+    use raindex_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
     use serde_json::json;
     use std::str::FromStr;
 

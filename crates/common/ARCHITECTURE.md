@@ -1,4 +1,4 @@
-# rain_orderbook_common — Architecture & Reference
+# raindex_common — Architecture & Reference
 
 This crate provides the shared core for the Rain Orderbook toolchain across native (CLI, services) and WebAssembly (browser) targets. It bundles higher‑level orchestration around:
 
@@ -41,7 +41,7 @@ Target gating is used extensively:
 ## Key Data Flow & Responsibilities
 
 ### 1) DOTRAIN → Rainlang → Bytecode (add_order)
-- Inputs: DOTRAIN (YAML frontmatter + Rainlang sections), selected scenario/deployment (from `rain_orderbook_app_settings`), and bindings.
+- Inputs: DOTRAIN (YAML frontmatter + Rainlang sections), selected scenario/deployment (from `raindex_app_settings`), and bindings.
 - `AddOrderArgs::compose_to_rainlang` uses `rainlang::compose_to_rainlang` to produce the Rainlang snippet for order entrypoints (`calculate-io`, `handle-io`).
 - Parser address is discovered via `DISPair::from_deployer`; the Rainlang text is parsed by `ParserV2::parse_text` over provided RPCs to produce bytecode.
 - Metadata is generated as a Rain Meta V1 document containing `RainlangSourceV1` and CBOR‑encoded with `rain-metadata`.
@@ -200,10 +200,10 @@ Where functionality cannot run in WASM, equivalent calldata generation methods a
 
 ## Notable Dependencies (workspace crates)
 
-- `rain_orderbook_bindings` — Strongly‑typed ABI for Orderbook and ERC20 contracts (`addOrder3`, `removeOrder3`, `deposit3`, `withdraw3`, multicall).
-- `rain_orderbook_subgraph_client` — GraphQL types and clients for orderbook data; provides `Sg*` models and helpers.
-- `rain_orderbook_app_settings` — DOTRAIN/orderbook YAML structures, validation, and spec versioning.
-- `rain_orderbook_quote` — Batch quote engine for orders.
+- `raindex_bindings` — Strongly‑typed ABI for Orderbook and ERC20 contracts (`addOrder3`, `removeOrder3`, `deposit3`, `withdraw3`, multicall).
+- `raindex_subgraph_client` — GraphQL types and clients for orderbook data; provides `Sg*` models and helpers.
+- `raindex_app_settings` — DOTRAIN/orderbook YAML structures, validation, and spec versioning.
+- `raindex_quote` — Batch quote engine for orders.
 - `rain_interpreter_*` — Parser, eval, DISP pair, bindings used to compile/evaluate Rainlang.
 - `rain_metadata` — CBOR‑encoded metadata with magic prefixes; used to embed Rainlang source.
 - `rain_error_decoding` — ABI error decoding to readable types/names.

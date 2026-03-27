@@ -3,10 +3,10 @@ use crate::local_db::pipeline::engine::SyncInputs;
 use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
 use crate::local_db::{LocalDbError, OrderbookIdentifier};
 use itertools::Itertools;
-use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
-use rain_orderbook_app_settings::orderbook::OrderbookCfg;
-use rain_orderbook_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
-use rain_orderbook_app_settings::yaml::YamlParsable;
+use raindex_app_settings::local_db_sync::LocalDbSyncCfg;
+use raindex_app_settings::orderbook::OrderbookCfg;
+use raindex_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
+use raindex_app_settings::yaml::YamlParsable;
 use std::collections::HashMap;
 use url::Url;
 
@@ -127,9 +127,9 @@ mod tests {
     use crate::local_db::fetch::FetchConfigError;
     use crate::local_db::LocalDbError;
     use alloy::primitives::address;
-    use rain_orderbook_app_settings::local_db_sync::LocalDbSyncCfg;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_app_settings::yaml::default_document;
+    use raindex_app_settings::local_db_sync::LocalDbSyncCfg;
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::yaml::default_document;
     use url::Url;
 
     fn sample_settings_yaml() -> String {
@@ -261,7 +261,7 @@ orderbooks:
         let is_missing_networks = matches!(
             err,
             LocalDbError::SettingsYaml(ref yaml_err)
-                if matches!(yaml_err, rain_orderbook_app_settings::yaml::YamlError::Field { .. })
+                if matches!(yaml_err, raindex_app_settings::yaml::YamlError::Field { .. })
         );
         assert!(
             is_yaml_scan || is_missing_networks,

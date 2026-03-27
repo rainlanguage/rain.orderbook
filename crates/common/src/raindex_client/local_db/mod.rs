@@ -337,8 +337,8 @@ mod wasm_tests {
     use super::*;
     use crate::raindex_client::RaindexClient;
     use gloo_timers::future::TimeoutFuture;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_app_settings::yaml::{
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::yaml::{
         orderbook::{OrderbookYaml, OrderbookYamlValidation},
         YamlParsable,
     };

@@ -3,7 +3,7 @@ use rain_metadata::types::dotrain::{
     gui_state_v1::{DotrainGuiStateV1, ShortenedTokenCfg, ValueCfg},
     source_v1::DotrainSourceV1,
 };
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     gui::GuiDepositCfg,
     order::{OrderIOCfg, VaultType},
     token::TokenCfg,
@@ -547,11 +547,11 @@ mod tests {
     };
     use alloy::primitives::{Address, U256};
     use js_sys::{eval, Reflect};
-    use rain_orderbook_app_settings::{
+    use raindex_app_settings::{
         network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
     };
-    use rain_orderbook_common::dotrain::RainDocument;
-    use rain_orderbook_common::dotrain_order::DotrainOrder;
+    use raindex_common::dotrain::RainDocument;
+    use raindex_common::dotrain_order::DotrainOrder;
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 

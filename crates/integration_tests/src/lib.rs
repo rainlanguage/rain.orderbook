@@ -9,9 +9,9 @@ mod tests {
         rpc::types::TransactionRequest,
     };
     use rain_math_float::Float;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
-    use rain_orderbook_test_fixtures::{LocalEvm, Orderbook::QuoteV2};
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
+    use raindex_test_fixtures::{LocalEvm, Orderbook::QuoteV2};
 
     #[tokio::test]
     async fn test_post_task_set() {

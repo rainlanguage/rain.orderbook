@@ -1,7 +1,7 @@
 use crate::error::{ApiError, ApiErrorResponse};
-use rain_orderbook_common::raindex_client::take_orders::TakeOrdersRequest;
-use rain_orderbook_common::raindex_client::RaindexClient;
-use rain_orderbook_common::take_orders::TakeOrdersMode;
+use raindex_common::raindex_client::take_orders::TakeOrdersRequest;
+use raindex_common::raindex_client::RaindexClient;
+use raindex_common::take_orders::TakeOrdersMode;
 use rocket::serde::json::Json;
 use rocket::{post, Route};
 use serde::{Deserialize, Serialize};
@@ -148,7 +148,7 @@ async fn execute_take_orders(
 
     if let Some(approval_info) = result.approval_info() {
         let amount = approval_info.amount().format().map_err(|e| {
-            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
                 e,
             ))
         })?;
@@ -162,7 +162,7 @@ async fn execute_take_orders(
         }))
     } else if let Some(take_orders_info) = result.take_orders_info() {
         let effective_price = take_orders_info.effective_price().format().map_err(|e| {
-            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
                 e,
             ))
         })?;
@@ -172,7 +172,7 @@ async fn execute_take_orders(
             .iter()
             .map(|p| {
                 p.format().map_err(|e| {
-                    ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+                    ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
                         e,
                     ))
                 })
@@ -180,13 +180,13 @@ async fn execute_take_orders(
             .collect();
 
         let expected_sell = take_orders_info.expected_sell().format().map_err(|e| {
-            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
                 e,
             ))
         })?;
 
         let max_sell_cap = take_orders_info.max_sell_cap().format().map_err(|e| {
-            ApiError::Raindex(rain_orderbook_common::raindex_client::RaindexError::Float(
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
                 e,
             ))
         })?;

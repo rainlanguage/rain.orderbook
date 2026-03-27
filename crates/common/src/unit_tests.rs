@@ -13,7 +13,7 @@ use rain_interpreter_eval::{
     fork::{Forker, NewForkedEvm},
     trace::{RainEvalResultFromRawCallResultError, RainEvalResults},
 };
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     blocks::BlockError,
     rainlang::RainlangCfg,
     unit_test::TestConfig,
@@ -437,8 +437,8 @@ impl TestRunner {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rain_orderbook_app_settings::{spec_version::SpecVersion, unit_test::UnitTestConfigSource};
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_app_settings::{spec_version::SpecVersion, unit_test::UnitTestConfigSource};
+    use raindex_test_fixtures::LocalEvm;
 
     fn get_test_config(test_dotrain: &str) -> TestConfig {
         let frontmatter = RainDocument::get_front_matter(test_dotrain).unwrap();

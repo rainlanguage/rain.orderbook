@@ -13,7 +13,7 @@ use crate::local_db::query::{LocalDbQueryExecutor, SqlStatementBatch};
 use crate::local_db::LocalDbError;
 use crate::local_db::OrderbookIdentifier;
 use async_trait::async_trait;
-use rain_orderbook_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
+use raindex_app_settings::local_db_manifest::DB_SCHEMA_VERSION;
 use std::collections::HashSet;
 
 #[derive(Debug, Clone)]

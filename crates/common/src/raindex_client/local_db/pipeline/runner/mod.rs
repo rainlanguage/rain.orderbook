@@ -34,7 +34,7 @@ use config::NetworkRunnerConfig;
 use environment::default_environment;
 use futures::future::join_all;
 use leadership::{DefaultLeadership, Leadership, LeadershipGuard};
-use rain_orderbook_app_settings::remote::manifest::ManifestMap;
+use raindex_app_settings::remote::manifest::ManifestMap;
 
 pub struct ClientRunner<B, W, E, T, A, S, L> {
     network_key: Option<String>,
@@ -335,12 +335,12 @@ mod tests {
     use crate::rpc_client::LogEntryResponse;
     use alloy::primitives::{address, b256, Address, Bytes, B256};
     use async_trait::async_trait;
-    use rain_orderbook_app_settings::local_db_manifest::{
+    use raindex_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
     };
-    use rain_orderbook_app_settings::orderbook::OrderbookCfg;
-    use rain_orderbook_app_settings::remote::manifest::ManifestMap;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::orderbook::OrderbookCfg;
+    use raindex_app_settings::remote::manifest::ManifestMap;
+    use raindex_app_settings::spec_version::SpecVersion;
     use serde::Serialize;
     use serde_json::{json, Value};
     use std::collections::{HashMap, VecDeque};

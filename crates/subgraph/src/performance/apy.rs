@@ -6,7 +6,7 @@ use crate::{
 use alloy::primitives::U256;
 use chrono::TimeDelta;
 use rain_math_float::Float;
-use rain_orderbook_math::{BigUintMath, ONE18};
+use raindex_math::{BigUintMath, ONE18};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 #[cfg(target_family = "wasm")]

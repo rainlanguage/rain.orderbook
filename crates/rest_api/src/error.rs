@@ -1,4 +1,4 @@
-use rain_orderbook_common::raindex_client::RaindexError;
+use raindex_common::raindex_client::RaindexError;
 use rocket::http::Status;
 use rocket::response::{self, Responder};
 use rocket::serde::json::Json;

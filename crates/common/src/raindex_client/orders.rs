@@ -33,7 +33,7 @@ use rain_metaboard_subgraph::metaboard_client::MetaboardSubgraphClient;
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::types::dotrain::source_v1::DotrainSourceV1;
 use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
-use rain_orderbook_subgraph_client::{
+use raindex_subgraph_client::{
     types::{
         common::{
             SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs,
@@ -1536,11 +1536,11 @@ mod tests {
         use rain_metadata::{
             ContentEncoding, ContentLanguage, ContentType, KnownMagic, RainMetaDocumentV1Item,
         };
-        use rain_orderbook_subgraph_client::types::common::{
+        use raindex_subgraph_client::types::common::{
             SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
             SgVault,
         };
-        use rain_orderbook_subgraph_client::utils::float::*;
+        use raindex_subgraph_client::utils::float::*;
         use serde_bytes::ByteBuf;
         use serde_json::{json, Value};
         use std::collections::BTreeMap;
@@ -1958,7 +1958,7 @@ mod tests {
         #[test]
         fn get_orders_filters_to_sg_filter_args_maps_orderbook_addresses() {
             use alloy::primitives::address;
-            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+            use raindex_subgraph_client::types::common::SgOrdersListFilterArgs;
 
             let filters = GetOrdersFilters {
                 owners: vec![],
@@ -1986,7 +1986,7 @@ mod tests {
 
         #[test]
         fn get_orders_filters_to_sg_filter_args_empty_orderbook_addresses() {
-            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+            use raindex_subgraph_client::types::common::SgOrdersListFilterArgs;
 
             let filters = GetOrdersFilters {
                 owners: vec![],
@@ -2004,7 +2004,7 @@ mod tests {
         #[test]
         fn get_orders_filters_to_sg_filter_args_lowercases_mixed_case_addresses() {
             use alloy::primitives::address;
-            use rain_orderbook_subgraph_client::types::common::SgOrdersListFilterArgs;
+            use raindex_subgraph_client::types::common::SgOrdersListFilterArgs;
 
             let filters = GetOrdersFilters {
                 owners: vec![],
@@ -3347,7 +3347,7 @@ mod tests {
         use crate::take_orders::TakeOrdersMode;
         use alloy::primitives::{Address, Bytes};
         use rain_math_float::Float;
-        use rain_orderbook_quote::Pair;
+        use raindex_quote::Pair;
         use std::ops::Mul;
         use wasm_bindgen_test::wasm_bindgen_test;
         use wasm_bindgen_utils::prelude::{from_js_value, to_js_value};

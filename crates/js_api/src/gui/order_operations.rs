@@ -9,14 +9,14 @@ use rain_metaboard_subgraph::metaboard_client::{
 };
 use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::RainMetaDocumentV1Item;
-use rain_orderbook_app_settings::{
+use raindex_app_settings::{
     order::{OrderIOCfg, VaultType},
     orderbook::OrderbookCfg,
 };
-use rain_orderbook_bindings::{
+use raindex_bindings::{
     IRaindexV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
 };
-use rain_orderbook_common::{
+use raindex_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
 use std::{collections::HashMap, str::FromStr, sync::Arc};
@@ -487,7 +487,7 @@ impl DotrainOrderGui {
                 decimals,
             };
             let calldata = deposit4Call::try_from(deposit_args)
-                .map_err(rain_orderbook_common::deposit::DepositError::from)?
+                .map_err(raindex_common::deposit::DepositError::from)?
                 .abi_encode();
             calldatas.push(Bytes::copy_from_slice(&calldata));
         }

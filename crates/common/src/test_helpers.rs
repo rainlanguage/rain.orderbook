@@ -1,4 +1,4 @@
-use rain_orderbook_app_settings::spec_version::SpecVersion;
+use raindex_app_settings::spec_version::SpecVersion;
 
 pub fn test_dotrain() -> String {
     format!(
@@ -178,10 +178,10 @@ _ _: 0 0;
 pub mod local_evm {
     use alloy::primitives::{Address, B256, U256};
     use rain_math_float::Float;
-    use rain_orderbook_subgraph_client::types::common::{
+    use raindex_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
     };
-    use rain_orderbook_test_fixtures::LocalEvm;
+    use raindex_test_fixtures::LocalEvm;
 
     pub struct TestSetup {
         pub local_evm: LocalEvm,
@@ -346,7 +346,7 @@ pub mod local_evm {
     }
 
     pub async fn setup_multi_orderbook_test() -> MultiOrderbookTestSetup {
-        use rain_orderbook_test_fixtures::Orderbook;
+        use raindex_test_fixtures::Orderbook;
 
         let mut local_evm = LocalEvm::new().await;
         let owner = local_evm.signer_wallets[0].default_signer().address();
@@ -395,7 +395,7 @@ pub mod local_evm {
         amount: U256,
         vault_id: B256,
     ) {
-        use rain_orderbook_test_fixtures::Orderbook;
+        use raindex_test_fixtures::Orderbook;
 
         let token_contract = setup
             .local_evm
@@ -478,7 +478,7 @@ pub mod local_evm {
 
 pub mod orders {
     use alloy::primitives::{Address, U256};
-    use rain_orderbook_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
+    use raindex_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
 
     pub fn make_basic_order(input_token: Address, output_token: Address) -> OrderV4 {
         OrderV4 {
@@ -531,7 +531,7 @@ pub mod orders {
         }
 
         use super::super::local_evm::MultiOrderbookTestSetup;
-        use rain_orderbook_bindings::IRaindexV6::OrderV4;
+        use raindex_bindings::IRaindexV6::OrderV4;
 
         pub async fn deploy_order_to_orderbook(
             setup: &MultiOrderbookTestSetup,
@@ -541,7 +541,7 @@ pub mod orders {
             use alloy::network::TransactionBuilder;
             use alloy::rpc::types::TransactionRequest;
             use alloy::serde::WithOtherFields;
-            use rain_orderbook_test_fixtures::Orderbook;
+            use raindex_test_fixtures::Orderbook;
 
             let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
             let deployment = dotrain_order
@@ -620,7 +620,7 @@ pub mod candidates {
 pub mod quotes {
     use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
     use rain_math_float::Float;
-    use rain_orderbook_quote::Pair;
+    use raindex_quote::Pair;
 
     pub fn make_quote_value(
         max_output: Float,
@@ -666,7 +666,7 @@ pub mod quotes {
 #[cfg(not(target_family = "wasm"))]
 pub mod dotrain {
     use alloy::primitives::Address;
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
+    use raindex_app_settings::spec_version::SpecVersion;
 
     use super::local_evm::{MultiOrderbookTestSetup, TestSetup};
 
@@ -908,8 +908,8 @@ amount price: {max_output} {ratio};
 #[cfg(not(target_family = "wasm"))]
 pub mod subgraph {
     use alloy::primitives::{Address, B256};
-    use rain_orderbook_app_settings::spec_version::SpecVersion;
-    use rain_orderbook_subgraph_client::types::common::{
+    use raindex_app_settings::spec_version::SpecVersion;
+    use raindex_subgraph_client::types::common::{
         SgBigInt, SgBytes, SgOrder, SgOrderbook, SgVault,
     };
     use serde_json::json;
