@@ -9,7 +9,7 @@
 	import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
-	import DropdownOrderbooksFilter from './dropdown/DropdownOrderbooksFilter.svelte';
+	import DropdownRaindexesFilter from './dropdown/DropdownRaindexesFilter.svelte';
 	import InputOrderHash from './input/InputOrderHash.svelte';
 	import InputOwnerFilter from './input/InputOwnerFilter.svelte';
 	import CheckboxZeroBalanceVault from './CheckboxZeroBalanceVault.svelte';
@@ -24,8 +24,8 @@
 	export let activeTokens: AppStoresInterface['activeTokens'];
 	export let selectedTokens: Address[];
 	export let tokensQuery: Readable<QueryObserverResult<RaindexVaultToken[], Error>>;
-	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
-	export let selectedOrderbookAddresses: Address[];
+	export let activeRaindexAddresses: AppStoresInterface['activeRaindexAddresses'];
+	export let selectedRaindexAddresses: Address[];
 	export let ownerFilter: AppStoresInterface['ownerFilter'];
 
 	$: isVaultsPage = $page.url.pathname === '/vaults';
@@ -62,11 +62,11 @@
 		{/if}
 		<InputOwnerFilter {ownerFilter} />
 		<DropdownTokensFilter {tokensQuery} {activeTokens} {selectedTokens} label="Tokens" />
-		<DropdownOrderbooksFilter
-			{activeOrderbookAddresses}
-			{selectedOrderbookAddresses}
+		<DropdownRaindexesFilter
+			{activeRaindexAddresses}
+			{selectedRaindexAddresses}
 			selectedChainIds={$selectedChainIds}
-			label="Orderbooks"
+			label="Raindexes"
 		/>
 		<DropdownActiveNetworks {selectedChainIds} />
 	{/if}

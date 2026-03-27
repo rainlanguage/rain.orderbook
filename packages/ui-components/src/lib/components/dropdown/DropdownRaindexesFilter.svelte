@@ -2,20 +2,20 @@
 	import { Button, Dropdown, Label, Checkbox, Input } from 'flowbite-svelte';
 	import { ChevronDownSolid, SearchSolid } from 'flowbite-svelte-icons';
 	import { isEmpty } from 'lodash';
-	import type { Address, OrderbookCfg } from '@rainlanguage/orderbook';
+	import type { Address, RaindexCfg } from '@rainlanguage/raindex';
 	import type { AppStoresInterface } from '../../types/appStores';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 
-	export let activeOrderbookAddresses: AppStoresInterface['activeOrderbookAddresses'];
-	export let selectedOrderbookAddresses: Address[];
+	export let activeRaindexAddresses: AppStoresInterface['activeRaindexAddresses'];
+	export let selectedRaindexAddresses: Address[];
 	export let selectedChainIds: number[];
 
-	export let label: string = 'Filter by orderbook';
-	export let allLabel: string = 'All orderbooks';
-	export let emptyMessage: string = 'No orderbooks available';
+	export let label: string = 'Filter by raindex';
+	export let allLabel: string = 'All raindexes';
+	export let emptyMessage: string = 'No raindexes available';
 
-	interface OrderbookItem {
+	interface RaindexItem {
 		key: string;
 		address: Address;
 		label: string | undefined;
@@ -24,17 +24,17 @@
 
 	const raindexClient = useRaindexClient();
 
-	let filteredOrderbooks: OrderbookItem[] = [];
+	let filteredRaindexes: RaindexItem[] = [];
 	let searchTerm: string = '';
 	let selectedIndex = 0;
 
-	$: orderbooksResult = raindexClient.getAllOrderbooks();
-	$: orderbooksMap = orderbooksResult?.value ?? new Map<string, OrderbookCfg>();
-	$: orderbooksError = orderbooksResult?.error;
+	$: raindexesResult = raindexClient.getAllRaindexes();
+	$: raindexesMap = raindexesResult?.value ?? new Map<string, RaindexCfg>();
+	$: raindexesError = raindexesResult?.error;
 
-	$: availableOrderbooks = (() => {
-		const items: OrderbookItem[] = [];
-		orderbooksMap.forEach((cfg: OrderbookCfg, key: string) => {
+	$: availableRaindexes = (() => {
+		const items: RaindexItem[] = [];
+		raindexesMap.forEach((cfg: RaindexCfg, key: string) => {
 			if (selectedChainIds.length === 0 || selectedChainIds.includes(cfg.network.chainId)) {
 				items.push({
 					key,
@@ -47,82 +47,82 @@
 		return items;
 	})();
 
-	$: selectedCount = selectedOrderbookAddresses.length;
+	$: selectedCount = selectedRaindexAddresses.length;
 
-	$: allSelected = selectedCount === availableOrderbooks.length && availableOrderbooks.length > 0;
+	$: allSelected = selectedCount === availableRaindexes.length && availableRaindexes.length > 0;
 	$: buttonText =
 		selectedCount === 0
-			? 'Select orderbooks'
+			? 'Select raindexes'
 			: allSelected
 				? allLabel
-				: `${selectedCount} orderbook${selectedCount > 1 ? 's' : ''}`;
+				: `${selectedCount} raindex${selectedCount > 1 ? 's' : ''}`;
 
 	$: {
 		if (searchTerm.trim() === '') {
-			filteredOrderbooks = availableOrderbooks;
+			filteredRaindexes = availableRaindexes;
 			selectedIndex = 0;
 		} else {
 			const term = searchTerm.toLowerCase();
-			filteredOrderbooks = availableOrderbooks.filter(
+			filteredRaindexes = availableRaindexes.filter(
 				(ob) =>
 					ob.label?.toLowerCase().includes(term) ||
 					ob.address?.toLowerCase().includes(term) ||
 					ob.key?.toLowerCase().includes(term)
 			);
-			selectedIndex = filteredOrderbooks.length > 0 ? 0 : -1;
+			selectedIndex = filteredRaindexes.length > 0 ? 0 : -1;
 		}
 	}
 
-	$: sortedFilteredOrderbooks = [...filteredOrderbooks].sort((a, b) => {
-		const aSelected = selectedOrderbookAddresses.some(
+	$: sortedFilteredRaindexes = [...filteredRaindexes].sort((a, b) => {
+		const aSelected = selectedRaindexAddresses.some(
 			(addr) => addr.toLowerCase() === a.address.toLowerCase()
 		);
-		const bSelected = selectedOrderbookAddresses.some(
+		const bSelected = selectedRaindexAddresses.some(
 			(addr) => addr.toLowerCase() === b.address.toLowerCase()
 		);
 		if (aSelected === bSelected) return 0;
 		return aSelected ? -1 : 1;
 	});
 
-	function getDisplayName(ob: OrderbookItem): string {
+	function getDisplayName(ob: RaindexItem): string {
 		const truncatedAddr = `${ob.address.slice(0, 6)}...${ob.address.slice(-4)}`;
 		return ob.label ? `${ob.label} (${truncatedAddr})` : truncatedAddr;
 	}
 
-	function updateSelectedOrderbooks(newSelection: Address[]) {
-		activeOrderbookAddresses.set(newSelection);
+	function updateSelectedRaindexes(newSelection: Address[]) {
+		activeRaindexAddresses.set(newSelection);
 	}
 
-	function toggleOrderbook({ address }: OrderbookItem) {
+	function toggleRaindex({ address }: RaindexItem) {
 		if (!address) return;
 
 		const normalizedAddress = address.toLowerCase() as Address;
-		const isSelected = selectedOrderbookAddresses.some(
+		const isSelected = selectedRaindexAddresses.some(
 			(addr) => addr.toLowerCase() === normalizedAddress
 		);
 		const newSelection = isSelected
-			? $activeOrderbookAddresses.filter((addr) => addr.toLowerCase() !== normalizedAddress)
-			: [...$activeOrderbookAddresses, normalizedAddress];
+			? $activeRaindexAddresses.filter((addr) => addr.toLowerCase() !== normalizedAddress)
+			: [...$activeRaindexAddresses, normalizedAddress];
 
-		updateSelectedOrderbooks(newSelection);
+		updateSelectedRaindexes(newSelection);
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
-		if (!sortedFilteredOrderbooks.length) return;
+		if (!sortedFilteredRaindexes.length) return;
 
 		switch (event.key) {
 			case 'Enter':
 				event.preventDefault();
-				if (sortedFilteredOrderbooks.length > 0) {
-					const orderbookToToggle = sortedFilteredOrderbooks[selectedIndex];
-					if (orderbookToToggle) {
-						toggleOrderbook(orderbookToToggle);
+				if (sortedFilteredRaindexes.length > 0) {
+					const raindexToToggle = sortedFilteredRaindexes[selectedIndex];
+					if (raindexToToggle) {
+						toggleRaindex(raindexToToggle);
 					}
 				}
 				break;
 			case 'ArrowDown':
 				event.preventDefault();
-				selectedIndex = Math.min(selectedIndex + 1, sortedFilteredOrderbooks.length - 1);
+				selectedIndex = Math.min(selectedIndex + 1, sortedFilteredRaindexes.length - 1);
 				break;
 			case 'ArrowUp':
 				event.preventDefault();
@@ -142,8 +142,8 @@
 		<Button
 			color="alternative"
 			class="flex w-full justify-between overflow-hidden pl-2 pr-0 text-left"
-			data-testid="dropdown-orderbooks-filter-button"
-			aria-label="Select orderbooks to filter"
+			data-testid="dropdown-raindexes-filter-button"
+			aria-label="Select raindexes to filter"
 			aria-expanded="false"
 			aria-haspopup="listbox"
 		>
@@ -155,49 +155,49 @@
 
 		<Dropdown
 			class="max-h-[75vh] w-full min-w-60 overflow-y-auto py-0"
-			data-testid="dropdown-orderbooks-filter"
+			data-testid="dropdown-raindexes-filter"
 		>
-			{#if orderbooksError}
+			{#if raindexesError}
 				<div class="ml-2 w-full rounded-lg p-3 text-red-500">
-					Cannot load orderbooks list: {orderbooksError.readableMsg || 'Unknown error'}
+					Cannot load raindexes list: {raindexesError.readableMsg || 'Unknown error'}
 				</div>
-			{:else if isEmpty(availableOrderbooks)}
+			{:else if isEmpty(availableRaindexes)}
 				<div class="ml-2 w-full rounded-lg p-3">{emptyMessage}</div>
 			{:else}
 				<div class="sticky top-0 bg-white p-3 dark:bg-gray-800">
 					<Input
-						placeholder="Search orderbooks..."
+						placeholder="Search raindexes..."
 						bind:value={searchTerm}
 						autofocus
 						on:keydown={handleKeyDown}
-						data-testid="orderbooks-filter-search"
+						data-testid="raindexes-filter-search"
 					>
 						<SearchSolid slot="left" class="h-4 w-4 text-gray-500" />
 					</Input>
 				</div>
 
-				{#if isEmpty(filteredOrderbooks)}
-					<div class="ml-2 w-full rounded-lg p-3">No orderbooks match your search</div>
+				{#if isEmpty(filteredRaindexes)}
+					<div class="ml-2 w-full rounded-lg p-3">No raindexes match your search</div>
 				{:else}
-					{#each sortedFilteredOrderbooks as orderbook, index (`${orderbook.address}-${orderbook.chainId}`)}
+					{#each sortedFilteredRaindexes as raindex, index (`${raindex.address}-${raindex.chainId}`)}
 						<Checkbox
-							data-testid="dropdown-orderbooks-filter-option"
+							data-testid="dropdown-raindexes-filter-option"
 							class="w-full rounded-lg p-3 hover:bg-gray-100 dark:hover:bg-gray-600 {selectedIndex ===
 							index
 								? 'bg-blue-100 dark:bg-blue-900'
 								: ''}"
-							on:click={() => toggleOrderbook(orderbook)}
+							on:click={() => toggleRaindex(raindex)}
 							checked={!!(
-								orderbook.address &&
-								selectedOrderbookAddresses.some(
-									(addr) => addr.toLowerCase() === orderbook.address.toLowerCase()
+								raindex.address &&
+								selectedRaindexAddresses.some(
+									(addr) => addr.toLowerCase() === raindex.address.toLowerCase()
 								)
 							)}
 						>
 							<div class="ml-2 flex w-full">
-								<div class="flex-1 text-sm font-medium">{getDisplayName(orderbook)}</div>
+								<div class="flex-1 text-sm font-medium">{getDisplayName(raindex)}</div>
 								<div class="text-xs text-gray-500">
-									{getNetworkName(orderbook.chainId)}
+									{getNetworkName(raindex.chainId)}
 								</div>
 							</div>
 						</Checkbox>
