@@ -159,7 +159,8 @@ pub async fn execute_single_take(
         match crate::oracle::fetch_signed_context(&url, body).await {
             Ok(ctx) => candidate.signed_context = vec![ctx],
             Err(e) => {
-                tracing::warn!("Failed to fetch oracle data: {}", e);
+                tracing::error!("Oracle fetch failed, skipping order execution: {}", e);
+                return Err(e.into());
             }
         }
     }
