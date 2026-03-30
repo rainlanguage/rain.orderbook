@@ -192,7 +192,7 @@ jobs:
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: mv ${{ env.OB_NPM_PACKAGE }} raindex_npm_package_${{ env.NEW_VERSION }}.tgz
 
-      # publish orderbook pkg to npm
+      # publish raindex pkg to npm
       - name: Publish raindex pkg To NPM
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |

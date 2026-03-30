@@ -1431,7 +1431,7 @@ impl RaindexClient {
     ) -> Result<RaindexVault, RaindexError> {
         let orderbook_cfg = self.get_raindex_by_address(ob_id.orderbook_address)?;
         if orderbook_cfg.network.chain_id != ob_id.chain_id {
-            return Err(RaindexError::OrderbookNotFound(
+            return Err(RaindexError::RaindexNotFound(
                 ob_id.orderbook_address.to_string(),
                 ob_id.chain_id,
             ));

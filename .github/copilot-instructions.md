@@ -28,7 +28,7 @@ If any step fails due to earlier lint/test issues, use the fallback below.
 | Area | Build (if needed) | Lint/Check | Tests |
 |------|--------------------|------------|-------|
 | Rust crates (`crates/*`) | `nix develop -c cargo build` | `nix develop -c cargo clippy --workspace --all-targets --all-features -D warnings` | `nix develop -c cargo test --workspace` or `--package <crate>` |
-| Orderbook TS (`packages/orderbook`) | `nix develop -c npm run build:raindex` | `nix develop -c npm run check -w @rainlanguage/raindex` | `nix develop -c npm run test -w @rainlanguage/raindex` |
+| Raindex TS (`packages/raindex`) | `nix develop -c npm run build:raindex` | `nix develop -c npm run check -w @rainlanguage/raindex` | `nix develop -c npm run test -w @rainlanguage/raindex` |
 | UI components (`packages/ui-components`) | `nix develop -c npm run build -w @rainlanguage/ui-components` | `nix develop -c npm run svelte-lint-format-check -w @rainlanguage/ui-components` | `nix develop -c npm run test -w @rainlanguage/ui-components` |
 | Webapp (`packages/webapp`) | `nix develop -c npm run build -w @rainlanguage/webapp` | `nix develop -c npm run svelte-lint-format-check -w @rainlanguage/webapp` | `nix develop -c npm run test -w @rainlanguage/webapp` |
 | Solidity contracts | `nix develop -c forge build` | — | `nix develop -c forge test` |
@@ -48,7 +48,7 @@ Partial commits are OK during the session. Before your final commit of the sessi
 ```bash
 ./prep-all.sh
 nix develop -c npm run lint-format-check:all
-nix develop -c npm run build:raindex   # if Rust/orderbook changed
+nix develop -c npm run build:raindex   # if Rust/raindex changed
 nix develop -c npm run build:ui
 nix develop -c cargo test --workspace
 nix develop -c npm run test

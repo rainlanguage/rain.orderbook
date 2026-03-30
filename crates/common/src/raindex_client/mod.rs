@@ -405,8 +405,8 @@ pub enum RaindexError {
     WritableTransactionExecuteError(#[from] WritableTransactionExecuteError),
     #[error(transparent)]
     DepositArgsError(#[from] DepositError),
-    #[error("Orderbook not found for address: {0} on chain ID: {1}")]
-    OrderbookNotFound(String, u32),
+    #[error("Raindex not found for address: {0} on chain ID: {1}")]
+    RaindexNotFound(String, u32),
     #[error("Order not found for address: {0} on chain ID: {1} with hash: {2}")]
     OrderNotFound(String, u32, B256),
     #[error("Vault not found for address: {0} on chain ID: {1} with id: {2}")]
@@ -573,7 +573,7 @@ impl RaindexError {
             RaindexError::DepositArgsError(err) => {
                 format!("Failed to create deposit arguments: {}", err)
             }
-            RaindexError::OrderbookNotFound(address, chain_id) => {
+            RaindexError::RaindexNotFound(address, chain_id) => {
                 format!(
                     "Orderbook not found for address: {} on chain ID: {}",
                     address, chain_id

@@ -627,8 +627,8 @@ pub enum GuiError {
     MissingDepositToken(String),
     #[error("Deposit amount cannot be an empty string")]
     DepositAmountCannotBeEmpty,
-    #[error("Orderbook not found")]
-    OrderbookNotFound,
+    #[error("Raindex not found")]
+    RaindexNotFound,
     #[error("Order not found: {0}")]
     OrderNotFound(String),
     #[error("Deserialized dotrain mismatch")]
@@ -726,7 +726,7 @@ impl GuiError {
                 format!("A deposit for token is required but has not been set for deployment '{}'.", deployment),
             GuiError::DepositAmountCannotBeEmpty =>
                 "The deposit amount cannot be an empty string. Please set a valid amount.".to_string(),
-            GuiError::OrderbookNotFound =>
+            GuiError::RaindexNotFound =>
                 "The orderbook configuration could not be found. Please check your YAML configuration.".to_string(),
             GuiError::OrderNotFound(order) =>
                 format!("The order '{}' could not be found in the YAML configuration.", order),

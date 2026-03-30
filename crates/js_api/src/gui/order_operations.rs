@@ -137,7 +137,7 @@ impl DotrainOrderGui {
             .as_ref()
             .raindex
             .as_ref()
-            .ok_or(GuiError::OrderbookNotFound)
+            .ok_or(GuiError::RaindexNotFound)
             .cloned()
     }
 
@@ -845,7 +845,7 @@ impl DotrainOrderGui {
                 .order
                 .raindex
                 .as_ref()
-                .ok_or(GuiError::OrderbookNotFound)?
+                .ok_or(GuiError::RaindexNotFound)?
                 .address,
             chain_id: deployment.deployment.order.network.chain_id,
             emit_meta_call,

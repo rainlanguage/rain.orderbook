@@ -10,9 +10,9 @@ use utoipa::ToSchema;
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BuyRequest {
-    /// YAML configuration containing network RPC endpoints, subgraph URLs, and orderbook addresses
+    /// YAML configuration containing network RPC endpoints, subgraph URLs, and raindex addresses
     #[schema(
-        example = "networks:\n  base:\n    rpc: https://mainnet.base.org\n    chain-id: 8453\nsubgraphs:\n  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/0.9/gn\norderbooks:\n  base:\n    address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7\n    network: base\n    subgraph: base"
+        example = "networks:\n  base:\n    rpc: https://mainnet.base.org\n    chain-id: 8453\nsubgraphs:\n  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/0.9/gn\nraindexes:\n  base:\n    address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7\n    network: base\n    subgraph: base"
     )]
     pub yaml_content: String,
     /// Address that will execute the transaction
@@ -42,9 +42,9 @@ pub struct BuyRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SellRequest {
-    /// YAML configuration containing network RPC endpoints, subgraph URLs, and orderbook addresses
+    /// YAML configuration containing network RPC endpoints, subgraph URLs, and raindex addresses
     #[schema(
-        example = "networks:\n  base:\n    rpc: https://mainnet.base.org\n    chain-id: 8453\nsubgraphs:\n  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/0.9/gn\norderbooks:\n  base:\n    address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7\n    network: base\n    subgraph: base"
+        example = "networks:\n  base:\n    rpc: https://mainnet.base.org\n    chain-id: 8453\nsubgraphs:\n  base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/ob4-base/0.9/gn\nraindexes:\n  base:\n    address: 0xd2938e7c9fe3597f78832ce780feb61945c377d7\n    network: base\n    subgraph: base"
     )]
     pub yaml_content: String,
     /// Address that will execute the transaction
@@ -84,7 +84,7 @@ pub struct ApprovalApiResponse {
     /// Token address that needs approval
     #[schema(example = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")]
     pub token: String,
-    /// Spender address (the orderbook contract)
+    /// Spender address (the raindex contract)
     #[schema(example = "0xd2938e7c9fe3597f78832ce780feb61945c377d7")]
     pub spender: String,
     /// Amount to approve (raw value)
@@ -101,7 +101,7 @@ pub struct ApprovalApiResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 #[schema(example = json!({
-    "orderbook": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+    "raindex": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
     "calldata": "0x...",
     "effectivePrice": "0.00045",
     "prices": ["0.00044", "0.00046"],
@@ -109,9 +109,9 @@ pub struct ApprovalApiResponse {
     "maxSellCap": "500"
 }))]
 pub struct TakeOrdersReadyResponse {
-    /// Address of the orderbook contract to call
+    /// Address of the raindex contract to call
     #[schema(example = "0xd2938e7c9fe3597f78832ce780feb61945c377d7")]
-    pub orderbook: String,
+    pub raindex: String,
     /// ABI-encoded calldata for the takeOrders4 function
     #[schema(example = "0x...")]
     pub calldata: String,
@@ -192,7 +192,7 @@ async fn execute_take_orders(
         })?;
 
         Ok(TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
-            orderbook: take_orders_info.orderbook().to_string(),
+            raindex: take_orders_info.orderbook().to_string(),
             calldata: take_orders_info.calldata().to_string(),
             effective_price,
             prices: prices?,
@@ -214,11 +214,11 @@ async fn execute_take_orders(
             examples(
                 ("Ready" = (
                     summary = "Calldata ready to execute",
-                    description = "Returned when the taker has sufficient token approval. The calldata can be submitted directly to the orderbook.",
+                    description = "Returned when the taker has sufficient token approval. The calldata can be submitted directly to the raindex contract.",
                     value = json!({
                         "status": "ready",
                         "data": {
-                            "orderbook": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+                            "raindex": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
                             "calldata": "0x...",
                             "effectivePrice": "0.00045",
                             "prices": ["0.00044", "0.00046"],
@@ -294,11 +294,11 @@ pub async fn buy(request: Json<BuyRequest>) -> Result<Json<TakeOrdersApiResponse
             examples(
                 ("Ready" = (
                     summary = "Calldata ready to execute",
-                    description = "Returned when the taker has sufficient token approval. The calldata can be submitted directly to the orderbook.",
+                    description = "Returned when the taker has sufficient token approval. The calldata can be submitted directly to the raindex contract.",
                     value = json!({
                         "status": "ready",
                         "data": {
-                            "orderbook": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
+                            "raindex": "0xd2938e7c9fe3597f78832ce780feb61945c377d7",
                             "calldata": "0x...",
                             "effectivePrice": "0.00045",
                             "prices": ["0.00044", "0.00046"],
@@ -471,7 +471,7 @@ mod tests {
     #[test]
     fn test_ready_response_serialization() {
         let response = TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
-            orderbook: "0x1234567890123456789012345678901234567890".to_string(),
+            raindex: "0x1234567890123456789012345678901234567890".to_string(),
             calldata: "0xabcdef".to_string(),
             effective_price: "1.5".to_string(),
             prices: vec!["1.4".to_string(), "1.6".to_string()],
@@ -483,7 +483,7 @@ mod tests {
 
         assert!(json.contains("\"status\":\"ready\""));
         assert!(json.contains("\"data\":"));
-        assert!(json.contains("\"orderbook\":"));
+        assert!(json.contains("\"raindex\":"));
         assert!(json.contains("\"calldata\":"));
         assert!(json.contains("\"effectivePrice\":"));
         assert!(json.contains("\"prices\":"));
