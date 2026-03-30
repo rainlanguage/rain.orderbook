@@ -13,7 +13,7 @@ contract LibRaindexDeployNetworksJsonAddressesTest is Test {
         string memory json = vm.readFile("subgraph/networks.json");
         string[] memory networks = vm.parseJsonKeys(json, "$");
         for (uint256 i = 0; i < networks.length; i++) {
-            string memory path = string.concat(".", networks[i], ".OrderBook.address");
+            string memory path = string.concat(".", networks[i], ".Raindex.address");
             address addr = vm.parseJsonAddress(json, path);
             assertEq(
                 addr,

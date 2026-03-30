@@ -11,7 +11,7 @@ import {LibRaindexDeploy} from "src/lib/deploy/LibRaindexDeploy.sol";
 contract LibRaindexDeployNetworksJsonStartBlockArbitrumTest is Test {
     function testNetworksJsonStartBlockArbitrum() external view {
         string memory json = vm.readFile("subgraph/networks.json");
-        uint256 startBlock = vm.parseJsonUint(json, ".arbitrum-one.OrderBook.startBlock");
+        uint256 startBlock = vm.parseJsonUint(json, ".arbitrum-one.Raindex.startBlock");
         assertEq(
             startBlock,
             LibRaindexDeploy.RAINDEX_START_BLOCK_ARBITRUM,

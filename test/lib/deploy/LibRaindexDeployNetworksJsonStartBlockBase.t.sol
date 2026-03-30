@@ -11,7 +11,7 @@ import {LibRaindexDeploy} from "src/lib/deploy/LibRaindexDeploy.sol";
 contract LibRaindexDeployNetworksJsonStartBlockBaseTest is Test {
     function testNetworksJsonStartBlockBase() external view {
         string memory json = vm.readFile("subgraph/networks.json");
-        uint256 startBlock = vm.parseJsonUint(json, ".base.OrderBook.startBlock");
+        uint256 startBlock = vm.parseJsonUint(json, ".base.Raindex.startBlock");
         assertEq(startBlock, LibRaindexDeploy.RAINDEX_START_BLOCK_BASE, "networks.json startBlock mismatch: base");
     }
 }

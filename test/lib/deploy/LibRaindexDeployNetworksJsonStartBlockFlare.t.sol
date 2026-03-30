@@ -11,7 +11,7 @@ import {LibRaindexDeploy} from "src/lib/deploy/LibRaindexDeploy.sol";
 contract LibRaindexDeployNetworksJsonStartBlockFlareTest is Test {
     function testNetworksJsonStartBlockFlare() external view {
         string memory json = vm.readFile("subgraph/networks.json");
-        uint256 startBlock = vm.parseJsonUint(json, ".flare.OrderBook.startBlock");
+        uint256 startBlock = vm.parseJsonUint(json, ".flare.Raindex.startBlock");
         assertEq(startBlock, LibRaindexDeploy.RAINDEX_START_BLOCK_FLARE, "networks.json startBlock mismatch: flare");
     }
 }
