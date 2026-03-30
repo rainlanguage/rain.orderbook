@@ -108,8 +108,8 @@ abstract contract RaindexV6FlashBorrower is IERC3156FlashBorrower, ReentrancyGua
     }
 
     /// Primary function to process arbitrage opportunities.
-    /// The configured task hash is validated via `onlyValidTask` to gate access.
-    /// If there is no task configured, anyone can call this and should expect
+    /// The `_beforeArb` hook is called to validate the task before execution.
+    /// If no task gating is configured, anyone can call this and should expect
     /// to be front run on the arb for any sufficiently profitable opportunity.
     ///
     /// A flash loan is taken from the raindex, then inside the callback
