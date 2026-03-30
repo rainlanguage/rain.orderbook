@@ -462,8 +462,8 @@ impl RaindexOrder {
         ClientRef::clone(&self.raindex_client)
     }
     #[wasm_export(skip)]
-    pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
-        self.raindex_client.get_orderbook_client(self.orderbook)
+    pub fn get_raindex_subgraph_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
+        self.raindex_client.get_raindex_subgraph_client(self.orderbook)
     }
     #[wasm_export(skip)]
     pub fn get_rpc_urls(&self) -> Result<Vec<Url>, RaindexError> {
@@ -473,9 +473,9 @@ impl RaindexOrder {
     pub fn get_metaboard_client(&self) -> Result<Option<MetaboardSubgraphClient>, RaindexError> {
         let raindex_client = self.get_raindex_client();
         let network = raindex_client
-            .orderbook_yaml
+            .raindex_yaml
             .get_network_by_chain_id(self.chain_id)?;
-        let metaboard = match raindex_client.orderbook_yaml.get_metaboard(&network.key) {
+        let metaboard = match raindex_client.raindex_yaml.get_metaboard(&network.key) {
             Ok(metaboard) => metaboard,
             Err(YamlError::KeyNotFound(_) | YamlError::NotFound(_)) => return Ok(None),
             Err(err) => return Err(err.into()),
@@ -531,7 +531,7 @@ impl RaindexOrder {
                     .collect()
             }
             QuerySource::Subgraph => {
-                let client = self.get_orderbook_client()?;
+                let client = self.get_raindex_subgraph_client()?;
                 let volumes = client
                     .order_vaults_volume(
                         Id::new(self.id.to_string()),
@@ -584,7 +584,7 @@ impl RaindexOrder {
     //     )]
     //     end_timestamp: Option<u64>,
     // ) -> Result<OrderPerformance, RaindexError> {
-    //     let client = self.get_orderbook_client()?;
+    //     let client = self.get_raindex_subgraph_client()?;
     //     let performance = client
     //         .order_performance(Id::new(self.id.to_string()), start_timestamp, end_timestamp)
     //         .await?;
@@ -1060,7 +1060,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let client = self.client.get_raindex_subgraph_client(ob_id.orderbook_address)?;
         let order = match client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await
@@ -1080,7 +1080,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         tx_hash: B256,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_orderbook_client(orderbook)?;
+        let client = self.client.get_raindex_subgraph_client(orderbook)?;
         let sg_orders = client
             .transaction_add_orders(Id::new(tx_hash.to_string()))
             .await?;
@@ -1105,7 +1105,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         tx_hash: B256,
     ) -> Result<Vec<RaindexOrder>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_orderbook_client(orderbook)?;
+        let client = self.client.get_raindex_subgraph_client(orderbook)?;
         let sg_orders = client
             .transaction_remove_orders(Id::new(tx_hash.to_string()))
             .await?;
@@ -1131,7 +1131,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         end_timestamp: Option<u64>,
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let client = self.client.get_raindex_subgraph_client(ob_id.orderbook_address)?;
 
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
@@ -1162,7 +1162,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
-        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let client = self.client.get_raindex_subgraph_client(ob_id.orderbook_address)?;
 
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
@@ -1182,7 +1182,7 @@ impl RaindexClient {
         ob_id: &OrderbookIdentifier,
         order_hash: B256,
     ) -> Result<RaindexOrder, RaindexError> {
-        let orderbook_cfg = self.get_orderbook_by_address(ob_id.orderbook_address)?;
+        let orderbook_cfg = self.get_raindex_by_address(ob_id.orderbook_address)?;
         if orderbook_cfg.network.chain_id != ob_id.chain_id {
             return Err(RaindexError::OrderbookNotFound(
                 ob_id.orderbook_address.to_string(),

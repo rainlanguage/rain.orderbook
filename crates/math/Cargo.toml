@@ -1,6 +1,6 @@
 [package]
 name = "raindex_math"
-description = "Math toolings for Raindexs crates"
+description = "Math toolings for Raindex crates"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

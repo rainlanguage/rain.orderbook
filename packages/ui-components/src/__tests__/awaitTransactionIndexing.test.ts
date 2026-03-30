@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { RaindexOrder, RaindexTransaction } from '@rainlanguage/orderbook';
+import type { RaindexOrder, RaindexTransaction } from '@rainlanguage/raindex';
 import { awaitSubgraphIndexing } from '$lib/services/awaitTransactionIndexing';
 import { TransactionStoreErrorMessage } from '$lib/types/transaction';
 

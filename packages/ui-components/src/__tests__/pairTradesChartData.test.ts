@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { RaindexTrade, RaindexVaultToken } from '@rainlanguage/orderbook';
+import type { RaindexTrade, RaindexVaultToken } from '@rainlanguage/raindex';
 import {
 	extractPairsFromTrades,
 	getDefaultPair,

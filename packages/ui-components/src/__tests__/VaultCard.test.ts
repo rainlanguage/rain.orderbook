@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, it, expect, vi } from 'vitest';
 import VaultCard from '../lib/components/VaultCard.svelte';
-import type { RaindexVault } from '@rainlanguage/orderbook';
+import type { RaindexVault } from '@rainlanguage/raindex';
 import userEvent from '@testing-library/user-event';
 
 // Mock the navigation

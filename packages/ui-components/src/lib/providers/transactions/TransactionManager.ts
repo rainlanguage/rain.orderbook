@@ -21,7 +21,7 @@ import {
 	type Address,
 	Float,
 	type WasmEncodedResult
-} from '@rainlanguage/orderbook';
+} from '@rainlanguage/raindex';
 
 /**
  * Function type for adding toast notifications to the UI.

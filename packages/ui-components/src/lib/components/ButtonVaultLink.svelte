@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Address, RaindexVault } from '@rainlanguage/orderbook';
+	import type { Address, RaindexVault } from '@rainlanguage/raindex';
 	import { toHex } from 'viem';
 	import Tooltip from './Tooltip.svelte';
 

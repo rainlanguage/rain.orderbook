@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { DotrainRainlang } from '@rainlanguage/orderbook';
+import type { DotrainRainlang } from '@rainlanguage/raindex';
 import type { RainlangManager } from '../rainlang/RainlangManager';
 
 export type DotrainRainlangContext = {

@@ -5,7 +5,7 @@ This crate defines the configuration model, parsing, validation and update utili
 At a glance:
 
 - Input format: one or more YAML documents (via `StrictYaml` from `strict_yaml_rust`).
-- Output types: `NetworkCfg`, `TokenCfg`, `OrderbookCfg`, `SubgraphCfg`, `DeployerCfg`, `OrderCfg`, `ScenarioCfg`, `DeploymentCfg`, `GuiCfg`, `ChartCfg`, `MetaboardCfg`, `AccountCfg`, plus helpers.
+- Output types: `NetworkCfg`, `TokenCfg`, `RaindexCfg`, `SubgraphCfg`, `DeployerCfg`, `OrderCfg`, `ScenarioCfg`, `DeploymentCfg`, `GuiCfg`, `ChartCfg`, `MetaboardCfg`, `AccountCfg`, plus helpers.
 - Cross‑document merge: parse operations accept a vector of YAML documents and merge sections across them, rejecting duplicate keys deterministically.
 - Remote sources: optional “using‑*” sections enable fetching networks/tokens from external endpoints and merging them into the local model.
 - Context: a runtime context carries selected deployment/order, token selection for GUI flows, remote caches, and supports string interpolation from order paths.
@@ -18,7 +18,7 @@ Core traits and helpers live under `src/yaml` and are used by all config types:
 
 - Traits
   - `ValidationConfig`: strategy for which sections to validate (networks, tokens, orders, etc.).
-  - `YamlParsable`: for top‑level parsers that accept multiple YAML documents (e.g. `OrderbookYaml`, `DotrainYaml`). Provides constructors from strings/documents and helper to stringify a document.
+  - `YamlParsable`: for top‑level parsers that accept multiple YAML documents (e.g. `RaindexYaml`, `DotrainYaml`). Provides constructors from strings/documents and helper to stringify a document.
   - `YamlParsableHash`: for map‑shaped sections (e.g. `networks`, `tokens`, `orders`). Provides `parse_all_from_yaml` and `parse_from_yaml(key)`.
   - `YamlParsableVector`: for vector‑shaped items if needed.
   - `YamlParsableString`: for single string fields with optionality (e.g. `SpecVersion`, `Sentry`).
@@ -34,7 +34,7 @@ Core traits and helpers live under `src/yaml` and are used by all config types:
   - Path resolution helpers and errors: `ContextError::{NoOrder, InvalidPath, InvalidIndex, PropertyNotFound}` with human‑readable messages.
 
 - Cache
-  - `yaml/cache.rs::Cache` stores remote networks/tokens fetched previously. The providers (`OrderbookYaml`, `DotrainYaml`) expose them to `Context` when parsing.
+  - `yaml/cache.rs::Cache` stores remote networks/tokens fetched previously. The providers (`RaindexYaml`, `DotrainYaml`) expose them to `Context` when parsing.
   - Update/get helpers return clones to keep the cache immutable from the caller’s perspective.
 
 - YAML helpers and errors
@@ -46,7 +46,7 @@ Core traits and helpers live under `src/yaml` and are used by all config types:
 
 Two top‑level providers wrap one or more YAML documents and expose a convenient API to parse sections, fetch remote data, and produce contexts.
 
-- OrderbookYaml (`yaml/orderbook.rs`)
+- RaindexYaml (`yaml/raindex.rs`)
   - Holds `documents: Vec<Arc<RwLock<StrictYaml>>>` and a `Cache`.
   - `new(sources, validation)` loads YAML strings, applies validation gates via `ValidationConfig`, and returns a provider.
   - Context initialization: `initialize_context_and_expand_remote_data()` injects remote networks/tokens from the cache into a fresh `Context`.
@@ -73,7 +73,7 @@ Two top‑level providers wrap one or more YAML documents and expose a convenien
     - Deployments: `get_deployment_keys`, `get_deployments`, `get_deployment(key)`.
     - GUI: `get_gui(current_deployment)` parses optional GUI section with deployment‑scoped overrides and select‑tokens.
     - Charts: `get_chart_keys`, `get_charts`, `get_chart(key)`.
-  - Serde mirrors `OrderbookYaml`.
+  - Serde mirrors `RaindexYaml`.
 
 
 ## Core Config Objects
@@ -120,7 +120,7 @@ All core configs implement `YamlParsableHash` unless noted, and each instance ca
 
 ### Orderbooks (`orderbook.rs`)
 
-- `OrderbookCfg { key, address, network: Arc<NetworkCfg>, subgraph: Arc<SubgraphCfg>, local_db_remote?: Arc<LocalDbRemoteCfg>, label?, deployment_block }`.
+- `RaindexCfg { key, address, network: Arc<NetworkCfg>, subgraph: Arc<SubgraphCfg>, local_db_remote?: Arc<LocalDbRemoteCfg>, label?, deployment_block }`.
 - Validators: `validate_address(&str) -> Address`, `validate_deployment_block(&str) -> u64`.
 - Lookup helpers: `parse_network_key(docs, orderbook_key)` returns the referenced network key or defaults to the orderbook key.
 - Parses with references to previously parsed networks and subgraphs; duplicates are rejected.
@@ -151,7 +151,7 @@ All core configs implement `YamlParsableHash` unless noted, and each instance ca
 ### Spec Version and Sentry
 
 - `SpecVersion` reads required root scalar `version`. Const `CURRENT_SPEC_VERSION = "3"` and helpers `current()` / `is_current()`.
-- `Sentry` parses optional root scalar `sentry`. `OrderbookYaml::get_sentry()` normalizes to `Option<bool>` accepting `true/false/1/0`.
+- `Sentry` parses optional root scalar `sentry`. `RaindexYaml::get_sentry()` normalizes to `Option<bool>` accepting `true/false/1/0`.
 
 
 ## Orders, Scenarios, Deployments
@@ -160,7 +160,7 @@ These three model how orders are defined, how they are executed (bindings, block
 
 ### Orders (`order.rs`)
 
-- `OrderCfg { key, inputs: Vec<OrderIOCfg>, outputs: Vec<OrderIOCfg>, network: Arc<NetworkCfg>, deployer?: Arc<DeployerCfg>, orderbook?: Arc<OrderbookCfg> }`.
+- `OrderCfg { key, inputs: Vec<OrderIOCfg>, outputs: Vec<OrderIOCfg>, network: Arc<NetworkCfg>, deployer?: Arc<DeployerCfg>, orderbook?: Arc<RaindexCfg> }`.
 - `OrderIOCfg { token_key: String, token?: Arc<TokenCfg>, vault_id?: U256 }` – `token_key` preserves the declared token name even when the token is unresolved for select‑tokens; vault IDs are arbitrary U256 strings.
 - Validation and network unification
   - Inputs/outputs must each contain `token` (unless permitted by GUI select‑tokens through context) and optional `vault-id`.
@@ -278,13 +278,13 @@ Remote sections allow enriching local YAML with data fetched at runtime and merg
   - Key format: `"<network-key>-<TokenName-with-dashes>-<addressLowercase>"`.
   - Conflicting keys across URLs produce `ConflictingTokens`.
 
-Both remote features are surfaced to parsing via the `Context`/`Cache`. `OrderbookYaml` and `DotrainYaml` expose helper methods to fetch/update cache and then merge these into subsequent parses.
+Both remote features are surfaced to parsing via the `Context`/`Cache`. `RaindexYaml` and `DotrainYaml` expose helper methods to fetch/update cache and then merge these into subsequent parses.
 
 
 ## Miscellaneous Modules
 
 - `accounts.rs`: named EVM addresses in `accounts:`. Simple map with validation and duplicate checks.
-- `sentry.rs`: optional root scalar `sentry` read as string and normalized to `Option<bool>` by `OrderbookYaml`.
+- `sentry.rs`: optional root scalar `sentry` read as string and normalized to `Option<bool>` by `RaindexYaml`.
 - `spec_version.rs`: required root scalar `version` and helpers to compare to the current spec version (constant "3").
 - `test.rs`: test helpers to construct mock networks/tokens/deployers/orderbooks.
 - `unit_test.rs`: auxiliary types (`UnitTestConfigSource`, `TestConfigSource`, `ScenarioConfigSource`) used by the test harness in other crates. `TestConfigSource::into_test_config()` converts the simplified source into a `TestConfig` with an embedded `ScenarioCfg`.
@@ -313,8 +313,8 @@ When building for `wasm32`, many types derive `Tsify` and implement WASM trait h
 ## Typical Workflows
 
 - Validate orderbook YAML for networks/tokens/etc. and query objects:
-  1. Load strings into `OrderbookYaml::new([...], OrderbookYamlValidation::full())`.
-  2. Optionally fetch remote networks/tokens, store in cache, and then call `get_*` methods to retrieve `NetworkCfg`, `TokenCfg`, `OrderbookCfg`, etc.
+  1. Load strings into `RaindexYaml::new([...], RaindexYamlValidation::full())`.
+  2. Optionally fetch remote networks/tokens, store in cache, and then call `get_*` methods to retrieve `NetworkCfg`, `TokenCfg`, `RaindexCfg`, etc.
   3. Use update helpers to persist changes back to YAML documents.
 
 - Validate dotrain YAML and build a deployment plan:

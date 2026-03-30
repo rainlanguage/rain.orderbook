@@ -4,28 +4,28 @@ use crate::local_db::{LocalDbError, OrderbookIdentifier};
 #[derive(Debug, Clone, Default)]
 pub struct TracingStatusBus {
     ob_id: Option<OrderbookIdentifier>,
-    orderbook_key: Option<String>,
+    raindex_key: Option<String>,
 }
 
 impl TracingStatusBus {
     pub fn new() -> Self {
         Self {
             ob_id: None,
-            orderbook_key: None,
+            raindex_key: None,
         }
     }
 
     pub fn with_ob_id(ob_id: OrderbookIdentifier) -> Self {
         Self {
             ob_id: Some(ob_id),
-            orderbook_key: None,
+            raindex_key: None,
         }
     }
 
     pub fn with_ob_id_and_key(ob_id: OrderbookIdentifier, key: String) -> Self {
         Self {
             ob_id: Some(ob_id),
-            orderbook_key: Some(key),
+            raindex_key: Some(key),
         }
     }
 }
@@ -39,7 +39,7 @@ impl StatusBus for TracingStatusBus {
             .as_ref()
             .map(|id| format!("{:#x}", id.orderbook_address))
             .unwrap_or_default();
-        let key = self.orderbook_key.as_deref().unwrap_or("unknown");
+        let key = self.raindex_key.as_deref().unwrap_or("unknown");
 
         tracing::debug!(
             chain_id = chain_id,

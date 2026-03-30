@@ -1084,12 +1084,12 @@ tokens:
         )
     }
 
-    pub fn get_multi_orderbook_yaml(
+    pub fn get_multi_raindex_yaml(
         chain_id: u32,
         rpc_url: &str,
         sg_url: &str,
-        orderbook_a: &str,
-        orderbook_b: &str,
+        raindex_a: &str,
+        raindex_b: &str,
     ) -> String {
         format!(
             r#"
@@ -1107,13 +1107,13 @@ metaboards:
     test-mb: http://localhost:0/notused
 orderbooks:
     orderbook-a:
-        address: {orderbook_a}
+        address: {raindex_a}
         network: test-network
         subgraph: test-sg
         local-db-remote: remote
         deployment-block: 0
     orderbook-b:
-        address: {orderbook_b}
+        address: {raindex_b}
         network: test-network
         subgraph: test-sg
         local-db-remote: remote

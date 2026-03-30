@@ -119,7 +119,7 @@ mod tests {
         );
     }
 
-    fn get_test_dotrain(orderbook_key: &str) -> String {
+    fn get_test_dotrain(raindex_key: &str) -> String {
         format!(
             "
 version: {spec_version}
@@ -197,7 +197,7 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            orderbook_key,
+            raindex_key,
             spec_version = SpecVersion::current()
         )
     }

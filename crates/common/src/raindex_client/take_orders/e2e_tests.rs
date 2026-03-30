@@ -15,7 +15,7 @@ use crate::test_helpers::local_evm::{
 use crate::test_helpers::orders::deploy::{deploy_order, deploy_order_to_orderbook};
 use crate::test_helpers::subgraph::{
     create_sg_order_json, create_sg_order_json_with_orderbook, get_minimal_yaml_for_chain,
-    get_multi_orderbook_yaml,
+    get_multi_raindex_yaml,
 };
 use alloy::network::TransactionBuilder;
 use alloy::primitives::{Address, B256, U256};
@@ -1023,7 +1023,7 @@ async fn test_cross_orderbook_selection_picks_best_book() {
         }));
     });
 
-    let yaml = get_multi_orderbook_yaml(
+    let yaml = get_multi_raindex_yaml(
         123,
         &setup.local_evm.url(),
         &sg_server.url("/sg"),
@@ -1175,7 +1175,7 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
         }));
     });
 
-    let yaml = get_multi_orderbook_yaml(
+    let yaml = get_multi_raindex_yaml(
         123,
         &setup.local_evm.url(),
         &sg_server.url("/sg"),
@@ -1317,7 +1317,7 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
         }));
     });
 
-    let yaml = get_multi_orderbook_yaml(
+    let yaml = get_multi_raindex_yaml(
         123,
         &setup.local_evm.url(),
         &sg_server.url("/sg"),
@@ -2126,7 +2126,7 @@ async fn test_spend_mode_cross_orderbook_selection() {
         }));
     });
 
-    let yaml = get_multi_orderbook_yaml(
+    let yaml = get_multi_raindex_yaml(
         123,
         &setup.local_evm.url(),
         &sg_server.url("/sg"),

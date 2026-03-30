@@ -4,7 +4,7 @@ use crate::raindex_client::local_db::pipeline::runner::scheduler::NativeSyncHand
 #[cfg(target_family = "wasm")]
 use crate::raindex_client::local_db::pipeline::runner::scheduler::SchedulerHandle;
 use raindex_app_settings::network::NetworkCfg;
-use raindex_app_settings::yaml::orderbook::OrderbookYaml;
+use raindex_app_settings::yaml::raindex::RaindexYaml;
 #[cfg(target_family = "wasm")]
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -98,7 +98,7 @@ impl LocalDbState {
 }
 
 impl LocalDbState {
-    pub(crate) fn compute_chain_ids(yaml: &OrderbookYaml) -> HashSet<u32> {
+    pub(crate) fn compute_chain_ids(yaml: &RaindexYaml) -> HashSet<u32> {
         let syncs = match yaml.get_local_db_syncs() {
             Ok(s) => s,
             Err(_) => return HashSet::new(),
@@ -224,7 +224,7 @@ mod tests {
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
     use raindex_app_settings::spec_version::SpecVersion;
-    use raindex_app_settings::yaml::orderbook::{OrderbookYaml, OrderbookYamlValidation};
+    use raindex_app_settings::yaml::raindex::{RaindexYaml, RaindexYamlValidation};
     use raindex_app_settings::yaml::YamlParsable;
 
     struct NoopExec;
@@ -423,7 +423,7 @@ orderbooks:
 "#,
             version = SpecVersion::current()
         );
-        let yaml = OrderbookYaml::new(vec![yaml_str], OrderbookYamlValidation::default())
+        let yaml = RaindexYaml::new(vec![yaml_str], RaindexYamlValidation::default())
             .expect("valid yaml");
         let ids = LocalDbState::compute_chain_ids(&yaml);
         assert_eq!(ids, HashSet::from([42161]));
@@ -451,7 +451,7 @@ orderbooks:
 "#,
             version = SpecVersion::current()
         );
-        let yaml = OrderbookYaml::new(vec![yaml_str], OrderbookYamlValidation::default())
+        let yaml = RaindexYaml::new(vec![yaml_str], RaindexYamlValidation::default())
             .expect("valid yaml");
         let ids = LocalDbState::compute_chain_ids(&yaml);
         assert!(ids.is_empty());

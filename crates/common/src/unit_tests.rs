@@ -18,7 +18,7 @@ use raindex_app_settings::{
     rainlang::RainlangCfg,
     unit_test::TestConfig,
     yaml::{
-        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        raindex::{RaindexYaml, RaindexYamlValidation},
         YamlError, YamlParsable,
     },
 };
@@ -29,7 +29,7 @@ use thiserror::Error;
 pub struct TestRunner {
     pub forker: Forker,
     pub dotrains: Dotrains,
-    pub orderbook_yamls: OrderbookYamls,
+    pub raindex_yamls: RaindexYamls,
     pub rng: TestRng,
     pub test_setup: TestSetup,
     pub test_config: TestConfig,
@@ -49,9 +49,9 @@ pub struct Dotrains {
 }
 
 #[derive(Clone)]
-pub struct OrderbookYamls {
-    pub main: OrderbookYaml,
-    pub test: OrderbookYaml,
+pub struct RaindexYamls {
+    pub main: RaindexYaml,
+    pub test: RaindexYaml,
 }
 
 #[derive(Error, Debug)]
@@ -89,17 +89,17 @@ impl TestRunner {
         test_config: &TestConfig,
         seed: Option<[u8; 32]>,
     ) -> Result<Self, TestRunnerError> {
-        let main_orderbook_yaml = OrderbookYaml::new(
+        let main_raindex_yaml = RaindexYaml::new(
             vec![RainDocument::get_front_matter(dotrain)
                 .unwrap_or("")
                 .to_string()],
-            OrderbookYamlValidation::default(),
+            RaindexYamlValidation::default(),
         )?;
-        let test_orderbook_yaml = OrderbookYaml::new(
+        let test_raindex_yaml = RaindexYaml::new(
             vec![RainDocument::get_front_matter(test_dotrain)
                 .unwrap_or("")
                 .to_string()],
-            OrderbookYamlValidation::default(),
+            RaindexYamlValidation::default(),
         )?;
 
         Ok(Self {
@@ -108,9 +108,9 @@ impl TestRunner {
                 main_dotrain: dotrain.into(),
                 test_dotrain: test_dotrain.into(),
             },
-            orderbook_yamls: OrderbookYamls {
-                main: main_orderbook_yaml,
-                test: test_orderbook_yaml,
+            raindex_yamls: RaindexYamls {
+                main: main_raindex_yaml,
+                test: test_raindex_yaml,
             },
             rng: TestRng::from_seed(RngAlgorithm::ChaCha, &seed.unwrap_or([0; 32])),
             test_setup: TestSetup {
@@ -393,7 +393,7 @@ impl TestRunner {
 
     pub async fn run_unit_test(&mut self) -> Result<RainEvalResults, TestRunnerError> {
         self.test_setup.rainlang = Arc::new(
-            self.orderbook_yamls
+            self.raindex_yamls
                 .main
                 .get_rainlang(&self.test_config.scenario_name)?,
         );

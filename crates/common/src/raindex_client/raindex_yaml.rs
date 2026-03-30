@@ -1,6 +1,6 @@
 use super::*;
 use raindex_app_settings::{
-    accounts::AccountCfg, network::NetworkCfg, orderbook::OrderbookCfg, token::TokenCfg,
+    accounts::AccountCfg, network::NetworkCfg, raindex::RaindexCfg, token::TokenCfg,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -9,7 +9,7 @@ impl RaindexClient {
     /// Retrieves a list of unique chain IDs from all configured networks
     ///
     /// Extracts and returns all unique blockchain network chain IDs that are available
-    /// in the current orderbook configuration.
+    /// in the current raindex configuration.
     ///
     /// ## Examples
     ///
@@ -35,7 +35,7 @@ impl RaindexClient {
 
     /// Retrieves all available networks with their configurations
     ///
-    /// Returns a comprehensive map of all network configurations available in the orderbook YAML.
+    /// Returns a comprehensive map of all network configurations available in the raindex YAML.
     /// Each entry contains detailed network information including RPC endpoints and chain-specific settings.
     ///
     /// ## Examples
@@ -57,7 +57,7 @@ impl RaindexClient {
         unchecked_return_type = "Map<string, NetworkCfg>"
     )]
     pub fn get_all_networks(&self) -> Result<HashMap<String, NetworkCfg>, RaindexError> {
-        Ok(self.orderbook_yaml.get_networks()?)
+        Ok(self.raindex_yaml.get_networks()?)
     }
 
     /// Retrieves network configuration for a specific chain ID
@@ -89,40 +89,40 @@ impl RaindexClient {
         )]
         chain_id: u32,
     ) -> Result<NetworkCfg, RaindexError> {
-        Ok(self.orderbook_yaml.get_network_by_chain_id(chain_id)?)
+        Ok(self.raindex_yaml.get_network_by_chain_id(chain_id)?)
     }
 
-    /// Retrieves orderbook configuration by contract address
+    /// Retrieves raindex configuration by contract address
     ///
-    /// Finds and returns the orderbook configuration that matches the provided contract address.
-    /// This allows you to access orderbook-specific settings including subgraph endpoints,
+    /// Finds and returns the raindex configuration that matches the provided contract address.
+    /// This allows you to access raindex-specific settings including subgraph endpoints,
     /// network information, and other details.
     ///
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = client.getOrderbookByAddress("0x1234567890123456789012345678901234567890");
+    /// const result = client.getRaindexByAddress("0x1234567890123456789012345678901234567890");
     /// if (result.error) {
-    ///   console.error("Orderbook not found:", result.error.readableMsg);
+    ///   console.error("Raindex not found:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const orderbookConfig = result.value;
-    /// console.log(`Found orderbook ${orderbookConfig}`);
+    /// const raindexConfig = result.value;
+    /// console.log(`Found raindex ${raindexConfig}`);
     /// ```
     #[wasm_export(
-        js_name = "getOrderbookByAddress",
-        return_description = "Returns the configuration for a specific orderbook identified by its address",
-        unchecked_return_type = "OrderbookCfg"
+        js_name = "getRaindexByAddress",
+        return_description = "Returns the configuration for a specific raindex identified by its address",
+        unchecked_return_type = "RaindexCfg"
     )]
-    pub fn get_orderbook_by_address_wasm_binding(
+    pub fn get_raindex_by_address_wasm_binding(
         &self,
         #[wasm_export(
-            param_description = "The address of the orderbook to retrieve the configuration for"
+            param_description = "The address of the raindex to retrieve the configuration for"
         )]
         address: String,
-    ) -> Result<OrderbookCfg, RaindexError> {
+    ) -> Result<RaindexCfg, RaindexError> {
         let address = Address::from_str(&address)?;
-        Ok(self.orderbook_yaml.get_orderbook_by_address(address)?)
+        Ok(self.raindex_yaml.get_raindex_by_address(address)?)
     }
 
     /// Checks if Sentry error tracking is enabled in the YAML configuration
@@ -145,11 +145,11 @@ impl RaindexClient {
         unchecked_return_type = "boolean"
     )]
     pub fn is_sentry_enabled(&self) -> Result<bool, RaindexError> {
-        let sentry = self.orderbook_yaml.get_sentry()?;
+        let sentry = self.raindex_yaml.get_sentry()?;
         Ok(sentry.unwrap_or(false))
     }
 
-    /// Retrieves all accounts from the orderbook YAML configuration
+    /// Retrieves all accounts from the raindex YAML configuration
     ///
     /// Returns a map of account configurations where the keys are account names
     /// and the values are `AccountCfg` objects containing account details.
@@ -169,41 +169,41 @@ impl RaindexClient {
     /// ```
     #[wasm_export(
         js_name = "getAllAccounts",
-        return_description = "Returns the list of accounts from the orderbook YAML configuration.",
+        return_description = "Returns the list of accounts from the raindex YAML configuration.",
         unchecked_return_type = "Map<string, AccountCfg>"
     )]
     pub fn get_all_accounts(&self) -> Result<HashMap<String, AccountCfg>, RaindexError> {
-        Ok(self.orderbook_yaml.get_accounts()?)
+        Ok(self.raindex_yaml.get_accounts()?)
     }
 
-    /// Retrieves all orderbooks from the orderbook YAML configuration
+    /// Retrieves all raindexes from the raindex YAML configuration
     ///
-    /// Returns a map of orderbook configurations where the keys are orderbook names
-    /// and the values are `OrderbookCfg` objects.
+    /// Returns a map of raindex configurations where the keys are raindex names
+    /// and the values are `RaindexCfg` objects.
     ///
     /// ## Examples
     ///
     /// ```javascript
-    /// const result = client.getAllOrderbooks();
+    /// const result = client.getAllRaindexes();
     /// if (result.error) {
-    ///   console.error("Error getting orderbooks:", result.error.readableMsg);
+    ///   console.error("Error getting raindexes:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const orderbooks = result.value;
-    /// for (const [name, orderbook] of orderbooks) {
-    ///   console.log(`Orderbook: ${name}, Address: ${orderbook.address}, Chain: ${orderbook.network.chainId}`);
+    /// const raindexes = result.value;
+    /// for (const [name, raindex] of raindexes) {
+    ///   console.log(`Raindex: ${name}, Address: ${raindex.address}, Chain: ${raindex.network.chainId}`);
     /// }
     /// ```
     #[wasm_export(
-        js_name = "getAllOrderbooks",
-        return_description = "Returns the list of orderbooks from the orderbook YAML configuration.",
-        unchecked_return_type = "Map<string, OrderbookCfg>"
+        js_name = "getAllRaindexes",
+        return_description = "Returns the list of raindexes from the raindex YAML configuration.",
+        unchecked_return_type = "Map<string, RaindexCfg>"
     )]
-    pub fn get_all_orderbooks(&self) -> Result<HashMap<String, OrderbookCfg>, RaindexError> {
-        Ok(self.orderbook_yaml.get_orderbooks()?)
+    pub fn get_all_raindexes(&self) -> Result<HashMap<String, RaindexCfg>, RaindexError> {
+        Ok(self.raindex_yaml.get_raindexes()?)
     }
 
-    /// Retrieves all tokens from the orderbook YAML configuration
+    /// Retrieves all tokens from the raindex YAML configuration
     ///
     /// Returns a map of token configurations where the keys are token names
     /// and the values are `TokenCfg` objects containing token details such as
@@ -230,12 +230,12 @@ impl RaindexClient {
         unchecked_return_type = "Map<string, TokenCfg>"
     )]
     pub fn get_all_tokens(&self) -> Result<HashMap<String, TokenCfg>, RaindexError> {
-        Ok(self.orderbook_yaml.get_tokens()?)
+        Ok(self.raindex_yaml.get_tokens()?)
     }
 }
 impl RaindexClient {
-    pub fn get_orderbook_by_address(&self, address: Address) -> Result<OrderbookCfg, RaindexError> {
-        Ok(self.orderbook_yaml.get_orderbook_by_address(address)?)
+    pub fn get_raindex_by_address(&self, address: Address) -> Result<RaindexCfg, RaindexError> {
+        Ok(self.raindex_yaml.get_raindex_by_address(address)?)
     }
 }
 
@@ -316,7 +316,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_orderbook_by_address_wasm_binding() {
+    async fn test_get_raindex_by_address_wasm_binding() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
@@ -328,29 +328,29 @@ mod tests {
             .unwrap();
 
         let mainnet_address = "0x1234567890123456789012345678901234567890".to_string();
-        let mainnet_orderbook = client
-            .get_orderbook_by_address_wasm_binding(mainnet_address.clone())
+        let mainnet_raindex = client
+            .get_raindex_by_address_wasm_binding(mainnet_address.clone())
             .unwrap();
         assert_eq!(
-            mainnet_orderbook.address.to_string().to_lowercase(),
+            mainnet_raindex.address.to_string().to_lowercase(),
             mainnet_address.to_lowercase()
         );
 
         let polygon_address = "0x0987654321098765432109876543210987654321".to_string();
-        let polygon_orderbook = client
-            .get_orderbook_by_address_wasm_binding(polygon_address.clone())
+        let polygon_raindex = client
+            .get_raindex_by_address_wasm_binding(polygon_address.clone())
             .unwrap();
         assert_eq!(
-            polygon_orderbook.address.to_string().to_lowercase(),
+            polygon_raindex.address.to_string().to_lowercase(),
             polygon_address.to_lowercase()
         );
 
-        let result = client.get_orderbook_by_address_wasm_binding(
+        let result = client.get_raindex_by_address_wasm_binding(
             "0x1111111111111111111111111111111111111111".to_string(),
         );
         assert!(result.is_err());
 
-        let result = client.get_orderbook_by_address_wasm_binding("invalid_address".to_string());
+        let result = client.get_raindex_by_address_wasm_binding("invalid_address".to_string());
         assert!(result.is_err());
     }
 
@@ -444,7 +444,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_all_orderbooks() {
+    async fn test_get_all_raindexes() {
         let yaml = get_test_yaml(
             "http://localhost:3001",
             "http://localhost:3002",
@@ -454,26 +454,26 @@ mod tests {
         let client = RaindexClient::new(vec![yaml], None, None, None, None)
             .await
             .unwrap();
-        let result = client.get_all_orderbooks().unwrap();
+        let result = client.get_all_raindexes().unwrap();
 
         assert_eq!(result.len(), 2);
-        assert!(result.contains_key("mainnet-orderbook"));
-        assert!(result.contains_key("polygon-orderbook"));
+        assert!(result.contains_key("mainnet-raindex"));
+        assert!(result.contains_key("polygon-raindex"));
 
-        let mainnet_ob = result.get("mainnet-orderbook").unwrap();
+        let mainnet_ob = result.get("mainnet-raindex").unwrap();
         assert_eq!(
             mainnet_ob.address,
             Address::from_str("0x1234567890123456789012345678901234567890").unwrap()
         );
         assert_eq!(mainnet_ob.network.chain_id, 1);
-        assert_eq!(mainnet_ob.label, Some("Primary Orderbook".to_string()));
+        assert_eq!(mainnet_ob.label, Some("Primary Raindex".to_string()));
 
-        let polygon_ob = result.get("polygon-orderbook").unwrap();
+        let polygon_ob = result.get("polygon-raindex").unwrap();
         assert_eq!(
             polygon_ob.address,
             Address::from_str("0x0987654321098765432109876543210987654321").unwrap()
         );
         assert_eq!(polygon_ob.network.chain_id, 137);
-        assert_eq!(polygon_ob.label, Some("Polygon Orderbook".to_string()));
+        assert_eq!(polygon_ob.label, Some("Polygon Raindex".to_string()));
     }
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import type { RaindexVault } from '@rainlanguage/orderbook';
+	import type { RaindexVault } from '@rainlanguage/raindex';
 
 	export let vault: RaindexVault;
 

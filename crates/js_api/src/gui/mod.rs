@@ -298,7 +298,7 @@ impl DotrainOrderGui {
         #[wasm_export(param_description = "Token identifier from the YAML tokens section")]
         key: String,
     ) -> Result<ExtendedTokenInfo, GuiError> {
-        let token = self.dotrain_order.orderbook_yaml().get_token(&key)?;
+        let token = self.dotrain_order.raindex_yaml().get_token(&key)?;
         Ok(ExtendedTokenInfo::from_token_cfg(&token).await?)
     }
 

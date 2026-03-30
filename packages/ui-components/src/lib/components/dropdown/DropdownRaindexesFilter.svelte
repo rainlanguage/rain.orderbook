@@ -55,7 +55,7 @@
 			? 'Select raindexes'
 			: allSelected
 				? allLabel
-				: `${selectedCount} raindex${selectedCount > 1 ? 's' : ''}`;
+				: `${selectedCount} raindex${selectedCount > 1 ? 'es' : ''}`;
 
 	$: {
 		if (searchTerm.trim() === '') {

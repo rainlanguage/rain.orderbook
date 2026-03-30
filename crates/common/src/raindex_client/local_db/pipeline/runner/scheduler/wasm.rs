@@ -361,7 +361,7 @@ mod wasm_tests {
                             failures.set(failures.get() + 1);
                             let failure = TargetFailure {
                                 ob_id: OrderbookIdentifier::new(1, Address::ZERO),
-                                orderbook_key: None,
+                                raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error: LocalDbError::CustomError("runner failure".to_string()),
                             };

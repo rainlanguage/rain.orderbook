@@ -98,27 +98,27 @@ impl RaindexYaml {
     ///
     /// ```javascript
     /// // Basic usage
-    /// const result = raindexYaml.getOrderbookByAddress("0x1234567890abcdef1234567890abcdef12345678");
+    /// const result = raindexYaml.getRaindexByAddress("0x1234567890abcdef1234567890abcdef12345678");
     /// if (result.error) {
     ///   console.error("Error:", result.error.readableMsg);
     ///   return;
     /// }
-    /// const orderbook = result.value;
-    /// // Do something with the orderbook
+    /// const raindex = result.value;
+    /// // Do something with the raindex
     /// ```
     #[wasm_export(
-        js_name = "getOrderbookByAddress",
+        js_name = "getRaindexByAddress",
         unchecked_return_type = "RaindexCfg",
-        return_description = "Complete orderbook configuration"
+        return_description = "Complete raindex configuration"
     )]
-    pub fn get_orderbook_by_address(
+    pub fn get_raindex_by_address(
         &self,
-        #[wasm_export(param_description = "The hexadecimal address of the orderbook contract")]
-        orderbook_address: &str,
+        #[wasm_export(param_description = "The hexadecimal address of the raindex contract")]
+        raindex_address: &str,
     ) -> Result<RaindexCfg, RaindexYamlError> {
         let address =
-            Address::from_str(orderbook_address).map_err(RaindexYamlError::FromHexError)?;
-        Ok(self.yaml.get_orderbook_by_address(address)?)
+            Address::from_str(raindex_address).map_err(RaindexYamlError::FromHexError)?;
+        Ok(self.yaml.get_raindex_by_address(address)?)
     }
 
     /// Retrieves all tokens from the YAML configuration, including remote tokens.
@@ -268,47 +268,47 @@ pub(crate) mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_orderbook_yaml() {
-        let orderbook_yaml = RaindexYaml::new(vec![get_yaml()], None).unwrap();
-        let orderbook = orderbook_yaml
-            .get_orderbook_by_address("0x0000000000000000000000000000000000000002")
+    fn test_raindex_yaml() {
+        let raindex_yaml = RaindexYaml::new(vec![get_yaml()], None).unwrap();
+        let raindex = raindex_yaml
+            .get_raindex_by_address("0x0000000000000000000000000000000000000002")
             .unwrap();
 
         assert_eq!(
-            orderbook.address,
+            raindex.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
-        assert_eq!(orderbook.key, "orderbook1");
-        assert_eq!(orderbook.network.key, "mainnet");
-        assert_eq!(orderbook.subgraph.key, "mainnet");
-        assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
+        assert_eq!(raindex.key, "orderbook1");
+        assert_eq!(raindex.network.key, "mainnet");
+        assert_eq!(raindex.subgraph.key, "mainnet");
+        assert_eq!(raindex.label, Some("Primary Orderbook".to_string()));
     }
 
     #[wasm_bindgen_test]
-    fn test_orderbook_yaml_error() {
-        let orderbook_yaml = RaindexYaml::new(vec![get_yaml()], None).unwrap();
-        let orderbook = orderbook_yaml.get_orderbook_by_address("invalid-address");
+    fn test_raindex_yaml_error() {
+        let raindex_yaml = RaindexYaml::new(vec![get_yaml()], None).unwrap();
+        let raindex = raindex_yaml.get_raindex_by_address("invalid-address");
 
-        assert!(orderbook.is_err());
+        assert!(raindex.is_err());
         assert_eq!(
-            orderbook.as_ref().err().unwrap().to_string(),
+            raindex.as_ref().err().unwrap().to_string(),
             "Invalid address: odd number of digits"
         );
         assert_eq!(
-            orderbook.as_ref().err().unwrap().to_readable_msg(),
+            raindex.as_ref().err().unwrap().to_readable_msg(),
             "The provided address is invalid. Please ensure the address is in the correct hexadecimal format. Error: \"odd number of digits\""
         );
 
-        let orderbook =
-            orderbook_yaml.get_orderbook_by_address("0x0000000000000000000000000000000000000000");
-        assert!(orderbook.is_err());
+        let raindex =
+            raindex_yaml.get_raindex_by_address("0x0000000000000000000000000000000000000000");
+        assert!(raindex.is_err());
         assert_eq!(
-            orderbook.as_ref().err().unwrap().to_string(),
-            "Orderbook yaml error: orderbook with address: 0x0000000000000000000000000000000000000000 not found"
+            raindex.as_ref().err().unwrap().to_string(),
+            "Raindex yaml error: raindex with address: 0x0000000000000000000000000000000000000000 not found"
         );
         assert_eq!(
-            orderbook.as_ref().err().unwrap().to_readable_msg(),
-            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"orderbook with address: 0x0000000000000000000000000000000000000000 not found\""
+            raindex.as_ref().err().unwrap().to_readable_msg(),
+            "There was an error processing the YAML configuration. Please check the YAML file for any issues. Error: \"raindex with address: 0x0000000000000000000000000000000000000000 not found\""
         );
     }
 
@@ -336,7 +336,7 @@ pub(crate) mod tests {
     }
 
     #[wasm_bindgen_test]
-    fn test_orderbook_yaml_invalid_with_validation_enabled() {
+    fn test_raindex_yaml_invalid_with_validation_enabled() {
         let result = RaindexYaml::new(vec![get_invalid_yaml()], Some(true));
         match result {
             Ok(_) => panic!("Expected validation error with invalid YAML"),
@@ -351,8 +351,8 @@ pub(crate) mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_tokens_local_only() {
-        let mut orderbook_yaml = RaindexYaml::new(vec![get_yaml()], None).unwrap();
-        let tokens = orderbook_yaml.get_tokens().await.unwrap();
+        let mut raindex_yaml = RaindexYaml::new(vec![get_yaml()], None).unwrap();
+        let tokens = raindex_yaml.get_tokens().await.unwrap();
 
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0].key, "token1");
@@ -405,9 +405,9 @@ pub(crate) mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_tokens_multiple_networks() {
-        let mut orderbook_yaml =
+        let mut raindex_yaml =
             RaindexYaml::new(vec![get_yaml_multiple_networks()], None).unwrap();
-        let tokens = orderbook_yaml.get_tokens().await.unwrap();
+        let tokens = raindex_yaml.get_tokens().await.unwrap();
 
         assert_eq!(tokens.len(), 2);
 
@@ -444,8 +444,8 @@ pub(crate) mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_tokens_missing_fields_tries_rpc() {
-        let mut orderbook_yaml = RaindexYaml::new(vec![get_yaml_missing_fields()], None).unwrap();
-        let result = orderbook_yaml.get_tokens().await;
+        let mut raindex_yaml = RaindexYaml::new(vec![get_yaml_missing_fields()], None).unwrap();
+        let result = raindex_yaml.get_tokens().await;
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -510,8 +510,8 @@ mod non_wasm_tests {
             url = server.base_url()
         );
 
-        let mut orderbook_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
-        let tokens = orderbook_yaml.get_tokens().await.unwrap();
+        let mut raindex_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
+        let tokens = raindex_yaml.get_tokens().await.unwrap();
 
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0].symbol, "USDC");
@@ -570,8 +570,8 @@ mod non_wasm_tests {
             url = server.base_url()
         );
 
-        let mut orderbook_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
-        let tokens = orderbook_yaml.get_tokens().await.unwrap();
+        let mut raindex_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
+        let tokens = raindex_yaml.get_tokens().await.unwrap();
 
         assert_eq!(tokens.len(), 2);
         assert!(tokens.iter().any(|t| t.symbol == "WETH"));
@@ -620,8 +620,8 @@ mod non_wasm_tests {
             url = server.base_url()
         );
 
-        let mut orderbook_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
-        let tokens = orderbook_yaml.get_tokens().await.unwrap();
+        let mut raindex_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
+        let tokens = raindex_yaml.get_tokens().await.unwrap();
 
         assert_eq!(tokens.len(), 2);
         assert!(tokens.iter().any(|t| t.chain_id == 1));
@@ -652,8 +652,8 @@ mod non_wasm_tests {
             url = server.base_url()
         );
 
-        let mut orderbook_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
-        let result = orderbook_yaml.get_tokens().await;
+        let mut raindex_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
+        let result = raindex_yaml.get_tokens().await;
 
         assert!(result.is_err());
     }
@@ -712,8 +712,8 @@ mod non_wasm_tests {
             url = server.base_url()
         );
 
-        let mut orderbook_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
-        let tokens = orderbook_yaml.get_tokens().await.unwrap();
+        let mut raindex_yaml = RaindexYaml::new(vec![yaml], None).unwrap();
+        let tokens = raindex_yaml.get_tokens().await.unwrap();
 
         assert_eq!(tokens.len(), 2);
         assert!(tokens.iter().any(|t| t.symbol == "USDC"));

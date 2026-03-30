@@ -12,7 +12,7 @@ import { waitForTransactionReceipt, type Config } from '@wagmi/core';
 import { get } from 'svelte/store';
 import type { Chain } from 'viem';
 import type { ToastLink } from '../lib/types/toast';
-import type { SgVault } from '@rainlanguage/orderbook';
+import type { SgVault } from '@rainlanguage/raindex';
 
 vi.mock('@wagmi/core', () => ({
 	waitForTransactionReceipt: vi.fn()

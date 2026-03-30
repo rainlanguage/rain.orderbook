@@ -3,12 +3,12 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import OrdersListTable from '../lib/components/tables/OrdersListTable.svelte';
-import { RaindexOrder } from '@rainlanguage/orderbook';
+import { RaindexOrder } from '@rainlanguage/raindex';
 import type { ComponentProps } from 'svelte';
 import { readable } from 'svelte/store';
 import { useAccount } from '$lib/providers/wallet/useAccount';
 
-vi.mock('../lib/components/ListViewOrderbookFilters.svelte', async () => {
+vi.mock('../lib/components/ListViewRaindexFilters.svelte', async () => {
 	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
 	return {
 		default: MockComponent
@@ -98,7 +98,7 @@ const {
 	mockShowInactiveOrdersStore,
 	mockSelectedChainIdsStore,
 	mockActiveTokensStore,
-	mockActiveOrderbookAddressesStore,
+	mockActiveRaindexAddressesStore,
 	mockOwnerFilterStore
 } = await vi.hoisted(() => import('../lib/__mocks__/stores'));
 
@@ -111,13 +111,13 @@ const defaultProps: OrdersListTableProps = {
 	hideInactiveOrdersVaults: mockHideInactiveOrdersVaultsStore,
 	selectedChainIds: mockSelectedChainIdsStore,
 	activeTokens: mockActiveTokensStore,
-	activeOrderbookAddresses: mockActiveOrderbookAddressesStore,
+	activeRaindexAddresses: mockActiveRaindexAddressesStore,
 	ownerFilter: mockOwnerFilterStore
 } as unknown as OrdersListTableProps;
 
 const mockGetOrders = vi.fn();
 const mockGetTokens = vi.fn();
-const mockGetAllOrderbooks = vi.fn();
+const mockGetAllRaindexes = vi.fn();
 
 describe('OrdersListTable', () => {
 	beforeEach(() => {
@@ -129,12 +129,12 @@ describe('OrdersListTable', () => {
 		(useRaindexClient as Mock).mockReturnValue({
 			getOrders: mockGetOrders,
 			getTokens: mockGetTokens,
-			getAllOrderbooks: mockGetAllOrderbooks.mockReturnValue({
+			getAllRaindexes: mockGetAllRaindexes.mockReturnValue({
 				value: new Map([
 					[
-						'orderbook1',
+						'raindex1',
 						{
-							key: 'orderbook1',
+							key: 'raindex1',
 							address: '0x1111111111111111111111111111111111111111',
 							network: { chainId: 1 }
 						}
@@ -571,7 +571,7 @@ describe('OrdersListTable', () => {
 	it('passes orderbookAddresses filter to getOrders when orderbooks are selected', async () => {
 		const orderbookAddress = '0x1111111111111111111111111111111111111111';
 
-		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([orderbookAddress]);
+		mockActiveRaindexAddressesStore.mockSetSubscribeValue([orderbookAddress]);
 
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -606,7 +606,7 @@ describe('OrdersListTable', () => {
 	});
 
 	it('does not pass orderbookAddresses filter when no orderbooks are selected', async () => {
-		mockActiveOrderbookAddressesStore.mockSetSubscribeValue([]);
+		mockActiveRaindexAddressesStore.mockSetSubscribeValue([]);
 
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any

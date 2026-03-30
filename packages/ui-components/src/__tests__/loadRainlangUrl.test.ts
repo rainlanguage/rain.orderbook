@@ -3,10 +3,10 @@ import type { Mock } from 'vitest';
 import { loadRainlangUrl } from '../lib/services/loadRainlangUrl';
 import { RainlangManager } from '../lib/providers/rainlang/RainlangManager';
 import { initialRainlang } from '../__fixtures__/RainlangManager';
-import { DotrainRainlang } from '@rainlanguage/orderbook';
+import { DotrainRainlang } from '@rainlanguage/raindex';
 
 // Mock dependencies
-vi.mock('@rainlanguage/orderbook', () => ({
+vi.mock('@rainlanguage/raindex', () => ({
 	DotrainRainlang: {
 		validate: vi.fn()
 	}

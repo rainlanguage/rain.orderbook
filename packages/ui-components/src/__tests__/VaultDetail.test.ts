@@ -7,7 +7,7 @@ import { darkChartTheme } from '../lib/utils/lightweightChartsThemes';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'svelte';
 import { useRaindexClient } from '$lib/hooks/useRaindexClient';
-import { RaindexClient, RaindexVault, type RaindexOrderAsIO } from '@rainlanguage/orderbook';
+import { RaindexClient, RaindexVault, type RaindexOrderAsIO } from '@rainlanguage/raindex';
 import { useAccount } from '../lib/providers/wallet/useAccount';
 import { QKEY_VAULT } from '$lib/queries/keys';
 import { useToasts } from '../lib/providers/toasts/useToasts';
@@ -24,7 +24,7 @@ vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
 }));
 
-vi.mock('@rainlanguage/orderbook', () => ({
+vi.mock('@rainlanguage/raindex', () => ({
 	RaindexClient: vi.fn()
 }));
 

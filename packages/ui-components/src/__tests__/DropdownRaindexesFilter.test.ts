@@ -9,29 +9,29 @@ vi.mock('$lib/hooks/useRaindexClient', () => ({
 	useRaindexClient: vi.fn()
 }));
 
-const mockRaindexsData = new Map([
+const mockRaindexesData = new Map([
 	[
-		'orderbook1',
+		'raindex1',
 		{
-			key: 'orderbook1',
+			key: 'raindex1',
 			address: '0x1234567890123456789012345678901234567890',
 			label: 'Raindex One',
 			network: { chainId: 1 }
 		}
 	],
 	[
-		'orderbook2',
+		'raindex2',
 		{
-			key: 'orderbook2',
+			key: 'raindex2',
 			address: '0x2345678901234567890123456789012345678901',
 			label: 'Raindex Two',
 			network: { chainId: 1 }
 		}
 	],
 	[
-		'orderbook3',
+		'raindex3',
 		{
-			key: 'orderbook3',
+			key: 'raindex3',
 			address: '0x3456789012345678901234567890123456789012',
 			label: null,
 			network: { chainId: 137 }
@@ -46,17 +46,17 @@ describe('DropdownRaindexesFilter', () => {
 		activeRaindexAddresses = writable([]);
 
 		(useRaindexClient as Mock).mockReturnValue({
-			getAllRaindexs: vi.fn(() => ({
-				value: mockRaindexsData,
+			getAllRaindexes: vi.fn(() => ({
+				value: mockRaindexesData,
 				error: undefined
 			}))
 		});
 	});
 
 	describe('Empty state', () => {
-		test('displays empty message when no orderbooks available', async () => {
+		test('displays empty message when no raindexes available', async () => {
 			(useRaindexClient as Mock).mockReturnValue({
-				getAllRaindexs: vi.fn(() => ({
+				getAllRaindexes: vi.fn(() => ({
 					value: new Map(),
 					error: undefined
 				}))
@@ -70,16 +70,16 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
-				expect(screen.getByText('No orderbooks available')).toBeInTheDocument();
+				expect(screen.getByText('No raindexes available')).toBeInTheDocument();
 			});
 		});
 
 		test('displays custom empty message', async () => {
 			(useRaindexClient as Mock).mockReturnValue({
-				getAllRaindexs: vi.fn(() => ({
+				getAllRaindexes: vi.fn(() => ({
 					value: new Map(),
 					error: undefined
 				}))
@@ -96,7 +96,7 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
 				expect(screen.getByText(customEmptyMessage)).toBeInTheDocument();
@@ -105,10 +105,10 @@ describe('DropdownRaindexesFilter', () => {
 	});
 
 	describe('Error state', () => {
-		test('displays error message when getAllRaindexs returns error', async () => {
-			const errorMessage = 'Failed to load orderbooks';
+		test('displays error message when getAllRaindexes returns error', async () => {
+			const errorMessage = 'Failed to load raindexes';
 			(useRaindexClient as Mock).mockReturnValue({
-				getAllRaindexs: vi.fn(() => ({
+				getAllRaindexes: vi.fn(() => ({
 					value: undefined,
 					error: { readableMsg: errorMessage }
 				}))
@@ -122,18 +122,18 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
 				expect(
-					screen.getByText(`Cannot load orderbooks list: ${errorMessage}`)
+					screen.getByText(`Cannot load raindexes list: ${errorMessage}`)
 				).toBeInTheDocument();
 			});
 		});
 	});
 
-	describe('Selected orderbooks display', () => {
-		test('displays "Select orderbooks" when no orderbooks are selected', () => {
+	describe('Selected raindexes display', () => {
+		test('displays "Select raindexes" when no raindexes are selected', () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -142,11 +142,11 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			expect(screen.getByText('Select orderbooks')).toBeInTheDocument();
+			expect(screen.getByText('Select raindexes')).toBeInTheDocument();
 		});
 
-		test('displays "All orderbooks" when all orderbooks are selected', () => {
-			const allAddresses = Array.from(mockRaindexsData.values()).map(
+		test('displays "All raindexes" when all raindexes are selected', () => {
+			const allAddresses = Array.from(mockRaindexesData.values()).map(
 				(ob) => ob.address
 			) as Address[];
 
@@ -158,11 +158,11 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			expect(screen.getByText('All orderbooks')).toBeInTheDocument();
+			expect(screen.getByText('All raindexes')).toBeInTheDocument();
 		});
 
-		test('displays custom all label when all orderbooks are selected', () => {
-			const allAddresses = Array.from(mockRaindexsData.values()).map(
+		test('displays custom all label when all raindexes are selected', () => {
+			const allAddresses = Array.from(mockRaindexesData.values()).map(
 				(ob) => ob.address
 			) as Address[];
 			const customAllLabel = 'Everything selected';
@@ -179,8 +179,8 @@ describe('DropdownRaindexesFilter', () => {
 			expect(screen.getByText(customAllLabel)).toBeInTheDocument();
 		});
 
-		test('displays count when one orderbook is selected', () => {
-			const selectedAddress = Array.from(mockRaindexsData.values())[0].address as Address;
+		test('displays count when one raindex is selected', () => {
+			const selectedAddress = Array.from(mockRaindexesData.values())[0].address as Address;
 
 			render(DropdownRaindexesFilter, {
 				props: {
@@ -190,11 +190,11 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			expect(screen.getByText('1 orderbook')).toBeInTheDocument();
+			expect(screen.getByText('1 raindex')).toBeInTheDocument();
 		});
 
-		test('displays plural count when multiple orderbooks are selected', () => {
-			const selectedAddresses = Array.from(mockRaindexsData.values())
+		test('displays plural count when multiple raindexes are selected', () => {
+			const selectedAddresses = Array.from(mockRaindexesData.values())
 				.slice(0, 2)
 				.map((ob) => ob.address) as Address[];
 
@@ -206,10 +206,10 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			expect(screen.getByText('2 orderbooks')).toBeInTheDocument();
+			expect(screen.getByText('2 raindexes')).toBeInTheDocument();
 		});
 
-		test('updates selected orderbooks when checkbox is clicked', async () => {
+		test('updates selected raindexes when checkbox is clicked', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -218,9 +218,9 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
-			const checkboxes = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+			const checkboxes = screen.getAllByTestId('dropdown-raindexes-filter-option');
 			await fireEvent.click(checkboxes[0]);
 
 			await waitFor(() => {
@@ -229,8 +229,8 @@ describe('DropdownRaindexesFilter', () => {
 			});
 		});
 
-		test('shows selected orderbooks as checked', async () => {
-			const selectedAddress = Array.from(mockRaindexsData.values())[0].address as Address;
+		test('shows selected raindexes as checked', async () => {
+			const selectedAddress = Array.from(mockRaindexesData.values())[0].address as Address;
 
 			render(DropdownRaindexesFilter, {
 				props: {
@@ -240,16 +240,16 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
-				expect(screen.getByText('1 orderbook')).toBeInTheDocument();
+				expect(screen.getByText('1 raindex')).toBeInTheDocument();
 			});
 		});
 	});
 
 	describe('Chain filtering', () => {
-		test('shows all orderbooks when selectedChainIds is empty', async () => {
+		test('shows all raindexes when selectedChainIds is empty', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -258,15 +258,15 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
-				const checkboxes = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const checkboxes = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				expect(checkboxes.length).toBe(3);
 			});
 		});
 
-		test('filters orderbooks by selected chain ID', async () => {
+		test('filters raindexes by selected chain ID', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -275,15 +275,15 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
-				const checkboxes = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const checkboxes = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				expect(checkboxes.length).toBe(2);
 			});
 		});
 
-		test('shows orderbooks from multiple selected chains', async () => {
+		test('shows raindexes from multiple selected chains', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -292,10 +292,10 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
-				const checkboxes = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const checkboxes = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				expect(checkboxes.length).toBe(3);
 			});
 		});
@@ -311,7 +311,7 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
 				expect(screen.getByText(/Raindex One/)).toBeInTheDocument();
@@ -328,14 +328,14 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
 				expect(screen.getByText(/0x3456\.\.\.9012/)).toBeInTheDocument();
 			});
 		});
 
-		test('displays network name next to each orderbook', async () => {
+		test('displays network name next to each raindex', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -344,7 +344,7 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
 				expect(screen.getAllByText('Ethereum').length).toBeGreaterThan(0);
@@ -354,7 +354,7 @@ describe('DropdownRaindexesFilter', () => {
 	});
 
 	describe('Search and keyboard navigation', () => {
-		test('filters orderbooks based on search term (label)', async () => {
+		test('filters raindexes based on search term (label)', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -363,19 +363,19 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
-			const searchInput = screen.getByTestId('orderbooks-filter-search');
+			const searchInput = screen.getByTestId('raindexes-filter-search');
 			await fireEvent.input(searchInput, { target: { value: 'One' } });
 
 			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const options = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				expect(options).toHaveLength(1);
 				expect(screen.getByText(/Raindex One/)).toBeInTheDocument();
 			});
 		});
 
-		test('filters orderbooks based on search term (address)', async () => {
+		test('filters raindexes based on search term (address)', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -384,18 +384,18 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
-			const searchInput = screen.getByTestId('orderbooks-filter-search');
+			const searchInput = screen.getByTestId('raindexes-filter-search');
 			await fireEvent.input(searchInput, { target: { value: '0x1234' } });
 
 			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const options = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				expect(options).toHaveLength(1);
 			});
 		});
 
-		test('shows "No orderbooks match your search" when search yields no results', async () => {
+		test('shows "No raindexes match your search" when search yields no results', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -404,13 +404,13 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
-			const searchInput = screen.getByTestId('orderbooks-filter-search');
+			const searchInput = screen.getByTestId('raindexes-filter-search');
 			await fireEvent.input(searchInput, { target: { value: 'NONEXISTENT' } });
 
 			await waitFor(() => {
-				expect(screen.getByText('No orderbooks match your search')).toBeInTheDocument();
+				expect(screen.getByText('No raindexes match your search')).toBeInTheDocument();
 			});
 		});
 
@@ -423,14 +423,14 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
-			const searchInput = screen.getByTestId('orderbooks-filter-search');
+			const searchInput = screen.getByTestId('raindexes-filter-search');
 
 			await fireEvent.keyDown(searchInput, { key: 'ArrowDown' });
 
 			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const options = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				const secondItemLabel = options[1].closest('label');
 				expect(secondItemLabel).toHaveClass('bg-blue-100', 'dark:bg-blue-900');
 			});
@@ -438,13 +438,13 @@ describe('DropdownRaindexesFilter', () => {
 			await fireEvent.keyDown(searchInput, { key: 'ArrowUp' });
 
 			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const options = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				const firstItemLabel = options[0].closest('label');
 				expect(firstItemLabel).toHaveClass('bg-blue-100', 'dark:bg-blue-900');
 			});
 		});
 
-		test('Enter key selects highlighted orderbook', async () => {
+		test('Enter key selects highlighted raindex', async () => {
 			render(DropdownRaindexesFilter, {
 				props: {
 					activeRaindexAddresses,
@@ -453,14 +453,14 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
-			const searchInput = screen.getByTestId('orderbooks-filter-search');
+			const searchInput = screen.getByTestId('raindexes-filter-search');
 
 			await fireEvent.input(searchInput, { target: { value: 'One' } });
 
 			await waitFor(() => {
-				const options = screen.getAllByTestId('dropdown-orderbooks-filter-option');
+				const options = screen.getAllByTestId('dropdown-raindexes-filter-option');
 				expect(options).toHaveLength(1);
 			});
 
@@ -481,9 +481,9 @@ describe('DropdownRaindexesFilter', () => {
 				}
 			});
 
-			await fireEvent.click(screen.getByTestId('dropdown-orderbooks-filter-button'));
+			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
-			const searchInput = screen.getByTestId('orderbooks-filter-search') as HTMLInputElement;
+			const searchInput = screen.getByTestId('raindexes-filter-search') as HTMLInputElement;
 
 			await fireEvent.input(searchInput, { target: { value: 'One' } });
 			expect(searchInput.value).toBe('One');

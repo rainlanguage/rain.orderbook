@@ -339,7 +339,7 @@ mod wasm_tests {
     use gloo_timers::future::TimeoutFuture;
     use raindex_app_settings::spec_version::SpecVersion;
     use raindex_app_settings::yaml::{
-        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        raindex::{RaindexYaml, RaindexYamlValidation},
         YamlParsable,
     };
     use std::cell::RefCell;

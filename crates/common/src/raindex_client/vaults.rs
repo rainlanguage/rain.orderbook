@@ -320,8 +320,8 @@ impl RaindexVaultToken {
 #[wasm_export]
 impl RaindexVault {
     #[wasm_export(skip)]
-    pub fn get_orderbook_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
-        self.raindex_client.get_orderbook_client(self.orderbook)
+    pub fn get_raindex_subgraph_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
+        self.raindex_client.get_raindex_subgraph_client(self.orderbook)
     }
 
     /// Fetches balance change history for a vault
@@ -1429,7 +1429,7 @@ impl RaindexClient {
         ob_id: &OrderbookIdentifier,
         vault_id: Bytes,
     ) -> Result<RaindexVault, RaindexError> {
-        let orderbook_cfg = self.get_orderbook_by_address(ob_id.orderbook_address)?;
+        let orderbook_cfg = self.get_raindex_by_address(ob_id.orderbook_address)?;
         if orderbook_cfg.network.chain_id != ob_id.chain_id {
             return Err(RaindexError::OrderbookNotFound(
                 ob_id.orderbook_address.to_string(),
@@ -1522,7 +1522,7 @@ impl VaultsDataSource for SubgraphVaults<'_> {
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_orderbook_client(ob_id.orderbook_address)?;
+        let client = self.client.get_raindex_subgraph_client(ob_id.orderbook_address)?;
         let vault = match client.vault_detail(Id::new(vault_id.to_string())).await {
             Ok(vault) => vault,
             Err(OrderbookSubgraphClientError::Empty) => return Ok(None),
@@ -1539,7 +1539,7 @@ impl VaultsDataSource for SubgraphVaults<'_> {
         page: Option<u16>,
         filter_types: Option<&[VaultBalanceChangeFilter]>,
     ) -> Result<Vec<RaindexVaultBalanceChange>, RaindexError> {
-        let client = self.client.get_orderbook_client(vault.orderbook)?;
+        let client = self.client.get_raindex_subgraph_client(vault.orderbook)?;
 
         let filter_typenames: Option<Vec<&str>> = filter_types.map(|filters| {
             filters

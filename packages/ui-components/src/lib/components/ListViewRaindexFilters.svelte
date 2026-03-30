@@ -6,7 +6,7 @@
 	import { page } from '$app/stores';
 	import { isEmpty } from 'lodash';
 	import { Alert } from 'flowbite-svelte';
-	import type { Address, RaindexVaultToken } from '@rainlanguage/orderbook';
+	import type { Address, RaindexVaultToken } from '@rainlanguage/raindex';
 	import CheckboxActiveOrders from './checkbox/CheckboxActiveOrders.svelte';
 	import DropdownTokensFilter from './dropdown/DropdownTokensFilter.svelte';
 	import DropdownRaindexesFilter from './dropdown/DropdownRaindexesFilter.svelte';

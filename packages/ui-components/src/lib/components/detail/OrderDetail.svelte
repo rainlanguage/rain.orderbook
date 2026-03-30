@@ -33,7 +33,7 @@
 		RaindexVaultsList,
 		type Address,
 		type Hex
-	} from '@rainlanguage/orderbook';
+	} from '@rainlanguage/raindex';
 	import { useToasts } from '$lib/providers/toasts/useToasts';
 	import { useRaindexClient } from '$lib/hooks/useRaindexClient';
 

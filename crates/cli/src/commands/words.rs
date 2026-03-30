@@ -96,7 +96,7 @@ impl Execute for Words {
 
         let results = if let Some(rainlang_key) = &self.source.rainlang {
             // get rainlang from order config
-            let rainlang = dotrain_order.orderbook_yaml().get_rainlang(rainlang_key)?;
+            let rainlang = dotrain_order.raindex_yaml().get_rainlang(rainlang_key)?;
 
             // get metaboard subgraph url
             let metaboard_url = self
@@ -105,7 +105,7 @@ impl Execute for Words {
                 .map(|v| v.to_string())
                 .or_else(|| {
                     dotrain_order
-                        .orderbook_yaml()
+                        .raindex_yaml()
                         .get_metaboard(&rainlang.network.key)
                         .ok()
                         .map(|metaboard| metaboard.url.to_string())
@@ -132,7 +132,7 @@ impl Execute for Words {
                     .key
                     .clone();
                 dotrain_order
-                    .orderbook_yaml()
+                    .raindex_yaml()
                     .add_metaboard(network_name, v)?;
             }
             if self.rainlang_only {
@@ -179,7 +179,7 @@ impl Execute for Words {
             if let Some(v) = &self.metaboard_subgraph {
                 let network_key = deployment.scenario.rainlang.network.key.clone();
                 dotrain_order
-                    .orderbook_yaml()
+                    .raindex_yaml()
                     .add_metaboard(&network_key, v)?;
             }
             let result = dotrain_order.get_all_words_for_scenario(scenario).await?;

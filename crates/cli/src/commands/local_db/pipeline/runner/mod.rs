@@ -62,7 +62,7 @@ where
         environment: RunnerEnvironment<B, W, E, T, A, S>,
     ) -> Result<Self, LocalDbError> {
         let settings = parse_runner_settings(&settings_yaml)?;
-        let targets = build_runner_targets(&settings.orderbooks, &settings.syncs)?;
+        let targets = build_runner_targets(&settings.raindexes, &settings.syncs)?;
 
         let mut target_lookup = HashMap::with_capacity(targets.len());
         for target in &targets {
@@ -85,7 +85,7 @@ where
     pub async fn run(&self) -> Result<ProducerRunReport, LocalDbError> {
         let manifest_map = match self
             .environment
-            .fetch_manifests(&self.settings.orderbooks)
+            .fetch_manifests(&self.settings.raindexes)
             .await
         {
             Ok(map) => Arc::new(map),
@@ -94,7 +94,7 @@ where
                     successes: Vec::new(),
                     failures: vec![TargetFailure {
                         ob_id: OrderbookIdentifier::new(0, Address::ZERO),
-                        orderbook_key: None,
+                        raindex_key: None,
                         stage: TargetStage::ManifestFetch,
                         error,
                     }],
@@ -117,7 +117,7 @@ where
                     let environment = environment.clone();
                     tasks.spawn_local(async move {
                         let manifest_entry = lookup_manifest_entry(manifest_map.as_ref(), &target);
-                        run_orderbook_job::<B, W, E, T, A, S>(
+                        run_raindex_job::<B, W, E, T, A, S>(
                             target,
                             manifest_entry,
                             environment,
@@ -155,7 +155,7 @@ where
                             );
                             failures.push(TargetFailure {
                                 ob_id: OrderbookIdentifier::new(0, Address::ZERO),
-                                orderbook_key: None,
+                                raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error,
                             });
@@ -256,7 +256,7 @@ impl ProducerRunReport {
     }
 }
 
-async fn run_orderbook_job<B, W, E, T, A, S>(
+async fn run_raindex_job<B, W, E, T, A, S>(
     target: RunnerTarget,
     manifest_entry: Option<ManifestOrderbook>,
     environment: RunnerEnvironment<B, W, E, T, A, S>,
@@ -271,17 +271,17 @@ where
     S: StatusBus + 'static,
 {
     let RunnerTarget {
-        orderbook_key,
+        raindex_key,
         manifest_url,
         network_key,
         inputs,
     } = target;
 
     let ob_id = inputs.ob_id.clone();
-    let ob_key_for_failure = orderbook_key.clone();
+    let ob_key_for_failure = raindex_key.clone();
     let mk_failure = move |stage: TargetStage, error: LocalDbError| TargetFailure {
         ob_id: ob_id.clone(),
-        orderbook_key: Some(ob_key_for_failure.clone()),
+        raindex_key: Some(ob_key_for_failure.clone()),
         stage,
         error,
     };
@@ -301,7 +301,7 @@ where
     };
 
     let target = RunnerTarget {
-        orderbook_key,
+        raindex_key,
         manifest_url,
         network_key,
         inputs,
@@ -350,7 +350,7 @@ mod tests {
     use raindex_app_settings::local_db_manifest::{
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
     };
-    use raindex_app_settings::orderbook::OrderbookCfg;
+    use raindex_app_settings::raindex::RaindexCfg;
     use raindex_app_settings::remote::manifest::ManifestMap;
     use raindex_app_settings::spec_version::SpecVersion;
     use raindex_common::local_db::pipeline::adapters::apply::ApplyPipelineTargetInfo;
@@ -1129,10 +1129,10 @@ orderbooks:
         )
     }
 
-    fn manifest_for_ok_orderbook() -> ManifestMap {
+    fn manifest_for_ok_raindex() -> ManifestMap {
         let url = Url::parse("https://manifests.example/a.yaml").unwrap();
         let dump_url = Url::parse("https://dumps.example/ok.dump.sql").unwrap();
-        let orderbook_address = address!("00000000000000000000000000000000000000a1");
+        let raindex_address = address!("00000000000000000000000000000000000000a1");
         let manifest = LocalDbManifest {
             manifest_version: MANIFEST_VERSION,
             db_schema_version: DB_SCHEMA_VERSION,
@@ -1141,7 +1141,7 @@ orderbooks:
                 ManifestNetwork {
                     chain_id: 42161,
                     orderbooks: vec![ManifestOrderbook {
-                        address: orderbook_address,
+                        address: raindex_address,
                         dump_url,
                         end_block: 111,
                         end_block_hash: Bytes::from_str("0xdead").unwrap(),
@@ -1153,8 +1153,8 @@ orderbooks:
         HashMap::from([(url, manifest)])
     }
 
-    fn manifest_for_two_ok_orderbooks() -> ManifestMap {
-        let mut map = manifest_for_ok_orderbook();
+    fn manifest_for_two_ok_raindexes() -> ManifestMap {
+        let mut map = manifest_for_ok_raindex();
         let second_url = Url::parse("https://manifests.example/d.yaml").unwrap();
         let second_dump_url = Url::parse("https://dumps.example/ok-second.dump.sql").unwrap();
         let second_address = address!("00000000000000000000000000000000000000d4");
@@ -1220,7 +1220,7 @@ orderbooks:
         let telemetry_for_builder = telemetry.clone();
         Arc::new(move |target: &RunnerTarget| {
             let behavior = behaviors
-                .get(&target.orderbook_key)
+                .get(&target.raindex_key)
                 .copied()
                 .unwrap_or(EngineBehavior::Success);
             let telemetry = telemetry_for_builder.clone();
@@ -1257,7 +1257,7 @@ orderbooks:
         let behaviors = Arc::new(behaviors);
         let manifest_fetcher = {
             let manifests = Arc::clone(&manifests);
-            Arc::new(move |_orderbooks: &HashMap<String, OrderbookCfg>| {
+            Arc::new(move |_raindexes: &HashMap<String, RaindexCfg>| {
                 let manifests = Arc::clone(&manifests);
                 Box::pin(async move { Ok((*manifests).clone()) }) as ManifestFuture
             })
@@ -1286,7 +1286,7 @@ orderbooks:
 
     fn build_targets(yaml: &str) -> Vec<RunnerTarget> {
         let parsed = parse_settings(yaml);
-        build_runner_targets(&parsed.orderbooks, &parsed.syncs).expect("targets")
+        build_runner_targets(&parsed.raindexes, &parsed.syncs).expect("targets")
     }
 
     #[test]
@@ -1303,8 +1303,8 @@ orderbooks:
         )
         .expect("runner to be constructed");
         assert_eq!(runner.targets.len(), 3);
-        assert_eq!(runner.settings.orderbooks.len(), 3);
-        assert!(runner.settings.orderbooks.contains_key("ok"));
+        assert_eq!(runner.settings.raindexes.len(), 3);
+        assert!(runner.settings.raindexes.contains_key("ok"));
     }
 
     #[test]
@@ -1338,7 +1338,7 @@ orderbooks:
         let mut behaviors = HashMap::new();
         behaviors.insert("ok".to_string(), EngineBehavior::Success);
         behaviors.insert("fail".to_string(), EngineBehavior::Fail);
-        let (environment, telemetry) = build_environment(manifest_for_ok_orderbook(), behaviors);
+        let (environment, telemetry) = build_environment(manifest_for_ok_raindex(), behaviors);
         let temp_dir = TempDir::new().unwrap();
         let release_base = Url::parse("https://releases.example.com").unwrap();
         let runner = ProducerRunner::with_environment(
@@ -1367,7 +1367,7 @@ orderbooks:
             failure.ob_id.orderbook_address,
             address!("00000000000000000000000000000000000000b2")
         );
-        assert_eq!(failure.orderbook_key.as_deref(), Some("fail"));
+        assert_eq!(failure.raindex_key.as_deref(), Some("fail"));
         assert!(matches!(failure.error, LocalDbError::CustomError(_)));
 
         let dumps: Vec<Option<String>> = telemetry.bootstrap_dumps.lock().unwrap().clone();
@@ -1404,7 +1404,7 @@ orderbooks:
         assert_eq!(report.failures.len(), 1);
         let failure = &report.failures[0];
         assert_eq!(failure.ob_id.chain_id, 0);
-        assert!(failure.orderbook_key.is_none());
+        assert!(failure.raindex_key.is_none());
         assert!(matches!(failure.error, LocalDbError::TaskJoin(_)));
     }
 
@@ -1415,7 +1415,7 @@ orderbooks:
         behaviors.insert("ok".to_string(), EngineBehavior::Success);
         behaviors.insert("fail".to_string(), EngineBehavior::Fail);
         behaviors.insert("panic".to_string(), EngineBehavior::Panic);
-        let (environment, telemetry) = build_environment(manifest_for_ok_orderbook(), behaviors);
+        let (environment, telemetry) = build_environment(manifest_for_ok_raindex(), behaviors);
         let temp_dir = TempDir::new().unwrap();
         let release_base = Url::parse("https://releases.example.com").unwrap();
         let runner = ProducerRunner::with_environment(
@@ -1470,7 +1470,7 @@ orderbooks:
         behaviors.insert("ok".to_string(), EngineBehavior::SuccessWithExport);
         behaviors.insert("ok-second".to_string(), EngineBehavior::Fail);
         let (environment, _telemetry) =
-            build_environment(manifest_for_two_ok_orderbooks(), behaviors);
+            build_environment(manifest_for_two_ok_raindexes(), behaviors);
         let temp_dir = TempDir::new().unwrap();
         let release_base = Url::parse("https://releases.example.com").unwrap();
         let runner = ProducerRunner::with_environment(
@@ -1513,7 +1513,7 @@ orderbooks:
         let yaml = settings_yaml_ok_only();
         let telemetry = Telemetry::default();
         let manifest_fetcher = Arc::new(
-            |_orderbooks: &HashMap<String, OrderbookCfg>| -> ManifestFuture {
+            |_raindexes: &HashMap<String, RaindexCfg>| -> ManifestFuture {
                 Box::pin(async {
                     Err(LocalDbError::CustomError(
                         "manifest fetch failure".to_string(),
@@ -1550,12 +1550,12 @@ orderbooks:
     #[tokio::test]
     async fn run_records_download_failure() {
         let yaml = settings_yaml_ok_only();
-        let manifest_map = manifest_for_ok_orderbook();
+        let manifest_map = manifest_for_ok_raindex();
         let telemetry = Telemetry::default();
         let manifests = Arc::new(manifest_map);
         let manifest_fetcher = {
             let manifests = Arc::clone(&manifests);
-            Arc::new(move |_orderbooks: &HashMap<String, OrderbookCfg>| {
+            Arc::new(move |_raindexes: &HashMap<String, RaindexCfg>| {
                 let manifests = Arc::clone(&manifests);
                 Box::pin(async move { Ok((*manifests).clone()) }) as ManifestFuture
             })
@@ -1594,7 +1594,7 @@ orderbooks:
             failure.ob_id.orderbook_address,
             address!("00000000000000000000000000000000000000a1")
         );
-        assert_eq!(failure.orderbook_key.as_deref(), Some("ok"));
+        assert_eq!(failure.raindex_key.as_deref(), Some("ok"));
         assert!(matches!(
             &failure.error,
             LocalDbError::CustomError(message) if message.contains("download failed")
@@ -1608,7 +1608,7 @@ orderbooks:
     async fn run_records_engine_build_error() {
         let yaml = settings_yaml_ok_only();
         let manifest_fetcher = Arc::new(
-            |_orderbooks: &HashMap<String, OrderbookCfg>| -> ManifestFuture {
+            |_raindexes: &HashMap<String, RaindexCfg>| -> ManifestFuture {
                 Box::pin(async { Ok(HashMap::new()) })
             },
         );
@@ -1647,7 +1647,7 @@ orderbooks:
             failure.ob_id.orderbook_address,
             address!("00000000000000000000000000000000000000a1")
         );
-        assert_eq!(failure.orderbook_key.as_deref(), Some("ok"));
+        assert_eq!(failure.raindex_key.as_deref(), Some("ok"));
         assert!(matches!(
             &failure.error,
             LocalDbError::CustomError(message) if message == "engine build error"
@@ -1657,9 +1657,9 @@ orderbooks:
     #[tokio::test]
     async fn run_records_export_failure_with_stage() {
         let yaml = settings_yaml_ok_only();
-        let manifest_map = manifest_for_ok_orderbook();
+        let manifest_map = manifest_for_ok_raindex();
         let manifest_fetcher = Arc::new(
-            move |_orderbooks: &HashMap<String, OrderbookCfg>| -> ManifestFuture {
+            move |_raindexes: &HashMap<String, RaindexCfg>| -> ManifestFuture {
                 let manifest_map = manifest_map.clone();
                 Box::pin(async move { Ok(manifest_map) })
             },
@@ -1739,7 +1739,7 @@ orderbooks:
         let yaml = settings_yaml_ok_only();
         let mut behaviors = HashMap::new();
         behaviors.insert("ok".to_string(), EngineBehavior::Success);
-        let (environment, _telemetry) = build_environment(manifest_for_ok_orderbook(), behaviors);
+        let (environment, _telemetry) = build_environment(manifest_for_ok_raindex(), behaviors);
         let temp_dir = TempDir::new().unwrap();
         let release_base = Url::parse("https://releases.example.com").unwrap();
         let runner = ProducerRunner::with_environment(
@@ -1898,7 +1898,7 @@ orderbooks:
         behaviors.insert("ok".to_string(), EngineBehavior::Success);
         behaviors.insert("ok-second".to_string(), EngineBehavior::Success);
         let (environment, telemetry) =
-            build_environment(manifest_for_two_ok_orderbooks(), behaviors);
+            build_environment(manifest_for_two_ok_raindexes(), behaviors);
         let temp_dir = TempDir::new().unwrap();
         let release_base = Url::parse("https://releases.example.com").unwrap();
         let runner = ProducerRunner::with_environment(

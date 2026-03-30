@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DotrainRainlang } from '@rainlanguage/orderbook';
+	import type { DotrainRainlang } from '@rainlanguage/raindex';
 	import type { RainlangManager } from '../rainlang/RainlangManager';
 	import { setDotrainRainlangContext } from './context';
 

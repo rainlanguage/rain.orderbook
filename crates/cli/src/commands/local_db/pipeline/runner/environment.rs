@@ -39,7 +39,7 @@ pub fn default_environment(
             let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
             let status = ProducerStatusBus::new(
                 debug_status,
-                target.orderbook_key.clone(),
+                target.raindex_key.clone(),
                 target.inputs.ob_id.clone(),
             );
 
@@ -69,7 +69,7 @@ mod tests {
     fn sample_target(chain_id: u32) -> RunnerTarget {
         let fetch = FetchConfig::new(1, 1, 1, 1, 0, 0).expect("fetch config");
         RunnerTarget {
-            orderbook_key: "test-book".to_string(),
+            raindex_key: "test-book".to_string(),
             manifest_url: Url::parse("https://manifests.example/default.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {

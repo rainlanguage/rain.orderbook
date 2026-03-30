@@ -22,7 +22,7 @@ import {
 	RaindexVault,
 	type Address,
 	type WasmEncodedResult
-} from '@rainlanguage/orderbook';
+} from '@rainlanguage/raindex';
 
 vi.mock('../lib/models/Transaction', () => ({
 	TransactionStore: vi.fn()
@@ -32,7 +32,7 @@ vi.mock('../lib/services/getExplorerLink', () => ({
 	getExplorerLink: vi.fn()
 }));
 
-vi.mock('@rainlanguage/orderbook', async (importOriginal) => ({
+vi.mock('@rainlanguage/raindex', async (importOriginal) => ({
 	...(await importOriginal()),
 	getTransactionRemoveOrders: vi.fn(),
 	getTransaction: vi.fn(),

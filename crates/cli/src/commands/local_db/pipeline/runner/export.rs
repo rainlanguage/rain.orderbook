@@ -143,7 +143,7 @@ mod tests {
         };
 
         let target = RunnerTarget {
-            orderbook_key: "test".to_string(),
+            raindex_key: "test".to_string(),
             manifest_url: Url::parse("https://example.com/manifest.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {
@@ -232,7 +232,7 @@ mod tests {
         };
 
         let target = RunnerTarget {
-            orderbook_key: "empty".to_string(),
+            raindex_key: "empty".to_string(),
             manifest_url: Url::parse("https://example.com/empty.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {

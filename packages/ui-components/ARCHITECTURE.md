@@ -1,6 +1,6 @@
 # @rainlanguage/ui-components — Architecture
 
-This package is the reusable Svelte component library for building Rain Orderbook UIs. It composes the WASM‑backed SDK `@rainlanguage/orderbook` with UI primitives, domain components, providers, hooks, and utilities to implement common flows: listing and inspecting orders and vaults, showing charts, handling wallet connection and transactions, and guiding users through deploying algorithmic orders from a dotrain registry.
+This package is the reusable Svelte component library for building Rain Orderbook UIs. It composes the WASM‑backed SDK `@rainlanguage/raindex` with UI primitives, domain components, providers, hooks, and utilities to implement common flows: listing and inspecting orders and vaults, showing charts, handling wallet connection and transactions, and guiding users through deploying algorithmic orders from a dotrain registry.
 
 
 ## Overview
@@ -12,7 +12,7 @@ This package is the reusable Svelte component library for building Rain Orderboo
   - Svelte 4 components, packaged with `svelte-package` for consumption in SvelteKit/Vite apps.
   - Single `dist/index.js` entry (ESM) with `svelte` and `types` fields; no SSR‑specific code required.
 - Upstream libraries
-  - SDK: `@rainlanguage/orderbook` (WASM)
+  - SDK: `@rainlanguage/raindex` (WASM)
   - State/query: `@tanstack/svelte-query`
   - Wallet: `wagmi`, `viem`, `@reown/appkit` + `@reown/appkit-adapter-wagmi`
   - UI: `flowbite-svelte` (+ icons), `tailwindcss`, `lightweight-charts`, `svelte-markdown`, `svelte-codemirror-editor`, `codemirror-rainlang`
@@ -30,7 +30,7 @@ nix develop -c npm run dev
 The library exposes lightweight provider components that set Svelte contexts, plus hooks to access them:
 
 - Raindex client
-  - `RaindexClientProvider` — sets a `RaindexClient` from `@rainlanguage/orderbook` in context.
+  - `RaindexClientProvider` — sets a `RaindexClient` from `@rainlanguage/raindex` in context.
   - `useRaindexClient()` — retrieves the client and reports a user‑facing error if missing.
 - Wallet
   - `WalletProvider` — injects a Svelte `Readable<Hex | null>` account store into context.
@@ -150,7 +150,7 @@ export default {
 
 ## How It Fits The Workspace
 
-- Rust crates under `crates/*` implement core logic and compile to a WASM surface consumed by `@rainlanguage/orderbook`.
+- Rust crates under `crates/*` implement core logic and compile to a WASM surface consumed by `@rainlanguage/raindex`.
 - `@rainlanguage/ui-components` provides the reusable Svelte UI and provider layer that apps compose.
 - The `packages/webapp` project consumes this library directly to implement the full Orderbook UI.
 

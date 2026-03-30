@@ -356,7 +356,7 @@ impl OrderCfg {
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {
                                 return Err(YamlError::ParseOrderConfigSourceError(
-                                    ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch {
+                                    ParseOrderConfigSourceError::RaindexNetworkDoesNotMatch {
                                         expected: existing_key.clone(),
                                         found: key.clone(),
                                     },
@@ -609,8 +609,8 @@ impl YamlParsableHash for OrderCfg {
                         None => None,
                     };
 
-                    let orderbook = match optional_string(order_yaml, "raindex") {
-                        Some(orderbook_name) => {
+                    let raindex = match optional_string(order_yaml, "raindex") {
+                        Some(raindex_name) => {
                             let raindexes = raindexes.as_ref().map_err(|e| YamlError::Field {
                                 kind: FieldErrorKind::InvalidValue {
                                     field: "raindexes".to_string(),
@@ -618,27 +618,27 @@ impl YamlParsableHash for OrderCfg {
                                 },
                                 location: "root".to_string(),
                             })?;
-                            let orderbook = Arc::new(
+                            let raindex = Arc::new(
                                 raindexes
-                                    .get(&orderbook_name)
+                                    .get(&raindex_name)
                                     .ok_or_else(|| {
-                                        YamlError::KeyNotFound(orderbook_name.to_string())
+                                        YamlError::KeyNotFound(raindex_name.to_string())
                                     })?
                                     .clone(),
                             );
                             if let Some(n) = &network {
-                                if orderbook.network != *n {
+                                if raindex.network != *n {
                                     return Err(YamlError::ParseOrderConfigSourceError(
-                                        ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch {
+                                        ParseOrderConfigSourceError::RaindexNetworkDoesNotMatch {
                                             expected: n.key.clone(),
-                                            found: orderbook.network.key.clone(),
+                                            found: raindex.network.key.clone(),
                                         },
                                     ));
                                 }
                             } else {
-                                network = Some(orderbook.network.clone());
+                                network = Some(raindex.network.clone());
                             }
-                            Some(orderbook)
+                            Some(raindex)
                         }
                         None => None,
                     };
@@ -824,7 +824,7 @@ impl YamlParsableHash for OrderCfg {
                             ParseOrderConfigSourceError::NetworkNotFoundError(String::new()),
                         )?,
                         rainlang,
-                        orderbook,
+                        raindex,
                         oracle_url,
                     };
 
@@ -967,7 +967,7 @@ pub enum ParseOrderConfigSourceError {
     #[error("Rainlang network does not match: expected {expected}, found {found}")]
     RainlangNetworkDoesNotMatch { expected: String, found: String },
     #[error("Orderbook network does not match: expected {expected}, found {found}")]
-    OrderbookNetworkDoesNotMatch { expected: String, found: String },
+    RaindexNetworkDoesNotMatch { expected: String, found: String },
     #[error(
         "Input token network with key: {key} does not match: expected {expected}, found {found}"
     )]
@@ -1003,7 +1003,7 @@ impl ParseOrderConfigSourceError {
                 "The networks specified in your order configuration do not match. All components (tokens, rainlangs, raindexes) must use the same network.".to_string(),
             ParseOrderConfigSourceError::RainlangNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The rainlang is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
-            ParseOrderConfigSourceError::OrderbookNetworkDoesNotMatch { expected, found } =>
+            ParseOrderConfigSourceError::RaindexNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The orderbook is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
             ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } =>
                 format!("Network mismatch in your YAML configuration: The input token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),

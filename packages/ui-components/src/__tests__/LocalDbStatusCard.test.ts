@@ -1,7 +1,7 @@
 import { render, screen, cleanup, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import LocalDbStatusCard from '../lib/components/LocalDbStatusCard.svelte';
-import type { NetworkSyncStatus, OrderbookSyncStatus } from '@rainlanguage/orderbook';
+import type { NetworkSyncStatus, OrderbookSyncStatus } from '@rainlanguage/raindex';
 
 vi.mock('$lib/utils/getNetworkName', () => ({
 	getNetworkName: (chainId: number) => {

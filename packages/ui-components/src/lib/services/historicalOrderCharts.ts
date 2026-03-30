@@ -3,7 +3,7 @@ import type {
 	RaindexTransaction,
 	RaindexVaultBalanceChange,
 	RaindexVaultToken
-} from '@rainlanguage/orderbook';
+} from '@rainlanguage/raindex';
 import type { UTCTimestamp } from 'lightweight-charts';
 import { timestampSecondsToUTCTimestamp } from '../services/time';
 import { sortBy } from 'lodash';

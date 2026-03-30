@@ -11,7 +11,7 @@
 		type Address,
 		type Hex,
 		type RaindexVault
-	} from '@rainlanguage/orderbook';
+	} from '@rainlanguage/raindex';
 	// import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { toHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';

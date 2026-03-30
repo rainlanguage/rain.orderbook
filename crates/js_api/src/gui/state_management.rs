@@ -261,7 +261,7 @@ impl DotrainOrderGui {
             for select_token in st {
                 if let Ok(token) = self
                     .dotrain_order
-                    .orderbook_yaml()
+                    .raindex_yaml()
                     .get_token(&select_token.key)
                 {
                     select_tokens.insert(select_token.key, token);
@@ -394,12 +394,12 @@ impl DotrainOrderGui {
             }
             if dotrain_order_gui.is_select_token_set(key.clone())? {
                 TokenCfg::remove_record_from_yaml(
-                    dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
+                    dotrain_order_gui.dotrain_order.raindex_yaml().documents,
                     &key,
                 )?;
             }
             TokenCfg::add_record_to_yaml(
-                dotrain_order_gui.dotrain_order.orderbook_yaml().documents,
+                dotrain_order_gui.dotrain_order.raindex_yaml().documents,
                 &key,
                 &token.network.key,
                 &token.address.to_string(),
@@ -851,7 +851,7 @@ mod tests {
 
         let restored_token = gui
             .dotrain_order
-            .orderbook_yaml()
+            .raindex_yaml()
             .get_token("token3")
             .unwrap();
         assert_eq!(restored_token.address, replacement_token.address);

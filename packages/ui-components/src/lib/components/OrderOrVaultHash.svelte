@@ -6,7 +6,7 @@
 		RaindexOrder,
 		RaindexOrderAsIO,
 		RaindexVault
-	} from '@rainlanguage/orderbook';
+	} from '@rainlanguage/raindex';
 	import {
 		constructHashLink,
 		isOrderOrVaultActive,

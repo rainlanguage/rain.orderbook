@@ -7,7 +7,7 @@ import type {
 	RaindexVault,
 	RaindexVaultBalanceChange,
 	RaindexVaultBalanceChangeType
-} from '@rainlanguage/orderbook';
+} from '@rainlanguage/raindex';
 import { formatTimestampSecondsAsLocal } from '../lib/services/time';
 import { VAULT_BALANCE_CHANGE_LABELS } from '../lib/utils/vaultBalanceChangeLabels';
 

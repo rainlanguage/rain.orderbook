@@ -325,27 +325,27 @@ impl RaindexYaml {
         LocalDbSyncCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
 
-    pub fn get_orderbook_keys(&self) -> Result<Vec<String>, YamlError> {
+    pub fn get_raindex_keys(&self) -> Result<Vec<String>, YamlError> {
         Ok(self.get_raindexes()?.keys().cloned().collect())
     }
     pub fn get_raindexes(&self) -> Result<HashMap<String, RaindexCfg>, YamlError> {
         let context = self.build_context();
         RaindexCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))
     }
-    pub fn get_orderbook(&self, key: &str) -> Result<RaindexCfg, YamlError> {
+    pub fn get_raindex(&self, key: &str) -> Result<RaindexCfg, YamlError> {
         let context = self.build_context();
         RaindexCfg::parse_from_yaml(self.documents.clone(), key, Some(&context))
     }
-    pub fn get_orderbook_by_address(&self, address: Address) -> Result<RaindexCfg, YamlError> {
+    pub fn get_raindex_by_address(&self, address: Address) -> Result<RaindexCfg, YamlError> {
         let context = self.build_context();
         let raindexes = RaindexCfg::parse_all_from_yaml(self.documents.clone(), Some(&context))?;
-        for (_, orderbook) in raindexes {
-            if orderbook.address == address {
-                return Ok(orderbook);
+        for (_, raindex) in raindexes {
+            if raindex.address == address {
+                return Ok(raindex);
             }
         }
         Err(YamlError::NotFound(format!(
-            "orderbook with address: {}",
+            "raindex with address: {}",
             address
         )))
     }
@@ -363,7 +363,7 @@ impl RaindexYaml {
 
         if raindexes.is_empty() {
             return Err(YamlError::NotFound(format!(
-                "orderbook with network key: {}",
+                "raindex with network key: {}",
                 network_key
             )));
         }
@@ -385,7 +385,7 @@ impl RaindexYaml {
 
         if raindexes.is_empty() {
             return Err(YamlError::NotFound(format!(
-                "orderbook with chain-id: {}",
+                "raindex with chain-id: {}",
                 chain_id
             )));
         }
@@ -754,25 +754,25 @@ mod tests {
             Url::parse("https://api.thegraph.com/subgraphs/name/xyz").unwrap()
         );
 
-        assert_eq!(ob_yaml.get_orderbook_keys().unwrap().len(), 1);
-        let orderbook = ob_yaml.get_orderbook("orderbook1").unwrap();
+        assert_eq!(ob_yaml.get_raindex_keys().unwrap().len(), 1);
+        let raindex = ob_yaml.get_raindex("orderbook1").unwrap();
         assert_eq!(
-            orderbook.address,
+            raindex.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
-        assert_eq!(orderbook.network, network.clone().into());
-        assert_eq!(orderbook.subgraph, subgraph.into());
-        assert_eq!(orderbook.label, Some("Primary Orderbook".to_string()));
+        assert_eq!(raindex.network, network.clone().into());
+        assert_eq!(raindex.subgraph, subgraph.into());
+        assert_eq!(raindex.label, Some("Primary Orderbook".to_string()));
         assert_eq!(
             RaindexCfg::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
             "mainnet"
         );
-        let orderbook_by_address = ob_yaml
-            .get_orderbook_by_address(
+        let raindex_by_address = ob_yaml
+            .get_raindex_by_address(
                 Address::from_str("0x0000000000000000000000000000000000000002").unwrap(),
             )
             .unwrap();
-        assert_eq!(orderbook_by_address, orderbook);
+        assert_eq!(raindex_by_address, raindex);
 
         assert_eq!(ob_yaml.get_metaboard_keys().unwrap().len(), 2);
         assert_eq!(
@@ -980,7 +980,7 @@ test: test
     }
 
     #[test]
-    fn test_get_orderbook_by_network_key() {
+    fn test_get_raindexes_by_network_key() {
         let ob_yaml =
             RaindexYaml::new(vec![full_yaml()], RaindexYamlValidation::default()).unwrap();
 
@@ -1000,11 +1000,11 @@ test: test
             .unwrap_err();
         assert_eq!(
             error,
-            YamlError::NotFound("orderbook with network key: nonexistent".to_string())
+            YamlError::NotFound("raindex with network key: nonexistent".to_string())
         );
         assert_eq!(
             error.to_readable_msg(),
-            "The requested item \"orderbook with network key: nonexistent\" could not be found in the YAML configuration."
+            "The requested item \"raindex with network key: nonexistent\" could not be found in the YAML configuration."
         );
     }
 
@@ -1075,7 +1075,7 @@ test: test
         assert_eq!(arbitrum.key, "arbitrum");
         assert_eq!(arbitrum.chain_id, 42161);
 
-        // Test orderbook lookup by network key
+        // Test raindex lookup by network key
         let raindexes = ob_yaml.get_raindexes_by_network_key("mainnet").unwrap();
         assert_eq!(raindexes.len(), 2);
         assert_eq!(raindexes[0].key, "mainnet-orderbook");
@@ -1088,13 +1088,13 @@ test: test
         assert_eq!(raindexes[0].key, "polygon-orderbook");
         assert_eq!(raindexes[0].network.key, "polygon");
 
-        // Test error for network without orderbook
+        // Test error for network without raindex
         let error = ob_yaml
             .get_raindexes_by_network_key("arbitrum")
             .unwrap_err();
         assert_eq!(
             error,
-            YamlError::NotFound("orderbook with network key: arbitrum".to_string())
+            YamlError::NotFound("raindex with network key: arbitrum".to_string())
         );
     }
 
@@ -1183,7 +1183,7 @@ test: test
         let err = ob_yaml.get_raindexes_by_chain_id(42161).unwrap_err();
         assert_eq!(
             err,
-            YamlError::NotFound("orderbook with chain-id: 42161".to_string())
+            YamlError::NotFound("raindex with chain-id: 42161".to_string())
         );
     }
 

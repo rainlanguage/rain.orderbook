@@ -1,5 +1,5 @@
 use crate::gui::{DotrainOrderGui, GuiError};
-use crate::yaml::{OrderbookYaml, OrderbookYamlError};
+use crate::yaml::{RaindexYaml, RaindexYamlError};
 use raindex_app_settings::gui::NameAndDescriptionCfg;
 use raindex_common::raindex_client::{RaindexClient, RaindexError as RaindexClientError};
 use reqwest;
@@ -147,7 +147,7 @@ pub enum DotrainRainlangError {
     #[error(transparent)]
     GuiError(#[from] GuiError),
     #[error(transparent)]
-    OrderbookYamlError(#[from] OrderbookYamlError),
+    RaindexYamlError(#[from] RaindexYamlError),
     #[error(transparent)]
     RaindexClientError(#[from] RaindexClientError),
 }
@@ -180,7 +180,7 @@ impl DotrainRainlangError {
                 format!("Invalid URL format: {}. Please ensure the URL is properly formatted.", err)
             }
             DotrainRainlangError::GuiError(err) => err.to_readable_msg(),
-            DotrainRainlangError::OrderbookYamlError(err) => err.to_readable_msg(),
+            DotrainRainlangError::RaindexYamlError(err) => err.to_readable_msg(),
             DotrainRainlangError::RaindexClientError(err) => err.to_readable_msg(),
         }
     }
@@ -521,29 +521,29 @@ impl DotrainRainlang {
         Ok(gui)
     }
 
-    /// Creates an OrderbookYaml instance from the registry's shared settings.
+    /// Creates a RaindexYaml instance from the registry's shared settings.
     ///
-    /// This method provides access to the OrderbookYaml SDK, allowing you to query tokens,
-    /// networks, orderbooks, and other configuration from the shared settings YAML.
+    /// This method provides access to the RaindexYaml SDK, allowing you to query tokens,
+    /// networks, raindexes, and other configuration from the shared settings YAML.
     ///
     /// ## Examples
     ///
     /// ```javascript
-    /// const yamlResult = registry.getOrderbookYaml();
+    /// const yamlResult = registry.getRaindexYaml();
     /// if (yamlResult.error) {
-    ///   console.error("Failed to get OrderbookYaml:", yamlResult.error.readableMsg);
+    ///   console.error("Failed to get RaindexYaml:", yamlResult.error.readableMsg);
     ///   return;
     /// }
-    /// const orderbookYaml = yamlResult.value;
+    /// const raindexYaml = yamlResult.value;
     /// ```
     #[wasm_export(
-        js_name = "getOrderbookYaml",
+        js_name = "getRaindexYaml",
         preserve_js_class,
-        unchecked_return_type = "OrderbookYaml",
-        return_description = "OrderbookYaml instance from registry settings"
+        unchecked_return_type = "RaindexYaml",
+        return_description = "RaindexYaml instance from registry settings"
     )]
-    pub fn get_orderbook_yaml(&self) -> Result<OrderbookYaml, DotrainRainlangError> {
-        let yaml = OrderbookYaml::new(vec![self.settings.clone()], None)?;
+    pub fn get_raindex_yaml(&self) -> Result<RaindexYaml, DotrainRainlangError> {
+        let yaml = RaindexYaml::new(vec![self.settings.clone()], None)?;
         Ok(yaml)
     }
 }
@@ -1611,7 +1611,7 @@ _ _: 0 0;
 "#;
 
         #[tokio::test]
-        async fn test_get_orderbook_yaml_returns_valid_instance() {
+        async fn test_get_raindex_yaml_returns_valid_instance() {
             let server = MockServer::start_async().await;
 
             let test_registry_content = format!(
@@ -1639,8 +1639,8 @@ _ _: 0 0;
                 .await
                 .unwrap();
 
-            let orderbook_yaml = registry.get_orderbook_yaml();
-            assert!(orderbook_yaml.is_ok());
+            let raindex_yaml = registry.get_raindex_yaml();
+            assert!(raindex_yaml.is_ok());
         }
 
         #[tokio::test]

@@ -155,7 +155,7 @@ fn render_failure_to<W: Write>(failure: &TargetFailure, writer: &mut W) -> io::R
     let stage = failure.stage;
     let message = failure.error.to_readable_msg();
     let key = failure
-        .orderbook_key
+        .raindex_key
         .as_deref()
         .unwrap_or("<unknown-orderbook>");
 
@@ -222,7 +222,7 @@ mod tests {
             manifest_end_block: 1,
         };
         let runner_target = RunnerTarget {
-            orderbook_key: "test".to_string(),
+            raindex_key: "test".to_string(),
             manifest_url: "https://example.com/manifest.yaml".parse().unwrap(),
             network_key: "anvil".to_string(),
             inputs,
@@ -293,7 +293,7 @@ mod tests {
         let orderbook_address = address!("0000000000000000000000000000000000000fA1");
         let failure = TargetFailure {
             ob_id: OrderbookIdentifier::new(1, orderbook_address),
-            orderbook_key: Some("book".into()),
+            raindex_key: Some("book".into()),
             stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("oh no".into()),
         };
@@ -317,7 +317,7 @@ mod tests {
     fn render_failure_to_handles_unknowns() {
         let failure = TargetFailure {
             ob_id: OrderbookIdentifier::new(0, Address::ZERO),
-            orderbook_key: None,
+            raindex_key: None,
             stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("boom".into()),
         };

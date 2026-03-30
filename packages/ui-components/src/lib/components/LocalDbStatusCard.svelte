@@ -3,7 +3,7 @@
 		LocalDbStatus,
 		NetworkSyncStatus,
 		OrderbookSyncStatus
-	} from '@rainlanguage/orderbook';
+	} from '@rainlanguage/raindex';
 	import LocalDbStatusBadge from './LocalDbStatusBadge.svelte';
 	import LocalDbStatusModal from './LocalDbStatusModal.svelte';
 	import { ChevronRightOutline } from 'flowbite-svelte-icons';

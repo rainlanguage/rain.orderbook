@@ -3,24 +3,24 @@ use crate::local_db::LocalDbError;
 use flate2::read::GzDecoder;
 use itertools::Itertools;
 use raindex_app_settings::local_db_manifest::ManifestOrderbook;
-use raindex_app_settings::orderbook::OrderbookCfg;
+use raindex_app_settings::raindex::RaindexCfg;
 use raindex_app_settings::remote::manifest::{fetch_multiple_manifests, ManifestMap};
 use std::collections::HashMap;
 use std::io::Read;
 use url::Url;
 
 pub(crate) fn collect_manifest_urls(
-    orderbooks: &HashMap<String, OrderbookCfg>,
+    raindexes: &HashMap<String, RaindexCfg>,
 ) -> Result<Vec<Url>, LocalDbError> {
-    let urls = orderbooks
+    let urls = raindexes
         .iter()
-        .map(|(key, orderbook)| {
-            orderbook
+        .map(|(key, raindex)| {
+            raindex
                 .local_db_remote
                 .as_ref()
                 .map(|remote| remote.url.clone())
                 .ok_or_else(|| LocalDbError::MissingLocalDbRemote {
-                    orderbook_key: key.clone(),
+                    raindex_key: key.clone(),
                 })
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -28,11 +28,11 @@ pub(crate) fn collect_manifest_urls(
     Ok(urls.into_iter().unique().collect())
 }
 
-/// Fetches manifests for all distinct remotes referenced by the orderbooks.
+/// Fetches manifests for all distinct remotes referenced by the raindexes.
 pub async fn get_manifests(
-    orderbooks: &HashMap<String, OrderbookCfg>,
+    raindexes: &HashMap<String, RaindexCfg>,
 ) -> Result<ManifestMap, LocalDbError> {
-    let urls = collect_manifest_urls(orderbooks)?;
+    let urls = collect_manifest_urls(raindexes)?;
     if urls.is_empty() {
         return Ok(HashMap::new());
     }
@@ -84,7 +84,7 @@ mod tests {
         LocalDbManifest, ManifestNetwork, ManifestOrderbook, MANIFEST_VERSION,
     };
     use raindex_app_settings::local_db_remotes::LocalDbRemoteCfg;
-    use raindex_app_settings::orderbook::OrderbookCfg;
+    use raindex_app_settings::raindex::RaindexCfg;
     use raindex_app_settings::remote::manifest::{FetchManifestError, ManifestMap};
     use raindex_app_settings::spec_version::SpecVersion;
     use raindex_app_settings::yaml::default_document;
@@ -169,16 +169,16 @@ orderbooks:
         Runtime::new().expect("tokio runtime")
     }
 
-    fn collect_urls_from_orderbooks(orderbooks: &HashMap<String, OrderbookCfg>) -> Vec<Url> {
-        collect_manifest_urls(orderbooks).expect("urls")
+    fn collect_urls_from_raindexes(raindexes: &HashMap<String, RaindexCfg>) -> Vec<Url> {
+        collect_manifest_urls(raindexes).expect("urls")
     }
 
-    fn update_remote_url(orderbooks: &mut HashMap<String, OrderbookCfg>, key: &str, url: &Url) {
-        if let Some(orderbook) = orderbooks.get_mut(key) {
-            let remote_key = orderbook
+    fn update_remote_url(raindexes: &mut HashMap<String, RaindexCfg>, key: &str, url: &Url) {
+        if let Some(raindex) = raindexes.get_mut(key) {
+            let remote_key = raindex
                 .local_db_remote
                 .as_ref()
-                .expect("orderbook has remote")
+                .expect("raindex has remote")
                 .key
                 .clone();
             let remote = LocalDbRemoteCfg {
@@ -186,16 +186,16 @@ orderbooks:
                 key: remote_key,
                 url: url.clone(),
             };
-            orderbook.local_db_remote = Some(Arc::new(remote));
+            raindex.local_db_remote = Some(Arc::new(remote));
         }
     }
 
     fn sample_runner_target() -> (RunnerTarget, ManifestMap) {
         let parsed = parsed_settings();
-        let targets = build_runner_targets(&parsed.orderbooks, &parsed.syncs).unwrap();
+        let targets = build_runner_targets(&parsed.raindexes, &parsed.syncs).unwrap();
         let target = targets
             .into_iter()
-            .find(|t| t.orderbook_key == "ob-a")
+            .find(|t| t.raindex_key == "ob-a")
             .expect("target ob-a");
 
         let manifest_entry = ManifestOrderbook {
@@ -225,7 +225,7 @@ orderbooks:
     #[test]
     fn collect_manifest_urls_deduplicates() {
         let parsed = parsed_settings();
-        let urls = collect_urls_from_orderbooks(&parsed.orderbooks);
+        let urls = collect_urls_from_raindexes(&parsed.raindexes);
 
         assert_eq!(urls.len(), 2);
         let unique: HashSet<Url> = urls.into_iter().collect();
@@ -238,13 +238,13 @@ orderbooks:
     }
 
     #[test]
-    fn collect_manifest_urls_handles_empty_orderbooks() {
+    fn collect_manifest_urls_handles_empty_raindexes() {
         let urls = collect_manifest_urls(&HashMap::new()).expect("empty vector");
         assert!(urls.is_empty());
     }
 
     #[test]
-    fn get_manifests_returns_empty_map_for_no_orderbooks() {
+    fn get_manifests_returns_empty_map_for_no_raindexes() {
         let rt = build_runtime();
         let manifests = rt
             .block_on(get_manifests(&HashMap::new()))
@@ -304,12 +304,12 @@ networks:
         let mut parsed = parsed_settings();
         let url_one = Url::parse(&server_one.base_url()).unwrap();
         let url_two = Url::parse(&server_two.base_url()).unwrap();
-        update_remote_url(&mut parsed.orderbooks, "ob-a", &url_one);
-        update_remote_url(&mut parsed.orderbooks, "ob-c", &url_one);
-        update_remote_url(&mut parsed.orderbooks, "ob-b", &url_two);
+        update_remote_url(&mut parsed.raindexes, "ob-a", &url_one);
+        update_remote_url(&mut parsed.raindexes, "ob-c", &url_one);
+        update_remote_url(&mut parsed.raindexes, "ob-b", &url_two);
 
         let manifests = rt
-            .block_on(get_manifests(&parsed.orderbooks))
+            .block_on(get_manifests(&parsed.raindexes))
             .expect("manifests fetched");
         assert_eq!(manifests.len(), 2);
         assert!(manifests.contains_key(&url_one));
@@ -352,11 +352,11 @@ networks: {}
         let mut parsed = parsed_settings();
         let url_one = Url::parse(&server_one.base_url()).unwrap();
         let url_two = Url::parse(&server_two.base_url()).unwrap();
-        update_remote_url(&mut parsed.orderbooks, "ob-a", &url_one);
-        update_remote_url(&mut parsed.orderbooks, "ob-c", &url_one);
-        update_remote_url(&mut parsed.orderbooks, "ob-b", &url_two);
+        update_remote_url(&mut parsed.raindexes, "ob-a", &url_one);
+        update_remote_url(&mut parsed.raindexes, "ob-c", &url_one);
+        update_remote_url(&mut parsed.raindexes, "ob-b", &url_two);
 
-        let err = rt.block_on(get_manifests(&parsed.orderbooks)).unwrap_err();
+        let err = rt.block_on(get_manifests(&parsed.raindexes)).unwrap_err();
         match err {
             LocalDbError::ManifestFetch(FetchManifestError::Yaml(_)) => {}
             other => panic!("expected YAML manifest error, got {other:?}"),
@@ -368,11 +368,11 @@ networks: {}
         let rt = build_runtime();
         let mut parsed = parsed_settings();
         let unreachable = Url::parse("nosuch://unreachable.example/manifest.yaml").unwrap();
-        update_remote_url(&mut parsed.orderbooks, "ob-a", &unreachable);
-        update_remote_url(&mut parsed.orderbooks, "ob-b", &unreachable);
-        update_remote_url(&mut parsed.orderbooks, "ob-c", &unreachable);
+        update_remote_url(&mut parsed.raindexes, "ob-a", &unreachable);
+        update_remote_url(&mut parsed.raindexes, "ob-b", &unreachable);
+        update_remote_url(&mut parsed.raindexes, "ob-c", &unreachable);
 
-        let err = rt.block_on(get_manifests(&parsed.orderbooks)).unwrap_err();
+        let err = rt.block_on(get_manifests(&parsed.raindexes)).unwrap_err();
         match err {
             LocalDbError::ManifestFetch(FetchManifestError::ReqwestError(_)) => {}
             other => panic!("expected HTTP manifest error, got {other:?}"),

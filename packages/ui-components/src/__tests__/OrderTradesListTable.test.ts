@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { test, vi, type Mock } from 'vitest';
 import { expect } from '../lib/test/matchers';
-import type { RaindexOrder, RaindexTrade } from '@rainlanguage/orderbook';
+import type { RaindexOrder, RaindexTrade } from '@rainlanguage/raindex';
 import OrderTradesListTable from '../lib/components/tables/OrderTradesListTable.svelte';
 import { QueryClient } from '@tanstack/svelte-query';
 

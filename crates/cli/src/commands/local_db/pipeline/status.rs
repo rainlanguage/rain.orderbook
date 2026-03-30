@@ -24,15 +24,15 @@ impl From<bool> for DebugStatus {
 #[derive(Clone)]
 pub struct ProducerStatusBus {
     debug: DebugStatus,
-    orderbook_key: String,
+    raindex_key: String,
     ob_id: OrderbookIdentifier,
 }
 
 impl ProducerStatusBus {
-    pub fn new(debug: DebugStatus, orderbook_key: String, ob_id: OrderbookIdentifier) -> Self {
+    pub fn new(debug: DebugStatus, raindex_key: String, ob_id: OrderbookIdentifier) -> Self {
         Self {
             debug,
-            orderbook_key,
+            raindex_key,
             ob_id,
         }
     }
@@ -42,7 +42,7 @@ impl Default for ProducerStatusBus {
     fn default() -> Self {
         Self {
             debug: DebugStatus::Disabled,
-            orderbook_key: "<unknown>".to_string(),
+            raindex_key: "<unknown>".to_string(),
             ob_id: OrderbookIdentifier::new(0, Default::default()),
         }
     }
@@ -56,7 +56,7 @@ impl StatusBus for ProducerStatusBus {
                 target: "local_db_status",
                 chain_id = self.ob_id.chain_id,
                 orderbook = %self.ob_id.orderbook_address,
-                orderbook_key = %self.orderbook_key,
+                raindex_key = %self.raindex_key,
                 "{}",
                 phase.to_message()
             );

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Modal } from 'flowbite-svelte';
-	import type { NetworkSyncStatus, OrderbookSyncStatus } from '@rainlanguage/orderbook';
+	import type { NetworkSyncStatus, OrderbookSyncStatus } from '@rainlanguage/raindex';
 	import LocalDbStatusBadge from './LocalDbStatusBadge.svelte';
 	import { getNetworkName } from '$lib/utils/getNetworkName';
 

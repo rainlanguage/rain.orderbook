@@ -19,7 +19,7 @@ use raindex_app_settings::{
     remote_networks::ParseRemoteNetworksError,
     remote_tokens::ParseRemoteTokensError,
     yaml::{
-        orderbook::{OrderbookYaml, OrderbookYamlValidation},
+        raindex::{RaindexYaml, RaindexYamlValidation},
         YamlError, YamlParsable,
     },
 };
@@ -47,7 +47,7 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 pub mod add_orders;
 pub mod local_db;
 pub mod order_quotes;
-pub mod orderbook_yaml;
+pub mod raindex_yaml;
 pub mod orders;
 pub mod orders_list;
 pub mod remove_orders;
@@ -96,7 +96,7 @@ impl_wasm_traits!(ChainIds);
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[wasm_bindgen]
 pub struct RaindexClient {
-    orderbook_yaml: OrderbookYaml,
+    raindex_yaml: RaindexYaml,
     #[serde(skip_serializing, skip_deserializing)]
     local_db_state: LocalDbState,
 }
@@ -152,16 +152,16 @@ impl RaindexClient {
         )]
         status_callback: Option<js_sys::Function>,
     ) -> Result<RaindexClient, RaindexError> {
-        let mut orderbook_yaml = OrderbookYaml::new(
+        let mut raindex_yaml = RaindexYaml::new(
             ob_yamls,
             match validate {
-                Some(true) => OrderbookYamlValidation::full(),
-                _ => OrderbookYamlValidation::default(),
+                Some(true) => RaindexYamlValidation::full(),
+                _ => RaindexYamlValidation::default(),
             },
         )?;
-        orderbook_yaml.fetch_remote_data().await?;
+        raindex_yaml.fetch_remote_data().await?;
 
-        let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
+        let sync_configured_chains = LocalDbState::compute_chain_ids(&raindex_yaml);
         let sync_readiness = SyncReadiness::new();
         let has_syncs = !sync_configured_chains.is_empty();
 
@@ -179,7 +179,7 @@ impl RaindexClient {
                 .expect("local_db should be set when has_syncs");
             let settings =
                 crate::local_db::pipeline::runner::utils::parse_runner_settings_from_yaml(
-                    &orderbook_yaml,
+                    &raindex_yaml,
                 )?;
             let handle = crate::raindex_client::local_db::pipeline::runner::scheduler::start(
                 settings,
@@ -195,7 +195,7 @@ impl RaindexClient {
         let scheduler = Arc::new(std::sync::Mutex::new(None));
 
         Ok(RaindexClient {
-            orderbook_yaml,
+            raindex_yaml,
             local_db_state: LocalDbState::new(
                 local_db,
                 scheduler,
@@ -216,12 +216,12 @@ impl RaindexClient {
             Some(ids) if !ids.is_empty() => {
                 let mut networks = Vec::with_capacity(ids.len());
                 for id in ids {
-                    networks.push(self.orderbook_yaml.get_network_by_chain_id(id)?);
+                    networks.push(self.raindex_yaml.get_network_by_chain_id(id)?);
                 }
                 Ok(networks)
             }
             Some(_) | None => {
-                let all_nets = self.orderbook_yaml.get_networks()?;
+                let all_nets = self.raindex_yaml.get_networks()?;
                 let networks = all_nets.values().cloned().collect();
                 Ok(networks)
             }
@@ -235,15 +235,15 @@ impl RaindexClient {
         let networks = self.resolve_networks(chain_ids)?;
         let mut result: BTreeMap<u32, Vec<MultiSubgraphArgs>> = BTreeMap::new();
         for network in networks {
-            let orderbooks = self
-                .orderbook_yaml
-                .get_orderbooks_by_network_key(&network.key)?;
-            for orderbook in orderbooks {
+            let raindexes = self
+                .raindex_yaml
+                .get_raindexes_by_network_key(&network.key)?;
+            for raindex in raindexes {
                 result
                     .entry(network.chain_id)
                     .or_default()
                     .push(MultiSubgraphArgs {
-                        url: orderbook.subgraph.url.clone(),
+                        url: raindex.subgraph.url.clone(),
                         name: network.label.clone().unwrap_or(network.key.clone()),
                     });
             }
@@ -256,18 +256,18 @@ impl RaindexClient {
     }
 
     #[wasm_export(skip)]
-    pub fn get_orderbook_client(
+    pub fn get_raindex_subgraph_client(
         &self,
         orderbook_address: Address,
     ) -> Result<OrderbookSubgraphClient, RaindexError> {
         let orderbook = self
-            .orderbook_yaml
-            .get_orderbook_by_address(orderbook_address)?;
+            .raindex_yaml
+            .get_raindex_by_address(orderbook_address)?;
         Ok(OrderbookSubgraphClient::new(orderbook.subgraph.url.clone()))
     }
 
     fn get_rpc_urls_for_chain(&self, chain_id: u32) -> Result<Vec<Url>, RaindexError> {
-        let network = self.orderbook_yaml.get_network_by_chain_id(chain_id)?;
+        let network = self.raindex_yaml.get_network_by_chain_id(chain_id)?;
         Ok(network.rpcs.clone())
     }
 
@@ -291,16 +291,16 @@ impl RaindexClient {
         validate: Option<bool>,
         db_path: Option<std::path::PathBuf>,
     ) -> Result<RaindexClient, RaindexError> {
-        let mut orderbook_yaml = OrderbookYaml::new(
+        let mut raindex_yaml = RaindexYaml::new(
             ob_yamls,
             match validate {
-                Some(true) => OrderbookYamlValidation::full(),
-                _ => OrderbookYamlValidation::default(),
+                Some(true) => RaindexYamlValidation::full(),
+                _ => RaindexYamlValidation::default(),
             },
         )?;
-        orderbook_yaml.fetch_remote_data().await?;
+        raindex_yaml.fetch_remote_data().await?;
 
-        let sync_configured_chains = LocalDbState::compute_chain_ids(&orderbook_yaml);
+        let sync_configured_chains = LocalDbState::compute_chain_ids(&raindex_yaml);
         let sync_readiness = SyncReadiness::new();
         let has_syncs = !sync_configured_chains.is_empty();
 
@@ -309,7 +309,7 @@ impl RaindexClient {
                 db_path.ok_or_else(|| RaindexError::LocalDbSetupMissing("db_path".to_string()))?;
             let settings =
                 crate::local_db::pipeline::runner::utils::parse_runner_settings_from_yaml(
-                    &orderbook_yaml,
+                    &raindex_yaml,
                 )?;
             let handle = crate::raindex_client::local_db::pipeline::runner::scheduler::start(
                 settings,
@@ -323,7 +323,7 @@ impl RaindexClient {
         };
 
         Ok(RaindexClient {
-            orderbook_yaml,
+            raindex_yaml,
             local_db_state: LocalDbState::new(
                 local_db,
                 Arc::new(std::sync::Mutex::new(scheduler)),
@@ -787,7 +787,7 @@ accounts:
         query_callback: js_sys::Function,
         chain_ids: Vec<u32>,
     ) -> RaindexClient {
-        let orderbook_yaml = OrderbookYaml::new(yamls, OrderbookYamlValidation::default())
+        let raindex_yaml = RaindexYaml::new(yamls, RaindexYamlValidation::default())
             .expect("test yaml should be valid");
         let sync_readiness = SyncReadiness::new();
         let mut db_chain_ids = std::collections::HashSet::new();
@@ -796,7 +796,7 @@ accounts:
             db_chain_ids.insert(id);
         }
         RaindexClient {
-            orderbook_yaml,
+            raindex_yaml,
             local_db_state: LocalDbState::new(
                 Some(super::local_db::LocalDb::from_js_callback(
                     query_callback,
@@ -913,7 +913,7 @@ using-tokens-from:
 
             let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
-            let tokens = client.orderbook_yaml.get_tokens().unwrap();
+            let tokens = client.raindex_yaml.get_tokens().unwrap();
             let expected_key =
                 "test-network-RemoteToken-0x0000000000000000000000000000000000000001";
             assert!(tokens.contains_key(expected_key));
@@ -1019,7 +1019,7 @@ accounts:
             )
             .await
             .unwrap();
-            assert!(!client.orderbook_yaml.documents.is_empty());
+            assert!(!client.raindex_yaml.documents.is_empty());
         }
 
         #[wasm_bindgen_test]

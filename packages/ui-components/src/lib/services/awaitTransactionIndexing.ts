@@ -10,7 +10,7 @@ import type {
 	RaindexOrder,
 	Address,
 	Hex
-} from '@rainlanguage/orderbook';
+} from '@rainlanguage/raindex';
 
 export type AwaitSubgraphConfig = {
 	chainId: number;

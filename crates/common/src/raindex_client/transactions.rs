@@ -191,7 +191,7 @@ impl RaindexClient {
                 Err(RaindexError::TransactionIndexingTimeout { tx_hash, attempts })
             }
             QuerySource::Subgraph => {
-                let client = self.get_orderbook_client(orderbook_address)?;
+                let client = self.get_raindex_subgraph_client(orderbook_address)?;
                 for attempt in 1..=attempts {
                     match client
                         .transaction_detail(Id::new(tx_hash.to_string()))

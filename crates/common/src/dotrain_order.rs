@@ -628,9 +628,9 @@ impl DotrainOrder {
 
         let network_key = order_cfg.network.key.clone();
         let rainlang_key = rainlang_cfg.key.clone();
-        let orderbook_key = order_cfg.orderbook.as_ref().map(|ob| ob.key.clone());
+        let raindex_key = order_cfg.raindex.as_ref().map(|ob| ob.key.clone());
         let subgraph_key = order_cfg
-            .orderbook
+            .raindex
             .as_ref()
             .map(|ob| ob.subgraph.key.clone());
 
@@ -675,14 +675,14 @@ impl DotrainOrder {
             StrictYaml::Hash(rainlangs_hash),
         );
 
-        if let Some(orderbook_key) = orderbook_key {
-            let orderbook_value = clone_section_entry(&documents, "raindexes", &orderbook_key)
+        if let Some(raindex_key) = raindex_key {
+            let raindex_value = clone_section_entry(&documents, "raindexes", &raindex_key)
                 .map_err(|err| DotrainOrderError::CleanUnusedFrontmatterError(err.to_string()))?;
-            let mut orderbooks_hash = StrictYamlHash::new();
-            orderbooks_hash.insert(StrictYaml::String(orderbook_key.clone()), orderbook_value);
+            let mut raindexes_hash = StrictYamlHash::new();
+            raindexes_hash.insert(StrictYaml::String(raindex_key.clone()), raindex_value);
             root_hash.insert(
                 StrictYaml::String("raindexes".to_string()),
-                StrictYaml::Hash(orderbooks_hash),
+                StrictYaml::Hash(raindexes_hash),
             );
         }
 

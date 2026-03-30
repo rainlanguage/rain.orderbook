@@ -39,23 +39,23 @@ impl Execute for OrderbookAddress {
             .dotrain_yaml()
             .get_deployment(&self.deployment)?;
 
-        let orderbook_address = if let Some(v) = &deployment_ref.order.orderbook {
+        let raindex_address = if let Some(v) = &deployment_ref.order.raindex {
             v.address
         } else {
             let network_key = &deployment_ref.scenario.rainlang.network.key;
-            let mut orderbook_address = None;
-            for key in dotrain_order.orderbook_yaml().get_orderbook_keys()? {
-                let orderbook = dotrain_order.orderbook_yaml().get_orderbook(&key)?;
-                if key == *network_key || orderbook.network.key == *network_key {
-                    orderbook_address = Some(orderbook.address);
+            let mut raindex_address = None;
+            for key in dotrain_order.raindex_yaml().get_raindex_keys()? {
+                let raindex = dotrain_order.raindex_yaml().get_raindex(&key)?;
+                if key == *network_key || raindex.network.key == *network_key {
+                    raindex_address = Some(raindex.address);
                 }
             }
-            if orderbook_address.is_none() {
-                return Err(anyhow!("specified orderbook is undefined!"));
+            if raindex_address.is_none() {
+                return Err(anyhow!("specified raindex is undefined!"));
             }
-            orderbook_address.unwrap()
+            raindex_address.unwrap()
         };
-        output(&None, self.encoding.clone(), orderbook_address.as_slice())?;
+        output(&None, self.encoding.clone(), raindex_address.as_slice())?;
 
         Ok(())
     }
@@ -111,7 +111,7 @@ mod tests {
         );
     }
 
-    fn get_test_dotrain(orderbook_key: &str) -> String {
+    fn get_test_dotrain(raindex_key: &str) -> String {
         format!(
             "
 version: {spec_version}
@@ -183,7 +183,7 @@ _ _: 0 0;
 :;
 #handle-add-order
 :;",
-            orderbook_key,
+            raindex_key,
             spec_version = SpecVersion::current()
         )
     }

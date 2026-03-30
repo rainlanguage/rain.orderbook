@@ -3,7 +3,7 @@ use crate::local_db::pipeline::runner::utils::{
 };
 use crate::local_db::LocalDbError;
 use raindex_app_settings::local_db_sync::LocalDbSyncCfg;
-use raindex_app_settings::orderbook::OrderbookCfg;
+use raindex_app_settings::raindex::RaindexCfg;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -18,21 +18,21 @@ impl NetworkRunnerConfig {
         global: &ParsedRunnerSettings,
         network_key: &str,
     ) -> Result<Self, LocalDbError> {
-        let filtered_orderbooks: HashMap<String, OrderbookCfg> = global
-            .orderbooks
+        let filtered_raindexes: HashMap<String, RaindexCfg> = global
+            .raindexes
             .iter()
             .filter(|(_, ob)| ob.network.key == network_key)
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
 
-        if filtered_orderbooks.is_empty() {
+        if filtered_raindexes.is_empty() {
             return Err(LocalDbError::CustomError(format!(
-                "no orderbooks found for network: {}",
+                "no raindexes found for network: {}",
                 network_key
             )));
         }
 
-        let chain_id = filtered_orderbooks
+        let chain_id = filtered_raindexes
             .values()
             .next()
             .map(|ob| ob.network.chain_id)
@@ -54,14 +54,14 @@ impl NetworkRunnerConfig {
             network_key: network_key.to_string(),
             chain_id,
             settings: ParsedRunnerSettings {
-                orderbooks: filtered_orderbooks,
+                raindexes: filtered_raindexes,
                 syncs: filtered_syncs,
             },
         })
     }
 
     pub fn build_targets(&self) -> Result<Vec<RunnerTarget>, LocalDbError> {
-        build_runner_targets(&self.settings.orderbooks, &self.settings.syncs)
+        build_runner_targets(&self.settings.raindexes, &self.settings.syncs)
     }
 }
 
@@ -141,10 +141,10 @@ orderbooks:
 
         assert_eq!(config.network_key, "network-a");
         assert_eq!(config.chain_id, 1);
-        assert_eq!(config.settings.orderbooks.len(), 2);
-        assert!(config.settings.orderbooks.contains_key("ob-a"));
-        assert!(config.settings.orderbooks.contains_key("ob-c"));
-        assert!(!config.settings.orderbooks.contains_key("ob-b"));
+        assert_eq!(config.settings.raindexes.len(), 2);
+        assert!(config.settings.raindexes.contains_key("ob-a"));
+        assert!(config.settings.raindexes.contains_key("ob-c"));
+        assert!(!config.settings.raindexes.contains_key("ob-b"));
     }
 
     #[test]
@@ -186,6 +186,6 @@ orderbooks:
 
         let targets = config.build_targets().expect("targets ok");
         assert_eq!(targets.len(), 1);
-        assert_eq!(targets[0].orderbook_key, "ob-b");
+        assert_eq!(targets[0].raindex_key, "ob-b");
     }
 }

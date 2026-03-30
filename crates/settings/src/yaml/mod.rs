@@ -552,7 +552,7 @@ pub fn sanitize_all_documents(documents: &[Arc<RwLock<StrictYaml>>]) -> Result<(
     crate::LocalDbSyncCfg::sanitize_documents(documents)?;
     crate::NetworkCfg::sanitize_documents(documents)?;
     crate::OrderCfg::sanitize_documents(documents)?;
-    crate::OrderbookCfg::sanitize_documents(documents)?;
+    crate::RaindexCfg::sanitize_documents(documents)?;
     crate::RemoteNetworksCfg::sanitize_documents(documents)?;
     crate::ScenarioCfg::sanitize_documents(documents)?;
     crate::TokenCfg::sanitize_documents(documents)?;

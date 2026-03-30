@@ -2,7 +2,7 @@
 // import { test, vi } from 'vitest';
 import { test } from 'vitest';
 // import { expect } from '$lib/test/matchers';
-// import type { OrderPerformance, RaindexOrder } from '@rainlanguage/orderbook';
+// import type { OrderPerformance, RaindexOrder } from '@rainlanguage/raindex';
 // import { QueryClient } from '@tanstack/svelte-query';
 // import OrderApy from '../lib/components/tables/OrderAPY.svelte';
 // import { bigintStringToPercentage } from '../lib/utils/number';

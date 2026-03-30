@@ -11,7 +11,7 @@ use rain_metaboard_subgraph::types::metas::BigInt as MetaBigInt;
 use rain_metadata::RainMetaDocumentV1Item;
 use raindex_app_settings::{
     order::{OrderIOCfg, VaultType},
-    orderbook::OrderbookCfg,
+    raindex::RaindexCfg,
 };
 use raindex_bindings::{
     IRaindexV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
@@ -128,24 +128,24 @@ pub struct VaultAndDeposit {
 
 #[wasm_export]
 impl DotrainOrderGui {
-    fn get_orderbook(&self) -> Result<Arc<OrderbookCfg>, GuiError> {
+    fn get_raindex(&self) -> Result<Arc<RaindexCfg>, GuiError> {
         let deployment = self.get_current_deployment()?;
         deployment
             .deployment
             .as_ref()
             .order
             .as_ref()
-            .orderbook
+            .raindex
             .as_ref()
             .ok_or(GuiError::OrderbookNotFound)
             .cloned()
     }
 
     fn get_transaction_args(&self) -> Result<TransactionArgs, GuiError> {
-        let orderbook = self.get_orderbook()?;
+        let raindex = self.get_raindex()?;
         Ok(TransactionArgs {
-            orderbook_address: orderbook.address,
-            rpcs: orderbook
+            orderbook_address: raindex.address,
+            rpcs: raindex
                 .network
                 .rpcs
                 .clone()
@@ -843,7 +843,7 @@ impl DotrainOrderGui {
             orderbook_address: deployment
                 .deployment
                 .order
-                .orderbook
+                .raindex
                 .as_ref()
                 .ok_or(GuiError::OrderbookNotFound)?
                 .address,
@@ -854,9 +854,9 @@ impl DotrainOrderGui {
 
     fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, GuiError> {
         let deployment = self.get_current_deployment()?;
-        let orderbook_yaml = self.dotrain_order.orderbook_yaml();
+        let raindex_yaml = self.dotrain_order.raindex_yaml();
         let metaboard_cfg =
-            orderbook_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
+            raindex_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
         Ok(MetaboardSubgraphClient::new(metaboard_cfg.url.clone()))
     }
 

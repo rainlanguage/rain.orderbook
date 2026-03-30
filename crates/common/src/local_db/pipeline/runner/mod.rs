@@ -25,7 +25,7 @@ pub struct TargetSuccess {
 #[derive(Debug)]
 pub struct TargetFailure {
     pub ob_id: OrderbookIdentifier,
-    pub orderbook_key: Option<String>,
+    pub raindex_key: Option<String>,
     pub stage: TargetStage,
     pub error: LocalDbError,
 }

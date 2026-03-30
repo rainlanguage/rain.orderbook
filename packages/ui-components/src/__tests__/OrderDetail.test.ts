@@ -4,7 +4,7 @@ import {
 	RaindexOrder,
 	RaindexTransaction,
 	RaindexVault
-} from '@rainlanguage/orderbook';
+} from '@rainlanguage/raindex';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { QueryClient } from '@tanstack/svelte-query';
 import OrderDetail from '../lib/components/detail/OrderDetail.svelte';
@@ -28,7 +28,7 @@ vi.mock('$lib/providers/wallet/useAccount', () => ({
 }));
 
 // Mock the js_api functions
-vi.mock('@rainlanguage/orderbook', () => ({
+vi.mock('@rainlanguage/raindex', () => ({
 	RaindexClient: vi.fn()
 }));
 
