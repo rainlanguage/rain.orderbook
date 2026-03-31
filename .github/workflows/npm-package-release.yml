@@ -186,11 +186,11 @@ jobs:
       # Create raindex npm package tarball
       - name: Create raindex NPM Package Tarball
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: echo "OB_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/raindex)" >> $GITHUB_ENV
+        run: echo "RAINDEX_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/raindex)" >> $GITHUB_ENV
 
       - name: Rename raindex NPM Package Tarball
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: mv ${{ env.OB_NPM_PACKAGE }} raindex_npm_package_${{ env.NEW_VERSION }}.tgz
+        run: mv ${{ env.RAINDEX_NPM_PACKAGE }} raindex_npm_package_${{ env.NEW_VERSION }}.tgz
 
       # publish raindex pkg to npm
       - name: Publish raindex pkg To NPM

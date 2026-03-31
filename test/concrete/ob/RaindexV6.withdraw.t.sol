@@ -16,7 +16,7 @@ import {LibDecimalFloatImplementation} from "rain.math.float/lib/implementation/
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title RaindexV6WithdrawTest
-/// Tests withdrawing from the order book.
+/// Tests withdrawing from the raindex.
 contract RaindexV6WithdrawTest is RaindexV6ExternalMockTest {
     using Math for uint256;
 

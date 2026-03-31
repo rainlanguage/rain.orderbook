@@ -28,7 +28,7 @@ impl RaindexYaml {
     /// This constructor parses one or more YAML configuration strings to create an RaindexYaml
     /// instance that provides access to raindex configurations, network settings, tokens, and
     /// other deployment metadata. The YAML sources are merged and validated according to the
-    /// [raindex specification](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md).
+    /// [raindex specification](https://github.com/rainlanguage/specs/blob/main/raindex-yaml.md).
     ///
     /// ## Examples
     ///

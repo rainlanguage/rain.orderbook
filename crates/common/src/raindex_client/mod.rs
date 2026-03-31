@@ -131,7 +131,7 @@ impl RaindexClient {
         #[wasm_export(
             js_name = "raindexYamls",
             param_description = "List of YAML configuration strings. \
-            The YAML files must match the [raindex yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md)
+            The YAML files must match the [raindex yaml spec](https://github.com/rainlanguage/specs/blob/main/raindex-yaml.md)
             "
         )]
         raindex_yamls: Vec<String>,

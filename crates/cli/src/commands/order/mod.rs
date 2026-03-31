@@ -45,7 +45,7 @@ pub enum Order {
 
     #[command(
         about = "Get the raindex address for a given order",
-        alias = "ob-addr"
+        alias = "raindex-addr"
     )]
     RaindexAddress(RaindexAddress),
 

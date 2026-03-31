@@ -14,7 +14,7 @@ import {ReentrancyGuard} from "openzeppelin-contracts/contracts/utils/Reentrancy
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title RaindexV6DepositTest
-/// Tests depositing to an order book.
+/// Tests depositing to a raindex.
 contract RaindexV6DepositTest is RaindexV6ExternalMockTest {
     using LibDecimalFloat for Float;
 

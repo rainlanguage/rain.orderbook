@@ -252,7 +252,7 @@ describe('LocalDbStatusModal', () => {
 		expect(screen.getByText('Network initialization failed')).toBeInTheDocument();
 	});
 
-	it('groups raindexs correctly by chain ID', () => {
+	it('groups raindexes correctly by chain ID', () => {
 		const networkStatuses = new Map<number, NetworkSyncStatus>([
 			[137, { chainId: 137, status: 'active', schedulerState: 'leader' }],
 			[42161, { chainId: 42161, status: 'active', schedulerState: 'leader' }]
@@ -299,7 +299,7 @@ describe('LocalDbStatusModal', () => {
 		expect(screen.getByText('0x2222222222222222222222222222222222222222')).toBeInTheDocument();
 	});
 
-	it('handles multiple raindexs on the same network', () => {
+	it('handles multiple raindexes on the same network', () => {
 		const networkStatuses = new Map<number, NetworkSyncStatus>([
 			[137, { chainId: 137, status: 'active', schedulerState: 'leader' }]
 		]);
