@@ -12,7 +12,7 @@ pub struct CliSubgraphArgs {
     #[arg(
         short,
         long,
-        help = "Url of the hosted Subgraph for this Orderbook deployemnt"
+        help = "Url of the hosted Subgraph for this Raindex deployment"
     )]
     pub subgraph_url: String,
 }
@@ -108,7 +108,7 @@ impl From<CliFilterArgs> for SgOrdersListFilterArgs {
             active: val.active,
             order_hash: val.order_hash.map(SgBytes),
             tokens,
-            orderbooks: vec![],
+            raindexes: vec![],
         }
     }
 }
@@ -119,7 +119,7 @@ impl From<CliFilterArgs> for SgVaultsListFilterArgs {
             owners: val.owners.into_iter().map(SgBytes).collect(),
             hide_zero_balance: val.hide_zero_balance.unwrap_or(true),
             tokens: val.tokens,
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         }
     }

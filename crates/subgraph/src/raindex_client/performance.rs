@@ -1,13 +1,13 @@
 use super::*;
 use crate::performance::vol::{get_vaults_vol, VaultVolume};
 
-impl OrderbookSubgraphClient {
+impl RaindexSubgraphClient {
     pub async fn order_vaults_volume(
         &self,
         order_id: cynic::Id,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
-    ) -> Result<Vec<VaultVolume>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<VaultVolume>, RaindexSubgraphClientError> {
         let trades = self
             .order_trades_list_all(order_id, start_timestamp, end_timestamp)
             .await?;
@@ -21,7 +21,7 @@ impl OrderbookSubgraphClient {
     //     order_id: cynic::Id,
     //     start_timestamp: Option<u64>,
     //     end_timestamp: Option<u64>,
-    // ) -> Result<OrderPerformance, OrderbookSubgraphClientError> {
+    // ) -> Result<OrderPerformance, RaindexSubgraphClientError> {
     //     let order = self.order_detail(&order_id).await?;
     //     let trades = self
     //         .order_trades_list_all(order_id, start_timestamp, end_timestamp)
@@ -38,9 +38,9 @@ impl OrderbookSubgraphClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::orderbook_client::OrderbookSubgraphClientError;
+    use crate::raindex_client::RaindexSubgraphClientError;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeEventTypename,
+        SgBigInt, SgBytes, SgErc20, SgRaindex, SgTrade, SgTradeEvent, SgTradeEventTypename,
         SgTradeRef, SgTradeStructPartialOrder, SgTradeVaultBalanceChange, SgTransaction,
         SgVaultBalanceChangeVault,
     };
@@ -50,9 +50,9 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    fn setup_client(server: &MockServer) -> OrderbookSubgraphClient {
+    fn setup_client(server: &MockServer) -> RaindexSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();
-        OrderbookSubgraphClient::new(url)
+        RaindexSubgraphClient::new(url)
     }
 
     fn default_sg_erc20(id_suffix: &str) -> SgErc20 {
@@ -75,8 +75,8 @@ mod tests {
                 id: SgBytes(order_id_str.to_string()),
                 order_hash: SgBytes(format!("0xhash_{}", order_id_str)),
             },
-            orderbook: SgOrderbook {
-                id: SgBytes("0xorderbook_default".to_string()),
+            raindex: SgRaindex {
+                id: SgBytes("0xraindex_default".to_string()),
             },
             trade_event: SgTradeEvent {
                 transaction: SgTransaction {
@@ -105,8 +105,8 @@ mod tests {
                     block_number: SgBigInt("1".to_string()),
                     timestamp: SgBigInt(timestamp.to_string()),
                 },
-                orderbook: SgOrderbook {
-                    id: SgBytes("0xorderbook_default".to_string()),
+                raindex: SgRaindex {
+                    id: SgBytes("0xraindex_default".to_string()),
                 },
                 trade: SgTradeRef {
                     trade_event: SgTradeEventTypename {
@@ -132,8 +132,8 @@ mod tests {
                     block_number: SgBigInt("1".to_string()),
                     timestamp: SgBigInt(timestamp.to_string()),
                 },
-                orderbook: SgOrderbook {
-                    id: SgBytes("0xorderbook_default".to_string()),
+                raindex: SgRaindex {
+                    id: SgBytes("0xraindex_default".to_string()),
                 },
                 trade: SgTradeRef {
                     trade_event: SgTradeEventTypename {
@@ -214,7 +214,7 @@ mod tests {
         let result = client.order_vaults_volume(order_id, None, None).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -231,8 +231,8 @@ mod tests {
     //         order_bytes: SgBytes("0xorderbytes_default".to_string()),
     //         timestamp_added: SgBigInt("1600000000".to_string()),
     //         active: true,
-    //         orderbook: SgOrderbook {
-    //             id: SgBytes("0xorderbook_default".to_string()),
+    //         raindex: SgRaindex {
+    //             id: SgBytes("0xraindex_default".to_string()),
     //         },
     //         inputs: vec![SgVault {
     //             id: SgBytes("input_vault_id".to_string()),
@@ -240,8 +240,8 @@ mod tests {
     //             vault_id: SgBigInt("input_vault_sg_id".to_string()),
     //             balance: SgBigInt("1000".to_string()),
     //             token: default_sg_erc20("input"),
-    //             orderbook: SgOrderbook {
-    //                 id: SgBytes("0xorderbook_default".to_string()),
+    //             raindex: SgRaindex {
+    //                 id: SgBytes("0xraindex_default".to_string()),
     //             },
     //             orders_as_output: vec![],
     //             orders_as_input: vec![],
@@ -253,8 +253,8 @@ mod tests {
     //             vault_id: SgBigInt("output_vault_sg_id".to_string()),
     //             balance: SgBigInt("0".to_string()),
     //             token: default_sg_erc20("output"),
-    //             orderbook: SgOrderbook {
-    //                 id: SgBytes("0xorderbook_default".to_string()),
+    //             raindex: SgRaindex {
+    //                 id: SgBytes("0xraindex_default".to_string()),
     //             },
     //             orders_as_output: vec![],
     //             orders_as_input: vec![],
@@ -388,7 +388,7 @@ mod tests {
     //     let result = client.order_performance(order_id, None, None).await;
     //     assert!(result.is_err());
     //     match result {
-    //         Err(OrderbookSubgraphClientError::PerformanceError(PerformanceError::NoTrades)) => (),
+    //         Err(RaindexSubgraphClientError::PerformanceError(PerformanceError::NoTrades)) => (),
     //         _ => panic!("Expected PerformanceError::NoTrades, got {:?}", result),
     //     }
     // }
@@ -407,7 +407,7 @@ mod tests {
     //     });
     //
     //     let result = client.order_performance(order_id, None, None).await;
-    //     assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+    //     assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     // }
     //
     // #[tokio::test]
@@ -438,7 +438,7 @@ mod tests {
     //     let result = client.order_performance(order_id, None, None).await;
     //     assert!(matches!(
     //         result,
-    //         Err(OrderbookSubgraphClientError::CynicClientError(_))
+    //         Err(RaindexSubgraphClientError::CynicClientError(_))
     //     ));
     // }
 }

@@ -345,7 +345,7 @@ impl YamlError {
                 err.to_readable_msg()
             ),
             YamlError::ParseRaindexConfigSourceError(err) => format!(
-                "Orderbook configuration error in your YAML: {}",
+                "Raindex configuration error in your YAML: {}",
                 err.to_readable_msg()
             ),
             YamlError::ParseRainlangConfigSourceError(err) => format!(

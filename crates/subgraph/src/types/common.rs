@@ -26,7 +26,7 @@ pub struct SgOrdersListFilterArgs {
     pub order_hash: Option<SgBytes>,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub tokens: Option<SgOrdersTokensFilterArgs>,
-    pub orderbooks: Vec<String>,
+    pub raindexes: Vec<String>,
 }
 impl_wasm_traits!(SgOrdersListFilterArgs);
 
@@ -51,8 +51,8 @@ pub struct SgOrdersListQueryFilters {
     pub inputs_: Option<SgVaultTokenFilter>,
     #[cynic(rename = "outputs_", skip_serializing_if = "Option::is_none")]
     pub outputs_: Option<SgVaultTokenFilter>,
-    #[cynic(rename = "orderbook_in", skip_serializing_if = "Vec::is_empty")]
-    pub orderbook_in: Vec<String>,
+    #[cynic(rename = "raindex_in", skip_serializing_if = "Vec::is_empty")]
+    pub raindex_in: Vec<String>,
 }
 
 #[derive(cynic::InputObject, Debug, Clone, Tsify)]
@@ -103,8 +103,8 @@ pub struct SgPaginationWithTimestampQueryVariables {
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]
-#[cynic(graphql_type = "Orderbook")]
-pub struct SgOrderbook {
+#[cynic(graphql_type = "Raindex")]
+pub struct SgRaindex {
     pub id: SgBytes,
 }
 
@@ -121,7 +121,7 @@ pub struct SgOrder {
     pub owner: SgBytes,
     pub outputs: Vec<SgVault>,
     pub inputs: Vec<SgVault>,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
     pub active: bool,
     pub timestamp_added: SgBigInt,
     #[cfg_attr(target_family = "wasm", tsify(optional))]
@@ -163,7 +163,7 @@ pub struct SgVaultsListFilterArgs {
     pub owners: Vec<SgBytes>,
     pub hide_zero_balance: bool,
     pub tokens: Vec<String>,
-    pub orderbooks: Vec<String>,
+    pub raindexes: Vec<String>,
     pub only_active_orders: bool,
 }
 impl_wasm_traits!(SgVaultsListFilterArgs);
@@ -178,8 +178,8 @@ pub struct SgVaultsListQueryFilters {
     pub balance_not: Option<SgBytes>,
     #[cynic(rename = "token_in", skip_serializing_if = "Vec::is_empty")]
     pub token_in: Vec<String>,
-    #[cynic(rename = "orderbook_in", skip_serializing_if = "Vec::is_empty")]
-    pub orderbook_in: Vec<String>,
+    #[cynic(rename = "raindex_in", skip_serializing_if = "Vec::is_empty")]
+    pub raindex_in: Vec<String>,
     #[cynic(rename = "ordersAsInput_", skip_serializing_if = "Option::is_none")]
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub orders_as_input_: Option<Box<SgOrdersListQueryFilters>>,
@@ -211,7 +211,7 @@ pub struct SgVault {
     pub vault_id: SgBytes,
     pub balance: SgBytes,
     pub token: SgErc20,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
     // latest orders
     #[arguments(orderBy: timestampAdded, orderDirection: desc)]
     pub orders_as_output: Vec<SgOrderAsIO>,
@@ -250,7 +250,7 @@ pub struct SgVaultBalanceChangeUnwrapped {
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
 }
 
 #[derive(cynic::InlineFragments, Debug, Clone, Serialize, Tsify)]
@@ -331,7 +331,7 @@ pub struct SgDeposit {
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
@@ -347,7 +347,7 @@ pub struct SgWithdrawal {
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
@@ -363,7 +363,7 @@ pub struct SgTradeVaultBalanceChange {
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
     pub trade: SgTradeRef,
 }
 
@@ -380,7 +380,7 @@ pub struct SgClearBounty {
     pub vault: SgVaultBalanceChangeVault,
     pub timestamp: SgBigInt,
     pub transaction: SgTransaction,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
     pub sender: SgBytes,
 }
 
@@ -416,7 +416,7 @@ pub struct SgTrade {
     pub order: SgTradeStructPartialOrder,
     pub input_vault_balance_change: SgTradeVaultBalanceChange,
     pub timestamp: SgBigInt,
-    pub orderbook: SgOrderbook,
+    pub raindex: SgRaindex,
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize, Tsify)]
@@ -513,12 +513,12 @@ pub enum SgOrderOrderBy {
     #[cynic(rename = "id")]
     #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
-    #[cynic(rename = "orderbook")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
-    Orderbook,
-    #[cynic(rename = "orderbook__id")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
-    OrderbookId,
+    #[cynic(rename = "raindex")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex"))]
+    Raindex,
+    #[cynic(rename = "raindex__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex__id"))]
+    RaindexId,
     #[cynic(rename = "active")]
     #[cfg_attr(target_family = "wasm", serde(rename = "active"))]
     Active,
@@ -591,12 +591,12 @@ pub enum SgAddOrderOrderBy {
     #[cynic(rename = "order__timestampAdded")]
     #[cfg_attr(target_family = "wasm", serde(rename = "order__timestampAdded"))]
     OrderTimestampAdded,
-    #[cynic(rename = "orderbook")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
-    Orderbook,
-    #[cynic(rename = "orderbook__id")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
-    OrderbookId,
+    #[cynic(rename = "raindex")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex"))]
+    Raindex,
+    #[cynic(rename = "raindex__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex__id"))]
+    RaindexId,
     #[cynic(rename = "transaction")]
     #[cfg_attr(target_family = "wasm", serde(rename = "transaction"))]
     Transaction,
@@ -624,12 +624,12 @@ pub enum SgTradeOrderBy {
     #[cynic(rename = "id")]
     #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
-    #[cynic(rename = "orderbook")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
-    Orderbook,
-    #[cynic(rename = "orderbook__id")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
-    OrderbookId,
+    #[cynic(rename = "raindex")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex"))]
+    Raindex,
+    #[cynic(rename = "raindex__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex__id"))]
+    RaindexId,
     #[cynic(rename = "order")]
     #[cfg_attr(target_family = "wasm", serde(rename = "order"))]
     Order,
@@ -738,12 +738,12 @@ pub enum SgVaultOrderBy {
     #[cynic(rename = "id")]
     #[cfg_attr(target_family = "wasm", serde(rename = "id"))]
     Id,
-    #[cynic(rename = "orderbook")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook"))]
-    Orderbook,
-    #[cynic(rename = "orderbook__id")]
-    #[cfg_attr(target_family = "wasm", serde(rename = "orderbook__id"))]
-    OrderbookId,
+    #[cynic(rename = "raindex")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex"))]
+    Raindex,
+    #[cynic(rename = "raindex__id")]
+    #[cfg_attr(target_family = "wasm", serde(rename = "raindex__id"))]
+    RaindexId,
     #[cynic(rename = "token")]
     #[cfg_attr(target_family = "wasm", serde(rename = "token"))]
     Token,

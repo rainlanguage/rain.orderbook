@@ -193,7 +193,7 @@ mod tests {
                         "from": encode_prefixed(Address::random())
                     },
                     "timestamp": "0",
-                    "orderbook": {
+                    "raindex": {
                         "id": encode_prefixed(B256::random()),
                     },
                 }]

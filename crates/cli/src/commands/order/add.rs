@@ -97,7 +97,7 @@ mod tests {
             dotrain_file: dotrain_path,
             deployment: "some-deployment".to_string(),
             transaction_args: CliTransactionArgs {
-                orderbook_address: Address::random(),
+                raindex_address: Address::random(),
                 derivation_index: None,
                 chain_id: Some(123),
                 rpcs: vec!["https://some-rpc.com".to_string()],
@@ -144,8 +144,8 @@ rainlangs:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -179,7 +179,7 @@ orders:
             - token: token2
               vault-id: 1
         rainlang: some-rainlang
-        orderbook: some-orderbook
+        raindex: some-raindex
 
 deployments:
     some-deployment:

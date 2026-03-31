@@ -51,7 +51,7 @@ mod tests {
     use raindex_common::local_db::query::{
         FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
     };
-    use raindex_common::local_db::OrderbookIdentifier;
+    use raindex_common::local_db::RaindexIdentifier;
 
     const TEST_BLOCK_NUMBER_THRESHOLD: u32 = 10_000;
 
@@ -111,8 +111,8 @@ mod tests {
         }
     }
 
-    fn sample_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier::new(1, Address::ZERO)
+    fn sample_ob_id() -> RaindexIdentifier {
+        RaindexIdentifier::new(1, Address::ZERO)
     }
 
     #[tokio::test]

@@ -14,7 +14,7 @@ use raindex_app_settings::{
     raindex::RaindexCfg,
 };
 use raindex_bindings::{
-    IRaindexV6::deposit4Call, OrderBook::multicallCall, IERC20::approveCall,
+    IRaindexV6::deposit4Call, Raindex::multicallCall, IERC20::approveCall,
 };
 use raindex_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
@@ -227,7 +227,7 @@ impl DotrainOrderGui {
         self.get_current_deployment()
     }
 
-    /// Checks token allowances for all deposits against the orderbook contract.
+    /// Checks token allowances for all deposits against the raindex contract.
     ///
     /// Queries the blockchain to determine current  allowances for each output token that
     /// will be deposited. This helps determine which tokens need approval before
@@ -414,7 +414,7 @@ impl DotrainOrderGui {
         Ok(add_order_args)
     }
 
-    /// Generates calldata for depositing tokens into orderbook vaults.
+    /// Generates calldata for depositing tokens into raindex vaults.
     ///
     /// Creates deposit calldatas for all configured deposits, automatically
     /// skipping zero amounts and ensuring vault IDs are properly assigned.
@@ -495,7 +495,7 @@ impl DotrainOrderGui {
         Ok(DepositCalldataResult::Calldatas(calldatas))
     }
 
-    /// Generates calldata for adding the order to the orderbook.
+    /// Generates calldata for adding the order to the raindex.
     ///
     /// Creates the addOrder calldata with all field values applied to the
     /// Rainlang code and proper vault configurations.
@@ -738,7 +738,7 @@ impl DotrainOrderGui {
     ///
     /// - `approvals` - Token approval calldatas with symbols for UI
     /// - `deploymentCalldata` - Main order deployment calldata
-    /// - `orderbookAddress` - Target contract address
+    /// - `raindexAddress` - Target contract address
     /// - `chainId` - Network identifier
     ///
     /// # Examples
@@ -756,8 +756,8 @@ impl DotrainOrderGui {
     ///   approvals,
     ///   // deploymentCalldata is the multicall calldata for the order
     ///   deploymentCalldata,
-    ///   // orderbookAddress is the address of the orderbook
-    ///   orderbookAddress,
+    ///   // raindexAddress is the address of the raindex
+    ///   raindexAddress,
     ///   // chainId is the chain ID of the network
     ///   chainId,
     /// } = result.value;

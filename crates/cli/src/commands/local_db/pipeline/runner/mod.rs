@@ -12,7 +12,7 @@ use environment::default_environment;
 use export::export_dump;
 pub use export::ExportMetadata;
 use manifest::{build_manifest, write_manifest_to_path};
-use raindex_app_settings::local_db_manifest::ManifestOrderbook;
+use raindex_app_settings::local_db_manifest::ManifestRaindex;
 use raindex_common::local_db::pipeline::adapters::apply::ApplyPipeline;
 use raindex_common::local_db::pipeline::runner::{
     environment::RunnerEnvironment,
@@ -28,7 +28,7 @@ use raindex_common::local_db::pipeline::{
     engine::SyncInputs,
     EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
 };
-use raindex_common::local_db::{LocalDbError, OrderbookIdentifier};
+use raindex_common::local_db::{LocalDbError, RaindexIdentifier};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -39,7 +39,7 @@ use url::Url;
 pub struct ProducerRunner<B, W, E, T, A, S> {
     settings: ParsedRunnerSettings,
     targets: Vec<RunnerTarget>,
-    target_lookup: HashMap<OrderbookIdentifier, RunnerTarget>,
+    target_lookup: HashMap<RaindexIdentifier, RunnerTarget>,
     out_root: PathBuf,
     release_base_url: Url,
     manifest_output_path: PathBuf,
@@ -93,7 +93,7 @@ where
                 let report = RunReport {
                     successes: Vec::new(),
                     failures: vec![TargetFailure {
-                        ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+                        ob_id: RaindexIdentifier::new(0, Address::ZERO),
                         raindex_key: None,
                         stage: TargetStage::ManifestFetch,
                         error,
@@ -129,7 +129,7 @@ where
 
                 let mut successes = Vec::new();
                 let mut failures = Vec::new();
-                let mut exports: HashMap<OrderbookIdentifier, Option<ExportMetadata>> =
+                let mut exports: HashMap<RaindexIdentifier, Option<ExportMetadata>> =
                     HashMap::new();
                 while let Some(result) = tasks.join_next().await {
                     match result {
@@ -139,7 +139,7 @@ where
                         }
                         Ok(Err(failure)) => {
                             error!(
-                                address = ?failure.ob_id.orderbook_address,
+                                address = ?failure.ob_id.raindex_address,
                                 stage = ?failure.stage,
                                 error = %failure.error,
                                 "producer job failed (chain_id={:?})",
@@ -154,7 +154,7 @@ where
                                 "producer job panicked or was cancelled before completion"
                             );
                             failures.push(TargetFailure {
-                                ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+                                ob_id: RaindexIdentifier::new(0, Address::ZERO),
                                 raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error,
@@ -165,7 +165,7 @@ where
                 Ok::<
                     (
                         RunReport,
-                        HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
+                        HashMap<RaindexIdentifier, Option<ExportMetadata>>,
                     ),
                     LocalDbError,
                 >((
@@ -228,13 +228,13 @@ impl
 pub struct ProducerRunReport {
     pub successes: Vec<TargetSuccess>,
     pub failures: Vec<TargetFailure>,
-    pub exports: HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
+    pub exports: HashMap<RaindexIdentifier, Option<ExportMetadata>>,
 }
 
 impl ProducerRunReport {
     fn from_parts(
         report: RunReport,
-        exports: HashMap<OrderbookIdentifier, Option<ExportMetadata>>,
+        exports: HashMap<RaindexIdentifier, Option<ExportMetadata>>,
     ) -> Self {
         Self {
             successes: report.successes,
@@ -251,14 +251,14 @@ impl ProducerRunReport {
         &self.failures
     }
 
-    pub fn export_for(&self, ob_id: &OrderbookIdentifier) -> Option<&ExportMetadata> {
+    pub fn export_for(&self, ob_id: &RaindexIdentifier) -> Option<&ExportMetadata> {
         self.exports.get(ob_id)?.as_ref()
     }
 }
 
 async fn run_raindex_job<B, W, E, T, A, S>(
     target: RunnerTarget,
-    manifest_entry: Option<ManifestOrderbook>,
+    manifest_entry: Option<ManifestRaindex>,
     environment: RunnerEnvironment<B, W, E, T, A, S>,
     out_root: PathBuf,
 ) -> Result<(TargetSuccess, Option<ExportMetadata>), TargetFailure>
@@ -330,7 +330,7 @@ where
 fn db_path_for_target(out_root: &Path, target: &RunnerTarget) -> Result<PathBuf, LocalDbError> {
     let chain_folder = out_root.join(target.inputs.ob_id.chain_id.to_string());
     std::fs::create_dir_all(&chain_folder)?;
-    let filename = format!("{}.db", target.inputs.ob_id.orderbook_address);
+    let filename = format!("{}.db", target.inputs.ob_id.raindex_address);
     Ok(chain_folder.join(filename))
 }
 
@@ -348,7 +348,7 @@ mod tests {
     use async_trait::async_trait;
     use flate2::read::GzDecoder;
     use raindex_app_settings::local_db_manifest::{
-        LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
+        LocalDbManifest, ManifestNetwork, ManifestRaindex, DB_SCHEMA_VERSION, MANIFEST_VERSION,
     };
     use raindex_app_settings::raindex::RaindexCfg;
     use raindex_app_settings::remote::manifest::ManifestMap;
@@ -435,17 +435,17 @@ mod tests {
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS target_watermarks (
                     chain_id INTEGER NOT NULL,
-                    orderbook_address TEXT NOT NULL,
+                    raindex_address TEXT NOT NULL,
                     last_block INTEGER NOT NULL DEFAULT 0,
                     last_hash TEXT,
                     updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
-                    PRIMARY KEY (chain_id, orderbook_address)
+                    PRIMARY KEY (chain_id, raindex_address)
                 );",
             ));
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS raw_events (
                     chain_id INTEGER NOT NULL,
-                    orderbook_address TEXT NOT NULL,
+                    raindex_address TEXT NOT NULL,
                     transaction_hash TEXT NOT NULL,
                     log_index INTEGER NOT NULL,
                     block_number INTEGER NOT NULL,
@@ -454,20 +454,20 @@ mod tests {
                     topics TEXT NOT NULL,
                     data TEXT NOT NULL,
                     raw_json TEXT NOT NULL,
-                    PRIMARY KEY (chain_id, orderbook_address, transaction_hash, log_index)
+                    PRIMARY KEY (chain_id, raindex_address, transaction_hash, log_index)
                 );",
             ));
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS order_events (
                     chain_id INTEGER,
-                    orderbook_address TEXT,
+                    raindex_address TEXT,
                     store_address TEXT
                 );",
             ));
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS interpreter_store_sets (
                     chain_id INTEGER,
-                    orderbook_address TEXT,
+                    raindex_address TEXT,
                     store_address TEXT
                 );",
             ));
@@ -494,7 +494,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _ob_id: &RaindexIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -516,10 +516,10 @@ mod tests {
             Ok(())
         }
 
-        async fn clear_orderbook_data<DB>(
+        async fn clear_raindex_data<DB>(
             &self,
             _db: &DB,
-            _target: &OrderbookIdentifier,
+            _target: &RaindexIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -539,13 +539,13 @@ mod tests {
 
             // Seed a raw event to force export_data_only to return Some, but skip watermark to trigger export failure.
             let ob_id = &config.ob_id;
-            let orderbook_address = encode_prefixed(ob_id.orderbook_address);
+            let raindex_address = encode_prefixed(ob_id.raindex_address);
             let mut batch = SqlStatementBatch::new();
             batch.add(SqlStatement::new(format!(
-                "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
+                "INSERT INTO raw_events (chain_id, raindex_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
                  VALUES ({}, '{}', '0xseedtx', 0, {}, 1_700_000_000, '{}', '[]', '0x00', '{{}}') \
-                 ON CONFLICT(chain_id, orderbook_address, transaction_hash, log_index) DO NOTHING;",
-                ob_id.chain_id, orderbook_address, config.latest_block, orderbook_address
+                 ON CONFLICT(chain_id, raindex_address, transaction_hash, log_index) DO NOTHING;",
+                ob_id.chain_id, raindex_address, config.latest_block, raindex_address
             )));
             db.execute_batch(&batch.ensure_transaction()).await?;
 
@@ -590,17 +590,17 @@ mod tests {
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS target_watermarks (
                     chain_id INTEGER NOT NULL,
-                    orderbook_address TEXT NOT NULL,
+                    raindex_address TEXT NOT NULL,
                     last_block INTEGER NOT NULL DEFAULT 0,
                     last_hash TEXT,
                     updated_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000),
-                    PRIMARY KEY (chain_id, orderbook_address)
+                    PRIMARY KEY (chain_id, raindex_address)
                 );",
             ));
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS raw_events (
                     chain_id INTEGER NOT NULL,
-                    orderbook_address TEXT NOT NULL,
+                    raindex_address TEXT NOT NULL,
                     transaction_hash TEXT NOT NULL,
                     log_index INTEGER NOT NULL,
                     block_number INTEGER NOT NULL,
@@ -609,20 +609,20 @@ mod tests {
                     topics TEXT NOT NULL,
                     data TEXT NOT NULL,
                     raw_json TEXT NOT NULL,
-                    PRIMARY KEY (chain_id, orderbook_address, transaction_hash, log_index)
+                    PRIMARY KEY (chain_id, raindex_address, transaction_hash, log_index)
                 );",
             ));
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS order_events (
                     chain_id INTEGER,
-                    orderbook_address TEXT,
+                    raindex_address TEXT,
                     store_address TEXT
                 );",
             ));
             batch.add(SqlStatement::new(
                 "CREATE TABLE IF NOT EXISTS interpreter_store_sets (
                     chain_id INTEGER,
-                    orderbook_address TEXT,
+                    raindex_address TEXT,
                     store_address TEXT
                 );",
             ));
@@ -649,7 +649,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _ob_id: &RaindexIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -671,10 +671,10 @@ mod tests {
             Ok(())
         }
 
-        async fn clear_orderbook_data<DB>(
+        async fn clear_raindex_data<DB>(
             &self,
             _db: &DB,
-            _target: &OrderbookIdentifier,
+            _target: &RaindexIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -700,23 +700,23 @@ mod tests {
 
             if self.seed_export {
                 let ob_id = &config.ob_id;
-                let orderbook_address = encode_prefixed(ob_id.orderbook_address);
+                let raindex_address = encode_prefixed(ob_id.raindex_address);
 
                 let mut batch = SqlStatementBatch::new();
                 batch.add(SqlStatement::new(format!(
-                    "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
+                    "INSERT INTO raw_events (chain_id, raindex_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
                      VALUES ({}, '{}', '0xseedtx', 0, {}, 1_700_000_000, '{}', '[]', '0x00', '{{}}') \
-                     ON CONFLICT(chain_id, orderbook_address, transaction_hash, log_index) DO NOTHING;",
-                    ob_id.chain_id, orderbook_address, config.latest_block, orderbook_address
+                     ON CONFLICT(chain_id, raindex_address, transaction_hash, log_index) DO NOTHING;",
+                    ob_id.chain_id, raindex_address, config.latest_block, raindex_address
                 )));
                 batch.add(SqlStatement::new(format!(
-                    "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash, updated_at) \
+                    "INSERT INTO target_watermarks (chain_id, raindex_address, last_block, last_hash, updated_at) \
                      VALUES ({}, '{}', {}, '0xfeedface', 1_700_000_000_000) \
-                     ON CONFLICT(chain_id, orderbook_address) DO UPDATE \
+                     ON CONFLICT(chain_id, raindex_address) DO UPDATE \
                      SET last_block = excluded.last_block, \
                          last_hash = excluded.last_hash, \
                          updated_at = excluded.updated_at;",
-                    ob_id.chain_id, orderbook_address, config.latest_block
+                    ob_id.chain_id, raindex_address, config.latest_block
                 )));
 
                 db.execute_batch(&batch.ensure_transaction()).await?;
@@ -757,7 +757,7 @@ mod tests {
         async fn compute<DB>(
             &self,
             _db: &DB,
-            _target: &OrderbookIdentifier,
+            _target: &RaindexIdentifier,
             _cfg: &raindex_common::local_db::pipeline::SyncConfig,
             _latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
@@ -779,9 +779,9 @@ mod tests {
             Ok(self.latest_block)
         }
 
-        async fn fetch_orderbook(
+        async fn fetch_raindex(
             &self,
-            _orderbook_address: Address,
+            _raindex_address: Address,
             _from_block: u64,
             _to_block: u64,
             _cfg: &FetchConfig,
@@ -828,7 +828,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _ob_id: &RaindexIdentifier,
             _token_addrs_lower: &[Address],
         ) -> Result<
             Vec<raindex_common::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
@@ -897,7 +897,7 @@ mod tests {
         async fn export_dump<DB>(
             &self,
             _db: &DB,
-            _target: &OrderbookIdentifier,
+            _target: &RaindexIdentifier,
             _end_block: u64,
         ) -> Result<(), LocalDbError>
         where
@@ -951,7 +951,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ok:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -999,7 +999,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ok:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -1040,7 +1040,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   panic:
     address: 0x00000000000000000000000000000000000000c3
     network: anvil
@@ -1075,7 +1075,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ok:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -1111,7 +1111,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ok:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -1140,7 +1140,7 @@ orderbooks:
                 "anvil".to_string(),
                 ManifestNetwork {
                     chain_id: 42161,
-                    orderbooks: vec![ManifestOrderbook {
+                    raindexes: vec![ManifestRaindex {
                         address: raindex_address,
                         dump_url,
                         end_block: 111,
@@ -1165,7 +1165,7 @@ orderbooks:
                 "anvil".to_string(),
                 ManifestNetwork {
                     chain_id: 42161,
-                    orderbooks: vec![ManifestOrderbook {
+                    raindexes: vec![ManifestRaindex {
                         address: second_address,
                         dump_url: second_dump_url,
                         end_block: 222,
@@ -1357,14 +1357,14 @@ orderbooks:
         let success = &report.successes[0];
         assert_eq!(success.outcome.start_block, 0);
         assert_eq!(
-            success.outcome.ob_id.orderbook_address,
+            success.outcome.ob_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
 
         let failure = &report.failures[0];
         assert_eq!(failure.ob_id.chain_id, 42161);
         assert_eq!(
-            failure.ob_id.orderbook_address,
+            failure.ob_id.raindex_address,
             address!("00000000000000000000000000000000000000b2")
         );
         assert_eq!(failure.raindex_key.as_deref(), Some("fail"));
@@ -1434,7 +1434,7 @@ orderbooks:
         let success_addresses: Vec<Address> = report
             .successes
             .iter()
-            .map(|outcome| outcome.outcome.ob_id.orderbook_address)
+            .map(|outcome| outcome.outcome.ob_id.raindex_address)
             .collect();
         assert_eq!(
             success_addresses,
@@ -1444,7 +1444,7 @@ orderbooks:
         let mut custom_failure = None;
         let mut join_failure = None;
         for failure in &report.failures {
-            match (failure.ob_id.chain_id, failure.ob_id.orderbook_address) {
+            match (failure.ob_id.chain_id, failure.ob_id.raindex_address) {
                 (42161, addr) if addr == address!("00000000000000000000000000000000000000b2") => {
                     custom_failure = Some(failure);
                 }
@@ -1591,7 +1591,7 @@ orderbooks:
         let failure = &report.failures[0];
         assert_eq!(failure.ob_id.chain_id, 42161);
         assert_eq!(
-            failure.ob_id.orderbook_address,
+            failure.ob_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
         assert_eq!(failure.raindex_key.as_deref(), Some("ok"));
@@ -1644,7 +1644,7 @@ orderbooks:
         let failure = &report.failures[0];
         assert_eq!(failure.ob_id.chain_id, 42161);
         assert_eq!(
-            failure.ob_id.orderbook_address,
+            failure.ob_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
         assert_eq!(failure.raindex_key.as_deref(), Some("ok"));
@@ -1705,7 +1705,7 @@ orderbooks:
         let failure = &report.failures[0];
         assert_eq!(failure.stage, TargetStage::Export);
         assert_eq!(
-            failure.ob_id.orderbook_address,
+            failure.ob_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
     }
@@ -1800,7 +1800,7 @@ orderbooks:
             .expect("dump file name");
         let expected_file = format!(
             "{}-{}.sql.gz",
-            outcome.outcome.ob_id.chain_id, outcome.outcome.ob_id.orderbook_address
+            outcome.outcome.ob_id.chain_id, outcome.outcome.ob_id.raindex_address
         );
         assert_eq!(file_name, expected_file);
         assert_eq!(metadata.end_block, outcome.outcome.target_block);
@@ -1887,7 +1887,7 @@ orderbooks:
             .expect("second address present");
         assert!(
             first_index < second_index,
-            "expected orderbooks to be sorted by address"
+            "expected raindexes to be sorted by address"
         );
     }
 
@@ -1974,7 +1974,7 @@ orderbooks:
             targets[0]
                 .inputs
                 .ob_id
-                .orderbook_address
+                .raindex_address
                 .to_string()
                 .to_lowercase()
         );

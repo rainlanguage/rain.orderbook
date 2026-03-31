@@ -38,7 +38,7 @@ pub(super) async fn export_dump(
 
     let filename = format!(
         "{}-{}.sql.gz",
-        target.inputs.ob_id.chain_id, target.inputs.ob_id.orderbook_address
+        target.inputs.ob_id.chain_id, target.inputs.ob_id.raindex_address
     );
     let dump_path = chain_folder.join(filename);
 
@@ -56,7 +56,7 @@ pub(super) async fn export_dump(
     let row = rows.into_iter().next().ok_or_else(|| {
         LocalDbError::from(ExportError::MissingTargetWatermark {
             chain_id: target.inputs.ob_id.chain_id,
-            orderbook_address: target.inputs.ob_id.orderbook_address,
+            raindex_address: target.inputs.ob_id.raindex_address,
         })
     })?;
 
@@ -75,7 +75,7 @@ mod tests {
     use flate2::read::GzDecoder;
     use raindex_common::local_db::{
         pipeline::{engine::SyncInputs, FinalityConfig, SyncConfig, WindowOverrides},
-        FetchConfig, OrderbookIdentifier,
+        FetchConfig, RaindexIdentifier,
     };
     use rusqlite::{params, Connection};
     use std::io::{Cursor, Read};
@@ -86,7 +86,7 @@ mod tests {
     #[tokio::test]
     async fn export_dump_writes_gzip_and_reads_watermark_metadata() {
         let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir.path().join("orderbook.sqlite");
+        let db_path = temp_dir.path().join("raindex.sqlite");
         let conn = Connection::open(&db_path).expect("open sqlite db");
         conn.execute_batch(
             raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL,
@@ -94,14 +94,14 @@ mod tests {
         .expect("create tables");
 
         let chain_id = 42161u32;
-        let orderbook_address = address!("0x0000000000000000000000000000000000000abc");
-        let orderbook_str = encode_prefixed(orderbook_address);
+        let raindex_address = address!("0x0000000000000000000000000000000000000abc");
+        let raindex_str = encode_prefixed(raindex_address);
 
         conn.execute(
-            "INSERT INTO raw_events (chain_id, orderbook_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);",
+            "INSERT INTO raw_events (chain_id, raindex_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);",
             params![
                 chain_id as i64,
-                orderbook_str.as_str(),
+                raindex_str.as_str(),
                 "0xtesttx",
                 0i64,
                 1000i64,
@@ -115,11 +115,11 @@ mod tests {
         .expect("insert raw_events row");
 
         conn.execute(
-            "INSERT INTO target_watermarks (chain_id, orderbook_address, last_block, last_hash) VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(chain_id, orderbook_address) DO UPDATE SET last_block = excluded.last_block, last_hash = excluded.last_hash, updated_at = 1_700_000_000_000;",
+            "INSERT INTO target_watermarks (chain_id, raindex_address, last_block, last_hash) VALUES (?1, ?2, ?3, ?4)
+             ON CONFLICT(chain_id, raindex_address) DO UPDATE SET last_block = excluded.last_block, last_hash = excluded.last_hash, updated_at = 1_700_000_000_000;",
             params![
                 chain_id as i64,
-                orderbook_str.as_str(),
+                raindex_str.as_str(),
                 1000i64,
                 "0xdeadbeef",
             ],
@@ -137,9 +137,9 @@ mod tests {
             window_overrides: WindowOverrides::default(),
         };
 
-        let ob_id = OrderbookIdentifier {
+        let ob_id = RaindexIdentifier {
             chain_id,
-            orderbook_address,
+            raindex_address,
         };
 
         let target = RunnerTarget {
@@ -181,7 +181,7 @@ mod tests {
         );
         let expected_file = format!(
             "{}-{}.sql.gz",
-            chain_id, target.inputs.ob_id.orderbook_address
+            chain_id, target.inputs.ob_id.raindex_address
         );
         assert_eq!(
             metadata
@@ -207,7 +207,7 @@ mod tests {
     #[tokio::test]
     async fn export_dump_returns_none_when_no_rows_are_present() {
         let temp_dir = TempDir::new().unwrap();
-        let db_path = temp_dir.path().join("orderbook.sqlite");
+        let db_path = temp_dir.path().join("raindex.sqlite");
         let conn = Connection::open(&db_path).expect("open sqlite db");
         conn.execute_batch(
             raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL,
@@ -216,7 +216,7 @@ mod tests {
         drop(conn);
 
         let chain_id = 10u32;
-        let orderbook_address = address!("0x0000000000000000000000000000000000000fff");
+        let raindex_address = address!("0x0000000000000000000000000000000000000fff");
         let executor = RusqliteExecutor::new(&db_path);
         let fetch = FetchConfig::new(1, 1, 1, 1, 0, 0).expect("fetch config");
         let sync_config = SyncConfig {
@@ -226,9 +226,9 @@ mod tests {
             window_overrides: WindowOverrides::default(),
         };
 
-        let ob_id = OrderbookIdentifier {
+        let ob_id = RaindexIdentifier {
             chain_id,
-            orderbook_address,
+            raindex_address,
         };
 
         let target = RunnerTarget {

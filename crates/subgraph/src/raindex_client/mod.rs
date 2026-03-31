@@ -28,7 +28,7 @@ mod vault;
 pub const ALL_PAGES_QUERY_PAGE_SIZE: u16 = 200;
 
 #[derive(Error, Debug)]
-pub enum OrderbookSubgraphClientError {
+pub enum RaindexSubgraphClientError {
     #[error(transparent)]
     CynicClientError(#[from] CynicClientError),
     #[error("Subgraph query returned no data")]
@@ -50,25 +50,25 @@ pub enum OrderbookSubgraphClientError {
     OrderDetailExtendError,
 }
 
-impl From<OrderbookSubgraphClientError> for JsValue {
-    fn from(value: OrderbookSubgraphClientError) -> Self {
+impl From<RaindexSubgraphClientError> for JsValue {
+    fn from(value: RaindexSubgraphClientError) -> Self {
         JsError::new(&value.to_string()).into()
     }
 }
 
 #[derive(Debug)]
-pub struct OrderbookSubgraphClient {
+pub struct RaindexSubgraphClient {
     url: Url,
 }
 
-impl CynicClient for OrderbookSubgraphClient {
+impl CynicClient for RaindexSubgraphClient {
     fn get_base_url(&self) -> &Url {
         &self.url
     }
 }
-impl PaginationClient for OrderbookSubgraphClient {}
+impl PaginationClient for RaindexSubgraphClient {}
 
-impl OrderbookSubgraphClient {
+impl RaindexSubgraphClient {
     pub fn new(url: Url) -> Self {
         Self { url }
     }

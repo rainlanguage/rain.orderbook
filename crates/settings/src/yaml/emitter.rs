@@ -267,7 +267,7 @@ rainlangs:
         address: 0x0000000000000000000000000000000000000001
 subgraphs:
     sg1: https://api.thegraph.com/subgraphs
-orderbooks:
+raindexes:
     ob1:
         network: mainnet
         address: 0x0000000000000000000000000000000000000002
@@ -276,7 +276,7 @@ orderbooks:
 orders:
     order1:
         rainlang: registry1
-        orderbook: ob1
+        raindex: ob1
         inputs:
             - token: weth
         outputs:

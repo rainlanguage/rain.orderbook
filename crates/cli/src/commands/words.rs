@@ -533,8 +533,8 @@ scenarios:
         bindings:
             key1: 10
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -563,7 +563,7 @@ orders:
             - token: token2
               vault-id: 1
         rainlang: some-rainlang
-        orderbook: some-orderbook
+        raindex: some-raindex
 
 deployments:
     some-deployment:

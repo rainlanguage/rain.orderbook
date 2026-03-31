@@ -96,7 +96,7 @@ mod tests {
             inputs: vec![],
             outputs: vec![],
             meta: None,
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("1".into()),
             },
             // Only the order_bytes field is used for the conversion

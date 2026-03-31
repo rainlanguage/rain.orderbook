@@ -132,7 +132,7 @@ where
                     return Ok(RunOutcome::Report(RunReport {
                         successes: Vec::new(),
                         failures: vec![TargetFailure {
-                            ob_id: RaindexIdentifier::new(0, Address::ZERO),
+                            raindex_id: RaindexIdentifier::new(0, Address::ZERO),
                             raindex_key: None,
                             stage: TargetStage::ManifestFetch,
                             error,
@@ -190,7 +190,7 @@ where
                             Ok(target)
                         }
                         Err(error) => Err(TargetFailure {
-                            ob_id: target.inputs.ob_id.clone(),
+                            raindex_id: target.inputs.ob_id.clone(),
                             raindex_key: Some(target.raindex_key.clone()),
                             stage: TargetStage::DumpDownload,
                             error,
@@ -230,12 +230,12 @@ where
         let futures = targets.into_iter().map(move |target| {
             let environment = environment.clone();
             async move {
-                let ob_id = target.inputs.ob_id.clone();
+                let raindex_id = target.inputs.ob_id.clone();
                 let engine = match environment.build_engine(&target) {
                     Ok(engine) => engine.into_engine(),
                     Err(error) => {
                         return Err(TargetFailure {
-                            ob_id,
+                            raindex_id,
                             raindex_key: Some(target.raindex_key.clone()),
                             stage: TargetStage::EngineBuild,
                             error,
@@ -246,7 +246,7 @@ where
                 match engine.run(db, &target.inputs).await {
                     Ok(outcome) => Ok(TargetSuccess { outcome }),
                     Err(error) => Err(TargetFailure {
-                        ob_id,
+                        raindex_id,
                         raindex_key: Some(target.raindex_key.clone()),
                         stage: TargetStage::EngineRun,
                         error,
@@ -336,7 +336,7 @@ mod tests {
     use alloy::primitives::{address, b256, Address, Bytes, B256};
     use async_trait::async_trait;
     use raindex_app_settings::local_db_manifest::{
-        LocalDbManifest, ManifestNetwork, ManifestOrderbook, DB_SCHEMA_VERSION, MANIFEST_VERSION,
+        LocalDbManifest, ManifestNetwork, ManifestRaindex, DB_SCHEMA_VERSION, MANIFEST_VERSION,
     };
     use raindex_app_settings::raindex::RaindexCfg;
     use raindex_app_settings::remote::manifest::ManifestMap;
@@ -685,7 +685,7 @@ mod tests {
             Ok(())
         }
 
-        async fn clear_orderbook_data<DB>(
+        async fn clear_raindex_data<DB>(
             &self,
             _db: &DB,
             _target: &RaindexIdentifier,
@@ -779,7 +779,7 @@ mod tests {
             ))
         }
 
-        async fn fetch_orderbook(
+        async fn fetch_raindex(
             &self,
             _raindex_address: Address,
             _from_block: u64,
@@ -988,7 +988,7 @@ mod tests {
                 NETWORK_KEY.to_string(),
                 ManifestNetwork {
                     chain_id: CHAIN_ID,
-                    orderbooks: vec![ManifestOrderbook {
+                    raindexes: vec![ManifestRaindex {
                         address: raindex_address,
                         dump_url,
                         end_block,
@@ -1200,7 +1200,7 @@ orderbooks:
 
     fn expect_orderbooks(report: &RunReport, expected: &[Address]) {
         let outcomes = extract_outcomes(report);
-        let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.ob_id.raindex_address).collect();
+        let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.raindex_id.raindex_address).collect();
         addrs.sort();
         let mut expected_sorted = expected.to_vec();
         expected_sorted.sort();
@@ -1667,11 +1667,11 @@ orderbooks:
             .failures
             .iter()
             .any(|failure| failure.stage == TargetStage::DumpDownload
-                && failure.ob_id.raindex_address == RAINDEX_A));
+                && failure.raindex_id.raindex_address == RAINDEX_A));
         assert!(report
             .successes
             .iter()
-            .any(|success| success.outcome.ob_id.raindex_address == RAINDEX_B));
+            .any(|success| success.outcome.raindex_id.raindex_address == RAINDEX_B));
         assert!(!runner.has_provisioned_dumps);
     }
 

@@ -99,7 +99,7 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": "0"
                         },
-                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "raindex": { "id": encode_prefixed(B256::random()) },
                         "owner": encode_prefixed(order.owner),
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
@@ -116,13 +116,13 @@ mod tests {
                             "address": encode_prefixed(io.token),
                             "decimals": "0"
                         },
-                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "raindex": { "id": encode_prefixed(B256::random()) },
                         "owner": encode_prefixed(order.owner),
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
                         "balanceChanges": []
                     }],
-                    "orderbook": {
+                    "raindex": {
                         "id": encode_prefixed(B256::random()),
                     },
                     "meta": null,

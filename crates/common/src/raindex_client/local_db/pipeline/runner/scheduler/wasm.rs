@@ -86,7 +86,7 @@ pub(crate) fn start(
     sync_readiness: SyncReadiness,
 ) -> Result<SchedulerHandle, LocalDbError> {
     let mut networks_map: HashMap<String, NetworkCfg> = HashMap::new();
-    for ob in settings.orderbooks.values() {
+    for ob in settings.raindexes.values() {
         networks_map
             .entry(ob.network.key.clone())
             .or_insert_with(|| (*ob.network).clone());

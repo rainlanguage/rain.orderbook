@@ -956,8 +956,8 @@ impl PartialEq for OrderCfg {
 pub enum ParseOrderConfigSourceError {
     #[error("Failed to parse rainlang")]
     RainlangParseError(ParseRainlangConfigSourceError),
-    #[error("Failed to parse orderbook")]
-    OrderbookParseError(ParseRaindexConfigSourceError),
+    #[error("Failed to parse raindex")]
+    RaindexParseError(ParseRaindexConfigSourceError),
     #[error("Failed to parse token")]
     TokenParseError(ParseTokenConfigSourceError),
     #[error("Network not found for Order: {0}")]
@@ -966,7 +966,7 @@ pub enum ParseOrderConfigSourceError {
     NetworkNotMatch,
     #[error("Rainlang network does not match: expected {expected}, found {found}")]
     RainlangNetworkDoesNotMatch { expected: String, found: String },
-    #[error("Orderbook network does not match: expected {expected}, found {found}")]
+    #[error("Raindex network does not match: expected {expected}, found {found}")]
     RaindexNetworkDoesNotMatch { expected: String, found: String },
     #[error(
         "Input token network with key: {key} does not match: expected {expected}, found {found}"
@@ -993,7 +993,7 @@ impl ParseOrderConfigSourceError {
         match self {
             ParseOrderConfigSourceError::RainlangParseError(err) =>
                 err.to_readable_msg(),
-            ParseOrderConfigSourceError::OrderbookParseError(err) =>
+            ParseOrderConfigSourceError::RaindexParseError(err) =>
                 err.to_readable_msg(),
             ParseOrderConfigSourceError::TokenParseError(err) =>
                 err.to_readable_msg(),
@@ -1004,7 +1004,7 @@ impl ParseOrderConfigSourceError {
             ParseOrderConfigSourceError::RainlangNetworkDoesNotMatch { expected, found } =>
                 format!("Network mismatch in your YAML configuration: The rainlang is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
             ParseOrderConfigSourceError::RaindexNetworkDoesNotMatch { expected, found } =>
-                format!("Network mismatch in your YAML configuration: The orderbook is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
+                format!("Network mismatch in your YAML configuration: The raindex is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", found, expected),
             ParseOrderConfigSourceError::InputTokenNetworkDoesNotMatch { key, expected, found } =>
                 format!("Network mismatch in your YAML configuration: The input token '{}' is using network '{}' but the order is using network '{}'. Please ensure all components use the same network.", key, found, expected),
             ParseOrderConfigSourceError::OutputTokenNetworkDoesNotMatch { key, expected, found } =>

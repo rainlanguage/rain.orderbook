@@ -51,7 +51,7 @@ async fn quote_chunk_once(
     }
 
     for quote_target in quote_targets {
-        let ob_instance = IRaindexV6Instance::new(quote_target.orderbook, provider.clone());
+        let ob_instance = IRaindexV6Instance::new(quote_target.raindex, provider.clone());
         let call = ob_instance
             .quote2(quote_target.quote_config.clone())
             .into_call(true);

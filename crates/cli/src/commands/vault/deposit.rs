@@ -58,7 +58,7 @@ impl Execute for CliVaultDepositArgs {
             })
             .await?;
 
-        info!("----- Deposit tokens into Orderbook -----");
+        info!("----- Deposit tokens into Raindex -----");
         deposit_args
             .execute_deposit(tx_args, |status| {
                 display_write_transaction_status(status);

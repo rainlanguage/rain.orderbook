@@ -70,7 +70,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
             ) {
                 Ok(_) => {}
                 Err(_) => {
-                    self.clear_orderbook_data(db, &config.ob_id).await?;
+                    self.clear_raindex_data(db, &config.ob_id).await?;
                     db.execute_batch(dump_stmt).await?;
                 }
             }
@@ -124,7 +124,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::*;
-    use crate::local_db::query::clear_orderbook_data::clear_orderbook_data_batch;
+    use crate::local_db::query::clear_raindex_data::clear_raindex_data_batch;
     use crate::local_db::query::clear_tables::clear_tables_stmt;
     use crate::local_db::query::create_tables::create_tables_stmt;
     use crate::local_db::query::create_tables::REQUIRED_TABLES;
@@ -495,7 +495,7 @@ mod tests {
             deployment_block: 1,
         };
 
-        let clear_batch = clear_orderbook_data_batch(&sample_ob_id());
+        let clear_batch = clear_raindex_data_batch(&sample_ob_id());
         let mut db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(

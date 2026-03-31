@@ -7,7 +7,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 
 #[derive(Parser, Clone)]
-pub struct OrderbookAddress {
+pub struct RaindexAddress {
     #[arg(
         short = 'f',
         long,
@@ -25,7 +25,7 @@ pub struct OrderbookAddress {
     encoding: SupportedOutputEncoding,
 }
 
-impl Execute for OrderbookAddress {
+impl Execute for RaindexAddress {
     async fn execute(&self) -> Result<()> {
         let dotrain = read_to_string(self.dotrain_file.clone()).map_err(|e| anyhow!(e))?;
         let settings = match &self.settings_file {
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn verify_cli() {
-        OrderbookAddress::command().debug_assert();
+        RaindexAddress::command().debug_assert();
     }
 
     #[test]
@@ -81,7 +81,7 @@ mod tests {
         let deployment_str = "some-deployment";
         let output_str = "hex";
 
-        let cmd = OrderbookAddress::command();
+        let cmd = RaindexAddress::command();
         let result = cmd.get_matches_from(vec![
             "cmd",
             "-f",
@@ -132,7 +132,7 @@ rainlangs:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-orderbooks:
+raindexes:
     {}:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
@@ -190,19 +190,19 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_execute_diff_name() {
-        let dotrain = get_test_dotrain("some-orderbook");
+        let dotrain = get_test_dotrain("some-raindex");
 
         let dotrain_file = NamedTempFile::new().unwrap();
         std::fs::write(dotrain_file.path(), dotrain).unwrap();
 
-        let orderbook_adress = OrderbookAddress {
+        let raindex_address = RaindexAddress {
             dotrain_file: dotrain_file.path().into(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
         // should succeed without err
-        orderbook_adress.execute().await.unwrap();
+        raindex_address.execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -212,14 +212,14 @@ _ _: 0 0;
         let dotrain_file = NamedTempFile::new().unwrap();
         std::fs::write(dotrain_file.path(), dotrain).unwrap();
 
-        let orderbook_adress = OrderbookAddress {
+        let raindex_address = RaindexAddress {
             dotrain_file: dotrain_file.path().into(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
         // should succeed without err
-        orderbook_adress.execute().await.unwrap();
+        raindex_address.execute().await.unwrap();
     }
 
     #[tokio::test]
@@ -229,39 +229,39 @@ _ _: 0 0;
         let dotrain_file = NamedTempFile::new().unwrap();
         std::fs::write(dotrain_file.path(), dotrain).unwrap();
 
-        let orderbook_adress = OrderbookAddress {
+        let raindex_address = RaindexAddress {
             dotrain_file: dotrain_file.path().into(),
             settings_file: None,
             deployment: "non-existing-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
         // should return err
-        orderbook_adress.execute().await.unwrap_err();
+        raindex_address.execute().await.unwrap_err();
     }
 
     #[tokio::test]
     async fn test_execute_non_existing_file() {
-        let orderbook_adress = OrderbookAddress {
+        let raindex_address = RaindexAddress {
             dotrain_file: PathBuf::from_str("non-existing-file.rain").unwrap(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
         // should return err
-        orderbook_adress.execute().await.unwrap_err();
+        raindex_address.execute().await.unwrap_err();
     }
 
     #[tokio::test]
     async fn test_execute_empty_dotrain() {
         let dotrain_file = NamedTempFile::new().unwrap();
 
-        let orderbook_adress = OrderbookAddress {
+        let raindex_address = RaindexAddress {
             dotrain_file: dotrain_file.path().into(),
             settings_file: None,
             deployment: "some-deployment".to_string(),
             encoding: SupportedOutputEncoding::Hex,
         };
         // should return err
-        orderbook_adress.execute().await.unwrap_err();
+        raindex_address.execute().await.unwrap_err();
     }
 }

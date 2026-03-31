@@ -2,7 +2,7 @@ use super::utils::RunnerTarget;
 use crate::local_db::LocalDbError;
 use flate2::read::GzDecoder;
 use itertools::Itertools;
-use raindex_app_settings::local_db_manifest::ManifestOrderbook;
+use raindex_app_settings::local_db_manifest::ManifestRaindex;
 use raindex_app_settings::raindex::RaindexCfg;
 use raindex_app_settings::remote::manifest::{fetch_multiple_manifests, ManifestMap};
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ pub async fn download_and_gunzip(url: &Url) -> Result<String, LocalDbError> {
 pub fn lookup_manifest_entry(
     manifest_map: &ManifestMap,
     target: &RunnerTarget,
-) -> Option<ManifestOrderbook> {
+) -> Option<ManifestRaindex> {
     manifest_map
         .get(&target.manifest_url)
         .and_then(|manifest| {
@@ -81,7 +81,7 @@ mod tests {
     use flate2::write::GzEncoder;
     use httpmock::prelude::*;
     use raindex_app_settings::local_db_manifest::{
-        LocalDbManifest, ManifestNetwork, ManifestOrderbook, MANIFEST_VERSION,
+        LocalDbManifest, ManifestNetwork, ManifestRaindex, MANIFEST_VERSION,
     };
     use raindex_app_settings::local_db_remotes::LocalDbRemoteCfg;
     use raindex_app_settings::raindex::RaindexCfg;
@@ -198,7 +198,7 @@ raindexes:
             .find(|t| t.raindex_key == "ob-a")
             .expect("target ob-a");
 
-        let manifest_entry = ManifestOrderbook {
+        let manifest_entry = ManifestRaindex {
             address: target.inputs.raindex_id.raindex_address,
             dump_url: Url::parse("https://example.com/dump.sql.gz").unwrap(),
             end_block: 123,

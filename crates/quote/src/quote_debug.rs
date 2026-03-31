@@ -67,7 +67,7 @@ impl QuoteDebugger {
 
         let res = self.forker.call(
             Address::default().as_slice(),
-            quote_target.orderbook.as_slice(),
+            quote_target.raindex.as_slice(),
             &quote_call.abi_encode(),
         )?;
 
@@ -99,7 +99,7 @@ mod tests {
     async fn test_quote_debugger() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
-        let orderbook = &local_evm.orderbook;
+        let raindex = &local_evm.orderbook;
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
@@ -130,9 +130,9 @@ tokens:
         decimals: 18
         label: Token1
         symbol: token1
-orderbook:
+raindex:
     some-key:
-        address: {orderbook}
+        address: {raindex}
 orders:
     some-key:
         inputs:
@@ -159,7 +159,7 @@ amount price: 16 52;
 :;
 "#,
             rpc_url = local_evm.url(),
-            orderbook = orderbook.address(),
+            raindex = raindex.address(),
             rainlang_address = local_evm.rainlang,
             token1 = token1.address(),
             token2 = token2.address(),
@@ -205,7 +205,7 @@ amount price: 16 52;
         let order = OrderV4::abi_decode(&order.abi_encode()).unwrap();
 
         let quote_target = QuoteTarget {
-            orderbook: *orderbook.address(),
+            raindex: *raindex.address(),
             quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(0),
@@ -224,7 +224,7 @@ amount price: 16 52;
     async fn test_quote_debugger_partial() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
-        let orderbook = &local_evm.orderbook;
+        let raindex = &local_evm.orderbook;
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
@@ -255,9 +255,9 @@ tokens:
         decimals: 18
         label: Token1
         symbol: token1
-orderbook:
+raindex:
     some-key:
-        address: {orderbook}
+        address: {raindex}
 orders:
     some-key:
         inputs:
@@ -289,7 +289,7 @@ _ _: amount price;
 _: 1;
 "#,
             rpc_url = local_evm.url(),
-            orderbook = orderbook.address(),
+            raindex = raindex.address(),
             rainlang_address = local_evm.rainlang,
             token1 = token1.address(),
             token2 = token2.address(),
@@ -335,7 +335,7 @@ _: 1;
         let order = OrderV4::abi_decode(&order.abi_encode()).unwrap();
 
         let quote_target = QuoteTarget {
-            orderbook: *orderbook.address(),
+            raindex: *raindex.address(),
             quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(0),
@@ -361,7 +361,7 @@ _: 1;
     async fn test_quote_debugger_debug_err() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
-        let orderbook = &local_evm.orderbook;
+        let raindex = &local_evm.orderbook;
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
@@ -392,9 +392,9 @@ tokens:
         decimals: 18
         label: Token1
         symbol: token1
-orderbook:
+raindex:
     some-key:
-        address: {orderbook}
+        address: {raindex}
 orders:
     some-key:
         inputs:
@@ -426,7 +426,7 @@ _ _: amount price;
 _: 1;
 "#,
             rpc_url = local_evm.url(),
-            orderbook = orderbook.address(),
+            raindex = raindex.address(),
             rainlang_address = local_evm.rainlang,
             token1 = token1.address(),
             token2 = token2.address(),
@@ -472,7 +472,7 @@ _: 1;
         let order = OrderV4::abi_decode(&order.abi_encode()).unwrap();
 
         let quote_target = QuoteTarget {
-            orderbook: *orderbook.address(),
+            raindex: *raindex.address(),
             quote_config: QuoteV2 {
                 order,
                 inputIOIndex: U256::from(1),

@@ -217,12 +217,12 @@ impl YamlParsableHash for RaindexCfg {
 
             let mut sanitized_raindex_entries: Vec<(String, StrictYaml)> = Vec::new();
 
-            for (raindex_key, orderbook_value) in raindex_hash {
+            for (raindex_key, raindex_value) in raindex_hash {
                 let Some(raindex_key_str) = raindex_key.as_str() else {
                     continue;
                 };
 
-                let StrictYaml::Hash(ref raindex_entry_hash) = *orderbook_value else {
+                let StrictYaml::Hash(ref raindex_entry_hash) = *raindex_value else {
                     continue;
                 };
 
@@ -396,7 +396,7 @@ raindexes:
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Missing required field 'address' in orderbook 'TestRaindex'"
+            "Missing required field 'address' in raindex 'TestRaindex'"
         );
 
         let yaml = r#"
@@ -423,7 +423,7 @@ raindexes:
                 location: "raindex 'TestRaindex'".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Invalid value for field 'network' in orderbook 'TestRaindex': Network 'TestNetwork' not found");
+        assert_eq!(error.to_readable_msg(), "Invalid value for field 'network' in raindex 'TestRaindex': Network 'TestNetwork' not found");
 
         let yaml = r#"
 networks:
@@ -452,7 +452,7 @@ raindexes:
                 location: "raindex 'TestRaindex'".to_string(),
             }
         );
-        assert_eq!(error.to_readable_msg(), "Invalid value for field 'subgraph' in orderbook 'TestRaindex': Subgraph 'TestSubgraph' not found");
+        assert_eq!(error.to_readable_msg(), "Invalid value for field 'subgraph' in raindex 'TestRaindex': Subgraph 'TestSubgraph' not found");
     }
 
     #[test]
@@ -662,7 +662,7 @@ raindexes:
         );
         assert_eq!(
             error.to_readable_msg(),
-            "Missing required field 'deployment-block' in orderbook 'TestRaindex'"
+            "Missing required field 'deployment-block' in raindex 'TestRaindex'"
         );
     }
 

@@ -1,12 +1,12 @@
 use super::*;
 
-impl OrderbookSubgraphClient {
+impl RaindexSubgraphClient {
     /// Fetch single order
-    pub async fn order_detail(&self, id: &Id) -> Result<SgOrder, OrderbookSubgraphClientError> {
+    pub async fn order_detail(&self, id: &Id) -> Result<SgOrder, RaindexSubgraphClientError> {
         let data = self
             .query::<SgOrderDetailByIdQuery, SgIdQueryVariables>(SgIdQueryVariables { id })
             .await?;
-        let order = data.order.ok_or(OrderbookSubgraphClientError::Empty)?;
+        let order = data.order.ok_or(RaindexSubgraphClientError::Empty)?;
 
         Ok(order)
     }
@@ -15,7 +15,7 @@ impl OrderbookSubgraphClient {
     pub async fn batch_order_detail(
         &self,
         id_list: Vec<SgBytes>,
-    ) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgOrder>, RaindexSubgraphClientError> {
         if id_list.is_empty() {
             return Ok(vec![]);
         }
@@ -35,13 +35,13 @@ impl OrderbookSubgraphClient {
         &self,
         filter_args: SgOrdersListFilterArgs,
         pagination_args: SgPaginationArgs,
-    ) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgOrder>, RaindexSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
         let has_basic_filters = !filter_args.owners.is_empty()
             || filter_args.active.is_some()
             || filter_args.order_hash.is_some()
-            || !filter_args.orderbooks.is_empty();
+            || !filter_args.raindexes.is_empty();
         let tokens = filter_args.tokens.as_ref();
         let has_input_tokens = tokens.is_some_and(|tokens| !tokens.inputs.is_empty());
         let has_output_tokens = tokens.is_some_and(|tokens| !tokens.outputs.is_empty());
@@ -54,7 +54,7 @@ impl OrderbookSubgraphClient {
                 order_hash: filter_args.order_hash.clone(),
                 inputs_: None,
                 outputs_: None,
-                orderbook_in: filter_args.orderbooks.clone(),
+                raindex_in: filter_args.raindexes.clone(),
             };
 
             let or_filters = if has_input_tokens && has_output_tokens {
@@ -114,7 +114,7 @@ impl OrderbookSubgraphClient {
     async fn fetch_all_orders_pages(
         &self,
         filter_args: SgOrdersListFilterArgs,
-    ) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgOrder>, RaindexSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page: u16 = 1;
 
@@ -138,13 +138,13 @@ impl OrderbookSubgraphClient {
         Ok(all_pages_merged)
     }
 
-    pub async fn orders_list_all(&self) -> Result<Vec<SgOrder>, OrderbookSubgraphClientError> {
+    pub async fn orders_list_all(&self) -> Result<Vec<SgOrder>, RaindexSubgraphClientError> {
         self.fetch_all_orders_pages(SgOrdersListFilterArgs {
             owners: vec![],
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         })
         .await
     }
@@ -152,7 +152,7 @@ impl OrderbookSubgraphClient {
     pub async fn orders_count(
         &self,
         filter_args: SgOrdersListFilterArgs,
-    ) -> Result<u32, OrderbookSubgraphClientError> {
+    ) -> Result<u32, RaindexSubgraphClientError> {
         Ok(self.fetch_all_orders_pages(filter_args).await?.len() as u32)
     }
 
@@ -160,7 +160,7 @@ impl OrderbookSubgraphClient {
     pub async fn order_detail_by_hash(
         &self,
         hash: SgBytes,
-    ) -> Result<SgOrder, OrderbookSubgraphClientError> {
+    ) -> Result<SgOrder, RaindexSubgraphClientError> {
         let data = self
             .query::<SgOrderDetailByHashQuery, SgOrderDetailByHashQueryVariables>(
                 SgOrderDetailByHashQueryVariables { hash },
@@ -169,7 +169,7 @@ impl OrderbookSubgraphClient {
         let order = data
             .orders
             .first()
-            .ok_or(OrderbookSubgraphClientError::Empty)?;
+            .ok_or(RaindexSubgraphClientError::Empty)?;
         Ok(order.clone())
     }
 }
@@ -178,7 +178,7 @@ impl OrderbookSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgOrder, SgOrderbook, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs,
+        SgBigInt, SgBytes, SgOrder, SgRaindex, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs,
     };
     use crate::utils::float::*;
     use cynic::Id;
@@ -187,9 +187,9 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    fn setup_client(server: &MockServer) -> OrderbookSubgraphClient {
+    fn setup_client(server: &MockServer) -> RaindexSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();
-        OrderbookSubgraphClient::new(url)
+        RaindexSubgraphClient::new(url)
     }
 
     fn default_sg_order() -> SgOrder {
@@ -211,7 +211,7 @@ mod tests {
                         symbol: Some("sFLR".to_string()),
                         decimals: Some(SgBigInt("18".to_string())),
                     },
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
                     },
                     orders_as_output: vec![SgOrderAsIO {
@@ -237,7 +237,7 @@ mod tests {
                     orders_as_output: vec![],
                     orders_as_input: vec![],
                     balance_changes: vec![],
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     }
                 }
@@ -255,7 +255,7 @@ mod tests {
                         symbol: Some("WFLR".to_string()),
                         decimals: Some(SgBigInt("18".to_string())),
                     },
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
                     },
                     orders_as_output: vec![],
@@ -281,12 +281,12 @@ mod tests {
                     orders_as_output: vec![],
                     orders_as_input: vec![],
                     balance_changes: vec![],
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     }
                 }
             ],
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
             },
             active: true,
@@ -309,7 +309,7 @@ mod tests {
         assert_eq!(actual.id, expected.id);
         assert_eq!(actual.owner, expected.owner);
         assert_eq!(actual.active, expected.active);
-        assert_eq!(actual.orderbook.id, expected.orderbook.id);
+        assert_eq!(actual.raindex.id, expected.raindex.id);
         assert_eq!(actual.inputs.len(), expected.inputs.len());
         for (actual_input, expected_input) in actual.inputs.iter().zip(expected.inputs.iter()) {
             assert_eq!(actual_input.id, expected_input.id);
@@ -321,7 +321,7 @@ mod tests {
             assert_eq!(actual_input.token.name, expected_input.token.name);
             assert_eq!(actual_input.token.symbol, expected_input.token.symbol);
             assert_eq!(actual_input.token.decimals, expected_input.token.decimals);
-            assert_eq!(actual_input.orderbook.id, expected_input.orderbook.id);
+            assert_eq!(actual_input.raindex.id, expected_input.raindex.id);
         }
         assert_eq!(actual.outputs.len(), expected.outputs.len());
         for (actual_output, expected_output) in actual.outputs.iter().zip(expected.outputs.iter()) {
@@ -334,7 +334,7 @@ mod tests {
             assert_eq!(actual_output.token.name, expected_output.token.name);
             assert_eq!(actual_output.token.symbol, expected_output.token.symbol);
             assert_eq!(actual_output.token.decimals, expected_output.token.decimals);
-            assert_eq!(actual_output.orderbook.id, expected_output.orderbook.id);
+            assert_eq!(actual_output.raindex.id, expected_output.raindex.id);
         }
     }
 
@@ -371,7 +371,7 @@ mod tests {
         });
 
         let result = client.order_detail(&order_id).await;
-        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+        assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     }
 
     #[tokio::test]
@@ -388,7 +388,7 @@ mod tests {
         let result = client.order_detail(&order_id).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -490,7 +490,7 @@ mod tests {
         let result = client.batch_order_detail(id_list_sgbytes).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -504,7 +504,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -538,7 +538,7 @@ mod tests {
             active: Some(true),
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -570,7 +570,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -596,7 +596,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -611,7 +611,7 @@ mod tests {
         let result = client.orders_list(filter_args, pagination_args).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -696,7 +696,7 @@ mod tests {
         let result = client.orders_list_all().await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -706,7 +706,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         }
     }
 
@@ -813,7 +813,7 @@ mod tests {
         });
 
         let result = client.order_detail_by_hash(order_hash_sg).await;
-        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+        assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     }
 
     #[tokio::test]
@@ -831,7 +831,7 @@ mod tests {
         let result = client.order_detail_by_hash(order_hash_sg).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -848,7 +848,7 @@ mod tests {
                 inputs: vec![token_address.clone()],
                 outputs: vec![],
             }),
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -884,7 +884,7 @@ mod tests {
                 inputs: vec![],
                 outputs: vec![token_address.clone()],
             }),
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -921,7 +921,7 @@ mod tests {
                 inputs: vec![token1.clone()],
                 outputs: vec![token2.clone()],
             }),
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -961,7 +961,7 @@ mod tests {
                 inputs: vec![token_address.clone()],
                 outputs: vec![],
             }),
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -987,16 +987,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orders_list_with_orderbook_filter() {
+    async fn test_orders_list_with_raindex_filter() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
-        let orderbook_address = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string();
+        let raindex_address = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string();
         let filter_args = SgOrdersListFilterArgs {
             owners: vec![],
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![orderbook_address.clone()],
+            raindexes: vec![raindex_address.clone()],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -1007,7 +1007,7 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains(format!("\"orderbook_in\":[\"{}\"]", orderbook_address));
+                .body_contains(format!("\"raindex_in\":[\"{}\"]", raindex_address));
             then.status(200)
                 .json_body(json!({"data": {"orders": expected_orders}}));
         });
@@ -1019,7 +1019,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orders_list_with_multiple_orderbook_filters() {
+    async fn test_orders_list_with_multiple_raindex_filters() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
         let ob1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
@@ -1029,7 +1029,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![ob1.clone(), ob2.clone()],
+            raindexes: vec![ob1.clone(), ob2.clone()],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -1040,7 +1040,7 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains(format!("\"orderbook_in\":[\"{}\",\"{}\"]", ob1, ob2));
+                .body_contains(format!("\"raindex_in\":[\"{}\",\"{}\"]", ob1, ob2));
             then.status(200)
                 .json_body(json!({"data": {"orders": expected_orders}}));
         });
@@ -1052,7 +1052,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_orders_list_empty_orderbook_filter_omits_field() {
+    async fn test_orders_list_empty_raindex_filter_omits_field() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
         let filter_args = SgOrdersListFilterArgs {
@@ -1060,7 +1060,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         };
         let pagination_args = SgPaginationArgs {
             page: 1,
@@ -1074,7 +1074,7 @@ mod tests {
                 .matches(|req: &httpmock::prelude::HttpMockRequest| {
                     if let Some(body) = &req.body {
                         let body_str = String::from_utf8_lossy(body);
-                        !body_str.contains("orderbook_in")
+                        !body_str.contains("raindex_in")
                     } else {
                         true
                     }
@@ -1086,7 +1086,7 @@ mod tests {
         let result = client.orders_list(filter_args, pagination_args).await;
         assert!(
             result.is_ok(),
-            "Request failed - orderbook_in was likely present in request body when it should be omitted"
+            "Request failed - raindex_in was likely present in request body when it should be omitted"
         );
         mock.assert();
     }

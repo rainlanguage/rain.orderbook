@@ -62,7 +62,7 @@ mod tests {
     use raindex_common::local_db::fetch::FetchConfig;
     use raindex_common::local_db::pipeline::engine::SyncInputs;
     use raindex_common::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
-    use raindex_common::local_db::{LocalDbError, OrderbookIdentifier};
+    use raindex_common::local_db::{LocalDbError, RaindexIdentifier};
     use raindex_common::rpc_client::RpcClientError;
     use url::Url;
 
@@ -73,7 +73,7 @@ mod tests {
             manifest_url: Url::parse("https://manifests.example/default.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {
-                ob_id: OrderbookIdentifier::new(
+                ob_id: RaindexIdentifier::new(
                     chain_id,
                     address!("00000000000000000000000000000000000000a1"),
                 ),

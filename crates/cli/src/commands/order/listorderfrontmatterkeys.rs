@@ -139,7 +139,7 @@ rainlangs:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-orderbooks:
+raindexes:
     {}:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
@@ -204,7 +204,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_execute_deployment_key() {
-        let dotrain = get_test_dotrain("some-orderbook");
+        let dotrain = get_test_dotrain("some-raindex");
 
         let dotrain_file = NamedTempFile::new().unwrap();
         let dotrain_path = dotrain_file.path();
@@ -222,7 +222,7 @@ _ _: 0 0;
 
     #[tokio::test]
     async fn test_execute_scenario_key() {
-        let dotrain = get_test_dotrain("some-orderbook");
+        let dotrain = get_test_dotrain("some-raindex");
 
         let dotrain_file = NamedTempFile::new().unwrap();
         let dotrain_path = dotrain_file.path();
@@ -274,7 +274,7 @@ _ _: 0 0;
         let dotrain_file = NamedTempFile::new().unwrap();
         let settings_file = NamedTempFile::new().unwrap();
 
-        let dotrain = get_test_dotrain("some-orderbook");
+        let dotrain = get_test_dotrain("some-raindex");
         let dotrain_path = dotrain_file.path();
         let settings_path = settings_file.path();
 

@@ -2,13 +2,13 @@ use rain_math_float::Float;
 
 use super::*;
 
-impl OrderbookSubgraphClient {
+impl RaindexSubgraphClient {
     /// Fetch single vault
-    pub async fn vault_detail(&self, id: Id) -> Result<SgVault, OrderbookSubgraphClientError> {
+    pub async fn vault_detail(&self, id: Id) -> Result<SgVault, RaindexSubgraphClientError> {
         let data = self
             .query::<SgVaultDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
-        let vault = data.vault.ok_or(OrderbookSubgraphClientError::Empty)?;
+        let vault = data.vault.ok_or(RaindexSubgraphClientError::Empty)?;
 
         Ok(vault)
     }
@@ -18,7 +18,7 @@ impl OrderbookSubgraphClient {
         &self,
         filter_args: SgVaultsListFilterArgs,
         pagination_args: SgPaginationArgs,
-    ) -> Result<Vec<SgVault>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgVault>, RaindexSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
 
         let balance_not = if filter_args.hide_zero_balance {
@@ -34,7 +34,7 @@ impl OrderbookSubgraphClient {
                 order_hash: None,
                 inputs_: None,
                 outputs_: None,
-                orderbook_in: vec![],
+                raindex_in: vec![],
             };
             Some(vec![
                 SgVaultsListQueryFilters {
@@ -54,7 +54,7 @@ impl OrderbookSubgraphClient {
             owner_in: filter_args.owners.clone(),
             balance_not,
             token_in: filter_args.tokens.clone(),
-            orderbook_in: filter_args.orderbooks.clone(),
+            raindex_in: filter_args.raindexes.clone(),
             orders_as_input_: None,
             orders_as_output_: None,
             or,
@@ -63,7 +63,7 @@ impl OrderbookSubgraphClient {
         let has_filters = !filter_args.owners.is_empty()
             || filter_args.hide_zero_balance
             || !filter_args.tokens.is_empty()
-            || !filter_args.orderbooks.is_empty()
+            || !filter_args.raindexes.is_empty()
             || filter_args.only_active_orders;
 
         let variables = SgVaultsListQueryVariables {
@@ -80,7 +80,7 @@ impl OrderbookSubgraphClient {
     }
 
     /// Fetch all pages of vaults_list query
-    pub async fn vaults_list_all(&self) -> Result<Vec<SgVault>, OrderbookSubgraphClientError> {
+    pub async fn vaults_list_all(&self) -> Result<Vec<SgVault>, RaindexSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
@@ -91,7 +91,7 @@ impl OrderbookSubgraphClient {
                         owners: vec![],
                         hide_zero_balance: true,
                         tokens: vec![],
-                        orderbooks: vec![],
+                        raindexes: vec![],
                         only_active_orders: false,
                     },
                     SgPaginationArgs {
@@ -118,7 +118,7 @@ impl OrderbookSubgraphClient {
         id: cynic::Id,
         pagination_args: SgPaginationArgs,
         filter_typenames: Option<&[&str]>,
-    ) -> Result<Vec<SgVaultBalanceChangeType>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgVaultBalanceChangeType>, RaindexSubgraphClientError> {
         let pagination_vars = Self::parse_pagination_args(pagination_args);
         let res = self
             .query_paginated(
@@ -150,7 +150,7 @@ impl OrderbookSubgraphClient {
         &self,
         id: cynic::Id,
         filter_typenames: Option<&[&str]>,
-    ) -> Result<Vec<SgVaultBalanceChangeType>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgVaultBalanceChangeType>, RaindexSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
@@ -179,7 +179,7 @@ impl OrderbookSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgVault, SgVaultsListFilterArgs,
+        SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgVault, SgVaultsListFilterArgs,
     };
     use crate::utils::float::*;
     use cynic::Id;
@@ -187,9 +187,9 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    fn setup_client(server: &MockServer) -> OrderbookSubgraphClient {
+    fn setup_client(server: &MockServer) -> RaindexSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();
-        OrderbookSubgraphClient::new(url)
+        RaindexSubgraphClient::new(url)
     }
 
     fn default_sg_erc20() -> SgErc20 {
@@ -202,9 +202,9 @@ mod tests {
         }
     }
 
-    fn default_sg_orderbook() -> SgOrderbook {
-        SgOrderbook {
-            id: SgBytes("0xOrderbookId".to_string()),
+    fn default_sg_raindex() -> SgRaindex {
+        SgRaindex {
+            id: SgBytes("0xRaindexId".to_string()),
         }
     }
 
@@ -223,7 +223,7 @@ mod tests {
             vault_id: SgBytes("1234567890".to_string()),
             balance: SgBytes(F1.as_hex()),
             token: default_sg_erc20(),
-            orderbook: default_sg_orderbook(),
+            raindex: default_sg_raindex(),
             orders_as_output: vec![default_sg_order_as_io()],
             orders_as_input: vec![],
             balance_changes: vec![],
@@ -256,8 +256,8 @@ mod tests {
             "Token decimals mismatch"
         );
         assert_eq!(
-            actual.orderbook.id, expected.orderbook.id,
-            "Orderbook ID mismatch"
+            actual.raindex.id, expected.raindex.id,
+            "Raindex ID mismatch"
         );
         assert_eq!(
             actual.orders_as_output.len(),
@@ -314,8 +314,8 @@ mod tests {
                 "blockNumber": "100",
                 "timestamp": "1700000000"
             },
-            "orderbook": {
-                "id": "0xOrderbookId"
+            "raindex": {
+                "id": "0xRaindexId"
             }
         })
     }
@@ -353,7 +353,7 @@ mod tests {
         });
 
         let result = client.vault_detail(vault_id).await;
-        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+        assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     }
 
     #[tokio::test]
@@ -370,7 +370,7 @@ mod tests {
         let result = client.vault_detail(vault_id).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -382,7 +382,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -418,7 +418,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -449,7 +449,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: true,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -479,7 +479,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -509,7 +509,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -535,7 +535,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -551,7 +551,7 @@ mod tests {
         let result = client.vaults_list(filter_args, pagination_args).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -639,7 +639,7 @@ mod tests {
         let result = client.vaults_list_all().await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -718,7 +718,7 @@ mod tests {
             .await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::PaginationClientError(_))
+            Err(RaindexSubgraphClientError::PaginationClientError(_))
         ));
     }
 
@@ -836,7 +836,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![token_address.clone()],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -869,7 +869,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![token1.clone(), token2.clone()],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -902,7 +902,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: true,
             tokens: vec![token_address.clone()],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -927,15 +927,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_vaults_list_with_orderbook_filter() {
+    async fn test_vaults_list_with_raindex_filter() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
-        let orderbook_address = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string();
+        let raindex_address = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string();
         let filter_args = SgVaultsListFilterArgs {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![orderbook_address.clone()],
+            raindexes: vec![raindex_address.clone()],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -947,7 +947,7 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains(format!("\"orderbook_in\":[\"{}\"]", orderbook_address));
+                .body_contains(format!("\"raindex_in\":[\"{}\"]", raindex_address));
             then.status(200)
                 .json_body(json!({"data": {"vaults": expected_vaults}}));
         });
@@ -959,7 +959,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_vaults_list_with_multiple_orderbook_filters() {
+    async fn test_vaults_list_with_multiple_raindex_filters() {
         let sg_server = MockServer::start_async().await;
         let client = setup_client(&sg_server);
         let ob1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_string();
@@ -968,7 +968,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![ob1.clone(), ob2.clone()],
+            raindexes: vec![ob1.clone(), ob2.clone()],
             only_active_orders: false,
         };
         let pagination_args = SgPaginationArgs {
@@ -980,7 +980,7 @@ mod tests {
         sg_server.mock(|when, then| {
             when.method(POST)
                 .path("/")
-                .body_contains(format!("\"orderbook_in\":[\"{}\",\"{}\"]", ob1, ob2));
+                .body_contains(format!("\"raindex_in\":[\"{}\",\"{}\"]", ob1, ob2));
             then.status(200)
                 .json_body(json!({"data": {"vaults": expected_vaults}}));
         });
@@ -999,7 +999,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: true,
         };
         let pagination_args = SgPaginationArgs {
@@ -1034,7 +1034,7 @@ mod tests {
             owners: vec![owner_address.clone()],
             hide_zero_balance: true,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: true,
         };
         let pagination_args = SgPaginationArgs {
@@ -1070,7 +1070,7 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: true,
         };
         let pagination_args = SgPaginationArgs {

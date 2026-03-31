@@ -1,15 +1,15 @@
 use super::*;
 
-impl OrderbookSubgraphClient {
+impl RaindexSubgraphClient {
     /// Fetch single order take
     pub async fn order_trade_detail(
         &self,
         id: Id,
-    ) -> Result<SgTrade, OrderbookSubgraphClientError> {
+    ) -> Result<SgTrade, RaindexSubgraphClientError> {
         let data = self
             .query::<SgOrderTradeDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
-        let order_take = data.trade.ok_or(OrderbookSubgraphClientError::Empty)?;
+        let order_take = data.trade.ok_or(RaindexSubgraphClientError::Empty)?;
 
         Ok(order_take)
     }
@@ -21,7 +21,7 @@ impl OrderbookSubgraphClient {
         pagination_args: SgPaginationArgs,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
-    ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgTrade>, RaindexSubgraphClientError> {
         let pagination_variables = Self::parse_pagination_args(pagination_args);
         let data = self
             .query::<SgOrderTradesListQuery, SgPaginationWithTimestampQueryVariables>(
@@ -50,7 +50,7 @@ impl OrderbookSubgraphClient {
         order_id: cynic::Id,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
-    ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgTrade>, RaindexSubgraphClientError> {
         let mut all_pages_merged = vec![];
         let mut page = 1;
 
@@ -80,7 +80,7 @@ impl OrderbookSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTradeEvent, SgTradeEventTypename, SgTradeRef,
+        SgBigInt, SgBytes, SgErc20, SgRaindex, SgTradeEvent, SgTradeEventTypename, SgTradeRef,
         SgTradeStructPartialOrder, SgTradeVaultBalanceChange, SgTransaction,
         SgVaultBalanceChangeVault,
     };
@@ -90,9 +90,9 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    fn setup_client(server: &MockServer) -> OrderbookSubgraphClient {
+    fn setup_client(server: &MockServer) -> RaindexSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();
-        OrderbookSubgraphClient::new(url)
+        RaindexSubgraphClient::new(url)
     }
 
     fn default_sg_transaction() -> SgTransaction {
@@ -104,9 +104,9 @@ mod tests {
         }
     }
 
-    fn default_sg_orderbook() -> SgOrderbook {
-        SgOrderbook {
-            id: SgBytes("0xorderbook_id_default".to_string()),
+    fn default_sg_raindex() -> SgRaindex {
+        SgRaindex {
+            id: SgBytes("0xraindex_id_default".to_string()),
         }
     }
 
@@ -150,7 +150,7 @@ mod tests {
             vault: default_sg_vault_balance_change_vault(),
             timestamp: SgBigInt("1600000100".to_string()),
             transaction: default_sg_transaction(),
-            orderbook: default_sg_orderbook(),
+            raindex: default_sg_raindex(),
             trade: default_sg_trade_ref(),
         }
     }
@@ -177,7 +177,7 @@ mod tests {
             order: default_sg_trade_struct_partial_order(),
             input_vault_balance_change: default_sg_trade_vault_balance_change("input"),
             timestamp: SgBigInt("1600000200".to_string()),
-            orderbook: default_sg_orderbook(),
+            raindex: default_sg_raindex(),
         }
     }
 
@@ -188,8 +188,8 @@ mod tests {
             "Trade timestamp mismatch"
         );
         assert_eq!(
-            actual.orderbook.id, expected.orderbook.id,
-            "Trade orderbook ID mismatch"
+            actual.raindex.id, expected.raindex.id,
+            "Trade raindex ID mismatch"
         );
 
         // Assert TradeEvent
@@ -252,7 +252,7 @@ mod tests {
         });
 
         let result = client.order_trade_detail(trade_id).await;
-        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+        assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     }
 
     #[tokio::test]
@@ -269,7 +269,7 @@ mod tests {
         let result = client.order_trade_detail(trade_id).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -371,7 +371,7 @@ mod tests {
             .await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -502,7 +502,7 @@ mod tests {
         let result = client.order_trades_list_all(order_id, None, None).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 }

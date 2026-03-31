@@ -209,7 +209,7 @@ mod tests {
                         "orderHash": encode_prefixed(B256::random()),
                         "active": true,
                     }],
-                    "orderbook": {
+                    "raindex": {
                         "id": encode_prefixed(B256::random()),
                     },
                     "balanceChanges": []

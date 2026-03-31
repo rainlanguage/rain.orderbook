@@ -184,7 +184,7 @@ mod tests {
                         "orderBytes": encode_prefixed(B256::random()),
                         "outputs": [],
                         "inputs": [],
-                        "orderbook": {
+                        "raindex": {
                             "id": encode_prefixed(B256::random()),
                         },
                         "meta": null,
@@ -216,7 +216,7 @@ mod tests {
                             "timestamp": "0",
                             "from": encode_prefixed(Address::random())
                         },
-                        "orderbook": {
+                        "raindex": {
                             "id": encode_prefixed(B256::random()),
                         },
                         "trade": {
@@ -249,7 +249,7 @@ mod tests {
                             "timestamp": "0",
                             "from": encode_prefixed(Address::random())
                         },
-                        "orderbook": {
+                        "raindex": {
                             "id": encode_prefixed(B256::random()),
                         },
                         "trade": {
@@ -268,7 +268,7 @@ mod tests {
                             "from": encode_prefixed(Address::random())
                         }
                     },
-                    "orderbook": {
+                    "raindex": {
                         "id": encode_prefixed(B256::random()),
                     },
                 }]

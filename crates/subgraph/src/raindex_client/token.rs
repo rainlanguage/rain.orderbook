@@ -1,9 +1,9 @@
 use super::*;
 use crate::types::common::SgTokensListAllQuery;
 
-impl OrderbookSubgraphClient {
+impl RaindexSubgraphClient {
     /// Fetch all tokens directly from ERC20 entities
-    pub async fn tokens_list_all(&self) -> Result<Vec<SgErc20>, OrderbookSubgraphClientError> {
+    pub async fn tokens_list_all(&self) -> Result<Vec<SgErc20>, RaindexSubgraphClientError> {
         let data = self.query::<SgTokensListAllQuery, ()>(()).await?;
 
         Ok(data.tokens)
@@ -18,9 +18,9 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    fn setup_client(server: &MockServer) -> OrderbookSubgraphClient {
+    fn setup_client(server: &MockServer) -> RaindexSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();
-        OrderbookSubgraphClient::new(url)
+        RaindexSubgraphClient::new(url)
     }
 
     #[tokio::test]
@@ -96,7 +96,7 @@ mod tests {
         assert!(
             matches!(
                 result,
-                Err(OrderbookSubgraphClientError::CynicClientError(_))
+                Err(RaindexSubgraphClientError::CynicClientError(_))
             ),
             "Should return network error when GraphQL request fails"
         );

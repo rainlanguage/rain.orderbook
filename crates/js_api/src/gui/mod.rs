@@ -727,7 +727,7 @@ impl GuiError {
             GuiError::DepositAmountCannotBeEmpty =>
                 "The deposit amount cannot be an empty string. Please set a valid amount.".to_string(),
             GuiError::RaindexNotFound =>
-                "The orderbook configuration could not be found. Please check your YAML configuration.".to_string(),
+                "The raindex configuration could not be found. Please check your YAML configuration.".to_string(),
             GuiError::OrderNotFound(order) =>
                 format!("The order '{}' could not be found in the YAML configuration.", order),
             GuiError::DotrainMismatch =>
@@ -936,8 +936,8 @@ rainlangs:
     some-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -974,14 +974,14 @@ orders:
         - token: token2
           vault-id: 1
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
     other-order:
       inputs:
         - token: token1
       outputs:
         - token: token1
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
 deployments:
     some-deployment:
         scenario: some-scenario
@@ -1165,8 +1165,8 @@ rainlangs:
     test-rainlang:
         network: test-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-orderbooks:
-    test-orderbook:
+raindexes:
+    test-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: test-network
         subgraph: test-sg
@@ -1223,7 +1223,7 @@ orders:
         - token: token1
           vault-id: 1
       rainlang: test-rainlang
-      orderbook: test-orderbook
+      raindex: test-raindex
 deployments:
     validation-deployment:
         scenario: test-scenario
@@ -1998,8 +1998,8 @@ rainlangs:
     some-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg

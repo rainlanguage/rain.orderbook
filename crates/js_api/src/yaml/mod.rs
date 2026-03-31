@@ -88,10 +88,10 @@ impl RaindexYaml {
         Ok(CURRENT_SPEC_VERSION.to_string())
     }
 
-    /// Retrieves orderbook configuration by its contract address from a parsed YAML configuration.
+    /// Retrieves raindex configuration by its contract address from a parsed YAML configuration.
     ///
-    /// This function looks up a specific orderbook configuration within a YAML configuration file
-    /// using the orderbook's blockchain address. It's essential for accessing orderbook metadata
+    /// This function looks up a specific raindex configuration within a YAML configuration file
+    /// using the raindex's blockchain address. It's essential for accessing raindex metadata
     /// including network configuration, subgraph endpoints, and other deployment details.
     ///
     /// ## Examples
@@ -166,7 +166,7 @@ impl RaindexYaml {
 
 #[derive(Error, Debug)]
 pub enum RaindexYamlError {
-    #[error("Orderbook yaml error: {0}")]
+    #[error("Raindex yaml error: {0}")]
     YamlError(#[from] YamlError),
     #[error("Invalid address: {0}")]
     FromHexError(#[from] FromHexError),
@@ -234,12 +234,12 @@ pub(crate) mod tests {
         board1: https://meta.example.com/board1
         board2: https://meta.example.com/board2
     raindexes:
-        orderbook1:
+        raindex1:
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
             subgraph: mainnet
             local-db-remote: remote
-            label: Primary Orderbook
+            label: Primary Raindex
             deployment-block: 12345
     tokens:
         token1:
@@ -278,10 +278,10 @@ pub(crate) mod tests {
             raindex.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
-        assert_eq!(raindex.key, "orderbook1");
+        assert_eq!(raindex.key, "raindex1");
         assert_eq!(raindex.network.key, "mainnet");
         assert_eq!(raindex.subgraph.key, "mainnet");
-        assert_eq!(raindex.label, Some("Primary Orderbook".to_string()));
+        assert_eq!(raindex.label, Some("Primary Raindex".to_string()));
     }
 
     #[wasm_bindgen_test]
@@ -324,11 +324,11 @@ pub(crate) mod tests {
             network-id: 1
             currency: ETH
     raindexes:
-        orderbook1:
+        raindex1:
             address: 0x0000000000000000000000000000000000000002
             network: nonexistent-network
             subgraph: nonexistent-subgraph
-            label: Primary Orderbook
+            label: Primary Raindex
             deployment-block: 12345
     "#,
             spec_version = SpecVersion::current()
@@ -341,7 +341,7 @@ pub(crate) mod tests {
         match result {
             Ok(_) => panic!("Expected validation error with invalid YAML"),
             Err(err) => {
-                assert!(err.to_string().contains("Orderbook yaml error"));
+                assert!(err.to_string().contains("Raindex yaml error"));
                 assert!(err
                     .to_readable_msg()
                     .contains("There was an error processing the YAML configuration"));

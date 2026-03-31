@@ -33,7 +33,7 @@ pub enum OracleError {
 }
 
 /// JSON response format from an oracle endpoint.
-/// Maps directly to `SignedContextV1` in the orderbook contract.
+/// Maps directly to `SignedContextV1` in the raindex contract.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OracleResponse {
     /// The signer address (EIP-191 signer of the context data)

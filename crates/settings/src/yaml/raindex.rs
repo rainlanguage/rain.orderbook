@@ -647,12 +647,12 @@ mod tests {
         board1: https://meta.example.com/board1
         board2: https://meta.example.com/board2
     raindexes:
-        orderbook1:
+        raindex1:
             address: 0x0000000000000000000000000000000000000002
             network: mainnet
             subgraph: mainnet
             local-db-remote: mainnet
-            label: Primary Orderbook
+            label: Primary Raindex
             deployment-block: 12345
     tokens:
         token1:
@@ -685,7 +685,7 @@ mod tests {
     metaboards:
         board1: https://meta.example.com/board1
     raindexes:
-        orderbook1:
+        raindex1:
             address: 0x1234567890abcdef
             deployment-block: 12345
     tokens:
@@ -755,16 +755,16 @@ mod tests {
         );
 
         assert_eq!(ob_yaml.get_raindex_keys().unwrap().len(), 1);
-        let raindex = ob_yaml.get_raindex("orderbook1").unwrap();
+        let raindex = ob_yaml.get_raindex("raindex1").unwrap();
         assert_eq!(
             raindex.address,
             Address::from_str("0x0000000000000000000000000000000000000002").unwrap()
         );
         assert_eq!(raindex.network, network.clone().into());
         assert_eq!(raindex.subgraph, subgraph.into());
-        assert_eq!(raindex.label, Some("Primary Orderbook".to_string()));
+        assert_eq!(raindex.label, Some("Primary Raindex".to_string()));
         assert_eq!(
-            RaindexCfg::parse_network_key(ob_yaml.documents.clone(), "orderbook1").unwrap(),
+            RaindexCfg::parse_network_key(ob_yaml.documents.clone(), "raindex1").unwrap(),
             "mainnet"
         );
         let raindex_by_address = ob_yaml
@@ -987,7 +987,7 @@ test: test
         // Test successful lookup
         let raindexes = ob_yaml.get_raindexes_by_network_key("mainnet").unwrap();
         assert_eq!(raindexes.len(), 1);
-        assert_eq!(raindexes[0].key, "orderbook1");
+        assert_eq!(raindexes[0].key, "raindex1");
         assert_eq!(raindexes[0].network.key, "mainnet");
         assert_eq!(
             raindexes[0].address,
@@ -1038,19 +1038,19 @@ test: test
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
     raindexes:
-        mainnet-orderbook:
+        mainnet-raindex:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
             local-db-remote: mainnet
             deployment-block: 12345
-        other-orderbook:
+        other-raindex:
             address: 0x1234567890123456789012345678901234567891
             network: mainnet
             subgraph: mainnet
             local-db-remote: mainnet
             deployment-block: 12345
-        polygon-orderbook:
+        polygon-raindex:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
             deployment-block: 12345
@@ -1078,14 +1078,14 @@ test: test
         // Test raindex lookup by network key
         let raindexes = ob_yaml.get_raindexes_by_network_key("mainnet").unwrap();
         assert_eq!(raindexes.len(), 2);
-        assert_eq!(raindexes[0].key, "mainnet-orderbook");
+        assert_eq!(raindexes[0].key, "mainnet-raindex");
         assert_eq!(raindexes[0].network.key, "mainnet");
-        assert_eq!(raindexes[1].key, "other-orderbook");
+        assert_eq!(raindexes[1].key, "other-raindex");
         assert_eq!(raindexes[1].network.key, "mainnet");
 
         let raindexes = ob_yaml.get_raindexes_by_network_key("polygon").unwrap();
         assert_eq!(raindexes.len(), 1);
-        assert_eq!(raindexes[0].key, "polygon-orderbook");
+        assert_eq!(raindexes[0].key, "polygon-raindex");
         assert_eq!(raindexes[0].network.key, "polygon");
 
         // Test error for network without raindex
@@ -1105,7 +1105,7 @@ test: test
 
         let raindexes = ob_yaml.get_raindexes_by_chain_id(1).unwrap();
         assert_eq!(raindexes.len(), 1);
-        assert_eq!(raindexes[0].key, "orderbook1");
+        assert_eq!(raindexes[0].key, "raindex1");
         assert_eq!(raindexes[0].network.key, "mainnet");
         assert_eq!(
             raindexes[0].address,
@@ -1144,19 +1144,19 @@ test: test
     subgraphs:
         mainnet: https://api.thegraph.com/subgraphs/name/xyz
     raindexes:
-        mainnet-orderbook:
+        mainnet-raindex:
             address: 0x1234567890123456789012345678901234567890
             network: mainnet
             subgraph: mainnet
             local-db-remote: mainnet
             deployment-block: 12345
-        other-orderbook:
+        other-raindex:
             address: 0x1234567890123456789012345678901234567891
             network: mainnet
             subgraph: mainnet
             local-db-remote: mainnet
             deployment-block: 12345
-        polygon-orderbook:
+        polygon-raindex:
             address: 0x0987654321098765432109876543210987654321
             network: polygon
             deployment-block: 12345

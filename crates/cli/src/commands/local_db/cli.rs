@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use url::Url;
 
 #[derive(Debug, Clone, Parser)]
-#[command(about = "Run the producer pipeline across all orderbooks in settings.yaml")]
+#[command(about = "Run the producer pipeline across all raindexes in settings.yaml")]
 pub struct RunPipeline {
     #[clap(
         long,
@@ -26,7 +26,7 @@ pub struct RunPipeline {
 
     #[clap(
         long,
-        help = "Output directory where per-orderbook SQLite databases and dumps are written",
+        help = "Output directory where per-raindex SQLite databases and dumps are written",
         value_name = "PATH",
         default_value = "./local-db"
     )]
@@ -103,9 +103,9 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
                 Some(export) => {
                     writeln!(
                         writer,
-                        "- chain {} orderbook {:#x}: start {} → target {} | logs {} | events {} | dump {} (end block {}, hash {}, time {})",
+                        "- chain {} raindex {:#x}: start {} → target {} | logs {} | events {} | dump {} (end block {}, hash {}, time {})",
                         ob_id.chain_id,
-                        ob_id.orderbook_address,
+                        ob_id.raindex_address,
                         outcome.outcome.start_block,
                         outcome.outcome.target_block,
                         outcome.outcome.fetched_logs,
@@ -119,9 +119,9 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
                 None => {
                     writeln!(
                         writer,
-                        "- chain {} orderbook {:#x}: start {} → target {} | logs {} | events {} | dump <none>",
+                        "- chain {} raindex {:#x}: start {} → target {} | logs {} | events {} | dump <none>",
                         ob_id.chain_id,
-                        ob_id.orderbook_address,
+                        ob_id.raindex_address,
                         outcome.outcome.start_block,
                         outcome.outcome.target_block,
                         outcome.outcome.fetched_logs,
@@ -150,21 +150,21 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
 
 fn render_failure_to<W: Write>(failure: &TargetFailure, writer: &mut W) -> io::Result<()> {
     let ob_id = &failure.ob_id;
-    let address = ob_id.orderbook_address;
+    let address = ob_id.raindex_address;
     let chain_id = ob_id.chain_id;
     let stage = failure.stage;
     let message = failure.error.to_readable_msg();
     let key = failure
         .raindex_key
         .as_deref()
-        .unwrap_or("<unknown-orderbook>");
+        .unwrap_or("<unknown-raindex>");
 
     if chain_id == 0 && address.is_zero() {
         writeln!(writer, "- job {} failed at {:?}: {}", key, stage, message)
     } else {
         writeln!(
             writer,
-            "- chain {} orderbook {:#x} ({}) failed at {:?}: {}",
+            "- chain {} raindex {:#x} ({}) failed at {:?}: {}",
             chain_id, address, key, stage, message
         )
     }
@@ -184,7 +184,7 @@ mod tests {
     use raindex_common::local_db::pipeline::{
         FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
     };
-    use raindex_common::local_db::{FetchConfig, LocalDbError, OrderbookIdentifier};
+    use raindex_common::local_db::{FetchConfig, LocalDbError, RaindexIdentifier};
     use std::collections::HashMap;
 
     #[test]
@@ -202,7 +202,7 @@ mod tests {
     }
 
     fn sample_success_and_export(chain_id: u32) -> (TargetSuccess, ExportMetadata) {
-        let ob_id = OrderbookIdentifier::new(
+        let ob_id = RaindexIdentifier::new(
             chain_id,
             address!("0000000000000000000000000000000000000a11"),
         );
@@ -238,7 +238,7 @@ mod tests {
         let export = ExportMetadata {
             dump_path: PathBuf::from(format!(
                 "./local-db/{}/{}-{}.sql.gz",
-                chain_id, chain_id, runner_target.inputs.ob_id.orderbook_address
+                chain_id, chain_id, runner_target.inputs.ob_id.raindex_address
             )),
             end_block: 400,
             end_block_hash: "0xdeadbeef".to_string(),
@@ -290,9 +290,9 @@ mod tests {
 
     #[test]
     fn render_report_to_lists_failures() {
-        let orderbook_address = address!("0000000000000000000000000000000000000fA1");
+        let raindex_address = address!("0000000000000000000000000000000000000fA1");
         let failure = TargetFailure {
-            ob_id: OrderbookIdentifier::new(1, orderbook_address),
+            ob_id: RaindexIdentifier::new(1, raindex_address),
             raindex_key: Some("book".into()),
             stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("oh no".into()),
@@ -309,14 +309,14 @@ mod tests {
         let output = String::from_utf8(buffer).expect("utf8");
         assert!(output.contains("No producer jobs completed successfully."));
         assert!(output.contains("1 job(s) failed"));
-        assert!(output.contains(&format!("chain {} orderbook {:#x}", 1, orderbook_address)));
+        assert!(output.contains(&format!("chain {} raindex {:#x}", 1, raindex_address)));
         assert!(output.contains("oh no"));
     }
 
     #[test]
     fn render_failure_to_handles_unknowns() {
         let failure = TargetFailure {
-            ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+            ob_id: RaindexIdentifier::new(0, Address::ZERO),
             raindex_key: None,
             stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("boom".into()),
@@ -324,7 +324,7 @@ mod tests {
         let mut buffer = Vec::new();
         render_failure_to(&failure, &mut buffer).expect("render succeeds");
         let output = String::from_utf8(buffer).expect("utf8");
-        assert!(output.contains("job <unknown-orderbook> failed"));
+        assert!(output.contains("job <unknown-raindex> failed"));
         assert!(output.contains("EngineRun"));
     }
 }

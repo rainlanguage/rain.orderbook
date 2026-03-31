@@ -714,7 +714,7 @@ mod tests {
                 test:
                     network: test
                     address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-            orderbooks:
+            raindexes:
                 test:
                     address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
                     network: test
@@ -730,7 +730,7 @@ mod tests {
                     outputs:
                         - token: token1
                     rainlang: test
-                    orderbook: test
+                    raindex: test
             deployments:
                 select-token-deployment:
                     order: test

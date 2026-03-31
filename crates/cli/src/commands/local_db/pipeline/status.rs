@@ -1,6 +1,6 @@
 use raindex_common::local_db::{
     pipeline::{StatusBus, SyncPhase},
-    LocalDbError, OrderbookIdentifier,
+    LocalDbError, RaindexIdentifier,
 };
 use tracing::info;
 
@@ -25,11 +25,11 @@ impl From<bool> for DebugStatus {
 pub struct ProducerStatusBus {
     debug: DebugStatus,
     raindex_key: String,
-    ob_id: OrderbookIdentifier,
+    ob_id: RaindexIdentifier,
 }
 
 impl ProducerStatusBus {
-    pub fn new(debug: DebugStatus, raindex_key: String, ob_id: OrderbookIdentifier) -> Self {
+    pub fn new(debug: DebugStatus, raindex_key: String, ob_id: RaindexIdentifier) -> Self {
         Self {
             debug,
             raindex_key,
@@ -43,7 +43,7 @@ impl Default for ProducerStatusBus {
         Self {
             debug: DebugStatus::Disabled,
             raindex_key: "<unknown>".to_string(),
-            ob_id: OrderbookIdentifier::new(0, Default::default()),
+            ob_id: RaindexIdentifier::new(0, Default::default()),
         }
     }
 }
@@ -55,7 +55,7 @@ impl StatusBus for ProducerStatusBus {
             info!(
                 target: "local_db_status",
                 chain_id = self.ob_id.chain_id,
-                orderbook = %self.ob_id.orderbook_address,
+                raindex = %self.ob_id.raindex_address,
                 raindex_key = %self.raindex_key,
                 "{}",
                 phase.to_message()

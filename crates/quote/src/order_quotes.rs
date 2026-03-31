@@ -63,7 +63,7 @@ pub async fn get_order_quotes(
 
     for order in &orders {
         let order_struct: OrderV4 = order.clone().try_into()?;
-        let orderbook = Address::from_str(&order.orderbook.id.0)?;
+        let raindex = Address::from_str(&order.orderbook.id.0)?;
         let oracle_url = crate::oracle::extract_oracle_url(order);
 
         for (input_index, input) in order_struct.validInputs.iter().enumerate() {
@@ -131,7 +131,7 @@ pub async fn get_order_quotes(
                     Ok(ctx) => {
                         all_pairs.push(pair);
                         all_quote_targets.push(QuoteTarget {
-                            orderbook,
+                            raindex,
                             quote_config: QuoteV2 {
                                 order: order_struct.clone(),
                                 inputIOIndex: U256::from(input_index),
@@ -223,7 +223,7 @@ mod tests {
         owner: Address,
         token1: SgErc20,
         token2: SgErc20,
-        orderbook: Address,
+        raindex: Address,
     }
 
     async fn setup_test() -> TestSetup {
@@ -236,7 +236,7 @@ mod tests {
         let token2 = local_evm
             .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
             .await;
-        let orderbook = *local_evm.orderbook.address();
+        let raindex = *local_evm.orderbook.address();
 
         TestSetup {
             local_evm,
@@ -255,7 +255,7 @@ mod tests {
                 symbol: Some("Token2".to_string()),
                 decimals: Some(SgBigInt(18.to_string())),
             },
-            orderbook,
+            raindex,
         }
     }
 
@@ -286,9 +286,9 @@ tokens:
         decimals: 18
         label: Token1
         symbol: token1
-orderbook:
+raindex:
     some-key:
-        address: {orderbook}
+        address: {raindex}
 orders:
     some-key:
         inputs:
@@ -318,7 +318,7 @@ amount price: 2 3;
 :;
 "#,
             rpc_url = setup.local_evm.url(),
-            orderbook = setup.orderbook,
+            raindex = setup.raindex,
             rainlang_address = setup.local_evm.rainlang,
             token1 = setup.token1.address.0,
             token2 = setup.token2.address.0,
@@ -359,7 +359,7 @@ amount price: 2 3;
             vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
             orderbook: SgOrderbook {
-                id: SgBytes(setup.orderbook.to_string()),
+                id: SgBytes(setup.raindex.to_string()),
             },
             orders_as_input: vec![],
             orders_as_output: vec![],
@@ -376,7 +376,7 @@ amount price: 2 3;
         SgOrder {
             id: SgBytes(B256::random().to_string()),
             orderbook: SgOrderbook {
-                id: SgBytes(setup.orderbook.to_string()),
+                id: SgBytes(setup.raindex.to_string()),
             },
             order_bytes: SgBytes(order_bytes),
             order_hash: SgBytes(B256::random().to_string()),
@@ -505,7 +505,7 @@ amount price: 2 3;
         let dotrain = create_dotrain_config(&setup);
         let order = create_order(&setup, dotrain).await;
 
-        // Test invalid orderbook address
+        // Test invalid raindex address
         let mut invalid_order = create_sg_order(&setup, order.clone(), vec![], vec![]);
         invalid_order.orderbook.id = SgBytes("invalid_address".to_string());
 

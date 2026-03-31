@@ -1,16 +1,16 @@
 use super::*;
 
-impl OrderbookSubgraphClient {
+impl RaindexSubgraphClient {
     pub async fn transaction_detail(
         &self,
         id: Id,
-    ) -> Result<SgTransaction, OrderbookSubgraphClientError> {
+    ) -> Result<SgTransaction, RaindexSubgraphClientError> {
         let data = self
             .query::<SgTransactionDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
         let transaction = data
             .transaction
-            .ok_or(OrderbookSubgraphClientError::Empty)?;
+            .ok_or(RaindexSubgraphClientError::Empty)?;
         Ok(transaction)
     }
 
@@ -18,7 +18,7 @@ impl OrderbookSubgraphClient {
     pub async fn transaction_add_orders(
         &self,
         id: Id,
-    ) -> Result<Vec<SgAddOrderWithOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgAddOrderWithOrder>, RaindexSubgraphClientError> {
         let data = self
             .query::<SgTransactionAddOrdersQuery, TransactionAddOrdersVariables>(
                 TransactionAddOrdersVariables {
@@ -28,7 +28,7 @@ impl OrderbookSubgraphClient {
             .await?;
 
         if data.add_orders.is_empty() {
-            return Err(OrderbookSubgraphClientError::Empty);
+            return Err(RaindexSubgraphClientError::Empty);
         }
 
         Ok(data.add_orders)
@@ -38,7 +38,7 @@ impl OrderbookSubgraphClient {
     pub async fn transaction_remove_orders(
         &self,
         id: Id,
-    ) -> Result<Vec<SgRemoveOrderWithOrder>, OrderbookSubgraphClientError> {
+    ) -> Result<Vec<SgRemoveOrderWithOrder>, RaindexSubgraphClientError> {
         let data = self
             .query::<SgTransactionRemoveOrdersQuery, TransactionRemoveOrdersVariables>(
                 TransactionRemoveOrdersVariables {
@@ -48,7 +48,7 @@ impl OrderbookSubgraphClient {
             .await?;
 
         if data.remove_orders.is_empty() {
-            return Err(OrderbookSubgraphClientError::Empty);
+            return Err(RaindexSubgraphClientError::Empty);
         }
 
         Ok(data.remove_orders)
@@ -59,7 +59,7 @@ impl OrderbookSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgAddOrderWithOrder, SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook,
+        SgAddOrderWithOrder, SgBigInt, SgBytes, SgErc20, SgOrder, SgRaindex,
         SgRemoveOrderWithOrder, SgTransaction, SgVault,
     };
     use crate::utils::float::*;
@@ -68,9 +68,9 @@ mod tests {
     use reqwest::Url;
     use serde_json::json;
 
-    fn setup_client(server: &MockServer) -> OrderbookSubgraphClient {
+    fn setup_client(server: &MockServer) -> RaindexSubgraphClient {
         let url = Url::parse(&server.url("")).unwrap();
-        OrderbookSubgraphClient::new(url)
+        RaindexSubgraphClient::new(url)
     }
 
     fn default_sg_transaction(id_str: &str) -> SgTransaction {
@@ -100,8 +100,8 @@ mod tests {
             order_bytes: SgBytes("0xorderbytes_default_order".to_string()),
             timestamp_added: SgBigInt("1600000100".to_string()),
             active: true,
-            orderbook: SgOrderbook {
-                id: SgBytes("0xorderbook_default_order".to_string()),
+            raindex: SgRaindex {
+                id: SgBytes("0xraindex_default_order".to_string()),
             },
             inputs: vec![SgVault {
                 id: SgBytes("input_vault_id_order".to_string()),
@@ -109,8 +109,8 @@ mod tests {
                 vault_id: SgBytes("input_vault_sg_id_order".to_string()),
                 balance: SgBytes(F1000.as_hex()),
                 token: default_sg_erc20("input_order"),
-                orderbook: SgOrderbook {
-                    id: SgBytes("0xorderbook_default_order".to_string()),
+                raindex: SgRaindex {
+                    id: SgBytes("0xraindex_default_order".to_string()),
                 },
                 orders_as_output: vec![],
                 orders_as_input: vec![],
@@ -122,8 +122,8 @@ mod tests {
                 vault_id: SgBytes("output_vault_sg_id_order".to_string()),
                 balance: SgBytes(F0.as_hex()),
                 token: default_sg_erc20("output_order"),
-                orderbook: SgOrderbook {
-                    id: SgBytes("0xorderbook_default_order".to_string()),
+                raindex: SgRaindex {
+                    id: SgBytes("0xraindex_default_order".to_string()),
                 },
                 orders_as_output: vec![],
                 orders_as_input: vec![],
@@ -222,7 +222,7 @@ mod tests {
         });
 
         let result = client.transaction_detail(tx_id).await;
-        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+        assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     }
 
     #[tokio::test]
@@ -239,7 +239,7 @@ mod tests {
         let result = client.transaction_detail(tx_id).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -284,7 +284,7 @@ mod tests {
         });
 
         let result = client.transaction_add_orders(tx_id).await;
-        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+        assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     }
 
     #[tokio::test]
@@ -301,7 +301,7 @@ mod tests {
         let result = client.transaction_add_orders(tx_id).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 
@@ -346,7 +346,7 @@ mod tests {
         });
 
         let result = client.transaction_remove_orders(tx_id).await;
-        assert!(matches!(result, Err(OrderbookSubgraphClientError::Empty)));
+        assert!(matches!(result, Err(RaindexSubgraphClientError::Empty)));
     }
 
     #[tokio::test]
@@ -363,7 +363,7 @@ mod tests {
         let result = client.transaction_remove_orders(tx_id).await;
         assert!(matches!(
             result,
-            Err(OrderbookSubgraphClientError::CynicClientError(_))
+            Err(RaindexSubgraphClientError::CynicClientError(_))
         ));
     }
 }

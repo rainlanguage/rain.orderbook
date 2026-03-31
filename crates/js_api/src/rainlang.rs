@@ -83,7 +83,7 @@ pub struct DotrainRainlang {
     /// This URL points to a YAML file containing shared configuration such as:
     /// - Network configurations (RPCs, chain IDs)
     /// - Subgraph endpoints
-    /// - Orderbook contract addresses
+    /// - Raindex contract addresses
     /// - Token definitions
     /// - Other common settings used across multiple strategies
     settings_url: Url,
@@ -759,7 +759,7 @@ subgraphs:
 metaboards:
   flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn
   base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn
-orderbooks:
+raindexes:
   flare:
     address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
     network: flare
@@ -839,13 +839,13 @@ scenarios:
     runs: 1
 orders:
   flare:
-    orderbook: flare
+    raindex: flare
     inputs:
       - token: token1
     outputs:
       - token: token1
   base:
-    orderbook: base
+    raindex: base
     inputs:
       - token: token2
     outputs:
@@ -1559,7 +1559,7 @@ tokens:
     decimals: 6
     label: USD Coin
     symbol: USDC
-orderbooks:
+raindexes:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
@@ -1594,7 +1594,7 @@ scenarios:
     runs: 1
 orders:
   mainnet:
-    orderbook: mainnet
+    raindex: mainnet
     inputs:
       - token: weth
     outputs:

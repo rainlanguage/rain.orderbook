@@ -3,7 +3,7 @@ use crate::{
         SgErc20WithSubgraphName, SgOrderWithSubgraphName, SgOrdersListFilterArgs,
         SgVaultWithSubgraphName, SgVaultsListFilterArgs,
     },
-    OrderbookSubgraphClient, OrderbookSubgraphClientError, SgPaginationArgs,
+    RaindexSubgraphClient, RaindexSubgraphClientError, SgPaginationArgs,
 };
 use futures::future::join_all;
 use reqwest::Url;
@@ -18,16 +18,16 @@ pub struct MultiSubgraphArgs {
 }
 impl_wasm_traits!(MultiSubgraphArgs);
 
-pub struct MultiOrderbookSubgraphClient {
+pub struct MultiRaindexSubgraphClient {
     subgraphs: Vec<MultiSubgraphArgs>,
 }
-impl MultiOrderbookSubgraphClient {
+impl MultiRaindexSubgraphClient {
     pub fn new(subgraphs: Vec<MultiSubgraphArgs>) -> Self {
         Self { subgraphs }
     }
 
-    fn get_orderbook_subgraph_client(&self, url: Url) -> OrderbookSubgraphClient {
-        OrderbookSubgraphClient::new(url)
+    fn get_raindex_subgraph_client(&self, url: Url) -> RaindexSubgraphClient {
+        RaindexSubgraphClient::new(url)
     }
 
     pub async fn orders_list(
@@ -40,7 +40,7 @@ impl MultiOrderbookSubgraphClient {
             let filter_args = filter_args.clone();
             let pagination_args = pagination_args.clone();
             async move {
-                let client = self.get_orderbook_subgraph_client(url);
+                let client = self.get_raindex_subgraph_client(url);
                 let orders = client.orders_list(filter_args, pagination_args).await?;
                 let wrapped_orders: Vec<SgOrderWithSubgraphName> = orders
                     .into_iter()
@@ -49,7 +49,7 @@ impl MultiOrderbookSubgraphClient {
                         subgraph_name: subgraph.name.clone(),
                     })
                     .collect();
-                Ok::<_, OrderbookSubgraphClientError>(wrapped_orders)
+                Ok::<_, RaindexSubgraphClientError>(wrapped_orders)
             }
         });
 
@@ -73,12 +73,12 @@ impl MultiOrderbookSubgraphClient {
     pub async fn orders_count(
         &self,
         filter_args: SgOrdersListFilterArgs,
-    ) -> Result<u32, OrderbookSubgraphClientError> {
+    ) -> Result<u32, RaindexSubgraphClientError> {
         let futures = self.subgraphs.iter().map(|subgraph| {
             let url = subgraph.url.clone();
             let filter_args = filter_args.clone();
             async move {
-                let client = self.get_orderbook_subgraph_client(url);
+                let client = self.get_raindex_subgraph_client(url);
                 client.orders_count(filter_args).await
             }
         });
@@ -101,7 +101,7 @@ impl MultiOrderbookSubgraphClient {
             let filter_args = filter_args.clone();
             let pagination_args = pagination_args.clone();
             async move {
-                let client = self.get_orderbook_subgraph_client(url);
+                let client = self.get_raindex_subgraph_client(url);
                 let vaults = client.vaults_list(filter_args, pagination_args).await?;
                 let wrapped_vaults: Vec<SgVaultWithSubgraphName> = vaults
                     .into_iter()
@@ -110,7 +110,7 @@ impl MultiOrderbookSubgraphClient {
                         subgraph_name: subgraph.name.clone(),
                     })
                     .collect();
-                Ok::<_, OrderbookSubgraphClientError>(wrapped_vaults)
+                Ok::<_, RaindexSubgraphClientError>(wrapped_vaults)
             }
         });
 
@@ -129,7 +129,7 @@ impl MultiOrderbookSubgraphClient {
         let futures = self.subgraphs.iter().map(|subgraph| {
             let url = subgraph.url.clone();
             async move {
-                let client = self.get_orderbook_subgraph_client(url);
+                let client = self.get_raindex_subgraph_client(url);
                 let tokens = client.tokens_list_all().await?;
                 let wrapped_tokens: Vec<SgErc20WithSubgraphName> = tokens
                     .into_iter()
@@ -138,7 +138,7 @@ impl MultiOrderbookSubgraphClient {
                         subgraph_name: subgraph.name.clone(),
                     })
                     .collect();
-                Ok::<_, OrderbookSubgraphClientError>(wrapped_tokens)
+                Ok::<_, RaindexSubgraphClientError>(wrapped_tokens)
             }
         });
 
@@ -158,7 +158,7 @@ impl MultiOrderbookSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrder, SgOrderbook, SgOrdersListFilterArgs, SgVault,
+        SgBigInt, SgBytes, SgErc20, SgOrder, SgRaindex, SgOrdersListFilterArgs, SgVault,
     };
     use crate::utils::float::*;
     use httpmock::prelude::*;
@@ -173,8 +173,8 @@ mod tests {
             owner: SgBytes("0xdefault_owner".to_string()),
             outputs: vec![],
             inputs: vec![],
-            orderbook: SgOrderbook {
-                id: SgBytes("0xdefault_orderbook_id".to_string()),
+            raindex: SgRaindex {
+                id: SgBytes("0xdefault_raindex_id".to_string()),
             },
             active: true,
             timestamp_added: SgBigInt(timestamp.to_string()),
@@ -191,7 +191,7 @@ mod tests {
             active: None,
             order_hash: None,
             tokens: None,
-            orderbooks: vec![],
+            raindexes: vec![],
         }
     }
 
@@ -204,7 +204,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_orders_list_no_subgraphs() {
-        let client = MultiOrderbookSubgraphClient::new(vec![]);
+        let client = MultiRaindexSubgraphClient::new(vec![]);
         let result = client
             .orders_list(default_filter_args(), default_pagination_args())
             .await;
@@ -224,7 +224,7 @@ mod tests {
                 .json_body(json!({"data": {"orders": [order1_s1]}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+        let client = MultiRaindexSubgraphClient::new(vec![MultiSubgraphArgs {
             url: sg1_url,
             name: sg1_name.to_string(),
         }]);
@@ -262,7 +262,7 @@ mod tests {
                 .json_body(json!({"data": {"orders": [order_b_s2, order_c_s2]}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),
@@ -307,7 +307,7 @@ mod tests {
             then.status(200).json_body(json!({"data": {"orders": []}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),
@@ -346,7 +346,7 @@ mod tests {
             then.status(500);
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),
@@ -383,7 +383,7 @@ mod tests {
             then.status(500);
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),
@@ -415,7 +415,7 @@ mod tests {
                 .json_body(json!({"data": {"orders": [order_a, order_b, order_c]}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+        let client = MultiRaindexSubgraphClient::new(vec![MultiSubgraphArgs {
             url: sg1_url,
             name: sg1_name.to_string(),
         }]);
@@ -447,7 +447,7 @@ mod tests {
             );
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+        let client = MultiRaindexSubgraphClient::new(vec![MultiSubgraphArgs {
             url: sg1_url,
             name: sg1_name.to_string(),
         }]);
@@ -481,7 +481,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_orders_count_no_subgraphs() {
-        let client = MultiOrderbookSubgraphClient::new(vec![]);
+        let client = MultiRaindexSubgraphClient::new(vec![]);
         let count = client.orders_count(default_filter_args()).await.unwrap();
         assert_eq!(count, 0);
     }
@@ -500,7 +500,7 @@ mod tests {
                 .json_body(json!({"data": {"orders": orders}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+        let client = MultiRaindexSubgraphClient::new(vec![MultiSubgraphArgs {
             url: sg1_url,
             name: "sg_one".to_string(),
         }]);
@@ -534,7 +534,7 @@ mod tests {
                 .json_body(json!({"data": {"orders": orders_s2}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: "sg_one".to_string(),
@@ -569,7 +569,7 @@ mod tests {
             then.status(500);
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: "sg_one".to_string(),
@@ -600,7 +600,7 @@ mod tests {
             then.status(500);
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: "sg_one_err".to_string(),
@@ -617,7 +617,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_orders_count_pagination_boundary() {
-        use crate::orderbook_client::ALL_PAGES_QUERY_PAGE_SIZE;
+        use crate::raindex_client::ALL_PAGES_QUERY_PAGE_SIZE;
 
         let server = MockServer::start_async().await;
         let sg_url = Url::parse(&server.url("")).unwrap();
@@ -642,7 +642,7 @@ mod tests {
                 .json_body(json!({"data": {"orders": page2_orders}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+        let client = MultiRaindexSubgraphClient::new(vec![MultiSubgraphArgs {
             url: sg_url,
             name: "sg_one".to_string(),
         }]);
@@ -661,9 +661,9 @@ mod tests {
         }
     }
 
-    fn sample_sg_orderbook(id_suffix: &str) -> SgOrderbook {
-        SgOrderbook {
-            id: SgBytes(format!("0xorderbook_id_{}", id_suffix)),
+    fn sample_sg_raindex(id_suffix: &str) -> SgRaindex {
+        SgRaindex {
+            id: SgBytes(format!("0xraindex_id_{}", id_suffix)),
         }
     }
 
@@ -681,7 +681,7 @@ mod tests {
             )),
             balance: SgBytes(F1.as_hex()),
             token: sample_sg_erc20(id_suffix),
-            orderbook: sample_sg_orderbook(id_suffix),
+            raindex: sample_sg_raindex(id_suffix),
             orders_as_output: vec![],
             orders_as_input: vec![],
             balance_changes: vec![],
@@ -693,14 +693,14 @@ mod tests {
             owners: vec![],
             hide_zero_balance: false,
             tokens: vec![],
-            orderbooks: vec![],
+            raindexes: vec![],
             only_active_orders: false,
         }
     }
 
     #[tokio::test]
     async fn test_vaults_list_no_subgraphs() {
-        let client = MultiOrderbookSubgraphClient::new(vec![]);
+        let client = MultiRaindexSubgraphClient::new(vec![]);
         let result = client
             .vaults_list(default_vault_filter_args(), default_pagination_args())
             .await;
@@ -720,7 +720,7 @@ mod tests {
                 .json_body(json!({"data": {"vaults": [vault1_s1]}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![MultiSubgraphArgs {
+        let client = MultiRaindexSubgraphClient::new(vec![MultiSubgraphArgs {
             url: sg1_url,
             name: sg1_name.to_string(),
         }]);
@@ -758,7 +758,7 @@ mod tests {
                 .json_body(json!({"data": {"vaults": [vault_b_s2, vault_c_s2]}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),
@@ -809,7 +809,7 @@ mod tests {
             then.status(200).json_body(json!({"data": {"vaults": []}}));
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),
@@ -848,7 +848,7 @@ mod tests {
             then.status(500);
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),
@@ -885,7 +885,7 @@ mod tests {
             then.status(500);
         });
 
-        let client = MultiOrderbookSubgraphClient::new(vec![
+        let client = MultiRaindexSubgraphClient::new(vec![
             MultiSubgraphArgs {
                 url: sg1_url,
                 name: sg1_name.to_string(),

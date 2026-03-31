@@ -3516,13 +3516,13 @@ mod tests {
 
             let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
 
-            assert_eq!(sg_filter_args.orderbooks.len(), 2);
+            assert_eq!(sg_filter_args.raindexes.len(), 2);
             assert_eq!(
-                sg_filter_args.orderbooks[0],
+                sg_filter_args.raindexes[0],
                 "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
             );
             assert_eq!(
-                sg_filter_args.orderbooks[1],
+                sg_filter_args.raindexes[1],
                 "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
             );
         }
@@ -3541,7 +3541,7 @@ mod tests {
 
             let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
 
-            assert!(sg_filter_args.orderbooks.is_empty());
+            assert!(sg_filter_args.raindexes.is_empty());
         }
 
         #[test]
@@ -3560,9 +3560,9 @@ mod tests {
 
             let sg_filter_args: SgVaultsListFilterArgs = filters.try_into().unwrap();
 
-            assert_eq!(sg_filter_args.orderbooks.len(), 1);
+            assert_eq!(sg_filter_args.raindexes.len(), 1);
             assert_eq!(
-                sg_filter_args.orderbooks[0],
+                sg_filter_args.raindexes[0],
                 "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
             );
         }

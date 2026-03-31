@@ -43,7 +43,7 @@ pub fn get_order_hash(
     Ok(encode_prefixed(main_keccak256(order.abi_encode())))
 }
 
-/// Generates ABI-encoded calldata for the `takeOrders3()` function on the OrderBook smart contract.
+/// Generates ABI-encoded calldata for the `takeOrders3()` function on the Raindex smart contract.
 ///
 /// ## Examples
 ///
