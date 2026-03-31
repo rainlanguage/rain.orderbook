@@ -71,7 +71,7 @@ const mockDeployment = {
 				},
 				address: '0x0'
 			},
-			orderbook: {
+			raindex: {
 				id: 'flare',
 				address: '0x0'
 			},

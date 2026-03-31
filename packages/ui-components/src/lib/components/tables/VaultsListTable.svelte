@@ -116,7 +116,7 @@
 					owners,
 					hideZeroBalance: $hideZeroBalanceVaults,
 					tokens: selectedTokens,
-					orderbookAddresses:
+					raindexAddresses:
 						selectedRaindexAddresses.length > 0 ? selectedRaindexAddresses : undefined,
 					onlyActiveOrders: $hideInactiveOrdersVaults
 				},
@@ -234,7 +234,7 @@
 		queryKey={QKEY_VAULTS}
 		emptyMessage="No Vaults Found"
 		on:clickRow={(e) => {
-			goto(`/vaults/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.id}`);
+			goto(`/vaults/${e.detail.item.chainId}-${e.detail.item.raindex}-${e.detail.item.id}`);
 		}}
 	>
 		<svelte:fragment slot="title">
@@ -299,8 +299,8 @@
 						<Hash type={HashType.Identifier} value={toHex(item.vaultId)} />
 					</div>
 					<div class="flex items-center gap-1">
-						<span class="text-gray-500 dark:text-gray-400">Orderbook:</span>
-						<Hash type={HashType.Identifier} value={item.orderbook} />
+						<span class="text-gray-500 dark:text-gray-400">Raindex:</span>
+						<Hash type={HashType.Identifier} value={item.raindex} />
 					</div>
 					<div class="flex items-center gap-1">
 						<span class="text-gray-500 dark:text-gray-400">Owner:</span>
@@ -324,7 +324,7 @@
 								type="orders"
 								orderOrVault={order}
 								chainId={item.chainId}
-								orderbookAddress={item.orderbook}
+								raindexAddress={item.raindex}
 							/>
 						{/each}
 						{#if item.ordersAsInput.length > 3}...{/if}
@@ -339,7 +339,7 @@
 								type="orders"
 								orderOrVault={order}
 								chainId={item.chainId}
-								orderbookAddress={item.orderbook}
+								raindexAddress={item.raindex}
 							/>
 						{/each}
 						{#if item.ordersAsOutput.length > 3}...{/if}

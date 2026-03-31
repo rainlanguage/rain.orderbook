@@ -30,7 +30,7 @@ describe('DotrainRainlangProvider', () => {
 			getOrderKeys: vi.fn(() => ({ value: [], error: undefined })),
 			getDeploymentDetails: vi.fn(() => wasmErrorResult),
 			getGui: vi.fn(async () => wasmErrorResult),
-			getOrderbookYaml: vi.fn(() => wasmErrorResult),
+			getRaindexYaml: vi.fn(() => wasmErrorResult),
 			getRaindexClient: vi.fn(async () => wasmErrorResult),
 			rainlangUrl,
 			rainlang: 'rainlang-content',

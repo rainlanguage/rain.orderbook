@@ -12,7 +12,7 @@ vi.mock('$app/navigation', () => ({
 const mockVault: RaindexVault = {
 	id: '0x1234567890abcdef1234567890abcdef12345678',
 	chainId: 1,
-	orderbook: '0x2222222222222222222222222222222222222222',
+	raindex: '0x2222222222222222222222222222222222222222',
 	token: {
 		symbol: 'ETH',
 		name: 'Ethereum',

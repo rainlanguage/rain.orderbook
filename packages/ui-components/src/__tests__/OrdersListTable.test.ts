@@ -80,7 +80,7 @@ const mockOrder = {
 	},
 	inputsOutputsList: mockVaultsList(),
 	vaultsList: mockVaultsList(),
-	orderbook: '0x2222222222222222222222222222222222222222',
+	raindex: '0x2222222222222222222222222222222222222222',
 	active: true,
 	timestampAdded: BigInt(1678901234),
 	meta: '',
@@ -172,7 +172,7 @@ describe('OrdersListTable', () => {
 		expect(addressesCell).toBeInTheDocument();
 		expect(addressesCell).toHaveTextContent('Order:');
 		expect(addressesCell).toHaveTextContent('Owner:');
-		expect(addressesCell).toHaveTextContent('Orderbook:');
+		expect(addressesCell).toHaveTextContent('Raindex:');
 
 		// Check that vault cards are rendered with correct content
 		const vaultCards = screen.getAllByTestId('vault-card');
@@ -458,7 +458,7 @@ describe('OrdersListTable', () => {
 		if (appTable) {
 			appTable.dispatchEvent(event);
 			expect(gotoMock.goto).toHaveBeenCalledWith(
-				`/orders/${mockOrder.chainId}-${mockOrder.orderbook}-${mockOrder.orderHash}`
+				`/orders/${mockOrder.chainId}-${mockOrder.raindex}-${mockOrder.orderHash}`
 			);
 		}
 	});
@@ -568,10 +568,10 @@ describe('OrdersListTable', () => {
 		expect(handleTakeOrderModal).toHaveBeenCalledWith(mockOrder, mockRefetch, new Map());
 	});
 
-	it('passes orderbookAddresses filter to getOrders when orderbooks are selected', async () => {
-		const orderbookAddress = '0x1111111111111111111111111111111111111111';
+	it('passes raindexAddresses filter to getOrders when raindexes are selected', async () => {
+		const raindexAddress = '0x1111111111111111111111111111111111111111';
 
-		mockActiveRaindexAddressesStore.mockSetSubscribeValue([orderbookAddress]);
+		mockActiveRaindexAddressesStore.mockSetSubscribeValue([raindexAddress]);
 
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -598,14 +598,14 @@ describe('OrdersListTable', () => {
 			expect(mockGetOrders).toHaveBeenCalledWith(
 				expect.anything(),
 				expect.objectContaining({
-					orderbookAddresses: [orderbookAddress]
+					raindexAddresses: [raindexAddress]
 				}),
 				expect.anything()
 			);
 		});
 	});
 
-	it('does not pass orderbookAddresses filter when no orderbooks are selected', async () => {
+	it('does not pass raindexAddresses filter when no raindexes are selected', async () => {
 		mockActiveRaindexAddressesStore.mockSetSubscribeValue([]);
 
 		const mockQuery = vi.mocked(await import('@tanstack/svelte-query'));
@@ -633,7 +633,7 @@ describe('OrdersListTable', () => {
 			expect(mockGetOrders).toHaveBeenCalledWith(
 				expect.anything(),
 				expect.objectContaining({
-					orderbookAddresses: undefined
+					raindexAddresses: undefined
 				}),
 				expect.anything()
 			);

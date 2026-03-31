@@ -22,7 +22,7 @@ describe('subgraphIndexing', () => {
 
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
-			orderbook: '0x123',
+			raindex: '0x123',
 			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			fetchEntityFn: mockFetchData,
@@ -54,7 +54,7 @@ describe('subgraphIndexing', () => {
 
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
-			orderbook: '0x123',
+			raindex: '0x123',
 			txHash: '0x0234',
 			successMessage: 'Order confirmed',
 			fetchEntityFn: mockFetchData,
@@ -74,7 +74,7 @@ describe('subgraphIndexing', () => {
 
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
-			orderbook: '0x123',
+			raindex: '0x123',
 			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,
@@ -100,7 +100,7 @@ describe('subgraphIndexing', () => {
 
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
-			orderbook: '0x123',
+			raindex: '0x123',
 			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 3,
@@ -127,7 +127,7 @@ describe('subgraphIndexing', () => {
 
 		const resultPromise = awaitSubgraphIndexing({
 			chainId: 1,
-			orderbook: '0x123',
+			raindex: '0x123',
 			txHash: '0x0234',
 			successMessage: 'Transaction confirmed',
 			maxAttempts: 5,

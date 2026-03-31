@@ -1,12 +1,12 @@
 # @rainlanguage/ui-components — Architecture
 
-This package is the reusable Svelte component library for building Rain Orderbook UIs. It composes the WASM‑backed SDK `@rainlanguage/raindex` with UI primitives, domain components, providers, hooks, and utilities to implement common flows: listing and inspecting orders and vaults, showing charts, handling wallet connection and transactions, and guiding users through deploying algorithmic orders from a dotrain registry.
+This package is the reusable Svelte component library for building Rain Raindex UIs. It composes the WASM‑backed SDK `@rainlanguage/raindex` with UI primitives, domain components, providers, hooks, and utilities to implement common flows: listing and inspecting orders and vaults, showing charts, handling wallet connection and transactions, and guiding users through deploying algorithmic orders from a dotrain registry.
 
 
 ## Overview
 
 - Purpose
-  - Provide a cohesive, app‑ready set of Svelte components and helpers for Orderbook features: tables, detail views, charts, deployment GUI, toasts, and transaction UX.
+  - Provide a cohesive, app‑ready set of Svelte components and helpers for Raindex features: tables, detail views, charts, deployment GUI, toasts, and transaction UX.
   - Ship provider and hook contexts so apps can wire wallet, client, registry, toasts, and transaction state consistently.
 - Targets
   - Svelte 4 components, packaged with `svelte-package` for consumption in SvelteKit/Vite apps.
@@ -152,7 +152,7 @@ export default {
 
 - Rust crates under `crates/*` implement core logic and compile to a WASM surface consumed by `@rainlanguage/raindex`.
 - `@rainlanguage/ui-components` provides the reusable Svelte UI and provider layer that apps compose.
-- The `packages/webapp` project consumes this library directly to implement the full Orderbook UI.
+- The `packages/webapp` project consumes this library directly to implement the full Raindex UI.
 
 
 ## Caveats & Tips
@@ -163,5 +163,5 @@ export default {
 - Include this package in Tailwind `content` globs to avoid missing styles.
 - For deployment flows, pass a `DotrainOrderGui` via `GuiProvider` and use the registry helpers to load/validate dotrain entries.
 
-This document explains what `packages/ui-components` is for, how providers and components are organized, how to build and test the package, and how it integrates with the rest of the Rain Orderbook workspace.
+This document explains what `packages/ui-components` is for, how providers and components are organized, how to build and test the package, and how it integrates with the rest of the Rain Raindex workspace.
 

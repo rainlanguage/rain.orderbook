@@ -66,7 +66,7 @@ function createMockTrade(
 			blockNumber: BigInt(12345)
 		},
 		orderHash: '0xorderhash',
-		orderbook: '0xorderbook'
+		raindex: '0xraindex'
 	} as unknown as RaindexTrade;
 }
 

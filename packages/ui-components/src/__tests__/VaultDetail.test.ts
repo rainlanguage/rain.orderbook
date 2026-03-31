@@ -53,7 +53,7 @@ const mockErrToast = vi.fn();
 
 const defaultProps: VaultDetailProps = {
 	chainId: 1,
-	orderbookAddress: '0x00',
+	raindexAddress: '0x00',
 	id: '100',
 	lightweightChartsTheme: readable(darkChartTheme),
 	onDeposit: vi.fn(),
@@ -108,7 +108,7 @@ describe('VaultDetail', () => {
 			formattedBalance: '100000',
 			ordersAsInput: [],
 			ordersAsOutput: [],
-			orderbook: '0x00'
+			raindex: '0x00'
 		} as unknown as RaindexVault;
 		(mockRaindexClient.getVault as Mock).mockResolvedValue({ value: mockData });
 	});

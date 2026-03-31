@@ -97,7 +97,7 @@
 						selectedTokens.length > 0
 							? { inputs: selectedTokens, outputs: selectedTokens }
 							: undefined,
-					orderbookAddresses:
+					raindexAddresses:
 						selectedRaindexAddresses.length > 0 ? selectedRaindexAddresses : undefined
 				},
 				pageParam + 1
@@ -137,7 +137,7 @@
 	emptyMessage="No Orders Found"
 	dataSelector={(page) => page.orders}
 	on:clickRow={(e) => {
-		goto(`/orders/${e.detail.item.chainId}-${e.detail.item.orderbook}-${e.detail.item.orderHash}`);
+		goto(`/orders/${e.detail.item.chainId}-${e.detail.item.raindex}-${e.detail.item.orderHash}`);
 	}}
 >
 	<svelte:fragment slot="title">
@@ -213,8 +213,8 @@
 					<Hash type={HashType.Wallet} value={item.owner} />
 				</div>
 				<div class="flex items-center gap-1">
-					<span class="text-gray-500 dark:text-gray-400">Orderbook:</span>
-					<Hash type={HashType.Identifier} value={item.orderbook} />
+					<span class="text-gray-500 dark:text-gray-400">Raindex:</span>
+					<Hash type={HashType.Identifier} value={item.raindex} />
 				</div>
 			</div>
 		</TableBodyCell>

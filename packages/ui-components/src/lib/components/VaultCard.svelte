@@ -9,7 +9,7 @@
 		event.stopPropagation();
 		event.preventDefault();
 		// Navigate to vault details page
-		goto(`/vaults/${vault.chainId}-${vault.orderbook}-${vault.id}`);
+		goto(`/vaults/${vault.chainId}-${vault.raindex}-${vault.id}`);
 	};
 </script>
 

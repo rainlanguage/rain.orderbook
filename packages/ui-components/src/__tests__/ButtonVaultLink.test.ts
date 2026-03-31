@@ -20,7 +20,7 @@ describe('ButtonVaultLink', () => {
 			props: {
 				tokenVault: mockVault,
 				chainId: 1,
-				orderbookAddress: '0x00'
+				raindexAddress: '0x00'
 			}
 		});
 
@@ -35,7 +35,7 @@ describe('ButtonVaultLink', () => {
 			props: {
 				tokenVault: mockVault,
 				chainId: 1,
-				orderbookAddress: '0x00'
+				raindexAddress: '0x00'
 			}
 		});
 

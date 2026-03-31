@@ -72,7 +72,7 @@ describe('TransactionStore', () => {
 		ordersAsOutput: [],
 		balanceChanges: [],
 		balance: '1000000000000000000',
-		orderbook: {
+		raindex: {
 			id: '0x00'
 		}
 	};
@@ -296,7 +296,7 @@ describe('TransactionStore', () => {
 				ctx.updateState({ status: TransactionStatusMessage.SUCCESS });
 				// Add a "View order" link
 				const newLink = {
-					link: `/orders/1-0xorderbook-${newOrderHash}`,
+					link: `/orders/1-0xraindex-${newOrderHash}`,
 					label: 'View order'
 				};
 				ctx.updateState({ links: [newLink, ...ctx.links] });
@@ -325,7 +325,7 @@ describe('TransactionStore', () => {
 			expect(state.status).toBe(TransactionStatusMessage.SUCCESS);
 			expect(state.links).toHaveLength(2);
 			expect(state.links[0]).toEqual({
-				link: `/orders/1-0xorderbook-${newOrderHash}`,
+				link: `/orders/1-0xraindex-${newOrderHash}`,
 				label: 'View order'
 			});
 			expect(mockOnSuccess).toHaveBeenCalled();

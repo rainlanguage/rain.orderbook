@@ -48,7 +48,7 @@ const mockOrderHashWritable = writable<string>('');
 const mockHideZeroBalanceVaultsWritable = writable<boolean>(false);
 const mockHideInactiveOrdersVaultsWritable = writable<boolean>(false);
 const mockActiveNetworkRefWritable = writable<string>('');
-const mockActiveOrderbookRefWritable = writable<string>('');
+const mockActiveRaindexRefWritable = writable<string>('');
 const mockActiveAccountsWritable = writable<Record<string, string>>({});
 const mockSubgraphUrlWritable = writable<string>('');
 const mockChainIdWritable = writable<number>(0);
@@ -89,10 +89,10 @@ export const mockActiveNetworkRefStore = {
 	mockSetSubscribeValue: (value: string): void => mockActiveNetworkRefWritable.set(value)
 };
 
-export const mockActiveOrderbookRefStore = {
-	subscribe: mockActiveOrderbookRefWritable.subscribe,
-	set: mockActiveOrderbookRefWritable.set,
-	mockSetSubscribeValue: (value: string): void => mockActiveOrderbookRefWritable.set(value)
+export const mockActiveRaindexRefStore = {
+	subscribe: mockActiveRaindexRefWritable.subscribe,
+	set: mockActiveRaindexRefWritable.set,
+	mockSetSubscribeValue: (value: string): void => mockActiveRaindexRefWritable.set(value)
 };
 
 export const mockActiveAccountsStore = {

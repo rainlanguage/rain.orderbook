@@ -48,7 +48,7 @@ const createMockVaultBalanceChange = (
 			timestamp: BigInt(1625247600),
 			blockNumber: BigInt(1234567890)
 		},
-		orderbook: '0x00',
+		raindex: '0x00',
 		...overrides
 	} as unknown as RaindexVaultBalanceChange;
 };

@@ -5,7 +5,7 @@
 
 	export let tokenVault: RaindexVault;
 	export let chainId: number;
-	export let orderbookAddress: Address;
+	export let raindexAddress: Address;
 </script>
 
 <div
@@ -17,7 +17,7 @@
 			ID: <span class="font-mono">{toHex(tokenVault.vaultId)}</span>
 		</Tooltip>
 		<a
-			href={`/vaults/${chainId}-${orderbookAddress}-${tokenVault.id}`}
+			href={`/vaults/${chainId}-${raindexAddress}-${tokenVault.id}`}
 			id={`token-info-${tokenVault.vaultId}`}
 		>
 			{tokenVault.token.name} ({tokenVault.token.symbol})
