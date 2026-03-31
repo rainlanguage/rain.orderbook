@@ -13,7 +13,7 @@ pub struct ApprovalCheckParams {
     pub rpc_urls: Vec<Url>,
     pub sell_token: Address,
     pub taker: Address,
-    pub orderbook: Address,
+    pub raindex: Address,
     pub mode: ParsedTakeOrdersMode,
     pub price_cap: Float,
 }

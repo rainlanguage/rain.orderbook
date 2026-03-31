@@ -32,7 +32,7 @@ fn has_capacity(
 
 #[derive(Clone, Debug)]
 pub struct TakeOrderCandidate {
-    pub orderbook: Address,
+    pub raindex: Address,
     pub order: OrderV4,
     pub input_io_index: u32,
     pub output_io_index: u32,
@@ -42,7 +42,7 @@ pub struct TakeOrderCandidate {
     pub signed_context: Vec<SignedContextV1>,
 }
 
-fn get_orderbook_address(order: &RaindexOrder) -> Result<Address, RaindexError> {
+fn get_raindex_address(order: &RaindexOrder) -> Result<Address, RaindexError> {
     #[cfg(target_family = "wasm")]
     {
         Ok(Address::from_str(&order.orderbook())?)
@@ -65,7 +65,7 @@ pub async fn build_take_order_candidates_for_pair(
     let mut all_candidates = vec![];
     for (order, quotes) in orders.iter().zip(all_quotes) {
         let order_v4: OrderV4 = order.try_into()?;
-        let orderbook = get_orderbook_address(order)?;
+        let raindex = get_raindex_address(order)?;
         let oracle_url = order.oracle_url();
 
         for quote in &quotes {
@@ -88,7 +88,7 @@ pub async fn build_take_order_candidates_for_pair(
             };
 
             if let Some(candidate) = try_build_candidate(
-                orderbook,
+                raindex,
                 &order_v4,
                 quote,
                 input_token,
@@ -123,7 +123,7 @@ async fn fetch_oracle_for_pair(
 }
 
 fn try_build_candidate(
-    orderbook: Address,
+    raindex: Address,
     order: &OrderV4,
     quote: &RaindexOrderQuote,
     input_token: Address,
@@ -157,7 +157,7 @@ fn try_build_candidate(
     }
 
     Ok(Some(TakeOrderCandidate {
-        orderbook,
+        raindex,
         order: order.clone(),
         input_io_index,
         output_io_index,
@@ -283,14 +283,14 @@ mod tests {
     fn test_try_build_candidate_wrong_direction() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
-        let orderbook = Address::from([0xAAu8; 20]);
+        let raindex = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let f1 = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(f1, f1, f1)), true);
 
         let result =
-            try_build_candidate(orderbook, &order, &quote, token_b, token_a, vec![]).unwrap();
+            try_build_candidate(raindex, &order, &quote, token_b, token_a, vec![]).unwrap();
 
         assert!(result.is_none());
     }
@@ -299,7 +299,7 @@ mod tests {
     fn test_try_build_candidate_zero_capacity() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
-        let orderbook = Address::from([0xAAu8; 20]);
+        let raindex = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let zero = Float::zero().unwrap();
@@ -307,7 +307,7 @@ mod tests {
         let quote = make_quote(0, 0, Some(make_quote_value(zero, zero, f1)), true);
 
         let result =
-            try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
+            try_build_candidate(raindex, &order, &quote, token_a, token_b, vec![]).unwrap();
 
         assert!(result.is_none());
     }
@@ -316,7 +316,7 @@ mod tests {
     fn test_try_build_candidate_success() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
-        let orderbook = Address::from([0xAAu8; 20]);
+        let raindex = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let f1 = Float::parse("1".to_string()).unwrap();
@@ -324,11 +324,11 @@ mod tests {
         let quote = make_quote(0, 0, Some(make_quote_value(f2, f1, f1)), true);
 
         let result =
-            try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]).unwrap();
+            try_build_candidate(raindex, &order, &quote, token_a, token_b, vec![]).unwrap();
 
         assert!(result.is_some());
         let candidate = result.unwrap();
-        assert_eq!(candidate.orderbook, orderbook);
+        assert_eq!(candidate.raindex, raindex);
         assert_eq!(candidate.input_io_index, 0);
         assert_eq!(candidate.output_io_index, 0);
         assert!(candidate.max_output.eq(f2).unwrap());
@@ -338,12 +338,12 @@ mod tests {
     fn test_try_build_candidate_failed_quote() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
-        let orderbook = Address::from([0xAAu8; 20]);
+        let raindex = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let quote = make_quote(0, 0, None, false);
 
-        let result = try_build_candidate(orderbook, &order, &quote, token_a, token_b, vec![]);
+        let result = try_build_candidate(raindex, &order, &quote, token_a, token_b, vec![]);
 
         assert!(
             result.is_ok(),
@@ -360,14 +360,14 @@ mod tests {
     fn test_try_build_candidate_out_of_bounds_indices() {
         let token_a = Address::from([4u8; 20]);
         let token_b = Address::from([5u8; 20]);
-        let orderbook = Address::from([0xAAu8; 20]);
+        let raindex = Address::from([0xAAu8; 20]);
 
         let order = make_basic_order(token_a, token_b);
         let f1 = Float::parse("1".to_string()).unwrap();
 
         let quote_bad_input_index = make_quote(99, 0, Some(make_quote_value(f1, f1, f1)), true);
         let result = try_build_candidate(
-            orderbook,
+            raindex,
             &order,
             &quote_bad_input_index,
             token_a,
@@ -385,7 +385,7 @@ mod tests {
 
         let quote_bad_output_index = make_quote(0, 99, Some(make_quote_value(f1, f1, f1)), true);
         let result = try_build_candidate(
-            orderbook,
+            raindex,
             &order,
             &quote_bad_output_index,
             token_a,

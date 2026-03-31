@@ -83,10 +83,10 @@ pub enum LocalDbError {
     #[error("Configuration error: {message}")]
     Config { message: String },
 
-    #[error("Missing runner target for chain {chain_id} orderbook {orderbook_address}")]
+    #[error("Missing runner target for chain {chain_id} raindex {raindex_address}")]
     MissingRunnerTarget {
         chain_id: u32,
-        orderbook_address: Address,
+        raindex_address: Address,
     },
 
     #[error(
@@ -251,10 +251,10 @@ impl LocalDbError {
             LocalDbError::Config { message } => format!("Configuration error: {}", message),
             LocalDbError::MissingRunnerTarget {
                 chain_id,
-                orderbook_address,
+                raindex_address,
             } => format!(
-                "Missing runner target for chain {} orderbook {:#x}",
-                chain_id, orderbook_address
+                "Missing runner target for chain {} raindex {:#x}",
+                chain_id, raindex_address
             ),
             LocalDbError::RunnerNetworkChainIdMismatch {
                 network_key,
@@ -343,18 +343,18 @@ impl LocalDbError {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
-pub struct OrderbookIdentifier {
+pub struct RaindexIdentifier {
     pub chain_id: u32,
-    pub orderbook_address: Address,
+    pub raindex_address: Address,
 }
 #[cfg(target_family = "wasm")]
-impl_wasm_traits!(OrderbookIdentifier);
+impl_wasm_traits!(RaindexIdentifier);
 
-impl OrderbookIdentifier {
-    pub fn new(chain_id: u32, orderbook_address: Address) -> Self {
+impl RaindexIdentifier {
+    pub fn new(chain_id: u32, raindex_address: Address) -> Self {
         Self {
             chain_id,
-            orderbook_address,
+            raindex_address,
         }
     }
 }

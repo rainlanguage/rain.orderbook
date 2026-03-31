@@ -4,7 +4,7 @@ use crate::local_db::{
         fetch_target_watermark::{fetch_target_watermark_stmt, TargetWatermarkRow},
         LocalDbQueryExecutor,
     },
-    LocalDbError, OrderbookIdentifier,
+    LocalDbError, RaindexIdentifier,
 };
 use alloy::primitives::Address;
 
@@ -39,7 +39,7 @@ impl ClientBootstrapAdapter {
     async fn is_fresh_db<E: LocalDbQueryExecutor + ?Sized>(
         self,
         db: &E,
-        ob_id: &OrderbookIdentifier,
+        ob_id: &RaindexIdentifier,
     ) -> Result<bool, LocalDbError> {
         let rows: Vec<TargetWatermarkRow> =
             db.query_json(&fetch_target_watermark_stmt(ob_id)).await?;
@@ -98,7 +98,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
             has_required_tables,
             ..
         } = self
-            .inspect_state(db, &OrderbookIdentifier::new(0, Address::ZERO))
+            .inspect_state(db, &RaindexIdentifier::new(0, Address::ZERO))
             .await?;
 
         if !has_required_tables {
@@ -223,15 +223,15 @@ mod tests {
         }
     }
 
-    fn sample_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier {
+    fn sample_ob_id() -> RaindexIdentifier {
+        RaindexIdentifier {
             chain_id: 1,
-            orderbook_address: Address::ZERO,
+            raindex_address: Address::ZERO,
         }
     }
 
-    fn runner_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier::new(0, Address::ZERO)
+    fn runner_ob_id() -> RaindexIdentifier {
+        RaindexIdentifier::new(0, Address::ZERO)
     }
 
     fn cfg_with_dump(latest_block: u64) -> BootstrapConfig {
@@ -261,7 +261,7 @@ mod tests {
     fn watermark_row(last_block: u64) -> TargetWatermarkRow {
         TargetWatermarkRow {
             chain_id: sample_ob_id().chain_id,
-            orderbook_address: sample_ob_id().orderbook_address,
+            raindex_address: sample_ob_id().raindex_address,
             last_block,
             last_hash: Bytes::from_str("0xbeef").unwrap(),
             updated_at: 1,

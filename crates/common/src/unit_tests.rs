@@ -458,10 +458,10 @@ test:
     scenario-name: some-key
     scenario:
         bindings:
-            orderbook-subparser: {orderbook_subparser}
+            raindex-subparser: {raindex_subparser}
             second-binding: 999
 ---
-#orderbook-subparser !
+#raindex-subparser !
 #second-binding !
 
 #pre
@@ -470,7 +470,7 @@ output-token: 0x02,
 output-cap: 10;
 
 #post
-using-words-from orderbook-subparser
+using-words-from raindex-subparser
 
 /* calculate io stack */
 :ensure(equal-to(calculated-io-ratio() 999) "io ratio should be 999"),
@@ -481,7 +481,7 @@ using-words-from orderbook-subparser
 /* handle io stack */
 :ensure(equal-to(output-vault-decrease() 10) "output cap should be 10");
     "#,
-            orderbook_subparser = local_evm.orderbook_subparser.address(),
+            raindex_subparser = local_evm.raindex_subparser.address(),
             spec_version = SpecVersion::current()
         );
         let dotrain = format!(
@@ -498,27 +498,27 @@ networks:
 scenarios:
     some-key:
         bindings:
-            orderbook-subparser: {orderbook_subparser}
+            raindex-subparser: {raindex_subparser}
             second-binding: 20
 ---
-#orderbook-subparser !
+#raindex-subparser !
 #second-binding !
 
 #calculate-io
-using-words-from orderbook-subparser
+using-words-from raindex-subparser
 
 _: input-token(),
 _: output-token(),
 a: 10,
 b: second-binding;
 #handle-io
-using-words-from orderbook-subparser
+using-words-from raindex-subparser
 
 _: output-vault-decrease();
     "#,
             rpc_url = local_evm.url(),
             rainlang_address = local_evm.rainlang,
-            orderbook_subparser = local_evm.orderbook_subparser.address(),
+            raindex_subparser = local_evm.raindex_subparser.address(),
             spec_version = SpecVersion::current()
         );
 

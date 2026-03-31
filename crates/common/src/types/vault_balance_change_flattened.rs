@@ -115,7 +115,7 @@ mod tests {
                 },
             },
             orderbook: SgOrderbook {
-                id: SgBytes("0xorderbookid".to_string()),
+                id: SgBytes("0xraindexid".to_string()),
             },
         }
     }

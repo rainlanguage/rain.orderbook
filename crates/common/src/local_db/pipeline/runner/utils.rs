@@ -1,7 +1,7 @@
 use crate::local_db::fetch::FetchConfig;
 use crate::local_db::pipeline::engine::SyncInputs;
 use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
-use crate::local_db::{LocalDbError, OrderbookIdentifier};
+use crate::local_db::{LocalDbError, RaindexIdentifier};
 use itertools::Itertools;
 use raindex_app_settings::local_db_sync::LocalDbSyncCfg;
 use raindex_app_settings::raindex::RaindexCfg;
@@ -76,7 +76,7 @@ pub fn build_runner_targets(
                 })?;
         let (fetch, finality) = map_sync_to_engine(sync_cfg)?;
         let inputs = SyncInputs {
-            ob_id: OrderbookIdentifier::new(raindex.network.chain_id, raindex.address),
+            raindex_id: RaindexIdentifier::new(raindex.network.chain_id, raindex.address),
             metadata_rpcs: raindex.network.rpcs.clone(),
             cfg: SyncConfig {
                 deployment_block: raindex.deployment_block,
@@ -170,7 +170,7 @@ local-db-sync:
     finality-depth: 24
     bootstrap-block-threshold: 5000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
@@ -211,7 +211,7 @@ subgraphs:
   mainnet: https://subgraph.network/mainnet
 local-db-remotes:
   remote: https://remotes.example.com/mainnet.yaml
-orderbooks:
+raindexes:
   book:
     address: 0x0000000000000000000000000000000000000001
     network: mainnet
@@ -334,9 +334,9 @@ orderbooks:
             .find(|t| t.raindex_key == "ob-a")
             .expect("target for ob-a exists");
         assert_eq!(target_a.network_key, "network-a");
-        assert_eq!(target_a.inputs.ob_id.chain_id, 1);
+        assert_eq!(target_a.inputs.raindex_id.chain_id, 1);
         assert_eq!(
-            target_a.inputs.ob_id.orderbook_address,
+            target_a.inputs.raindex_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
         assert_eq!(target_a.inputs.cfg.deployment_block, 111);
@@ -392,11 +392,11 @@ orderbooks:
         let input_b = inputs
             .iter()
             .find(|input| {
-                input.ob_id.orderbook_address
+                input.raindex_id.raindex_address
                     == address!("00000000000000000000000000000000000000b2")
             })
             .expect("input for ob-b exists");
-        assert_eq!(input_b.ob_id.chain_id, 2);
+        assert_eq!(input_b.raindex_id.chain_id, 2);
         assert_eq!(input_b.cfg.fetch.max_concurrent_requests(), 2);
     }
 

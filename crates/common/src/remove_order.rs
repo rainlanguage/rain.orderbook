@@ -59,7 +59,7 @@ impl RemoveOrderArgs {
         let remove_order_call: removeOrder3Call = self.try_into()?;
         let params = transaction_args.try_into_write_contract_parameters(
             remove_order_call,
-            transaction_args.orderbook_address,
+            transaction_args.raindex_address,
         )?;
 
         WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
@@ -154,7 +154,7 @@ mod tests {
 
         let args = TransactionArgs {
             rpcs: vec!["http://test.com".to_string()],
-            orderbook_address: Address::ZERO,
+            raindex_address: Address::ZERO,
             derivation_index: Some(0_usize),
             chain_id: Some(1),
             max_priority_fee_per_gas: Some(200),
@@ -162,9 +162,9 @@ mod tests {
         };
 
         let params = args
-            .try_into_write_contract_parameters(remove_order_call.clone(), args.orderbook_address)
+            .try_into_write_contract_parameters(remove_order_call.clone(), args.raindex_address)
             .unwrap();
-        assert_eq!(params.address, args.orderbook_address);
+        assert_eq!(params.address, args.raindex_address);
         assert_eq!(params.call, remove_order_call);
         assert_eq!(params.max_priority_fee_per_gas, Some(200));
         assert_eq!(params.max_fee_per_gas, Some(100));

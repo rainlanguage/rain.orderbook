@@ -2,7 +2,7 @@ pub use crate::local_db::pipeline::SyncPhase;
 use crate::local_db::query::{
     FromDbJson, LocalDbQueryError, LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
 };
-use crate::local_db::{LocalDbError, OrderbookIdentifier};
+use crate::local_db::{LocalDbError, RaindexIdentifier};
 #[cfg(target_family = "wasm")]
 use executor::JsCallbackExecutor;
 
@@ -27,7 +27,7 @@ pub mod vaults;
 pub use state::SyncReadiness;
 pub(crate) use state::{ClassifiedChains, LocalDbState, QuerySource};
 pub use status::{
-    LocalDbStatus, LocalDbStatusSnapshot, NetworkSyncStatus, OrderbookSyncStatus, SchedulerState,
+    LocalDbStatus, LocalDbStatusSnapshot, NetworkSyncStatus, RaindexSyncStatus, SchedulerState,
 };
 
 #[cfg(target_family = "wasm")]

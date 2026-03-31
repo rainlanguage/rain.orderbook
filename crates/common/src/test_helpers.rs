@@ -19,7 +19,7 @@ subgraphs:
 metaboards:
     mainnet: https://mainnet-metaboard.com
     testnet: https://testnet-metaboard.com
-orderbooks:
+raindexes:
     mainnet:
         address: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
         network: mainnet
@@ -55,7 +55,7 @@ accounts:
 orders:
     order1:
         rainlang: scenario1
-        orderbook: mainnet
+        raindex: mainnet
         inputs:
             - token: token1
               vault-id: 1
@@ -190,7 +190,7 @@ pub mod local_evm {
         pub token2: Address,
         pub token1_sg: SgErc20,
         pub token2_sg: SgErc20,
-        pub orderbook: Address,
+        pub raindex: Address,
     }
 
     pub async fn setup_test() -> TestSetup {
@@ -203,7 +203,7 @@ pub mod local_evm {
         let token2 = local_evm
             .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
             .await;
-        let orderbook = *local_evm.orderbook.address();
+        let raindex = *local_evm.raindex.address();
 
         TestSetup {
             token1: *token1.address(),
@@ -224,7 +224,7 @@ pub mod local_evm {
             },
             local_evm,
             owner,
-            orderbook,
+            raindex,
         }
     }
 
@@ -299,8 +299,8 @@ pub mod local_evm {
         approve_taker(setup, token, taker, spender, U256::MAX).await;
     }
 
-    pub async fn fund_and_approve_taker_multi_orderbook(
-        setup: &MultiOrderbookTestSetup,
+    pub async fn fund_and_approve_taker_multi_raindex(
+        setup: &MultiRaindexTestSetup,
         token: Address,
         taker: Address,
         spender: Address,
@@ -334,19 +334,19 @@ pub mod local_evm {
             .unwrap();
     }
 
-    pub struct MultiOrderbookTestSetup {
+    pub struct MultiRaindexTestSetup {
         pub local_evm: LocalEvm,
         pub owner: Address,
         pub token1: Address,
         pub token2: Address,
         pub token1_sg: SgErc20,
         pub token2_sg: SgErc20,
-        pub orderbook_a: Address,
-        pub orderbook_b: Address,
+        pub raindex_a: Address,
+        pub raindex_b: Address,
     }
 
-    pub async fn setup_multi_orderbook_test() -> MultiOrderbookTestSetup {
-        use raindex_test_fixtures::Orderbook;
+    pub async fn setup_multi_raindex_test() -> MultiRaindexTestSetup {
+        use raindex_test_fixtures::Raindex;
 
         let mut local_evm = LocalEvm::new().await;
         let owner = local_evm.signer_wallets[0].default_signer().address();
@@ -358,13 +358,13 @@ pub mod local_evm {
             .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
             .await;
 
-        let orderbook_a = *local_evm.orderbook.address();
-        let orderbook_b_instance = Orderbook::deploy(local_evm.provider.clone())
+        let raindex_a = *local_evm.raindex.address();
+        let raindex_b_instance = Raindex::deploy(local_evm.provider.clone())
             .await
-            .expect("Should deploy second orderbook");
-        let orderbook_b = *orderbook_b_instance.address();
+            .expect("Should deploy second raindex");
+        let raindex_b = *raindex_b_instance.address();
 
-        MultiOrderbookTestSetup {
+        MultiRaindexTestSetup {
             token1: *token1.address(),
             token2: *token2.address(),
             token1_sg: SgErc20 {
@@ -383,19 +383,19 @@ pub mod local_evm {
             },
             local_evm,
             owner,
-            orderbook_a,
-            orderbook_b,
+            raindex_a,
+            raindex_b,
         }
     }
 
-    pub async fn deposit_to_orderbook(
-        setup: &MultiOrderbookTestSetup,
-        orderbook: Address,
+    pub async fn deposit_to_raindex(
+        setup: &MultiRaindexTestSetup,
+        raindex: Address,
         token: Address,
         amount: U256,
         vault_id: B256,
     ) {
-        use raindex_test_fixtures::Orderbook;
+        use raindex_test_fixtures::Raindex;
 
         let token_contract = setup
             .local_evm
@@ -405,7 +405,7 @@ pub mod local_evm {
             .expect("Token should exist");
 
         token_contract
-            .approve(orderbook, amount)
+            .approve(raindex, amount)
             .from(setup.owner)
             .send()
             .await
@@ -414,10 +414,10 @@ pub mod local_evm {
             .await
             .unwrap();
 
-        let orderbook_instance = Orderbook::new(orderbook, setup.local_evm.provider.clone());
+        let raindex_instance = Raindex::new(raindex, setup.local_evm.provider.clone());
         let raw_amount = Float::from_fixed_decimal(amount, 18).unwrap().get_inner();
 
-        orderbook_instance
+        raindex_instance
             .deposit4(token, vault_id, raw_amount, vec![])
             .from(setup.owner)
             .send()
@@ -429,34 +429,34 @@ pub mod local_evm {
     }
 
     pub fn create_vault(vault_id: B256, setup: &TestSetup, token: &SgErc20) -> SgVault {
-        create_vault_with_balance_and_orderbook(
+        create_vault_with_balance_and_raindex(
             vault_id,
             &setup.local_evm.anvil.addresses()[0],
-            setup.orderbook,
+            setup.raindex,
             token,
             "6",
         )
     }
 
-    pub fn create_vault_for_orderbook(
+    pub fn create_vault_for_raindex(
         vault_id: B256,
-        setup: &MultiOrderbookTestSetup,
-        orderbook: Address,
+        setup: &MultiRaindexTestSetup,
+        raindex: Address,
         token: &SgErc20,
     ) -> SgVault {
-        create_vault_with_balance_and_orderbook(
+        create_vault_with_balance_and_raindex(
             vault_id,
             &setup.local_evm.anvil.addresses()[0],
-            orderbook,
+            raindex,
             token,
             "1000",
         )
     }
 
-    pub fn create_vault_with_balance_and_orderbook(
+    pub fn create_vault_with_balance_and_raindex(
         vault_id: B256,
         owner: &Address,
-        orderbook: Address,
+        raindex: Address,
         token: &SgErc20,
         balance: &str,
     ) -> SgVault {
@@ -467,7 +467,7 @@ pub mod local_evm {
             vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(owner.to_string()),
             orderbook: SgOrderbook {
-                id: SgBytes(orderbook.to_string()),
+                id: SgBytes(raindex.to_string()),
             },
             orders_as_input: vec![],
             orders_as_output: vec![],
@@ -530,18 +530,18 @@ pub mod orders {
             (order_bytes, order_hash)
         }
 
-        use super::super::local_evm::MultiOrderbookTestSetup;
+        use super::super::local_evm::MultiRaindexTestSetup;
         use raindex_bindings::IRaindexV6::OrderV4;
 
-        pub async fn deploy_order_to_orderbook(
-            setup: &MultiOrderbookTestSetup,
-            orderbook: Address,
+        pub async fn deploy_order_to_raindex(
+            setup: &MultiRaindexTestSetup,
+            raindex: Address,
             dotrain: String,
         ) -> (String, B256, OrderV4) {
             use alloy::network::TransactionBuilder;
             use alloy::rpc::types::TransactionRequest;
             use alloy::serde::WithOtherFields;
-            use raindex_test_fixtures::Orderbook;
+            use raindex_test_fixtures::Raindex;
 
             let dotrain_order = DotrainOrder::create(dotrain.clone(), None).await.unwrap();
             let deployment = dotrain_order
@@ -559,7 +559,7 @@ pub mod orders {
             let tx_req = WithOtherFields::new(
                 TransactionRequest::default()
                     .with_input(calldata.to_vec())
-                    .with_to(orderbook)
+                    .with_to(raindex)
                     .with_from(setup.owner),
             );
 
@@ -574,7 +574,7 @@ pub mod orders {
                 .inner
                 .logs()
                 .iter()
-                .find_map(|v| v.log_decode::<Orderbook::AddOrderV3>().ok())
+                .find_map(|v| v.log_decode::<Raindex::AddOrderV3>().ok())
                 .expect("Should have AddOrderV3 event")
                 .inner
                 .data;
@@ -597,12 +597,12 @@ pub mod candidates {
     use super::orders::make_basic_order;
 
     pub fn make_candidate(
-        orderbook: Address,
+        raindex: Address,
         max_output: Float,
         ratio: Float,
     ) -> TakeOrderCandidate {
         TakeOrderCandidate {
-            orderbook,
+            raindex,
             order: make_basic_order(Address::from([4u8; 20]), Address::from([5u8; 20])),
             input_io_index: 0,
             output_io_index: 0,
@@ -668,12 +668,12 @@ pub mod dotrain {
     use alloy::primitives::Address;
     use raindex_app_settings::spec_version::SpecVersion;
 
-    use super::local_evm::{MultiOrderbookTestSetup, TestSetup};
+    use super::local_evm::{MultiRaindexTestSetup, TestSetup};
 
     pub struct DotrainBuilder {
         rpc_url: String,
         rainlang: Address,
-        orderbook: Address,
+        raindex: Address,
         token1: Address,
         token2: Address,
         vault_id: String,
@@ -688,7 +688,7 @@ pub mod dotrain {
             Self {
                 rpc_url: setup.local_evm.url(),
                 rainlang: setup.local_evm.rainlang,
-                orderbook: setup.orderbook,
+                raindex: setup.raindex,
                 token1: setup.token1,
                 token2: setup.token2,
                 vault_id: "0x01".to_string(),
@@ -702,11 +702,11 @@ pub mod dotrain {
             }
         }
 
-        pub fn from_multi_orderbook_setup(setup: &MultiOrderbookTestSetup) -> Self {
+        pub fn from_multi_raindex_setup(setup: &MultiRaindexTestSetup) -> Self {
             Self {
                 rpc_url: setup.local_evm.url(),
                 rainlang: setup.local_evm.rainlang,
-                orderbook: setup.orderbook_a,
+                raindex: setup.raindex_a,
                 token1: setup.token1,
                 token2: setup.token2,
                 vault_id: "0x01".to_string(),
@@ -735,8 +735,8 @@ pub mod dotrain {
             self
         }
 
-        pub fn with_orderbook(mut self, orderbook: Address) -> Self {
-            self.orderbook = orderbook;
+        pub fn with_raindex(mut self, raindex: Address) -> Self {
+            self.raindex = raindex;
             self
         }
 
@@ -816,9 +816,9 @@ tokens:
         decimals: 18
         label: Token2
         symbol: Token2
-orderbook:
-    test-orderbook:
-        address: {orderbook}
+raindex:
+    test-raindex:
+        address: {raindex}
 orders:
     test-order:
         inputs:
@@ -844,7 +844,7 @@ amount price: {max_output} {ratio};
 :;
 "#,
                 rpc_url = self.rpc_url,
-                orderbook = self.orderbook,
+                raindex = self.raindex,
                 rainlang = self.rainlang,
                 token1 = self.token1,
                 token2 = self.token2,
@@ -889,15 +889,15 @@ amount price: {max_output} {ratio};
             .build()
     }
 
-    pub fn create_dotrain_config_for_orderbook(
-        setup: &MultiOrderbookTestSetup,
-        orderbook: Address,
+    pub fn create_dotrain_config_for_raindex(
+        setup: &MultiRaindexTestSetup,
+        raindex: Address,
         vault_id: &str,
         max_output: &str,
         ratio: &str,
     ) -> String {
-        DotrainBuilder::from_multi_orderbook_setup(setup)
-            .with_orderbook(orderbook)
+        DotrainBuilder::from_multi_raindex_setup(setup)
+            .with_raindex(raindex)
             .with_single_io(vault_id)
             .with_max_output(max_output)
             .with_ratio(ratio)
@@ -914,7 +914,7 @@ pub mod subgraph {
     };
     use serde_json::json;
 
-    use super::local_evm::{MultiOrderbookTestSetup, TestSetup};
+    use super::local_evm::{MultiRaindexTestSetup, TestSetup};
 
     pub fn create_sg_order(
         setup: &TestSetup,
@@ -926,7 +926,7 @@ pub mod subgraph {
         SgOrder {
             id: SgBytes(order_hash.to_string()),
             orderbook: SgOrderbook {
-                id: SgBytes(setup.orderbook.to_string()),
+                id: SgBytes(setup.raindex.to_string()),
             },
             order_bytes: SgBytes(order_bytes),
             order_hash: SgBytes(order_hash.to_string()),
@@ -942,7 +942,7 @@ pub mod subgraph {
         }
     }
 
-    fn vaults_to_json(vaults: &[SgVault], orderbook: Address) -> Vec<serde_json::Value> {
+    fn vaults_to_json(vaults: &[SgVault], raindex: Address) -> Vec<serde_json::Value> {
         vaults
             .iter()
             .map(|v| {
@@ -958,7 +958,7 @@ pub mod subgraph {
                         "symbol": v.token.symbol.clone().unwrap_or_default(),
                         "decimals": v.token.decimals.clone().map(|d| d.0).unwrap_or_default()
                     },
-                    "orderbook": { "id": orderbook.to_string() },
+                    "orderbook": { "id": raindex.to_string() },
                     "ordersAsOutput": [],
                     "ordersAsInput": [],
                     "balanceChanges": []
@@ -974,8 +974,8 @@ pub mod subgraph {
         inputs: Vec<SgVault>,
         outputs: Vec<SgVault>,
     ) -> serde_json::Value {
-        create_sg_order_json_with_orderbook_and_owner(
-            setup.orderbook,
+        create_sg_order_json_with_raindex_and_owner(
+            setup.raindex,
             setup.owner,
             order_bytes,
             order_hash,
@@ -984,16 +984,16 @@ pub mod subgraph {
         )
     }
 
-    pub fn create_sg_order_json_with_orderbook(
-        setup: &MultiOrderbookTestSetup,
-        orderbook: Address,
+    pub fn create_sg_order_json_with_raindex(
+        setup: &MultiRaindexTestSetup,
+        raindex: Address,
         order_bytes: &str,
         order_hash: B256,
         inputs: Vec<SgVault>,
         outputs: Vec<SgVault>,
     ) -> serde_json::Value {
-        create_sg_order_json_with_orderbook_and_owner(
-            orderbook,
+        create_sg_order_json_with_raindex_and_owner(
+            raindex,
             setup.owner,
             order_bytes,
             order_hash,
@@ -1002,16 +1002,16 @@ pub mod subgraph {
         )
     }
 
-    fn create_sg_order_json_with_orderbook_and_owner(
-        orderbook: Address,
+    fn create_sg_order_json_with_raindex_and_owner(
+        raindex: Address,
         owner: Address,
         order_bytes: &str,
         order_hash: B256,
         inputs: Vec<SgVault>,
         outputs: Vec<SgVault>,
     ) -> serde_json::Value {
-        let inputs_json = vaults_to_json(&inputs, orderbook);
-        let outputs_json = vaults_to_json(&outputs, orderbook);
+        let inputs_json = vaults_to_json(&inputs, raindex);
+        let outputs_json = vaults_to_json(&outputs, raindex);
 
         json!({
             "id": order_hash.to_string(),
@@ -1020,7 +1020,7 @@ pub mod subgraph {
             "owner": owner.to_string(),
             "outputs": outputs_json,
             "inputs": inputs_json,
-            "orderbook": { "id": orderbook.to_string() },
+            "orderbook": { "id": raindex.to_string() },
             "active": true,
             "timestampAdded": "1739448802",
             "meta": null,
@@ -1041,7 +1041,7 @@ pub mod subgraph {
         chain_id: u32,
         rpc_url: &str,
         sg_url: &str,
-        orderbook_address: &str,
+        raindex_address: &str,
     ) -> String {
         format!(
             r#"
@@ -1057,9 +1057,9 @@ subgraphs:
     test-sg: {sg_url}
 metaboards:
     test-mb: http://localhost:0/notused
-orderbooks:
-    test-orderbook:
-        address: {orderbook_address}
+raindexes:
+    test-raindex:
+        address: {raindex_address}
         network: test-network
         subgraph: test-sg
         local-db-remote: remote
@@ -1080,7 +1080,7 @@ tokens:
             chain_id = chain_id,
             rpc_url = rpc_url,
             sg_url = sg_url,
-            orderbook_address = orderbook_address,
+            raindex_address = raindex_address,
         )
     }
 
@@ -1105,14 +1105,14 @@ subgraphs:
     test-sg: {sg_url}
 metaboards:
     test-mb: http://localhost:0/notused
-orderbooks:
-    orderbook-a:
+raindexes:
+    raindex-a:
         address: {raindex_a}
         network: test-network
         subgraph: test-sg
         local-db-remote: remote
         deployment-block: 0
-    orderbook-b:
+    raindex-b:
         address: {raindex_b}
         network: test-network
         subgraph: test-sg
@@ -1134,8 +1134,8 @@ tokens:
             chain_id = chain_id,
             rpc_url = rpc_url,
             sg_url = sg_url,
-            orderbook_a = orderbook_a,
-            orderbook_b = orderbook_b,
+            raindex_a = raindex_a,
+            raindex_b = raindex_b,
         )
     }
 }

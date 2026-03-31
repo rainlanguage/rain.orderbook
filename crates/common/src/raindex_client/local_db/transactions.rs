@@ -5,7 +5,7 @@ use crate::local_db::query::fetch_transaction_by_hash::{
     build_fetch_transaction_by_hash_stmt, LocalDbTransaction,
 };
 use crate::local_db::query::LocalDbQueryExecutor;
-use crate::local_db::OrderbookIdentifier;
+use crate::local_db::RaindexIdentifier;
 use alloy::primitives::B256;
 
 pub struct LocalDbTransactions<'a> {
@@ -21,7 +21,7 @@ impl<'a> LocalDbTransactions<'a> {
     /// Returns None if no transaction with that hash is found.
     pub async fn get_by_tx_hash(
         &self,
-        ob_id: &OrderbookIdentifier,
+        ob_id: &RaindexIdentifier,
         tx_hash: B256,
     ) -> Result<Option<RaindexTransaction>, RaindexError> {
         let stmt = build_fetch_transaction_by_hash_stmt(ob_id, tx_hash);
@@ -81,7 +81,7 @@ mod tests {
             let tx_hash =
                 b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
             let sender = address!("0x1111111111111111111111111111111111111111");
-            let orderbook = address!("0x2222222222222222222222222222222222222222");
+            let raindex_addr = address!("0x2222222222222222222222222222222222222222");
 
             let tx_json = json!([{
                 "transactionHash": tx_hash.to_string(),
@@ -95,7 +95,7 @@ mod tests {
             let local_db = LocalDb::new(exec);
 
             let transactions = LocalDbTransactions::new(&local_db);
-            let ob_id = OrderbookIdentifier::new(1, orderbook);
+            let ob_id = RaindexIdentifier::new(1, raindex_addr);
 
             let result = transactions.get_by_tx_hash(&ob_id, tx_hash).await;
 
@@ -110,14 +110,14 @@ mod tests {
         async fn test_get_by_tx_hash_returns_none_when_not_found() {
             let tx_hash =
                 b256!("0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890");
-            let orderbook = address!("0x2222222222222222222222222222222222222222");
+            let raindex_addr = address!("0x2222222222222222222222222222222222222222");
 
             let callback = create_mock_callback("[]");
             let exec = JsCallbackExecutor::from_ref(&callback);
             let local_db = LocalDb::new(exec);
 
             let transactions = LocalDbTransactions::new(&local_db);
-            let ob_id = OrderbookIdentifier::new(1, orderbook);
+            let ob_id = RaindexIdentifier::new(1, raindex_addr);
 
             let result = transactions.get_by_tx_hash(&ob_id, tx_hash).await;
 

@@ -101,7 +101,7 @@ pub struct DeploymentTransactionArgs {
     #[tsify(type = "string")]
     deployment_calldata: Bytes,
     #[tsify(type = "string")]
-    orderbook_address: Address,
+    raindex_address: Address,
     chain_id: u32,
     #[tsify(type = "ExternalCall | undefined")]
     emit_meta_call: Option<ExternalCall>,
@@ -144,7 +144,7 @@ impl DotrainOrderGui {
     fn get_transaction_args(&self) -> Result<TransactionArgs, GuiError> {
         let raindex = self.get_raindex()?;
         Ok(TransactionArgs {
-            orderbook_address: raindex.address,
+            raindex_address: raindex.address,
             rpcs: raindex
                 .network
                 .rpcs
@@ -285,7 +285,7 @@ impl DotrainOrderGui {
                 .address;
 
             let erc20 = ERC20::new(rpcs, token);
-            let allowance = erc20.allowance(owner, tx_args.orderbook_address).await?;
+            let allowance = erc20.allowance(owner, tx_args.raindex_address).await?;
 
             results.push(TokenAllowance { token, allowance });
         }
@@ -356,7 +356,7 @@ impl DotrainOrderGui {
 
             if !allowance_float.eq(*deposit_amount)? {
                 let calldata = approveCall {
-                    spender: tx_args.orderbook_address,
+                    spender: tx_args.raindex_address,
                     amount: deposit_amount.to_fixed_decimal(decimals)?,
                 }
                 .abi_encode();
@@ -840,7 +840,7 @@ impl DotrainOrderGui {
         Ok(DeploymentTransactionArgs {
             approvals,
             deployment_calldata,
-            orderbook_address: deployment
+            raindex_address: deployment
                 .deployment
                 .order
                 .raindex

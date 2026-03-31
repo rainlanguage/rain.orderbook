@@ -83,7 +83,7 @@ mod tests {
     use crate::local_db::fetch::FetchConfig;
     use crate::local_db::pipeline::engine::SyncInputs;
     use crate::local_db::pipeline::{FinalityConfig, SyncConfig, WindowOverrides};
-    use crate::local_db::{LocalDbError, OrderbookIdentifier};
+    use crate::local_db::{LocalDbError, RaindexIdentifier};
     use crate::rpc_client::RpcClientError;
     use alloy::primitives::address;
     use url::Url;
@@ -95,9 +95,9 @@ mod tests {
             network_key: "test-network".to_string(),
             manifest_url: Url::parse("https://manifests.example/client.yaml").unwrap(),
             inputs: SyncInputs {
-                ob_id: OrderbookIdentifier {
+                ob_id: RaindexIdentifier {
                     chain_id: 1,
-                    orderbook_address: address!("00000000000000000000000000000000000000c1"),
+                    raindex_address: address!("00000000000000000000000000000000000000c1"),
                 },
                 metadata_rpcs,
                 cfg: SyncConfig {

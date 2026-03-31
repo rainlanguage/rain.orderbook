@@ -1,20 +1,20 @@
 use crate::local_db::query::create_tables::REQUIRED_TABLES;
 use crate::local_db::query::{SqlStatement, SqlStatementBatch, SqlValue};
-use crate::local_db::OrderbookIdentifier;
+use crate::local_db::RaindexIdentifier;
 
-pub const CLEAR_ORDERBOOK_DATA_SQL: &str = include_str!("query.sql");
+pub const CLEAR_RAINDEX_DATA_SQL: &str = include_str!("query.sql");
 
-pub fn clear_orderbook_data_batch(ob_id: &OrderbookIdentifier) -> SqlStatementBatch {
+pub fn clear_raindex_data_batch(raindex_id: &RaindexIdentifier) -> SqlStatementBatch {
     let statements: Vec<SqlStatement> = REQUIRED_TABLES
         .iter()
         .copied()
         .filter(|table| *table != "db_metadata")
         .map(|table| {
             SqlStatement::new_with_params(
-                format!("DELETE FROM {table}\nWHERE chain_id = ?1 AND orderbook_address = ?2"),
+                format!("DELETE FROM {table}\nWHERE chain_id = ?1 AND raindex_address = ?2"),
                 [
-                    SqlValue::from(ob_id.chain_id),
-                    SqlValue::from(ob_id.orderbook_address),
+                    SqlValue::from(raindex_id.chain_id),
+                    SqlValue::from(raindex_id.raindex_address),
                 ],
             )
         })
@@ -48,7 +48,7 @@ mod tests {
     fn batch_wraps_transaction_and_matches_tables() {
         let chain_id = 999u32;
         let addr = Address::from([0xAA; 20]);
-        let batch = clear_orderbook_data_batch(&OrderbookIdentifier::new(chain_id, addr));
+        let batch = clear_raindex_data_batch(&RaindexIdentifier::new(chain_id, addr));
 
         let expected_tables: Vec<&str> = REQUIRED_TABLES
             .iter()
@@ -66,7 +66,7 @@ mod tests {
         for (idx, table) in expected_tables.iter().enumerate() {
             let stmt = &statements[idx + 1];
             let expected_sql =
-                format!("DELETE FROM {table}\nWHERE chain_id = ?1 AND orderbook_address = ?2");
+                format!("DELETE FROM {table}\nWHERE chain_id = ?1 AND raindex_address = ?2");
             assert_eq!(stmt.sql(), expected_sql);
             assert_eq!(
                 stmt.params(),
@@ -80,7 +80,7 @@ mod tests {
 
     #[test]
     fn sql_covers_expected_tables() {
-        let sql = CLEAR_ORDERBOOK_DATA_SQL.to_ascii_lowercase();
+        let sql = CLEAR_RAINDEX_DATA_SQL.to_ascii_lowercase();
         let expected_tables: HashSet<String> = REQUIRED_TABLES
             .iter()
             .copied()
@@ -106,7 +106,7 @@ mod tests {
                 });
                 let stmt = &stmt_rest[..stmt_end];
                 let has_chain_guard = stmt.contains("where chain_id = ?1");
-                let has_address_guard = stmt.contains("orderbook_address = ?2");
+                let has_address_guard = stmt.contains("raindex_address = ?2");
                 if !(has_chain_guard && has_address_guard) {
                     tables_missing_scope.push(table_name.clone());
                 }

@@ -108,7 +108,7 @@ mod tests {
                     timestamp: SgBigInt("1678886400".to_string()),
                 },
                 orderbook: SgOrderbook {
-                    id: SgBytes("orderbookVBCIn001".to_string()),
+                    id: SgBytes("raindexVBCIn001".to_string()),
                 },
                 trade: SgTradeRef {
                     trade_event: SgTradeEventTypename {
@@ -141,7 +141,7 @@ mod tests {
                     timestamp: SgBigInt("1678886400".to_string()),
                 },
                 orderbook: SgOrderbook {
-                    id: SgBytes("orderbookVBCOut001".to_string()),
+                    id: SgBytes("raindexVBCOut001".to_string()),
                 },
                 trade: SgTradeRef {
                     trade_event: SgTradeEventTypename {
@@ -150,7 +150,7 @@ mod tests {
                 },
             },
             orderbook: SgOrderbook {
-                id: SgBytes("mainOrderbook001".to_string()),
+                id: SgBytes("mainRaindex001".to_string()),
             },
         }
     }

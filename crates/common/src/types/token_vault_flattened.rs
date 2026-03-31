@@ -74,7 +74,7 @@ mod tests {
                 decimals: token_decimals_str.map(|s| SgBigInt(s.into())),
             },
             orderbook: SgOrderbook {
-                id: SgBytes("default_orderbook_id".into()),
+                id: SgBytes("default_raindex_id".into()),
             },
             orders_as_output: Vec::<SgOrderAsIO>::new(),
             orders_as_input: Vec::<SgOrderAsIO>::new(),

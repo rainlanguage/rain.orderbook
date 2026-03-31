@@ -61,12 +61,12 @@ pub mod vaults_list;
 pub struct ChainIds(#[tsify(type = "number[]")] pub Vec<u32>);
 impl_wasm_traits!(ChainIds);
 
-/// RaindexClient provides a simplified interface for querying orderbook data across
+/// RaindexClient provides a simplified interface for querying raindex data across
 /// multiple networks with automatic configuration management.
 ///
 /// This client abstracts away complex network-specific configurations by parsing YAML
-/// configuration files that define networks, tokens, orderbooks, and subgraph endpoints.
-/// It enables querying orderbook data either from specific chains or across all
+/// configuration files that define networks, tokens, raindexes, and subgraph endpoints.
+/// It enables querying raindex data either from specific chains or across all
 /// configured networks with automatic fallback mechanisms.
 ///
 /// The client handles:
@@ -129,12 +129,12 @@ impl RaindexClient {
     )]
     pub async fn new(
         #[wasm_export(
-            js_name = "obYamls",
+            js_name = "raindexYamls",
             param_description = "List of YAML configuration strings. \
-            The YAML files must match the [orderbook yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md)
+            The YAML files must match the [raindex yaml spec](https://github.com/rainlanguage/specs/blob/main/ob-yaml.md)
             "
         )]
-        ob_yamls: Vec<String>,
+        raindex_yamls: Vec<String>,
         validate: Option<bool>,
         #[wasm_export(
             js_name = "queryCallback",
@@ -153,7 +153,7 @@ impl RaindexClient {
         status_callback: Option<js_sys::Function>,
     ) -> Result<RaindexClient, RaindexError> {
         let mut raindex_yaml = RaindexYaml::new(
-            ob_yamls,
+            raindex_yamls,
             match validate {
                 Some(true) => RaindexYamlValidation::full(),
                 _ => RaindexYamlValidation::default(),
@@ -258,12 +258,12 @@ impl RaindexClient {
     #[wasm_export(skip)]
     pub fn get_raindex_subgraph_client(
         &self,
-        orderbook_address: Address,
+        raindex_address: Address,
     ) -> Result<OrderbookSubgraphClient, RaindexError> {
-        let orderbook = self
+        let raindex = self
             .raindex_yaml
-            .get_raindex_by_address(orderbook_address)?;
-        Ok(OrderbookSubgraphClient::new(orderbook.subgraph.url.clone()))
+            .get_raindex_by_address(raindex_address)?;
+        Ok(OrderbookSubgraphClient::new(raindex.subgraph.url.clone()))
     }
 
     fn get_rpc_urls_for_chain(&self, chain_id: u32) -> Result<Vec<Url>, RaindexError> {
@@ -287,12 +287,12 @@ impl RaindexClient {
 #[cfg(not(target_family = "wasm"))]
 impl RaindexClient {
     pub async fn new(
-        ob_yamls: Vec<String>,
+        raindex_yamls: Vec<String>,
         validate: Option<bool>,
         db_path: Option<std::path::PathBuf>,
     ) -> Result<RaindexClient, RaindexError> {
         let mut raindex_yaml = RaindexYaml::new(
-            ob_yamls,
+            raindex_yamls,
             match validate {
                 Some(true) => RaindexYamlValidation::full(),
                 _ => RaindexYamlValidation::default(),
@@ -575,7 +575,7 @@ impl RaindexError {
             }
             RaindexError::RaindexNotFound(address, chain_id) => {
                 format!(
-                    "Orderbook not found for address: {} on chain ID: {}",
+                    "Raindex not found for address: {} on chain ID: {}",
                     address, chain_id
                 )
             }
@@ -697,7 +697,7 @@ pub(crate) mod tests {
     use raindex_app_settings::spec_version::SpecVersion;
 
     #[cfg(not(target_family = "wasm"))]
-    pub const CHAIN_ID_1_ORDERBOOK_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
+    pub const CHAIN_ID_1_RAINDEX_ADDRESS: &str = "0x1234567890123456789012345678901234567890";
     pub fn get_test_yaml(subgraph1: &str, subgraph2: &str, rpc1: &str, rpc2: &str) -> String {
         format!(
             r#"
@@ -723,21 +723,21 @@ subgraphs:
 metaboards:
     mainnet: https://api.thegraph.com/subgraphs/name/xyz
     polygon: https://api.thegraph.com/subgraphs/name/polygon
-orderbooks:
-    mainnet-orderbook:
+raindexes:
+    mainnet-raindex:
         address: 0x1234567890123456789012345678901234567890
         network: mainnet
         subgraph: mainnet
         local-db-remote: remote
-        label: Primary Orderbook
+        label: Primary Raindex
         deployment-block: 12345
-    polygon-orderbook:
+    polygon-raindex:
         address: 0x0987654321098765432109876543210987654321
         network: polygon
         subgraph: polygon
         local-db-remote: remote
         deployment-block: 12345
-        label: Polygon Orderbook
+        label: Polygon Raindex
 tokens:
     weth:
         network: mainnet
@@ -946,8 +946,8 @@ subgraphs:
     arbitrum: https://arb.subgraph
 metaboards:
     arbitrum: https://arb.metaboard
-orderbooks:
-    arbitrum-orderbook:
+raindexes:
+    arbitrum-raindex:
         address: 0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB
         network: arbitrum
         subgraph: arbitrum
@@ -993,8 +993,8 @@ accounts:
             rpcs:
                 - https://mainnet.infura.io
             chain-id: 1
-    orderbooks:
-        invalid-orderbook:
+    raindexes:
+        invalid-raindex:
             address: 0x1234567890123456789012345678901234567890
             network: nonexistent-network
             subgraph: nonexistent-subgraph
@@ -1211,13 +1211,13 @@ accounts:
         test-rainlang:
             address: 0x2222222222222222222222222222222222222222
             network: isolated
-    orderbooks:
-        test-orderbook:
+    raindexes:
+        test-raindex:
             address: 0x1111111111111111111111111111111111111111
             network: some-network
             subgraph: test
             local-db-remote: remote
-            label: Test Orderbook
+            label: Test Raindex
             deployment-block: 12345
     "#,
                 spec_version = SpecVersion::current()
@@ -1230,11 +1230,11 @@ accounts:
             let err = client.get_multi_subgraph_args(None).unwrap_err();
             assert!(matches!(
                 err,
-                RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg.contains("orderbook with network key: isolated")
+                RaindexError::YamlError(YamlError::NotFound(ref msg)) if msg.contains("raindex with network key: isolated")
             ));
             assert!(err
                 .to_readable_msg()
-                .contains("orderbook with network key: isolated not found"));
+                .contains("raindex with network key: isolated not found"));
         }
     }
 }

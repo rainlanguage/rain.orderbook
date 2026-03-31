@@ -1,9 +1,9 @@
 use crate::local_db::pipeline::{StatusBus, SyncPhase};
-use crate::local_db::{LocalDbError, OrderbookIdentifier};
+use crate::local_db::{LocalDbError, RaindexIdentifier};
 
 #[derive(Debug, Clone, Default)]
 pub struct TracingStatusBus {
-    ob_id: Option<OrderbookIdentifier>,
+    ob_id: Option<RaindexIdentifier>,
     raindex_key: Option<String>,
 }
 
@@ -15,14 +15,14 @@ impl TracingStatusBus {
         }
     }
 
-    pub fn with_ob_id(ob_id: OrderbookIdentifier) -> Self {
+    pub fn with_ob_id(ob_id: RaindexIdentifier) -> Self {
         Self {
             ob_id: Some(ob_id),
             raindex_key: None,
         }
     }
 
-    pub fn with_ob_id_and_key(ob_id: OrderbookIdentifier, key: String) -> Self {
+    pub fn with_ob_id_and_key(ob_id: RaindexIdentifier, key: String) -> Self {
         Self {
             ob_id: Some(ob_id),
             raindex_key: Some(key),
@@ -37,7 +37,7 @@ impl StatusBus for TracingStatusBus {
         let ob_addr = self
             .ob_id
             .as_ref()
-            .map(|id| format!("{:#x}", id.orderbook_address))
+            .map(|id| format!("{:#x}", id.raindex_address))
             .unwrap_or_default();
         let key = self.raindex_key.as_deref().unwrap_or("unknown");
 
@@ -57,11 +57,11 @@ impl StatusBus for TracingStatusBus {
 mod tests {
     use super::*;
     use crate::local_db::pipeline::SyncPhase;
-    use crate::local_db::OrderbookIdentifier;
+    use crate::local_db::RaindexIdentifier;
     use alloy::primitives::address;
 
-    fn test_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier::new(1, address!("0000000000000000000000000000000000001234"))
+    fn test_ob_id() -> RaindexIdentifier {
+        RaindexIdentifier::new(1, address!("0000000000000000000000000000000000001234"))
     }
 
     #[tokio::test]

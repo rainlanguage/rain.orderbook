@@ -150,7 +150,7 @@ mod tests {
     use crate::local_db::pipeline::{FinalityConfig, SyncConfig, SyncPhase, WindowOverrides};
     use crate::local_db::query::sql_statement_batch::SqlStatementBatch;
     use crate::local_db::query::LocalDbQueryExecutor;
-    use crate::local_db::{LocalDbError, OrderbookIdentifier};
+    use crate::local_db::{LocalDbError, RaindexIdentifier};
     use crate::rpc_client::LogEntryResponse;
     use alloy::primitives::{address, b256, Address, B256};
     use async_trait::async_trait;
@@ -182,9 +182,9 @@ mod tests {
             manifest_url: Url::parse("https://example.com/manifest.yaml").unwrap(),
             network_key: "network-a".to_string(),
             inputs: SyncInputs {
-                ob_id: OrderbookIdentifier {
+                raindex_id: RaindexIdentifier {
                     chain_id: 1,
-                    orderbook_address: address!("0000000000000000000000000000000000000001"),
+                    raindex_address: address!("0000000000000000000000000000000000000001"),
                 },
                 metadata_rpcs: vec![Url::parse("https://rpc.example.com").unwrap()],
                 cfg: SyncConfig {
@@ -246,7 +246,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _raindex_id: &RaindexIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -268,10 +268,10 @@ mod tests {
             Ok(())
         }
 
-        async fn clear_orderbook_data<DB>(
+        async fn clear_raindex_data<DB>(
             &self,
             _db: &DB,
-            _target: &OrderbookIdentifier,
+            _target: &RaindexIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -307,7 +307,7 @@ mod tests {
         async fn compute<DB>(
             &self,
             _db: &DB,
-            _target: &OrderbookIdentifier,
+            _target: &RaindexIdentifier,
             _cfg: &SyncConfig,
             latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
@@ -324,9 +324,9 @@ mod tests {
             Ok(0)
         }
 
-        async fn fetch_orderbook(
+        async fn fetch_raindex(
             &self,
-            _orderbook_address: Address,
+            _raindex_address: Address,
             _from_block: u64,
             _to_block: u64,
             _cfg: &crate::local_db::FetchConfig,
@@ -366,7 +366,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _raindex_id: &RaindexIdentifier,
             _token_addrs_lower: &[Address],
         ) -> Result<
             Vec<crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
@@ -689,7 +689,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
@@ -729,7 +729,7 @@ db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
-    orderbooks:
+    raindexes:
       - address: "0x00000000000000000000000000000000000000a1"
         dump-url: "{base}/dump.sql.gz"
         end-block: 123

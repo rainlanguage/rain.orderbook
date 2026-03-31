@@ -27,7 +27,7 @@ pub fn compose_to_rainlang(
 mod tests {
     use dotrain::{error::ErrorCode, types::ast::Problem};
 
-    use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
+    use crate::add_order::RAINDEX_ORDER_ENTRYPOINTS;
 
     use super::*;
 
@@ -82,7 +82,7 @@ _ _: 0 0;
         let actual = compose_to_rainlang(
             dotrain.to_string(),
             HashMap::new(),
-            &ORDERBOOK_ORDER_ENTRYPOINTS,
+            &RAINDEX_ORDER_ENTRYPOINTS,
         )
         .unwrap();
 
@@ -278,7 +278,7 @@ mod fork_parse {
         use std::collections::HashMap;
 
         use super::*;
-        use crate::add_order::ORDERBOOK_ORDER_ENTRYPOINTS;
+        use crate::add_order::RAINDEX_ORDER_ENTRYPOINTS;
         use raindex_test_fixtures::LocalEvm;
 
         #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -303,7 +303,7 @@ _ _: 1 2;
             let rainlang = super::super::compose_to_rainlang(
                 dotrain.to_string(),
                 HashMap::new(),
-                &ORDERBOOK_ORDER_ENTRYPOINTS,
+                &RAINDEX_ORDER_ENTRYPOINTS,
             )
             .unwrap();
 
@@ -372,7 +372,7 @@ _ _: 1 2;
             let rainlang = super::super::compose_to_rainlang(
                 dotrain.to_string(),
                 HashMap::new(),
-                &ORDERBOOK_ORDER_ENTRYPOINTS,
+                &RAINDEX_ORDER_ENTRYPOINTS,
             )
             .unwrap();
 

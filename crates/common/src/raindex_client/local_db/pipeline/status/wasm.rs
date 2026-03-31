@@ -1,6 +1,6 @@
 use crate::local_db::pipeline::{StatusBus, SyncPhase};
-use crate::local_db::{LocalDbError, OrderbookIdentifier};
-use crate::raindex_client::local_db::{OrderbookSyncStatus, SchedulerState};
+use crate::local_db::{LocalDbError, RaindexIdentifier};
+use crate::raindex_client::local_db::{RaindexSyncStatus, SchedulerState};
 use js_sys::Function;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -27,7 +27,7 @@ pub fn get_scheduler_state() -> SchedulerState {
     SCHEDULER_STATE.with(|s| *s.borrow())
 }
 
-fn emit_to_callback(status: OrderbookSyncStatus) {
+fn emit_to_callback(status: RaindexSyncStatus) {
     STATUS_CALLBACK.with(|c| {
         if let Some(callback) = c.borrow().as_ref() {
             if let Ok(value) = serde_wasm_bindgen::to_value(&status) {
@@ -39,7 +39,7 @@ fn emit_to_callback(status: OrderbookSyncStatus) {
 
 #[derive(Debug, Clone, Default)]
 pub struct ClientStatusBus {
-    ob_id: Option<OrderbookIdentifier>,
+    ob_id: Option<RaindexIdentifier>,
 }
 
 impl ClientStatusBus {
@@ -47,11 +47,11 @@ impl ClientStatusBus {
         Self { ob_id: None }
     }
 
-    pub fn with_ob_id(ob_id: OrderbookIdentifier) -> Self {
+    pub fn with_ob_id(ob_id: RaindexIdentifier) -> Self {
         Self { ob_id: Some(ob_id) }
     }
 
-    fn emit(&self, status: OrderbookSyncStatus) {
+    fn emit(&self, status: RaindexSyncStatus) {
         emit_to_callback(status);
     }
 
@@ -61,7 +61,7 @@ impl ClientStatusBus {
         };
 
         let scheduler_state = get_scheduler_state();
-        self.emit(OrderbookSyncStatus::active(ob_id.clone(), scheduler_state));
+        self.emit(RaindexSyncStatus::active(ob_id.clone(), scheduler_state));
     }
 
     pub fn emit_failure(&self, error: String) {
@@ -69,7 +69,7 @@ impl ClientStatusBus {
             return;
         };
 
-        self.emit(OrderbookSyncStatus::failure(ob_id.clone(), error));
+        self.emit(RaindexSyncStatus::failure(ob_id.clone(), error));
     }
 }
 
@@ -85,7 +85,7 @@ impl StatusBus for ClientStatusBus {
             return Ok(());
         };
 
-        let status = OrderbookSyncStatus::syncing(ob_id.clone(), phase);
+        let status = RaindexSyncStatus::syncing(ob_id.clone(), phase);
         self.emit(status);
 
         Ok(())
@@ -96,12 +96,12 @@ impl StatusBus for ClientStatusBus {
 mod tests {
     use super::*;
     use crate::local_db::pipeline::SyncPhase;
-    use crate::local_db::OrderbookIdentifier;
+    use crate::local_db::RaindexIdentifier;
     use crate::raindex_client::local_db::SchedulerState;
     use alloy::primitives::address;
 
-    fn test_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier::new(1, address!("0000000000000000000000000000000000001234"))
+    fn test_ob_id() -> RaindexIdentifier {
+        RaindexIdentifier::new(1, address!("0000000000000000000000000000000000001234"))
     }
 
     #[test]
@@ -187,9 +187,9 @@ mod tests {
 mod wasm_tests {
     use super::*;
     use crate::local_db::pipeline::{StatusBus, SyncPhase};
-    use crate::local_db::OrderbookIdentifier;
+    use crate::local_db::RaindexIdentifier;
     use crate::raindex_client::local_db::LocalDbStatus;
-    use crate::raindex_client::local_db::{OrderbookSyncStatus, SchedulerState};
+    use crate::raindex_client::local_db::{RaindexSyncStatus, SchedulerState};
     use alloy::primitives::address;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -200,15 +200,15 @@ mod wasm_tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    fn test_ob_id() -> OrderbookIdentifier {
-        OrderbookIdentifier::new(1, address!("0000000000000000000000000000000000001234"))
+    fn test_ob_id() -> RaindexIdentifier {
+        RaindexIdentifier::new(1, address!("0000000000000000000000000000000000001234"))
     }
 
     fn create_recording_callback(
-        recorded: Rc<RefCell<Vec<OrderbookSyncStatus>>>,
+        recorded: Rc<RefCell<Vec<RaindexSyncStatus>>>,
     ) -> Rc<js_sys::Function> {
         let closure = Closure::wrap(Box::new(move |value: JsValue| {
-            if let Ok(status) = serde_wasm_bindgen::from_value::<OrderbookSyncStatus>(value) {
+            if let Ok(status) = serde_wasm_bindgen::from_value::<RaindexSyncStatus>(value) {
                 recorded.borrow_mut().push(status);
             }
         }) as Box<dyn FnMut(JsValue)>);

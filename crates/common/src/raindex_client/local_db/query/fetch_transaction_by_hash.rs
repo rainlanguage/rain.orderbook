@@ -2,12 +2,12 @@ use crate::local_db::query::fetch_transaction_by_hash::{
     build_fetch_transaction_by_hash_stmt, LocalDbTransaction,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
-use crate::local_db::OrderbookIdentifier;
+use crate::local_db::RaindexIdentifier;
 use alloy::primitives::B256;
 
 pub async fn fetch_transaction_by_hash<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &OrderbookIdentifier,
+    ob_id: &RaindexIdentifier,
     tx_hash: B256,
 ) -> Result<Vec<LocalDbTransaction>, LocalDbQueryError> {
     let stmt = build_fetch_transaction_by_hash_stmt(ob_id, tx_hash);
@@ -30,7 +30,7 @@ mod wasm_tests {
         let tx_hash = b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
         let orderbook = Address::from([0x51; 20]);
         let expected_stmt =
-            build_fetch_transaction_by_hash_stmt(&OrderbookIdentifier::new(1, orderbook), tx_hash);
+            build_fetch_transaction_by_hash_stmt(&RaindexIdentifier::new(1, orderbook), tx_hash);
 
         let store = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
         let callback = create_sql_capturing_callback("[]", store.clone());
@@ -38,7 +38,7 @@ mod wasm_tests {
 
         let res = super::fetch_transaction_by_hash(
             &exec,
-            &OrderbookIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, orderbook),
             tx_hash,
         )
         .await;
@@ -52,7 +52,7 @@ mod wasm_tests {
         let orderbook = address!("0x5151515151515151515151515151515151515151");
         let sender = address!("0x1111111111111111111111111111111111111111");
         let expected_stmt =
-            build_fetch_transaction_by_hash_stmt(&OrderbookIdentifier::new(1, orderbook), tx_hash);
+            build_fetch_transaction_by_hash_stmt(&RaindexIdentifier::new(1, orderbook), tx_hash);
 
         let row_json = format!(
             r#"[{{
@@ -73,7 +73,7 @@ mod wasm_tests {
 
         let res = super::fetch_transaction_by_hash(
             &exec,
-            &OrderbookIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, orderbook),
             tx_hash,
         )
         .await;

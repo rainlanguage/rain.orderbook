@@ -4,11 +4,11 @@ use crate::local_db::query::fetch_order_trades_count::{
     build_fetch_trade_count_stmt, extract_trade_count, LocalDbTradeCountRow,
 };
 use crate::local_db::query::{LocalDbQueryError, LocalDbQueryExecutor};
-use crate::local_db::OrderbookIdentifier;
+use crate::local_db::RaindexIdentifier;
 
 pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &OrderbookIdentifier,
+    ob_id: &RaindexIdentifier,
     order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
@@ -38,7 +38,7 @@ mod wasm_tests {
 
         let orderbook = Address::from([0x88; 20]);
         let expected_stmt = build_fetch_trade_count_stmt(
-            &OrderbookIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, orderbook),
             order_hash.clone(),
             start,
             end,
@@ -56,7 +56,7 @@ mod wasm_tests {
 
         let res = super::fetch_order_trades_count(
             &exec,
-            &OrderbookIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, orderbook),
             order_hash,
             start,
             end,
@@ -79,7 +79,7 @@ mod wasm_tests {
         let exec = JsCallbackExecutor::from_ref(&callback);
         let res = super::fetch_order_trades_count(
             &exec,
-            &OrderbookIdentifier::new(1, Address::ZERO),
+            &RaindexIdentifier::new(1, Address::ZERO),
             b256!("0x00000000000000000000000000000000000000000000000000000000deadbeef"),
             None,
             None,

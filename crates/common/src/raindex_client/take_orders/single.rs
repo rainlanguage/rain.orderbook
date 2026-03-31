@@ -53,9 +53,9 @@ pub fn build_candidate_from_quote(
     }
 
     #[cfg(target_family = "wasm")]
-    let orderbook = Address::from_str(&order.orderbook())?;
+    let raindex_addr = Address::from_str(&order.raindex())?;
     #[cfg(not(target_family = "wasm"))]
-    let orderbook = order.orderbook();
+    let raindex_addr = order.raindex();
     let order_v4: OrderV4 = order.try_into()?;
     let input_io_index = quote.pair.input_index;
     let output_io_index = quote.pair.output_index;
@@ -65,7 +65,7 @@ pub fn build_candidate_from_quote(
     }
 
     Ok(Some(TakeOrderCandidate {
-        orderbook,
+        raindex: raindex_addr,
         order: order_v4,
         input_io_index,
         output_io_index,
@@ -131,13 +131,13 @@ pub async fn execute_single_take(
         return Err(RaindexError::NoLiquidity);
     }
 
-    let orderbook = candidate.orderbook;
+    let raindex_addr = candidate.raindex;
 
     let approval_params = ApprovalCheckParams {
         rpc_urls: rpc_context.rpc_urls.to_vec(),
         sell_token: execution_params.sell_token,
         taker: execution_params.taker,
-        orderbook,
+        raindex: raindex_addr,
         mode: execution_params.mode,
         price_cap: execution_params.price_cap,
     };
@@ -348,7 +348,7 @@ mod tests {
         let ratio = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(max_output, ratio)), false);
 
-        use crate::local_db::OrderbookIdentifier;
+        use crate::local_db::RaindexIdentifier;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
@@ -431,7 +431,7 @@ mod tests {
 
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
@@ -449,7 +449,7 @@ mod tests {
     fn test_quote_no_data_returns_none() {
         let quote = make_quote(0, 0, None, true);
 
-        use crate::local_db::OrderbookIdentifier;
+        use crate::local_db::RaindexIdentifier;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
@@ -532,7 +532,7 @@ mod tests {
 
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),
@@ -552,7 +552,7 @@ mod tests {
         let ratio = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(max_output, ratio)), true);
 
-        use crate::local_db::OrderbookIdentifier;
+        use crate::local_db::RaindexIdentifier;
         use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
@@ -635,7 +635,7 @@ mod tests {
 
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
                         Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
                     ),

@@ -22,7 +22,7 @@ use crate::local_db::{
         EventsPipeline, StatusBus, TokensPipeline, WindowPipeline,
     },
     query::LocalDbQueryExecutor,
-    LocalDbError, OrderbookIdentifier,
+    LocalDbError, RaindexIdentifier,
 };
 use crate::raindex_client::local_db::pipeline::bootstrap::ClientBootstrapAdapter;
 #[cfg(target_family = "wasm")]
@@ -132,7 +132,7 @@ where
                     return Ok(RunOutcome::Report(RunReport {
                         successes: Vec::new(),
                         failures: vec![TargetFailure {
-                            ob_id: OrderbookIdentifier::new(0, Address::ZERO),
+                            ob_id: RaindexIdentifier::new(0, Address::ZERO),
                             raindex_key: None,
                             stage: TargetStage::ManifestFetch,
                             error,
@@ -331,7 +331,7 @@ mod tests {
     use crate::local_db::query::fetch_tables::{fetch_tables_stmt, TableResponse};
     use crate::local_db::query::fetch_target_watermark::fetch_target_watermark_stmt;
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
-    use crate::local_db::{LocalDbError, OrderbookIdentifier};
+    use crate::local_db::{LocalDbError, RaindexIdentifier};
     use crate::rpc_client::LogEntryResponse;
     use alloy::primitives::{address, b256, Address, Bytes, B256};
     use async_trait::async_trait;
@@ -663,7 +663,7 @@ mod tests {
         async fn inspect_state<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _ob_id: &RaindexIdentifier,
         ) -> Result<BootstrapState, LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -688,7 +688,7 @@ mod tests {
         async fn clear_orderbook_data<DB>(
             &self,
             _db: &DB,
-            _target: &OrderbookIdentifier,
+            _target: &RaindexIdentifier,
         ) -> Result<(), LocalDbError>
         where
             DB: LocalDbQueryExecutor + ?Sized,
@@ -745,7 +745,7 @@ mod tests {
         async fn compute<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _ob_id: &RaindexIdentifier,
             _cfg: &SyncConfig,
             _latest_block: u64,
         ) -> Result<(u64, u64), LocalDbError>
@@ -781,7 +781,7 @@ mod tests {
 
         async fn fetch_orderbook(
             &self,
-            _orderbook_address: Address,
+            _raindex_address: Address,
             _from_block: u64,
             _to_block: u64,
             _cfg: &FetchConfig,
@@ -815,7 +815,7 @@ mod tests {
         async fn load_existing<DB>(
             &self,
             _db: &DB,
-            _ob_id: &OrderbookIdentifier,
+            _ob_id: &RaindexIdentifier,
             _token_addrs_lower: &[Address],
         ) -> Result<
             Vec<crate::local_db::query::fetch_erc20_tokens_by_addresses::Erc20TokenRow>,
@@ -975,7 +975,7 @@ mod tests {
 
     fn make_manifest(
         remote: Url,
-        orderbook_address: Address,
+        raindex_address: Address,
         dump_url: Url,
         end_block: u64,
         end_hash: &str,
@@ -989,7 +989,7 @@ mod tests {
                 ManifestNetwork {
                     chain_id: CHAIN_ID,
                     orderbooks: vec![ManifestOrderbook {
-                        address: orderbook_address,
+                        address: raindex_address,
                         dump_url,
                         end_block,
                         end_block_hash: Bytes::copy_from_slice(end_block_hash.as_slice()),
@@ -1095,7 +1095,7 @@ orderbooks:
         };
         db.set_json_value(&fetch_db_metadata_stmt(), &[metadata_row]);
         db.set_json_raw(
-            &fetch_target_watermark_stmt(&OrderbookIdentifier::new(0, Address::ZERO)),
+            &fetch_target_watermark_stmt(&RaindexIdentifier::new(0, Address::ZERO)),
             json!([]),
         );
     }
@@ -1200,7 +1200,7 @@ orderbooks:
 
     fn expect_orderbooks(report: &RunReport, expected: &[Address]) {
         let outcomes = extract_outcomes(report);
-        let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.ob_id.orderbook_address).collect();
+        let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.ob_id.raindex_address).collect();
         addrs.sort();
         let mut expected_sorted = expected.to_vec();
         expected_sorted.sort();
@@ -1667,11 +1667,11 @@ orderbooks:
             .failures
             .iter()
             .any(|failure| failure.stage == TargetStage::DumpDownload
-                && failure.ob_id.orderbook_address == RAINDEX_A));
+                && failure.ob_id.raindex_address == RAINDEX_A));
         assert!(report
             .successes
             .iter()
-            .any(|success| success.outcome.ob_id.orderbook_address == RAINDEX_B));
+            .any(|success| success.outcome.ob_id.raindex_address == RAINDEX_B));
         assert!(!runner.has_provisioned_dumps);
     }
 
@@ -1849,11 +1849,11 @@ orderbooks:
         assert!(report
             .failures
             .iter()
-            .any(|f| f.ob_id.orderbook_address == RAINDEX_A));
+            .any(|f| f.ob_id.raindex_address == RAINDEX_A));
         assert!(report
             .failures
             .iter()
-            .any(|f| f.ob_id.orderbook_address == RAINDEX_B));
+            .any(|f| f.ob_id.raindex_address == RAINDEX_B));
     }
 
     #[tokio::test]

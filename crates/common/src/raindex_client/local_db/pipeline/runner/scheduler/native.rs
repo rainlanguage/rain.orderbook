@@ -234,7 +234,7 @@ async fn run_network_loop<R: NativeRunner>(
                             tracing::warn!(
                                 network = %network_key,
                                 chain_id,
-                                ob = %format!("{:#x}", failure.ob_id.orderbook_address),
+                                ob = %format!("{:#x}", failure.ob_id.raindex_address),
                                 stage = ?failure.stage,
                                 error = %failure.error,
                                 "sync target failed"
@@ -275,7 +275,7 @@ mod tests {
     use super::*;
     use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
     use crate::local_db::query::{FromDbJson, LocalDbQueryError, SqlStatement, SqlStatementBatch};
-    use crate::local_db::OrderbookIdentifier;
+    use crate::local_db::RaindexIdentifier;
     use alloy::primitives::Address;
     use std::collections::VecDeque;
     use std::sync::atomic::AtomicUsize;
@@ -344,7 +344,7 @@ mod tests {
                         if should_fail {
                             failures.fetch_add(1, Ordering::SeqCst);
                             let failure = TargetFailure {
-                                ob_id: OrderbookIdentifier::new(1, Address::ZERO),
+                                ob_id: RaindexIdentifier::new(1, Address::ZERO),
                                 raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error: LocalDbError::CustomError("runner failure".to_string()),

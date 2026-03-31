@@ -67,8 +67,8 @@ pub fn lookup_manifest_entry(
         .get(&target.manifest_url)
         .and_then(|manifest| {
             manifest.find(
-                target.inputs.ob_id.chain_id,
-                target.inputs.ob_id.orderbook_address,
+                target.inputs.raindex_id.chain_id,
+                target.inputs.raindex_id.raindex_address,
             )
         })
         .cloned()
@@ -137,7 +137,7 @@ local-db-sync:
     finality-depth: 24
     bootstrap-block-threshold: 5000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
@@ -199,7 +199,7 @@ orderbooks:
             .expect("target ob-a");
 
         let manifest_entry = ManifestOrderbook {
-            address: target.inputs.ob_id.orderbook_address,
+            address: target.inputs.raindex_id.raindex_address,
             dump_url: Url::parse("https://example.com/dump.sql.gz").unwrap(),
             end_block: 123,
             end_block_hash: Bytes::from_static(&[0x01, 0x02, 0x03]),
@@ -212,8 +212,8 @@ orderbooks:
             networks: HashMap::from([(
                 "network-a".to_string(),
                 ManifestNetwork {
-                    chain_id: target.inputs.ob_id.chain_id,
-                    orderbooks: vec![manifest_entry.clone()],
+                    chain_id: target.inputs.raindex_id.chain_id,
+                    raindexes: vec![manifest_entry.clone()],
                 },
             )]),
         };
@@ -265,7 +265,7 @@ db-schema-version: 2
 networks:
   mainnet:
     chain-id: 1
-    orderbooks:
+    raindexes:
       - address: "0x0000000000000000000000000000000000000001"
         dump-url: "https://example.com/dump1.sql.gz"
         end-block: 100
@@ -279,7 +279,7 @@ db-schema-version: 2
 networks:
   goerli:
     chain-id: 5
-    orderbooks:
+    raindexes:
       - address: "0x0000000000000000000000000000000000000002"
         dump-url: "https://example.com/dump2.sql.gz"
         end-block: 200
@@ -453,13 +453,13 @@ networks: {}
     fn lookup_manifest_entry_found() {
         let (target, manifest_map) = sample_runner_target();
         let entry = lookup_manifest_entry(&manifest_map, &target).expect("entry found");
-        assert_eq!(entry.address, target.inputs.ob_id.orderbook_address);
+        assert_eq!(entry.address, target.inputs.raindex_id.raindex_address);
     }
 
     #[test]
     fn lookup_manifest_entry_missing_address() {
         let (mut target, mut manifest_map) = sample_runner_target();
-        target.inputs.ob_id.orderbook_address =
+        target.inputs.raindex_id.raindex_address =
             address!("000000000000000000000000000000000000dead");
         assert!(lookup_manifest_entry(&manifest_map, &target).is_none());
 
@@ -472,7 +472,7 @@ networks: {}
         let (target, mut manifest_map) = sample_runner_target();
         if let Some(manifest) = manifest_map.get_mut(&target.manifest_url) {
             if let Some(network) = manifest.networks.get_mut("network-a") {
-                network.chain_id = target.inputs.ob_id.chain_id + 1;
+                network.chain_id = target.inputs.raindex_id.chain_id + 1;
             }
         }
 

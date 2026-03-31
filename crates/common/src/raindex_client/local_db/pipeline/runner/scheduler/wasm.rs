@@ -245,7 +245,7 @@ async fn run_network_loop<R>(
                         let first = &report.failures[0];
                         let msg = format!(
                             "ob {:#x} failed at {:?}: {}",
-                            first.ob_id.orderbook_address,
+                            first.ob_id.raindex_address,
                             first.stage,
                             first.error.to_readable_msg()
                         );
@@ -294,7 +294,7 @@ mod wasm_tests {
     use super::*;
     use crate::local_db::pipeline::runner::utils::parse_runner_settings;
     use crate::local_db::pipeline::runner::{RunReport, TargetFailure, TargetStage};
-    use crate::local_db::OrderbookIdentifier;
+    use crate::local_db::RaindexIdentifier;
     use crate::raindex_client::local_db::pipeline::status::get_scheduler_state;
     use crate::raindex_client::local_db::LocalDbStatus;
     use alloy::primitives::Address;
@@ -360,7 +360,7 @@ mod wasm_tests {
                         if should_fail {
                             failures.set(failures.get() + 1);
                             let failure = TargetFailure {
-                                ob_id: OrderbookIdentifier::new(1, Address::ZERO),
+                                ob_id: RaindexIdentifier::new(1, Address::ZERO),
                                 raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error: LocalDbError::CustomError("runner failure".to_string()),

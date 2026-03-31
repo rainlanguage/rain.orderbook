@@ -1142,7 +1142,7 @@ rainlangs:
   polygon:
     address: 0x1234567890123456789012345678901234567890
     network: polygon
-orderbooks:
+raindexes:
   primary:
     address: 0x0101010101010101010101010101010101010101
     network: polygon
@@ -1163,7 +1163,7 @@ tokens:
 orders:
   polygon-order:
     network: polygon
-    orderbook: primary
+    raindex: primary
     inputs:
       - token: t1
         vault-id: 1
@@ -1204,15 +1204,15 @@ _ _: 0 0;
         let (frontmatter, _) = split_frontmatter_and_body(&generated);
         let root = get_root_hash(&frontmatter);
 
-        let StrictYaml::Hash(orderbooks) = root
+        let StrictYaml::Hash(raindexes) = root
             .get(&StrictYaml::String("raindexes".to_string()))
-            .expect("orderbooks present")
+            .expect("raindexes present")
             .clone()
         else {
-            panic!("orderbooks not a hash");
+            panic!("raindexes not a hash");
         };
-        assert!(orderbooks.contains_key(&StrictYaml::String("primary".to_string())));
-        assert!(!orderbooks.contains_key(&StrictYaml::String("unused".to_string())));
+        assert!(raindexes.contains_key(&StrictYaml::String("primary".to_string())));
+        assert!(!raindexes.contains_key(&StrictYaml::String("unused".to_string())));
 
         let StrictYaml::Hash(subgraphs) = root
             .get(&StrictYaml::String("subgraphs".to_string()))
