@@ -1,6 +1,6 @@
 # Raindex
 
-Raindex is an open source, permissionless orderbook system with no fees or admin keys.
+Raindex is an open source, permissionless onchain order system with no fees or admin keys.
 
 ## Repository Structure
 

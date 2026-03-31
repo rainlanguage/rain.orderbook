@@ -33,7 +33,7 @@ echo "Setting up UI components..."
 nix develop -i ${keep[@]} -c ob-ui-components-prelude
 
 echo "Building packages..."
-nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/orderbook)'
+nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/raindex)'
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/ui-components && npm run build -w @rainlanguage/webapp)'
 
 # Temporarily disable command echoing
