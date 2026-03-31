@@ -33,16 +33,16 @@
             '';
           };
 
-          ob-rs-test = rainix.mkTask.${system} {
-            name = "ob-rs-test";
+          raindex-rs-test = rainix.mkTask.${system} {
+            name = "raindex-rs-test";
             body = ''
               set -euxo pipefail
               cargo test --workspace
             '';
           };
 
-          ob-ui-components-prelude = rainix.mkTask.${system} {
-            name = "ob-ui-components-prelude";
+          raindex-ui-components-prelude = rainix.mkTask.${system} {
+            name = "raindex-ui-components-prelude";
             body = ''
               set -euxo pipefail
 
@@ -56,8 +56,8 @@
             ];
           };
 
-          rainix-ob-cli-artifact = rainix.mkTask.${system} {
-            name = "rainix-ob-cli-artifact";
+          raindex-cli-artifact = rainix.mkTask.${system} {
+            name = "raindex-cli-artifact";
             body = ''
               set -euxo pipefail
 
@@ -151,7 +151,7 @@
         devShells.default = pkgs.mkShell {
           packages = [
             packages.raindex-prelude
-            packages.ob-rs-test
+            packages.raindex-rs-test
             packages.rainix-wasm-artifacts
             packages.rainix-wasm-test
             packages.rainix-wasm-browser-test
@@ -159,8 +159,8 @@
             packages.build-js-bindings
             packages.test-js-bindings
             rain.defaultPackage.${system}
-            packages.ob-ui-components-prelude
-            packages.rainix-ob-cli-artifact
+            packages.raindex-ui-components-prelude
+            packages.raindex-cli-artifact
           ];
 
           shellHook = rainix.devShells.${system}.default.shellHook;

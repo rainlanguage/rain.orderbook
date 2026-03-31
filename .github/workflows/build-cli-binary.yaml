@@ -43,7 +43,7 @@ jobs:
       - run: ./prep-base.sh
 
       - name: Build CLI tarball
-        run: nix develop -c rainix-ob-cli-artifact
+        run: nix develop -c raindex-cli-artifact
 
       - name: Prepare release metadata
         run: |

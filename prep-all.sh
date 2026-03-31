@@ -30,7 +30,7 @@ echo "Preparing base setup..."
 ./prep-base.sh
 
 echo "Setting up UI components..."
-nix develop -i ${keep[@]} -c ob-ui-components-prelude
+nix develop -i ${keep[@]} -c raindex-ui-components-prelude
 
 echo "Building packages..."
 nix develop -i ${keep[@]} -c bash -c '(npm run build -w @rainlanguage/raindex)'
