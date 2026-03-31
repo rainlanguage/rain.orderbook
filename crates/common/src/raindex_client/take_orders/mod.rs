@@ -111,7 +111,7 @@ impl RaindexClient {
             rpc_urls: rpc_urls.clone(),
             sell_token: req.sell_token,
             taker: req.taker,
-            orderbook: best_raindex,
+            raindex: best_raindex,
             mode: req.mode,
             price_cap: req.price_cap,
         };

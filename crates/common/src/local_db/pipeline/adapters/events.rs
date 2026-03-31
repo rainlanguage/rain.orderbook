@@ -93,7 +93,7 @@ mod tests {
     use alloy::primitives::{b256, Bytes, U256};
     use alloy::sol_types::SolEvent;
     use httpmock::MockServer;
-    use raindex_bindings::OrderBook::MetaV1_2;
+    use raindex_bindings::Raindex::MetaV1_2;
     use serde_json::json;
     use std::str::FromStr;
 

@@ -192,7 +192,7 @@ async fn execute_take_orders(
         })?;
 
         Ok(TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {
-            raindex: take_orders_info.orderbook().to_string(),
+            raindex: take_orders_info.raindex().to_string(),
             calldata: take_orders_info.calldata().to_string(),
             effective_price,
             prices: prices?,

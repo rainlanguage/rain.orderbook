@@ -37,10 +37,10 @@ mod wasm_tests {
     async fn wrapper_uses_builder_sql_exactly() {
         let vault_id = U256::from(1);
         let token = address!("0x00000000000000000000000000000000000000aa");
-        let orderbook = Address::from([0x51; 20]);
+        let raindex = Address::from([0x51; 20]);
         let owner = address!("0x00000000000000000000000000000000000000f1");
         let expected_stmt = build_fetch_balance_changes_stmt(
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             vault_id,
             token,
             owner,
@@ -57,7 +57,7 @@ mod wasm_tests {
 
         let res = super::fetch_vault_balance_changes(
             &exec,
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             vault_id,
             token,
             owner,
@@ -72,10 +72,10 @@ mod wasm_tests {
     async fn wrapper_returns_rows_when_present() {
         let vault_id = U256::from(1);
         let token = address!("0x00000000000000000000000000000000000000bb");
-        let orderbook = Address::from([0x61; 20]);
+        let raindex = Address::from([0x61; 20]);
         let owner = address!("0x0000000000000000000000000000000000000011");
         let expected_stmt = build_fetch_balance_changes_stmt(
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             vault_id,
             token,
             owner,
@@ -105,7 +105,7 @@ mod wasm_tests {
 
         let res = super::fetch_vault_balance_changes(
             &exec,
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             vault_id,
             token,
             owner,
@@ -122,7 +122,7 @@ mod wasm_tests {
     async fn wrapper_uses_builder_sql_with_filter_types() {
         let vault_id = U256::from(1);
         let token = address!("0x00000000000000000000000000000000000000aa");
-        let orderbook = Address::from([0x51; 20]);
+        let raindex = Address::from([0x51; 20]);
         let owner = address!("0x00000000000000000000000000000000000000f1");
         let filter_types = vec![
             VaultBalanceChangeFilter::Deposit,
@@ -130,7 +130,7 @@ mod wasm_tests {
         ];
         let filter_kinds: Vec<_> = filter_types.iter().map(|f| f.to_kind()).collect();
         let expected_stmt = build_fetch_balance_changes_stmt(
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             vault_id,
             token,
             owner,
@@ -147,7 +147,7 @@ mod wasm_tests {
 
         let res = super::fetch_vault_balance_changes(
             &exec,
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             vault_id,
             token,
             owner,

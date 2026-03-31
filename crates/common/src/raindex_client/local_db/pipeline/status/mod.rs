@@ -34,12 +34,12 @@ mod tests {
             "Computing sync window"
         );
         assert_eq!(
-            SyncPhase::FetchingOrderbookLogs.to_message(),
-            "Fetching orderbook logs"
+            SyncPhase::FetchingRaindexLogs.to_message(),
+            "Fetching raindex logs"
         );
         assert_eq!(
-            SyncPhase::DecodingOrderbookLogs.to_message(),
-            "Decoding orderbook logs"
+            SyncPhase::DecodingRaindexLogs.to_message(),
+            "Decoding raindex logs"
         );
         assert_eq!(
             SyncPhase::FetchingStoreLogs.to_message(),
@@ -69,7 +69,7 @@ mod tests {
     }
 
     #[test]
-    fn orderbook_sync_status_syncing_sets_correct_fields() {
+    fn raindex_sync_status_syncing_sets_correct_fields() {
         let ob_id = test_ob_id();
         let status = RaindexSyncStatus::syncing(ob_id.clone(), SyncPhase::FetchingLatestBlock);
 
@@ -84,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn orderbook_sync_status_active_with_leader_sets_correct_fields() {
+    fn raindex_sync_status_active_with_leader_sets_correct_fields() {
         let ob_id = test_ob_id();
         let status = RaindexSyncStatus::active(ob_id.clone(), SchedulerState::Leader);
 
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn orderbook_sync_status_active_with_not_leader_sets_correct_fields() {
+    fn raindex_sync_status_active_with_not_leader_sets_correct_fields() {
         let ob_id = test_ob_id();
         let status = RaindexSyncStatus::active(ob_id.clone(), SchedulerState::NotLeader);
 
@@ -108,7 +108,7 @@ mod tests {
     }
 
     #[test]
-    fn orderbook_sync_status_failure_sets_correct_fields() {
+    fn raindex_sync_status_failure_sets_correct_fields() {
         let ob_id = test_ob_id();
         let error_msg = "RPC connection failed".to_string();
         let status = RaindexSyncStatus::failure(ob_id.clone(), error_msg.clone());
@@ -121,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    fn orderbook_sync_status_new_with_all_fields() {
+    fn raindex_sync_status_new_with_all_fields() {
         let ob_id = test_ob_id();
         let status = RaindexSyncStatus::new(
             ob_id.clone(),

@@ -140,8 +140,8 @@ impl RaindexClient {
                             .await
                         {
                             Ok(orders) => orders,
-                            Err(RaindexError::OrderbookSubgraphClientError(
-                                raindex_subgraph_client::OrderbookSubgraphClientError::Empty,
+                            Err(RaindexError::RaindexSubgraphClientError(
+                                raindex_subgraph_client::RaindexSubgraphClientError::Empty,
                             )) => return Err(PollError::Empty),
                             Err(e) => return Err(PollError::Inner(e)),
                         };
@@ -175,10 +175,10 @@ impl RaindexClient {
 
 #[wasm_export]
 impl RaindexOrder {
-    /// Generates ABI-encoded calldata for the `removeOrder2()` function on the orderbook contract
+    /// Generates ABI-encoded calldata for the `removeOrder2()` function on the raindex contract
     ///
     /// Takes an existing order from the subgraph and creates the transaction calldata needed
-    /// to remove it from the orderbook. The order must be active and owned by the caller.
+    /// to remove it from the raindex. The order must be active and owned by the caller.
     ///
     /// ## Examples
     ///
@@ -230,7 +230,7 @@ mod tests {
             local_db::RaindexIdentifier,
             raindex_client::local_db::LocalDb,
             raindex_client::tests::{
-                get_test_yaml, new_with_local_db, CHAIN_ID_1_ORDERBOOK_ADDRESS,
+                get_test_yaml, new_with_local_db, CHAIN_ID_1_RAINDEX_ADDRESS,
             },
         };
         use alloy::primitives::{b256, Address, Bytes, U256};
@@ -319,7 +319,7 @@ mod tests {
                                   "symbol": "sFLR",
                                   "decimals": "18"
                                 },
-                                "orderbook": {
+                                "raindex": {
                                   "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                                 },
                                 "ordersAsOutput": [
@@ -346,7 +346,7 @@ mod tests {
                                   "symbol": "WFLR",
                                   "decimals": "18"
                                 },
-                                "orderbook": {
+                                "raindex": {
                                   "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                                 },
                                 "ordersAsOutput": [],
@@ -360,7 +360,7 @@ mod tests {
                                 "balanceChanges": []
                               }
                             ],
-                            "orderbook": {
+                            "raindex": {
                               "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                             },
                             "active": true,
@@ -409,7 +409,7 @@ mod tests {
             let res = raindex_client
                 .get_remove_orders_for_transaction(
                     1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                     None,
                     None,
@@ -577,8 +577,8 @@ mod tests {
               "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
               "outputs": [],
               "inputs": [],
-              "orderbook": {
-                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+              "raindex": {
+                "id": CHAIN_ID_1_RAINDEX_ADDRESS
               },
               "active": true,
               "timestampAdded": "1739448802",
@@ -617,7 +617,7 @@ mod tests {
                 .get_order_by_hash(
                     &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -655,7 +655,7 @@ mod tests {
             let res = raindex_client
                 .get_remove_orders_for_transaction(
                     1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                     Some(DEFAULT_REMOVE_ORDER_POLL_ATTEMPTS),
                     Some(10),
@@ -690,7 +690,7 @@ mod tests {
             let err = raindex_client
                 .get_remove_orders_for_transaction(
                     1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                     Some(DEFAULT_REMOVE_ORDER_POLL_ATTEMPTS),
                     Some(10),

@@ -39,13 +39,13 @@ mod tests {
     fn from_filters_builds_args() {
         let owner = address!("0x0123456789ABCDEF0123456789ABCDEF01234567");
         let token = address!("0x89ABCDEF0123456789ABCDEF0123456789ABCDEF");
-        let orderbook1 = address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        let orderbook2 = address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+        let raindex1 = address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let raindex2 = address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         let filters = GetVaultsFilters {
             owners: vec![owner],
             hide_zero_balance: true,
             tokens: Some(vec![token]),
-            raindex_addresses: Some(vec![orderbook1, orderbook2]),
+            raindex_addresses: Some(vec![raindex1, raindex2]),
             only_active_orders: false,
         };
         let args = FetchVaultsArgs::from_filters(filters);
@@ -59,8 +59,8 @@ mod tests {
         );
         assert!(args.hide_zero_balance);
         assert_eq!(args.raindex_addresses.len(), 2);
-        assert_eq!(args.raindex_addresses[0], orderbook1);
-        assert_eq!(args.raindex_addresses[1], orderbook2);
+        assert_eq!(args.raindex_addresses[0], raindex1);
+        assert_eq!(args.raindex_addresses[1], raindex2);
         assert!(!args.only_active_orders);
     }
 

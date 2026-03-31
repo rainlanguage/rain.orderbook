@@ -99,7 +99,7 @@ mod tests {
     async fn test_quote_debugger() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
-        let raindex = &local_evm.orderbook;
+        let raindex = &local_evm.raindex;
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
@@ -224,7 +224,7 @@ amount price: 16 52;
     async fn test_quote_debugger_partial() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
-        let raindex = &local_evm.orderbook;
+        let raindex = &local_evm.raindex;
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();
@@ -361,7 +361,7 @@ _: 1;
     async fn test_quote_debugger_debug_err() {
         let local_evm = LocalEvm::new_with_tokens(2).await;
 
-        let raindex = &local_evm.orderbook;
+        let raindex = &local_evm.raindex;
         let token1_holder = local_evm.signer_wallets[0].default_signer().address();
         let token1 = local_evm.tokens[0].clone();
         let token2 = local_evm.tokens[1].clone();

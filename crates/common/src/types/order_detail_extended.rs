@@ -37,7 +37,7 @@ mod tests {
     use super::*;
     use crate::meta::TryDecodeRainlangSourceError;
     use raindex_subgraph_client::types::common::{
-        SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderStructPartialTrade, SgOrderbook,
+        SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderStructPartialTrade, SgRaindex,
         SgRemoveOrder, SgTransaction, SgVault,
     };
     use std::convert::TryInto;
@@ -46,7 +46,7 @@ mod tests {
         let default_sg_bytes = SgBytes(format!("default_{}", id_str));
         let default_big_int = SgBigInt("0".to_string());
 
-        let orderbook = SgOrderbook {
+        let raindex = SgRaindex {
             id: default_sg_bytes.clone(),
         };
 
@@ -64,7 +64,7 @@ mod tests {
             vault_id: default_sg_bytes.clone(),
             balance: default_sg_bytes.clone(),
             token: token.clone(),
-            orderbook: orderbook.clone(),
+            raindex: raindex.clone(),
             orders_as_output: vec![],
             orders_as_input: vec![],
             balance_changes: vec![],
@@ -84,7 +84,7 @@ mod tests {
             owner: default_sg_bytes.clone(),
             outputs: vec![vault.clone()],
             inputs: vec![vault.clone()],
-            orderbook,
+            raindex,
             active: true,
             timestamp_added: default_big_int.clone(),
             meta: meta_option,

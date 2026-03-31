@@ -78,7 +78,7 @@ mod tests {
     use crate::utils::timestamp::format_bigint_timestamp_display;
     use rain_math_float::FloatError;
     use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTransaction, SgVaultBalanceChangeUnwrapped,
+        SgBigInt, SgBytes, SgErc20, SgRaindex, SgTransaction, SgVaultBalanceChangeUnwrapped,
         SgVaultBalanceChangeVault,
     };
     use raindex_subgraph_client::utils::float::*;
@@ -114,7 +114,7 @@ mod tests {
                     decimals: decimals_val.map(|s| SgBigInt(s.to_string())),
                 },
             },
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("0xraindexid".to_string()),
             },
         }

@@ -137,8 +137,8 @@ impl RaindexClient {
                             .await
                         {
                             Ok(orders) => orders,
-                            Err(RaindexError::OrderbookSubgraphClientError(
-                                raindex_subgraph_client::OrderbookSubgraphClientError::Empty,
+                            Err(RaindexError::RaindexSubgraphClientError(
+                                raindex_subgraph_client::RaindexSubgraphClientError::Empty,
                             )) => return Err(PollError::Empty),
                             Err(e) => return Err(PollError::Inner(e)),
                         };
@@ -179,7 +179,7 @@ mod tests {
     mod non_wasm {
         use super::*;
         use crate::raindex_client::tests::{
-            get_test_yaml, new_with_local_db, CHAIN_ID_1_ORDERBOOK_ADDRESS,
+            get_test_yaml, new_with_local_db, CHAIN_ID_1_RAINDEX_ADDRESS,
         };
         use crate::{
             local_db::query::{
@@ -274,7 +274,7 @@ mod tests {
                                   "symbol": "sFLR",
                                   "decimals": "18"
                                 },
-                                "orderbook": {
+                                "raindex": {
                                   "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                                 },
                                 "ordersAsOutput": [
@@ -301,7 +301,7 @@ mod tests {
                                   "symbol": "WFLR",
                                   "decimals": "18"
                                 },
-                                "orderbook": {
+                                "raindex": {
                                   "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                                 },
                                 "ordersAsOutput": [],
@@ -315,7 +315,7 @@ mod tests {
                                 "balanceChanges": []
                               }
                             ],
-                            "orderbook": {
+                            "raindex": {
                               "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                             },
                             "active": true,
@@ -364,7 +364,7 @@ mod tests {
             let res = raindex_client
                 .get_add_orders_for_transaction(
                     1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                     None,
                     None,
@@ -549,7 +549,7 @@ mod tests {
             let res = raindex_client
                 .get_add_orders_for_transaction(
                     1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                     Some(DEFAULT_ADD_ORDER_POLL_ATTEMPTS),
                     Some(10),
@@ -583,7 +583,7 @@ mod tests {
             let err = raindex_client
                 .get_add_orders_for_transaction(
                     1,
-                    Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                    Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                     Some(DEFAULT_ADD_ORDER_POLL_ATTEMPTS),
                     Some(10),

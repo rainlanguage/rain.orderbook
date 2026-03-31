@@ -45,11 +45,11 @@ pub struct TakeOrderCandidate {
 fn get_raindex_address(order: &RaindexOrder) -> Result<Address, RaindexError> {
     #[cfg(target_family = "wasm")]
     {
-        Ok(Address::from_str(&order.orderbook())?)
+        Ok(Address::from_str(&order.raindex())?)
     }
     #[cfg(not(target_family = "wasm"))]
     {
-        Ok(order.orderbook())
+        Ok(order.raindex())
     }
 }
 

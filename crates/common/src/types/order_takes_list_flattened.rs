@@ -60,7 +60,7 @@ mod tests {
     use super::*;
     use rain_math_float::FloatError;
     use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgTrade, SgTradeEvent, SgTradeStructPartialOrder,
+        SgBigInt, SgBytes, SgErc20, SgRaindex, SgTrade, SgTradeEvent, SgTradeStructPartialOrder,
         SgTradeVaultBalanceChange, SgTransaction, SgVaultBalanceChangeVault,
     };
     use raindex_subgraph_client::utils::float::*;
@@ -107,7 +107,7 @@ mod tests {
                     block_number: SgBigInt("1000".to_string()),
                     timestamp: SgBigInt("1678886400".to_string()),
                 },
-                orderbook: SgOrderbook {
+                raindex: SgRaindex {
                     id: SgBytes("raindexVBCIn001".to_string()),
                 },
                 trade: SgTradeRef {
@@ -140,7 +140,7 @@ mod tests {
                     block_number: SgBigInt("1000".to_string()),
                     timestamp: SgBigInt("1678886400".to_string()),
                 },
-                orderbook: SgOrderbook {
+                raindex: SgRaindex {
                     id: SgBytes("raindexVBCOut001".to_string()),
                 },
                 trade: SgTradeRef {
@@ -149,7 +149,7 @@ mod tests {
                     },
                 },
             },
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("mainRaindex001".to_string()),
             },
         }

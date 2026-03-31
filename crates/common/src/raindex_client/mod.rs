@@ -24,8 +24,8 @@ use raindex_app_settings::{
     },
 };
 use raindex_subgraph_client::{
-    types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, OrderbookSubgraphClient,
-    OrderbookSubgraphClientError,
+    types::order_detail_traits::OrderDetailError, MultiSubgraphArgs, RaindexSubgraphClient,
+    RaindexSubgraphClientError,
 };
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_family = "wasm"))]
@@ -259,11 +259,11 @@ impl RaindexClient {
     pub fn get_raindex_subgraph_client(
         &self,
         raindex_address: Address,
-    ) -> Result<OrderbookSubgraphClient, RaindexError> {
+    ) -> Result<RaindexSubgraphClient, RaindexError> {
         let raindex = self
             .raindex_yaml
             .get_raindex_by_address(raindex_address)?;
-        Ok(OrderbookSubgraphClient::new(raindex.subgraph.url.clone()))
+        Ok(RaindexSubgraphClient::new(raindex.subgraph.url.clone()))
     }
 
     fn get_rpc_urls_for_chain(&self, chain_id: u32) -> Result<Vec<Url>, RaindexError> {
@@ -382,7 +382,7 @@ pub enum RaindexError {
     #[error(transparent)]
     FromHexError(#[from] FromHexError),
     #[error(transparent)]
-    OrderbookSubgraphClientError(#[from] OrderbookSubgraphClientError),
+    RaindexSubgraphClientError(#[from] RaindexSubgraphClientError),
     #[error(transparent)]
     TryDecodeRainlangSourceError(#[from] TryDecodeRainlangSourceError),
     #[error(transparent)]
@@ -416,7 +416,7 @@ pub enum RaindexError {
     #[error(transparent)]
     AddOrderArgsError(#[from] AddOrderArgsError),
     #[error(transparent)]
-    OrderbookQuoteError(#[from] raindex_quote::error::Error),
+    RaindexQuoteError(#[from] raindex_quote::error::Error),
     #[error("Missing subgraph {0} for order {1}")]
     SubgraphNotFound(String, String),
     #[error("Invalid vault balance change type: {0}")]
@@ -537,7 +537,7 @@ impl RaindexError {
                     err
                 )
             }
-            RaindexError::OrderbookSubgraphClientError(err) => {
+            RaindexError::RaindexSubgraphClientError(err) => {
                 format!("Failed to query subgraph: {}. Check network connection and subgraph availability.", err)
             }
             RaindexError::TryDecodeRainlangSourceError(err) => {
@@ -595,7 +595,7 @@ impl RaindexError {
             RaindexError::AddOrderArgsError(e) => {
                 format!("Failed to prepare the add order calldata: {}", e)
             }
-            RaindexError::OrderbookQuoteError(err) => {
+            RaindexError::RaindexQuoteError(err) => {
                 format!("Failed to get order quote: {}", err)
             }
             RaindexError::SubgraphNotFound(subgraph, order) => {

@@ -28,9 +28,9 @@ mod wasm_tests {
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
         let tx_hash = b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
-        let orderbook = Address::from([0x51; 20]);
+        let raindex = Address::from([0x51; 20]);
         let expected_stmt =
-            build_fetch_transaction_by_hash_stmt(&RaindexIdentifier::new(1, orderbook), tx_hash);
+            build_fetch_transaction_by_hash_stmt(&RaindexIdentifier::new(1, raindex), tx_hash);
 
         let store = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
         let callback = create_sql_capturing_callback("[]", store.clone());
@@ -38,7 +38,7 @@ mod wasm_tests {
 
         let res = super::fetch_transaction_by_hash(
             &exec,
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             tx_hash,
         )
         .await;
@@ -49,10 +49,10 @@ mod wasm_tests {
     #[wasm_bindgen_test]
     async fn wrapper_returns_rows_when_present() {
         let tx_hash = b256!("0x0000000000000000000000000000000000000000000000000000000000000abc");
-        let orderbook = address!("0x5151515151515151515151515151515151515151");
+        let raindex = address!("0x5151515151515151515151515151515151515151");
         let sender = address!("0x1111111111111111111111111111111111111111");
         let expected_stmt =
-            build_fetch_transaction_by_hash_stmt(&RaindexIdentifier::new(1, orderbook), tx_hash);
+            build_fetch_transaction_by_hash_stmt(&RaindexIdentifier::new(1, raindex), tx_hash);
 
         let row_json = format!(
             r#"[{{
@@ -73,7 +73,7 @@ mod wasm_tests {
 
         let res = super::fetch_transaction_by_hash(
             &exec,
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             tx_hash,
         )
         .await;

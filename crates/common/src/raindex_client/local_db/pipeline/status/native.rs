@@ -43,7 +43,7 @@ impl StatusBus for TracingStatusBus {
 
         tracing::debug!(
             chain_id = chain_id,
-            orderbook = %ob_addr,
+            raindex = %ob_addr,
             key = key,
             phase = %phase.to_message(),
             "sync phase"

@@ -1001,7 +1001,7 @@ mod tests {
         HashMap::from([(remote, manifest)])
     }
 
-    fn two_orderbooks_settings_yaml() -> String {
+    fn two_raindexes_settings_yaml() -> String {
         format!(
             r#"
 version: {version}
@@ -1025,7 +1025,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -1043,7 +1043,7 @@ orderbooks:
         )
     }
 
-    fn single_orderbook_settings_yaml() -> String {
+    fn single_raindex_settings_yaml() -> String {
         format!(
             r#"
 version: {version}
@@ -1066,7 +1066,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -1198,7 +1198,7 @@ orderbooks:
             .collect()
     }
 
-    fn expect_orderbooks(report: &RunReport, expected: &[Address]) {
+    fn expect_raindexes(report: &RunReport, expected: &[Address]) {
         let outcomes = extract_outcomes(report);
         let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.raindex_id.raindex_address).collect();
         addrs.sort();
@@ -1229,7 +1229,7 @@ orderbooks:
 
     #[test]
     fn default_environment_builds_engine_for_target() {
-        let settings = single_orderbook_settings_yaml();
+        let settings = single_raindex_settings_yaml();
         let runner = ClientRunner::new(settings).expect("runner builds with default env");
         assert_eq!(runner.base_targets.len(), 1);
 
@@ -1247,7 +1247,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
@@ -1257,7 +1257,7 @@ orderbooks:
         let report = unwrap_report(outcome);
         let outcomes = extract_outcomes(&report);
         assert_eq!(outcomes.len(), 2);
-        expect_orderbooks(&report, &[RAINDEX_A, RAINDEX_B]);
+        expect_raindexes(&report, &[RAINDEX_A, RAINDEX_B]);
         assert!(runner.manifests_loaded);
         assert!(runner.has_provisioned_dumps);
         assert_eq!(telemetry.manifest_fetch_count(), 1);
@@ -1285,7 +1285,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
@@ -1310,7 +1310,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let leadership = CountingLeadership::new();
         let mut runner =
             ClientRunner::with_environment(settings, environment, leadership.clone()).unwrap();
@@ -1335,7 +1335,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let leadership = SequenceLeadership::new(vec![LeadershipAction::Skip]);
         let mut runner = ClientRunner::with_environment(settings, environment, leadership).unwrap();
 
@@ -1356,7 +1356,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let leadership =
             SequenceLeadership::new(vec![LeadershipAction::Skip, LeadershipAction::Grant]);
         let mut runner = ClientRunner::with_environment(settings, environment, leadership).unwrap();
@@ -1385,7 +1385,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(manifest_for_both(), HashMap::new(), 1, 2, telemetry.clone());
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let leadership =
             SequenceLeadership::new(vec![LeadershipAction::Fail("no leadership".into())]);
         let mut runner = ClientRunner::with_environment(settings, environment, leadership).unwrap();
@@ -1411,7 +1411,7 @@ orderbooks:
             1,
             telemetry.clone(),
         );
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
@@ -1448,7 +1448,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(ManifestMap::new(), HashMap::new(), 1, 0, telemetry.clone());
-        let settings = single_orderbook_settings_yaml();
+        let settings = single_raindex_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         runner.base_targets.clear();
@@ -1497,7 +1497,7 @@ orderbooks:
         };
         let engine_builder = engine_builder_for_behaviors(telemetry.clone(), HashMap::new());
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
-        let settings = single_orderbook_settings_yaml();
+        let settings = single_raindex_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
@@ -1542,7 +1542,7 @@ orderbooks:
 
         let engine_builder = engine_builder_for_behaviors(telemetry.clone(), HashMap::new());
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
-        let settings = single_orderbook_settings_yaml();
+        let settings = single_raindex_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 
@@ -1602,7 +1602,7 @@ orderbooks:
         let engine_builder = engine_builder_for_behaviors(telemetry.clone(), behaviors);
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
 
-        let settings = single_orderbook_settings_yaml();
+        let settings = single_raindex_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
@@ -1651,7 +1651,7 @@ orderbooks:
         let engine_builder = engine_builder_for_behaviors(telemetry.clone(), HashMap::new());
         let environment = RunnerEnvironment::new(manifest_fetcher, dump_downloader, engine_builder);
 
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
@@ -1679,7 +1679,7 @@ orderbooks:
     async fn engine_builder_error_is_propagated() {
         let telemetry = Telemetry::default();
         let manifest = manifest_for_both();
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let behaviors = HashMap::from([(RAINDEX_KEY_B.to_string(), EngineBehavior::Success)]);
 
         let manifest_arc = Arc::new(manifest);
@@ -1773,7 +1773,7 @@ orderbooks:
         behaviors.insert(RAINDEX_KEY_B.to_string(), EngineBehavior::Success);
         let environment =
             build_environment(manifest_for_both(), behaviors, 1, 2, telemetry.clone());
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
         let db = RecordingDb::default();
@@ -1800,7 +1800,7 @@ orderbooks:
     async fn engine_build_and_run_failures_are_both_reported() {
         let telemetry = Telemetry::default();
         let manifest = manifest_for_both();
-        let settings = two_orderbooks_settings_yaml();
+        let settings = two_raindexes_settings_yaml();
 
         let manifest_arc = Arc::new(manifest);
         let manifest_fetcher = {
@@ -1861,7 +1861,7 @@ orderbooks:
         let telemetry = Telemetry::default();
         let environment =
             build_environment(ManifestMap::new(), HashMap::new(), 1, 0, telemetry.clone());
-        let settings = single_orderbook_settings_yaml();
+        let settings = single_raindex_settings_yaml();
         let mut runner =
             ClientRunner::with_environment(settings, environment, AlwaysLeadership).unwrap();
 

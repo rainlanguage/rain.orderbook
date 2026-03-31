@@ -284,7 +284,7 @@ impl RaindexTrade {
                     trade.output_vault_balance_change,
                 )?,
             timestamp: U256::from_str(&trade.timestamp.0)?,
-            raindex: Address::from_str(&trade.orderbook.id.0)?,
+            raindex: Address::from_str(&trade.raindex.id.0)?,
         })
     }
 
@@ -791,7 +791,7 @@ mod test_helpers {
                     "symbol": "sFLR",
                     "decimals": "18"
                   },
-                  "orderbook": {
+                  "raindex": {
                     "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                   },
                   "ordersAsOutput": [
@@ -819,7 +819,7 @@ mod test_helpers {
                     "ordersAsOutput": [],
                     "ordersAsInput": [],
                     "balanceChanges": [],
-                    "orderbook": {
+                    "raindex": {
                       "id": "0x0000000000000000000000000000000000000000"
                     }
                   }
@@ -837,7 +837,7 @@ mod test_helpers {
                     "symbol": "WFLR",
                     "decimals": "18"
                   },
-                  "orderbook": {
+                  "raindex": {
                     "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                   },
                   "ordersAsOutput": [],
@@ -865,12 +865,12 @@ mod test_helpers {
                     "ordersAsOutput": [],
                     "ordersAsInput": [],
                     "balanceChanges": [],
-                    "orderbook": {
+                    "raindex": {
                       "id": "0x0000000000000000000000000000000000000000"
                     }
                   }
               ],
-              "orderbook": {
+              "raindex": {
                 "id": CHAIN_ID_1_RAINDEX_ADDRESS
               },
               "active": true,
@@ -927,7 +927,7 @@ mod test_helpers {
                   "blockNumber": "0",
                   "timestamp": "1700000000"
                 },
-                "orderbook": {
+                "raindex": {
                   "id": "0x1234567890abcdef1234567890abcdef12345678"
                 },
                 "trade": {
@@ -964,7 +964,7 @@ mod test_helpers {
                   "blockNumber": "0",
                   "timestamp": "1700000000"
                 },
-                "orderbook": {
+                "raindex": {
                   "id": "0x1234567890abcdef1234567890abcdef12345678"
                 },
                 "trade": {
@@ -974,7 +974,7 @@ mod test_helpers {
                 }
               },
               "timestamp": "0",
-              "orderbook": {
+              "raindex": {
                 "id": "0x1234567890abcdef1234567890abcdef12345678"
               }
             })
@@ -1017,7 +1017,7 @@ mod test_helpers {
                     "blockNumber": "0",
                     "timestamp": "1700086400"
                   },
-                  "orderbook": {
+                  "raindex": {
                     "id": "0x1234567890abcdef1234567890abcdef12345679"
                   },
                   "trade": {
@@ -1054,7 +1054,7 @@ mod test_helpers {
                     "blockNumber": "0",
                     "timestamp": "1700086400"
                   },
-                  "orderbook": {
+                  "raindex": {
                     "id": "0x1234567890abcdef1234567890abcdef12345679"
                   },
                   "trade": {
@@ -1064,7 +1064,7 @@ mod test_helpers {
                   }
                 },
                 "timestamp": "1700086400",
-                "orderbook": {
+                "raindex": {
                   "id": "0x1234567890abcdef1234567890abcdef12345679"
                 }
               }

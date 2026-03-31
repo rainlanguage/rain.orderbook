@@ -63,7 +63,7 @@ pub async fn get_order_quotes(
 
     for order in &orders {
         let order_struct: OrderV4 = order.clone().try_into()?;
-        let raindex = Address::from_str(&order.orderbook.id.0)?;
+        let raindex = Address::from_str(&order.raindex.id.0)?;
         let oracle_url = crate::oracle::extract_oracle_url(order);
 
         for (input_index, input) in order_struct.validInputs.iter().enumerate() {
@@ -212,7 +212,7 @@ mod tests {
     use raindex_app_settings::spec_version::SpecVersion;
     use raindex_common::{add_order::AddOrderArgs, dotrain_order::DotrainOrder};
     use raindex_subgraph_client::types::{
-        common::{SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault},
+        common::{SgBigInt, SgBytes, SgErc20, SgRaindex, SgVault},
         order_detail_traits::OrderDetailError,
     };
     use raindex_subgraph_client::utils::float::*;
@@ -236,7 +236,7 @@ mod tests {
         let token2 = local_evm
             .deploy_new_token("Token2", "Token2", 18, U256::MAX, owner)
             .await;
-        let raindex = *local_evm.orderbook.address();
+        let raindex = *local_evm.raindex.address();
 
         TestSetup {
             local_evm,
@@ -358,7 +358,7 @@ amount price: 2 3;
             balance: SgBytes(F6.as_hex()),
             vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(setup.local_evm.anvil.addresses()[0].to_string()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes(setup.raindex.to_string()),
             },
             orders_as_input: vec![],
@@ -375,7 +375,7 @@ amount price: 2 3;
     ) -> SgOrder {
         SgOrder {
             id: SgBytes(B256::random().to_string()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes(setup.raindex.to_string()),
             },
             order_bytes: SgBytes(order_bytes),
@@ -507,7 +507,7 @@ amount price: 2 3;
 
         // Test invalid raindex address
         let mut invalid_order = create_sg_order(&setup, order.clone(), vec![], vec![]);
-        invalid_order.orderbook.id = SgBytes("invalid_address".to_string());
+        invalid_order.raindex.id = SgBytes("invalid_address".to_string());
 
         let err = get_order_quotes(vec![invalid_order], None, vec![setup.local_evm.url()], None)
             .await

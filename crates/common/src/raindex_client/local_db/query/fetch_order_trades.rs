@@ -30,14 +30,14 @@ mod wasm_tests {
     #[wasm_bindgen_test]
     async fn wrapper_uses_builder_sql_exactly() {
         let chain_id = 111;
-        let orderbook = Address::from([0x77; 20]);
+        let raindex = Address::from([0x77; 20]);
         let order_hash =
             b256!("0x000000000000000000000000000000000000000000000000000000000000abcd");
         let start = Some(100);
         let end = Some(200);
 
         let expected_stmt = build_fetch_order_trades_stmt(
-            &RaindexIdentifier::new(chain_id, orderbook),
+            &RaindexIdentifier::new(chain_id, raindex),
             order_hash.clone(),
             start,
             end,
@@ -53,7 +53,7 @@ mod wasm_tests {
 
         let res = super::fetch_order_trades(
             &exec,
-            &RaindexIdentifier::new(chain_id, orderbook),
+            &RaindexIdentifier::new(chain_id, raindex),
             order_hash,
             start,
             end,

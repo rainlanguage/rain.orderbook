@@ -4,17 +4,17 @@ use crate::raindex_client::RaindexClient;
 use crate::raindex_client::RaindexError;
 use crate::take_orders::TakeOrdersMode;
 use crate::test_helpers::dotrain::{
-    create_dotrain_config_for_orderbook, create_dotrain_config_with_params,
+    create_dotrain_config_for_raindex, create_dotrain_config_with_params,
     create_dotrain_config_with_vault_and_ratio,
 };
 use crate::test_helpers::local_evm::{
-    approve_taker, create_vault, create_vault_for_orderbook, deposit_to_orderbook,
-    fund_and_approve_taker, fund_and_approve_taker_multi_orderbook, fund_standard_two_token_vault,
-    fund_taker, setup_multi_orderbook_test, setup_test as base_setup_test, standard_deposit_amount,
+    approve_taker, create_vault, create_vault_for_raindex, deposit_to_raindex,
+    fund_and_approve_taker, fund_and_approve_taker_multi_raindex, fund_standard_two_token_vault,
+    fund_taker, setup_multi_raindex_test, setup_test as base_setup_test, standard_deposit_amount,
 };
-use crate::test_helpers::orders::deploy::{deploy_order, deploy_order_to_orderbook};
+use crate::test_helpers::orders::deploy::{deploy_order, deploy_order_to_raindex};
 use crate::test_helpers::subgraph::{
-    create_sg_order_json, create_sg_order_json_with_orderbook, get_minimal_yaml_for_chain,
+    create_sg_order_json, create_sg_order_json_with_raindex, get_minimal_yaml_for_chain,
     get_multi_raindex_yaml,
 };
 use alloy::network::TransactionBuilder;
@@ -214,7 +214,7 @@ async fn test_get_take_orders_calldata_happy_path_returns_valid_config() {
     assert_eq!(
         result.raindex(),
         setup.raindex,
-        "Orderbook address should match"
+        "Raindex address should match"
     );
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
@@ -858,7 +858,7 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
 
     let withdraw_tx = setup
         .local_evm
-        .orderbook
+        .raindex
         .withdraw4(setup.token2, vault_id_2, withdraw_amount, vec![])
         .from(setup.owner)
         .into_transaction_request();
@@ -948,20 +948,20 @@ async fn test_maximum_io_ratio_enforcement_with_worsened_on_chain_price() {
 }
 
 #[tokio::test]
-async fn test_cross_orderbook_selection_picks_best_book() {
-    let setup = setup_multi_orderbook_test().await;
+async fn test_cross_raindex_selection_picks_best_book() {
+    let setup = setup_multi_raindex_test().await;
     let sg_server = MockServer::start_async().await;
 
     assert_ne!(
         setup.raindex_a, setup.raindex_b,
-        "Orderbook addresses should be different"
+        "Raindex addresses should be different"
     );
 
     let vault_id_a = B256::from(U256::from(1u64));
     let vault_id_b = B256::from(U256::from(2u64));
 
     let deposit_amount = U256::from(10).pow(U256::from(22));
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_a,
         setup.token2,
@@ -969,7 +969,7 @@ async fn test_cross_orderbook_selection_picks_best_book() {
         vault_id_a,
     )
     .await;
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_b,
         setup.token2,
@@ -979,25 +979,25 @@ async fn test_cross_orderbook_selection_picks_best_book() {
     .await;
 
     let dotrain_a =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_a, "0x01", "5", "2");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "5", "2");
     let (order_bytes_a, order_hash_a, _order_v4_a) =
-        deploy_order_to_orderbook(&setup, setup.raindex_a, dotrain_a).await;
+        deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
     let dotrain_b =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_b, "0x02", "8", "2");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "8", "2");
     let (order_bytes_b, order_hash_b, order_v4_b) =
-        deploy_order_to_orderbook(&setup, setup.raindex_b, dotrain_b).await;
+        deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 
     let vault_a_input =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
     let vault_a_output =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
     let vault_b_input =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
     let vault_b_output =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
 
-    let sg_order_a = create_sg_order_json_with_orderbook(
+    let sg_order_a = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_a,
         &order_bytes_a,
@@ -1005,7 +1005,7 @@ async fn test_cross_orderbook_selection_picks_best_book() {
         vec![vault_a_input],
         vec![vault_a_output],
     );
-    let sg_order_b = create_sg_order_json_with_orderbook(
+    let sg_order_b = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_b,
         &order_bytes_b,
@@ -1034,7 +1034,7 @@ async fn test_cross_orderbook_selection_picks_best_book() {
     let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
-    fund_and_approve_taker_multi_orderbook(
+    fund_and_approve_taker_multi_raindex(
         &setup,
         setup.token1,
         taker,
@@ -1055,7 +1055,7 @@ async fn test_cross_orderbook_selection_picks_best_book() {
             price_cap: high_price_cap(),
         })
         .await
-        .expect("Should succeed with orders from multiple orderbooks");
+        .expect("Should succeed with orders from multiple raindexes");
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
@@ -1065,30 +1065,30 @@ async fn test_cross_orderbook_selection_picks_best_book() {
     assert_eq!(
         result.raindex(),
         setup.raindex_b,
-        "Should select orderbook B (max_output=8 > max_output=5)"
+        "Should select raindex B (max_output=8 > max_output=5)"
     );
 
     assert!(
         !config.orders.is_empty(),
-        "Should have at least one order from the winning orderbook"
+        "Should have at least one order from the winning raindex"
     );
 
     for config_item in &config.orders {
         let config_order = &config_item.order;
         assert_eq!(
             config_order.owner, order_v4_b.owner,
-            "All orders should be from orderbook B"
+            "All orders should be from raindex B"
         );
         assert_eq!(
             config_order.evaluable.bytecode, order_v4_b.evaluable.bytecode,
-            "All order bytecodes should match orderbook B's order"
+            "All order bytecodes should match raindex B's order"
         );
     }
 
     let expected_ratio = Float::parse("2".to_string()).unwrap();
     assert!(
         result.prices()[0].eq(expected_ratio).unwrap(),
-        "Price should be 2 (orderbook B's ratio)"
+        "Price should be 2 (raindex B's ratio)"
     );
 
     let tolerance = Float::parse("0.0001".to_string()).unwrap();
@@ -1105,15 +1105,15 @@ async fn test_cross_orderbook_selection_picks_best_book() {
 }
 
 #[tokio::test]
-async fn test_cross_orderbook_selection_flips_when_economics_flip() {
-    let setup = setup_multi_orderbook_test().await;
+async fn test_cross_raindex_selection_flips_when_economics_flip() {
+    let setup = setup_multi_raindex_test().await;
     let sg_server = MockServer::start_async().await;
 
     let vault_id_a = B256::from(U256::from(1u64));
     let vault_id_b = B256::from(U256::from(2u64));
 
     let deposit_amount = U256::from(10).pow(U256::from(22));
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_a,
         setup.token2,
@@ -1121,7 +1121,7 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
         vault_id_a,
     )
     .await;
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_b,
         setup.token2,
@@ -1131,25 +1131,25 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
     .await;
 
     let dotrain_a =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_a, "0x01", "10", "2");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "10", "2");
     let (order_bytes_a, order_hash_a, order_v4_a) =
-        deploy_order_to_orderbook(&setup, setup.raindex_a, dotrain_a).await;
+        deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
     let dotrain_b =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_b, "0x02", "3", "2");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "3", "2");
     let (order_bytes_b, order_hash_b, _order_v4_b) =
-        deploy_order_to_orderbook(&setup, setup.raindex_b, dotrain_b).await;
+        deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 
     let vault_a_input =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
     let vault_a_output =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
     let vault_b_input =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
     let vault_b_output =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
 
-    let sg_order_a = create_sg_order_json_with_orderbook(
+    let sg_order_a = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_a,
         &order_bytes_a,
@@ -1157,7 +1157,7 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
         vec![vault_a_input],
         vec![vault_a_output],
     );
-    let sg_order_b = create_sg_order_json_with_orderbook(
+    let sg_order_b = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_b,
         &order_bytes_b,
@@ -1186,7 +1186,7 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
     let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
-    fund_and_approve_taker_multi_orderbook(
+    fund_and_approve_taker_multi_raindex(
         &setup,
         setup.token1,
         taker,
@@ -1214,7 +1214,7 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
     assert_eq!(
         result.raindex(),
         setup.raindex_a,
-        "Should select orderbook A (max_output=10 > max_output=3)"
+        "Should select raindex A (max_output=10 > max_output=3)"
     );
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
@@ -1222,18 +1222,18 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
 
     assert!(
         !config.orders.is_empty(),
-        "Should have at least one order from the winning orderbook"
+        "Should have at least one order from the winning raindex"
     );
 
     for config_item in &config.orders {
         let config_order = &config_item.order;
         assert_eq!(
             config_order.owner, order_v4_a.owner,
-            "All orders should be from orderbook A"
+            "All orders should be from raindex A"
         );
         assert_eq!(
             config_order.evaluable.bytecode, order_v4_a.evaluable.bytecode,
-            "All order bytecodes should match orderbook A's order"
+            "All order bytecodes should match raindex A's order"
         );
     }
 
@@ -1241,21 +1241,21 @@ async fn test_cross_orderbook_selection_flips_when_economics_flip() {
     let min_expected = Float::parse("10".to_string()).unwrap();
     assert!(
         actual_max_input.gte(min_expected).unwrap(),
-        "maximumIO should be at least 10 (orderbook A's max_output), got: {:?}",
+        "maximumIO should be at least 10 (raindex A's max_output), got: {:?}",
         actual_max_input.format()
     );
 }
 
 #[tokio::test]
-async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
-    let setup = setup_multi_orderbook_test().await;
+async fn test_cross_raindex_economic_selection_prefers_best_yield() {
+    let setup = setup_multi_raindex_test().await;
     let sg_server = MockServer::start_async().await;
 
     let vault_id_a = B256::from(U256::from(1u64));
     let vault_id_b = B256::from(U256::from(2u64));
 
     let deposit_amount = U256::from(10).pow(U256::from(22));
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_a,
         setup.token2,
@@ -1263,7 +1263,7 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
         vault_id_a,
     )
     .await;
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_b,
         setup.token2,
@@ -1273,25 +1273,25 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
     .await;
 
     let dotrain_a =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_a, "0x01", "5", "1");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "5", "1");
     let (order_bytes_a, order_hash_a, order_v4_a) =
-        deploy_order_to_orderbook(&setup, setup.raindex_a, dotrain_a).await;
+        deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
     let dotrain_b =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_b, "0x02", "8", "1.5");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "8", "1.5");
     let (order_bytes_b, order_hash_b, _order_v4_b) =
-        deploy_order_to_orderbook(&setup, setup.raindex_b, dotrain_b).await;
+        deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 
     let vault_a_input =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
     let vault_a_output =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
     let vault_b_input =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
     let vault_b_output =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
 
-    let sg_order_a = create_sg_order_json_with_orderbook(
+    let sg_order_a = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_a,
         &order_bytes_a,
@@ -1299,7 +1299,7 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
         vec![vault_a_input],
         vec![vault_a_output],
     );
-    let sg_order_b = create_sg_order_json_with_orderbook(
+    let sg_order_b = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_b,
         &order_bytes_b,
@@ -1328,7 +1328,7 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
     let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
-    fund_and_approve_taker_multi_orderbook(
+    fund_and_approve_taker_multi_raindex(
         &setup,
         setup.token1,
         taker,
@@ -1349,13 +1349,13 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
             price_cap: high_price_cap(),
         })
         .await
-        .expect("Should succeed with orders from multiple orderbooks");
+        .expect("Should succeed with orders from multiple raindexes");
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
     assert_eq!(
         result.raindex(), setup.raindex_a,
-        "Should select orderbook A (can fill 5 buy at ratio 1.0) over B (can fill 5 buy but at worse price 1.5)"
+        "Should select raindex A (can fill 5 buy at ratio 1.0) over B (can fill 5 buy but at worse price 1.5)"
     );
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
@@ -1363,30 +1363,30 @@ async fn test_cross_orderbook_economic_selection_prefers_best_yield() {
 
     assert!(
         !config.orders.is_empty(),
-        "Should have at least one order from the winning orderbook"
+        "Should have at least one order from the winning raindex"
     );
 
     for config_item in &config.orders {
         let config_order = &config_item.order;
         assert_eq!(
             config_order.owner, order_v4_a.owner,
-            "All orders should be from orderbook A"
+            "All orders should be from raindex A"
         );
         assert_eq!(
             config_order.evaluable.bytecode, order_v4_a.evaluable.bytecode,
-            "All order bytecodes should match orderbook A's order"
+            "All order bytecodes should match raindex A's order"
         );
     }
 
     assert_eq!(
         result.prices().len(),
         1,
-        "Should have exactly one price (from orderbook A only)"
+        "Should have exactly one price (from raindex A only)"
     );
     let expected_ratio = Float::parse("1".to_string()).unwrap();
     assert!(
         result.prices()[0].eq(expected_ratio).unwrap(),
-        "Price should be 1.0 (orderbook A's ratio), got: {:?}",
+        "Price should be 1.0 (raindex A's ratio), got: {:?}",
         result.prices()[0].format()
     );
 
@@ -1672,7 +1672,7 @@ async fn test_spend_up_to_mode_happy_path() {
     assert_eq!(
         result.raindex(),
         setup.raindex,
-        "Orderbook address should match"
+        "Raindex address should match"
     );
 
     let decoded = takeOrders4Call::abi_decode(result.calldata()).expect("Should decode calldata");
@@ -2056,15 +2056,15 @@ async fn test_spend_mode_max_sell_cap_equals_spend_budget() {
 }
 
 #[tokio::test]
-async fn test_spend_mode_cross_orderbook_selection() {
-    let setup = setup_multi_orderbook_test().await;
+async fn test_spend_mode_cross_raindex_selection() {
+    let setup = setup_multi_raindex_test().await;
     let sg_server = MockServer::start_async().await;
 
     let vault_id_a = B256::from(U256::from(1u64));
     let vault_id_b = B256::from(U256::from(2u64));
 
     let deposit_amount = U256::from(10).pow(U256::from(22));
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_a,
         setup.token2,
@@ -2072,7 +2072,7 @@ async fn test_spend_mode_cross_orderbook_selection() {
         vault_id_a,
     )
     .await;
-    deposit_to_orderbook(
+    deposit_to_raindex(
         &setup,
         setup.raindex_b,
         setup.token2,
@@ -2082,25 +2082,25 @@ async fn test_spend_mode_cross_orderbook_selection() {
     .await;
 
     let dotrain_a =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_a, "0x01", "50", "2");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "50", "2");
     let (order_bytes_a, order_hash_a, _order_v4_a) =
-        deploy_order_to_orderbook(&setup, setup.raindex_a, dotrain_a).await;
+        deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
     let dotrain_b =
-        create_dotrain_config_for_orderbook(&setup, setup.raindex_b, "0x02", "80", "2");
+        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "80", "2");
     let (order_bytes_b, order_hash_b, order_v4_b) =
-        deploy_order_to_orderbook(&setup, setup.raindex_b, dotrain_b).await;
+        deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 
     let vault_a_input =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token1_sg);
     let vault_a_output =
-        create_vault_for_orderbook(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_a, &setup, setup.raindex_a, &setup.token2_sg);
     let vault_b_input =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token1_sg);
     let vault_b_output =
-        create_vault_for_orderbook(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
+        create_vault_for_raindex(vault_id_b, &setup, setup.raindex_b, &setup.token2_sg);
 
-    let sg_order_a = create_sg_order_json_with_orderbook(
+    let sg_order_a = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_a,
         &order_bytes_a,
@@ -2108,7 +2108,7 @@ async fn test_spend_mode_cross_orderbook_selection() {
         vec![vault_a_input],
         vec![vault_a_output],
     );
-    let sg_order_b = create_sg_order_json_with_orderbook(
+    let sg_order_b = create_sg_order_json_with_raindex(
         &setup,
         setup.raindex_b,
         &order_bytes_b,
@@ -2137,7 +2137,7 @@ async fn test_spend_mode_cross_orderbook_selection() {
     let client = RaindexClient::new(vec![yaml], None, None).await.unwrap();
 
     let taker = setup.local_evm.signer_wallets[1].default_signer().address();
-    fund_and_approve_taker_multi_orderbook(
+    fund_and_approve_taker_multi_raindex(
         &setup,
         setup.token1,
         taker,
@@ -2157,7 +2157,7 @@ async fn test_spend_mode_cross_orderbook_selection() {
             price_cap: high_price_cap(),
         })
         .await
-        .expect("Should succeed with spend mode across multiple orderbooks");
+        .expect("Should succeed with spend mode across multiple raindexes");
     assert!(result.is_ready(), "Expected Ready variant");
     let result = result.take_orders_info().unwrap();
 
@@ -2172,14 +2172,14 @@ async fn test_spend_mode_cross_orderbook_selection() {
     assert_eq!(
         result.raindex(),
         setup.raindex_b,
-        "Should select orderbook B (can spend more: 80*2=160 vs 50*2=100)"
+        "Should select raindex B (can spend more: 80*2=160 vs 50*2=100)"
     );
 
     for config_item in &config.orders {
         let config_order = &config_item.order;
         assert_eq!(
             config_order.owner, order_v4_b.owner,
-            "All orders should be from orderbook B"
+            "All orders should be from raindex B"
         );
     }
 }
@@ -2260,7 +2260,7 @@ async fn test_get_take_orders_calldata_returns_approval_when_no_allowance() {
     assert_eq!(
         approval.spender(),
         setup.raindex,
-        "Approval spender should be orderbook"
+        "Approval spender should be raindex"
     );
     assert!(
         !approval.calldata().is_empty(),
@@ -2354,7 +2354,7 @@ async fn test_get_take_orders_calldata_returns_approval_when_insufficient_allowa
     assert_eq!(
         approval.spender(),
         setup.raindex,
-        "Approval spender should be orderbook"
+        "Approval spender should be raindex"
     );
 }
 
@@ -2442,7 +2442,7 @@ async fn test_get_take_orders_calldata_returns_take_orders_when_sufficient_allow
     assert_eq!(
         take_orders.raindex(),
         setup.raindex,
-        "Orderbook address should match"
+        "Raindex address should match"
     );
     assert!(
         !take_orders.calldata().is_empty(),

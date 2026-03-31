@@ -216,7 +216,7 @@ pub async fn execute_single_take(
 
     let sim_result = simulate_take_orders(
         &provider,
-        orderbook,
+        raindex_addr,
         execution_params.taker,
         &built.config,
         rpc_context.block_number,
@@ -225,7 +225,7 @@ pub async fn execute_single_take(
 
     match sim_result {
         Ok(()) => build_calldata_result(
-            orderbook,
+            raindex_addr,
             built,
             execution_params.mode,
             execution_params.price_cap,
@@ -238,7 +238,7 @@ pub async fn execute_single_take(
                 )))
             } else if let Some(_failing_idx) = find_failing_order_index(
                 &provider,
-                orderbook,
+                raindex_addr,
                 execution_params.taker,
                 &built.config,
                 rpc_context.block_number,
@@ -349,7 +349,7 @@ mod tests {
         let quote = make_quote(0, 0, Some(make_quote_value(max_output, ratio)), false);
 
         use crate::local_db::RaindexIdentifier;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
 
@@ -382,7 +382,7 @@ mod tests {
                                     "symbol": "sFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
@@ -399,12 +399,12 @@ mod tests {
                                     "symbol": "WFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
                             }],
-                            "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                            "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                             "active": true,
                             "timestampAdded": "1739448802",
                             "meta": null,
@@ -433,7 +433,7 @@ mod tests {
                 .get_order_by_hash(
                     &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -450,7 +450,7 @@ mod tests {
         let quote = make_quote(0, 0, None, true);
 
         use crate::local_db::RaindexIdentifier;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
 
@@ -483,7 +483,7 @@ mod tests {
                                     "symbol": "sFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
@@ -500,12 +500,12 @@ mod tests {
                                     "symbol": "WFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
                             }],
-                            "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                            "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                             "active": true,
                             "timestampAdded": "1739448802",
                             "meta": null,
@@ -534,7 +534,7 @@ mod tests {
                 .get_order_by_hash(
                     &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -553,7 +553,7 @@ mod tests {
         let quote = make_quote(0, 0, Some(make_quote_value(max_output, ratio)), true);
 
         use crate::local_db::RaindexIdentifier;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
 
@@ -586,7 +586,7 @@ mod tests {
                                     "symbol": "sFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
@@ -603,12 +603,12 @@ mod tests {
                                     "symbol": "WFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
                             }],
-                            "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                            "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                             "active": true,
                             "timestampAdded": "1739448802",
                             "meta": null,
@@ -637,7 +637,7 @@ mod tests {
                 .get_order_by_hash(
                     &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )

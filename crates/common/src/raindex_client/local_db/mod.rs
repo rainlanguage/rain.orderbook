@@ -354,7 +354,7 @@ mod wasm_tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    fn single_orderbook_settings_yaml() -> String {
+    fn single_raindex_settings_yaml() -> String {
         format!(
             r#"
 version: {version}
@@ -377,7 +377,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 1000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -391,9 +391,9 @@ orderbooks:
 
     #[cfg(not(target_family = "wasm"))]
     async fn build_client() -> RaindexClient {
-        RaindexClient::new(vec![single_orderbook_settings_yaml()], None, None)
+        RaindexClient::new(vec![single_raindex_settings_yaml()], None, None)
             .await
-            .expect("valid orderbook yaml")
+            .expect("valid raindex yaml")
     }
 
     fn success_callback() -> js_sys::Function {

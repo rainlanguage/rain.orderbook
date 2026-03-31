@@ -10,7 +10,7 @@ use raindex_bindings::{
     IRaindexV6::{
         AddOrderV3, AfterClearV2, ClearV3, DepositV2, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     },
-    OrderBook::MetaV1_2,
+    Raindex::MetaV1_2,
 };
 use serde::{Deserialize, Serialize};
 
@@ -215,7 +215,7 @@ mod test_helpers {
             RemoveOrderV3, SignedContextV1, TakeOrderConfigV4, TakeOrderV3, WithdrawV2,
         },
         IRaindexV6::{EvaluableV4, OrderV4, IOV2},
-        OrderBook::MetaV1_2,
+        Raindex::MetaV1_2,
     };
     use serde_json::Value;
     use std::str::FromStr;

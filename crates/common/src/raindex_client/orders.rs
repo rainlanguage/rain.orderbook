@@ -36,12 +36,12 @@ use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
 use raindex_subgraph_client::{
     types::{
         common::{
-            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrderbook, SgOrdersListFilterArgs,
+            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgRaindex, SgOrdersListFilterArgs,
             SgOrdersTokensFilterArgs, SgVault,
         },
         Id,
     },
-    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, OrderbookSubgraphClientError,
+    MultiRaindexSubgraphClient, RaindexSubgraphClient, RaindexSubgraphClientError,
     SgPaginationArgs,
 };
 use serde::{Deserialize, Serialize};
@@ -462,7 +462,7 @@ impl RaindexOrder {
         ClientRef::clone(&self.raindex_client)
     }
     #[wasm_export(skip)]
-    pub fn get_raindex_subgraph_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
+    pub fn get_raindex_subgraph_client(&self) -> Result<RaindexSubgraphClient, RaindexError> {
         self.raindex_client.get_raindex_subgraph_client(self.raindex)
     }
     #[wasm_export(skip)]
@@ -1005,7 +1005,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         let raindex_client = ClientRef::new(self.client.clone());
         let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
 
-        let client = MultiOrderbookSubgraphClient::new(
+        let client = MultiRaindexSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
         );
 
@@ -1066,7 +1066,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
             .await
         {
             Ok(order) => order,
-            Err(OrderbookSubgraphClientError::Empty) => return Ok(None),
+            Err(RaindexSubgraphClientError::Empty) => return Ok(None),
             Err(err) => return Err(err.into()),
         };
         let order = RaindexOrder::try_from_sg_order(raindex_client, ob_id.chain_id, order, None)?;
@@ -1328,7 +1328,7 @@ impl TryFrom<GetOrdersFilters> for SgOrdersListFilterArgs {
                 .order_hash
                 .map(|order_hash| SgBytes(order_hash.to_string())),
             tokens: tokens.flatten(),
-            orderbooks: filters
+            raindexes: filters
                 .raindex_addresses
                 .map(|addrs| {
                     addrs
@@ -1485,7 +1485,7 @@ impl RaindexOrder {
                 .into_iter()
                 .map(|v| v.into_sg_vault())
                 .collect::<Result<Vec<SgVault>, RaindexError>>()?,
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes(self.raindex().to_string()),
             },
             active: self.active(),
@@ -1537,7 +1537,7 @@ mod tests {
             ContentEncoding, ContentLanguage, ContentType, KnownMagic, RainMetaDocumentV1Item,
         };
         use raindex_subgraph_client::types::common::{
-            SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTransaction,
+            SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgTransaction,
             SgVault,
         };
         use raindex_subgraph_client::utils::float::*;
@@ -2044,7 +2044,7 @@ mod tests {
                     "symbol": "sFLR",
                     "decimals": "18"
                   },
-                  "orderbook": {
+                  "raindex": {
                     "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                   },
                   "ordersAsOutput": [
@@ -2072,7 +2072,7 @@ mod tests {
                     "ordersAsOutput": [],
                     "ordersAsInput": [],
                     "balanceChanges": [],
-                    "orderbook": {
+                    "raindex": {
                       "id": "0x0000000000000000000000000000000000000000"
                     }
                   }
@@ -2090,7 +2090,7 @@ mod tests {
                     "symbol": "WFLR",
                     "decimals": "18"
                   },
-                  "orderbook": {
+                  "raindex": {
                     "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                   },
                   "ordersAsOutput": [],
@@ -2118,12 +2118,12 @@ mod tests {
                     "ordersAsOutput": [],
                     "ordersAsInput": [],
                     "balanceChanges": [],
-                    "orderbook": {
+                    "raindex": {
                       "id": "0x0000000000000000000000000000000000000000"
                     }
                   }
               ],
-              "orderbook": {
+              "raindex": {
                 "id": CHAIN_ID_1_RAINDEX_ADDRESS
               },
               "active": true,
@@ -2162,7 +2162,7 @@ mod tests {
                         symbol: Some("sFLR".to_string()),
                         decimals: Some(SgBigInt("18".to_string())),
                     },
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
                     },
                     orders_as_output: vec![SgOrderAsIO {
@@ -2188,7 +2188,7 @@ mod tests {
                     orders_as_output: vec![],
                     orders_as_input: vec![],
                     balance_changes: vec![],
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     }
                 }],
@@ -2204,7 +2204,7 @@ mod tests {
                         symbol: Some("WFLR".to_string()),
                         decimals: Some(SgBigInt("18".to_string())),
                     },
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
                     },
                     orders_as_output: vec![],
@@ -2230,11 +2230,11 @@ mod tests {
                     orders_as_output: vec![],
                     orders_as_input: vec![],
                     balance_changes: vec![],
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0x0000000000000000000000000000000000000000".to_string()),
                     }
                 }],
-                orderbook: SgOrderbook {
+                raindex: SgRaindex {
                     id: SgBytes(CHAIN_ID_1_RAINDEX_ADDRESS.to_string()),
                 },
                 active: true,
@@ -2293,7 +2293,7 @@ mod tests {
                               "ordersAsOutput": [],
                               "ordersAsInput": [],
                               "balanceChanges": [],
-                              "orderbook": {
+                              "raindex": {
                                 "id": "0x0000000000000000000000000000000000000000"
                               }
                             }
@@ -2314,7 +2314,7 @@ mod tests {
                               "ordersAsOutput": [],
                               "ordersAsInput": [],
                               "balanceChanges": [],
-                              "orderbook": {
+                              "raindex": {
                                 "id": "0x0000000000000000000000000000000000000000"
                               }
                             }
@@ -2332,7 +2332,7 @@ mod tests {
                           ],
                           "meta": null,
                           "timestampAdded": "0",
-                          "orderbook": {
+                          "raindex": {
                             "id": "0x0000000000000000000000000000000000000000"
                           },
                           "trades": [],
@@ -2647,7 +2647,7 @@ mod tests {
                             "owner": "0xf08bcbce72f62c95dcb7c07dcb5ed26acfcfbc11",
                             "outputs": [],
                             "inputs": [],
-                            "orderbook": {
+                            "raindex": {
                                 "id": CHAIN_ID_1_RAINDEX_ADDRESS
                             },
                             "active": true,
@@ -2874,7 +2874,7 @@ mod tests {
                         ],
                         "meta": null,
                         "timestampAdded": "0",
-                        "orderbook": {
+                        "raindex": {
                           "id": "0x0987654321098765432109876543210987654321"
                         },
                         "trades": [],
@@ -2991,7 +2991,7 @@ mod tests {
                     "id": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4",
                     "orderHash": "0x557147dd0daa80d5beff0023fe6a3505469b2b8c4406ce1ab873e1a652572dd4"
                 },
-                "orderbook": {
+                "raindex": {
                     "id": CHAIN_ID_1_RAINDEX_ADDRESS
                 },
                 "inputVaultBalanceChange": {
@@ -3007,7 +3007,7 @@ mod tests {
                         "timestamp": "1632000000",
                         "blockNumber": "0"
                     },
-                    "orderbook": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
+                    "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                     "vault": {
                         "id": "0x1d80c49bbbcd1c0911346656b529df9e5c2f783d",
                         "vaultId": "0x1234",
@@ -3038,7 +3038,7 @@ mod tests {
                         "timestamp": "1632000000",
                         "blockNumber": "0"
                     },
-                    "orderbook": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
+                    "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                     "vault": {
                         "id": "0x12e605bc104e93b45e1ad99f9e555f659051c2bb",
                         "vaultId": "0x5678",
@@ -3386,7 +3386,7 @@ mod tests {
         fn make_test_calldata_result() -> TakeOrdersCalldataResult {
             use crate::raindex_client::take_orders::result::TakeOrdersInfoData;
 
-            let orderbook = Address::from([0x11u8; 20]);
+            let raindex = Address::from([0x11u8; 20]);
             let calldata = Bytes::from(vec![0x01, 0x02, 0x03, 0x04]);
             let effective_price = Float::parse("1.5".to_string()).unwrap();
             let prices = vec![
@@ -3397,7 +3397,7 @@ mod tests {
             let max_sell_cap = Float::parse("200".to_string()).unwrap();
 
             TakeOrdersCalldataResult::ready(TakeOrdersInfoData {
-                orderbook,
+                raindex,
                 calldata,
                 effective_price,
                 prices,

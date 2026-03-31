@@ -92,7 +92,7 @@ mod tests {
     };
     use raindex_bindings::IRaindexV6::{EvaluableV4, OrderV4, IOV2};
     use raindex_subgraph_client::types::common::{
-        SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderStructPartialTrade, SgOrderbook,
+        SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderStructPartialTrade, SgRaindex,
         SgTransaction, SgVault,
     };
     use std::str::FromStr;
@@ -144,7 +144,7 @@ mod tests {
                     symbol: Some("TOUT".into()),
                     decimals: Some(SgBigInt("18".into())),
                 },
-                orderbook: SgOrderbook {
+                raindex: SgRaindex {
                     id: SgBytes("ob-id".into()),
                 },
                 orders_as_output: vec![],
@@ -163,14 +163,14 @@ mod tests {
                     symbol: Some("TIN".into()),
                     decimals: Some(SgBigInt("18".into())),
                 },
-                orderbook: SgOrderbook {
+                raindex: SgRaindex {
                     id: SgBytes("ob-id".into()),
                 },
                 orders_as_output: vec![],
                 orders_as_input: vec![],
                 balance_changes: vec![],
             }],
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("ob-id".into()),
             },
             active: true,
@@ -241,7 +241,7 @@ mod tests {
             id: SgBytes("vault-in-id-2".into()),
             owner: SgBytes("vault-owner-2".into()),
             balance: SgBytes("1000".into()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("ob-id".into()),
             },
             orders_as_output: vec![],
@@ -260,7 +260,7 @@ mod tests {
             id: SgBytes("vault-out-id-2".into()),
             owner: SgBytes("vault-owner-2".into()),
             balance: SgBytes("1000".into()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("ob-id".into()),
             },
             orders_as_output: vec![],
@@ -352,7 +352,7 @@ mod tests {
             id: SgBytes("vault-in-id".into()),
             owner: SgBytes("vault-owner".into()),
             balance: SgBytes("1000".into()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("ob-id".into()),
             },
             orders_as_output: vec![],
@@ -371,7 +371,7 @@ mod tests {
             id: SgBytes("vault-out-id".into()),
             owner: SgBytes("vault-owner".into()),
             balance: SgBytes("1000".into()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("ob-id".into()),
             },
             vault_id: SgBytes("222".into()),

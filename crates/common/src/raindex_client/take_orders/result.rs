@@ -204,7 +204,7 @@ impl std::fmt::Debug for TakeOrdersCalldataResult {
                 .finish(),
             TakeOrdersCalldataResultInner::Ready(data) => f
                 .debug_struct("TakeOrdersCalldataResult::Ready")
-                .field("orderbook", &data.raindex)
+                .field("raindex", &data.raindex)
                 .finish(),
         }
     }

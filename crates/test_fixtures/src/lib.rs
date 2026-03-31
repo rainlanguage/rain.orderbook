@@ -362,7 +362,7 @@ impl LocalEvm {
             .get_inner();
 
         let tx = self
-            .orderbook
+            .raindex
             .deposit4(token, vault_id, raw_deposit_amount, vec![])
             .from(from)
             .into_transaction_request();

@@ -414,7 +414,7 @@ local-db-sync:
     finality-depth: 12
     bootstrap-block-threshold: 1000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
@@ -442,7 +442,7 @@ networks:
     chain-id: 42161
 subgraphs:
   anvil: https://subgraph.example/anvil
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil

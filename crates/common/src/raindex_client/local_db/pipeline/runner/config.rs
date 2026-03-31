@@ -109,7 +109,7 @@ local-db-sync:
     finality-depth: 24
     bootstrap-block-threshold: 5000
     sync-interval-ms: 5000
-orderbooks:
+raindexes:
   ob-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
@@ -134,7 +134,7 @@ orderbooks:
     }
 
     #[test]
-    fn from_global_settings_filters_orderbooks_for_network() {
+    fn from_global_settings_filters_raindexes_for_network() {
         let global = parse_runner_settings(&sample_settings_yaml()).expect("valid yaml");
         let config =
             NetworkRunnerConfig::from_global_settings(&global, "network-a").expect("config ok");
@@ -179,7 +179,7 @@ orderbooks:
     }
 
     #[test]
-    fn build_targets_single_orderbook_network() {
+    fn build_targets_single_raindex_network() {
         let global = parse_runner_settings(&sample_settings_yaml()).expect("valid yaml");
         let config =
             NetworkRunnerConfig::from_global_settings(&global, "network-b").expect("config ok");

@@ -1,6 +1,6 @@
 use alloy::{primitives::Bytes, sol_types::SolCall};
 use rain_math_float::Float;
-use raindex_bindings::OrderBook::multicallCall;
+use raindex_bindings::Raindex::multicallCall;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use wasm_bindgen_utils::prelude::*;
@@ -210,7 +210,7 @@ pub enum VaultsListError {
     WithdrawMulticallError(String),
     #[error("No withdrawable vaults available")]
     NoWithdrawableVaults,
-    #[error("All vaults must share the same orderbook for batch withdrawal")]
+    #[error("All vaults must share the same raindex for batch withdrawal")]
     MultipleRaindexesUsed,
 }
 
@@ -222,7 +222,7 @@ impl VaultsListError {
             }
             VaultsListError::NoWithdrawableVaults => "No withdrawable vaults available".to_string(),
             VaultsListError::MultipleRaindexesUsed => {
-                "All vaults must share the same orderbook for batch withdrawal".to_string()
+                "All vaults must share the same raindex for batch withdrawal".to_string()
             }
         }
     }
@@ -267,7 +267,7 @@ mod tests {
                 "symbol": "TKN1",
                 "decimals": "18"
               },
-              "orderbook": {
+              "raindex": {
                 "id": "0x0000000000000000000000000000000000000000"
               },
               "ordersAsOutput": [],
@@ -289,7 +289,7 @@ mod tests {
                     "symbol": "TKN2",
                     "decimals": "18"
                 },
-                "orderbook": {
+                "raindex": {
                     "id": "0x0000000000000000000000000000000000000000"
                 },
                 "ordersAsOutput": [],

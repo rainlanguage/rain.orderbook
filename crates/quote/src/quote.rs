@@ -363,7 +363,7 @@ mod tests {
                 },
                 "balance": "0",
                 "vaultId": order.validOutputs[0].vaultId.to_string(),
-                "orderbook": { "id": encode_prefixed(B256::random()) },
+                "raindex": { "id": encode_prefixed(B256::random()) },
                 "ordersAsOutput": [{
                     "id": encode_prefixed(B256::random()),
                     "orderHash": encode_prefixed(B256::random()),
@@ -398,7 +398,7 @@ mod tests {
                         "timestamp": "0",
                         "from": encode_prefixed(Address::random())
                     },
-                    "orderbook": { "id": encode_prefixed(B256::random()) }
+                    "raindex": { "id": encode_prefixed(B256::random()) }
                 }],
             }],
             "inputs": [{
@@ -413,7 +413,7 @@ mod tests {
                 },
                 "balance": "0",
                 "vaultId": order.validInputs[0].vaultId.to_string(),
-                "orderbook": { "id": encode_prefixed(B256::random()) },
+                "raindex": { "id": encode_prefixed(B256::random()) },
                 "ordersAsOutput": [{
                     "id": encode_prefixed(B256::random()),
                     "orderHash": encode_prefixed(B256::random()),
@@ -448,10 +448,10 @@ mod tests {
                         "timestamp": "0",
                         "from": encode_prefixed(Address::random())
                     },
-                    "orderbook": { "id": encode_prefixed(B256::random()) }
+                    "raindex": { "id": encode_prefixed(B256::random()) }
                 }],
             }],
-            "orderbook": { "id": encode_prefixed(B256::random()) },
+            "raindex": { "id": encode_prefixed(B256::random()) },
             "active": true,
             "addEvents": [{
                 "transaction": {
@@ -689,7 +689,7 @@ mod tests {
                 "orderBytes": encode_prefixed(order.abi_encode()),
                 "orderHash": encode_prefixed(B256::random()),
                 "owner": encode_prefixed(order.owner),
-                "orderbook": { "id": encode_prefixed(B256::random()) },
+                "raindex": { "id": encode_prefixed(B256::random()) },
                 "active": true,
                 "addEvents": [],
                 "meta": null,

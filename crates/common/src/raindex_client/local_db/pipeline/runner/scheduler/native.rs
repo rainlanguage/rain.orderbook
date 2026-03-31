@@ -386,7 +386,7 @@ mod tests {
     #[test]
     fn start_returns_error_for_empty_settings() {
         let settings = ParsedRunnerSettings {
-            orderbooks: HashMap::new(),
+            raindexes: HashMap::new(),
             syncs: HashMap::new(),
         };
         let result = start(

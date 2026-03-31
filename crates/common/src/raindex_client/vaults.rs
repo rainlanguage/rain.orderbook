@@ -29,13 +29,13 @@ use raindex_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
         common::{
-            SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgTradeVaultBalanceChange,
+            SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgTradeVaultBalanceChange,
             SgVault, SgVaultBalanceChangeType, SgVaultBalanceChangeUnwrapped,
             SgVaultsListFilterArgs,
         },
         Id,
     },
-    MultiOrderbookSubgraphClient, OrderbookSubgraphClient, OrderbookSubgraphClientError,
+    MultiRaindexSubgraphClient, RaindexSubgraphClient, RaindexSubgraphClientError,
     SgPaginationArgs,
 };
 use std::str::FromStr;
@@ -320,7 +320,7 @@ impl RaindexVaultToken {
 #[wasm_export]
 impl RaindexVault {
     #[wasm_export(skip)]
-    pub fn get_raindex_subgraph_client(&self) -> Result<OrderbookSubgraphClient, RaindexError> {
+    pub fn get_raindex_subgraph_client(&self) -> Result<RaindexSubgraphClient, RaindexError> {
         self.raindex_client.get_raindex_subgraph_client(self.raindex)
     }
 
@@ -850,7 +850,7 @@ impl RaindexVaultBalanceChange {
             formatted_old_balance,
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
-            raindex: Address::from_str(&balance_change.orderbook.id.0)?,
+            raindex: Address::from_str(&balance_change.raindex.id.0)?,
         })
     }
 }
@@ -888,7 +888,7 @@ impl RaindexVaultBalanceChange {
             formatted_old_balance,
             timestamp: U256::from_str(&balance_change.timestamp.0)?,
             transaction: RaindexTransaction::try_from(balance_change.transaction)?,
-            raindex: Address::from_str(&balance_change.orderbook.id.0)?,
+            raindex: Address::from_str(&balance_change.raindex.id.0)?,
         })
     }
 }
@@ -917,7 +917,7 @@ impl RaindexVaultBalanceChange {
                     formatted_old_balance: old_balance.format()?,
                     timestamp: U256::from_str(&deposit.timestamp.0)?,
                     transaction: RaindexTransaction::try_from(deposit.transaction)?,
-                    raindex: Address::from_str(&deposit.orderbook.id.0)?,
+                    raindex: Address::from_str(&deposit.raindex.id.0)?,
                 })
             }
             SgVaultBalanceChangeType::Withdrawal(withdrawal) => {
@@ -938,7 +938,7 @@ impl RaindexVaultBalanceChange {
                     formatted_old_balance: old_balance.format()?,
                     timestamp: U256::from_str(&withdrawal.timestamp.0)?,
                     transaction: RaindexTransaction::try_from(withdrawal.transaction)?,
-                    raindex: Address::from_str(&withdrawal.orderbook.id.0)?,
+                    raindex: Address::from_str(&withdrawal.raindex.id.0)?,
                 })
             }
             SgVaultBalanceChangeType::TradeVaultBalanceChange(trade_change) => {
@@ -962,7 +962,7 @@ impl RaindexVaultBalanceChange {
                     formatted_old_balance: old_balance.format()?,
                     timestamp: U256::from_str(&bounty.timestamp.0)?,
                     transaction: RaindexTransaction::try_from(bounty.transaction)?,
-                    raindex: Address::from_str(&bounty.orderbook.id.0)?,
+                    raindex: Address::from_str(&bounty.raindex.id.0)?,
                 })
             }
             SgVaultBalanceChangeType::Unknown => Err(RaindexError::InvalidVaultBalanceChangeType(
@@ -1476,7 +1476,7 @@ impl VaultsDataSource for SubgraphVaults<'_> {
     ) -> Result<Vec<RaindexVault>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
         let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
-        let client = MultiOrderbookSubgraphClient::new(
+        let client = MultiRaindexSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
         );
 
@@ -1525,7 +1525,7 @@ impl VaultsDataSource for SubgraphVaults<'_> {
         let client = self.client.get_raindex_subgraph_client(ob_id.raindex_address)?;
         let vault = match client.vault_detail(Id::new(vault_id.to_string())).await {
             Ok(vault) => vault,
-            Err(OrderbookSubgraphClientError::Empty) => return Ok(None),
+            Err(RaindexSubgraphClientError::Empty) => return Ok(None),
             Err(err) => return Err(err.into()),
         };
 
@@ -1576,7 +1576,7 @@ impl VaultsDataSource for SubgraphVaults<'_> {
         chain_ids: Option<Vec<u32>>,
     ) -> Result<Vec<RaindexVaultToken>, RaindexError> {
         let multi_subgraph_args = self.client.get_multi_subgraph_args(chain_ids)?;
-        let client = MultiOrderbookSubgraphClient::new(
+        let client = MultiRaindexSubgraphClient::new(
             multi_subgraph_args.values().flatten().cloned().collect(),
         );
 
@@ -1632,7 +1632,7 @@ impl TryFrom<GetVaultsFilters> for SgVaultsListFilterArgs {
                         .collect()
                 })
                 .unwrap_or_default(),
-            orderbooks: filters
+            raindexes: filters
                 .raindex_addresses
                 .map(|addrs| {
                     addrs
@@ -1668,7 +1668,7 @@ impl RaindexVault {
             balance,
             formatted_balance,
             token,
-            raindex: Address::from_str(&vault.orderbook.id.0)?,
+            raindex: Address::from_str(&vault.raindex.id.0)?,
             orders_as_inputs: vault
                 .orders_as_input
                 .iter()
@@ -1706,7 +1706,7 @@ impl RaindexVault {
             balance: SgBytes(self.balance.as_hex()),
             owner: SgBytes(self.owner.to_string()),
             token: self.token.try_into()?,
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes(self.raindex.to_string()),
             },
             orders_as_input: self
@@ -2348,7 +2348,7 @@ mod tests {
                 "symbol": "TKN1",
                 "decimals": "18"
               },
-              "orderbook": {
+              "raindex": {
                 "id": CHAIN_ID_1_RAINDEX_ADDRESS
               },
               "ordersAsOutput": [],
@@ -2370,7 +2370,7 @@ mod tests {
                     "symbol": "TKN2",
                     "decimals": "18"
                 },
-                "orderbook": {
+                "raindex": {
                     "id": "0x0000000000000000000000000000000000000000"
                 },
                 "ordersAsOutput": [],
@@ -2531,7 +2531,7 @@ mod tests {
                                 "symbol": "TKN1",
                                 "decimals": null // Missing decimals
                             },
-                            "orderbook": {
+                            "raindex": {
                                 "id": CHAIN_ID_1_RAINDEX_ADDRESS
                             },
                             "ordersAsOutput": [],
@@ -2628,7 +2628,7 @@ mod tests {
                                     "blockNumber": "34407047",
                                     "timestamp": "1734054063"
                                 },
-                                "orderbook": {
+                                "raindex": {
                                     "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                                 }
                             }
@@ -2722,7 +2722,7 @@ mod tests {
                     "symbol": "USDC",
                     "decimals": "6"
                 },
-                "orderbook": {
+                "raindex": {
                     "id": CHAIN_ID_1_RAINDEX_ADDRESS
                 },
                 "ordersAsOutput": [],
@@ -2810,7 +2810,7 @@ mod tests {
                                     "blockNumber": "34407047",
                                     "timestamp": "1734054063"
                                 },
-                                "orderbook": {
+                                "raindex": {
                                     "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                                 }
                             }
@@ -2908,7 +2908,7 @@ mod tests {
                                     "blockNumber": "34407047",
                                     "timestamp": "1734054063"
                                 },
-                                "orderbook": {
+                                "raindex": {
                                     "id": "0xcee8cd002f151a536394e564b84076c41bbbcd4d"
                                 }
                             }

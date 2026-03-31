@@ -179,7 +179,7 @@ pub mod local_evm {
     use alloy::primitives::{Address, B256, U256};
     use rain_math_float::Float;
     use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
+        SgBigInt, SgBytes, SgErc20, SgRaindex, SgVault,
     };
     use raindex_test_fixtures::LocalEvm;
 
@@ -466,7 +466,7 @@ pub mod local_evm {
             balance: SgBytes(Float::parse(balance.to_string()).unwrap().as_hex()),
             vault_id: SgBytes(vault_id.to_string()),
             owner: SgBytes(owner.to_string()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes(raindex.to_string()),
             },
             orders_as_input: vec![],
@@ -910,7 +910,7 @@ pub mod subgraph {
     use alloy::primitives::{Address, B256};
     use raindex_app_settings::spec_version::SpecVersion;
     use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgOrder, SgOrderbook, SgVault,
+        SgBigInt, SgBytes, SgOrder, SgRaindex, SgVault,
     };
     use serde_json::json;
 
@@ -925,7 +925,7 @@ pub mod subgraph {
     ) -> SgOrder {
         SgOrder {
             id: SgBytes(order_hash.to_string()),
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes(setup.raindex.to_string()),
             },
             order_bytes: SgBytes(order_bytes),
@@ -958,7 +958,7 @@ pub mod subgraph {
                         "symbol": v.token.symbol.clone().unwrap_or_default(),
                         "decimals": v.token.decimals.clone().map(|d| d.0).unwrap_or_default()
                     },
-                    "orderbook": { "id": raindex.to_string() },
+                    "raindex": { "id": raindex.to_string() },
                     "ordersAsOutput": [],
                     "ordersAsInput": [],
                     "balanceChanges": []
@@ -1020,7 +1020,7 @@ pub mod subgraph {
             "owner": owner.to_string(),
             "outputs": outputs_json,
             "inputs": inputs_json,
-            "orderbook": { "id": raindex.to_string() },
+            "raindex": { "id": raindex.to_string() },
             "active": true,
             "timestampAdded": "1739448802",
             "meta": null,

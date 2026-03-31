@@ -22,8 +22,8 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_raw_sql_exactly() {
-        let orderbook = Address::from([0x55; 20]);
-        let expected_stmt = fetch_store_addresses_stmt(&RaindexIdentifier::new(1, orderbook));
+        let raindex = Address::from([0x55; 20]);
+        let expected_stmt = fetch_store_addresses_stmt(&RaindexIdentifier::new(1, raindex));
         let store = Rc::new(RefCell::new((
             String::new(),
             wasm_bindgen::JsValue::UNDEFINED,
@@ -31,7 +31,7 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
         let res =
-            super::fetch_store_addresses(&exec, &RaindexIdentifier::new(1, orderbook)).await;
+            super::fetch_store_addresses(&exec, &RaindexIdentifier::new(1, raindex)).await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone().0, expected_stmt.sql);
     }

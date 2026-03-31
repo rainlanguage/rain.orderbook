@@ -50,8 +50,8 @@ mod tests {
     fn from_get_orders_filters_builds_args() {
         let owner = Address::from_str("0x0123456789ABCDEF0123456789ABCDEF01234567").unwrap();
         let token = Address::from_str("0x89ABCDEF0123456789ABCDEF0123456789ABCDEF").unwrap();
-        let orderbook1 = address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-        let orderbook2 = address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
+        let raindex1 = address!("0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let raindex2 = address!("0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         let filters = GetOrdersFilters {
             owners: vec![owner],
             active: Some(true),
@@ -62,7 +62,7 @@ mod tests {
                 inputs: Some(vec![token]),
                 outputs: None,
             }),
-            raindex_addresses: Some(vec![orderbook1, orderbook2]),
+            raindex_addresses: Some(vec![raindex1, raindex2]),
         };
         let args: FetchOrdersArgs = filters.into();
         assert!(matches!(args.filter, FetchOrdersActiveFilter::Active));
@@ -82,8 +82,8 @@ mod tests {
             ))
         );
         assert_eq!(args.raindex_addresses.len(), 2);
-        assert_eq!(args.raindex_addresses[0], orderbook1);
-        assert_eq!(args.raindex_addresses[1], orderbook2);
+        assert_eq!(args.raindex_addresses[0], raindex1);
+        assert_eq!(args.raindex_addresses[1], raindex2);
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod tests {
                 "0x0000000000000000000000000000000000000000000000000000000000000001"
             ));
             args.chain_ids = vec![137];
-            args.raindex_addresses = vec![orderbook()];
+            args.raindex_addresses = vec![raindex()];
 
             let expected_stmt = build_fetch_orders_stmt(&args).unwrap();
 

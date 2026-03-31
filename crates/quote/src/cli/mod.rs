@@ -355,7 +355,7 @@ mod tests {
                         },
                         "balance": "0",
                         "vaultId": order.validOutputs[0].vaultId.to_string(),
-                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "raindex": { "id": encode_prefixed(B256::random()) },
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
                         "balanceChanges": []
@@ -372,12 +372,12 @@ mod tests {
                         },
                         "balance": "0",
                         "vaultId": order.validInputs[0].vaultId.to_string(),
-                        "orderbook": { "id": encode_prefixed(B256::random()) },
+                        "raindex": { "id": encode_prefixed(B256::random()) },
                         "ordersAsOutput": [],
                         "ordersAsInput": [],
                         "balanceChanges": []
                     }],
-                    "orderbook": { "id": encode_prefixed(B256::random()) },
+                    "raindex": { "id": encode_prefixed(B256::random()) },
                     "active": true,
                     "addEvents": [{
                         "transaction": {

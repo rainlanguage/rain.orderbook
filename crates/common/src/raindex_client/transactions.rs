@@ -8,7 +8,7 @@ use alloy::primitives::{Address, B256, U256};
 #[cfg(target_family = "wasm")]
 use gloo_timers::future::TimeoutFuture;
 use raindex_subgraph_client::types::{common::SgTransaction, Id};
-use raindex_subgraph_client::OrderbookSubgraphClientError;
+use raindex_subgraph_client::RaindexSubgraphClientError;
 use serde::{Deserialize, Serialize};
 #[cfg(not(target_family = "wasm"))]
 use std::time::Duration;
@@ -200,7 +200,7 @@ impl RaindexClient {
                         Ok(transaction) => {
                             return transaction.try_into();
                         }
-                        Err(OrderbookSubgraphClientError::Empty) => {
+                        Err(RaindexSubgraphClientError::Empty) => {
                             if attempt < attempts {
                                 sleep_ms(interval_ms).await;
                                 continue;

@@ -45,7 +45,7 @@ impl TryIntoCsv<TokenVaultFlattened> for Vec<TokenVaultFlattened> {}
 mod tests {
     use super::*;
     use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgOrderbook, SgVault, SgVaultBalanceChangeType,
+        SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgVault, SgVaultBalanceChangeType,
     };
     use raindex_subgraph_client::utils::float::*;
 
@@ -73,7 +73,7 @@ mod tests {
                 symbol: token_symbol.map(String::from),
                 decimals: token_decimals_str.map(|s| SgBigInt(s.into())),
             },
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("default_raindex_id".into()),
             },
             orders_as_output: Vec::<SgOrderAsIO>::new(),

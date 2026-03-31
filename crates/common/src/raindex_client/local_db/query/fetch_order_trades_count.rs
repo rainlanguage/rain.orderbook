@@ -36,9 +36,9 @@ mod wasm_tests {
         let start = Some(10);
         let end = Some(20);
 
-        let orderbook = Address::from([0x88; 20]);
+        let raindex = Address::from([0x88; 20]);
         let expected_stmt = build_fetch_trade_count_stmt(
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             order_hash.clone(),
             start,
             end,
@@ -56,7 +56,7 @@ mod wasm_tests {
 
         let res = super::fetch_order_trades_count(
             &exec,
-            &RaindexIdentifier::new(1, orderbook),
+            &RaindexIdentifier::new(1, raindex),
             order_hash,
             start,
             end,

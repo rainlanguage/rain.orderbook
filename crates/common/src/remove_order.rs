@@ -81,7 +81,7 @@ mod tests {
     use alloy::primitives::Address;
     use raindex_bindings::IRaindexV6::removeOrder3Call;
     use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrderbook, SgVault,
+        SgBigInt, SgBytes, SgErc20, SgRaindex, SgVault,
     };
     use raindex_subgraph_client::utils::float::*;
 
@@ -110,7 +110,7 @@ mod tests {
                         symbol: Some("WFLR".to_string()),
                         decimals: Some(SgBigInt("18".to_string())),
                     },
-                    orderbook: SgOrderbook {
+                    raindex: SgRaindex {
                         id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
                     },
                     orders_as_output: vec![],
@@ -119,7 +119,7 @@ mod tests {
                 },
             ],
             inputs: vec![],
-            orderbook: SgOrderbook {
+            raindex: SgRaindex {
                 id: SgBytes("0xcee8cd002f151a536394e564b84076c41bbbcd4d".to_string()),
             },
             active: true,

@@ -14,7 +14,7 @@ use raindex_bindings::IRaindexV6::{
     AddOrderV3, AfterClearV2, ClearV3, DepositV2, OrderV4, RemoveOrderV3, TakeOrderV3, WithdrawV2,
     IOV2,
 };
-use raindex_bindings::OrderBook::MetaV1_2;
+use raindex_bindings::Raindex::MetaV1_2;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use thiserror::Error;
