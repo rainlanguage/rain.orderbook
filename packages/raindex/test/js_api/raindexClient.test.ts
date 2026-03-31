@@ -159,7 +159,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				},
@@ -178,7 +178,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
@@ -199,7 +199,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				},
@@ -218,7 +218,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
@@ -236,7 +236,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			],
 			meta: '0xff0a89c674ee7874a3005902252f2a20302e2063616c63756c6174652d696f202a2f200a7573696e672d776f7264732d66726f6d203078466532343131434461313933443945346538334135633233344337466433323031303138383361430a616d743a203130302c0a696f3a2063616c6c3c323e28293b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a63616c6c3c333e28292c0a3a656e7375726528657175616c2d746f286f75747075742d7661756c742d64656372656173652829203130302920226d7573742074616b652066756c6c20616d6f756e7422293b0a0a2f2a20322e206765742d696f2d726174696f2d6e6f77202a2f200a656c61707365643a2063616c6c3c343e28292c0a696f3a2073617475726174696e672d73756228302e3031373733353620646976286d756c28656c61707365642073756228302e3031373733353620302e30313733383434292920363029293b0a0a2f2a20332e206f6e652d73686f74202a2f200a3a656e737572652869732d7a65726f286765742868617368286f726465722d68617368282920226861732d657865637574656422292929202268617320657865637574656422292c0a3a7365742868617368286f726465722d68617368282920226861732d657865637574656422292031293b0a0a2f2a20342e206765742d656c6170736564202a2f200a5f3a20737562286e6f772829206765742868617368286f726465722d68617368282920226465706c6f792d74696d65222929293b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d',
 			timestampAdded: '0',
-			orderbook: {
+			raindex: {
 				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			trades: [],
@@ -265,7 +265,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_2_RAINDEX_ADDRESS
 					}
 				}
@@ -286,7 +286,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_2_RAINDEX_ADDRESS
 					}
 				}
@@ -304,7 +304,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			],
 			meta: null,
 			timestampAdded: '0',
-			orderbook: {
+			raindex: {
 				id: CHAIN_ID_2_RAINDEX_ADDRESS
 			},
 			trades: [],
@@ -338,7 +338,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
@@ -359,7 +359,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
@@ -377,7 +377,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			],
 			meta: null,
 			timestampAdded: '0',
-			orderbook: {
+			raindex: {
 				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			trades: [],
@@ -421,7 +421,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
+					raindex: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				order: {
@@ -452,10 +452,10 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
+					raindex: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
-				orderbook: {
+				raindex: {
 					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				}
 			}
@@ -498,7 +498,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
+					raindex: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				order: {
@@ -529,10 +529,10 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
+					raindex: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
-				orderbook: {
+				raindex: {
 					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				}
 			}
@@ -554,7 +554,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 				}
 			},
 			timestamp: '0',
-			orderbook: {
+			raindex: {
 				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			outputVaultBalanceChange: {
@@ -581,7 +581,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					blockNumber: '0',
 					timestamp: '0'
 				},
-				orderbook: {
+				raindex: {
 					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				},
 				trade: { tradeEvent: { __typename: 'TakeOrder' } }
@@ -610,7 +610,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					blockNumber: '0',
 					timestamp: '0'
 				},
-				orderbook: {
+				raindex: {
 					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				},
 				trade: { tradeEvent: { __typename: 'TakeOrder' } }
@@ -650,7 +650,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			);
 			assert.equal(typeof order, 'object');
 			assert.equal(order.id, order1.id);
-			assert.equal(order.orderbook, order1.orderbook.id);
+			assert.equal(order.raindex, order1.raindex.id);
 			assert.equal(order.owner, order1.owner);
 			assert.equal(order.active, order1.active);
 			assert.equal(order.timestampAdded, order1.timestampAdded);
@@ -812,7 +812,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 		// 	const expected: OrderPerformance = {
 		// 		orderId: '0x0123',
 		// 		orderHash: '0x0123',
-		// 		orderbook: CHAIN_ID_1_RAINDEX_ADDRESS,
+		// 		raindex: CHAIN_ID_1_RAINDEX_ADDRESS,
 		// 		denominatedPerformance: {
 		// 			token: {
 		// 				id: '0x0234',
@@ -1032,7 +1032,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 				assert.equal(result[0].id, mockOrderTradesList[0].id);
 				assert.equal(result[0].orderHash, mockOrderTradesList[0].order.orderHash);
 				assert.equal(result[0].timestamp, BigInt(mockOrderTradesList[0].timestamp));
-				assert.equal(result[0].orderbook, mockOrderTradesList[0].orderbook.id.toLowerCase());
+				assert.equal(result[0].raindex, mockOrderTradesList[0].raindex.id.toLowerCase());
 				assert.equal(
 					result[0].outputVaultBalanceChange.amount,
 					mockOrderTradesList[0].outputVaultBalanceChange.amount
@@ -1186,7 +1186,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					result.transaction.timestamp,
 					BigInt(mockTrade.tradeEvent.transaction.timestamp)
 				);
-				assert.equal(result.orderbook, mockTrade.orderbook.id.toLowerCase());
+				assert.equal(result.raindex, mockTrade.raindex.id.toLowerCase());
 			});
 
 			it('should get trade count', async function () {
@@ -1253,7 +1253,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 							symbol: 'sFLR',
 							decimals: '18'
 						},
-						orderbook: {
+						raindex: {
 							id: CHAIN_ID_1_RAINDEX_ADDRESS
 						},
 						ordersAsOutput: [
@@ -1294,7 +1294,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37432554',
 										timestamp: '1739448802'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1328,7 +1328,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37439233',
 										timestamp: '1739460802'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1362,7 +1362,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37439219',
 										timestamp: '1739460777'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1396,7 +1396,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37439068',
 										timestamp: '1739460481'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1418,7 +1418,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 							symbol: 'WFLR',
 							decimals: '18'
 						},
-						orderbook: {
+						raindex: {
 							id: CHAIN_ID_1_RAINDEX_ADDRESS
 						},
 						ordersAsOutput: [],
@@ -1459,7 +1459,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37439221',
 										timestamp: '1739460781'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1493,7 +1493,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37439034',
 										timestamp: '1739460415'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1527,7 +1527,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37439143',
 										timestamp: '1739460627'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1561,7 +1561,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 										blockNumber: '37438849',
 										timestamp: '1739460078'
 									},
-									orderbook: {
+									raindex: {
 										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
@@ -1569,7 +1569,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 						]
 					}
 				],
-				orderbook: {
+				raindex: {
 					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				},
 				active: true,
@@ -1607,7 +1607,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			);
 			assert.equal(result[0].id, mockAddOrder.order.id);
 			assert.equal(result[0].chainId, BigInt(1));
-			assert.equal(result[0].orderbook, mockAddOrder.order.orderbook.id);
+			assert.equal(result[0].raindex, mockAddOrder.order.raindex.id);
 			assert.equal(result[0].transaction?.id, mockAddOrder.transaction.id);
 		});
 
@@ -1626,7 +1626,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			);
 			assert.equal(result[0].id, mockRemoveOrder.order.id);
 			assert.equal(result[0].chainId, BigInt(1));
-			assert.equal(result[0].orderbook, mockRemoveOrder.order.orderbook.id);
+			assert.equal(result[0].raindex, mockRemoveOrder.order.raindex.id);
 			assert.equal(result[0].transaction?.id, mockRemoveOrder.transaction.id);
 		});
 	});
@@ -1644,7 +1644,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 				symbol: 'TKN1',
 				decimals: '18'
 			},
-			orderbook: {
+			raindex: {
 				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			ordersAsOutput: [],
@@ -1663,7 +1663,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 				symbol: 'TKN2',
 				decimals: '18'
 			},
-			orderbook: {
+			raindex: {
 				id: CHAIN_ID_2_RAINDEX_ADDRESS
 			},
 			ordersAsOutput: [],
@@ -1726,7 +1726,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			assert.equal(result.token.name, vault1.token.name);
 			assert.equal(result.token.symbol, vault1.token.symbol);
 			assert.equal(result.token.decimals, BigInt(vault1.token.decimals ?? 0));
-			assert.equal(result.orderbook, vault1.orderbook.id);
+			assert.equal(result.raindex, vault1.raindex.id);
 		});
 
 		it('should fetch vault balance changes', async () => {
@@ -1755,7 +1755,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 						blockNumber: '34407047',
 						timestamp: '1734054063'
 					},
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
@@ -1787,7 +1787,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			assert.equal(result[0].transaction.from, '0x7177b9d00bB5dbcaaF069CC63190902763783b09');
 			assert.equal(result[0].transaction.blockNumber, BigInt('34407047'));
 			assert.equal(result[0].transaction.timestamp, BigInt('1734054063'));
-			assert.equal(result[0].orderbook, CHAIN_ID_1_RAINDEX_ADDRESS);
+			assert.equal(result[0].raindex, CHAIN_ID_1_RAINDEX_ADDRESS);
 		});
 
 		const order = {
@@ -1812,7 +1812,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
@@ -1833,7 +1833,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 					ordersAsOutput: [],
 					ordersAsInput: [],
 					balanceChanges: [],
-					orderbook: {
+					raindex: {
 						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
@@ -1851,7 +1851,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async fun
 			],
 			meta: null,
 			timestampAdded: '0',
-			orderbook: {
+			raindex: {
 				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			trades: [],

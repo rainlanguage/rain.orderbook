@@ -1957,7 +1957,7 @@ ${dotrainWithoutVaultIds}`;
 			);
 			assert.equal(result.approvals[0].symbol, 'T2');
 			assert.equal(result.deploymentCalldata.length, 3594);
-			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(result.raindexAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
 			const emitMetaCall = result.emitMetaCall;
@@ -1982,7 +1982,7 @@ ${dotrainWithoutVaultIds}`;
 
 			assert.equal(result.approvals.length, 0);
 			assert.equal(result.deploymentCalldata.length, 2954);
-			assert.equal(result.orderbookAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
+			assert.equal(result.raindexAddress, '0xc95a5f8efe14d7a20bd2e5bafec4e71f8ce0b9a6');
 			assert.equal(result.chainId, 123);
 
 			const emitMetaCallAfterUnset = result.emitMetaCall;
