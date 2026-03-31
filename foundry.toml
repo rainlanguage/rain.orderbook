@@ -20,8 +20,6 @@ optimizer = true
 # Lowered from 1000000 → 1000 → 800 to stay under the EIP-170 24KB contract
 # size limit. At 1000 runs RaindexV6 was 24,650 bytes (74 over); at 800 it
 # is 23,437 bytes (1,139 under).
-# NOTE: the size was measured when the contract was named OrderBookV6;
-# after the rename to RaindexV6 the bytecode is identical.
 optimizer_runs = 800
 
 bytecode_hash = "none"
