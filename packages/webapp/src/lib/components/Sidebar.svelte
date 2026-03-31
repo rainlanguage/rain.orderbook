@@ -27,7 +27,7 @@
 	} from '@rainlanguage/ui-components';
 	import { onMount } from 'svelte';
 	import { connected, appKitModal } from '$lib/stores/wagmi';
-	import { networkStatuses, orderbookStatuses } from '$lib/stores/localDbStatus';
+	import { networkStatuses, raindexStatuses } from '$lib/stores/localDbStatus';
 	export let colorTheme;
 	export let page;
 
@@ -114,7 +114,7 @@
 			<SidebarGroup border ulClass="list-none">
 				<LocalDbStatusCard
 					networkStatuses={$networkStatuses}
-					orderbookStatuses={$orderbookStatuses}
+					raindexStatuses={$raindexStatuses}
 				/>
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">

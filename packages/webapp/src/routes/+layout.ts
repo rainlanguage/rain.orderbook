@@ -3,7 +3,7 @@ import {
 	type RaindexClient,
 	type Address,
 	type Hex
-} from '@rainlanguage/orderbook';
+} from '@rainlanguage/raindex';
 import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { RAINLANG_URL } from '$lib/constants';
@@ -110,7 +110,7 @@ export const load: LayoutLoad<LayoutData> = async ({ url }) => {
 			hideZeroBalanceVaults: writable<boolean>(false),
 			hideInactiveOrdersVaults: writable<boolean>(false),
 			activeTokens: writable<Address[]>([]),
-			activeOrderbookAddresses: writable<Address[]>([]),
+			activeRaindexAddresses: writable<Address[]>([]),
 			// @ts-expect-error initially the value is empty
 			ownerFilter: writable<Address>('')
 		},
@@ -132,7 +132,7 @@ if (import.meta.vitest) {
 		mockLocalDbNew: vi.fn()
 	}));
 
-	vi.mock('@rainlanguage/orderbook', async (importOriginal) => {
+	vi.mock('@rainlanguage/raindex', async (importOriginal) => {
 		const original = (await importOriginal()) as Record<string, unknown>;
 		return {
 			...original,

@@ -1,14 +1,14 @@
 # Raindex SDK
 
-A TypeScript/JavaScript SDK for interacting with Raindex orderbook contracts, providing comprehensive functionality for order management, configuration parsing, and blockchain interactions.
+A TypeScript/JavaScript SDK for interacting with Raindex contracts, providing comprehensive functionality for order management, configuration parsing, and blockchain interactions.
 
 ## What is Raindex?
 
-Raindex is an **onchain orderbook contract** that enables users to deploy complex, perpetual trading algorithms using **Rainlang**, a domain-specific language interpreted onchain. Learn more about Rainlang in the [official documentation](https://docs.rainlang.xyz/intro).
+Raindex is an **onchain contract** that enables users to deploy complex, perpetual trading algorithms using **Rainlang**, a domain-specific language interpreted onchain. Learn more about Rainlang in the [official documentation](https://docs.rainlang.xyz/intro).
 
 ### How It Works
 
-- **Dynamic Orders**: Unlike traditional orderbooks, Raindex orders contain algorithms that determine token movements based on real-time conditions
+- **Dynamic Orders**: Unlike traditional order books, Raindex orders contain algorithms that determine token movements based on real-time conditions
 - **Vault System**: Users deposit tokens into vaults (virtual accounts) instead of using token approvals
 - **Multi-Token Strategies**: Orders can reference multiple input/output vaults for sophisticated trading scenarios
 - **Perpetual Execution**: Strategies remain active until explicitly removed by the owner
@@ -16,13 +16,13 @@ Raindex is an **onchain orderbook contract** that enables users to deploy comple
 
 ## SDK Overview
 
-This SDK provides Rust-powered WebAssembly bindings for orderbook functionality, enabling developers to:
+This SDK provides Rust-powered WebAssembly bindings for Raindex functionality, enabling developers to:
 
 - **Query Orders & Trades**: Search orders across multiple networks, fetch order details, and track trade history
 - **Execute Quotes**: Get real-time quotes for trading pairs with maximum output amounts and IO ratios
 - **Take Orders**: Generate calldata for executing trades against orders, with auto-discovery by token pair or targeting specific orders
 - **Manage Vaults**: Query vault balances, generate deposit/withdraw calldata, and track vault activity
-- **Parse Configurations**: Validate YAML files defining networks, tokens, orderbooks, and subgraph endpoints
+- **Parse Configurations**: Validate YAML files defining networks, tokens, raindexes, and subgraph endpoints
 - **Generate Transactions**: Create ABI-encoded calldata for adding/removing orders and vault operations
 - **Track Performance**: Monitor order volume, vault balance changes, and trading metrics over time
 
@@ -44,7 +44,7 @@ npm install @rainlanguage/raindex
 
 ### Example configuration used in this guide
 
-All of the code snippets below reuse the same fixed-limit dotrain/settings source. The portion before `---` represents the shared orderbook and dotrain YAML, and Rainlang lives after the separator.
+All of the code snippets below reuse the same fixed-limit dotrain/settings source. The portion before `---` represents the shared raindex and dotrain YAML, and Rainlang lives after the separator.
 
 > **Heads-up:** These values are purely illustrative. Before deploying anything, pull the canonical strategies and settings from [rainlanguage/rain.strategies](https://github.com/rainlanguage/rain.strategies) to mirror what our web apps run in production.
 
@@ -250,9 +250,9 @@ if (quotesResult.error) throw new Error(quotesResult.error.readableMsg);
 
 Additional helpers worth wiring up:
 
-- `client.getOrderByHash(chainId, orderbookAddress, orderHash)` – fetch a single order with full vault metadata.
+- `client.getOrderByHash(chainId, raindexAddress, orderHash)` – fetch a single order with full vault metadata.
 - `client.getAddOrdersForTransaction(...)` / `client.getRemoveOrdersForTransaction(...)` – diff deployments and removals by transaction hash.
-- `client.getTransaction(orderbookAddress, txHash)` – inspect who sent a transaction, the block number, and timestamp.
+- `client.getTransaction(raindexAddress, txHash)` – inspect who sent a transaction, the block number, and timestamp.
 
 #### Poll for newly deployed orders
 
@@ -268,16 +268,16 @@ async function waitForOrderFromTx(
   client: RaindexClient,
   {
     chainId,
-    orderbookAddress,
+    raindexAddress,
     txHash
   }: {
     chainId: number;
-    orderbookAddress: string;
+    raindexAddress: string;
     txHash: string;
   }
 ) {
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const result = await client.getAddOrdersForTransaction(chainId, orderbookAddress, txHash);
+    const result = await client.getAddOrdersForTransaction(chainId, raindexAddress, txHash);
     if (result.error) throw new Error(result.error.readableMsg);
 
     if (result.value.length) {
@@ -291,7 +291,7 @@ async function waitForOrderFromTx(
 const txReceipt = await executeOrder(...);
 const raindexOrder = await waitForOrderFromTx(client, {
   chainId: 8453,
-  orderbookAddress: '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
+  raindexAddress: '0x52CEB8eBEf648744fFDDE89F7Bc9C3aC35944775',
   txHash: txReceipt.transactionHash
 });
 ```
@@ -419,7 +419,7 @@ const takeResult = await client.getTakeOrdersCalldata(request);
 if (takeResult.error) throw new Error(takeResult.error.readableMsg);
 
 const {
-  orderbook,      // Contract address to call
+  raindex,        // Contract address to call
   calldata,       // ABI-encoded takeOrders4 calldata
   effectivePrice, // Blended price from simulation
   prices,         // Per-leg ratios (best to worst)
@@ -451,7 +451,7 @@ const takeResult = await order.getTakeCalldata(
 );
 if (takeResult.error) throw new Error(takeResult.error.readableMsg);
 
-const { calldata, orderbook, effectivePrice, expectedSell, maxSellCap } = takeResult.value;
+const { calldata, raindex, effectivePrice, expectedSell, maxSellCap } = takeResult.value;
 ```
 
 #### Estimate take order amounts
@@ -574,7 +574,7 @@ rainlangs:
         network: mainnet
         address: 0x...
 raindexes:
-    orderbook1:
+    raindex1:
         address: 0x...
         network: mainnet
 ...
@@ -630,7 +630,7 @@ if (depositCalldatasResult.error) throw new Error(depositCalldatasResult.error.r
 
 const deploymentArgsResult = await gui.getDeploymentTransactionArgs('0xOwner');
 if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
-const { approvals, deploymentCalldata, orderbookAddress, chainId } = deploymentArgsResult.value;
+const { approvals, deploymentCalldata, raindexAddress, chainId } = deploymentArgsResult.value;
 
 const rainlangResult = await gui.getComposedRainlang();
 if (rainlangResult.error) throw new Error(rainlangResult.error.readableMsg);
@@ -650,7 +650,7 @@ Serialize the GUI state and later revive it with `DotrainOrderGui.newFromState(d
 
 - `approvals: ExtendedApprovalCalldata[]` (each item contains `token`, `calldata`, and the token `symbol` for UX)
 - `deploymentCalldata: Hex` – a multicall that performs deposits (if required) and adds the order in one transaction
-- `orderbookAddress: string` – destination for the multicall
+- `raindexAddress: string` – destination for the multicall
 - `chainId: number` – network you must connect your wallet to
 
 A typical deployment flow is:
@@ -665,7 +665,7 @@ import type { RaindexClient } from '@rainlanguage/raindex';
 
 const deploymentArgsResult = await gui.getDeploymentTransactionArgs(owner);
 if (deploymentArgsResult.error) throw new Error(deploymentArgsResult.error.readableMsg);
-const { approvals, deploymentCalldata, orderbookAddress, chainId } = deploymentArgsResult.value;
+const { approvals, deploymentCalldata, raindexAddress, chainId } = deploymentArgsResult.value;
 
 // Assume sendTransaction({ to, data }) and waitForReceipt(hash) come from your wallet stack.
 for (const approval of approvals) {
@@ -673,12 +673,12 @@ for (const approval of approvals) {
   await waitForReceipt(approvalHash);
 }
 
-const deploymentHash = await sendTransaction({ to: orderbookAddress, data: deploymentCalldata });
+const deploymentHash = await sendTransaction({ to: raindexAddress, data: deploymentCalldata });
 await waitForReceipt(deploymentHash);
 
 const raindexOrder = await waitForOrderFromTx(client as RaindexClient, {
   chainId,
-  orderbookAddress,
+  raindexAddress,
   txHash: deploymentHash
 });
 ```
@@ -742,7 +742,7 @@ type WasmEncodedResult<T> =
   | { value: T; error: undefined }
   | { value: undefined; error: { msg: string; readableMsg: string } };
 
-const result = await client.getVault(14, '0xOrderbook', '0x01');
+const result = await client.getVault(14, '0xRaindex', '0x01');
 if (result.error) {
   console.error('Vault lookup failed:', result.error.readableMsg);
   return;
@@ -752,4 +752,4 @@ console.log(result.value);
 
 ## Contributing
 
-This SDK is part of the Rain Language ecosystem. For contributions and issues, please visit the [GitHub repository](https://github.com/rainlanguage/rain.orderbook).
+This SDK is part of the Rain Language ecosystem. For contributions and issues, please visit the [GitHub repository](https://github.com/rainlanguage/raindex).

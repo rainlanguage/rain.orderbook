@@ -7,16 +7,16 @@
 		handleTransactionConfirmationModal,
 		handleWithdrawModal
 	} from '$lib/services/modal';
-	import { RaindexClient, type Address, type RaindexVault } from '@rainlanguage/orderbook';
+	import { RaindexClient, type Address, type RaindexVault } from '@rainlanguage/raindex';
 	import type { Hex } from 'viem';
 	// import { lightweightChartsTheme } from '$lib/darkMode';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
 	import { handleVaultDeposit } from '$lib/services/handleVaultDeposit';
 
-	const { id, chainId, orderbook } = $page.params;
+	const { id, chainId, raindex } = $page.params;
 	const parsedId = id as Hex;
 	const parsedChainId = Number(chainId);
-	const orderbookAddress = orderbook as Address;
+	const raindexAddress = raindex as Address;
 
 	const { account } = useAccount();
 	const { manager } = useTransactions();
@@ -49,4 +49,4 @@
 
 <PageHeader title="Vault" pathname={$page.url.pathname} />
 
-<VaultDetail id={parsedId} {orderbookAddress} chainId={parsedChainId} {onDeposit} {onWithdraw} />
+<VaultDetail id={parsedId} {raindexAddress} chainId={parsedChainId} {onDeposit} {onWithdraw} />

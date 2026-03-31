@@ -1,9 +1,9 @@
 import assert from 'assert';
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
-import { WasmEncodedResult, DotrainRainlang, OrderbookYaml, RaindexClient } from '../../dist/cjs';
+import { WasmEncodedResult, DotrainRainlang, RaindexYaml, RaindexClient } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
-const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
+const SPEC_VERSION = RaindexYaml.getCurrentSpecVersion().value;
 
 const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: string): T => {
 	if (result.error) {
@@ -34,7 +34,7 @@ subgraphs:
 metaboards:
   flare: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-flare-0x893BBFB7/0.1/gn
   base: https://api.goldsky.com/api/public/project_clv14x04y9kzi01saerx7bxpg/subgraphs/mb-base-0x59401C93/0.1/gn
-orderbooks:
+raindexes:
   flare:
     address: 0xCEe8Cd002F151A536394E564b84076c41bBBcD4d
     network: flare
@@ -107,13 +107,13 @@ scenarios:
     runs: 1
 orders:
   flare:
-    orderbook: flare
+    raindex: flare
     inputs:
       - token: token1
     outputs:
       - token: token1
   base:
-    orderbook: base
+    raindex: base
     inputs:
       - token: token2
     outputs:
@@ -146,7 +146,7 @@ _ _: 1 1;
 #handle-add-order
 :;`;
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Dotrain Rainlang', async function () {
+describe('Rain Raindex JS API Package Bindgen Tests - Dotrain Rainlang', async function () {
 	const mockServer = getLocal();
 	beforeAll(async () => {
 		await mockServer.start(8231);
@@ -407,7 +407,7 @@ tokens:
     decimals: 6
     label: USD Coin
     symbol: USDC
-orderbooks:
+raindexes:
   mainnet:
     address: 0x1234567890123456789012345678901234567890
     network: mainnet
@@ -440,7 +440,7 @@ scenarios:
     runs: 1
 orders:
   mainnet:
-    orderbook: mainnet
+    raindex: mainnet
     inputs:
       - token: weth
     outputs:
@@ -456,9 +456,9 @@ _ _: 0 0;
 :;
 `;
 
-	describe('DotrainRainlang getOrderbookYaml', () => {
+	describe('DotrainRainlang getRaindexYaml', () => {
 
-		it('should return OrderbookYaml instance from settings', async () => {
+		it('should return RaindexYaml instance from settings', async () => {
 			const rainlangContent = `http://localhost:8231/settings.yaml
 test-order http://localhost:8231/order.rain`;
 
@@ -470,12 +470,12 @@ test-order http://localhost:8231/order.rain`;
 				await DotrainRainlang.new('http://localhost:8231/registry.txt')
 			);
 
-			const orderbookYamlResult = registry.getOrderbookYaml();
-			const orderbookYaml = extractWasmEncodedData(orderbookYamlResult);
+			const raindexYamlResult = registry.getRaindexYaml();
+			const raindexYaml = extractWasmEncodedData(raindexYamlResult);
 
-			assert.ok(orderbookYaml, 'OrderbookYaml instance should be returned');
-			assert.strictEqual(typeof orderbookYaml.getTokens, 'function');
-			assert.strictEqual(typeof orderbookYaml.getOrderbookByAddress, 'function');
+			assert.ok(raindexYaml, 'RaindexYaml instance should be returned');
+			assert.strictEqual(typeof raindexYaml.getTokens, 'function');
+			assert.strictEqual(typeof raindexYaml.getRaindexByAddress, 'function');
 		});
 	});
 

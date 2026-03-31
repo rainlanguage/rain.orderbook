@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { get } from 'svelte/store';
-import type { NetworkSyncStatus, OrderbookSyncStatus } from '@rainlanguage/orderbook';
+import type { NetworkSyncStatus, RaindexSyncStatus } from '@rainlanguage/raindex';
 import {
 	networkStatuses,
-	orderbookStatuses,
+	raindexStatuses,
 	updateNetworkStatus,
-	updateOrderbookStatus,
+	updateRaindexStatus,
 	updateStatus,
 	aggregateStatus
 } from '../lib/stores/localDbStatus';
@@ -13,7 +13,7 @@ import {
 describe('localDbStatus store', () => {
 	beforeEach(() => {
 		networkStatuses.set(new Map());
-		orderbookStatuses.set(new Map());
+		raindexStatuses.set(new Map());
 	});
 
 	describe('networkStatuses', () => {
@@ -39,9 +39,9 @@ describe('localDbStatus store', () => {
 		});
 	});
 
-	describe('orderbookStatuses', () => {
+	describe('raindexStatuses', () => {
 		it('starts with empty map', () => {
-			const map = get(orderbookStatuses);
+			const map = get(raindexStatuses);
 			expect(map.size).toBe(0);
 		});
 	});
@@ -117,118 +117,118 @@ describe('localDbStatus store', () => {
 		});
 	});
 
-	describe('updateOrderbookStatus', () => {
-		it('adds new orderbook status to map', () => {
-			const status: OrderbookSyncStatus = {
+	describe('updateRaindexStatus', () => {
+		it('adds new raindex status to map', () => {
+			const status: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'syncing',
 				schedulerState: 'leader',
 				phaseMessage: 'Fetching latest block'
 			};
 
-			updateOrderbookStatus(status);
+			updateRaindexStatus(status);
 
-			const map = get(orderbookStatuses);
+			const map = get(raindexStatuses);
 			expect(map.size).toBe(1);
 			const key = '137:0x1234567890123456789012345678901234567890';
 			expect(map.get(key)).toEqual(status);
 		});
 
-		it('updates existing orderbook status', () => {
-			const initial: OrderbookSyncStatus = {
+		it('updates existing raindex status', () => {
+			const initial: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'syncing',
 				schedulerState: 'leader',
 				phaseMessage: 'Fetching latest block'
 			};
-			const updated: OrderbookSyncStatus = {
+			const updated: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'active',
 				schedulerState: 'leader'
 			};
 
-			updateOrderbookStatus(initial);
-			updateOrderbookStatus(updated);
+			updateRaindexStatus(initial);
+			updateRaindexStatus(updated);
 
-			const map = get(orderbookStatuses);
+			const map = get(raindexStatuses);
 			expect(map.size).toBe(1);
 			const key = '137:0x1234567890123456789012345678901234567890';
 			expect(map.get(key)?.status).toBe('active');
 		});
 
-		it('handles multiple orderbooks on same chain', () => {
-			const ob1: OrderbookSyncStatus = {
+		it('handles multiple raindexes on same chain', () => {
+			const ob1: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1111111111111111111111111111111111111111'
+					raindexAddress: '0x1111111111111111111111111111111111111111'
 				},
 				status: 'active',
 				schedulerState: 'leader'
 			};
-			const ob2: OrderbookSyncStatus = {
+			const ob2: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x2222222222222222222222222222222222222222'
+					raindexAddress: '0x2222222222222222222222222222222222222222'
 				},
 				status: 'syncing',
 				schedulerState: 'leader'
 			};
 
-			updateOrderbookStatus(ob1);
-			updateOrderbookStatus(ob2);
+			updateRaindexStatus(ob1);
+			updateRaindexStatus(ob2);
 
-			const map = get(orderbookStatuses);
+			const map = get(raindexStatuses);
 			expect(map.size).toBe(2);
 		});
 
-		it('handles orderbooks on different chains', () => {
-			const polygonOb: OrderbookSyncStatus = {
+		it('handles raindexes on different chains', () => {
+			const polygonOb: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'active',
 				schedulerState: 'leader'
 			};
-			const arbitrumOb: OrderbookSyncStatus = {
+			const arbitrumOb: RaindexSyncStatus = {
 				obId: {
 					chainId: 42161,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'syncing',
 				schedulerState: 'leader'
 			};
 
-			updateOrderbookStatus(polygonOb);
-			updateOrderbookStatus(arbitrumOb);
+			updateRaindexStatus(polygonOb);
+			updateRaindexStatus(arbitrumOb);
 
-			const map = get(orderbookStatuses);
+			const map = get(raindexStatuses);
 			expect(map.size).toBe(2);
 		});
 
 		it('stores error field when present', () => {
-			const status: OrderbookSyncStatus = {
+			const status: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'failure',
 				schedulerState: 'leader',
 				error: 'Decode error'
 			};
 
-			updateOrderbookStatus(status);
+			updateRaindexStatus(status);
 
-			const map = get(orderbookStatuses);
+			const map = get(raindexStatuses);
 			const key = '137:0x1234567890123456789012345678901234567890';
 			expect(map.get(key)?.error).toBe('Decode error');
 		});
@@ -245,17 +245,17 @@ describe('localDbStatus store', () => {
 			updateStatus(status);
 
 			const networkMap = get(networkStatuses);
-			const orderbookMap = get(orderbookStatuses);
+			const raindexMap = get(raindexStatuses);
 			expect(networkMap.size).toBe(1);
-			expect(orderbookMap.size).toBe(0);
+			expect(raindexMap.size).toBe(0);
 			expect(networkMap.get(137)).toEqual(status);
 		});
 
-		it('dispatches OrderbookSyncStatus to updateOrderbookStatus', () => {
-			const status: OrderbookSyncStatus = {
+		it('dispatches RaindexSyncStatus to updateRaindexStatus', () => {
+			const status: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'syncing',
 				schedulerState: 'leader'
@@ -264,9 +264,9 @@ describe('localDbStatus store', () => {
 			updateStatus(status);
 
 			const networkMap = get(networkStatuses);
-			const orderbookMap = get(orderbookStatuses);
+			const raindexMap = get(raindexStatuses);
 			expect(networkMap.size).toBe(0);
-			expect(orderbookMap.size).toBe(1);
+			expect(raindexMap.size).toBe(1);
 		});
 
 		it('distinguishes types by presence of obId field', () => {
@@ -275,22 +275,22 @@ describe('localDbStatus store', () => {
 				status: 'active',
 				schedulerState: 'leader'
 			};
-			const orderbookStatus: OrderbookSyncStatus = {
+			const raindexStatus: RaindexSyncStatus = {
 				obId: {
 					chainId: 42161,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'syncing',
 				schedulerState: 'leader'
 			};
 
 			updateStatus(networkStatus);
-			updateStatus(orderbookStatus);
+			updateStatus(raindexStatus);
 
 			const networkMap = get(networkStatuses);
-			const orderbookMap = get(orderbookStatuses);
+			const raindexMap = get(raindexStatuses);
 			expect(networkMap.size).toBe(1);
-			expect(orderbookMap.size).toBe(1);
+			expect(raindexMap.size).toBe(1);
 		});
 	});
 
@@ -301,10 +301,10 @@ describe('localDbStatus store', () => {
 				status: 'active',
 				schedulerState: 'leader'
 			};
-			const orderbookStatus1: OrderbookSyncStatus = {
+			const raindexStatus1: RaindexSyncStatus = {
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'syncing',
 				schedulerState: 'leader',
@@ -315,37 +315,37 @@ describe('localDbStatus store', () => {
 				status: 'syncing',
 				schedulerState: 'leader'
 			};
-			const orderbookStatus2: OrderbookSyncStatus = {
+			const raindexStatus2: RaindexSyncStatus = {
 				obId: {
 					chainId: 42161,
-					orderbookAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
+					raindexAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
 				},
 				status: 'active',
 				schedulerState: 'leader'
 			};
 
 			updateStatus(networkStatus1);
-			updateStatus(orderbookStatus1);
+			updateStatus(raindexStatus1);
 			updateStatus(networkStatus2);
-			updateStatus(orderbookStatus2);
+			updateStatus(raindexStatus2);
 
 			const networkMap = get(networkStatuses);
-			const orderbookMap = get(orderbookStatuses);
+			const raindexMap = get(raindexStatuses);
 
 			expect(networkMap.size).toBe(2);
-			expect(orderbookMap.size).toBe(2);
+			expect(raindexMap.size).toBe(2);
 
 			expect(networkMap.get(137)?.status).toBe('active');
 			expect(networkMap.get(42161)?.status).toBe('syncing');
 
 			const obKey1 = '137:0x1234567890123456789012345678901234567890';
 			const obKey2 = '42161:0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
-			expect(orderbookMap.get(obKey1)?.status).toBe('syncing');
-			expect(orderbookMap.get(obKey1)?.phaseMessage).toBe('Fetching latest block');
-			expect(orderbookMap.get(obKey2)?.status).toBe('active');
+			expect(raindexMap.get(obKey1)?.status).toBe('syncing');
+			expect(raindexMap.get(obKey1)?.phaseMessage).toBe('Fetching latest block');
+			expect(raindexMap.get(obKey2)?.status).toBe('active');
 		});
 
-		it('simulates scheduler callback receiving interleaved network and orderbook updates', () => {
+		it('simulates scheduler callback receiving interleaved network and raindex updates', () => {
 			const updates = [
 				{
 					chainId: 137,
@@ -355,7 +355,7 @@ describe('localDbStatus store', () => {
 				{
 					obId: {
 						chainId: 137,
-						orderbookAddress: '0x1111111111111111111111111111111111111111'
+						raindexAddress: '0x1111111111111111111111111111111111111111'
 					},
 					status: 'syncing' as const,
 					schedulerState: 'leader' as const,
@@ -364,7 +364,7 @@ describe('localDbStatus store', () => {
 				{
 					obId: {
 						chainId: 137,
-						orderbookAddress: '0x1111111111111111111111111111111111111111'
+						raindexAddress: '0x1111111111111111111111111111111111111111'
 					},
 					status: 'active' as const,
 					schedulerState: 'leader' as const
@@ -377,15 +377,15 @@ describe('localDbStatus store', () => {
 			];
 
 			for (const update of updates) {
-				updateStatus(update as NetworkSyncStatus | OrderbookSyncStatus);
+				updateStatus(update as NetworkSyncStatus | RaindexSyncStatus);
 			}
 
 			const networkMap = get(networkStatuses);
-			const orderbookMap = get(orderbookStatuses);
+			const raindexMap = get(raindexStatuses);
 
 			expect(networkMap.get(137)?.status).toBe('active');
 			const obKey = '137:0x1111111111111111111111111111111111111111';
-			expect(orderbookMap.get(obKey)?.status).toBe('active');
+			expect(raindexMap.get(obKey)?.status).toBe('active');
 		});
 	});
 
@@ -402,10 +402,10 @@ describe('localDbStatus store', () => {
 				status: 'active',
 				schedulerState: 'leader'
 			});
-			updateOrderbookStatus({
+			updateRaindexStatus({
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'active',
 				schedulerState: 'leader'
@@ -451,16 +451,16 @@ describe('localDbStatus store', () => {
 			expect(result.error).toBe('RPC timeout');
 		});
 
-		it('returns failure when any orderbook has failure', () => {
+		it('returns failure when any raindex has failure', () => {
 			updateNetworkStatus({
 				chainId: 137,
 				status: 'active',
 				schedulerState: 'leader'
 			});
-			updateOrderbookStatus({
+			updateRaindexStatus({
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'failure',
 				schedulerState: 'leader',
@@ -496,10 +496,10 @@ describe('localDbStatus store', () => {
 				status: 'active',
 				schedulerState: 'leader'
 			});
-			updateOrderbookStatus({
+			updateRaindexStatus({
 				obId: {
 					chainId: 137,
-					orderbookAddress: '0x1234567890123456789012345678901234567890'
+					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'syncing',
 				schedulerState: 'leader',

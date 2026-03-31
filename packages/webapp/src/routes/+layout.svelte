@@ -23,7 +23,7 @@
 	import { initWallet } from '$lib/services/handleWalletInitialization';
 	import { RAINLANG_URL } from '$lib/constants';
 	import { onMount } from 'svelte';
-	import type { RaindexClient } from '@rainlanguage/orderbook';
+	import type { RaindexClient } from '@rainlanguage/raindex';
 
 	const { errorMessage, localDb, raindexClient, rainlang } = $page.data;
 	const rainlangManager = new RainlangManager(RAINLANG_URL);

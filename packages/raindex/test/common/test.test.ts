@@ -1,10 +1,10 @@
 import { describe, it } from 'vitest';
-import { DotrainOrder, OrderbookYaml } from '../../dist/cjs';
+import { DotrainOrder, RaindexYaml } from '../../dist/cjs';
 import { assert } from 'chai';
 
-const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
+const SPEC_VERSION = RaindexYaml.getCurrentSpecVersion().value;
 
-describe('Rain Orderbook Common Package Bindgen Tests', async function () {
+describe('Rain Raindex Common Package Bindgen Tests', async function () {
 	const dotrain = `
 version: ${SPEC_VERSION}
 networks:
@@ -23,8 +23,8 @@ rainlangs:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -60,7 +60,7 @@ orders:
         - token: token2
           vault-id: 1
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
 
 deployments:
     some-deployment:

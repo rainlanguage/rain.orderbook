@@ -18,10 +18,10 @@ import {
 	AllGuiConfig,
 	WasmEncodedResult,
 	FieldValue,
-	OrderbookYaml
+	RaindexYaml
 } from '../../dist/cjs';
 
-const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
+const SPEC_VERSION = RaindexYaml.getCurrentSpecVersion().value;
 
 // Rainlang contract function selectors
 const EXPRESSION_DEPLOYER_ADDRESS_SELECTOR = toFunctionSelector('function expressionDeployerAddress() external view returns (address)');
@@ -167,8 +167,8 @@ rainlangs:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -207,7 +207,7 @@ orders:
         - token: token2
           vault-id: 1
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
 
 deployments:
     some-deployment:
@@ -247,8 +247,8 @@ rainlangs:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -281,7 +281,7 @@ orders:
       outputs:
         - token: token2
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
 
 deployments:
     some-deployment:
@@ -319,8 +319,8 @@ rainlangs:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
 
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: some-sg
@@ -339,7 +339,7 @@ orders:
       outputs:
         - token: token2
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
 
 deployments:
     some-deployment:
@@ -409,14 +409,14 @@ rainlangs:
     other-rainlang:
         network: some-network
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
-orderbooks:
-    some-orderbook:
+raindexes:
+    some-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: remote-network
         subgraph: some-sg
         local-db-remote: remote
         deployment-block: 12345
-    other-orderbook:
+    other-raindex:
         address: 0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6
         network: some-network
         subgraph: other-sg
@@ -455,14 +455,14 @@ orders:
       outputs:
         - token: token2
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
     other-order:
       inputs:
         - token: token3
       outputs:
         - token: token3
       rainlang: other-rainlang
-      orderbook: other-orderbook
+      raindex: other-raindex
 deployments:
     test-deployment:
         scenario: some-scenario
@@ -480,7 +480,7 @@ ${guiConfig}
 ${dotrain}
 `;
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Gui', async function () {
+describe('Rain Raindex JS API Package Bindgen Tests - Gui', async function () {
 	const mockServer = getLocal();
 	beforeAll(async () => {
 		await mockServer.start(8085);

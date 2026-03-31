@@ -21,7 +21,7 @@
 		RaindexOrder,
 		RaindexVault,
 		RaindexVaultsList
-	} from '@rainlanguage/orderbook';
+	} from '@rainlanguage/raindex';
 	import type { Hex } from 'viem';
 	import { handleRemoveOrder } from '$lib/services/handleRemoveOrder';
 	import { handleVaultWithdraw } from '$lib/services/handleVaultWithdraw';
@@ -29,10 +29,10 @@
 	import { handleVaultsWithdrawAll } from '$lib/services/handleVaultsWithdrawAll';
 	import { handleTakeOrder } from '$lib/services/handleTakeOrder';
 
-	const { orderHash, chainId, orderbook } = $page.params;
+	const { orderHash, chainId, raindex } = $page.params;
 	const parsedOrderHash = orderHash as Hex;
 	const parsedChainId = Number(chainId);
-	const orderbookAddress = orderbook as Address;
+	const raindexAddress = raindex as Address;
 
 	const { account } = useAccount();
 	const { manager } = useTransactions();
@@ -102,7 +102,7 @@
 
 <OrderDetail
 	chainId={parsedChainId}
-	{orderbookAddress}
+	{raindexAddress}
 	orderHash={parsedOrderHash}
 	{lightweightChartsTheme}
 	{codeMirrorTheme}

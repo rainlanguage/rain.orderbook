@@ -14,14 +14,14 @@ import {
 	SgRemoveOrderWithOrder,
 	Hex,
 	Float,
-	OrderbookYaml
+	RaindexYaml
 } from '../../dist/cjs';
 import { getLocal } from 'mockttp';
 
-const SPEC_VERSION = OrderbookYaml.getCurrentSpecVersion().value;
+const SPEC_VERSION = RaindexYaml.getCurrentSpecVersion().value;
 
-const CHAIN_ID_1_ORDERBOOK_ADDRESS = '0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6';
-const CHAIN_ID_2_ORDERBOOK_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed';
+const CHAIN_ID_1_RAINDEX_ADDRESS = '0xc95A5f8eFe14d7a20BD2E5BAFEC4E71f8Ce0B9A6';
+const CHAIN_ID_2_RAINDEX_ADDRESS = '0xbeedbeedbeedbeedbeedbeedbeedbeedbeedbeed';
 const YAML = `
 version: ${SPEC_VERSION}
 
@@ -51,15 +51,15 @@ accounts:
     alice: 0x742d35Cc6634C0532925a3b8D4Fd2d3dB2d4D7fA
     bob: 0x8ba1f109551bD432803012645aac136c0c8D2e80
 
-orderbooks:
-    some-orderbook:
-        address: ${CHAIN_ID_1_ORDERBOOK_ADDRESS}
+raindexes:
+    some-raindex:
+        address: ${CHAIN_ID_1_RAINDEX_ADDRESS}
         network: some-network
         subgraph: some-sg
         local-db-remote: remote
         deployment-block: 12345
-    other-orderbook:
-        address: ${CHAIN_ID_2_ORDERBOOK_ADDRESS}
+    other-raindex:
+        address: ${CHAIN_ID_2_RAINDEX_ADDRESS}
         deployment-block: 12345
         network: other-network
         subgraph: other-sg
@@ -95,7 +95,7 @@ orders:
         - token: token2
           vault-id: 1
       rainlang: some-rainlang
-      orderbook: some-orderbook
+      raindex: some-raindex
 deployments:
     some-deployment:
         scenario: some-scenario
@@ -119,7 +119,7 @@ const extractWasmEncodedData = <T>(result: WasmEncodedResult<T>, errorMessage?: 
 	return result.value;
 };
 
-describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async function () {
+describe('Rain Raindex JS API Package Bindgen Tests - Raindex Client', async function () {
 	const mockServer = getLocal();
 	beforeAll(async () => {
 		await mockServer.start(8230);
@@ -160,7 +160,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				},
 				{
@@ -179,7 +179,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -200,7 +200,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				},
 				{
@@ -219,7 +219,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -237,7 +237,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: '0xff0a89c674ee7874a3005902252f2a20302e2063616c63756c6174652d696f202a2f200a7573696e672d776f7264732d66726f6d203078466532343131434461313933443945346538334135633233344337466433323031303138383361430a616d743a203130302c0a696f3a2063616c6c3c323e28293b0a0a2f2a20312e2068616e646c652d696f202a2f200a3a63616c6c3c333e28292c0a3a656e7375726528657175616c2d746f286f75747075742d7661756c742d64656372656173652829203130302920226d7573742074616b652066756c6c20616d6f756e7422293b0a0a2f2a20322e206765742d696f2d726174696f2d6e6f77202a2f200a656c61707365643a2063616c6c3c343e28292c0a696f3a2073617475726174696e672d73756228302e3031373733353620646976286d756c28656c61707365642073756228302e3031373733353620302e30313733383434292920363029293b0a0a2f2a20332e206f6e652d73686f74202a2f200a3a656e737572652869732d7a65726f286765742868617368286f726465722d68617368282920226861732d657865637574656422292929202268617320657865637574656422292c0a3a7365742868617368286f726465722d68617368282920226861732d657865637574656422292031293b0a0a2f2a20342e206765742d656c6170736564202a2f200a5f3a20737562286e6f772829206765742868617368286f726465722d68617368282920226465706c6f792d74696d65222929293b011bff13109e41336ff20278186170706c69636174696f6e2f6f637465742d73747265616d',
 			timestampAdded: '0',
 			orderbook: {
-				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
@@ -266,7 +266,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_2_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -287,7 +287,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_2_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -305,7 +305,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: null,
 			timestampAdded: '0',
 			orderbook: {
-				id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+				id: CHAIN_ID_2_RAINDEX_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
@@ -339,7 +339,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -360,7 +360,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -378,7 +378,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: null,
 			timestampAdded: '0',
 			orderbook: {
-				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
@@ -421,7 +421,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				order: {
@@ -452,11 +452,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				orderbook: {
-					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				}
 			}
 		] as unknown as SgTrade[];
@@ -498,7 +498,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				order: {
@@ -529,11 +529,11 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1632000000',
 						blockNumber: '0'
 					},
-					orderbook: { id: CHAIN_ID_1_ORDERBOOK_ADDRESS },
+					orderbook: { id: CHAIN_ID_1_RAINDEX_ADDRESS },
 					trade: { tradeEvent: { __typename: 'TakeOrder' } }
 				},
 				orderbook: {
-					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				}
 			}
 		] as unknown as SgTrade[];
@@ -555,7 +555,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			},
 			timestamp: '0',
 			orderbook: {
-				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			outputVaultBalanceChange: {
 				id: '0x0123',
@@ -582,7 +582,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					timestamp: '0'
 				},
 				orderbook: {
-					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				},
 				trade: { tradeEvent: { __typename: 'TakeOrder' } }
 			},
@@ -611,7 +611,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					timestamp: '0'
 				},
 				orderbook: {
-					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				},
 				trade: { tradeEvent: { __typename: 'TakeOrder' } }
 			}
@@ -646,7 +646,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 			);
 			assert.equal(typeof order, 'object');
 			assert.equal(order.id, order1.id);
@@ -736,7 +736,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_VOL_ORDER)
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_VOL_ORDER)
 			);
 			const result = extractWasmEncodedData(await order.getVaultsVolume());
 			assert.equal(result.length, 2);
@@ -804,7 +804,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 		// 	const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 		// 	const order = extractWasmEncodedData(
-		// 		await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+		// 		await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 		// 	);
 		// 	const result = await order.getPerformance(BigInt(1632000000), BigInt(1734571449));
 		// 	if (result.error) assert.fail('expected to resolve, but failed');
@@ -812,7 +812,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		// 	const expected: OrderPerformance = {
 		// 		orderId: '0x0123',
 		// 		orderHash: '0x0123',
-		// 		orderbook: CHAIN_ID_1_ORDERBOOK_ADDRESS,
+		// 		orderbook: CHAIN_ID_1_RAINDEX_ADDRESS,
 		// 		denominatedPerformance: {
 		// 			token: {
 		// 				id: '0x0234',
@@ -891,7 +891,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				.thenReply(200, JSON.stringify({ data: { orders: [order1] } }));
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 			);
 
 			const calldata = extractWasmEncodedData(order.getRemoveCalldata());
@@ -914,7 +914,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 			);
 
 			const result = extractWasmEncodedData(await order.getQuotes());
@@ -955,7 +955,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const order = extractWasmEncodedData(
-				await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+				await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 			);
 
 			const orders = new RaindexOrders();
@@ -1025,7 +1025,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 				const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 				const order = extractWasmEncodedData(
-					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 				);
 				const result = extractWasmEncodedData(await order.getTradesList());
 				assert.equal(result.length, 1);
@@ -1115,7 +1115,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 				const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 				const order = extractWasmEncodedData(
-					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 				);
 				const result = extractWasmEncodedData(await order.getTradeDetail(mockTrade.id as Hex));
 				assert.equal(result.id, mockTrade.id);
@@ -1217,7 +1217,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 				const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 				const order = extractWasmEncodedData(
-					await raindexClient.getOrderByHash(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+					await raindexClient.getOrderByHash(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 				);
 				const result = extractWasmEncodedData(await order.getTradeCount());
 				assert.equal(result, 1);
@@ -1254,7 +1254,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 							decimals: '18'
 						},
 						orderbook: {
-							id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+							id: CHAIN_ID_1_RAINDEX_ADDRESS
 						},
 						ordersAsOutput: [
 							{
@@ -1295,7 +1295,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739448802'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							},
@@ -1329,7 +1329,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460802'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							},
@@ -1363,7 +1363,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460777'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							},
@@ -1397,7 +1397,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460481'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							}
@@ -1419,7 +1419,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 							decimals: '18'
 						},
 						orderbook: {
-							id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+							id: CHAIN_ID_1_RAINDEX_ADDRESS
 						},
 						ordersAsOutput: [],
 						ordersAsInput: [
@@ -1460,7 +1460,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460781'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							},
@@ -1494,7 +1494,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460415'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							},
@@ -1528,7 +1528,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460627'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							},
@@ -1562,7 +1562,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 										timestamp: '1739460078'
 									},
 									orderbook: {
-										id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+										id: CHAIN_ID_1_RAINDEX_ADDRESS
 									}
 								}
 							}
@@ -1570,7 +1570,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					}
 				],
 				orderbook: {
-					id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+					id: CHAIN_ID_1_RAINDEX_ADDRESS
 				},
 				active: true,
 				timestampAdded: '1739448802',
@@ -1601,7 +1601,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const result = extractWasmEncodedData(
 				await raindexClient.getAddOrdersForTransaction(
 					1,
-					CHAIN_ID_1_ORDERBOOK_ADDRESS,
+					CHAIN_ID_1_RAINDEX_ADDRESS,
 					mockOrder.transaction.id
 				)
 			);
@@ -1620,7 +1620,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			const result = extractWasmEncodedData(
 				await raindexClient.getRemoveOrdersForTransaction(
 					1,
-					CHAIN_ID_1_ORDERBOOK_ADDRESS,
+					CHAIN_ID_1_RAINDEX_ADDRESS,
 					mockOrder.transaction.id
 				)
 			);
@@ -1645,7 +1645,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				decimals: '18'
 			},
 			orderbook: {
-				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			ordersAsOutput: [],
 			ordersAsInput: [],
@@ -1664,7 +1664,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 				decimals: '18'
 			},
 			orderbook: {
-				id: CHAIN_ID_2_ORDERBOOK_ADDRESS
+				id: CHAIN_ID_2_RAINDEX_ADDRESS
 			},
 			ordersAsOutput: [],
 			ordersAsInput: [],
@@ -1715,7 +1715,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 
 			assert.equal(result.vaultId, BigInt(vault1.vaultId));
@@ -1756,7 +1756,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 						timestamp: '1734054063'
 					},
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
 			];
@@ -1771,7 +1771,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 			const result = extractWasmEncodedData(await vault.getBalanceChanges());
 
@@ -1787,7 +1787,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result[0].transaction.from, '0x7177b9d00bB5dbcaaF069CC63190902763783b09');
 			assert.equal(result[0].transaction.blockNumber, BigInt('34407047'));
 			assert.equal(result[0].transaction.timestamp, BigInt('1734054063'));
-			assert.equal(result[0].orderbook, CHAIN_ID_1_ORDERBOOK_ADDRESS);
+			assert.equal(result[0].orderbook, CHAIN_ID_1_RAINDEX_ADDRESS);
 		});
 
 		const order = {
@@ -1813,7 +1813,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -1834,7 +1834,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 					ordersAsInput: [],
 					balanceChanges: [],
 					orderbook: {
-						id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+						id: CHAIN_ID_1_RAINDEX_ADDRESS
 					}
 				}
 			],
@@ -1852,7 +1852,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			meta: null,
 			timestampAdded: '0',
 			orderbook: {
-				id: CHAIN_ID_1_ORDERBOOK_ADDRESS
+				id: CHAIN_ID_1_RAINDEX_ADDRESS
 			},
 			trades: [],
 			removeEvents: []
@@ -1870,7 +1870,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 			const res = extractWasmEncodedData(
 				await vault.getDepositCalldata(Float.parse('500').value as Float)
@@ -1887,7 +1887,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 
 			let res = await vault.getDepositCalldata(Float.parse('0').value as Float);
@@ -1908,7 +1908,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 
 			let res = await vault.getWithdrawCalldata(Float.parse('500').value as Float);
@@ -1942,7 +1942,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 			const res = extractWasmEncodedData(await vault.getAllowance());
 			assert.equal(res, '0x64');
@@ -1964,7 +1964,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 
 			const res = extractWasmEncodedData(
@@ -1991,7 +1991,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 
 			const res = await vault.getApprovalCalldata(Float.parse('100').value as Float);
@@ -2016,7 +2016,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 
 			const res = await vault.getApprovalCalldata(Float.parse('90').value as Float);
@@ -2125,7 +2125,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const vault = extractWasmEncodedData(
-				await raindexClient.getVault(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, '0x0123')
+				await raindexClient.getVault(1, CHAIN_ID_1_RAINDEX_ADDRESS, '0x0123')
 			);
 
 			const res = extractWasmEncodedData(await vault.getOwnerBalance());
@@ -2147,7 +2147,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(
-				await raindexClient.getTransaction(1, CHAIN_ID_1_ORDERBOOK_ADDRESS, BYTES32_0123)
+				await raindexClient.getTransaction(1, CHAIN_ID_1_RAINDEX_ADDRESS, BYTES32_0123)
 			);
 			assert.equal(result.id, transaction.id);
 			assert.equal(result.from, transaction.from);
@@ -2156,7 +2156,7 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 		});
 	});
 
-	describe('Orderbook yaml', () => {
+	describe('Raindex yaml', () => {
 		it('should get unique chain ids', async () => {
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 			const result = extractWasmEncodedData(raindexClient.getUniqueChainIds());
@@ -2179,18 +2179,18 @@ describe('Rain Orderbook JS API Package Bindgen Tests - Raindex Client', async f
 			assert.equal(result.chainId, 1);
 		});
 
-		it('should get orderbook by address', async () => {
+		it('should get raindex by address', async () => {
 			const raindexClient = extractWasmEncodedData(await RaindexClient.new([YAML]));
 
 			let result = extractWasmEncodedData(
-				raindexClient.getOrderbookByAddress(CHAIN_ID_1_ORDERBOOK_ADDRESS)
+				raindexClient.getRaindexByAddress(CHAIN_ID_1_RAINDEX_ADDRESS)
 			);
-			assert.equal(result.address.toLowerCase(), CHAIN_ID_1_ORDERBOOK_ADDRESS.toLowerCase());
+			assert.equal(result.address.toLowerCase(), CHAIN_ID_1_RAINDEX_ADDRESS.toLowerCase());
 
 			result = extractWasmEncodedData(
-				raindexClient.getOrderbookByAddress(CHAIN_ID_2_ORDERBOOK_ADDRESS)
+				raindexClient.getRaindexByAddress(CHAIN_ID_2_RAINDEX_ADDRESS)
 			);
-			assert.equal(result.address.toLowerCase(), CHAIN_ID_2_ORDERBOOK_ADDRESS.toLowerCase());
+			assert.equal(result.address.toLowerCase(), CHAIN_ID_2_RAINDEX_ADDRESS.toLowerCase());
 		});
 
 		it('should check if sentry is enabled', async () => {

@@ -3,7 +3,7 @@ import { describe, it } from 'vitest';
 import { getOrderHash, OrderV4 } from '../../dist/cjs';
 import { expect } from 'chai';
 
-describe('Rain Orderbook Bindings Package Bindgen Tests', async function () {
+describe('Rain Raindex Bindings Package Bindgen Tests', async function () {
 	it('should get correct order hash', async () => {
 		const order: OrderV4 = {
 			owner: '0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba',
