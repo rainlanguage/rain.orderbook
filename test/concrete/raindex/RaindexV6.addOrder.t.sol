@@ -6,7 +6,7 @@ import {RaindexV6ExternalRealTest} from "test/util/abstract/RaindexV6ExternalRea
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {OrderConfigV4, EvaluableV4, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {IParserV2} from "rain.interpreter.interface/interface/IParserV2.sol";
-import {UnsupportedCalculateOutputs} from "../../../src/concrete/ob/RaindexV6.sol";
+import {UnsupportedCalculateOutputs} from "../../../src/concrete/raindex/RaindexV6.sol";
 
 /// @title RaindexV6AddOrderTest
 /// @notice A test harness for testing the RaindexV6 addOrder function.

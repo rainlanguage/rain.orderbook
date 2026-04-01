@@ -58,7 +58,7 @@ contract Deploy is Script {
                 LibRainDeploy.supportedNetworks(),
                 deployerPrivateKey,
                 RAINDEX_CREATION_CODE,
-                "src/concrete/ob/RaindexV6.sol:RaindexV6",
+                "src/concrete/raindex/RaindexV6.sol:RaindexV6",
                 LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS,
                 LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH,
                 deps,

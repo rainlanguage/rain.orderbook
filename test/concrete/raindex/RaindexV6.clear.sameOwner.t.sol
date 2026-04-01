@@ -7,7 +7,7 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 import {OrderConfigV4, OrderV4, ClearConfigV2, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {SignedContextV1} from "rain.interpreter.interface/interface/deprecated/v1/IInterpreterCallerV2.sol";
-import {SameOwner} from "../../../src/concrete/ob/RaindexV6.sol";
+import {SameOwner} from "../../../src/concrete/raindex/RaindexV6.sol";
 
 /// Clearing two orders with the same owner must revert with SameOwner.
 contract RaindexV6ClearSameOwnerTest is RaindexV6ExternalRealTest {

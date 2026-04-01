@@ -4,7 +4,7 @@ pragma solidity =0.8.25;
 
 import {RaindexV6ExternalRealTest} from "test/util/abstract/RaindexV6ExternalRealTest.sol";
 import {QuoteV2, OrderConfigV4, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {TokenSelfTrade} from "../../../src/concrete/ob/RaindexV6.sol";
+import {TokenSelfTrade} from "../../../src/concrete/raindex/RaindexV6.sol";
 import {Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 
 /// @title RaindexV6QuoteSameTokenTest

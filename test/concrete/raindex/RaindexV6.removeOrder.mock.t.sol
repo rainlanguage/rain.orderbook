@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {RaindexV6ExternalMockTest} from "test/util/abstract/RaindexV6ExternalMockTest.sol";
 import {OrderConfigV4, OrderV4, EvaluableV4, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {NotOrderOwner} from "../../../src/concrete/ob/RaindexV6.sol";
+import {NotOrderOwner} from "../../../src/concrete/raindex/RaindexV6.sol";
 
 /// @title RaindexV6RemoveOrderMockTest
 /// @notice A contract to test the Raindex removeOrder function.

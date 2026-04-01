@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 
-import {RaindexV6} from "../../../src/concrete/ob/RaindexV6.sol";
+import {RaindexV6} from "../../../src/concrete/raindex/RaindexV6.sol";
 
 /// @title RaindexV6SelfTest
 /// Abstract contract that is an `RaindexV6` and can be used to test itself.

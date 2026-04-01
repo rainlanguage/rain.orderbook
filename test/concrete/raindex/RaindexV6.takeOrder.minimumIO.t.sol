@@ -7,7 +7,7 @@ import {RaindexV6ExternalRealTest} from "test/util/abstract/RaindexV6ExternalRea
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 import {OrderV4, TakeOrdersConfigV5, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {Float, LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
-import {MinimumIO} from "../../../src/concrete/ob/RaindexV6.sol";
+import {MinimumIO} from "../../../src/concrete/raindex/RaindexV6.sol";
 
 /// When the total taker IO is less than the configured minimumIO,
 /// takeOrders4 must revert with MinimumIO(minimumIO, actualIO).

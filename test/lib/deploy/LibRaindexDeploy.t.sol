@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 import {LibEtchRaindex} from "test/util/lib/LibEtchRaindex.sol";
-import {RaindexV6} from "../../../src/concrete/ob/RaindexV6.sol";
+import {RaindexV6} from "../../../src/concrete/raindex/RaindexV6.sol";
 import {RaindexV6SubParser} from "../../../src/concrete/parser/RaindexV6SubParser.sol";
 import {
     CREATION_CODE as RAINDEX_CREATION_CODE,

@@ -6,7 +6,7 @@ import {RaindexV6ExternalRealTest} from "test/util/abstract/RaindexV6ExternalRea
 import {OrderConfigV4, OrderV4, EvaluableV4, TaskV2} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "../../../src/lib/LibOrder.sol";
-import {NotOrderOwner} from "../../../src/concrete/ob/RaindexV6.sol";
+import {NotOrderOwner} from "../../../src/concrete/raindex/RaindexV6.sol";
 
 contract RaindexV6RemoveOrderOwnerTest is RaindexV6ExternalRealTest {
     using LibOrder for OrderV4;

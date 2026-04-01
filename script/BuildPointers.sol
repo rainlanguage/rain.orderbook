@@ -5,7 +5,7 @@ pragma solidity =0.8.25;
 import {Script} from "forge-std/Script.sol";
 import {LibCodeGen} from "rain.sol.codegen/lib/LibCodeGen.sol";
 import {LibFs} from "rain.sol.codegen/lib/LibFs.sol";
-import {RaindexV6} from "../src/concrete/ob/RaindexV6.sol";
+import {RaindexV6} from "../src/concrete/raindex/RaindexV6.sol";
 import {RaindexV6SubParser} from "../src/concrete/parser/RaindexV6SubParser.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 import {LibGenParseMeta} from "rain.interpreter.interface/lib/codegen/LibGenParseMeta.sol";
