@@ -82,10 +82,10 @@ pub fn start(
     sync_readiness: SyncReadiness,
 ) -> Result<NativeSyncHandle, LocalDbError> {
     let mut networks_map: HashMap<String, NetworkCfg> = HashMap::new();
-    for ob in settings.raindexes.values() {
+    for raindex_cfg in settings.raindexes.values() {
         networks_map
-            .entry(ob.network.key.clone())
-            .or_insert_with(|| (*ob.network).clone());
+            .entry(raindex_cfg.network.key.clone())
+            .or_insert_with(|| (*raindex_cfg.network).clone());
     }
     let mut networks: Vec<NetworkCfg> = networks_map.into_values().collect();
     networks.sort_by(|a, b| a.key.cmp(&b.key));
@@ -234,7 +234,7 @@ async fn run_network_loop<R: NativeRunner>(
                             tracing::warn!(
                                 network = %network_key,
                                 chain_id,
-                                ob = %format!("{:#x}", failure.ob_id.raindex_address),
+                                raindex = %format!("{:#x}", failure.ob_id.raindex_address),
                                 stage = ?failure.stage,
                                 error = %failure.error,
                                 "sync target failed"

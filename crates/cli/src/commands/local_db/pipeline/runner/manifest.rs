@@ -406,7 +406,7 @@ mod tests {
         let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect("manifest build succeeds");
         let anvil = manifest.networks.get("anvil").expect("anvil network");
-        let addresses: Vec<_> = anvil.raindexes.iter().map(|ob| ob.address).collect();
+        let addresses: Vec<_> = anvil.raindexes.iter().map(|raindex_entry| raindex_entry.address).collect();
         assert_eq!(
             addresses,
             vec![

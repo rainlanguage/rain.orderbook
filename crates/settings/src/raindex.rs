@@ -861,8 +861,8 @@ raindexes:
         deployment-block: 123
 "#;
         let raindexes = RaindexCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
-        let ob = raindexes.get("TestRaindex").unwrap();
-        let remote = ob.local_db_remote.as_ref().expect("expected remote");
+        let raindex_cfg = raindexes.get("TestRaindex").unwrap();
+        let remote = raindex_cfg.local_db_remote.as_ref().expect("expected remote");
         assert_eq!(remote.key, "TestRaindex");
         assert_eq!(
             remote.url.to_string(),
@@ -891,8 +891,8 @@ raindexes:
         deployment-block: 123
 "#;
         let raindexes = RaindexCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
-        let ob = raindexes.get("TestRaindex").unwrap();
-        let remote = ob.local_db_remote.as_ref().expect("expected remote");
+        let raindex_cfg = raindexes.get("TestRaindex").unwrap();
+        let remote = raindex_cfg.local_db_remote.as_ref().expect("expected remote");
         assert_eq!(remote.key, "mainnet");
         assert_eq!(
             remote.url.to_string(),
@@ -919,8 +919,8 @@ raindexes:
         deployment-block: 123
 "#;
         let raindexes = RaindexCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
-        let ob = raindexes.get("TestRaindex").unwrap();
-        assert!(ob.local_db_remote.is_none());
+        let raindex_cfg = raindexes.get("TestRaindex").unwrap();
+        assert!(raindex_cfg.local_db_remote.is_none());
 
         let yaml = r#"
 networks:
@@ -939,8 +939,8 @@ raindexes:
         deployment-block: 123
 "#;
         let raindexes = RaindexCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
-        let ob = raindexes.get("TestRaindex").unwrap();
-        assert!(ob.local_db_remote.is_none());
+        let raindex_cfg = raindexes.get("TestRaindex").unwrap();
+        assert!(raindex_cfg.local_db_remote.is_none());
     }
 
     #[test]

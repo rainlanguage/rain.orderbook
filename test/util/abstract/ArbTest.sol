@@ -47,8 +47,8 @@ abstract contract ArbTest is Test {
         vm.label(iRefundoor, "iRefundoor");
         // Deploy the mock then etch its code at the deterministic raindex
         // address so that onFlashLoan's BadLender check passes.
-        FlashLendingMockRaindex mockOb = new FlashLendingMockRaindex();
-        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockOb).code);
+        FlashLendingMockRaindex mockRaindex = new FlashLendingMockRaindex();
+        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockRaindex).code);
         iRaindex = FlashLendingMockRaindex(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS);
         vm.label(address(iRaindex), "iRaindex");
 

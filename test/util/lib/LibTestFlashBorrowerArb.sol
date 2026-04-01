@@ -52,8 +52,8 @@ library LibTestFlashBorrowerArb {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticFlashLendingMockRaindex mockOb = new RealisticFlashLendingMockRaindex();
-        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockOb).code);
+        RealisticFlashLendingMockRaindex mockRaindex = new RealisticFlashLendingMockRaindex();
+        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockRaindex).code);
         IRaindexV6 raindex = IRaindexV6(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS);
 
         outputToken.mint(address(raindex), 10 * amount);

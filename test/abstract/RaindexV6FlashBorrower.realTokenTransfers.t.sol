@@ -37,8 +37,8 @@ contract RaindexV6FlashBorrowerRealTokenTransfersTest is Test {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticFlashLendingMockRaindex mockOb = new RealisticFlashLendingMockRaindex();
-        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockOb).code);
+        RealisticFlashLendingMockRaindex mockRaindex = new RealisticFlashLendingMockRaindex();
+        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockRaindex).code);
         RealisticFlashLendingMockRaindex raindex =
             RealisticFlashLendingMockRaindex(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS);
         MockExchange exchange = new MockExchange();

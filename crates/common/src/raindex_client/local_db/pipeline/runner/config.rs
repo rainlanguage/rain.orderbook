@@ -21,7 +21,7 @@ impl NetworkRunnerConfig {
         let filtered_raindexes: HashMap<String, RaindexCfg> = global
             .raindexes
             .iter()
-            .filter(|(_, ob)| ob.network.key == network_key)
+            .filter(|(_, raindex_cfg)| raindex_cfg.network.key == network_key)
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
 
@@ -35,7 +35,7 @@ impl NetworkRunnerConfig {
         let chain_id = filtered_raindexes
             .values()
             .next()
-            .map(|ob| ob.network.chain_id)
+            .map(|raindex_cfg| raindex_cfg.network.chain_id)
             .ok_or_else(|| {
                 LocalDbError::CustomError(format!(
                     "could not determine chain_id for network: {}",

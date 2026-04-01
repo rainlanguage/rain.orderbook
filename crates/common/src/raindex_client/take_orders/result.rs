@@ -449,10 +449,10 @@ mod tests {
 
     #[test]
     fn test_build_calldata_result_produces_valid_calldata_buy_mode() {
-        let ob = Address::from([0x11u8; 20]);
+        let raindex_addr = Address::from([0x11u8; 20]);
         let max_output = Float::parse("10".to_string()).unwrap();
         let ratio = Float::parse("2".to_string()).unwrap();
-        let candidate = make_candidate(ob, max_output, ratio);
+        let candidate = make_candidate(raindex_addr, max_output, ratio);
         let candidates = vec![candidate];
         let buy_target = Float::parse("10".to_string()).unwrap();
         let price_cap = high_price_cap();
@@ -463,13 +463,13 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let result = build_calldata_result(ob, built, mode, price_cap);
+        let result = build_calldata_result(raindex_addr, built, mode, price_cap);
 
         assert!(result.is_ok());
         let result = result.unwrap();
         assert!(result.is_ready());
         let take_orders_info = result.take_orders_info().unwrap();
-        assert_eq!(take_orders_info.raindex(), ob);
+        assert_eq!(take_orders_info.raindex(), raindex_addr);
         assert!(!take_orders_info.calldata().is_empty());
         assert!(!take_orders_info.prices().is_empty());
 
@@ -484,10 +484,10 @@ mod tests {
 
     #[test]
     fn test_build_calldata_result_produces_valid_calldata_spend_mode() {
-        let ob = Address::from([0x11u8; 20]);
+        let raindex_addr = Address::from([0x11u8; 20]);
         let max_output = Float::parse("100".to_string()).unwrap();
         let ratio = Float::parse("2".to_string()).unwrap();
-        let candidate = make_candidate(ob, max_output, ratio);
+        let candidate = make_candidate(raindex_addr, max_output, ratio);
         let candidates = vec![candidate];
         let spend_budget = Float::parse("20".to_string()).unwrap();
         let price_cap = high_price_cap();
@@ -498,13 +498,13 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let result = build_calldata_result(ob, built, mode, price_cap);
+        let result = build_calldata_result(raindex_addr, built, mode, price_cap);
 
         assert!(result.is_ok());
         let result = result.unwrap();
         assert!(result.is_ready());
         let take_orders_info = result.take_orders_info().unwrap();
-        assert_eq!(take_orders_info.raindex(), ob);
+        assert_eq!(take_orders_info.raindex(), raindex_addr);
         assert!(!take_orders_info.calldata().is_empty());
         assert!(!take_orders_info.prices().is_empty());
 
@@ -519,10 +519,10 @@ mod tests {
 
     #[test]
     fn test_build_calldata_result_effective_price_calculation() {
-        let ob = Address::from([0x11u8; 20]);
+        let raindex_addr = Address::from([0x11u8; 20]);
         let max_output = Float::parse("10".to_string()).unwrap();
         let ratio = Float::parse("2".to_string()).unwrap();
-        let candidate = make_candidate(ob, max_output, ratio);
+        let candidate = make_candidate(raindex_addr, max_output, ratio);
         let candidates = vec![candidate];
         let buy_target = Float::parse("10".to_string()).unwrap();
         let price_cap = high_price_cap();
@@ -533,7 +533,7 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let result = build_calldata_result(raindex_addr, built, mode, price_cap).unwrap();
         assert!(result.is_ready());
         let take_orders_info = result.take_orders_info().unwrap();
 
@@ -546,10 +546,10 @@ mod tests {
 
     #[test]
     fn test_build_calldata_result_prices_match_legs() {
-        let ob = Address::from([0x11u8; 20]);
+        let raindex_addr = Address::from([0x11u8; 20]);
         let max_output = Float::parse("10".to_string()).unwrap();
         let ratio = Float::parse("2".to_string()).unwrap();
-        let candidate = make_candidate(ob, max_output, ratio);
+        let candidate = make_candidate(raindex_addr, max_output, ratio);
         let candidates = vec![candidate];
         let buy_target = Float::parse("10".to_string()).unwrap();
         let price_cap = high_price_cap();
@@ -561,7 +561,7 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let result = build_calldata_result(raindex_addr, built, mode, price_cap).unwrap();
         assert!(result.is_ready());
         let take_orders_info = result.take_orders_info().unwrap();
 
@@ -578,10 +578,10 @@ mod tests {
 
     #[test]
     fn test_build_calldata_result_expected_sell_and_max_sell_cap_buy_mode() {
-        let ob = Address::from([0x11u8; 20]);
+        let raindex_addr = Address::from([0x11u8; 20]);
         let max_output = Float::parse("10".to_string()).unwrap();
         let ratio = Float::parse("2".to_string()).unwrap();
-        let candidate = make_candidate(ob, max_output, ratio);
+        let candidate = make_candidate(raindex_addr, max_output, ratio);
         let candidates = vec![candidate];
         let buy_target = Float::parse("10".to_string()).unwrap();
         let price_cap = Float::parse("3".to_string()).unwrap();
@@ -592,7 +592,7 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let result = build_calldata_result(raindex_addr, built, mode, price_cap).unwrap();
         assert!(result.is_ready());
         let take_orders_info = result.take_orders_info().unwrap();
 
@@ -614,10 +614,10 @@ mod tests {
 
     #[test]
     fn test_build_calldata_result_expected_sell_and_max_sell_cap_spend_mode() {
-        let ob = Address::from([0x11u8; 20]);
+        let raindex_addr = Address::from([0x11u8; 20]);
         let max_output = Float::parse("100".to_string()).unwrap();
         let ratio = Float::parse("2".to_string()).unwrap();
-        let candidate = make_candidate(ob, max_output, ratio);
+        let candidate = make_candidate(raindex_addr, max_output, ratio);
         let candidates = vec![candidate];
         let spend_budget = Float::parse("20".to_string()).unwrap();
         let price_cap = Float::parse("3".to_string()).unwrap();
@@ -628,7 +628,7 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let result = build_calldata_result(ob, built, mode, price_cap).unwrap();
+        let result = build_calldata_result(raindex_addr, built, mode, price_cap).unwrap();
         assert!(result.is_ready());
         let take_orders_info = result.take_orders_info().unwrap();
 

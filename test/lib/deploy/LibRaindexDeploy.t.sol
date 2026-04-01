@@ -73,8 +73,8 @@ contract LibRaindexDeployTest is Test {
     /// The codehash of a freshly deployed RaindexV6 MUST match the expected
     /// codehash constant.
     function testExpectedCodeHashRaindex() external {
-        RaindexV6 ob = new RaindexV6();
-        assertEq(address(ob).codehash, LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH);
+        RaindexV6 raindex = new RaindexV6();
+        assertEq(address(raindex).codehash, LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH);
     }
 
     /// The codehash of a freshly deployed RaindexV6SubParser MUST match the
@@ -99,8 +99,8 @@ contract LibRaindexDeployTest is Test {
     /// The precompiled runtime code constant for RaindexV6 MUST match the
     /// deployed runtime bytecode.
     function testRuntimeCodeRaindex() external {
-        RaindexV6 ob = new RaindexV6();
-        assertEq(keccak256(RAINDEX_RUNTIME_CODE), keccak256(address(ob).code));
+        RaindexV6 raindex = new RaindexV6();
+        assertEq(keccak256(RAINDEX_RUNTIME_CODE), keccak256(address(raindex).code));
     }
 
     /// The precompiled runtime code constant for RaindexV6SubParser MUST

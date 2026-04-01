@@ -40,8 +40,8 @@ contract RaindexV6FlashBorrowerFlashLoanFailedTest is Test {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        FalseFlashLoanMockRaindex mockOb = new FalseFlashLoanMockRaindex();
-        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockOb).code);
+        FalseFlashLoanMockRaindex mockRaindex = new FalseFlashLoanMockRaindex();
+        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockRaindex).code);
 
         GenericPoolRaindexV6FlashBorrower arb = new GenericPoolRaindexV6FlashBorrower();
 

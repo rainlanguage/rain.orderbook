@@ -628,11 +628,11 @@ impl DotrainOrder {
 
         let network_key = order_cfg.network.key.clone();
         let rainlang_key = rainlang_cfg.key.clone();
-        let raindex_key = order_cfg.raindex.as_ref().map(|ob| ob.key.clone());
+        let raindex_key = order_cfg.raindex.as_ref().map(|raindex_cfg| raindex_cfg.key.clone());
         let subgraph_key = order_cfg
             .raindex
             .as_ref()
-            .map(|ob| ob.subgraph.key.clone());
+            .map(|raindex_cfg| raindex_cfg.subgraph.key.clone());
 
         let order_key = order_cfg.key.clone();
         let deployment_key = deployment.key.clone();

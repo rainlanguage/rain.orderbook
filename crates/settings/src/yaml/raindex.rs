@@ -356,8 +356,8 @@ impl RaindexYaml {
         let mut raindexes: Vec<_> = self
             .get_raindexes()?
             .into_iter()
-            .filter(|(_, ob)| ob.network.key == network_key)
-            .map(|(_, ob)| ob)
+            .filter(|(_, raindex_cfg)| raindex_cfg.network.key == network_key)
+            .map(|(_, raindex_cfg)| raindex_cfg)
             .collect();
         raindexes.sort_by(|a, b| a.key.cmp(&b.key));
 
@@ -378,8 +378,8 @@ impl RaindexYaml {
         let mut raindexes: Vec<_> = self
             .get_raindexes()?
             .into_iter()
-            .filter(|(_, ob)| ob.network.key == network.key)
-            .map(|(_, ob)| ob)
+            .filter(|(_, raindex_cfg)| raindex_cfg.network.key == network.key)
+            .map(|(_, raindex_cfg)| raindex_cfg)
             .collect();
         raindexes.sort_by(|a, b| a.key.cmp(&b.key));
 
@@ -573,7 +573,7 @@ mod tests {
     #[test]
     fn test_raindex_yaml_profile_helpers() {
         let sources = vec![full_yaml()];
-        let ob = RaindexYaml::new_with_profile(
+        let yaml = RaindexYaml::new_with_profile(
             sources.clone(),
             RaindexYamlValidation::default(),
             ContextProfile::Gui {
@@ -581,18 +581,18 @@ mod tests {
             },
         )
         .unwrap();
-        assert!(matches!(ob.profile, ContextProfile::Gui { .. }));
+        assert!(matches!(yaml.profile, ContextProfile::Gui { .. }));
 
-        let ob_default = RaindexYaml::new(sources, RaindexYamlValidation::default()).unwrap();
-        assert!(matches!(ob_default.profile, ContextProfile::Strict));
+        let yaml_default = RaindexYaml::new(sources, RaindexYamlValidation::default()).unwrap();
+        assert!(matches!(yaml_default.profile, ContextProfile::Strict));
 
-        let ob_strict = ob.with_profile(ContextProfile::Strict);
-        assert!(matches!(ob_strict.profile, ContextProfile::Strict));
+        let yaml_strict = yaml.with_profile(ContextProfile::Strict);
+        assert!(matches!(yaml_strict.profile, ContextProfile::Strict));
     }
 
     #[test]
     fn test_raindex_yaml_serialization_preserves_profile() {
-        let ob = RaindexYaml::new_with_profile(
+        let yaml = RaindexYaml::new_with_profile(
             vec![full_yaml()],
             RaindexYamlValidation::default(),
             ContextProfile::Gui {
@@ -601,7 +601,7 @@ mod tests {
         )
         .unwrap();
 
-        let serialized = serde_json::to_string(&ob).unwrap();
+        let serialized = serde_json::to_string(&yaml).unwrap();
         let round_tripped: RaindexYaml = serde_json::from_str(&serialized).unwrap();
         match round_tripped.profile {
             ContextProfile::Gui { current_deployment } => {

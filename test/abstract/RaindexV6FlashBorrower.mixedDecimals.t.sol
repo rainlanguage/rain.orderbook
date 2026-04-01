@@ -38,8 +38,8 @@ contract RaindexV6FlashBorrowerMixedDecimalsTest is Test {
         MockToken inputToken = new MockToken("DAI", "DAI", 18);
         MockToken outputToken = new MockToken("USDT", "USDT", 6);
 
-        RealisticFlashLendingMockRaindex mockOb = new RealisticFlashLendingMockRaindex();
-        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockOb).code);
+        RealisticFlashLendingMockRaindex mockRaindex = new RealisticFlashLendingMockRaindex();
+        vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(mockRaindex).code);
         RealisticFlashLendingMockRaindex raindex =
             RealisticFlashLendingMockRaindex(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS);
         MockExchange exchange = new MockExchange();

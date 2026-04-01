@@ -378,7 +378,7 @@ local-db-sync:
     bootstrap-block-threshold: 1000
     sync-interval-ms: 5000
 raindexes:
-  ob-a:
+  raindex-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
     subgraph: anvil

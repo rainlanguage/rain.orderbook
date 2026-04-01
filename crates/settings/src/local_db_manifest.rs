@@ -106,7 +106,7 @@ impl LocalDbManifest {
         self.networks
             .values()
             .find(|n| n.chain_id == chain_id)
-            .and_then(|n| n.raindexes.iter().find(|ob| ob.address == address))
+            .and_then(|n| n.raindexes.iter().find(|raindex_entry| raindex_entry.address == address))
     }
 
     pub fn new() -> Self {
@@ -611,10 +611,10 @@ end-block: 1
 end-block-hash: "0x0abc"
 end-block-time-ms: 1
 "#;
-        let ob_doc = load(ob_ok);
-        let ob = parse_single_raindex(0, &ob_doc, base_loc).expect("raindex parses");
-        assert_eq!(ob.end_block, 1);
-        assert_eq!(ob.end_block_time_ms, 1);
+        let raindex_doc = load(ob_ok);
+        let raindex_entry = parse_single_raindex(0, &raindex_doc, base_loc).expect("raindex parses");
+        assert_eq!(raindex_entry.end_block, 1);
+        assert_eq!(raindex_entry.end_block_time_ms, 1);
 
         // Bad address
         let ob_bad = r#"

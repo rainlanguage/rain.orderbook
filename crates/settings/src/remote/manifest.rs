@@ -119,7 +119,7 @@ networks:
         end-block: 555
         end-block-hash: "0x0def"
         end-block-time-ms: 2000
-        extra-ob: ignored
+        extra-raindex: ignored
 "#;
 
         server
