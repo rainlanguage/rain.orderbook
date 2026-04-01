@@ -207,8 +207,7 @@ contract RaindexV6SubParser is BaseRainterpreterSubParser {
             internal
             view returns (bool, bytes memory, bytes32[] memory)[](CONTEXT_CALLING_CONTEXT_ROWS);
         contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH] = LibRaindexSubParser.subParserOrderHash;
-        contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] =
-        LibRaindexSubParser.subParserOrderOwner;
+        contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_OWNER] = LibRaindexSubParser.subParserOrderOwner;
         contextCallingContextParsers[CONTEXT_CALLING_CONTEXT_ROW_ORDER_COUNTERPARTY] =
         LibRaindexSubParser.subParserOrderCounterparty;
 

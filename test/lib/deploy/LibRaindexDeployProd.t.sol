@@ -15,9 +15,7 @@ contract LibRaindexDeployProdTest is Test {
         assertEq(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH);
 
         assertTrue(LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.code.length > 0, "SubParser not deployed");
-        assertEq(
-            LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH
-        );
+        assertEq(LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH);
 
         assertTrue(LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS.code.length > 0, "RouteProcessor4 not deployed");
         assertEq(

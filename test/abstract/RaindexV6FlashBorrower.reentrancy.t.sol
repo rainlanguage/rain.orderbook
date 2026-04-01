@@ -45,8 +45,7 @@ contract RaindexV6FlashBorrowerReentrancyTest is Test {
         GenericPoolRaindexV6FlashBorrower arb = new GenericPoolRaindexV6FlashBorrower();
 
         // Deploy the reentrant exchange that will call arb4 when invoked.
-        ReentrantExchange exchange =
-            new ReentrantExchange(arb, IRaindexV6(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS));
+        ReentrantExchange exchange = new ReentrantExchange(arb, IRaindexV6(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS));
 
         IOV2[] memory validInputs = new IOV2[](1);
         validInputs[0] = IOV2(address(inputToken), bytes32(0));

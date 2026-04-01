@@ -5,9 +5,7 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
-import {
-    RouteProcessorRaindexV6ArbOrderTaker
-} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {RouteProcessorRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
 import {
     IRaindexV6,
     TakeOrdersConfigV5,

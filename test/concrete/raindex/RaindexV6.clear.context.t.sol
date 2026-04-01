@@ -126,9 +126,7 @@ contract RaindexV6ClearOrderContextTest is RaindexV6ExternalRealTest {
             mockVault0Output(token, owner, absoluteAmount);
         } else {
             vm.mockCall(
-                token,
-                abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iRaindex)),
-                abi.encode(true)
+                token, abi.encodeWithSelector(IERC20.transferFrom.selector, owner, address(iRaindex)), abi.encode(true)
             );
             vm.prank(owner);
             iRaindex.deposit4(token, vaultId, LibDecimalFloat.packLossless(amount, exponent), new TaskV2[](0));

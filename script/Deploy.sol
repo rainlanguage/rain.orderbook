@@ -85,9 +85,7 @@ contract Deploy is Script {
             vm.startBroadcast(deployerPrivateKey);
             bytes memory subParserDescribedByMeta = vm.readFileBinary("meta/RaindexV6SubParser.rain.meta");
             LibDescribedByMeta.emitForDescribedAddress(
-                metaboard,
-                RaindexV6SubParser(LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS),
-                subParserDescribedByMeta
+                metaboard, RaindexV6SubParser(LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS), subParserDescribedByMeta
             );
             vm.stopBroadcast();
         } else if (suite == DEPLOYMENT_SUITE_ROUTE_PROCESSOR) {

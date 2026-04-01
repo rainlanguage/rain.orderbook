@@ -15,9 +15,7 @@ import {
     TaskV2,
     SignedContextV1
 } from "rain.raindex.interface/interface/IRaindexV6.sol";
-import {
-    RouteProcessorRaindexV6ArbOrderTaker
-} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {RouteProcessorRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
 import {LibDecimalFloat, Float} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibInterpreterDeploy} from "rain.interpreter/lib/deploy/LibInterpreterDeploy.sol";
 

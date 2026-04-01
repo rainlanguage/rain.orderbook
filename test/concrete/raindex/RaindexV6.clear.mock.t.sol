@@ -181,9 +181,8 @@ contract RaindexV6ClearTest is RaindexV6ExternalMockTest {
             assertTrue(aliceBountyBalance.isZero());
         }
         {
-            Float bobBountyBalance = iRaindex.vaultBalance2(
-                clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId
-            );
+            Float bobBountyBalance =
+                iRaindex.vaultBalance2(clear.bountyBot, clear.bobConfig.validOutputs[0].token, clear.bobBountyVaultId);
             assertTrue(bobBountyBalance.isZero());
         }
 

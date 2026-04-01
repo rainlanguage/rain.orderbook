@@ -3,9 +3,7 @@
 pragma solidity =0.8.25;
 
 import {ArbTest} from "./ArbTest.sol";
-import {
-    RouteProcessorRaindexV6ArbOrderTaker
-} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {RouteProcessorRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
 
 contract RouteProcessorRaindexV6ArbOrderTakerTest is ArbTest {
     function buildArb() internal override returns (address payable) {

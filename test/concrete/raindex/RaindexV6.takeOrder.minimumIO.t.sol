@@ -23,9 +23,7 @@ contract RaindexV6TakeOrderMinimumIOTest is RaindexV6ExternalRealTest {
             abi.encode(true)
         );
         vm.prank(alice);
-        iRaindex.deposit4(
-            address(iToken1), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(1, 0), new TaskV2[](0)
-        );
+        iRaindex.deposit4(address(iToken1), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(1, 0), new TaskV2[](0));
 
         // Order outputs 1e-18 at ratio 1.
         OrderV4 memory order = LibTestTakeOrder.addOrderWithExpression(

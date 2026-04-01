@@ -20,8 +20,7 @@ library LibEtchRaindex {
         if (LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH != LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS.codehash) {
             vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, RAINDEX_RUNTIME_CODE);
         }
-        if (LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH != LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash)
-        {
+        if (LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH != LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash) {
             vm.etch(LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS, SUB_PARSER_RUNTIME_CODE);
         }
         if (

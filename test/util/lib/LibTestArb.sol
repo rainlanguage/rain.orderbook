@@ -130,9 +130,10 @@ library LibTestArb {
 
         arb.arb5{value: ethValue}(IRaindexV6(address(raindex)), takeOrdersConfig, task);
 
-        return ArbResult({
-            arb: arb, inputToken: inputToken, outputToken: outputToken, raindex: raindex, exchange: exchange
-        });
+        return
+            ArbResult({
+                arb: arb, inputToken: inputToken, outputToken: outputToken, raindex: raindex, exchange: exchange
+            });
     }
 
     /// Set up an order-taker arb scenario without executing it.

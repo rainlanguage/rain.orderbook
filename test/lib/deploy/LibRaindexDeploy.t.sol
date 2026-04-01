@@ -25,9 +25,7 @@ import {
 } from "../../../src/generated/RouteProcessor4.pointers.sol";
 import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../../../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 import {GenericPoolRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
-import {
-    RouteProcessorRaindexV6ArbOrderTaker
-} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {RouteProcessorRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
 import {GenericPoolRaindexV6FlashBorrower} from "../../../src/concrete/arb/GenericPoolRaindexV6FlashBorrower.sol";
 import {
     RUNTIME_CODE as GENERIC_POOL_ARB_OT_RUNTIME_CODE,
@@ -179,9 +177,7 @@ contract LibRaindexDeployTest is Test {
 
         assertEq(deployedAddress, LibRaindexDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_ADDRESS);
         assertTrue(address(deployedAddress).code.length > 0, "Deployed address has no code");
-        assertEq(
-            address(deployedAddress).codehash, LibRaindexDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH
-        );
+        assertEq(address(deployedAddress).codehash, LibRaindexDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH);
     }
 
     /// Deploying GenericPoolRaindexV6FlashBorrower via Zoltu MUST produce
@@ -241,9 +237,7 @@ contract LibRaindexDeployTest is Test {
     /// The generated deployed address for GenericPoolRaindexV6ArbOrderTaker
     /// MUST match the deploy library constant.
     function testGeneratedDeployedAddressGenericPoolArbOrderTaker() external pure {
-        assertEq(
-            GENERIC_POOL_ARB_OT_GENERATED_ADDRESS, LibRaindexDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS
-        );
+        assertEq(GENERIC_POOL_ARB_OT_GENERATED_ADDRESS, LibRaindexDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_ADDRESS);
     }
 
     /// The generated deployed address for RouteProcessorRaindexV6ArbOrderTaker
@@ -284,9 +278,7 @@ contract LibRaindexDeployTest is Test {
         LibEtchRaindex.etchRaindex(vm);
 
         assertEq(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH);
-        assertEq(
-            LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH
-        );
+        assertEq(LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH);
         assertEq(
             LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS.codehash,
             LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH
@@ -300,9 +292,7 @@ contract LibRaindexDeployTest is Test {
         LibEtchRaindex.etchRaindex(vm);
 
         assertEq(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH);
-        assertEq(
-            LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH
-        );
+        assertEq(LibRaindexDeploy.SUB_PARSER_DEPLOYED_ADDRESS.codehash, LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH);
         assertEq(
             LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS.codehash,
             LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH

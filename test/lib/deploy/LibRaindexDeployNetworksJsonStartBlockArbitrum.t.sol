@@ -13,9 +13,7 @@ contract LibRaindexDeployNetworksJsonStartBlockArbitrumTest is Test {
         string memory json = vm.readFile("subgraph/networks.json");
         uint256 startBlock = vm.parseJsonUint(json, ".arbitrum-one.Raindex.startBlock");
         assertEq(
-            startBlock,
-            LibRaindexDeploy.RAINDEX_START_BLOCK_ARBITRUM,
-            "networks.json startBlock mismatch: arbitrum-one"
+            startBlock, LibRaindexDeploy.RAINDEX_START_BLOCK_ARBITRUM, "networks.json startBlock mismatch: arbitrum-one"
         );
     }
 }

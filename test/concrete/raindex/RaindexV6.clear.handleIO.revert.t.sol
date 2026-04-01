@@ -62,9 +62,7 @@ contract RaindexV6ClearHandleIORevertTest is RaindexV6ExternalRealTest {
             mockVault0Output(outputToken, owner, uint256(int256(type(int224).max)));
         } else {
             vm.prank(owner);
-            iRaindex.deposit4(
-                outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, 0), new TaskV2[](0)
-            );
+            iRaindex.deposit4(outputToken, vaultId, LibDecimalFloat.packLossless(type(int224).max, 0), new TaskV2[](0));
             Float balance = iRaindex.vaultBalance2(owner, outputToken, vaultId);
             assertTrue(balance.eq(LibDecimalFloat.packLossless(type(int224).max, 0)));
         }

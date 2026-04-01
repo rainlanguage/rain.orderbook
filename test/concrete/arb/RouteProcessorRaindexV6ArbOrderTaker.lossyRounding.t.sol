@@ -5,9 +5,7 @@ pragma solidity =0.8.25;
 import {Test} from "forge-std/Test.sol";
 import {IRouteProcessor} from "sushixswap-v2/src/interfaces/IRouteProcessor.sol";
 
-import {
-    RouteProcessorRaindexV6ArbOrderTaker
-} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {RouteProcessorRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
 import {Float} from "rain.raindex.interface/interface/IRaindexV6.sol";
 import {LibDecimalFloat} from "rain.math.float/lib/LibDecimalFloat.sol";
 import {LibRainDeploy} from "rain.deploy/lib/LibRainDeploy.sol";

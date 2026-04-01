@@ -2,10 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.25;
 
-import {
-    BYTECODE_HASH as RAINDEX_HASH,
-    DEPLOYED_ADDRESS as RAINDEX_ADDR
-} from "../../generated/RaindexV6.pointers.sol";
+import {BYTECODE_HASH as RAINDEX_HASH, DEPLOYED_ADDRESS as RAINDEX_ADDR} from "../../generated/RaindexV6.pointers.sol";
 import {
     BYTECODE_HASH as SUB_PARSER_HASH,
     DEPLOYED_ADDRESS as SUB_PARSER_ADDR
