@@ -1027,7 +1027,7 @@ describe('Rain Raindex JS API Package Bindgen Tests - Gui', async function () {
 
 	describe('state management tests', async () => {
 		let serializedState =
-			'H4sIAAAAAAAA_21QzUrEMBBuqiiIBxGvguDV2GxCy-6yXpSVQlFQi38X6bZhu26a1DZViw_h0asvsPgEXr35POJNi0ndsjuHfJP5vsnMF2D8xapCSXMJByMejfgQqBoyVqbZ-4AV1FSVJc2IMeUtQ8eiQhvtOg0JriULClsIgXmP4eZNL5iLhEJO5YPIxrpvU2EsZdq1LCbCgMUil902attWloawyNhTpQDVCfTovu9uqPS59zXZ_uxN3l_st-9LE3c-XkOwDpYV7Vc7bGGgbfu_PkzjP5rfUA9wHAfM-KpZQsiOSml5FHj9m9I9ZHeDW37qnYcH-Mx2OyfXBRtGJDnehx7BF_Dxam9N9QgZ0wxGNGWiTCiXP9NL3cfLAQAA';
+			'H4sIAAAAAAAA_21Qu07DMBSNAwIJMSDEioTESojrNKZUZQC1AsRjSSqFsU3dpNS1jePwEB_ByMoPVHwBKxvfg9ggwg5E7R18ru851_ceA-s3VjUqkimnP2KDEUuArkFr5T9726M5sXVlyTB8TFjNMrGo0Ye7uCJBpWRBYw1CMO8xVL2ZBTM-IQ4j6o7Lsenb1JgqJZquS3ncoynPVLMBG74rRezkkj4WClCcwIzuhCcbOn1qfU63P1rTt2f_9Suy0f77SwzWwbKmw2KHLQSM7fDHh239RfUbygEYYzDjq2Q9z9vRKTodJkfX8VDuBe0ooFF6DLsi6bdF9z64wZeH51d10rk4S3JSP1jTPVylRDoDIih_mBCmvgEOtPhuywEAAA==';
 		let dotrain3: string;
 		let gui: DotrainOrderGui;
 		beforeAll(async () => {
