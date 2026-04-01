@@ -138,19 +138,19 @@ local-db-sync:
     bootstrap-block-threshold: 5000
     sync-interval-ms: 5000
 raindexes:
-  ob-a:
+  raindex-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
     subgraph: network-a
     local-db-remote: remote-a
     deployment-block: 111
-  ob-b:
+  raindex-b:
     address: 0x00000000000000000000000000000000000000b2
     network: network-b
     subgraph: network-b
     local-db-remote: remote-b
     deployment-block: 222
-  ob-c:
+  raindex-c:
     address: 0x00000000000000000000000000000000000000c3
     network: network-a
     subgraph: network-a
@@ -195,8 +195,8 @@ raindexes:
         let targets = build_runner_targets(&parsed.raindexes, &parsed.syncs).unwrap();
         let target = targets
             .into_iter()
-            .find(|t| t.raindex_key == "ob-a")
-            .expect("target ob-a");
+            .find(|t| t.raindex_key == "raindex-a")
+            .expect("target raindex-a");
 
         let manifest_entry = ManifestRaindex {
             address: target.inputs.raindex_id.raindex_address,
@@ -304,9 +304,9 @@ networks:
         let mut parsed = parsed_settings();
         let url_one = Url::parse(&server_one.base_url()).unwrap();
         let url_two = Url::parse(&server_two.base_url()).unwrap();
-        update_remote_url(&mut parsed.raindexes, "ob-a", &url_one);
-        update_remote_url(&mut parsed.raindexes, "ob-c", &url_one);
-        update_remote_url(&mut parsed.raindexes, "ob-b", &url_two);
+        update_remote_url(&mut parsed.raindexes, "raindex-a", &url_one);
+        update_remote_url(&mut parsed.raindexes, "raindex-c", &url_one);
+        update_remote_url(&mut parsed.raindexes, "raindex-b", &url_two);
 
         let manifests = rt
             .block_on(get_manifests(&parsed.raindexes))
@@ -352,9 +352,9 @@ networks: {}
         let mut parsed = parsed_settings();
         let url_one = Url::parse(&server_one.base_url()).unwrap();
         let url_two = Url::parse(&server_two.base_url()).unwrap();
-        update_remote_url(&mut parsed.raindexes, "ob-a", &url_one);
-        update_remote_url(&mut parsed.raindexes, "ob-c", &url_one);
-        update_remote_url(&mut parsed.raindexes, "ob-b", &url_two);
+        update_remote_url(&mut parsed.raindexes, "raindex-a", &url_one);
+        update_remote_url(&mut parsed.raindexes, "raindex-c", &url_one);
+        update_remote_url(&mut parsed.raindexes, "raindex-b", &url_two);
 
         let err = rt.block_on(get_manifests(&parsed.raindexes)).unwrap_err();
         match err {
@@ -368,9 +368,9 @@ networks: {}
         let rt = build_runtime();
         let mut parsed = parsed_settings();
         let unreachable = Url::parse("nosuch://unreachable.example/manifest.yaml").unwrap();
-        update_remote_url(&mut parsed.raindexes, "ob-a", &unreachable);
-        update_remote_url(&mut parsed.raindexes, "ob-b", &unreachable);
-        update_remote_url(&mut parsed.raindexes, "ob-c", &unreachable);
+        update_remote_url(&mut parsed.raindexes, "raindex-a", &unreachable);
+        update_remote_url(&mut parsed.raindexes, "raindex-b", &unreachable);
+        update_remote_url(&mut parsed.raindexes, "raindex-c", &unreachable);
 
         let err = rt.block_on(get_manifests(&parsed.raindexes)).unwrap_err();
         match err {

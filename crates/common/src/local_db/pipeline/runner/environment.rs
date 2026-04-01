@@ -690,7 +690,7 @@ local-db-sync:
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
 raindexes:
-  ob-a:
+  raindex-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
     subgraph: network-a
@@ -749,7 +749,7 @@ networks:
 
         let mut parsed = parse_runner_settings(&sample_settings_yaml()).expect("sample settings");
         let manifest_url = Url::parse(&server.base_url()).unwrap();
-        update_remote_url(&mut parsed.raindexes, "ob-a", &manifest_url);
+        update_remote_url(&mut parsed.raindexes, "raindex-a", &manifest_url);
 
         let fetcher = default_manifest_fetcher();
         let manifests = block_on(fetcher(&parsed.raindexes)).expect("manifest map");

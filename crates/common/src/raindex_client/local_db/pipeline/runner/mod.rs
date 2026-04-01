@@ -351,8 +351,8 @@ mod tests {
 
     const CHAIN_ID: u32 = 42161;
     const NETWORK_KEY: &str = "anvil";
-    const RAINDEX_KEY_A: &str = "ob-a";
-    const RAINDEX_KEY_B: &str = "ob-b";
+    const RAINDEX_KEY_A: &str = "raindex-a";
+    const RAINDEX_KEY_B: &str = "raindex-b";
 
     const RAINDEX_A: Address = address!("00000000000000000000000000000000000000a1");
     const RAINDEX_B: Address = address!("00000000000000000000000000000000000000b2");
@@ -952,11 +952,11 @@ mod tests {
     const END_HASH_B: &str = "0x000000000000000000000000000000000000000000000000000000000000beef";
 
     fn dump_url_a() -> Url {
-        Url::parse("https://dumps.example/ob-a.sql").unwrap()
+        Url::parse("https://dumps.example/raindex-a.sql").unwrap()
     }
 
     fn dump_url_b() -> Url {
-        Url::parse("https://dumps.example/ob-b.sql").unwrap()
+        Url::parse("https://dumps.example/raindex-b.sql").unwrap()
     }
 
     fn manifest_for_a() -> ManifestMap {
@@ -1026,13 +1026,13 @@ local-db-sync:
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
 raindexes:
-  ob-a:
+  raindex-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
     subgraph: anvil
     local-db-remote: remote-a
     deployment-block: 123
-  ob-b:
+  raindex-b:
     address: 0x00000000000000000000000000000000000000b2
     network: anvil
     subgraph: anvil
@@ -1067,7 +1067,7 @@ local-db-sync:
     bootstrap-block-threshold: 10000
     sync-interval-ms: 5000
 raindexes:
-  ob-a:
+  raindex-a:
     address: 0x00000000000000000000000000000000000000a1
     network: anvil
     subgraph: anvil
@@ -1428,7 +1428,7 @@ raindexes:
         let record_a = records
             .iter()
             .find(|r| r.raindex_key == RAINDEX_KEY_A)
-            .expect("record for ob-a");
+            .expect("record for raindex-a");
         assert!(record_a
             .dump_sql
             .as_ref()
@@ -1438,7 +1438,7 @@ raindexes:
         let record_b = records
             .iter()
             .find(|r| r.raindex_key == RAINDEX_KEY_B)
-            .expect("record for ob-b");
+            .expect("record for raindex-b");
         assert!(record_b.dump_sql.is_none());
         assert_eq!(record_b.latest_block, 0);
     }

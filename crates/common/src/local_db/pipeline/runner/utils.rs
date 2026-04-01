@@ -171,19 +171,19 @@ local-db-sync:
     bootstrap-block-threshold: 5000
     sync-interval-ms: 5000
 raindexes:
-  ob-a:
+  raindex-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
     subgraph: network-a
     local-db-remote: remote-a
     deployment-block: 111
-  ob-b:
+  raindex-b:
     address: 0x00000000000000000000000000000000000000b2
     network: network-b
     subgraph: network-b
     local-db-remote: remote-b
     deployment-block: 222
-  ob-c:
+  raindex-c:
     address: 0x00000000000000000000000000000000000000c3
     network: network-a
     subgraph: network-a
@@ -240,7 +240,7 @@ raindexes:
         let parsed = parse_runner_settings(&sample_settings_yaml()).expect("parse succeeds");
         assert_eq!(parsed.raindexes.len(), 3);
         assert_eq!(parsed.syncs.len(), 2);
-        assert!(parsed.raindexes.contains_key("ob-a"));
+        assert!(parsed.raindexes.contains_key("raindex-a"));
         assert!(parsed.syncs.contains_key("network-a"));
     }
 
@@ -331,8 +331,8 @@ raindexes:
 
         let target_a = targets
             .iter()
-            .find(|t| t.raindex_key == "ob-a")
-            .expect("target for ob-a exists");
+            .find(|t| t.raindex_key == "raindex-a")
+            .expect("target for raindex-a exists");
         assert_eq!(target_a.network_key, "network-a");
         assert_eq!(target_a.inputs.raindex_id.chain_id, 1);
         assert_eq!(
@@ -395,7 +395,7 @@ raindexes:
                 input.raindex_id.raindex_address
                     == address!("00000000000000000000000000000000000000b2")
             })
-            .expect("input for ob-b exists");
+            .expect("input for raindex-b exists");
         assert_eq!(input_b.raindex_id.chain_id, 2);
         assert_eq!(input_b.cfg.fetch.max_concurrent_requests(), 2);
     }

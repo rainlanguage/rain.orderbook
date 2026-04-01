@@ -91,7 +91,7 @@ mod tests {
     fn sample_target(metadata_rpcs: Vec<Url>) -> RunnerTarget {
         let fetch = FetchConfig::new(1, 1, 1, 1, 0, 0).expect("fetch config");
         RunnerTarget {
-            raindex_key: "test-ob".to_string(),
+            raindex_key: "test-raindex".to_string(),
             network_key: "test-network".to_string(),
             manifest_url: Url::parse("https://manifests.example/client.yaml").unwrap(),
             inputs: SyncInputs {

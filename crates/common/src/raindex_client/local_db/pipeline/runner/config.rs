@@ -110,19 +110,19 @@ local-db-sync:
     bootstrap-block-threshold: 5000
     sync-interval-ms: 5000
 raindexes:
-  ob-a:
+  raindex-a:
     address: 0x00000000000000000000000000000000000000a1
     network: network-a
     subgraph: network-a
     local-db-remote: remote-a
     deployment-block: 111
-  ob-b:
+  raindex-b:
     address: 0x00000000000000000000000000000000000000b2
     network: network-b
     subgraph: network-b
     local-db-remote: remote-b
     deployment-block: 222
-  ob-c:
+  raindex-c:
     address: 0x00000000000000000000000000000000000000c3
     network: network-a
     subgraph: network-a
@@ -142,9 +142,9 @@ raindexes:
         assert_eq!(config.network_key, "network-a");
         assert_eq!(config.chain_id, 1);
         assert_eq!(config.settings.raindexes.len(), 2);
-        assert!(config.settings.raindexes.contains_key("ob-a"));
-        assert!(config.settings.raindexes.contains_key("ob-c"));
-        assert!(!config.settings.raindexes.contains_key("ob-b"));
+        assert!(config.settings.raindexes.contains_key("raindex-a"));
+        assert!(config.settings.raindexes.contains_key("raindex-c"));
+        assert!(!config.settings.raindexes.contains_key("raindex-b"));
     }
 
     #[test]
@@ -186,6 +186,6 @@ raindexes:
 
         let targets = config.build_targets().expect("targets ok");
         assert_eq!(targets.len(), 1);
-        assert_eq!(targets[0].raindex_key, "ob-b");
+        assert_eq!(targets[0].raindex_key, "raindex-b");
     }
 }
