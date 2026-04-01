@@ -25,7 +25,7 @@
 	): NetworkGroup[] {
 		const groups: NetworkGroup[] = [];
 		for (const network of networks) {
-			const networkRaindexes = raindexes.filter((ob) => ob.obId.chainId === network.chainId);
+			const networkRaindexes = raindexes.filter((raindex) => raindex.raindexId.chainId === network.chainId);
 			groups.push({
 				chainId: network.chainId,
 				networkName: getNetworkName(network.chainId) ?? `Chain ${network.chainId}`,
@@ -76,24 +76,24 @@
 
 						{#if group.raindexes.length > 0}
 							<ul class="divide-y divide-gray-100 dark:divide-gray-800">
-								{#each group.raindexes as obStatus (obStatus.obId.raindexAddress)}
+								{#each group.raindexes as raindexStatus (raindexStatus.raindexId.raindexAddress)}
 									<li class="px-4 py-3">
 										<div class="flex items-start justify-between gap-4">
 											<div class="min-w-0 flex-1">
 												<span
 													class="font-mono text-sm text-gray-700 dark:text-gray-300"
-													title={obStatus.obId.raindexAddress}
+													title={raindexStatus.raindexId.raindexAddress}
 												>
-													{obStatus.obId.raindexAddress}
+													{raindexStatus.raindexId.raindexAddress}
 												</span>
-												{#if obStatus.status === 'syncing' && obStatus.phaseMessage && obStatus.schedulerState !== 'notLeader'}
+												{#if raindexStatus.status === 'syncing' && raindexStatus.phaseMessage && raindexStatus.schedulerState !== 'notLeader'}
 													<div class="mt-2 text-sm text-sky-600 dark:text-sky-400">
-														{obStatus.phaseMessage}
+														{raindexStatus.phaseMessage}
 													</div>
 												{/if}
-												{#if obStatus.status === 'failure' && obStatus.error}
+												{#if raindexStatus.status === 'failure' && raindexStatus.error}
 													<div class="mt-2 text-sm text-red-600 dark:text-red-400">
-														{obStatus.error}
+														{raindexStatus.error}
 													</div>
 												{/if}
 											</div>

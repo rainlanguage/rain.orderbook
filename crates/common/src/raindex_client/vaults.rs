@@ -65,7 +65,7 @@ pub(crate) trait VaultsDataSource {
 
     async fn get_by_id(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError>;
 
@@ -1426,38 +1426,38 @@ impl RaindexClient {
 impl RaindexClient {
     pub async fn get_vault(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         vault_id: Bytes,
     ) -> Result<RaindexVault, RaindexError> {
-        let raindex_cfg = self.get_raindex_by_address(ob_id.raindex_address)?;
-        if raindex_cfg.network.chain_id != ob_id.chain_id {
+        let raindex_cfg = self.get_raindex_by_address(raindex_id.raindex_address)?;
+        if raindex_cfg.network.chain_id != raindex_id.chain_id {
             return Err(RaindexError::RaindexNotFound(
-                ob_id.raindex_address.to_string(),
-                ob_id.chain_id,
+                raindex_id.raindex_address.to_string(),
+                raindex_id.chain_id,
             ));
         }
 
-        match self.query_source(ob_id.chain_id) {
+        match self.query_source(raindex_id.chain_id) {
             QuerySource::LocalDb(local_db) => {
                 let local_source = LocalDbVaults::new(&local_db, ClientRef::new(self.clone()));
                 local_source
-                    .get_by_id(ob_id, &vault_id)
+                    .get_by_id(raindex_id, &vault_id)
                     .await?
                     .ok_or_else(|| {
                         RaindexError::VaultNotFound(
-                            ob_id.raindex_address.to_string(),
-                            ob_id.chain_id,
+                            raindex_id.raindex_address.to_string(),
+                            raindex_id.chain_id,
                             vault_id.to_string(),
                         )
                     })
             }
             QuerySource::Subgraph => SubgraphVaults::new(self)
-                .get_by_id(ob_id, &vault_id)
+                .get_by_id(raindex_id, &vault_id)
                 .await?
                 .ok_or_else(|| {
                     RaindexError::VaultNotFound(
-                        ob_id.raindex_address.to_string(),
-                        ob_id.chain_id,
+                        raindex_id.raindex_address.to_string(),
+                        raindex_id.chain_id,
                         vault_id.to_string(),
                     )
                 }),
@@ -1518,18 +1518,18 @@ impl VaultsDataSource for SubgraphVaults<'_> {
 
     async fn get_by_id(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_raindex_subgraph_client(ob_id.raindex_address)?;
+        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
         let vault = match client.vault_detail(Id::new(vault_id.to_string())).await {
             Ok(vault) => vault,
             Err(RaindexSubgraphClientError::Empty) => return Ok(None),
             Err(err) => return Err(err.into()),
         };
 
-        let vault = RaindexVault::try_from_sg_vault(raindex_client, ob_id.chain_id, vault, None)?;
+        let vault = RaindexVault::try_from_sg_vault(raindex_client, raindex_id.chain_id, vault, None)?;
         Ok(Some(vault))
     }
 

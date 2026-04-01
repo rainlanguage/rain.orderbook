@@ -125,7 +125,7 @@ mod tests {
             .with_views();
 
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -160,7 +160,7 @@ mod tests {
             .with_views();
 
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -194,7 +194,7 @@ mod tests {
             .with_views();
 
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -233,7 +233,7 @@ mod tests {
             .with_views();
 
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 0,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -270,7 +270,7 @@ mod tests {
             .with_views();
 
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: 0,
             block_number_threshold: 1,

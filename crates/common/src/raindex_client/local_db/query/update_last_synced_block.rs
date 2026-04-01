@@ -4,10 +4,10 @@ use crate::local_db::RaindexIdentifier;
 
 pub async fn update_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
     block_number: u64,
 ) -> Result<(), LocalDbQueryError> {
-    let stmt = build_update_last_synced_block_stmt(ob_id, block_number);
+    let stmt = build_update_last_synced_block_stmt(raindex_id, block_number);
     exec.query_text(&stmt).await.map(|_| ())
 }
 

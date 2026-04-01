@@ -10,13 +10,13 @@ export const networkStatuses = writable<Map<number, NetworkSyncStatus>>(new Map(
 export const raindexStatuses = writable<Map<string, RaindexSyncStatus>>(new Map());
 
 function raindexStatusKey(status: RaindexSyncStatus): string {
-	return `${status.obId.chainId}:${status.obId.raindexAddress}`;
+	return `${status.raindexId.chainId}:${status.raindexId.raindexAddress}`;
 }
 
 function isRaindexSyncStatus(
 	status: NetworkSyncStatus | RaindexSyncStatus
 ): status is RaindexSyncStatus {
-	return 'obId' in status;
+	return 'raindexId' in status;
 }
 
 export function updateNetworkStatus(status: NetworkSyncStatus) {

@@ -25,24 +25,24 @@ pub fn build_manifest(
 
     // First, record the latest successful exports.
     for success in successes {
-        let ob_id = &success.outcome.ob_id;
-        let export = match exports.get(ob_id).and_then(|export| export.as_ref()) {
+        let raindex_id = &success.outcome.raindex_id;
+        let export = match exports.get(raindex_id).and_then(|export| export.as_ref()) {
             Some(export) => export,
             None => continue,
         };
         let runner_target =
             target_lookup
-                .get(ob_id)
+                .get(raindex_id)
                 .ok_or_else(|| LocalDbError::MissingRunnerTarget {
-                    chain_id: ob_id.chain_id,
-                    raindex_address: ob_id.raindex_address,
+                    chain_id: raindex_id.chain_id,
+                    raindex_address: raindex_id.raindex_address,
                 })?;
 
-        let dump_url = build_dump_url(release_base_url, ob_id.chain_id, ob_id.raindex_address)?;
+        let dump_url = build_dump_url(release_base_url, raindex_id.chain_id, raindex_id.raindex_address)?;
         let end_block_hash = Bytes::from_str(export.end_block_hash.as_str())?;
 
         let manifest_raindex = ManifestRaindex {
-            address: ob_id.raindex_address,
+            address: raindex_id.raindex_address,
             dump_url,
             end_block: export.end_block,
             end_block_hash,
@@ -52,21 +52,21 @@ pub fn build_manifest(
         push_entry(
             &mut per_network,
             runner_target.network_key.clone(),
-            ob_id.chain_id,
+            raindex_id.chain_id,
             manifest_raindex,
         )?;
     }
 
     // Then, carry forward any existing manifest entries for targets that did
     // not produce a new dump in this run.
-    for (ob_id, runner_target) in target_lookup {
+    for (raindex_id, runner_target) in target_lookup {
         let already_recorded =
             per_network
                 .get(&runner_target.network_key)
                 .is_some_and(|(_, raindexes)| {
                     raindexes
                         .iter()
-                        .any(|raindex| raindex.address == ob_id.raindex_address)
+                        .any(|raindex| raindex.address == raindex_id.raindex_address)
                 });
         if already_recorded {
             continue;
@@ -74,14 +74,14 @@ pub fn build_manifest(
 
         let previous_entry = previous_manifests
             .get(&runner_target.manifest_url)
-            .and_then(|manifest| manifest.find(ob_id.chain_id, ob_id.raindex_address))
+            .and_then(|manifest| manifest.find(raindex_id.chain_id, raindex_id.raindex_address))
             .cloned();
 
         if let Some(raindex) = previous_entry {
             push_entry(
                 &mut per_network,
                 runner_target.network_key.clone(),
-                ob_id.chain_id,
+                raindex_id.chain_id,
                 raindex,
             )?;
         }
@@ -174,7 +174,7 @@ mod tests {
             manifest_url: Url::parse("https://example.com/manifest.yaml").unwrap(),
             network_key: network_key.to_string(),
             inputs: SyncInputs {
-                ob_id: RaindexIdentifier {
+                raindex_id: RaindexIdentifier {
                     chain_id,
                     raindex_address: address,
                 },
@@ -199,7 +199,7 @@ mod tests {
         (
             TargetSuccess {
                 outcome: SyncOutcome {
-                    ob_id: target.clone(),
+                    raindex_id: target.clone(),
                     start_block: 0,
                     target_block: 1234,
                     fetched_logs: 10,
@@ -418,15 +418,15 @@ mod tests {
 
     #[test]
     fn build_manifest_errors_on_missing_target() {
-        let ob_id = RaindexIdentifier {
+        let raindex_id = RaindexIdentifier {
             chain_id: 42161,
             raindex_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
         let lookup: HashMap<RaindexIdentifier, RunnerTarget> = HashMap::new();
-        let (success, export) = sample_success(&ob_id, "dump.sql.gz");
+        let (success, export) = sample_success(&raindex_id, "dump.sql.gz");
         let successes = vec![success];
         let mut exports = HashMap::new();
-        exports.insert(ob_id.clone(), Some(export));
+        exports.insert(raindex_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
 
@@ -437,8 +437,8 @@ mod tests {
                 chain_id,
                 raindex_address,
             } => {
-                assert_eq!(chain_id, ob_id.chain_id);
-                assert_eq!(raindex_address, ob_id.raindex_address);
+                assert_eq!(chain_id, raindex_id.chain_id);
+                assert_eq!(raindex_address, raindex_id.raindex_address);
             }
             other => panic!("unexpected error variant: {other:?}"),
         }
@@ -446,22 +446,22 @@ mod tests {
 
     #[test]
     fn build_manifest_errors_on_invalid_end_block_hash() {
-        let ob_id = RaindexIdentifier {
+        let raindex_id = RaindexIdentifier {
             chain_id: 42161,
             raindex_address: address!("0x0000000000000000000000000000000000000dd1"),
         };
 
         let mut lookup: HashMap<RaindexIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
-            ob_id.clone(),
-            sample_runner_target("arbitrum", ob_id.chain_id, ob_id.raindex_address),
+            raindex_id.clone(),
+            sample_runner_target("arbitrum", raindex_id.chain_id, raindex_id.raindex_address),
         );
 
-        let (success, mut export) = sample_success(&ob_id, "dump.sql.gz");
+        let (success, mut export) = sample_success(&raindex_id, "dump.sql.gz");
         export.end_block_hash = "not-a-hex-string".to_string();
         let successes = vec![success];
         let mut exports = HashMap::new();
-        exports.insert(ob_id.clone(), Some(export));
+        exports.insert(raindex_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
         let err = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
@@ -635,19 +635,19 @@ mod tests {
 
     #[tokio::test]
     async fn write_manifest_to_path_writes_yaml() {
-        let ob_id = RaindexIdentifier {
+        let raindex_id = RaindexIdentifier {
             chain_id: 42161,
             raindex_address: address!("0x0000000000000000000000000000000000000aa1"),
         };
         let mut lookup: HashMap<RaindexIdentifier, RunnerTarget> = HashMap::new();
         lookup.insert(
-            ob_id.clone(),
-            sample_runner_target("anvil", ob_id.chain_id, ob_id.raindex_address),
+            raindex_id.clone(),
+            sample_runner_target("anvil", raindex_id.chain_id, raindex_id.raindex_address),
         );
-        let (success, export) = sample_success(&ob_id, "dump.sql.gz");
+        let (success, export) = sample_success(&raindex_id, "dump.sql.gz");
         let successes = vec![success];
         let mut exports = HashMap::new();
-        exports.insert(ob_id.clone(), Some(export));
+        exports.insert(raindex_id.clone(), Some(export));
 
         let base_url = Url::parse("https://releases.example.com").unwrap();
         let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())

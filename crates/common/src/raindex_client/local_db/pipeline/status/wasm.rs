@@ -39,16 +39,16 @@ fn emit_to_callback(status: RaindexSyncStatus) {
 
 #[derive(Debug, Clone, Default)]
 pub struct ClientStatusBus {
-    ob_id: Option<RaindexIdentifier>,
+    raindex_id: Option<RaindexIdentifier>,
 }
 
 impl ClientStatusBus {
     pub fn new() -> Self {
-        Self { ob_id: None }
+        Self { raindex_id: None }
     }
 
-    pub fn with_ob_id(ob_id: RaindexIdentifier) -> Self {
-        Self { ob_id: Some(ob_id) }
+    pub fn with_ob_id(raindex_id: RaindexIdentifier) -> Self {
+        Self { raindex_id: Some(raindex_id) }
     }
 
     fn emit(&self, status: RaindexSyncStatus) {
@@ -56,20 +56,20 @@ impl ClientStatusBus {
     }
 
     pub fn emit_active(&self) {
-        let Some(ob_id) = &self.ob_id else {
+        let Some(raindex_id) = &self.raindex_id else {
             return;
         };
 
         let scheduler_state = get_scheduler_state();
-        self.emit(RaindexSyncStatus::active(ob_id.clone(), scheduler_state));
+        self.emit(RaindexSyncStatus::active(raindex_id.clone(), scheduler_state));
     }
 
     pub fn emit_failure(&self, error: String) {
-        let Some(ob_id) = &self.ob_id else {
+        let Some(raindex_id) = &self.raindex_id else {
             return;
         };
 
-        self.emit(RaindexSyncStatus::failure(ob_id.clone(), error));
+        self.emit(RaindexSyncStatus::failure(raindex_id.clone(), error));
     }
 }
 
@@ -81,11 +81,11 @@ impl StatusBus for ClientStatusBus {
             return Ok(());
         }
 
-        let Some(ob_id) = &self.ob_id else {
+        let Some(raindex_id) = &self.raindex_id else {
             return Ok(());
         };
 
-        let status = RaindexSyncStatus::syncing(ob_id.clone(), phase);
+        let status = RaindexSyncStatus::syncing(raindex_id.clone(), phase);
         self.emit(status);
 
         Ok(())
@@ -107,14 +107,14 @@ mod tests {
     #[test]
     fn client_status_bus_default_has_no_ob_id() {
         let bus = ClientStatusBus::new();
-        assert!(bus.ob_id.is_none());
+        assert!(bus.raindex_id.is_none());
     }
 
     #[test]
     fn client_status_bus_with_ob_id_stores_identifier() {
-        let ob_id = test_ob_id();
-        let bus = ClientStatusBus::with_ob_id(ob_id.clone());
-        assert_eq!(bus.ob_id, Some(ob_id));
+        let raindex_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(raindex_id.clone());
+        assert_eq!(bus.raindex_id, Some(raindex_id));
     }
 
     #[tokio::test]
@@ -126,9 +126,9 @@ mod tests {
 
     #[tokio::test]
     async fn send_skips_when_not_leader() {
-        let ob_id = test_ob_id();
+        let raindex_id = test_ob_id();
         set_scheduler_state(SchedulerState::NotLeader);
-        let bus = ClientStatusBus::with_ob_id(ob_id);
+        let bus = ClientStatusBus::with_ob_id(raindex_id);
         let result = bus.send(SyncPhase::FetchingLatestBlock).await;
         assert!(result.is_ok());
         set_scheduler_state(SchedulerState::Leader);
@@ -137,8 +137,8 @@ mod tests {
     #[tokio::test]
     async fn send_returns_ok_when_leader_with_ob_id() {
         set_scheduler_state(SchedulerState::Leader);
-        let ob_id = test_ob_id();
-        let bus = ClientStatusBus::with_ob_id(ob_id);
+        let raindex_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(raindex_id);
         let result = bus.send(SyncPhase::FetchingLatestBlock).await;
         assert!(result.is_ok());
     }
@@ -158,15 +158,15 @@ mod tests {
     #[test]
     fn emit_active_with_ob_id_does_not_panic() {
         set_scheduler_state(SchedulerState::Leader);
-        let ob_id = test_ob_id();
-        let bus = ClientStatusBus::with_ob_id(ob_id);
+        let raindex_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(raindex_id);
         bus.emit_active();
     }
 
     #[test]
     fn emit_failure_with_ob_id_does_not_panic() {
-        let ob_id = test_ob_id();
-        let bus = ClientStatusBus::with_ob_id(ob_id);
+        let raindex_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(raindex_id);
         bus.emit_failure("test error".to_string());
     }
 
@@ -225,8 +225,8 @@ mod wasm_tests {
         set_status_callback(Some(callback));
         set_scheduler_state(SchedulerState::Leader);
 
-        let ob_id = test_ob_id();
-        let bus = ClientStatusBus::with_ob_id(ob_id.clone());
+        let raindex_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(raindex_id.clone());
         bus.send(SyncPhase::FetchingLatestBlock).await.unwrap();
 
         set_status_callback(None);
@@ -235,7 +235,7 @@ mod wasm_tests {
         assert_eq!(emissions.len(), 1, "expected exactly one emission");
 
         let emitted = &emissions[0];
-        assert_eq!(emitted.ob_id, ob_id);
+        assert_eq!(emitted.raindex_id, raindex_id);
         assert_eq!(emitted.status, LocalDbStatus::Syncing);
         assert_eq!(emitted.scheduler_state, SchedulerState::Leader);
         assert_eq!(
@@ -252,8 +252,8 @@ mod wasm_tests {
         set_status_callback(Some(callback));
         set_scheduler_state(SchedulerState::NotLeader);
 
-        let ob_id = test_ob_id();
-        let bus = ClientStatusBus::with_ob_id(ob_id);
+        let raindex_id = test_ob_id();
+        let bus = ClientStatusBus::with_ob_id(raindex_id);
         bus.send(SyncPhase::FetchingLatestBlock).await.unwrap();
 
         set_status_callback(None);

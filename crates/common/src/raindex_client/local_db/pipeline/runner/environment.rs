@@ -32,7 +32,7 @@ pub fn default_environment() -> RunnerEnvironment<
                 DefaultEventsPipeline::with_regular_rpcs(target.inputs.metadata_rpcs.clone())?;
             let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
 
-            let status_bus = ClientStatusBus::with_ob_id(target.inputs.ob_id.clone());
+            let status_bus = ClientStatusBus::with_ob_id(target.inputs.raindex_id.clone());
 
             Ok(EnginePipelines::new(
                 ClientBootstrapAdapter::new(),
@@ -63,7 +63,7 @@ pub fn default_environment() -> RunnerEnvironment<
                 DefaultEventsPipeline::with_regular_rpcs(target.inputs.metadata_rpcs.clone())?;
             let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
 
-            let status_bus = TracingStatusBus::with_ob_id(target.inputs.ob_id.clone());
+            let status_bus = TracingStatusBus::with_ob_id(target.inputs.raindex_id.clone());
 
             Ok(EnginePipelines::new(
                 ClientBootstrapAdapter::new(),
@@ -95,7 +95,7 @@ mod tests {
             network_key: "test-network".to_string(),
             manifest_url: Url::parse("https://manifests.example/client.yaml").unwrap(),
             inputs: SyncInputs {
-                ob_id: RaindexIdentifier {
+                raindex_id: RaindexIdentifier {
                     chain_id: 1,
                     raindex_address: address!("00000000000000000000000000000000000000c1"),
                 },

@@ -15,7 +15,7 @@ mod tests {
     use crate::raindex_client::local_db::{LocalDbStatus, RaindexSyncStatus, SchedulerState};
     use alloy::primitives::address;
 
-    fn test_ob_id() -> RaindexIdentifier {
+    fn test_raindex_id() -> RaindexIdentifier {
         RaindexIdentifier::new(1, address!("0000000000000000000000000000000000001234"))
     }
 
@@ -70,10 +70,10 @@ mod tests {
 
     #[test]
     fn raindex_sync_status_syncing_sets_correct_fields() {
-        let ob_id = test_ob_id();
-        let status = RaindexSyncStatus::syncing(ob_id.clone(), SyncPhase::FetchingLatestBlock);
+        let raindex_id = test_raindex_id();
+        let status = RaindexSyncStatus::syncing(raindex_id.clone(), SyncPhase::FetchingLatestBlock);
 
-        assert_eq!(status.ob_id, ob_id);
+        assert_eq!(status.raindex_id, raindex_id);
         assert_eq!(status.status, LocalDbStatus::Syncing);
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert_eq!(
@@ -85,10 +85,10 @@ mod tests {
 
     #[test]
     fn raindex_sync_status_active_with_leader_sets_correct_fields() {
-        let ob_id = test_ob_id();
-        let status = RaindexSyncStatus::active(ob_id.clone(), SchedulerState::Leader);
+        let raindex_id = test_raindex_id();
+        let status = RaindexSyncStatus::active(raindex_id.clone(), SchedulerState::Leader);
 
-        assert_eq!(status.ob_id, ob_id);
+        assert_eq!(status.raindex_id, raindex_id);
         assert_eq!(status.status, LocalDbStatus::Active);
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert!(status.phase_message.is_none());
@@ -97,10 +97,10 @@ mod tests {
 
     #[test]
     fn raindex_sync_status_active_with_not_leader_sets_correct_fields() {
-        let ob_id = test_ob_id();
-        let status = RaindexSyncStatus::active(ob_id.clone(), SchedulerState::NotLeader);
+        let raindex_id = test_raindex_id();
+        let status = RaindexSyncStatus::active(raindex_id.clone(), SchedulerState::NotLeader);
 
-        assert_eq!(status.ob_id, ob_id);
+        assert_eq!(status.raindex_id, raindex_id);
         assert_eq!(status.status, LocalDbStatus::Active);
         assert_eq!(status.scheduler_state, SchedulerState::NotLeader);
         assert!(status.phase_message.is_none());
@@ -109,11 +109,11 @@ mod tests {
 
     #[test]
     fn raindex_sync_status_failure_sets_correct_fields() {
-        let ob_id = test_ob_id();
+        let raindex_id = test_raindex_id();
         let error_msg = "RPC connection failed".to_string();
-        let status = RaindexSyncStatus::failure(ob_id.clone(), error_msg.clone());
+        let status = RaindexSyncStatus::failure(raindex_id.clone(), error_msg.clone());
 
-        assert_eq!(status.ob_id, ob_id);
+        assert_eq!(status.raindex_id, raindex_id);
         assert_eq!(status.status, LocalDbStatus::Failure);
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert!(status.phase_message.is_none());
@@ -122,16 +122,16 @@ mod tests {
 
     #[test]
     fn raindex_sync_status_new_with_all_fields() {
-        let ob_id = test_ob_id();
+        let raindex_id = test_raindex_id();
         let status = RaindexSyncStatus::new(
-            ob_id.clone(),
+            raindex_id.clone(),
             LocalDbStatus::Syncing,
             SchedulerState::Leader,
             Some("Custom phase".to_string()),
             Some("Custom error".to_string()),
         );
 
-        assert_eq!(status.ob_id, ob_id);
+        assert_eq!(status.raindex_id, raindex_id);
         assert_eq!(status.status, LocalDbStatus::Syncing);
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert_eq!(status.phase_message, Some("Custom phase".to_string()));

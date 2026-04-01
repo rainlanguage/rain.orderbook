@@ -66,7 +66,7 @@ where
 
         let mut target_lookup = HashMap::with_capacity(targets.len());
         for target in &targets {
-            target_lookup.insert(target.inputs.ob_id.clone(), target.clone());
+            target_lookup.insert(target.inputs.raindex_id.clone(), target.clone());
         }
 
         let manifest_output_path = out_root.join("manifest.yaml");
@@ -93,7 +93,7 @@ where
                 let report = RunReport {
                     successes: Vec::new(),
                     failures: vec![TargetFailure {
-                        ob_id: RaindexIdentifier::new(0, Address::ZERO),
+                        raindex_id: RaindexIdentifier::new(0, Address::ZERO),
                         raindex_key: None,
                         stage: TargetStage::ManifestFetch,
                         error,
@@ -134,16 +134,16 @@ where
                 while let Some(result) = tasks.join_next().await {
                     match result {
                         Ok(Ok((success, export))) => {
-                            exports.insert(success.outcome.ob_id.clone(), export);
+                            exports.insert(success.outcome.raindex_id.clone(), export);
                             successes.push(success);
                         }
                         Ok(Err(failure)) => {
                             error!(
-                                address = ?failure.ob_id.raindex_address,
+                                address = ?failure.raindex_id.raindex_address,
                                 stage = ?failure.stage,
                                 error = %failure.error,
                                 "producer job failed (chain_id={:?})",
-                                failure.ob_id.chain_id,
+                                failure.raindex_id.chain_id,
                             );
                             failures.push(failure);
                         }
@@ -154,7 +154,7 @@ where
                                 "producer job panicked or was cancelled before completion"
                             );
                             failures.push(TargetFailure {
-                                ob_id: RaindexIdentifier::new(0, Address::ZERO),
+                                raindex_id: RaindexIdentifier::new(0, Address::ZERO),
                                 raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error,
@@ -251,8 +251,8 @@ impl ProducerRunReport {
         &self.failures
     }
 
-    pub fn export_for(&self, ob_id: &RaindexIdentifier) -> Option<&ExportMetadata> {
-        self.exports.get(ob_id)?.as_ref()
+    pub fn export_for(&self, raindex_id: &RaindexIdentifier) -> Option<&ExportMetadata> {
+        self.exports.get(raindex_id)?.as_ref()
     }
 }
 
@@ -277,10 +277,10 @@ where
         inputs,
     } = target;
 
-    let ob_id = inputs.ob_id.clone();
+    let raindex_id = inputs.raindex_id.clone();
     let ob_key_for_failure = raindex_key.clone();
     let mk_failure = move |stage: TargetStage, error: LocalDbError| TargetFailure {
-        ob_id: ob_id.clone(),
+        raindex_id: raindex_id.clone(),
         raindex_key: Some(ob_key_for_failure.clone()),
         stage,
         error,
@@ -328,9 +328,9 @@ where
 }
 
 fn db_path_for_target(out_root: &Path, target: &RunnerTarget) -> Result<PathBuf, LocalDbError> {
-    let chain_folder = out_root.join(target.inputs.ob_id.chain_id.to_string());
+    let chain_folder = out_root.join(target.inputs.raindex_id.chain_id.to_string());
     std::fs::create_dir_all(&chain_folder)?;
-    let filename = format!("{}.db", target.inputs.ob_id.raindex_address);
+    let filename = format!("{}.db", target.inputs.raindex_id.raindex_address);
     Ok(chain_folder.join(filename))
 }
 
@@ -538,14 +538,14 @@ mod tests {
             self.ensure_tables(db).await?;
 
             // Seed a raw event to force export_data_only to return Some, but skip watermark to trigger export failure.
-            let ob_id = &config.ob_id;
-            let raindex_address = encode_prefixed(ob_id.raindex_address);
+            let raindex_id = &config.raindex_id;
+            let raindex_address = encode_prefixed(raindex_id.raindex_address);
             let mut batch = SqlStatementBatch::new();
             batch.add(SqlStatement::new(format!(
                 "INSERT INTO raw_events (chain_id, raindex_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
                  VALUES ({}, '{}', '0xseedtx', 0, {}, 1_700_000_000, '{}', '[]', '0x00', '{{}}') \
                  ON CONFLICT(chain_id, raindex_address, transaction_hash, log_index) DO NOTHING;",
-                ob_id.chain_id, raindex_address, config.latest_block, raindex_address
+                raindex_id.chain_id, raindex_address, config.latest_block, raindex_address
             )));
             db.execute_batch(&batch.ensure_transaction()).await?;
 
@@ -699,15 +699,15 @@ mod tests {
             self.ensure_tables(db).await?;
 
             if self.seed_export {
-                let ob_id = &config.ob_id;
-                let raindex_address = encode_prefixed(ob_id.raindex_address);
+                let raindex_id = &config.raindex_id;
+                let raindex_address = encode_prefixed(raindex_id.raindex_address);
 
                 let mut batch = SqlStatementBatch::new();
                 batch.add(SqlStatement::new(format!(
                     "INSERT INTO raw_events (chain_id, raindex_address, transaction_hash, log_index, block_number, block_timestamp, address, topics, data, raw_json) \
                      VALUES ({}, '{}', '0xseedtx', 0, {}, 1_700_000_000, '{}', '[]', '0x00', '{{}}') \
                      ON CONFLICT(chain_id, raindex_address, transaction_hash, log_index) DO NOTHING;",
-                    ob_id.chain_id, raindex_address, config.latest_block, raindex_address
+                    raindex_id.chain_id, raindex_address, config.latest_block, raindex_address
                 )));
                 batch.add(SqlStatement::new(format!(
                     "INSERT INTO target_watermarks (chain_id, raindex_address, last_block, last_hash, updated_at) \
@@ -716,7 +716,7 @@ mod tests {
                      SET last_block = excluded.last_block, \
                          last_hash = excluded.last_hash, \
                          updated_at = excluded.updated_at;",
-                    ob_id.chain_id, raindex_address, config.latest_block
+                    raindex_id.chain_id, raindex_address, config.latest_block
                 )));
 
                 db.execute_batch(&batch.ensure_transaction()).await?;
@@ -1357,14 +1357,14 @@ raindexes:
         let success = &report.successes[0];
         assert_eq!(success.outcome.start_block, 0);
         assert_eq!(
-            success.outcome.ob_id.raindex_address,
+            success.outcome.raindex_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
 
         let failure = &report.failures[0];
-        assert_eq!(failure.ob_id.chain_id, 42161);
+        assert_eq!(failure.raindex_id.chain_id, 42161);
         assert_eq!(
-            failure.ob_id.raindex_address,
+            failure.raindex_id.raindex_address,
             address!("00000000000000000000000000000000000000b2")
         );
         assert_eq!(failure.raindex_key.as_deref(), Some("fail"));
@@ -1403,7 +1403,7 @@ raindexes:
         assert_eq!(report.successes.len(), 0);
         assert_eq!(report.failures.len(), 1);
         let failure = &report.failures[0];
-        assert_eq!(failure.ob_id.chain_id, 0);
+        assert_eq!(failure.raindex_id.chain_id, 0);
         assert!(failure.raindex_key.is_none());
         assert!(matches!(failure.error, LocalDbError::TaskJoin(_)));
     }
@@ -1434,7 +1434,7 @@ raindexes:
         let success_addresses: Vec<Address> = report
             .successes
             .iter()
-            .map(|outcome| outcome.outcome.ob_id.raindex_address)
+            .map(|outcome| outcome.outcome.raindex_id.raindex_address)
             .collect();
         assert_eq!(
             success_addresses,
@@ -1444,7 +1444,7 @@ raindexes:
         let mut custom_failure = None;
         let mut join_failure = None;
         for failure in &report.failures {
-            match (failure.ob_id.chain_id, failure.ob_id.raindex_address) {
+            match (failure.raindex_id.chain_id, failure.raindex_id.raindex_address) {
                 (42161, addr) if addr == address!("00000000000000000000000000000000000000b2") => {
                     custom_failure = Some(failure);
                 }
@@ -1589,9 +1589,9 @@ raindexes:
         assert!(report.successes.is_empty());
         assert_eq!(report.failures.len(), 1);
         let failure = &report.failures[0];
-        assert_eq!(failure.ob_id.chain_id, 42161);
+        assert_eq!(failure.raindex_id.chain_id, 42161);
         assert_eq!(
-            failure.ob_id.raindex_address,
+            failure.raindex_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
         assert_eq!(failure.raindex_key.as_deref(), Some("ok"));
@@ -1642,9 +1642,9 @@ raindexes:
         assert!(report.successes.is_empty());
         assert_eq!(report.failures.len(), 1);
         let failure = &report.failures[0];
-        assert_eq!(failure.ob_id.chain_id, 42161);
+        assert_eq!(failure.raindex_id.chain_id, 42161);
         assert_eq!(
-            failure.ob_id.raindex_address,
+            failure.raindex_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
         assert_eq!(failure.raindex_key.as_deref(), Some("ok"));
@@ -1705,7 +1705,7 @@ raindexes:
         let failure = &report.failures[0];
         assert_eq!(failure.stage, TargetStage::Export);
         assert_eq!(
-            failure.ob_id.raindex_address,
+            failure.raindex_id.raindex_address,
             address!("00000000000000000000000000000000000000a1")
         );
     }
@@ -1755,11 +1755,11 @@ raindexes:
             panic!("expected success, got failures: {:?}", report.failures);
         }
         let outcome = &report.successes[0];
-        assert_eq!(outcome.outcome.ob_id.chain_id, 42161);
+        assert_eq!(outcome.outcome.raindex_id.chain_id, 42161);
         assert_eq!(outcome.outcome.start_block, 0);
 
         assert!(
-            report.export_for(&outcome.outcome.ob_id).is_none(),
+            report.export_for(&outcome.outcome.raindex_id).is_none(),
             "stub environment should not emit dumps"
         );
     }
@@ -1787,7 +1787,7 @@ raindexes:
         let outcome = &report.successes[0];
 
         let metadata = report
-            .export_for(&outcome.outcome.ob_id)
+            .export_for(&outcome.outcome.raindex_id)
             .expect("export metadata to be present");
         assert!(
             metadata.dump_path.exists(),
@@ -1800,7 +1800,7 @@ raindexes:
             .expect("dump file name");
         let expected_file = format!(
             "{}-{}.sql.gz",
-            outcome.outcome.ob_id.chain_id, outcome.outcome.ob_id.raindex_address
+            outcome.outcome.raindex_id.chain_id, outcome.outcome.raindex_id.raindex_address
         );
         assert_eq!(file_name, expected_file);
         assert_eq!(metadata.end_block, outcome.outcome.target_block);
@@ -1973,7 +1973,7 @@ raindexes:
             "{}.db",
             targets[0]
                 .inputs
-                .ob_id
+                .raindex_id
                 .raindex_address
                 .to_string()
                 .to_lowercase()

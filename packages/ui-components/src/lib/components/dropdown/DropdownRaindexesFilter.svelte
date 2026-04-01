@@ -64,10 +64,10 @@
 		} else {
 			const term = searchTerm.toLowerCase();
 			filteredRaindexes = availableRaindexes.filter(
-				(ob) =>
-					ob.label?.toLowerCase().includes(term) ||
-					ob.address?.toLowerCase().includes(term) ||
-					ob.key?.toLowerCase().includes(term)
+				(raindex) =>
+					raindex.label?.toLowerCase().includes(term) ||
+					raindex.address?.toLowerCase().includes(term) ||
+					raindex.key?.toLowerCase().includes(term)
 			);
 			selectedIndex = filteredRaindexes.length > 0 ? 0 : -1;
 		}
@@ -84,9 +84,9 @@
 		return aSelected ? -1 : 1;
 	});
 
-	function getDisplayName(ob: RaindexItem): string {
-		const truncatedAddr = `${ob.address.slice(0, 6)}...${ob.address.slice(-4)}`;
-		return ob.label ? `${ob.label} (${truncatedAddr})` : truncatedAddr;
+	function getDisplayName(raindex: RaindexItem): string {
+		const truncatedAddr = `${raindex.address.slice(0, 6)}...${raindex.address.slice(-4)}`;
+		return raindex.label ? `${raindex.label} (${truncatedAddr})` : truncatedAddr;
 	}
 
 	function updateSelectedRaindexes(newSelection: Address[]) {

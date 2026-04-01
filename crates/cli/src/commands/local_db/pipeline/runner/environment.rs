@@ -33,14 +33,14 @@ pub fn default_environment(
         default_dump_downloader(),
         Arc::new(move |target: &RunnerTarget| {
             let events = DefaultEventsPipeline::with_hyperrpc(
-                target.inputs.ob_id.chain_id,
+                target.inputs.raindex_id.chain_id,
                 hypersync_token.clone(),
             )?;
             let tokens = DefaultTokensPipeline::new(target.inputs.metadata_rpcs.clone())?;
             let status = ProducerStatusBus::new(
                 debug_status,
                 target.raindex_key.clone(),
-                target.inputs.ob_id.clone(),
+                target.inputs.raindex_id.clone(),
             );
 
             Ok(EnginePipelines::new(
@@ -73,7 +73,7 @@ mod tests {
             manifest_url: Url::parse("https://manifests.example/default.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {
-                ob_id: RaindexIdentifier::new(
+                raindex_id: RaindexIdentifier::new(
                     chain_id,
                     address!("00000000000000000000000000000000000000a1"),
                 ),

@@ -6,9 +6,9 @@ use crate::local_db::RaindexIdentifier;
 
 pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
 ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
-    exec.query_json(&fetch_last_synced_block_stmt(ob_id)).await
+    exec.query_json(&fetch_last_synced_block_stmt(raindex_id)).await
 }
 
 #[cfg(target_family = "wasm")]

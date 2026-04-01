@@ -139,12 +139,12 @@ impl OrdersDataSource for LocalDbOrders<'_> {
 
     async fn get_by_hash(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let fetch_args = FetchOrdersArgs {
-            chain_ids: vec![ob_id.chain_id],
-            raindex_addresses: vec![ob_id.raindex_address],
+            chain_ids: vec![raindex_id.chain_id],
+            raindex_addresses: vec![raindex_id.raindex_address],
             order_hash: Some(*order_hash),
             ..FetchOrdersArgs::default()
         };
@@ -181,30 +181,30 @@ impl OrdersDataSource for LocalDbOrders<'_> {
 
     async fn trades_list(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
         _page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
         let local_trades =
-            fetch_order_trades(self.db, ob_id, *order_hash, start_timestamp, end_timestamp).await?;
+            fetch_order_trades(self.db, raindex_id, *order_hash, start_timestamp, end_timestamp).await?;
 
         local_trades
             .into_iter()
-            .map(|trade| RaindexTrade::try_from_local_db_trade(ob_id.chain_id, trade))
+            .map(|trade| RaindexTrade::try_from_local_db_trade(raindex_id.chain_id, trade))
             .collect()
     }
 
     async fn trades_count(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
         Ok(
-            fetch_order_trades_count(self.db, ob_id, *order_hash, start_timestamp, end_timestamp)
+            fetch_order_trades_count(self.db, raindex_id, *order_hash, start_timestamp, end_timestamp)
                 .await?,
         )
     }

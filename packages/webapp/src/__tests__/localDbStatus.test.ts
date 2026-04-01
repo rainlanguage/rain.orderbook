@@ -120,7 +120,7 @@ describe('localDbStatus store', () => {
 	describe('updateRaindexStatus', () => {
 		it('adds new raindex status to map', () => {
 			const status: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -139,7 +139,7 @@ describe('localDbStatus store', () => {
 
 		it('updates existing raindex status', () => {
 			const initial: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -148,7 +148,7 @@ describe('localDbStatus store', () => {
 				phaseMessage: 'Fetching latest block'
 			};
 			const updated: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -166,16 +166,16 @@ describe('localDbStatus store', () => {
 		});
 
 		it('handles multiple raindexes on same chain', () => {
-			const ob1: RaindexSyncStatus = {
-				obId: {
+			const raindex1: RaindexSyncStatus = {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1111111111111111111111111111111111111111'
 				},
 				status: 'active',
 				schedulerState: 'leader'
 			};
-			const ob2: RaindexSyncStatus = {
-				obId: {
+			const raindex2: RaindexSyncStatus = {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x2222222222222222222222222222222222222222'
 				},
@@ -183,24 +183,24 @@ describe('localDbStatus store', () => {
 				schedulerState: 'leader'
 			};
 
-			updateRaindexStatus(ob1);
-			updateRaindexStatus(ob2);
+			updateRaindexStatus(raindex1);
+			updateRaindexStatus(raindex2);
 
 			const map = get(raindexStatuses);
 			expect(map.size).toBe(2);
 		});
 
 		it('handles raindexes on different chains', () => {
-			const polygonOb: RaindexSyncStatus = {
-				obId: {
+			const polygonRaindex: RaindexSyncStatus = {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
 				status: 'active',
 				schedulerState: 'leader'
 			};
-			const arbitrumOb: RaindexSyncStatus = {
-				obId: {
+			const arbitrumRaindex: RaindexSyncStatus = {
+				raindexId: {
 					chainId: 42161,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -208,8 +208,8 @@ describe('localDbStatus store', () => {
 				schedulerState: 'leader'
 			};
 
-			updateRaindexStatus(polygonOb);
-			updateRaindexStatus(arbitrumOb);
+			updateRaindexStatus(polygonRaindex);
+			updateRaindexStatus(arbitrumRaindex);
 
 			const map = get(raindexStatuses);
 			expect(map.size).toBe(2);
@@ -217,7 +217,7 @@ describe('localDbStatus store', () => {
 
 		it('stores error field when present', () => {
 			const status: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -253,7 +253,7 @@ describe('localDbStatus store', () => {
 
 		it('dispatches RaindexSyncStatus to updateRaindexStatus', () => {
 			const status: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -269,14 +269,14 @@ describe('localDbStatus store', () => {
 			expect(raindexMap.size).toBe(1);
 		});
 
-		it('distinguishes types by presence of obId field', () => {
+		it('distinguishes types by presence of raindexId field', () => {
 			const networkStatus: NetworkSyncStatus = {
 				chainId: 137,
 				status: 'active',
 				schedulerState: 'leader'
 			};
 			const raindexStatus: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 42161,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -302,7 +302,7 @@ describe('localDbStatus store', () => {
 				schedulerState: 'leader'
 			};
 			const raindexStatus1: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -316,7 +316,7 @@ describe('localDbStatus store', () => {
 				schedulerState: 'leader'
 			};
 			const raindexStatus2: RaindexSyncStatus = {
-				obId: {
+				raindexId: {
 					chainId: 42161,
 					raindexAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
 				},
@@ -338,11 +338,11 @@ describe('localDbStatus store', () => {
 			expect(networkMap.get(137)?.status).toBe('active');
 			expect(networkMap.get(42161)?.status).toBe('syncing');
 
-			const obKey1 = '137:0x1234567890123456789012345678901234567890';
-			const obKey2 = '42161:0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
-			expect(raindexMap.get(obKey1)?.status).toBe('syncing');
-			expect(raindexMap.get(obKey1)?.phaseMessage).toBe('Fetching latest block');
-			expect(raindexMap.get(obKey2)?.status).toBe('active');
+			const raindexKey1 = '137:0x1234567890123456789012345678901234567890';
+			const raindexKey2 = '42161:0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
+			expect(raindexMap.get(raindexKey1)?.status).toBe('syncing');
+			expect(raindexMap.get(raindexKey1)?.phaseMessage).toBe('Fetching latest block');
+			expect(raindexMap.get(raindexKey2)?.status).toBe('active');
 		});
 
 		it('simulates scheduler callback receiving interleaved network and raindex updates', () => {
@@ -353,7 +353,7 @@ describe('localDbStatus store', () => {
 					schedulerState: 'leader' as const
 				},
 				{
-					obId: {
+					raindexId: {
 						chainId: 137,
 						raindexAddress: '0x1111111111111111111111111111111111111111'
 					},
@@ -362,7 +362,7 @@ describe('localDbStatus store', () => {
 					phaseMessage: 'Running bootstrap'
 				},
 				{
-					obId: {
+					raindexId: {
 						chainId: 137,
 						raindexAddress: '0x1111111111111111111111111111111111111111'
 					},
@@ -384,8 +384,8 @@ describe('localDbStatus store', () => {
 			const raindexMap = get(raindexStatuses);
 
 			expect(networkMap.get(137)?.status).toBe('active');
-			const obKey = '137:0x1111111111111111111111111111111111111111';
-			expect(raindexMap.get(obKey)?.status).toBe('active');
+			const raindexKey = '137:0x1111111111111111111111111111111111111111';
+			expect(raindexMap.get(raindexKey)?.status).toBe('active');
 		});
 	});
 
@@ -403,7 +403,7 @@ describe('localDbStatus store', () => {
 				schedulerState: 'leader'
 			});
 			updateRaindexStatus({
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -458,7 +458,7 @@ describe('localDbStatus store', () => {
 				schedulerState: 'leader'
 			});
 			updateRaindexStatus({
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},
@@ -497,7 +497,7 @@ describe('localDbStatus store', () => {
 				schedulerState: 'leader'
 			});
 			updateRaindexStatus({
-				obId: {
+				raindexId: {
 					chainId: 137,
 					raindexAddress: '0x1234567890123456789012345678901234567890'
 				},

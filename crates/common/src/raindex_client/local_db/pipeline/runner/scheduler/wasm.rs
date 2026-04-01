@@ -245,7 +245,7 @@ async fn run_network_loop<R>(
                         let first = &report.failures[0];
                         let msg = format!(
                             "raindex {:#x} failed at {:?}: {}",
-                            first.ob_id.raindex_address,
+                            first.raindex_id.raindex_address,
                             first.stage,
                             first.error.to_readable_msg()
                         );
@@ -360,7 +360,7 @@ mod wasm_tests {
                         if should_fail {
                             failures.set(failures.get() + 1);
                             let failure = TargetFailure {
-                                ob_id: RaindexIdentifier::new(1, Address::ZERO),
+                                raindex_id: RaindexIdentifier::new(1, Address::ZERO),
                                 raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error: LocalDbError::CustomError("runner failure".to_string()),

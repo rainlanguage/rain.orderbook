@@ -177,10 +177,10 @@ impl RaindexClient {
         match self.query_source(chain_id) {
             QuerySource::LocalDb(local_db) => {
                 let local_source = LocalDbTransactions::new(&local_db);
-                let ob_id = RaindexIdentifier::new(chain_id, raindex_address);
+                let raindex_id = RaindexIdentifier::new(chain_id, raindex_address);
 
                 for attempt in 1..=attempts {
-                    if let Some(tx) = local_source.get_by_tx_hash(&ob_id, tx_hash).await? {
+                    if let Some(tx) = local_source.get_by_tx_hash(&raindex_id, tx_hash).await? {
                         return Ok(tx);
                     }
                     if attempt < attempts {

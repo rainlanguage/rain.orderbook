@@ -7,13 +7,13 @@ use alloy::primitives::B256;
 
 pub async fn fetch_order_vaults_volume<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
     order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<Vec<LocalDbVaultVolume>, LocalDbQueryError> {
     let stmt =
-        build_fetch_order_vaults_volume_stmt(ob_id, order_hash, start_timestamp, end_timestamp)?;
+        build_fetch_order_vaults_volume_stmt(raindex_id, order_hash, start_timestamp, end_timestamp)?;
     exec.query_json(&stmt).await
 }
 

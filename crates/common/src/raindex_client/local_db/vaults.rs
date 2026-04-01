@@ -73,12 +73,12 @@ impl VaultsDataSource for LocalDbVaults<'_> {
 
     async fn get_by_id(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
         let fetch_args = FetchVaultsArgs {
-            chain_ids: vec![ob_id.chain_id],
-            raindex_addresses: vec![ob_id.raindex_address],
+            chain_ids: vec![raindex_id.chain_id],
+            raindex_addresses: vec![raindex_id.raindex_address],
             hide_zero_balance: false,
             ..FetchVaultsArgs::default()
         };
@@ -120,10 +120,10 @@ impl VaultsDataSource for LocalDbVaults<'_> {
         #[cfg(not(target_family = "wasm"))]
         let owner_address = vault.owner();
 
-        let ob_id = crate::local_db::RaindexIdentifier::new(vault.chain_id(), raindex_address);
+        let raindex_id = crate::local_db::RaindexIdentifier::new(vault.chain_id(), raindex_address);
         let local_changes = fetch_vault_balance_changes(
             self.db,
-            &ob_id,
+            &raindex_id,
             vault_id,
             token_address,
             owner_address,

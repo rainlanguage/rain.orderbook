@@ -24,7 +24,7 @@ impl_wasm_traits!(SchedulerState);
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RaindexSyncStatus {
-    pub ob_id: RaindexIdentifier,
+    pub raindex_id: RaindexIdentifier,
     pub status: LocalDbStatus,
     pub scheduler_state: SchedulerState,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -36,14 +36,14 @@ impl_wasm_traits!(RaindexSyncStatus);
 
 impl RaindexSyncStatus {
     pub fn new(
-        ob_id: RaindexIdentifier,
+        raindex_id: RaindexIdentifier,
         status: LocalDbStatus,
         scheduler_state: SchedulerState,
         phase_message: Option<String>,
         error: Option<String>,
     ) -> Self {
         Self {
-            ob_id,
+            raindex_id,
             status,
             scheduler_state,
             phase_message,
@@ -51,9 +51,9 @@ impl RaindexSyncStatus {
         }
     }
 
-    pub fn syncing(ob_id: RaindexIdentifier, phase: SyncPhase) -> Self {
+    pub fn syncing(raindex_id: RaindexIdentifier, phase: SyncPhase) -> Self {
         Self::new(
-            ob_id,
+            raindex_id,
             LocalDbStatus::Syncing,
             SchedulerState::Leader,
             Some(phase.to_message().to_string()),
@@ -61,13 +61,13 @@ impl RaindexSyncStatus {
         )
     }
 
-    pub fn active(ob_id: RaindexIdentifier, scheduler_state: SchedulerState) -> Self {
-        Self::new(ob_id, LocalDbStatus::Active, scheduler_state, None, None)
+    pub fn active(raindex_id: RaindexIdentifier, scheduler_state: SchedulerState) -> Self {
+        Self::new(raindex_id, LocalDbStatus::Active, scheduler_state, None, None)
     }
 
-    pub fn failure(ob_id: RaindexIdentifier, error: String) -> Self {
+    pub fn failure(raindex_id: RaindexIdentifier, error: String) -> Self {
         Self::new(
-            ob_id,
+            raindex_id,
             LocalDbStatus::Failure,
             SchedulerState::Leader,
             None,
@@ -161,26 +161,26 @@ mod tests {
         use crate::local_db::pipeline::SyncPhase;
         use alloy::primitives::address;
 
-        let ob_id = crate::local_db::RaindexIdentifier::new(
+        let raindex_id = crate::local_db::RaindexIdentifier::new(
             42161,
             address!("0000000000000000000000000000000000001234"),
         );
-        let status = RaindexSyncStatus::syncing(ob_id, SyncPhase::FetchingLatestBlock);
+        let status = RaindexSyncStatus::syncing(raindex_id, SyncPhase::FetchingLatestBlock);
         let json = serde_json::to_string(&status).unwrap();
 
         assert!(
-            json.contains("\"obId\":{"),
-            "expected obId as nested object in JSON: {}",
+            json.contains("\"raindexId\":{"),
+            "expected raindexId as nested object in JSON: {}",
             json
         );
         assert!(
             json.contains("\"chainId\":42161"),
-            "expected chainId in obId in JSON: {}",
+            "expected chainId in raindexId in JSON: {}",
             json
         );
         assert!(
             json.contains("\"raindexAddress\":"),
-            "expected raindexAddress in obId in JSON: {}",
+            "expected raindexAddress in raindexId in JSON: {}",
             json
         );
         assert!(
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn raindex_sync_status_deserializes_from_json() {
         let json = r#"{
-            "obId": {"chainId": 137, "raindexAddress": "0x0000000000000000000000000000000000001234"},
+            "raindexId": {"chainId": 137, "raindexAddress": "0x0000000000000000000000000000000000001234"},
             "status": "syncing",
             "schedulerState": "leader",
             "phaseMessage": "Fetching latest block"
@@ -311,7 +311,7 @@ mod tests {
 
         let status: RaindexSyncStatus = serde_json::from_str(json).unwrap();
 
-        assert_eq!(status.ob_id.chain_id, 137);
+        assert_eq!(status.raindex_id.chain_id, 137);
         assert_eq!(status.status, LocalDbStatus::Syncing);
         assert_eq!(status.scheduler_state, SchedulerState::Leader);
         assert_eq!(

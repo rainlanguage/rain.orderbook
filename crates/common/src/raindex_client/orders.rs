@@ -109,7 +109,7 @@ pub(crate) trait OrdersDataSource {
 
     async fn get_by_hash(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError>;
 
@@ -129,7 +129,7 @@ pub(crate) trait OrdersDataSource {
 
     async fn trades_list(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
@@ -138,7 +138,7 @@ pub(crate) trait OrdersDataSource {
 
     async fn trades_count(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
@@ -1056,11 +1056,11 @@ impl OrdersDataSource for SubgraphOrders<'_> {
 
     async fn get_by_hash(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_raindex_subgraph_client(ob_id.raindex_address)?;
+        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
         let order = match client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await
@@ -1069,7 +1069,7 @@ impl OrdersDataSource for SubgraphOrders<'_> {
             Err(RaindexSubgraphClientError::Empty) => return Ok(None),
             Err(err) => return Err(err.into()),
         };
-        let order = RaindexOrder::try_from_sg_order(raindex_client, ob_id.chain_id, order, None)?;
+        let order = RaindexOrder::try_from_sg_order(raindex_client, raindex_id.chain_id, order, None)?;
         Ok(Some(order))
     }
 
@@ -1125,13 +1125,13 @@ impl OrdersDataSource for SubgraphOrders<'_> {
 
     async fn trades_list(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let client = self.client.get_raindex_subgraph_client(ob_id.raindex_address)?;
+        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
 
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
@@ -1151,18 +1151,18 @@ impl OrdersDataSource for SubgraphOrders<'_> {
 
         trades
             .into_iter()
-            .map(|trade| RaindexTrade::try_from_sg_trade(ob_id.chain_id, trade))
+            .map(|trade| RaindexTrade::try_from_sg_trade(raindex_id.chain_id, trade))
             .collect()
     }
 
     async fn trades_count(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: &B256,
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
-        let client = self.client.get_raindex_subgraph_client(ob_id.raindex_address)?;
+        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
 
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
@@ -1179,27 +1179,27 @@ impl OrdersDataSource for SubgraphOrders<'_> {
 impl RaindexClient {
     pub async fn get_order_by_hash(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         order_hash: B256,
     ) -> Result<RaindexOrder, RaindexError> {
-        let raindex_cfg = self.get_raindex_by_address(ob_id.raindex_address)?;
-        if raindex_cfg.network.chain_id != ob_id.chain_id {
+        let raindex_cfg = self.get_raindex_by_address(raindex_id.raindex_address)?;
+        if raindex_cfg.network.chain_id != raindex_id.chain_id {
             return Err(RaindexError::RaindexNotFound(
-                ob_id.raindex_address.to_string(),
-                ob_id.chain_id,
+                raindex_id.raindex_address.to_string(),
+                raindex_id.chain_id,
             ));
         }
 
-        match self.query_source(ob_id.chain_id) {
+        match self.query_source(raindex_id.chain_id) {
             QuerySource::LocalDb(local_db) => {
                 let local_source = LocalDbOrders::new(&local_db, ClientRef::new(self.clone()));
                 let mut order = local_source
-                    .get_by_hash(ob_id, &order_hash)
+                    .get_by_hash(raindex_id, &order_hash)
                     .await?
                     .ok_or_else(|| {
                         RaindexError::OrderNotFound(
-                            ob_id.raindex_address.to_string(),
-                            ob_id.chain_id,
+                            raindex_id.raindex_address.to_string(),
+                            raindex_id.chain_id,
                             order_hash,
                         )
                     })?;
@@ -1208,12 +1208,12 @@ impl RaindexClient {
             }
             QuerySource::Subgraph => {
                 let mut order = SubgraphOrders::new(self)
-                    .get_by_hash(ob_id, &order_hash)
+                    .get_by_hash(raindex_id, &order_hash)
                     .await?
                     .ok_or_else(|| {
                         RaindexError::OrderNotFound(
-                            ob_id.raindex_address.to_string(),
-                            ob_id.chain_id,
+                            raindex_id.raindex_address.to_string(),
+                            raindex_id.chain_id,
                             order_hash,
                         )
                     })?;

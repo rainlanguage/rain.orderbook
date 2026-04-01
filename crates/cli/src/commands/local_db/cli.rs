@@ -98,14 +98,14 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
             report.successes().len()
         )?;
         for outcome in report.successes() {
-            let ob_id = &outcome.outcome.ob_id;
-            match report.export_for(ob_id) {
+            let raindex_id = &outcome.outcome.raindex_id;
+            match report.export_for(raindex_id) {
                 Some(export) => {
                     writeln!(
                         writer,
                         "- chain {} raindex {:#x}: start {} → target {} | logs {} | events {} | dump {} (end block {}, hash {}, time {})",
-                        ob_id.chain_id,
-                        ob_id.raindex_address,
+                        raindex_id.chain_id,
+                        raindex_id.raindex_address,
                         outcome.outcome.start_block,
                         outcome.outcome.target_block,
                         outcome.outcome.fetched_logs,
@@ -120,8 +120,8 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
                     writeln!(
                         writer,
                         "- chain {} raindex {:#x}: start {} → target {} | logs {} | events {} | dump <none>",
-                        ob_id.chain_id,
-                        ob_id.raindex_address,
+                        raindex_id.chain_id,
+                        raindex_id.raindex_address,
                         outcome.outcome.start_block,
                         outcome.outcome.target_block,
                         outcome.outcome.fetched_logs,
@@ -149,9 +149,9 @@ fn render_report_to<W: Write>(report: &ProducerRunReport, writer: &mut W) -> io:
 }
 
 fn render_failure_to<W: Write>(failure: &TargetFailure, writer: &mut W) -> io::Result<()> {
-    let ob_id = &failure.ob_id;
-    let address = ob_id.raindex_address;
-    let chain_id = ob_id.chain_id;
+    let raindex_id = &failure.raindex_id;
+    let address = raindex_id.raindex_address;
+    let chain_id = raindex_id.chain_id;
     let stage = failure.stage;
     let message = failure.error.to_readable_msg();
     let key = failure
@@ -202,7 +202,7 @@ mod tests {
     }
 
     fn sample_success_and_export(chain_id: u32) -> (TargetSuccess, ExportMetadata) {
-        let ob_id = RaindexIdentifier::new(
+        let raindex_id = RaindexIdentifier::new(
             chain_id,
             address!("0000000000000000000000000000000000000a11"),
         );
@@ -214,7 +214,7 @@ mod tests {
             window_overrides: WindowOverrides::default(),
         };
         let inputs = SyncInputs {
-            ob_id: ob_id.clone(),
+            raindex_id: raindex_id.clone(),
             metadata_rpcs: Vec::new(),
             cfg: sync_config,
             dump_str: None,
@@ -229,7 +229,7 @@ mod tests {
         };
 
         let outcome = SyncOutcome {
-            ob_id: runner_target.inputs.ob_id.clone(),
+            raindex_id: runner_target.inputs.raindex_id.clone(),
             start_block: 200,
             target_block: 400,
             fetched_logs: 123,
@@ -238,7 +238,7 @@ mod tests {
         let export = ExportMetadata {
             dump_path: PathBuf::from(format!(
                 "./local-db/{}/{}-{}.sql.gz",
-                chain_id, chain_id, runner_target.inputs.ob_id.raindex_address
+                chain_id, chain_id, runner_target.inputs.raindex_id.raindex_address
             )),
             end_block: 400,
             end_block_hash: "0xdeadbeef".to_string(),
@@ -252,7 +252,7 @@ mod tests {
     fn render_report_to_writes_success_summary() {
         let (success, export) = sample_success_and_export(42161);
         let mut exports = HashMap::new();
-        exports.insert(success.outcome.ob_id.clone(), Some(export));
+        exports.insert(success.outcome.raindex_id.clone(), Some(export));
         let report = ProducerRunReport {
             successes: vec![success],
             failures: vec![],
@@ -274,7 +274,7 @@ mod tests {
     fn render_report_to_handles_missing_dump() {
         let (success, _) = sample_success_and_export(10);
         let mut exports = HashMap::new();
-        exports.insert(success.outcome.ob_id.clone(), None);
+        exports.insert(success.outcome.raindex_id.clone(), None);
         let report = ProducerRunReport {
             successes: vec![success],
             failures: vec![],
@@ -292,7 +292,7 @@ mod tests {
     fn render_report_to_lists_failures() {
         let raindex_address = address!("0000000000000000000000000000000000000fA1");
         let failure = TargetFailure {
-            ob_id: RaindexIdentifier::new(1, raindex_address),
+            raindex_id: RaindexIdentifier::new(1, raindex_address),
             raindex_key: Some("book".into()),
             stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("oh no".into()),
@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn render_failure_to_handles_unknowns() {
         let failure = TargetFailure {
-            ob_id: RaindexIdentifier::new(0, Address::ZERO),
+            raindex_id: RaindexIdentifier::new(0, Address::ZERO),
             raindex_key: None,
             stage: TargetStage::EngineRun,
             error: LocalDbError::CustomError("boom".into()),

@@ -8,12 +8,12 @@ use crate::local_db::RaindexIdentifier;
 
 pub async fn fetch_order_trades_count<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
     order_hash: B256,
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<u64, LocalDbQueryError> {
-    let stmt = build_fetch_trade_count_stmt(ob_id, order_hash, start_timestamp, end_timestamp)?;
+    let stmt = build_fetch_trade_count_stmt(raindex_id, order_hash, start_timestamp, end_timestamp)?;
     let rows: Vec<LocalDbTradeCountRow> = exec.query_json(&stmt).await?;
     Ok(extract_trade_count(&rows))
 }

@@ -39,10 +39,10 @@ impl ClientBootstrapAdapter {
     async fn is_fresh_db<E: LocalDbQueryExecutor + ?Sized>(
         self,
         db: &E,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
     ) -> Result<bool, LocalDbError> {
         let rows: Vec<TargetWatermarkRow> =
-            db.query_json(&fetch_target_watermark_stmt(ob_id)).await?;
+            db.query_json(&fetch_target_watermark_stmt(raindex_id)).await?;
         Ok(rows.is_empty())
     }
 }
@@ -55,10 +55,10 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
     {
         let BootstrapState {
             last_synced_block, ..
-        } = self.inspect_state(db, &config.ob_id).await?;
+        } = self.inspect_state(db, &config.raindex_id).await?;
 
         if let Some(dump_stmt) = config.dump_stmt.as_ref() {
-            if self.is_fresh_db(db, &config.ob_id).await? {
+            if self.is_fresh_db(db, &config.raindex_id).await? {
                 db.execute_batch(dump_stmt).await?;
                 return Ok(());
             }
@@ -70,7 +70,7 @@ impl BootstrapPipeline for ClientBootstrapAdapter {
             ) {
                 Ok(_) => {}
                 Err(_) => {
-                    self.clear_raindex_data(db, &config.ob_id).await?;
+                    self.clear_raindex_data(db, &config.raindex_id).await?;
                     db.execute_batch(dump_stmt).await?;
                 }
             }
@@ -236,7 +236,7 @@ mod tests {
 
     fn cfg_with_dump(latest_block: u64) -> BootstrapConfig {
         BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: Some(SqlStatementBatch::from(vec![SqlStatement::new(
                 "--dump-sql",
             )])),
@@ -463,7 +463,7 @@ mod tests {
         let tables_json = required_tables_json();
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: 100,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -472,7 +472,7 @@ mod tests {
 
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
-            .with_json(&fetch_target_watermark_stmt(&cfg.ob_id), json!([]))
+            .with_json(&fetch_target_watermark_stmt(&cfg.raindex_id), json!([]))
             .with_text(&dump_stmt, "ok");
 
         adapter.engine_run(&db, &cfg).await.unwrap();
@@ -488,7 +488,7 @@ mod tests {
         let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 1;
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -499,7 +499,7 @@ mod tests {
         let mut db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(&cfg.ob_id),
+                &fetch_target_watermark_stmt(&cfg.raindex_id),
                 json!([watermark_row(last_synced)]),
             )
             .with_text(&dump_stmt, "dumped");
@@ -531,7 +531,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(&cfg.ob_id),
+                &fetch_target_watermark_stmt(&cfg.raindex_id),
                 json!([watermark_row(last_synced)]),
             );
 
@@ -551,7 +551,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(&cfg.ob_id),
+                &fetch_target_watermark_stmt(&cfg.raindex_id),
                 json!([watermark_row(last_synced)]),
             );
 
@@ -567,7 +567,7 @@ mod tests {
         let last_synced = 200_000u64;
         let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 5;
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: None,
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -577,7 +577,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(&cfg.ob_id),
+                &fetch_target_watermark_stmt(&cfg.raindex_id),
                 json!([watermark_row(last_synced)]),
             );
 
@@ -594,7 +594,7 @@ mod tests {
         let latest = last_synced + u64::from(TEST_BLOCK_NUMBER_THRESHOLD) + 42;
         let dump_stmt = SqlStatement::new("--dump-sql");
         let cfg = BootstrapConfig {
-            ob_id: sample_ob_id(),
+            raindex_id: sample_ob_id(),
             dump_stmt: Some(SqlStatementBatch::from(vec![dump_stmt.clone()])),
             latest_block: latest,
             block_number_threshold: TEST_BLOCK_NUMBER_THRESHOLD,
@@ -604,7 +604,7 @@ mod tests {
         let db = MockDb::default()
             .with_json(&fetch_tables_stmt(), tables_json)
             .with_json(
-                &fetch_target_watermark_stmt(&cfg.ob_id),
+                &fetch_target_watermark_stmt(&cfg.raindex_id),
                 json!([watermark_row(last_synced)]),
             );
 

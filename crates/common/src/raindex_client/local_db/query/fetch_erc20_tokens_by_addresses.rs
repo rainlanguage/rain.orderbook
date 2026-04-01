@@ -5,10 +5,10 @@ use alloy::primitives::Address;
 
 pub async fn fetch_erc20_tokens_by_addresses<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
     addresses: &[Address],
 ) -> Result<Vec<Erc20TokenRow>, LocalDbQueryError> {
-    if let Some(stmt) = build_fetch_stmt(ob_id, addresses)? {
+    if let Some(stmt) = build_fetch_stmt(raindex_id, addresses)? {
         exec.query_json(&stmt).await
     } else {
         Ok(vec![])

@@ -4,9 +4,9 @@ use crate::local_db::RaindexIdentifier;
 
 pub async fn fetch_store_addresses<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
 ) -> Result<Vec<StoreAddressRow>, LocalDbQueryError> {
-    exec.query_json(&fetch_store_addresses_stmt(ob_id)).await
+    exec.query_json(&fetch_store_addresses_stmt(raindex_id)).await
 }
 
 #[cfg(all(test, target_family = "wasm"))]

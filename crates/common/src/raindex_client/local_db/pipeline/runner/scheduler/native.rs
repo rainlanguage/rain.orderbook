@@ -234,7 +234,7 @@ async fn run_network_loop<R: NativeRunner>(
                             tracing::warn!(
                                 network = %network_key,
                                 chain_id,
-                                raindex = %format!("{:#x}", failure.ob_id.raindex_address),
+                                raindex = %format!("{:#x}", failure.raindex_id.raindex_address),
                                 stage = ?failure.stage,
                                 error = %failure.error,
                                 "sync target failed"
@@ -344,7 +344,7 @@ mod tests {
                         if should_fail {
                             failures.fetch_add(1, Ordering::SeqCst);
                             let failure = TargetFailure {
-                                ob_id: RaindexIdentifier::new(1, Address::ZERO),
+                                raindex_id: RaindexIdentifier::new(1, Address::ZERO),
                                 raindex_key: None,
                                 stage: TargetStage::EngineRun,
                                 error: LocalDbError::CustomError("runner failure".to_string()),

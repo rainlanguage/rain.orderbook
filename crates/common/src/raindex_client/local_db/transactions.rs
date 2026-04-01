@@ -21,10 +21,10 @@ impl<'a> LocalDbTransactions<'a> {
     /// Returns None if no transaction with that hash is found.
     pub async fn get_by_tx_hash(
         &self,
-        ob_id: &RaindexIdentifier,
+        raindex_id: &RaindexIdentifier,
         tx_hash: B256,
     ) -> Result<Option<RaindexTransaction>, RaindexError> {
-        let stmt = build_fetch_transaction_by_hash_stmt(ob_id, tx_hash);
+        let stmt = build_fetch_transaction_by_hash_stmt(raindex_id, tx_hash);
         let results: Vec<LocalDbTransaction> = self.db.query_json(&stmt).await?;
 
         if let Some(local_tx) = results.into_iter().next() {
@@ -95,9 +95,9 @@ mod tests {
             let local_db = LocalDb::new(exec);
 
             let transactions = LocalDbTransactions::new(&local_db);
-            let ob_id = RaindexIdentifier::new(1, raindex_addr);
+            let raindex_id = RaindexIdentifier::new(1, raindex_addr);
 
-            let result = transactions.get_by_tx_hash(&ob_id, tx_hash).await;
+            let result = transactions.get_by_tx_hash(&raindex_id, tx_hash).await;
 
             assert!(result.is_ok());
             let tx = result.unwrap();
@@ -117,9 +117,9 @@ mod tests {
             let local_db = LocalDb::new(exec);
 
             let transactions = LocalDbTransactions::new(&local_db);
-            let ob_id = RaindexIdentifier::new(1, raindex_addr);
+            let raindex_id = RaindexIdentifier::new(1, raindex_addr);
 
-            let result = transactions.get_by_tx_hash(&ob_id, tx_hash).await;
+            let result = transactions.get_by_tx_hash(&raindex_id, tx_hash).await;
 
             assert!(result.is_ok());
             assert!(result.unwrap().is_none());

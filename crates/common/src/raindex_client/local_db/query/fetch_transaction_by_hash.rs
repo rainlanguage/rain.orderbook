@@ -7,10 +7,10 @@ use alloy::primitives::B256;
 
 pub async fn fetch_transaction_by_hash<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
     tx_hash: B256,
 ) -> Result<Vec<LocalDbTransaction>, LocalDbQueryError> {
-    let stmt = build_fetch_transaction_by_hash_stmt(ob_id, tx_hash);
+    let stmt = build_fetch_transaction_by_hash_stmt(raindex_id, tx_hash);
     exec.query_json(&stmt).await
 }
 

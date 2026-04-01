@@ -28,17 +28,17 @@ pub(super) async fn export_dump(
     outcome: &SyncOutcome,
     out_root: &Path,
 ) -> Result<Option<ExportMetadata>, LocalDbError> {
-    let dump_sql = match export_data_only(executor, &target.inputs.ob_id).await? {
+    let dump_sql = match export_data_only(executor, &target.inputs.raindex_id).await? {
         Some(sql) => sql,
         None => return Ok(None),
     };
 
-    let chain_folder = out_root.join(target.inputs.ob_id.chain_id.to_string());
+    let chain_folder = out_root.join(target.inputs.raindex_id.chain_id.to_string());
     create_dir_all(&chain_folder).await?;
 
     let filename = format!(
         "{}-{}.sql.gz",
-        target.inputs.ob_id.chain_id, target.inputs.ob_id.raindex_address
+        target.inputs.raindex_id.chain_id, target.inputs.raindex_id.raindex_address
     );
     let dump_path = chain_folder.join(filename);
 
@@ -51,12 +51,12 @@ pub(super) async fn export_dump(
 
     tokio::fs::write(&dump_path, compressed).await?;
 
-    let watermark_stmt = fetch_target_watermark_stmt(&target.inputs.ob_id);
+    let watermark_stmt = fetch_target_watermark_stmt(&target.inputs.raindex_id);
     let rows: Vec<TargetWatermarkRow> = executor.query_json(&watermark_stmt).await?;
     let row = rows.into_iter().next().ok_or_else(|| {
         LocalDbError::from(ExportError::MissingTargetWatermark {
-            chain_id: target.inputs.ob_id.chain_id,
-            raindex_address: target.inputs.ob_id.raindex_address,
+            chain_id: target.inputs.raindex_id.chain_id,
+            raindex_address: target.inputs.raindex_id.raindex_address,
         })
     })?;
 
@@ -137,7 +137,7 @@ mod tests {
             window_overrides: WindowOverrides::default(),
         };
 
-        let ob_id = RaindexIdentifier {
+        let raindex_id = RaindexIdentifier {
             chain_id,
             raindex_address,
         };
@@ -147,7 +147,7 @@ mod tests {
             manifest_url: Url::parse("https://example.com/manifest.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {
-                ob_id: ob_id.clone(),
+                raindex_id: raindex_id.clone(),
                 metadata_rpcs: Vec::new(),
                 cfg: sync_config,
                 dump_str: None,
@@ -157,7 +157,7 @@ mod tests {
         };
 
         let outcome = SyncOutcome {
-            ob_id,
+            raindex_id,
             start_block: 900,
             target_block: 1000,
             fetched_logs: 1,
@@ -181,7 +181,7 @@ mod tests {
         );
         let expected_file = format!(
             "{}-{}.sql.gz",
-            chain_id, target.inputs.ob_id.raindex_address
+            chain_id, target.inputs.raindex_id.raindex_address
         );
         assert_eq!(
             metadata
@@ -226,7 +226,7 @@ mod tests {
             window_overrides: WindowOverrides::default(),
         };
 
-        let ob_id = RaindexIdentifier {
+        let raindex_id = RaindexIdentifier {
             chain_id,
             raindex_address,
         };
@@ -236,7 +236,7 @@ mod tests {
             manifest_url: Url::parse("https://example.com/empty.yaml").unwrap(),
             network_key: "anvil".to_string(),
             inputs: SyncInputs {
-                ob_id: ob_id.clone(),
+                raindex_id: raindex_id.clone(),
                 metadata_rpcs: Vec::new(),
                 cfg: sync_config,
                 dump_str: None,
@@ -246,7 +246,7 @@ mod tests {
         };
 
         let outcome = SyncOutcome {
-            ob_id,
+            raindex_id,
             start_block: 0,
             target_block: 0,
             fetched_logs: 0,

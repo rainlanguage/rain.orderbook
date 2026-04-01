@@ -25,15 +25,15 @@ impl From<bool> for DebugStatus {
 pub struct ProducerStatusBus {
     debug: DebugStatus,
     raindex_key: String,
-    ob_id: RaindexIdentifier,
+    raindex_id: RaindexIdentifier,
 }
 
 impl ProducerStatusBus {
-    pub fn new(debug: DebugStatus, raindex_key: String, ob_id: RaindexIdentifier) -> Self {
+    pub fn new(debug: DebugStatus, raindex_key: String, raindex_id: RaindexIdentifier) -> Self {
         Self {
             debug,
             raindex_key,
-            ob_id,
+            raindex_id,
         }
     }
 }
@@ -43,7 +43,7 @@ impl Default for ProducerStatusBus {
         Self {
             debug: DebugStatus::Disabled,
             raindex_key: "<unknown>".to_string(),
-            ob_id: RaindexIdentifier::new(0, Default::default()),
+            raindex_id: RaindexIdentifier::new(0, Default::default()),
         }
     }
 }
@@ -54,8 +54,8 @@ impl StatusBus for ProducerStatusBus {
         if self.debug == DebugStatus::Enabled {
             info!(
                 target: "local_db_status",
-                chain_id = self.ob_id.chain_id,
-                raindex = %self.ob_id.raindex_address,
+                chain_id = self.raindex_id.chain_id,
+                raindex = %self.raindex_id.raindex_address,
                 raindex_key = %self.raindex_key,
                 "{}",
                 phase.to_message()

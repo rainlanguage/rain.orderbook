@@ -98,7 +98,7 @@ describe('LocalDbStatusCard', () => {
 			[
 				'137:0x1234567890123456789012345678901234567890',
 				{
-					obId: {
+					raindexId: {
 						chainId: 137,
 						raindexAddress: '0x1234567890123456789012345678901234567890'
 					},

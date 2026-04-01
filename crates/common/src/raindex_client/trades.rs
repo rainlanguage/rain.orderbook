@@ -138,20 +138,20 @@ impl RaindexOrder {
         #[cfg(not(target_family = "wasm"))]
         let order_hash = B256::from_str(&self.order_hash().to_string())?;
 
-        let ob_id = RaindexIdentifier::new(chain_id, raindex_addr);
+        let raindex_id = RaindexIdentifier::new(chain_id, raindex_addr);
         let raindex_client = self.get_raindex_client();
 
         match raindex_client.query_source(chain_id) {
             QuerySource::LocalDb(local_db) => {
                 let local_source = LocalDbOrders::new(&local_db, ClientRef::clone(&raindex_client));
                 local_source
-                    .trades_list(&ob_id, &order_hash, start_timestamp, end_timestamp, page)
+                    .trades_list(&raindex_id, &order_hash, start_timestamp, end_timestamp, page)
                     .await
             }
             QuerySource::Subgraph => {
                 let subgraph_source = SubgraphOrders::new(&raindex_client);
                 subgraph_source
-                    .trades_list(&ob_id, &order_hash, start_timestamp, end_timestamp, page)
+                    .trades_list(&raindex_id, &order_hash, start_timestamp, end_timestamp, page)
                     .await
             }
         }
@@ -236,20 +236,20 @@ impl RaindexOrder {
         #[cfg(not(target_family = "wasm"))]
         let order_hash = self.order_hash();
 
-        let ob_id = RaindexIdentifier::new(chain_id, raindex_addr);
+        let raindex_id = RaindexIdentifier::new(chain_id, raindex_addr);
         let raindex_client = self.get_raindex_client();
 
         match raindex_client.query_source(chain_id) {
             QuerySource::LocalDb(local_db) => {
                 let local_source = LocalDbOrders::new(&local_db, ClientRef::clone(&raindex_client));
                 local_source
-                    .trades_count(&ob_id, &order_hash, start_timestamp, end_timestamp)
+                    .trades_count(&raindex_id, &order_hash, start_timestamp, end_timestamp)
                     .await
             }
             QuerySource::Subgraph => {
                 let subgraph_source = SubgraphOrders::new(&raindex_client);
                 subgraph_source
-                    .trades_count(&ob_id, &order_hash, start_timestamp, end_timestamp)
+                    .trades_count(&raindex_id, &order_hash, start_timestamp, end_timestamp)
                     .await
             }
         }

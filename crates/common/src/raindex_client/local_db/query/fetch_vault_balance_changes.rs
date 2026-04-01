@@ -9,7 +9,7 @@ use alloy::primitives::{Address, U256};
 
 pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
-    ob_id: &RaindexIdentifier,
+    raindex_id: &RaindexIdentifier,
     vault_id: U256,
     token: Address,
     owner: Address,
@@ -18,7 +18,7 @@ pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
     let filter_kinds: Option<Vec<VaultBalanceChangeKind>> =
         filter_types.map(|filters| filters.iter().map(|f| f.to_kind()).collect());
     let stmt =
-        build_fetch_balance_changes_stmt(ob_id, vault_id, token, owner, filter_kinds.as_deref())?;
+        build_fetch_balance_changes_stmt(raindex_id, vault_id, token, owner, filter_kinds.as_deref())?;
     exec.query_json(&stmt).await
 }
 

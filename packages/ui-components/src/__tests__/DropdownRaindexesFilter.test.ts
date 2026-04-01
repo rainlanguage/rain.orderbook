@@ -147,7 +147,7 @@ describe('DropdownRaindexesFilter', () => {
 
 		test('displays "All raindexes" when all raindexes are selected', () => {
 			const allAddresses = Array.from(mockRaindexesData.values()).map(
-				(ob) => ob.address
+				(raindex) => raindex.address
 			) as Address[];
 
 			render(DropdownRaindexesFilter, {
@@ -163,7 +163,7 @@ describe('DropdownRaindexesFilter', () => {
 
 		test('displays custom all label when all raindexes are selected', () => {
 			const allAddresses = Array.from(mockRaindexesData.values()).map(
-				(ob) => ob.address
+				(raindex) => raindex.address
 			) as Address[];
 			const customAllLabel = 'Everything selected';
 
@@ -196,7 +196,7 @@ describe('DropdownRaindexesFilter', () => {
 		test('displays plural count when multiple raindexes are selected', () => {
 			const selectedAddresses = Array.from(mockRaindexesData.values())
 				.slice(0, 2)
-				.map((ob) => ob.address) as Address[];
+				.map((raindex) => raindex.address) as Address[];
 
 			render(DropdownRaindexesFilter, {
 				props: {

@@ -190,7 +190,7 @@ where
                             Ok(target)
                         }
                         Err(error) => Err(TargetFailure {
-                            raindex_id: target.inputs.ob_id.clone(),
+                            raindex_id: target.inputs.raindex_id.clone(),
                             raindex_key: Some(target.raindex_key.clone()),
                             stage: TargetStage::DumpDownload,
                             error,
@@ -230,7 +230,7 @@ where
         let futures = targets.into_iter().map(move |target| {
             let environment = environment.clone();
             async move {
-                let raindex_id = target.inputs.ob_id.clone();
+                let raindex_id = target.inputs.raindex_id.clone();
                 let engine = match environment.build_engine(&target) {
                     Ok(engine) => engine.into_engine(),
                     Err(error) => {
@@ -1104,10 +1104,10 @@ raindexes:
         prepare_db_baseline(db);
         for target in targets {
             db.set_json_raw(
-                &fetch_target_watermark_stmt(&target.inputs.ob_id),
+                &fetch_target_watermark_stmt(&target.inputs.raindex_id),
                 json!([]),
             );
-            db.set_json_raw(&fetch_store_addresses_stmt(&target.inputs.ob_id), json!([]));
+            db.set_json_raw(&fetch_store_addresses_stmt(&target.inputs.raindex_id), json!([]));
         }
     }
 
@@ -1849,11 +1849,11 @@ raindexes:
         assert!(report
             .failures
             .iter()
-            .any(|f| f.ob_id.raindex_address == RAINDEX_A));
+            .any(|f| f.raindex_id.raindex_address == RAINDEX_A));
         assert!(report
             .failures
             .iter()
-            .any(|f| f.ob_id.raindex_address == RAINDEX_B));
+            .any(|f| f.raindex_id.raindex_address == RAINDEX_B));
     }
 
     #[tokio::test]
