@@ -725,7 +725,7 @@ raindexes:
         let manifest_yaml = format!(
             r#"
 manifest-version: {version}
-db-schema-version: 2
+db-schema-version: 3
 networks:
   mainnet:
     chain-id: 1

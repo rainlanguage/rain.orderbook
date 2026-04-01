@@ -56,7 +56,7 @@ mod tests {
         let server = MockServer::start_async().await;
         let yaml = r#"
 manifest-version: 1
-db-schema-version: 2
+db-schema-version: 3
 networks:
   mainnet:
     chain-id: 1
@@ -107,7 +107,7 @@ networks:
         let server = MockServer::start_async().await;
         let yaml = r#"
 manifest-version: 1
-db-schema-version: 2
+db-schema-version: 3
 extra-root: ignored
 networks:
   goerli:
@@ -169,7 +169,7 @@ networks:
         let server = MockServer::start_async().await;
         let yaml = r#"
 manifest-version: 1
-db-schema-version: 2
+db-schema-version: 3
 networks:
   mainnet:
     chain-id: 1
@@ -215,7 +215,7 @@ networks:
 
         let yaml_one = r#"
 manifest-version: 1
-db-schema-version: 2
+db-schema-version: 3
 networks:
   mainnet:
     chain-id: 1
@@ -229,7 +229,7 @@ networks:
 
         let yaml_two = r#"
 manifest-version: 1
-db-schema-version: 2
+db-schema-version: 3
 networks:
   goerli:
     chain-id: 5
