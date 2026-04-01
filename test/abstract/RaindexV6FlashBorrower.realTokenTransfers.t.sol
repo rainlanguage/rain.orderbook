@@ -87,9 +87,9 @@ contract RaindexV6FlashBorrowerRealTokenTransfersTest is Test {
             })
         );
 
-        // OB received all inputToken from arb.
+        // Raindex received all inputToken from arb.
         assertEq(inputToken.balanceOf(address(raindex)), 100e18);
-        // Exchange received outputToken from arb (100e18 of the 1000e18 OB had).
+        // Exchange received outputToken from arb (100e18 of the 1000e18 Raindex had).
         assertEq(outputToken.balanceOf(address(exchange)), 100e18);
         // Arb contract has no remaining tokens.
         assertEq(inputToken.balanceOf(address(arb)), 0);

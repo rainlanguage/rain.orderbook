@@ -10,7 +10,7 @@ contract LibRaindexArbFinalizeArbNativeGasTest is Test {
     function testFinalizeArbSendsNativeGas() external {
         uint256 senderBalanceBefore = address(this).balance;
 
-        // OB has 100e18 output, pulls 100e18 input. Exchange has 100e18 input.
+        // Raindex has 100e18 output, pulls 100e18 input. Exchange has 100e18 input.
         // No token profit. 1 ether sent with arb5, returned by exchange, swept.
         ArbResult memory result =
             LibTestArb.setupAndArb(vm, 100e18, 100e18, 100e18, 100e18, LibTestArb.noopTask(), 1 ether);

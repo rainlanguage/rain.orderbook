@@ -65,16 +65,16 @@ library LibTestArb {
     /// Set up a standard arb scenario and execute arb5.
     ///
     /// @param vm The Vm cheatcode handle.
-    /// @param obPullAmount How many inputTokens the mock OB pulls from arb.
-    /// @param obOutputAmount How many outputTokens the mock OB has to send.
+    /// @param raindexPullAmount How many inputTokens the mock Raindex pulls from arb.
+    /// @param raindexOutputAmount How many outputTokens the mock Raindex has to send.
     /// @param exchangeInputAmount How many inputTokens the exchange has.
     /// @param swapAmount How many outputTokens the arb swaps at the exchange.
     /// @param task The post-arb task to run.
     /// @param ethValue ETH to send with arb5.
     function setupAndArb(
         Vm vm,
-        uint256 obPullAmount,
-        uint256 obOutputAmount,
+        uint256 raindexPullAmount,
+        uint256 raindexOutputAmount,
         uint256 exchangeInputAmount,
         uint256 swapAmount,
         TaskV2 memory task,
@@ -85,10 +85,10 @@ library LibTestArb {
         MockToken inputToken = new MockToken("Input", "IN", 18);
         MockToken outputToken = new MockToken("Output", "OUT", 18);
 
-        RealisticOrderTakerMockRaindex raindex = new RealisticOrderTakerMockRaindex(obPullAmount);
+        RealisticOrderTakerMockRaindex raindex = new RealisticOrderTakerMockRaindex(raindexPullAmount);
         MockExchange exchange = new MockExchange();
 
-        outputToken.mint(address(raindex), obOutputAmount);
+        outputToken.mint(address(raindex), raindexOutputAmount);
         inputToken.mint(address(exchange), exchangeInputAmount);
 
         GenericPoolRaindexV6ArbOrderTaker arb = new GenericPoolRaindexV6ArbOrderTaker();
@@ -142,7 +142,7 @@ library LibTestArb {
     /// @param vm The Vm cheatcode handle.
     /// @param exchange The exchange contract address.
     /// @param amount Token amount for the swap (18 decimals). Used as
-    /// obPullAmount, obOutputAmount, exchangeInputAmount, and swapAmount.
+    /// raindexPullAmount, raindexOutputAmount, exchangeInputAmount, and swapAmount.
     function setup(Vm vm, address exchange, uint256 amount) internal returns (OrderTakerSetup memory) {
         deployPrereqs(vm);
 

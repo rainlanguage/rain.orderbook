@@ -43,7 +43,7 @@ contract LibRaindexArbFinalizeArbTaskContextTest is Test {
             signedContext: new SignedContextV1[](0)
         });
 
-        // OB has 100e18 output, pulls 80e18 input. Exchange has 100e18 input.
+        // Raindex has 100e18 output, pulls 80e18 input. Exchange has 100e18 input.
         // 20e18 input profit, 0 output profit, 0 gas.
         // Task expression will revert if context values are wrong.
         ArbResult memory result = LibTestArb.setupAndArb(vm, 80e18, 100e18, 100e18, 100e18, task, 0);

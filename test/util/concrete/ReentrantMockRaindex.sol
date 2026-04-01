@@ -17,7 +17,7 @@ import {IInterpreterV4} from "rain.interpreter.interface/interface/IInterpreterV
 import {IInterpreterStoreV3} from "rain.interpreter.interface/interface/IInterpreterStoreV3.sol";
 import {MockRaindexBase} from "test/util/abstract/MockRaindexBase.sol";
 
-/// @dev Mock OB whose takeOrders4 callback re-enters arb5 on the taker.
+/// @dev Mock Raindex whose takeOrders4 callback re-enters arb5 on the taker.
 contract ReentrantMockRaindex is MockRaindexBase {
     using SafeERC20 for IERC20;
 
@@ -32,7 +32,7 @@ contract ReentrantMockRaindex is MockRaindexBase {
 
         if (!sReentered) {
             sReentered = true;
-            // Re-enter arb5 from the OB callback.
+            // Re-enter arb5 from the Raindex callback.
             GenericPoolRaindexV6ArbOrderTaker(payable(msg.sender))
                 .arb5(
                     IRaindexV6(address(this)),

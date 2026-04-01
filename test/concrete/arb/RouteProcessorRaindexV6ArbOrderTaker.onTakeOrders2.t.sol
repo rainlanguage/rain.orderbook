@@ -44,7 +44,7 @@ contract RouteProcessorRaindexV6ArbOrderTakerOnTakeOrders2Test is Test {
         vm.etch(LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS, address(mockRp).code);
         address routeProcessor = LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS;
 
-        // OB has outputToken to send to taker.
+        // Raindex has outputToken to send to taker.
         outputToken.mint(address(raindex), 100e18);
         // RouteProcessor has inputToken to give back after swap.
         inputToken.mint(routeProcessor, 100e18);
@@ -89,9 +89,9 @@ contract RouteProcessorRaindexV6ArbOrderTakerOnTakeOrders2Test is Test {
         // Arb contract has no remaining tokens.
         assertEq(inputToken.balanceOf(address(arb)), 0, "arb inputToken");
         assertEq(outputToken.balanceOf(address(arb)), 0, "arb outputToken");
-        // OB started with outputToken, swapped for inputToken via arb.
-        assertEq(inputToken.balanceOf(address(raindex)), 100e18, "OB inputToken");
-        assertEq(outputToken.balanceOf(address(raindex)), 0, "OB outputToken");
+        // Raindex started with outputToken, swapped for inputToken via arb.
+        assertEq(inputToken.balanceOf(address(raindex)), 100e18, "Raindex inputToken");
+        assertEq(outputToken.balanceOf(address(raindex)), 0, "Raindex outputToken");
         // RouteProcessor started with inputToken, received nothing (amountIn=0).
         assertEq(inputToken.balanceOf(routeProcessor), 0, "RP inputToken");
         assertEq(outputToken.balanceOf(routeProcessor), 0, "RP outputToken");

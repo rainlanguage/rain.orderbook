@@ -44,7 +44,7 @@ contract RaindexV6FlashBorrowerMixedDecimalsTest is Test {
             RealisticFlashLendingMockRaindex(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS);
         MockExchange exchange = new MockExchange();
 
-        // OB needs outputToken for both the flash loan and takeOrders4.
+        // Raindex needs outputToken for both the flash loan and takeOrders4.
         outputToken.mint(address(raindex), 1000e6);
         // Exchange has 100e6 of inputToken for the swap.
         inputToken.mint(address(exchange), 100e6);

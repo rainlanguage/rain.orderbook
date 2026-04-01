@@ -82,7 +82,7 @@ contract RaindexV6ArbOrderTakerOnTakeOrders2Test is Test {
             })
         );
 
-        // OB received all inputToken from arb.
+        // Raindex received all inputToken from arb.
         assertEq(inputToken.balanceOf(address(raindex)), 100e18);
         // Exchange received all outputToken from arb.
         assertEq(outputToken.balanceOf(address(exchange)), 100e18);

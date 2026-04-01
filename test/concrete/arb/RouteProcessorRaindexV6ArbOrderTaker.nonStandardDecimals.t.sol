@@ -41,13 +41,13 @@ contract RouteProcessorRaindexV6ArbOrderTakerNonStandardDecimalsTest is Test {
         MockToken inputToken = new MockToken("USDC", "USDC", 6);
         MockToken outputToken = new MockToken("USDT", "USDT", 6);
 
-        // OB will send 100 USDT (100e6) to the taker, then pull 100 USDC.
+        // Raindex will send 100 USDT (100e6) to the taker, then pull 100 USDC.
         RealisticOrderTakerMockRaindex raindex = new RealisticOrderTakerMockRaindex(100e6);
         MockRouteProcessor mockRp = new MockRouteProcessor();
         vm.etch(LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS, address(mockRp).code);
         address routeProcessor = LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS;
 
-        // OB has outputToken to send to taker.
+        // Raindex has outputToken to send to taker.
         outputToken.mint(address(raindex), 100e6);
         // RouteProcessor has inputToken to give back after swap.
         inputToken.mint(routeProcessor, 100e6);
@@ -99,9 +99,9 @@ contract RouteProcessorRaindexV6ArbOrderTakerNonStandardDecimalsTest is Test {
         // Arb contract has no remaining tokens.
         assertEq(inputToken.balanceOf(address(arb)), 0, "arb inputToken");
         assertEq(outputToken.balanceOf(address(arb)), 0, "arb outputToken");
-        // OB swapped outputToken for inputToken.
-        assertEq(inputToken.balanceOf(address(raindex)), 100e6, "OB inputToken");
-        assertEq(outputToken.balanceOf(address(raindex)), 0, "OB outputToken");
+        // Raindex swapped outputToken for inputToken.
+        assertEq(inputToken.balanceOf(address(raindex)), 100e6, "Raindex inputToken");
+        assertEq(outputToken.balanceOf(address(raindex)), 0, "Raindex outputToken");
         // RouteProcessor sent all its inputToken.
         assertEq(inputToken.balanceOf(routeProcessor), 0, "RP inputToken");
         assertEq(outputToken.balanceOf(routeProcessor), 0, "RP outputToken");

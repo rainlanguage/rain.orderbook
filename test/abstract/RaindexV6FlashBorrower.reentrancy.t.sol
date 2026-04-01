@@ -39,7 +39,7 @@ contract RaindexV6FlashBorrowerReentrancyTest is Test {
         FlashLendingMockRaindex raindex = new FlashLendingMockRaindex();
         vm.etch(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, address(raindex).code);
 
-        // Mint output tokens to the etched OB so it can flash-lend them.
+        // Mint output tokens to the etched Raindex so it can flash-lend them.
         outputToken.mint(LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, 100e18);
 
         GenericPoolRaindexV6FlashBorrower arb = new GenericPoolRaindexV6FlashBorrower();

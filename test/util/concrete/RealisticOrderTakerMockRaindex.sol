@@ -29,7 +29,7 @@ contract RealisticOrderTakerMockRaindex is MockRaindexBase {
         // Send ordersOutputToken to taker (taker's input).
         IERC20(ordersOutputToken).safeTransfer(msg.sender, outputAmount);
 
-        // Callback: taker swaps received tokens for the tokens the OB will pull.
+        // Callback: taker swaps received tokens for the tokens the Raindex will pull.
         IRaindexV6OrderTaker(msg.sender)
             .onTakeOrders2(ordersOutputToken, ordersInputToken, Float.wrap(0), Float.wrap(0), config.data);
 

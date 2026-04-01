@@ -49,7 +49,7 @@ contract RaindexV6ClearTest is RaindexV6ExternalMockTest {
     using Math for uint256;
     using LibDecimalFloat for Float;
 
-    /// Make a deposit to the OB mocking the internal transferFrom call.
+    /// Make a deposit to the Raindex mocking the internal transferFrom call.
     function _depositInternal(address depositor, address token, bytes32 vaultId, Float amount) internal {
         if (vaultId != bytes32(0)) {
             uint256 amount18 = LibDecimalFloat.toFixedDecimalLossless(amount, 18);
@@ -473,7 +473,7 @@ contract RaindexV6ClearTest is RaindexV6ExternalMockTest {
         Float bobAmount = LibDecimalFloat.packLossless(2, 0);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
-        // Produce the stack output for OB
+        // Produce the stack output for Raindex
         StackItem[] memory orderStackAlice = new StackItem[](2);
         orderStackAlice[0] = StackItem.wrap(Float.unwrap(LibDecimalFloat.packLossless(0.99e18, -18))); // orderIORatio
         orderStackAlice[1] = StackItem.wrap(Float.unwrap(LibDecimalFloat.packLossless(0.5e18, -18))); // orderOutputMax
@@ -823,7 +823,7 @@ contract RaindexV6ClearTest is RaindexV6ExternalMockTest {
         checkClearStruct.expectedError = "";
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
-        // Produce the stack output for OB
+        // Produce the stack output for Raindex
         checkClearStruct.orderStackAlice = new StackItem[](2);
         checkClearStruct.orderStackAlice[0] = StackItem.wrap(Float.unwrap(aliceIORatio)); // orderIORatio
         checkClearStruct.orderStackAlice[1] = StackItem.wrap(Float.unwrap(aliceOutput)); // orderOutputMax
@@ -874,7 +874,7 @@ contract RaindexV6ClearTest is RaindexV6ExternalMockTest {
         Float bobOutput = LibDecimalFloat.packLossless(1, 0);
 
         // Mock the interpreter.eval that is used inside clear().calculateOrderIO()
-        // Produce the stack output for OB
+        // Produce the stack output for Raindex
         checkClearStruct.orderStackAlice = new StackItem[](2);
         checkClearStruct.orderStackAlice[0] = StackItem.wrap(Float.unwrap(aliceIORatio)); // orderIORatio
         checkClearStruct.orderStackAlice[1] = StackItem.wrap(Float.unwrap(aliceOutput)); // orderOutputMax

@@ -151,7 +151,7 @@ contract RaindexV6TakeOrderPrecisionTest is RaindexV6ExternalRealTest {
         }
     }
 
-    // Older versions of OB had precision issues with this IO setup.
+    // Older versions of Raindex had precision issues with this IO setup.
     // bytes memory knownBad = "output-max io-ratio:157116.36568049186712991 0.000318235466963885;:;";
     bytes constant KNOWN_BAD = bytes("output-max io-ratio:157116.36568049186712991 0.000318235466963885;:;");
 
