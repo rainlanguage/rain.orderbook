@@ -541,7 +541,7 @@ networks: {}
         let doc = load(yaml_ok);
         let (mv, sv) = parse_manifest_header(&doc, "manifest").expect("header parses");
         assert_eq!(mv, 1);
-        assert_eq!(sv, 2);
+        assert_eq!(sv, 3);
 
         // Incompatible manifest version
         let yaml_bad = r#"

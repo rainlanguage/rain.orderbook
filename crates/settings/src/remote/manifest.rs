@@ -82,7 +82,7 @@ networks:
             .unwrap();
 
         assert_eq!(manifest.manifest_version, 1);
-        assert_eq!(manifest.db_schema_version, 2);
+        assert_eq!(manifest.db_schema_version, 3);
         let net = manifest.networks.get("mainnet").unwrap();
         assert_eq!(net.chain_id, 1);
         assert_eq!(net.raindexes.len(), 1);

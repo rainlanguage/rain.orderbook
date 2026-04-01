@@ -696,7 +696,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
-            version: 5
+            version: 6
             networks:
                 test:
                     rpcs:
