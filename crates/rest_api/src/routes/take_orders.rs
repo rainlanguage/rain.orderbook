@@ -148,9 +148,7 @@ async fn execute_take_orders(
 
     if let Some(approval_info) = result.approval_info() {
         let amount = approval_info.amount().format().map_err(|e| {
-            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
-                e,
-            ))
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(e))
         })?;
 
         Ok(TakeOrdersApiResponse::NeedsApproval(ApprovalApiResponse {
@@ -162,9 +160,7 @@ async fn execute_take_orders(
         }))
     } else if let Some(take_orders_info) = result.take_orders_info() {
         let effective_price = take_orders_info.effective_price().format().map_err(|e| {
-            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
-                e,
-            ))
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(e))
         })?;
 
         let prices: Result<Vec<String>, _> = take_orders_info
@@ -172,23 +168,17 @@ async fn execute_take_orders(
             .iter()
             .map(|p| {
                 p.format().map_err(|e| {
-                    ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
-                        e,
-                    ))
+                    ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(e))
                 })
             })
             .collect();
 
         let expected_sell = take_orders_info.expected_sell().format().map_err(|e| {
-            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
-                e,
-            ))
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(e))
         })?;
 
         let max_sell_cap = take_orders_info.max_sell_cap().format().map_err(|e| {
-            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(
-                e,
-            ))
+            ApiError::Raindex(raindex_common::raindex_client::RaindexError::Float(e))
         })?;
 
         Ok(TakeOrdersApiResponse::Ready(TakeOrdersReadyResponse {

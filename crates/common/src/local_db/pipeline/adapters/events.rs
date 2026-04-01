@@ -58,14 +58,7 @@ impl EventsPipeline for DefaultEventsPipeline {
         to_block: u64,
         cfg: &FetchConfig,
     ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-        fetch_raindex_events(
-            &self.rpc_client,
-            raindex_address,
-            from_block,
-            to_block,
-            cfg,
-        )
-        .await
+        fetch_raindex_events(&self.rpc_client, raindex_address, from_block, to_block, cfg).await
     }
 
     async fn fetch_stores(

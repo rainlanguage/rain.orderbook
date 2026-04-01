@@ -94,10 +94,7 @@ mod tests {
 
         let result = client.tokens_list_all().await;
         assert!(
-            matches!(
-                result,
-                Err(RaindexSubgraphClientError::CynicClientError(_))
-            ),
+            matches!(result, Err(RaindexSubgraphClientError::CynicClientError(_))),
             "Should return network error when GraphQL request fails"
         );
     }

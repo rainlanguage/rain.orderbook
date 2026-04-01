@@ -1587,8 +1587,7 @@ mod tests {
         ];
 
         let raindex = Address::from([0x11; 20]);
-        let batch =
-            generate_erc20_token_statements(&RaindexIdentifier::new(1, raindex), &tokens);
+        let batch = generate_erc20_token_statements(&RaindexIdentifier::new(1, raindex), &tokens);
         assert_eq!(batch.len(), tokens.len());
 
         for (statement, (expected_addr, expected_info)) in
@@ -1596,9 +1595,7 @@ mod tests {
         {
             let sql = statement.sql();
             assert!(sql.contains("INSERT INTO erc20_tokens"));
-            assert!(
-                sql.contains("ON CONFLICT(chain_id, raindex_address, token_address) DO UPDATE")
-            );
+            assert!(sql.contains("ON CONFLICT(chain_id, raindex_address, token_address) DO UPDATE"));
 
             let params = statement.params();
             assert_eq!(params.len(), 6);
@@ -1669,8 +1666,7 @@ mod tests {
         )];
 
         let raindex = Address::from([0x22; 20]);
-        let batch =
-            generate_erc20_token_statements(&RaindexIdentifier::new(5, raindex), &tokens);
+        let batch = generate_erc20_token_statements(&RaindexIdentifier::new(5, raindex), &tokens);
         assert_eq!(batch.len(), 1);
         let statement = &batch.statements()[0];
         let sql = statement.sql();
@@ -1754,8 +1750,7 @@ mod tests {
 
         let raindex_address = Address::from([0x10; 20]);
         let batch =
-            raw_events_to_statements(&RaindexIdentifier::new(1, raindex_address), &events)
-                .unwrap();
+            raw_events_to_statements(&RaindexIdentifier::new(1, raindex_address), &events).unwrap();
         assert_eq!(batch.len(), 3);
 
         let hashes: Vec<_> = batch

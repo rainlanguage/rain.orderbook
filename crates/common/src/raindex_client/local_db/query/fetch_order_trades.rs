@@ -12,7 +12,8 @@ pub async fn fetch_order_trades<E: LocalDbQueryExecutor + ?Sized>(
     start_timestamp: Option<u64>,
     end_timestamp: Option<u64>,
 ) -> Result<Vec<LocalDbOrderTrade>, LocalDbQueryError> {
-    let stmt = build_fetch_order_trades_stmt(raindex_id, order_hash, start_timestamp, end_timestamp)?;
+    let stmt =
+        build_fetch_order_trades_stmt(raindex_id, order_hash, start_timestamp, end_timestamp)?;
     exec.query_json(&stmt).await
 }
 

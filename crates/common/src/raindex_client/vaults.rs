@@ -29,9 +29,8 @@ use raindex_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
         common::{
-            SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgTradeVaultBalanceChange,
-            SgVault, SgVaultBalanceChangeType, SgVaultBalanceChangeUnwrapped,
-            SgVaultsListFilterArgs,
+            SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgTradeVaultBalanceChange, SgVault,
+            SgVaultBalanceChangeType, SgVaultBalanceChangeUnwrapped, SgVaultsListFilterArgs,
         },
         Id,
     },
@@ -321,7 +320,8 @@ impl RaindexVaultToken {
 impl RaindexVault {
     #[wasm_export(skip)]
     pub fn get_raindex_subgraph_client(&self) -> Result<RaindexSubgraphClient, RaindexError> {
-        self.raindex_client.get_raindex_subgraph_client(self.raindex)
+        self.raindex_client
+            .get_raindex_subgraph_client(self.raindex)
     }
 
     /// Fetches balance change history for a vault
@@ -1365,11 +1365,8 @@ impl RaindexClient {
     ) -> Result<RaindexVault, RaindexError> {
         let raindex_address = Address::from_str(&raindex_address)?;
         let vault_id = Bytes::from_str(&vault_id)?;
-        self.get_vault(
-            &RaindexIdentifier::new(chain_id, raindex_address),
-            vault_id,
-        )
-        .await
+        self.get_vault(&RaindexIdentifier::new(chain_id, raindex_address), vault_id)
+            .await
     }
 
     /// Fetches all unique tokens that exist in vaults.
@@ -1522,14 +1519,17 @@ impl VaultsDataSource for SubgraphVaults<'_> {
         vault_id: &Bytes,
     ) -> Result<Option<RaindexVault>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
+        let client = self
+            .client
+            .get_raindex_subgraph_client(raindex_id.raindex_address)?;
         let vault = match client.vault_detail(Id::new(vault_id.to_string())).await {
             Ok(vault) => vault,
             Err(RaindexSubgraphClientError::Empty) => return Ok(None),
             Err(err) => return Err(err.into()),
         };
 
-        let vault = RaindexVault::try_from_sg_vault(raindex_client, raindex_id.chain_id, vault, None)?;
+        let vault =
+            RaindexVault::try_from_sg_vault(raindex_client, raindex_id.chain_id, vault, None)?;
         Ok(Some(vault))
     }
 

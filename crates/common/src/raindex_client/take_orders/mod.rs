@@ -97,11 +97,8 @@ impl RaindexClient {
         )
         .await?;
 
-        let (best_raindex, best_sim) = selection::select_best_raindex_simulation(
-            candidates.clone(),
-            req.mode,
-            req.price_cap,
-        )?;
+        let (best_raindex, best_sim) =
+            selection::select_best_raindex_simulation(candidates.clone(), req.mode, req.price_cap)?;
 
         let mut built =
             build_take_orders_config_from_simulation(best_sim.clone(), req.mode, req.price_cap)?

@@ -41,8 +41,9 @@ impl ClientBootstrapAdapter {
         db: &E,
         raindex_id: &RaindexIdentifier,
     ) -> Result<bool, LocalDbError> {
-        let rows: Vec<TargetWatermarkRow> =
-            db.query_json(&fetch_target_watermark_stmt(raindex_id)).await?;
+        let rows: Vec<TargetWatermarkRow> = db
+            .query_json(&fetch_target_watermark_stmt(raindex_id))
+            .await?;
         Ok(rows.is_empty())
     }
 }

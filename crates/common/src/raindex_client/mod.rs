@@ -47,9 +47,9 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*, wasm_export};
 pub mod add_orders;
 pub mod local_db;
 pub mod order_quotes;
-pub mod raindex_yaml;
 pub mod orders;
 pub mod orders_list;
+pub mod raindex_yaml;
 pub mod remove_orders;
 pub mod take_orders;
 pub mod trades;
@@ -260,9 +260,7 @@ impl RaindexClient {
         &self,
         raindex_address: Address,
     ) -> Result<RaindexSubgraphClient, RaindexError> {
-        let raindex = self
-            .raindex_yaml
-            .get_raindex_by_address(raindex_address)?;
+        let raindex = self.raindex_yaml.get_raindex_by_address(raindex_address)?;
         Ok(RaindexSubgraphClient::new(raindex.subgraph.url.clone()))
     }
 

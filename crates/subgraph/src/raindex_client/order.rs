@@ -178,7 +178,7 @@ impl RaindexSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgOrder, SgRaindex, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs,
+        SgBigInt, SgBytes, SgOrder, SgOrdersListFilterArgs, SgOrdersTokensFilterArgs, SgRaindex,
     };
     use crate::utils::float::*;
     use cynic::Id;

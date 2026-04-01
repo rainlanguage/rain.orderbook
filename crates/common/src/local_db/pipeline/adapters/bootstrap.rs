@@ -87,8 +87,9 @@ pub trait BootstrapPipeline {
             .all(|&t| existing_set.contains(&t.to_ascii_lowercase()));
 
         let last_synced_block = if existing_set.contains("target_watermarks") {
-            let rows: Vec<TargetWatermarkRow> =
-                db.query_json(&fetch_target_watermark_stmt(raindex_id)).await?;
+            let rows: Vec<TargetWatermarkRow> = db
+                .query_json(&fetch_target_watermark_stmt(raindex_id))
+                .await?;
             rows.first().map(|r| r.last_block)
         } else {
             None

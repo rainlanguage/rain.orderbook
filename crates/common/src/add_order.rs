@@ -33,9 +33,7 @@ use rain_metadata::{
 };
 use rain_metadata_bindings::MetaBoard::emitMetaCall;
 use raindex_app_settings::deployment::DeploymentCfg;
-use raindex_bindings::IRaindexV6::{
-    addOrder4Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2,
-};
+use raindex_bindings::IRaindexV6::{addOrder4Call, EvaluableV4, OrderConfigV4, TaskV2, IOV2};
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
@@ -360,10 +358,8 @@ impl AddOrderArgs {
         transaction_args: TransactionArgs,
     ) -> Result<WriteContractParameters<addOrder4Call>, AddOrderArgsError> {
         let add_order_call = self.try_into_call(transaction_args.clone().rpcs).await?;
-        let params = transaction_args.try_into_write_contract_parameters(
-            add_order_call,
-            transaction_args.raindex_address,
-        )?;
+        let params = transaction_args
+            .try_into_write_contract_parameters(add_order_call, transaction_args.raindex_address)?;
         Ok(params)
     }
 

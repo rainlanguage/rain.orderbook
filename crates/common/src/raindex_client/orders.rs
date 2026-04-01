@@ -36,8 +36,8 @@ use rain_metadata::{KnownMagic, RainMetaDocumentV1Item};
 use raindex_subgraph_client::{
     types::{
         common::{
-            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgRaindex, SgOrdersListFilterArgs,
-            SgOrdersTokensFilterArgs, SgVault,
+            SgBigInt, SgBytes, SgOrder, SgOrderAsIO, SgOrdersListFilterArgs,
+            SgOrdersTokensFilterArgs, SgRaindex, SgVault,
         },
         Id,
     },
@@ -463,7 +463,8 @@ impl RaindexOrder {
     }
     #[wasm_export(skip)]
     pub fn get_raindex_subgraph_client(&self) -> Result<RaindexSubgraphClient, RaindexError> {
-        self.raindex_client.get_raindex_subgraph_client(self.raindex)
+        self.raindex_client
+            .get_raindex_subgraph_client(self.raindex)
     }
     #[wasm_export(skip)]
     pub fn get_rpc_urls(&self) -> Result<Vec<Url>, RaindexError> {
@@ -1060,7 +1061,9 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         order_hash: &B256,
     ) -> Result<Option<RaindexOrder>, RaindexError> {
         let raindex_client = ClientRef::new(self.client.clone());
-        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
+        let client = self
+            .client
+            .get_raindex_subgraph_client(raindex_id.raindex_address)?;
         let order = match client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
             .await
@@ -1069,7 +1072,8 @@ impl OrdersDataSource for SubgraphOrders<'_> {
             Err(RaindexSubgraphClientError::Empty) => return Ok(None),
             Err(err) => return Err(err.into()),
         };
-        let order = RaindexOrder::try_from_sg_order(raindex_client, raindex_id.chain_id, order, None)?;
+        let order =
+            RaindexOrder::try_from_sg_order(raindex_client, raindex_id.chain_id, order, None)?;
         Ok(Some(order))
     }
 
@@ -1131,7 +1135,9 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         end_timestamp: Option<u64>,
         page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
+        let client = self
+            .client
+            .get_raindex_subgraph_client(raindex_id.raindex_address)?;
 
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
@@ -1162,7 +1168,9 @@ impl OrdersDataSource for SubgraphOrders<'_> {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
-        let client = self.client.get_raindex_subgraph_client(raindex_id.raindex_address)?;
+        let client = self
+            .client
+            .get_raindex_subgraph_client(raindex_id.raindex_address)?;
 
         let order = client
             .order_detail_by_hash(SgBytes(order_hash.to_string()))
@@ -1537,8 +1545,7 @@ mod tests {
             ContentEncoding, ContentLanguage, ContentType, KnownMagic, RainMetaDocumentV1Item,
         };
         use raindex_subgraph_client::types::common::{
-            SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgTransaction,
-            SgVault,
+            SgAddOrder, SgBigInt, SgBytes, SgErc20, SgOrderAsIO, SgRaindex, SgTransaction, SgVault,
         };
         use raindex_subgraph_client::utils::float::*;
         use serde_bytes::ByteBuf;

@@ -39,10 +39,8 @@ impl WithdrawArgs {
         let (ledger_client, _) = transaction_args.clone().try_into_ledger_client().await?;
 
         let withdraw_call: withdraw4Call = self.clone().into();
-        let params = transaction_args.try_into_write_contract_parameters(
-            withdraw_call,
-            transaction_args.raindex_address,
-        )?;
+        let params = transaction_args
+            .try_into_write_contract_parameters(withdraw_call, transaction_args.raindex_address)?;
 
         WriteTransaction::new(ledger_client, params, 4, transaction_status_changed)
             .execute()

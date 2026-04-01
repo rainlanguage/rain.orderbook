@@ -8,7 +8,8 @@ pub async fn fetch_last_synced_block<E: LocalDbQueryExecutor + ?Sized>(
     exec: &E,
     raindex_id: &RaindexIdentifier,
 ) -> Result<Vec<SyncStatusResponse>, LocalDbQueryError> {
-    exec.query_json(&fetch_last_synced_block_stmt(raindex_id)).await
+    exec.query_json(&fetch_last_synced_block_stmt(raindex_id))
+        .await
 }
 
 #[cfg(target_family = "wasm")]
@@ -54,14 +55,12 @@ mod wasm_tests {
 
     #[wasm_bindgen_test]
     async fn wrapper_uses_raw_sql_exactly() {
-        let expected_stmt =
-            fetch_last_synced_block_stmt(&RaindexIdentifier::new(0, Address::ZERO));
+        let expected_stmt = fetch_last_synced_block_stmt(&RaindexIdentifier::new(0, Address::ZERO));
         let store = Rc::new(RefCell::new((String::new(), JsValue::UNDEFINED)));
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
         let res =
-            super::fetch_last_synced_block(&exec, &RaindexIdentifier::new(0, Address::ZERO))
-                .await;
+            super::fetch_last_synced_block(&exec, &RaindexIdentifier::new(0, Address::ZERO)).await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone().0, expected_stmt.sql);
     }

@@ -11,7 +11,12 @@ pub fn upsert_vault_balances_batch(
     start_block: u64,
     end_block: u64,
 ) -> SqlStatementBatch {
-    let change_stmt = build_stmt(INSERT_BALANCE_CHANGES_SQL, raindex_id, start_block, end_block);
+    let change_stmt = build_stmt(
+        INSERT_BALANCE_CHANGES_SQL,
+        raindex_id,
+        start_block,
+        end_block,
+    );
     let running_stmt = build_stmt(UPSERT_RUNNING_SQL, raindex_id, start_block, end_block);
     SqlStatementBatch::from(vec![change_stmt, running_stmt])
 }

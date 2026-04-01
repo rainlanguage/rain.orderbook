@@ -178,9 +178,7 @@ _ _: 0 0;
 pub mod local_evm {
     use alloy::primitives::{Address, B256, U256};
     use rain_math_float::Float;
-    use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgRaindex, SgVault,
-    };
+    use raindex_subgraph_client::types::common::{SgBigInt, SgBytes, SgErc20, SgRaindex, SgVault};
     use raindex_test_fixtures::LocalEvm;
 
     pub struct TestSetup {
@@ -596,11 +594,7 @@ pub mod candidates {
 
     use super::orders::make_basic_order;
 
-    pub fn make_candidate(
-        raindex: Address,
-        max_output: Float,
-        ratio: Float,
-    ) -> TakeOrderCandidate {
+    pub fn make_candidate(raindex: Address, max_output: Float, ratio: Float) -> TakeOrderCandidate {
         TakeOrderCandidate {
             raindex,
             order: make_basic_order(Address::from([4u8; 20]), Address::from([5u8; 20])),
@@ -909,9 +903,7 @@ amount price: {max_output} {ratio};
 pub mod subgraph {
     use alloy::primitives::{Address, B256};
     use raindex_app_settings::spec_version::SpecVersion;
-    use raindex_subgraph_client::types::common::{
-        SgBigInt, SgBytes, SgOrder, SgRaindex, SgVault,
-    };
+    use raindex_subgraph_client::types::common::{SgBigInt, SgBytes, SgOrder, SgRaindex, SgVault};
     use serde_json::json;
 
     use super::local_evm::{MultiRaindexTestSetup, TestSetup};

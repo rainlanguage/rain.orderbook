@@ -116,8 +116,7 @@ impl RaindexYaml {
         #[wasm_export(param_description = "The hexadecimal address of the raindex contract")]
         raindex_address: &str,
     ) -> Result<RaindexCfg, RaindexYamlError> {
-        let address =
-            Address::from_str(raindex_address).map_err(RaindexYamlError::FromHexError)?;
+        let address = Address::from_str(raindex_address).map_err(RaindexYamlError::FromHexError)?;
         Ok(self.yaml.get_raindex_by_address(address)?)
     }
 
@@ -405,8 +404,7 @@ pub(crate) mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_tokens_multiple_networks() {
-        let mut raindex_yaml =
-            RaindexYaml::new(vec![get_yaml_multiple_networks()], None).unwrap();
+        let mut raindex_yaml = RaindexYaml::new(vec![get_yaml_multiple_networks()], None).unwrap();
         let tokens = raindex_yaml.get_tokens().await.unwrap();
 
         assert_eq!(tokens.len(), 2);

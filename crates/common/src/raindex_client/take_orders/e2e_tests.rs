@@ -978,13 +978,11 @@ async fn test_cross_raindex_selection_picks_best_book() {
     )
     .await;
 
-    let dotrain_a =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "5", "2");
+    let dotrain_a = create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "5", "2");
     let (order_bytes_a, order_hash_a, _order_v4_a) =
         deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
-    let dotrain_b =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "8", "2");
+    let dotrain_b = create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "8", "2");
     let (order_bytes_b, order_hash_b, order_v4_b) =
         deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 
@@ -1130,13 +1128,11 @@ async fn test_cross_raindex_selection_flips_when_economics_flip() {
     )
     .await;
 
-    let dotrain_a =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "10", "2");
+    let dotrain_a = create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "10", "2");
     let (order_bytes_a, order_hash_a, order_v4_a) =
         deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
-    let dotrain_b =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "3", "2");
+    let dotrain_b = create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "3", "2");
     let (order_bytes_b, order_hash_b, _order_v4_b) =
         deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 
@@ -1272,13 +1268,11 @@ async fn test_cross_raindex_economic_selection_prefers_best_yield() {
     )
     .await;
 
-    let dotrain_a =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "5", "1");
+    let dotrain_a = create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "5", "1");
     let (order_bytes_a, order_hash_a, order_v4_a) =
         deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
-    let dotrain_b =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "8", "1.5");
+    let dotrain_b = create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "8", "1.5");
     let (order_bytes_b, order_hash_b, _order_v4_b) =
         deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 
@@ -2081,13 +2075,11 @@ async fn test_spend_mode_cross_raindex_selection() {
     )
     .await;
 
-    let dotrain_a =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "50", "2");
+    let dotrain_a = create_dotrain_config_for_raindex(&setup, setup.raindex_a, "0x01", "50", "2");
     let (order_bytes_a, order_hash_a, _order_v4_a) =
         deploy_order_to_raindex(&setup, setup.raindex_a, dotrain_a).await;
 
-    let dotrain_b =
-        create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "80", "2");
+    let dotrain_b = create_dotrain_config_for_raindex(&setup, setup.raindex_b, "0x02", "80", "2");
     let (order_bytes_b, order_hash_b, order_v4_b) =
         deploy_order_to_raindex(&setup, setup.raindex_b, dotrain_b).await;
 

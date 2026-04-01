@@ -204,7 +204,12 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let (start, _) = pipe
-            .compute(&db, &sample_raindex_id(), &cfg(100, 0, Some(100), None), 200)
+            .compute(
+                &db,
+                &sample_raindex_id(),
+                &cfg(100, 0, Some(100), None),
+                200,
+            )
             .await
             .unwrap();
         assert_eq!(start, 151);
@@ -248,7 +253,12 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // safe_head = 980
         let (_, target) = pipe
-            .compute(&db, &sample_raindex_id(), &cfg(100, 20, None, Some(2000)), 1000)
+            .compute(
+                &db,
+                &sample_raindex_id(),
+                &cfg(100, 20, None, Some(2000)),
+                1000,
+            )
             .await
             .unwrap();
         assert_eq!(target, 980);
@@ -279,7 +289,12 @@ mod tests {
         };
         let pipe = DefaultWindowPipeline::new();
         let (start, _) = pipe
-            .compute(&db, &sample_raindex_id(), &cfg(100, 0, Some(150), None), 200)
+            .compute(
+                &db,
+                &sample_raindex_id(),
+                &cfg(100, 0, Some(150), None),
+                200,
+            )
             .await
             .unwrap();
         assert_eq!(start, 151);
@@ -294,7 +309,12 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // safe_head = 980; end_override = 500 -> target = 500
         let (_, target) = pipe
-            .compute(&db, &sample_raindex_id(), &cfg(100, 20, None, Some(500)), 1000)
+            .compute(
+                &db,
+                &sample_raindex_id(),
+                &cfg(100, 20, None, Some(500)),
+                1000,
+            )
             .await
             .unwrap();
         assert_eq!(target, 500);
@@ -343,7 +363,12 @@ mod tests {
         let pipe = DefaultWindowPipeline::new();
         // base start = 201; end_override = 150; depth=0 so safe_head is high and does not clamp
         let (start, target) = pipe
-            .compute(&db, &sample_raindex_id(), &cfg(100, 0, None, Some(150)), 1000)
+            .compute(
+                &db,
+                &sample_raindex_id(),
+                &cfg(100, 0, None, Some(150)),
+                1000,
+            )
             .await
             .unwrap();
         assert_eq!(start, 201);

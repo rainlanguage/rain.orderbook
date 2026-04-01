@@ -501,7 +501,13 @@ mod tests {
         let decoded = vec![deposit_event(token)];
 
         let err = pipeline
-            .build_batch(&build_target_info(&raindex_id, 1, 1), &[], &decoded, &[], &[])
+            .build_batch(
+                &build_target_info(&raindex_id, 1, 1),
+                &[],
+                &decoded,
+                &[],
+                &[],
+            )
             .unwrap_err();
 
         use crate::local_db::insert::InsertError;
@@ -773,7 +779,13 @@ mod tests {
         )];
 
         let batch = pipeline
-            .build_batch(&build_target_info(&raindex_id, 1, 1), &[], &[], &[], &upserts)
+            .build_batch(
+                &build_target_info(&raindex_id, 1, 1),
+                &[],
+                &[],
+                &[],
+                &upserts,
+            )
             .expect("batch ok");
 
         let stmt = batch
@@ -817,7 +829,13 @@ mod tests {
         let b = mk(10, 3);
 
         let batch = pipeline
-            .build_batch(&build_target_info(&raindex_id, 1, 10), &[a, b], &[], &[], &[])
+            .build_batch(
+                &build_target_info(&raindex_id, 1, 10),
+                &[a, b],
+                &[],
+                &[],
+                &[],
+            )
             .expect("batch ok");
 
         let raws: Vec<_> = batch

@@ -13,9 +13,7 @@ use raindex_app_settings::{
     order::{OrderIOCfg, VaultType},
     raindex::RaindexCfg,
 };
-use raindex_bindings::{
-    IRaindexV6::deposit4Call, Raindex::multicallCall, IERC20::approveCall,
-};
+use raindex_bindings::{IRaindexV6::deposit4Call, Raindex::multicallCall, IERC20::approveCall};
 use raindex_common::{
     add_order::AddOrderArgs, deposit::DepositArgs, erc20::ERC20, transaction::TransactionArgs,
 };
@@ -855,8 +853,7 @@ impl DotrainOrderGui {
     fn get_metaboard_client(&self) -> Result<MetaboardSubgraphClient, GuiError> {
         let deployment = self.get_current_deployment()?;
         let raindex_yaml = self.dotrain_order.raindex_yaml();
-        let metaboard_cfg =
-            raindex_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
+        let metaboard_cfg = raindex_yaml.get_metaboard(&deployment.deployment.order.network.key)?;
         Ok(MetaboardSubgraphClient::new(metaboard_cfg.url.clone()))
     }
 

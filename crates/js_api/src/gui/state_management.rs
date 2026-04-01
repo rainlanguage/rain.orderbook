@@ -547,9 +547,7 @@ mod tests {
     };
     use alloy::primitives::{Address, U256};
     use js_sys::{eval, Reflect};
-    use raindex_app_settings::{
-        network::NetworkCfg, order::VaultType, yaml::YamlParsableHash,
-    };
+    use raindex_app_settings::{network::NetworkCfg, order::VaultType, yaml::YamlParsableHash};
     use raindex_common::dotrain::RainDocument;
     use raindex_common::dotrain_order::DotrainOrder;
     use std::str::FromStr;

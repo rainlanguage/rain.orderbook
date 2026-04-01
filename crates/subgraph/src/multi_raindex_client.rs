@@ -158,7 +158,7 @@ impl MultiRaindexSubgraphClient {
 mod tests {
     use super::*;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgErc20, SgOrder, SgRaindex, SgOrdersListFilterArgs, SgVault,
+        SgBigInt, SgBytes, SgErc20, SgOrder, SgOrdersListFilterArgs, SgRaindex, SgVault,
     };
     use crate::utils::float::*;
     use httpmock::prelude::*;

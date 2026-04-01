@@ -229,9 +229,7 @@ mod tests {
             },
             local_db::RaindexIdentifier,
             raindex_client::local_db::LocalDb,
-            raindex_client::tests::{
-                get_test_yaml, new_with_local_db, CHAIN_ID_1_RAINDEX_ADDRESS,
-            },
+            raindex_client::tests::{get_test_yaml, new_with_local_db, CHAIN_ID_1_RAINDEX_ADDRESS},
         };
         use alloy::primitives::{b256, Address, Bytes, U256};
         use async_trait::async_trait;
@@ -759,13 +757,7 @@ mod tests {
             .await;
 
             let res = client
-                .get_remove_orders_for_transaction(
-                    137,
-                    raindex_address,
-                    tx_hash,
-                    Some(3),
-                    Some(1),
-                )
+                .get_remove_orders_for_transaction(137, raindex_address, tx_hash, Some(3), Some(1))
                 .await
                 .unwrap();
 
@@ -815,13 +807,7 @@ mod tests {
             .await;
 
             let err = client
-                .get_remove_orders_for_transaction(
-                    137,
-                    raindex_address,
-                    tx_hash,
-                    Some(2),
-                    Some(1),
-                )
+                .get_remove_orders_for_transaction(137, raindex_address, tx_hash, Some(2), Some(1))
                 .await
                 .unwrap_err();
 

@@ -88,10 +88,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("raindex.sqlite");
         let conn = Connection::open(&db_path).expect("open sqlite db");
-        conn.execute_batch(
-            raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL,
-        )
-        .expect("create tables");
+        conn.execute_batch(raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL)
+            .expect("create tables");
 
         let chain_id = 42161u32;
         let raindex_address = address!("0x0000000000000000000000000000000000000abc");
@@ -209,10 +207,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let db_path = temp_dir.path().join("raindex.sqlite");
         let conn = Connection::open(&db_path).expect("open sqlite db");
-        conn.execute_batch(
-            raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL,
-        )
-        .expect("create tables");
+        conn.execute_batch(raindex_common::local_db::query::create_tables::CREATE_TABLES_SQL)
+            .expect("create tables");
         drop(conn);
 
         let chain_id = 10u32;

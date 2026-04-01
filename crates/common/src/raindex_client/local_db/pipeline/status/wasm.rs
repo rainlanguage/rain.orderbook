@@ -48,7 +48,9 @@ impl ClientStatusBus {
     }
 
     pub fn with_ob_id(raindex_id: RaindexIdentifier) -> Self {
-        Self { raindex_id: Some(raindex_id) }
+        Self {
+            raindex_id: Some(raindex_id),
+        }
     }
 
     fn emit(&self, status: RaindexSyncStatus) {
@@ -61,7 +63,10 @@ impl ClientStatusBus {
         };
 
         let scheduler_state = get_scheduler_state();
-        self.emit(RaindexSyncStatus::active(raindex_id.clone(), scheduler_state));
+        self.emit(RaindexSyncStatus::active(
+            raindex_id.clone(),
+            scheduler_state,
+        ));
     }
 
     pub fn emit_failure(&self, error: String) {

@@ -187,8 +187,14 @@ impl OrdersDataSource for LocalDbOrders<'_> {
         end_timestamp: Option<u64>,
         _page: Option<u16>,
     ) -> Result<Vec<RaindexTrade>, RaindexError> {
-        let local_trades =
-            fetch_order_trades(self.db, raindex_id, *order_hash, start_timestamp, end_timestamp).await?;
+        let local_trades = fetch_order_trades(
+            self.db,
+            raindex_id,
+            *order_hash,
+            start_timestamp,
+            end_timestamp,
+        )
+        .await?;
 
         local_trades
             .into_iter()
@@ -203,10 +209,14 @@ impl OrdersDataSource for LocalDbOrders<'_> {
         start_timestamp: Option<u64>,
         end_timestamp: Option<u64>,
     ) -> Result<u64, RaindexError> {
-        Ok(
-            fetch_order_trades_count(self.db, raindex_id, *order_hash, start_timestamp, end_timestamp)
-                .await?,
+        Ok(fetch_order_trades_count(
+            self.db,
+            raindex_id,
+            *order_hash,
+            start_timestamp,
+            end_timestamp,
         )
+        .await?)
     }
 }
 

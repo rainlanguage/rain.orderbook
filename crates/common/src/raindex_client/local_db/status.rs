@@ -62,7 +62,13 @@ impl RaindexSyncStatus {
     }
 
     pub fn active(raindex_id: RaindexIdentifier, scheduler_state: SchedulerState) -> Self {
-        Self::new(raindex_id, LocalDbStatus::Active, scheduler_state, None, None)
+        Self::new(
+            raindex_id,
+            LocalDbStatus::Active,
+            scheduler_state,
+            None,
+            None,
+        )
     }
 
     pub fn failure(raindex_id: RaindexIdentifier, error: String) -> Self {

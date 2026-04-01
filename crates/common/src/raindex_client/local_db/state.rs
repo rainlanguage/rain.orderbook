@@ -423,8 +423,8 @@ raindexes:
 "#,
             version = SpecVersion::current()
         );
-        let yaml = RaindexYaml::new(vec![yaml_str], RaindexYamlValidation::default())
-            .expect("valid yaml");
+        let yaml =
+            RaindexYaml::new(vec![yaml_str], RaindexYamlValidation::default()).expect("valid yaml");
         let ids = LocalDbState::compute_chain_ids(&yaml);
         assert_eq!(ids, HashSet::from([42161]));
         assert!(!ids.contains(&137));
@@ -451,8 +451,8 @@ raindexes:
 "#,
             version = SpecVersion::current()
         );
-        let yaml = RaindexYaml::new(vec![yaml_str], RaindexYamlValidation::default())
-            .expect("valid yaml");
+        let yaml =
+            RaindexYaml::new(vec![yaml_str], RaindexYamlValidation::default()).expect("valid yaml");
         let ids = LocalDbState::compute_chain_ids(&yaml);
         assert!(ids.is_empty());
     }

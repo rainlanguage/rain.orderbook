@@ -145,13 +145,25 @@ impl RaindexOrder {
             QuerySource::LocalDb(local_db) => {
                 let local_source = LocalDbOrders::new(&local_db, ClientRef::clone(&raindex_client));
                 local_source
-                    .trades_list(&raindex_id, &order_hash, start_timestamp, end_timestamp, page)
+                    .trades_list(
+                        &raindex_id,
+                        &order_hash,
+                        start_timestamp,
+                        end_timestamp,
+                        page,
+                    )
                     .await
             }
             QuerySource::Subgraph => {
                 let subgraph_source = SubgraphOrders::new(&raindex_client);
                 subgraph_source
-                    .trades_list(&raindex_id, &order_hash, start_timestamp, end_timestamp, page)
+                    .trades_list(
+                        &raindex_id,
+                        &order_hash,
+                        start_timestamp,
+                        end_timestamp,
+                        page,
+                    )
                     .await
             }
         }

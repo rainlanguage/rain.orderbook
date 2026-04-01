@@ -350,8 +350,7 @@ impl OrderCfg {
                     }
 
                     if let Some(raindex_key) = optional_string(order_yaml, "raindex") {
-                        let key =
-                            RaindexCfg::parse_network_key(documents.clone(), &raindex_key)?;
+                        let key = RaindexCfg::parse_network_key(documents.clone(), &raindex_key)?;
 
                         if let Some(ref existing_key) = network_key {
                             if *existing_key != key {

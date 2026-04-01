@@ -178,9 +178,7 @@ mod tests {
     use alloy::primitives::{address, Address};
     use raindex_common::local_db::pipeline::engine::SyncInputs;
     use raindex_common::local_db::pipeline::runner::utils::RunnerTarget;
-    use raindex_common::local_db::pipeline::runner::{
-        TargetFailure, TargetStage, TargetSuccess,
-    };
+    use raindex_common::local_db::pipeline::runner::{TargetFailure, TargetStage, TargetSuccess};
     use raindex_common::local_db::pipeline::{
         FinalityConfig, SyncConfig, SyncOutcome, WindowOverrides,
     };

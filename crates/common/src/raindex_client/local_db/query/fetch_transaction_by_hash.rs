@@ -36,12 +36,9 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback("[]", store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
 
-        let res = super::fetch_transaction_by_hash(
-            &exec,
-            &RaindexIdentifier::new(1, raindex),
-            tx_hash,
-        )
-        .await;
+        let res =
+            super::fetch_transaction_by_hash(&exec, &RaindexIdentifier::new(1, raindex), tx_hash)
+                .await;
         assert!(res.is_ok());
         assert_eq!(store.borrow().clone().0, expected_stmt.sql);
     }
@@ -71,12 +68,9 @@ mod wasm_tests {
         let callback = create_sql_capturing_callback(&row_json, store.clone());
         let exec = JsCallbackExecutor::from_ref(&callback);
 
-        let res = super::fetch_transaction_by_hash(
-            &exec,
-            &RaindexIdentifier::new(1, raindex),
-            tx_hash,
-        )
-        .await;
+        let res =
+            super::fetch_transaction_by_hash(&exec, &RaindexIdentifier::new(1, raindex), tx_hash)
+                .await;
         assert!(res.is_ok());
         let rows = res.unwrap();
         assert_eq!(rows.len(), 1);

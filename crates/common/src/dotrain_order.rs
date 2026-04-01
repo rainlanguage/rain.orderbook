@@ -313,8 +313,7 @@ impl DotrainOrder {
             sources.extend(settings);
         }
 
-        let mut raindex_yaml =
-            RaindexYaml::new(sources.clone(), RaindexYamlValidation::default())?;
+        let mut raindex_yaml = RaindexYaml::new(sources.clone(), RaindexYamlValidation::default())?;
 
         let mut dotrain_yaml = DotrainYaml::new_with_profile(
             sources.clone(),
@@ -628,7 +627,10 @@ impl DotrainOrder {
 
         let network_key = order_cfg.network.key.clone();
         let rainlang_key = rainlang_cfg.key.clone();
-        let raindex_key = order_cfg.raindex.as_ref().map(|raindex_cfg| raindex_cfg.key.clone());
+        let raindex_key = order_cfg
+            .raindex
+            .as_ref()
+            .map(|raindex_cfg| raindex_cfg.key.clone());
         let subgraph_key = order_cfg
             .raindex
             .as_ref()

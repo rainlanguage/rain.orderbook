@@ -268,11 +268,8 @@ mod tests {
 
         for _ in 0..20 {
             let candidates = vec![higher_candidate.clone(), lower_candidate.clone()];
-            let result = select_best_raindex_simulation(
-                candidates,
-                buy_up_to(buy_target),
-                high_price_cap(),
-            );
+            let result =
+                select_best_raindex_simulation(candidates, buy_up_to(buy_target), high_price_cap());
             assert!(result.is_ok());
             let (winner, sim) = result.unwrap();
 
@@ -303,11 +300,8 @@ mod tests {
 
         for _ in 0..20 {
             let candidates = vec![worse_candidate.clone(), better_candidate.clone()];
-            let result = select_best_raindex_simulation(
-                candidates,
-                buy_up_to(buy_target),
-                high_price_cap(),
-            );
+            let result =
+                select_best_raindex_simulation(candidates, buy_up_to(buy_target), high_price_cap());
             assert!(result.is_ok());
             let (winner, sim) = result.unwrap();
 
@@ -330,11 +324,8 @@ mod tests {
         let candidates = vec![candidate];
         let spend_budget = Float::parse("100".to_string()).unwrap();
 
-        let result = select_best_raindex_simulation(
-            candidates,
-            spend_up_to(spend_budget),
-            high_price_cap(),
-        );
+        let result =
+            select_best_raindex_simulation(candidates, spend_up_to(spend_budget), high_price_cap());
 
         assert!(result.is_ok());
         let (addr, sim) = result.unwrap();
@@ -362,11 +353,8 @@ mod tests {
         let candidates = vec![bad_rate_candidate, good_rate_candidate];
         let spend_budget = Float::parse("100".to_string()).unwrap();
 
-        let result = select_best_raindex_simulation(
-            candidates,
-            spend_up_to(spend_budget),
-            high_price_cap(),
-        );
+        let result =
+            select_best_raindex_simulation(candidates, spend_up_to(spend_budget), high_price_cap());
 
         assert!(result.is_ok());
         let (winner, sim) = result.unwrap();

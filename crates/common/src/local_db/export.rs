@@ -1058,11 +1058,7 @@ mod tests {
 
     #[test]
     fn has_target_filters_detects_required_columns() {
-        let columns = vec![
-            column("chain_id"),
-            column("raindex_address"),
-            column("foo"),
-        ];
+        let columns = vec![column("chain_id"), column("raindex_address"), column("foo")];
         assert!(has_target_filters(&columns));
 
         let missing_raindex = vec![column("chain_id"), column("foo")];

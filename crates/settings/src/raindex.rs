@@ -584,8 +584,7 @@ raindexes:
         let yaml = r#"
 raindexes: test
 "#;
-        let error =
-            RaindexCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        let error = RaindexCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -602,8 +601,7 @@ raindexes: test
 raindexes:
   - test
 "#;
-        let error =
-            RaindexCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        let error = RaindexCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -620,8 +618,7 @@ raindexes:
 raindexes:
   - test: test
 "#;
-        let error =
-            RaindexCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
+        let error = RaindexCfg::parse_network_key(vec![get_document(yaml)], "order1").unwrap_err();
         assert_eq!(
             error,
             YamlError::Field {
@@ -698,10 +695,7 @@ raindexes:
 "#;
         let raindexes = RaindexCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         assert_eq!(raindexes.len(), 3);
-        assert_eq!(
-            raindexes.get("TestRaindex1").unwrap().deployment_block,
-            0
-        );
+        assert_eq!(raindexes.get("TestRaindex1").unwrap().deployment_block, 0);
         assert_eq!(
             raindexes.get("TestRaindex2").unwrap().deployment_block,
             18446744073709551615
@@ -862,7 +856,10 @@ raindexes:
 "#;
         let raindexes = RaindexCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         let raindex_cfg = raindexes.get("TestRaindex").unwrap();
-        let remote = raindex_cfg.local_db_remote.as_ref().expect("expected remote");
+        let remote = raindex_cfg
+            .local_db_remote
+            .as_ref()
+            .expect("expected remote");
         assert_eq!(remote.key, "TestRaindex");
         assert_eq!(
             remote.url.to_string(),
@@ -892,7 +889,10 @@ raindexes:
 "#;
         let raindexes = RaindexCfg::parse_all_from_yaml(vec![get_document(yaml)], None).unwrap();
         let raindex_cfg = raindexes.get("TestRaindex").unwrap();
-        let remote = raindex_cfg.local_db_remote.as_ref().expect("expected remote");
+        let remote = raindex_cfg
+            .local_db_remote
+            .as_ref()
+            .expect("expected remote");
         assert_eq!(remote.key, "mainnet");
         assert_eq!(
             remote.url.to_string(),

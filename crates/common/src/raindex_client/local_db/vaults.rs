@@ -275,7 +275,10 @@ mod tests {
                 Address::from_str("0x2f209e5b67A33B8fE96E28f24628dF6Da301c8eB").unwrap();
             let data_source = LocalDbVaults::new(&local_db, Rc::new(client));
             let retrieved = data_source
-                .get_by_id(&RaindexIdentifier::new(42161, raindex_addr), &vault_id_bytes)
+                .get_by_id(
+                    &RaindexIdentifier::new(42161, raindex_addr),
+                    &vault_id_bytes,
+                )
                 .await
                 .expect("local vault retrieval should succeed")
                 .expect("vault should be found");

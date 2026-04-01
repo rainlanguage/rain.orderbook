@@ -89,11 +89,13 @@ pub fn build_runner_targets(
             manifest_end_block: 0,
         };
 
-        let remote = raindex.local_db_remote.as_ref().ok_or_else(|| {
-            LocalDbError::MissingLocalDbRemote {
-                raindex_key: key.clone(),
-            }
-        })?;
+        let remote =
+            raindex
+                .local_db_remote
+                .as_ref()
+                .ok_or_else(|| LocalDbError::MissingLocalDbRemote {
+                    raindex_key: key.clone(),
+                })?;
 
         targets.push(RunnerTarget {
             raindex_key: key.clone(),

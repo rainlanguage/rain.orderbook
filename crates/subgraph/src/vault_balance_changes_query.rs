@@ -68,7 +68,7 @@ mod tests {
     use super::*;
     use crate::cynic_client::CynicClientError;
     use crate::types::common::{
-        SgBigInt, SgBytes, SgDeposit, SgErc20, SgRaindex, SgPaginationWithIdQueryVariables,
+        SgBigInt, SgBytes, SgDeposit, SgErc20, SgPaginationWithIdQueryVariables, SgRaindex,
         SgTransaction, SgVaultBalanceChangeVault, SgWithdrawal,
     };
     use httpmock::prelude::*;

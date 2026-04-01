@@ -17,8 +17,13 @@ pub async fn fetch_vault_balance_changes<E: LocalDbQueryExecutor + ?Sized>(
 ) -> Result<Vec<LocalDbVaultBalanceChange>, LocalDbQueryError> {
     let filter_kinds: Option<Vec<VaultBalanceChangeKind>> =
         filter_types.map(|filters| filters.iter().map(|f| f.to_kind()).collect());
-    let stmt =
-        build_fetch_balance_changes_stmt(raindex_id, vault_id, token, owner, filter_kinds.as_deref())?;
+    let stmt = build_fetch_balance_changes_stmt(
+        raindex_id,
+        vault_id,
+        token,
+        owner,
+        filter_kinds.as_deref(),
+    )?;
     exec.query_json(&stmt).await
 }
 

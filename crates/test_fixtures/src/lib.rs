@@ -56,8 +56,7 @@ pub struct LocalEvm {
     pub raindex: Raindex::RaindexInstance<LocalEvmProvider, AnyNetwork>,
 
     /// Alloy raindex subparser contract instance deployed on this blockchain
-    pub raindex_subparser:
-        RaindexSubParser::RaindexSubParserInstance<LocalEvmProvider, AnyNetwork>,
+    pub raindex_subparser: RaindexSubParser::RaindexSubParserInstance<LocalEvmProvider, AnyNetwork>,
 
     /// Alloy interpreter contract instance deployed on this blockchain
     pub interpreter: Interpreter::InterpreterInstance<LocalEvmProvider, AnyNetwork>,

@@ -8,9 +8,7 @@ impl RaindexSubgraphClient {
         let data = self
             .query::<SgTransactionDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;
-        let transaction = data
-            .transaction
-            .ok_or(RaindexSubgraphClientError::Empty)?;
+        let transaction = data.transaction.ok_or(RaindexSubgraphClientError::Empty)?;
         Ok(transaction)
     }
 

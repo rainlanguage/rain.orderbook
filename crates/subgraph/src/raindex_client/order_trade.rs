@@ -2,10 +2,7 @@ use super::*;
 
 impl RaindexSubgraphClient {
     /// Fetch single order take
-    pub async fn order_trade_detail(
-        &self,
-        id: Id,
-    ) -> Result<SgTrade, RaindexSubgraphClientError> {
+    pub async fn order_trade_detail(&self, id: Id) -> Result<SgTrade, RaindexSubgraphClientError> {
         let data = self
             .query::<SgOrderTradeDetailQuery, SgIdQueryVariables>(SgIdQueryVariables { id: &id })
             .await?;

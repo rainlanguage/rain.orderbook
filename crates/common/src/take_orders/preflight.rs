@@ -207,14 +207,9 @@ pub async fn find_failing_order_index(
             data: config.data.clone(),
         };
 
-        let result = simulate_take_orders(
-            provider,
-            raindex,
-            taker,
-            &single_order_config,
-            block_number,
-        )
-        .await;
+        let result =
+            simulate_take_orders(provider, raindex, taker, &single_order_config, block_number)
+                .await;
 
         if result.is_err() {
             return Some(idx);

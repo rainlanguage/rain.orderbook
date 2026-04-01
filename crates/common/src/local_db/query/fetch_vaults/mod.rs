@@ -91,11 +91,7 @@ pub fn build_fetch_vaults_stmt(args: &FetchVaultsArgs) -> Result<SqlStatement, S
         INNER_RAINDEXES_BODY,
         raindexes_iter(),
     )?;
-    stmt.bind_list_clause(
-        OIO_RAINDEXES_CLAUSE,
-        OIO_RAINDEXES_BODY,
-        raindexes_iter(),
-    )?;
+    stmt.bind_list_clause(OIO_RAINDEXES_CLAUSE, OIO_RAINDEXES_BODY, raindexes_iter())?;
 
     stmt.bind_list_clause(
         OWNERS_CLAUSE,

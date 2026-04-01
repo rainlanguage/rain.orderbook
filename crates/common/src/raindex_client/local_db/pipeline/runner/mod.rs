@@ -865,10 +865,7 @@ mod tests {
         ) -> Result<SqlStatementBatch, LocalDbError> {
             let mut batch = SqlStatementBatch::new();
             batch.add(SqlStatement::new("BEGIN TRANSACTION"));
-            batch.add(SqlStatement::new(format!(
-                "-- apply {}",
-                self.raindex_key
-            )));
+            batch.add(SqlStatement::new(format!("-- apply {}", self.raindex_key)));
             batch.add(SqlStatement::new("COMMIT"));
             Ok(batch)
         }
@@ -1107,7 +1104,10 @@ raindexes:
                 &fetch_target_watermark_stmt(&target.inputs.raindex_id),
                 json!([]),
             );
-            db.set_json_raw(&fetch_store_addresses_stmt(&target.inputs.raindex_id), json!([]));
+            db.set_json_raw(
+                &fetch_store_addresses_stmt(&target.inputs.raindex_id),
+                json!([]),
+            );
         }
     }
 
@@ -1200,7 +1200,10 @@ raindexes:
 
     fn expect_raindexes(report: &RunReport, expected: &[Address]) {
         let outcomes = extract_outcomes(report);
-        let mut addrs: Vec<Address> = outcomes.iter().map(|o| o.raindex_id.raindex_address).collect();
+        let mut addrs: Vec<Address> = outcomes
+            .iter()
+            .map(|o| o.raindex_id.raindex_address)
+            .collect();
         addrs.sort();
         let mut expected_sorted = expected.to_vec();
         expected_sorted.sort();

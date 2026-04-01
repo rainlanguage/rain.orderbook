@@ -370,10 +370,7 @@ impl RaindexYaml {
         Ok(raindexes)
     }
 
-    pub fn get_raindexes_by_chain_id(
-        &self,
-        chain_id: u32,
-    ) -> Result<Vec<RaindexCfg>, YamlError> {
+    pub fn get_raindexes_by_chain_id(&self, chain_id: u32) -> Result<Vec<RaindexCfg>, YamlError> {
         let network = self.get_network_by_chain_id(chain_id)?;
         let mut raindexes: Vec<_> = self
             .get_raindexes()?

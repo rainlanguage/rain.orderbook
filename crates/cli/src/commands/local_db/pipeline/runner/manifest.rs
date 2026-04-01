@@ -38,7 +38,11 @@ pub fn build_manifest(
                     raindex_address: raindex_id.raindex_address,
                 })?;
 
-        let dump_url = build_dump_url(release_base_url, raindex_id.chain_id, raindex_id.raindex_address)?;
+        let dump_url = build_dump_url(
+            release_base_url,
+            raindex_id.chain_id,
+            raindex_id.raindex_address,
+        )?;
         let end_block_hash = Bytes::from_str(export.end_block_hash.as_str())?;
 
         let manifest_raindex = ManifestRaindex {
@@ -406,7 +410,11 @@ mod tests {
         let manifest = build_manifest(&successes, &exports, &lookup, &base_url, &HashMap::new())
             .expect("manifest build succeeds");
         let anvil = manifest.networks.get("anvil").expect("anvil network");
-        let addresses: Vec<_> = anvil.raindexes.iter().map(|raindex_entry| raindex_entry.address).collect();
+        let addresses: Vec<_> = anvil
+            .raindexes
+            .iter()
+            .map(|raindex_entry| raindex_entry.address)
+            .collect();
         assert_eq!(
             addresses,
             vec![

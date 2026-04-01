@@ -363,9 +363,7 @@ mod tests {
     use raindex_common::local_db::pipeline::{
         EventsPipeline, StatusBus, SyncPhase, TokensPipeline, WindowPipeline,
     };
-    use raindex_common::local_db::query::{
-        LocalDbQueryExecutor, SqlStatement, SqlStatementBatch,
-    };
+    use raindex_common::local_db::query::{LocalDbQueryExecutor, SqlStatement, SqlStatementBatch};
     use raindex_common::local_db::{FetchConfig, LocalDbError};
     use std::collections::HashMap;
     use std::fs::File;
@@ -785,8 +783,7 @@ mod tests {
             _from_block: u64,
             _to_block: u64,
             _cfg: &FetchConfig,
-        ) -> Result<Vec<raindex_common::rpc_client::LogEntryResponse>, LocalDbError>
-        {
+        ) -> Result<Vec<raindex_common::rpc_client::LogEntryResponse>, LocalDbError> {
             Ok(Vec::new())
         }
 
@@ -796,8 +793,7 @@ mod tests {
             _from_block: u64,
             _to_block: u64,
             _cfg: &FetchConfig,
-        ) -> Result<Vec<raindex_common::rpc_client::LogEntryResponse>, LocalDbError>
-        {
+        ) -> Result<Vec<raindex_common::rpc_client::LogEntryResponse>, LocalDbError> {
             Ok(Vec::new())
         }
 
@@ -1444,7 +1440,10 @@ raindexes:
         let mut custom_failure = None;
         let mut join_failure = None;
         for failure in &report.failures {
-            match (failure.raindex_id.chain_id, failure.raindex_id.raindex_address) {
+            match (
+                failure.raindex_id.chain_id,
+                failure.raindex_id.raindex_address,
+            ) {
                 (42161, addr) if addr == address!("00000000000000000000000000000000000000b2") => {
                     custom_failure = Some(failure);
                 }

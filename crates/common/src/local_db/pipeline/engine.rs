@@ -324,7 +324,11 @@ where
 
         self.status.send(SyncPhase::RunningPostSyncExport).await?;
         self.apply
-            .export_dump(db, &ctx.target_info.raindex_id, ctx.target_info.target_block)
+            .export_dump(
+                db,
+                &ctx.target_info.raindex_id,
+                ctx.target_info.target_block,
+            )
             .await
     }
 }
@@ -709,11 +713,7 @@ mod tests {
         }
 
         fn push_raindex_result(&self, result: Result<Vec<LogEntryResponse>, LocalDbError>) {
-            self.inner
-                .raindex_results
-                .lock()
-                .unwrap()
-                .push_back(result);
+            self.inner.raindex_results.lock().unwrap().push_back(result);
         }
 
         fn push_store_result(&self, result: Result<Vec<LogEntryResponse>, LocalDbError>) {
@@ -766,11 +766,11 @@ mod tests {
             to_block: u64,
             _cfg: &FetchConfig,
         ) -> Result<Vec<LogEntryResponse>, LocalDbError> {
-            self.inner.raindex_calls.lock().unwrap().push((
-                raindex_address,
-                from_block,
-                to_block,
-            ));
+            self.inner
+                .raindex_calls
+                .lock()
+                .unwrap()
+                .push((raindex_address, from_block, to_block));
             self.inner
                 .raindex_results
                 .lock()
@@ -1181,9 +1181,7 @@ mod tests {
             "0x0000000000000000000000000000000000000000000000000000000000000001"
         )));
         harness.window.set_results(vec![Ok((10, 12))]);
-        harness
-            .events
-            .push_raindex_result(Ok(raindex_logs.clone()));
+        harness.events.push_raindex_result(Ok(raindex_logs.clone()));
         harness.events.push_decode_result(Ok(vec![
             deposit_event(10, 1, token_a, 1),
             add_order_event(11, 0, store, token_a, token_b, 2),

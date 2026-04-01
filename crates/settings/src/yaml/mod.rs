@@ -7,8 +7,8 @@ pub mod raindex;
 use crate::{
     remote_networks::ParseRemoteNetworksError, remote_tokens::ParseRemoteTokensError, NetworkCfg,
     ParseDeploymentConfigSourceError, ParseNetworkConfigSourceError, ParseOrderConfigSourceError,
-    ParseRaindexConfigSourceError, ParseRainlangConfigSourceError,
-    ParseScenarioConfigSourceError, ParseTokenConfigSourceError, TokenCfg,
+    ParseRaindexConfigSourceError, ParseRainlangConfigSourceError, ParseScenarioConfigSourceError,
+    ParseTokenConfigSourceError, TokenCfg,
 };
 use alloy::primitives::ruint::ParseError as RuintParseError;
 use context::{Context, ContextError, ContextProfile};
@@ -250,10 +250,9 @@ impl PartialEq for YamlError {
             (Self::ParseTokenConfigSourceError(e1), Self::ParseTokenConfigSourceError(e2)) => {
                 e1 == e2
             }
-            (
-                Self::ParseRaindexConfigSourceError(e1),
-                Self::ParseRaindexConfigSourceError(e2),
-            ) => e1 == e2,
+            (Self::ParseRaindexConfigSourceError(e1), Self::ParseRaindexConfigSourceError(e2)) => {
+                e1 == e2
+            }
             (
                 Self::ParseRainlangConfigSourceError(e1),
                 Self::ParseRainlangConfigSourceError(e2),

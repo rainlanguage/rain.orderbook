@@ -116,10 +116,7 @@ mod tests {
         .unwrap();
         client
             .get_order_by_hash(
-                &RaindexIdentifier::new(
-                    1,
-                    Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
-                ),
+                &RaindexIdentifier::new(1, Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap()),
                 b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
             )
             .await
