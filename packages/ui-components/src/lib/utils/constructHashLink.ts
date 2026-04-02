@@ -1,9 +1,4 @@
-import type {
-	Address,
-	RaindexOrder,
-	RaindexOrderAsIO,
-	RaindexVault
-} from '@rainlanguage/raindex';
+import type { Address, RaindexOrder, RaindexOrderAsIO, RaindexVault } from '@rainlanguage/raindex';
 import fc from 'fast-check';
 import { test } from '@fast-check/vitest';
 

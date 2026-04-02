@@ -1,9 +1,5 @@
 <script lang="ts">
-	import type {
-		LocalDbStatus,
-		NetworkSyncStatus,
-		RaindexSyncStatus
-	} from '@rainlanguage/raindex';
+	import type { LocalDbStatus, NetworkSyncStatus, RaindexSyncStatus } from '@rainlanguage/raindex';
 	import LocalDbStatusBadge from './LocalDbStatusBadge.svelte';
 	import LocalDbStatusModal from './LocalDbStatusModal.svelte';
 	import { ChevronRightOutline } from 'flowbite-svelte-icons';

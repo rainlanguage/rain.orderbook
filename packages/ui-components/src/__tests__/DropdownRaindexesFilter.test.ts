@@ -125,9 +125,7 @@ describe('DropdownRaindexesFilter', () => {
 			await fireEvent.click(screen.getByTestId('dropdown-raindexes-filter-button'));
 
 			await waitFor(() => {
-				expect(
-					screen.getByText(`Cannot load raindexes list: ${errorMessage}`)
-				).toBeInTheDocument();
+				expect(screen.getByText(`Cannot load raindexes list: ${errorMessage}`)).toBeInTheDocument();
 			});
 		});
 	});

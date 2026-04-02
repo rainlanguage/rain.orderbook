@@ -25,7 +25,9 @@
 	): NetworkGroup[] {
 		const groups: NetworkGroup[] = [];
 		for (const network of networks) {
-			const networkRaindexes = raindexes.filter((raindex) => raindex.raindexId.chainId === network.chainId);
+			const networkRaindexes = raindexes.filter(
+				(raindex) => raindex.raindexId.chainId === network.chainId
+			);
 			groups.push({
 				chainId: network.chainId,
 				networkName: getNetworkName(network.chainId) ?? `Chain ${network.chainId}`,

@@ -6,12 +6,7 @@
 	import TanstackPageContentDetail from './TanstackPageContentDetail.svelte';
 	import CardProperty from '../CardProperty.svelte';
 	import { QKEY_VAULT } from '../../queries/keys';
-	import {
-		RaindexClient,
-		type Address,
-		type Hex,
-		type RaindexVault
-	} from '@rainlanguage/raindex';
+	import { RaindexClient, type Address, type Hex, type RaindexVault } from '@rainlanguage/raindex';
 	// import type { ChartTheme } from '../../utils/lightweightChartsThemes';
 	import { toHex } from 'viem';
 	import { createQuery } from '@tanstack/svelte-query';
