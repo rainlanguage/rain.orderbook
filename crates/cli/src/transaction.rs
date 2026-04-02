@@ -4,7 +4,7 @@ use raindex_common::transaction::TransactionArgs;
 
 #[derive(Args, Clone)]
 pub struct CliTransactionArgs {
-    #[arg(short = 'a', long, help = "Raindex contract address")]
+    #[arg(long, help = "Raindex contract address")]
     pub raindex_address: Address,
 
     #[arg(
