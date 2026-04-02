@@ -1,4 +1,4 @@
-version: 2
+version: 6
 networks:
   flare:
     rpc: https://rpc.ankr.com/flare
