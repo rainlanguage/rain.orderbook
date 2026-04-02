@@ -112,10 +112,7 @@
 				<WalletConnect {appKitModal} {connected} classes="w-full" />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
-				<LocalDbStatusCard
-					networkStatuses={$networkStatuses}
-					raindexStatuses={$raindexStatuses}
-				/>
+				<LocalDbStatusCard networkStatuses={$networkStatuses} raindexStatuses={$raindexStatuses} />
 			</SidebarGroup>
 			<SidebarGroup border ulClass="list-none">
 				<SidebarItem

@@ -1,8 +1,4 @@
-import type {
-	NetworkSyncStatus,
-	LocalDbStatus,
-	RaindexSyncStatus
-} from '@rainlanguage/raindex';
+import type { NetworkSyncStatus, LocalDbStatus, RaindexSyncStatus } from '@rainlanguage/raindex';
 import { writable, derived } from 'svelte/store';
 
 export const networkStatuses = writable<Map<number, NetworkSyncStatus>>(new Map());

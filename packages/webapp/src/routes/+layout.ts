@@ -1,9 +1,4 @@
-import {
-	DotrainRainlang,
-	type RaindexClient,
-	type Address,
-	type Hex
-} from '@rainlanguage/raindex';
+import { DotrainRainlang, type RaindexClient, type Address, type Hex } from '@rainlanguage/raindex';
 import init, { SQLiteWasmDatabase } from '@rainlanguage/sqlite-web';
 import type { AppStoresInterface } from '@rainlanguage/ui-components';
 import { RAINLANG_URL } from '$lib/constants';
