@@ -21,6 +21,7 @@ pub mod pipeline;
 pub mod query;
 mod state;
 mod status;
+pub mod trades;
 pub mod transactions;
 pub mod vaults;
 

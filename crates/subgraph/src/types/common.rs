@@ -90,6 +90,15 @@ pub struct SgPaginationWithIdQueryVariables {
 }
 
 #[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
+pub struct SgPaginationWithTransactionQueryVariables {
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub first: Option<i32>,
+    pub transaction: String,
+    #[cfg_attr(target_family = "wasm", tsify(optional))]
+    pub skip: Option<i32>,
+}
+
+#[derive(cynic::QueryVariables, Debug, Clone, Tsify)]
 pub struct SgPaginationWithTimestampQueryVariables {
     #[cfg_attr(target_family = "wasm", tsify(optional))]
     pub first: Option<i32>,
@@ -146,6 +155,7 @@ impl_wasm_traits!(SgOrderWithSubgraphName);
 pub struct SgTradeStructPartialOrder {
     pub id: SgBytes,
     pub order_hash: SgBytes,
+    pub owner: SgBytes,
 }
 
 #[derive(cynic::QueryFragment, Debug, Serialize, Clone, Tsify)]

@@ -1,4 +1,5 @@
 use super::local_db::orders::LocalDbOrders;
+use super::local_db::trades::LocalDbTrades;
 use super::orders::{OrdersDataSource, SubgraphOrders};
 use super::ClientRef;
 use super::*;
@@ -11,7 +12,10 @@ use crate::raindex_client::{
     vaults::{LocalTradeBalanceInfo, LocalTradeTokenInfo, RaindexVaultBalanceChange},
 };
 use alloy::primitives::{Address, Bytes, B256, U256};
-use rain_orderbook_subgraph_client::types::{common::SgTrade, Id};
+use rain_orderbook_subgraph_client::types::{
+    common::{SgBytes, SgTrade},
+    Id,
+};
 use std::str::FromStr;
 #[cfg(target_family = "wasm")]
 use wasm_bindgen_utils::prelude::js_sys::BigInt;
@@ -27,6 +31,13 @@ pub struct RaindexTrade {
     output_vault_balance_change: RaindexVaultBalanceChange,
     timestamp: U256,
     orderbook: Address,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RaindexTradeWithOwner {
+    pub order_owner: Address,
+    pub trade: RaindexTrade,
 }
 #[cfg(target_family = "wasm")]
 #[wasm_bindgen]
@@ -251,6 +262,42 @@ impl RaindexOrder {
                 subgraph_source
                     .trades_count(&ob_id, &order_hash, start_timestamp, end_timestamp)
                     .await
+            }
+        }
+    }
+}
+
+impl RaindexClient {
+    pub async fn get_transaction_trades(
+        &self,
+        chain_id: u32,
+        orderbook_address: Address,
+        tx_hash: B256,
+    ) -> Result<Vec<RaindexTradeWithOwner>, RaindexError> {
+        let ob_id = OrderbookIdentifier::new(chain_id, orderbook_address);
+
+        match self.query_source(chain_id) {
+            QuerySource::LocalDb(local_db) => {
+                let local_source = LocalDbTrades::new(&local_db);
+                local_source.get_by_tx_hash(&ob_id, tx_hash).await
+            }
+            QuerySource::Subgraph => {
+                let client = self.get_orderbook_client(orderbook_address)?;
+                let trades = client
+                    .transaction_trades_list_all(SgBytes(tx_hash.to_string()))
+                    .await?;
+
+                trades
+                    .into_iter()
+                    .map(|trade| {
+                        let owner = Address::from_str(&trade.order.owner.0)?;
+                        let trade = RaindexTrade::try_from_sg_trade(chain_id, trade)?;
+                        Ok(RaindexTradeWithOwner {
+                            order_owner: owner,
+                            trade,
+                        })
+                    })
+                    .collect()
             }
         }
     }

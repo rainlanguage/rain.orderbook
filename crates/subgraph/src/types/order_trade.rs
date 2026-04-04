@@ -26,6 +26,23 @@ pub struct SgOrderTradesListQuery {
 }
 
 #[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
+#[cynic(
+    graphql_type = "Query",
+    variables = "SgPaginationWithTransactionQueryVariables"
+)]
+#[cfg_attr(target_family = "wasm", derive(Tsify))]
+pub struct SgTransactionTradesListQuery {
+    #[arguments(
+        skip: $skip,
+        first: $first,
+        orderBy: "timestamp",
+        orderDirection: "desc",
+        where: { tradeEvent_: { transaction: $transaction } }
+    )]
+    pub trades: Vec<SgTrade>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone, Serialize)]
 #[cynic(graphql_type = "Query", variables = "SgIdQueryVariables")]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 pub struct SgOrderTradeDetailQuery {

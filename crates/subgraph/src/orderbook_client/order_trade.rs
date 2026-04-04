@@ -74,6 +74,54 @@ impl OrderbookSubgraphClient {
         }
         Ok(all_pages_merged)
     }
+
+    /// Fetch trades for a specific transaction hash.
+    pub async fn transaction_trades_list(
+        &self,
+        tx_hash: SgBytes,
+        pagination_args: SgPaginationArgs,
+    ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
+        let pagination_variables = Self::parse_pagination_args(pagination_args);
+        let data = self
+            .query::<SgTransactionTradesListQuery, SgPaginationWithTransactionQueryVariables>(
+                SgPaginationWithTransactionQueryVariables {
+                    first: pagination_variables.first,
+                    transaction: tx_hash.0,
+                    skip: pagination_variables.skip,
+                },
+            )
+            .await?;
+
+        Ok(data.trades)
+    }
+
+    /// Fetch all pages of transaction_trades_list query.
+    pub async fn transaction_trades_list_all(
+        &self,
+        tx_hash: SgBytes,
+    ) -> Result<Vec<SgTrade>, OrderbookSubgraphClientError> {
+        let mut all_pages_merged = vec![];
+        let mut page = 1;
+
+        loop {
+            let page_data = self
+                .transaction_trades_list(
+                    tx_hash.clone(),
+                    SgPaginationArgs {
+                        page,
+                        page_size: ALL_PAGES_QUERY_PAGE_SIZE,
+                    },
+                )
+                .await?;
+            if page_data.is_empty() {
+                break;
+            }
+            all_pages_merged.extend(page_data);
+            page += 1;
+        }
+
+        Ok(all_pages_merged)
+    }
 }
 
 #[cfg(test)]
