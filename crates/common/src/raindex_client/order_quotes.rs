@@ -2,9 +2,9 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::orders_list::RaindexOrders;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IRaindexV6::OrderV4;
-use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
-use rain_orderbook_subgraph_client::utils::float::{F0, F1};
+use raindex_bindings::IRaindexV6::OrderV4;
+use raindex_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
+use raindex_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Tsify)]
@@ -268,14 +268,14 @@ mod tests {
     #[cfg(not(target_family = "wasm"))]
     mod quote_non_wasm_tests {
         use super::*;
-        use crate::local_db::OrderbookIdentifier;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::local_db::RaindexIdentifier;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::hex::encode_prefixed;
         use alloy::primitives::{b256, Address, U256};
         use alloy::{sol, sol_types::SolValue};
         use httpmock::MockServer;
         use rain_math_float::Float;
-        use rain_orderbook_subgraph_client::utils::float::{F0_5, F2};
+        use raindex_subgraph_client::utils::float::{F0_5, F2};
         use serde_json::{json, Value};
 
         sol!(
@@ -311,8 +311,8 @@ mod tests {
                     "symbol": "sFLR",
                     "decimals": "18"
                   },
-                  "orderbook": {
-                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+                  "raindex": {
+                    "id": CHAIN_ID_1_RAINDEX_ADDRESS
                   },
                   "ordersAsOutput": [],
                   "ordersAsInput": [],
@@ -332,16 +332,16 @@ mod tests {
                     "symbol": "WFLR",
                     "decimals": "18"
                   },
-                  "orderbook": {
-                    "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+                  "raindex": {
+                    "id": CHAIN_ID_1_RAINDEX_ADDRESS
                   },
                   "ordersAsOutput": [],
                   "ordersAsInput": [],
                   "balanceChanges": []
                 },
               ],
-              "orderbook": {
-                "id": CHAIN_ID_1_ORDERBOOK_ADDRESS
+              "raindex": {
+                "id": CHAIN_ID_1_RAINDEX_ADDRESS
               },
               "active": true,
               "timestampAdded": "1739448802",
@@ -408,9 +408,9 @@ mod tests {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -508,9 +508,9 @@ mod tests {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -576,9 +576,9 @@ mod tests {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -669,9 +669,9 @@ mod tests {
             .unwrap();
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )

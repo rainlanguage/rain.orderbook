@@ -20,7 +20,7 @@ use crate::take_orders::{
     build_take_orders_config_from_simulation, find_failing_order_index, simulate_take_orders,
 };
 use approval::{check_approval_needed, ApprovalCheckParams};
-use rain_orderbook_bindings::provider::mk_read_provider;
+use raindex_bindings::provider::mk_read_provider;
 use wasm_bindgen_utils::prelude::*;
 use wasm_bindgen_utils::wasm_export;
 
@@ -61,7 +61,7 @@ impl RaindexClient {
     /// if (res.error) {
     ///   console.error(res.error.readableMsg);
     /// } else {
-    ///   const { calldata, effectivePrice, expectedSell, maxSellCap, prices, orderbook } = res.value;
+    ///   const { calldata, effectivePrice, expectedSell, maxSellCap, prices, raindex } = res.value;
     /// }
     /// ```
     #[wasm_export(
@@ -97,11 +97,8 @@ impl RaindexClient {
         )
         .await?;
 
-        let (best_orderbook, best_sim) = selection::select_best_orderbook_simulation(
-            candidates.clone(),
-            req.mode,
-            req.price_cap,
-        )?;
+        let (best_raindex, best_sim) =
+            selection::select_best_raindex_simulation(candidates.clone(), req.mode, req.price_cap)?;
 
         let mut built =
             build_take_orders_config_from_simulation(best_sim.clone(), req.mode, req.price_cap)?
@@ -111,7 +108,7 @@ impl RaindexClient {
             rpc_urls: rpc_urls.clone(),
             sell_token: req.sell_token,
             taker: req.taker,
-            orderbook: best_orderbook,
+            raindex: best_raindex,
             mode: req.mode,
             price_cap: req.price_cap,
         };
@@ -126,7 +123,7 @@ impl RaindexClient {
         for _ in 0..built.config.orders.len() {
             let sim_result = simulate_take_orders(
                 &provider,
-                best_orderbook,
+                best_raindex,
                 req.taker,
                 &built.config,
                 Some(block_number),
@@ -136,7 +133,7 @@ impl RaindexClient {
             match sim_result {
                 Ok(()) => {
                     return result::build_calldata_result(
-                        best_orderbook,
+                        best_raindex,
                         built,
                         req.mode,
                         req.price_cap,
@@ -145,7 +142,7 @@ impl RaindexClient {
                 Err(sim_error) => {
                     if let Some(failing_idx) = find_failing_order_index(
                         &provider,
-                        best_orderbook,
+                        best_raindex,
                         req.taker,
                         &built.config,
                         Some(block_number),

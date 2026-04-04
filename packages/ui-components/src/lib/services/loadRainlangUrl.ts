@@ -1,5 +1,5 @@
 import { RainlangManager } from '../providers/rainlang/RainlangManager';
-import { DotrainRainlang } from '@rainlanguage/orderbook';
+import { DotrainRainlang } from '@rainlanguage/raindex';
 
 export async function loadRainlangUrl(
 	url: string,

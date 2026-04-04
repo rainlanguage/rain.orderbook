@@ -8,8 +8,8 @@ use crate::take_orders::{
 };
 use alloy::primitives::Address;
 use rain_math_float::Float;
-use rain_orderbook_bindings::provider::mk_read_provider;
-use rain_orderbook_bindings::IRaindexV6::OrderV4;
+use raindex_bindings::provider::mk_read_provider;
+use raindex_bindings::IRaindexV6::OrderV4;
 use std::ops::{Div, Mul};
 #[cfg(target_family = "wasm")]
 use std::str::FromStr;
@@ -53,9 +53,9 @@ pub fn build_candidate_from_quote(
     }
 
     #[cfg(target_family = "wasm")]
-    let orderbook = Address::from_str(&order.orderbook())?;
+    let raindex_addr = Address::from_str(&order.raindex())?;
     #[cfg(not(target_family = "wasm"))]
-    let orderbook = order.orderbook();
+    let raindex_addr = order.raindex();
     let order_v4: OrderV4 = order.try_into()?;
     let input_io_index = quote.pair.input_index;
     let output_io_index = quote.pair.output_index;
@@ -65,7 +65,7 @@ pub fn build_candidate_from_quote(
     }
 
     Ok(Some(TakeOrderCandidate {
-        orderbook,
+        raindex: raindex_addr,
         order: order_v4,
         input_io_index,
         output_io_index,
@@ -131,13 +131,13 @@ pub async fn execute_single_take(
         return Err(RaindexError::NoLiquidity);
     }
 
-    let orderbook = candidate.orderbook;
+    let raindex_addr = candidate.raindex;
 
     let approval_params = ApprovalCheckParams {
         rpc_urls: rpc_context.rpc_urls.to_vec(),
         sell_token: execution_params.sell_token,
         taker: execution_params.taker,
-        orderbook,
+        raindex: raindex_addr,
         mode: execution_params.mode,
         price_cap: execution_params.price_cap,
     };
@@ -216,7 +216,7 @@ pub async fn execute_single_take(
 
     let sim_result = simulate_take_orders(
         &provider,
-        orderbook,
+        raindex_addr,
         execution_params.taker,
         &built.config,
         rpc_context.block_number,
@@ -225,7 +225,7 @@ pub async fn execute_single_take(
 
     match sim_result {
         Ok(()) => build_calldata_result(
-            orderbook,
+            raindex_addr,
             built,
             execution_params.mode,
             execution_params.price_cap,
@@ -238,7 +238,7 @@ pub async fn execute_single_take(
                 )))
             } else if let Some(_failing_idx) = find_failing_order_index(
                 &provider,
-                orderbook,
+                raindex_addr,
                 execution_params.taker,
                 &built.config,
                 rpc_context.block_number,
@@ -265,7 +265,7 @@ mod tests {
     use super::*;
     use crate::raindex_client::order_quotes::{RaindexOrderQuote, RaindexOrderQuoteValue};
     use rain_math_float::Float;
-    use rain_orderbook_quote::Pair;
+    use raindex_quote::Pair;
     use std::ops::Mul;
 
     fn make_quote_value(max_output: Float, ratio: Float) -> RaindexOrderQuoteValue {
@@ -348,8 +348,8 @@ mod tests {
         let ratio = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(max_output, ratio)), false);
 
-        use crate::local_db::OrderbookIdentifier;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::local_db::RaindexIdentifier;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
 
@@ -357,7 +357,7 @@ mod tests {
         rt.block_on(async {
             use alloy::primitives::b256;
             use httpmock::MockServer;
-            use rain_orderbook_subgraph_client::utils::float::F1;
+            use raindex_subgraph_client::utils::float::F1;
             use serde_json::json;
 
             let server = MockServer::start_async().await;
@@ -382,7 +382,7 @@ mod tests {
                                     "symbol": "sFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
@@ -399,12 +399,12 @@ mod tests {
                                     "symbol": "WFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
                             }],
-                            "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                            "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                             "active": true,
                             "timestampAdded": "1739448802",
                             "meta": null,
@@ -431,9 +431,9 @@ mod tests {
 
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -449,8 +449,8 @@ mod tests {
     fn test_quote_no_data_returns_none() {
         let quote = make_quote(0, 0, None, true);
 
-        use crate::local_db::OrderbookIdentifier;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::local_db::RaindexIdentifier;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
 
@@ -458,7 +458,7 @@ mod tests {
         rt.block_on(async {
             use alloy::primitives::b256;
             use httpmock::MockServer;
-            use rain_orderbook_subgraph_client::utils::float::F1;
+            use raindex_subgraph_client::utils::float::F1;
             use serde_json::json;
 
             let server = MockServer::start_async().await;
@@ -483,7 +483,7 @@ mod tests {
                                     "symbol": "sFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
@@ -500,12 +500,12 @@ mod tests {
                                     "symbol": "WFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
                             }],
-                            "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                            "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                             "active": true,
                             "timestampAdded": "1739448802",
                             "meta": null,
@@ -532,9 +532,9 @@ mod tests {
 
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )
@@ -552,8 +552,8 @@ mod tests {
         let ratio = Float::parse("1".to_string()).unwrap();
         let quote = make_quote(0, 0, Some(make_quote_value(max_output, ratio)), true);
 
-        use crate::local_db::OrderbookIdentifier;
-        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_ORDERBOOK_ADDRESS};
+        use crate::local_db::RaindexIdentifier;
+        use crate::raindex_client::tests::{get_test_yaml, CHAIN_ID_1_RAINDEX_ADDRESS};
         use alloy::primitives::Address;
         use std::str::FromStr;
 
@@ -561,7 +561,7 @@ mod tests {
         rt.block_on(async {
             use alloy::primitives::b256;
             use httpmock::MockServer;
-            use rain_orderbook_subgraph_client::utils::float::F1;
+            use raindex_subgraph_client::utils::float::F1;
             use serde_json::json;
 
             let server = MockServer::start_async().await;
@@ -586,7 +586,7 @@ mod tests {
                                     "symbol": "sFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
@@ -603,12 +603,12 @@ mod tests {
                                     "symbol": "WFLR",
                                     "decimals": "18"
                                 },
-                                "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                                "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                                 "ordersAsOutput": [],
                                 "ordersAsInput": [],
                                 "balanceChanges": []
                             }],
-                            "orderbook": { "id": CHAIN_ID_1_ORDERBOOK_ADDRESS },
+                            "raindex": { "id": CHAIN_ID_1_RAINDEX_ADDRESS },
                             "active": true,
                             "timestampAdded": "1739448802",
                             "meta": null,
@@ -635,9 +635,9 @@ mod tests {
 
             let order = raindex_client
                 .get_order_by_hash(
-                    &OrderbookIdentifier::new(
+                    &RaindexIdentifier::new(
                         1,
-                        Address::from_str(CHAIN_ID_1_ORDERBOOK_ADDRESS).unwrap(),
+                        Address::from_str(CHAIN_ID_1_RAINDEX_ADDRESS).unwrap(),
                     ),
                     b256!("0x0000000000000000000000000000000000000000000000000000000000000123"),
                 )

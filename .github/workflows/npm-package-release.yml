@@ -78,13 +78,13 @@ jobs:
         run: |
           echo "Checking repository consistency..."
           GIT_REPO=$(git remote get-url origin | sed 's/.*github.com[/:]//; s/.git$//')
-          OB_PKG_REPO=$(node -e "console.log(require('./packages/orderbook/package.json').repository?.url || '')" | sed 's|https://github.com/||; s|git+||; s|.git$||')
+          DEX_PKG_REPO=$(node -e "console.log(require('./packages/raindex/package.json').repository?.url || '')" | sed 's|https://github.com/||; s|git+||; s|.git$||')
           UC_PKG_REPO=$(node -e "console.log(require('./packages/ui-components/package.json').repository?.url || '')" | sed 's|https://github.com/||; s|git+||; s|.git$||')
           echo "Git remote:              $GIT_REPO"
-          echo "orderbook package.json:  $OB_PKG_REPO"
+          echo "raindex package.json:  $DEX_PKG_REPO"
           echo "ui-components package.json: $UC_PKG_REPO"
-          if [ "$GIT_REPO" != "$OB_PKG_REPO" ]; then
-            echo "Repository mismatch for orderbook!"
+          if [ "$GIT_REPO" != "$DEX_PKG_REPO" ]; then
+            echo "Repository mismatch for raindex!"
             echo "This will cause 422 error during publish"
             exit 1
           fi
@@ -134,12 +134,12 @@ jobs:
       - name: Test UI Components
         run: nix develop -c npm run test -w @rainlanguage/ui-components
 
-      # check for npm package blacklists pkgs across all orderbook related packages
+      # check for npm package blacklists pkgs across all raindex related packages
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
 
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
         with:
-          working-directory: packages/orderbook
+          working-directory: packages/raindex
 
       - uses: rainlanguage/github-chore/.github/actions/npm-blacklist@main
         with:
@@ -154,18 +154,18 @@ jobs:
       # get hash of latest published pkgs from npm and concat them
       - name: Get Old Hash
         run: |
-          OB_PKG_OLD_HASH=$(npm view @rainlanguage/orderbook@latest dist.shasum 2>/dev/null || echo "none")
+          DEX_PKG_OLD_HASH=$(npm view @rainlanguage/raindex@latest dist.shasum 2>/dev/null || echo "none")
           UC_PKG_OLD_HASH=$(npm view @rainlanguage/ui-components@latest dist.shasum 2>/dev/null || echo "none")
-          OLD_HASH=$OB_PKG_OLD_HASH-$UC_PKG_OLD_HASH
+          OLD_HASH=$DEX_PKG_OLD_HASH-$UC_PKG_OLD_HASH
           echo "OLD_HASH=$OLD_HASH" >> $GITHUB_ENV
           echo "old hash: $OLD_HASH"
 
       # calc hash of current workspace pkgs by packing them and concat them
       - name: Get New Hash
         run: |
-          OB_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/orderbook | xargs shasum | cut -c1-40)
+          DEX_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/raindex | xargs shasum | cut -c1-40)
           UC_PKG_NEW_HASH=$(npm pack --silent -w @rainlanguage/ui-components | xargs shasum | cut -c1-40)
-          NEW_HASH=$OB_PKG_NEW_HASH-$UC_PKG_NEW_HASH
+          NEW_HASH=$DEX_PKG_NEW_HASH-$UC_PKG_NEW_HASH
           echo "NEW_HASH=$NEW_HASH" >> $GITHUB_ENV
           echo "new hash: $NEW_HASH"
           rm -f *.tgz
@@ -176,27 +176,27 @@ jobs:
       - name: Set Version
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
-          npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/orderbook
-          NEW_VERSION=$(jq -r '.version' ./packages/orderbook/package.json)
+          npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/raindex
+          NEW_VERSION=$(jq -r '.version' ./packages/raindex/package.json)
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          jq --arg v "$NEW_VERSION" '.dependencies."@rainlanguage/orderbook" = $v' ./packages/ui-components/package.json > tmp.json && mv tmp.json ./packages/ui-components/package.json
+          jq --arg v "$NEW_VERSION" '.dependencies."@rainlanguage/raindex" = $v' ./packages/ui-components/package.json > tmp.json && mv tmp.json ./packages/ui-components/package.json
           npx prettier --write ./packages/ui-components/package.json
           npm version prerelease --preid alpha --no-git-tag-version  -w @rainlanguage/ui-components
 
-      # Create orderbook npm package tarball
-      - name: Create orderbook NPM Package Tarball
+      # Create raindex npm package tarball
+      - name: Create raindex NPM Package Tarball
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: echo "OB_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/orderbook)" >> $GITHUB_ENV
+        run: echo "RAINDEX_NPM_PACKAGE=$(npm pack --silent -w @rainlanguage/raindex)" >> $GITHUB_ENV
 
-      - name: Rename orderbook NPM Package Tarball
+      - name: Rename raindex NPM Package Tarball
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
-        run: mv ${{ env.OB_NPM_PACKAGE }} orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
+        run: mv ${{ env.RAINDEX_NPM_PACKAGE }} raindex_npm_package_${{ env.NEW_VERSION }}.tgz
 
-      # publish orderbook pkg to npm
-      - name: Publish orderbook pkg To NPM
+      # publish raindex pkg to npm
+      - name: Publish raindex pkg To NPM
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
-          npm publish orderbook_npm_package_${{ env.NEW_VERSION }}.tgz \
+          npm publish raindex_npm_package_${{ env.NEW_VERSION }}.tgz \
             --access public \
             --tag latest \
             --verbose
@@ -223,7 +223,7 @@ jobs:
       - name: Commit And Tag
         if: ${{ env.OLD_HASH != env.NEW_HASH }}
         run: |
-          git add "packages/orderbook/package.json"
+          git add "packages/raindex/package.json"
           git add "packages/ui-components/package.json"
           git add "package-lock.json"
           git commit -m "NPM Package Release v${{ env.NEW_VERSION }}"
@@ -247,7 +247,7 @@ jobs:
           tag_name: npm-v${{ env.NEW_VERSION }}
           name: NPM Package Release v${{ env.NEW_VERSION }}
           files: |
-            orderbook_npm_package_${{ env.NEW_VERSION }}.tgz
+            raindex_npm_package_${{ env.NEW_VERSION }}.tgz
             ui_components_npm_package_${{ env.NEW_VERSION }}.tgz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
