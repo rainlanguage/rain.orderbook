@@ -141,6 +141,7 @@
               set -euxo pipefail
               cd packages/orderbook
               npm install --no-check
+              npm run format-check
               npm run build
               npm test
             '';
