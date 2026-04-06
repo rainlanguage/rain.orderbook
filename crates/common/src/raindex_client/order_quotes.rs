@@ -2,7 +2,7 @@ use super::*;
 use crate::raindex_client::orders::RaindexOrder;
 use crate::raindex_client::orders_list::RaindexOrders;
 use rain_math_float::Float;
-use rain_orderbook_bindings::IOrderBookV6::OrderV4;
+use rain_orderbook_bindings::IRaindexV6::OrderV4;
 use rain_orderbook_quote::{get_order_quotes, BatchOrderQuotesResponse, OrderQuoteValue, Pair};
 use rain_orderbook_subgraph_client::utils::float::{F0, F1};
 use std::ops::{Div, Mul};
@@ -122,8 +122,10 @@ impl RaindexOrder {
         chunk_size: Option<u32>,
     ) -> Result<Vec<RaindexOrderQuote>, RaindexError> {
         let rpcs = self.get_rpc_urls()?;
+        let sg_order = self.clone().into_sg_order()?;
+
         let order_quotes = get_order_quotes(
-            vec![self.clone().into_sg_order()?],
+            vec![sg_order],
             block_number,
             rpcs.iter().map(|s| s.to_string()).collect(),
             chunk_size.map(|v| v as usize),

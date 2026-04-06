@@ -24,7 +24,7 @@ use alloy::{
 };
 use async_trait::async_trait;
 use rain_math_float::Float;
-use rain_orderbook_bindings::{IOrderBookV6::deposit4Call, IERC20::approveCall};
+use rain_orderbook_bindings::{IRaindexV6::deposit4Call, IERC20::approveCall};
 use rain_orderbook_subgraph_client::{
     performance::vol::{VaultVolume, VolumeDetails},
     types::{
@@ -2154,9 +2154,9 @@ mod tests {
         use alloy::primitives::{address, b256};
         use alloy::sol_types::SolCall;
         use httpmock::MockServer;
-        use rain_orderbook_bindings::IERC20::decimalsCall;
+        use rain_orderbook_bindings::IERC20Metadata::decimalsCall;
         use rain_orderbook_bindings::{
-            IOrderBookV6::{deposit4Call, withdraw4Call},
+            IRaindexV6::{deposit4Call, withdraw4Call},
             IERC20::approveCall,
         };
         use rain_orderbook_subgraph_client::utils::float::*;

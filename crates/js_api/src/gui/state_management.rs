@@ -555,7 +555,7 @@ mod tests {
     use std::str::FromStr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
-    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QTYvCMBBt3GWXhT3Jwp4Ef4ChTVVsBU9FVPy4WL2nNWhpTGpNUfFP-JO1OqlYnMO8N3kvM5NUjEf8AAaRWEVijYmh4wOQWFbZZCM4sIyCafIFqGTMRPNdt_fO1-oXqr3cMiyYOsg01vdqgBulkq5pchlSvpF71XUsp22mSYizlJ9zB8oz0qP7_vAPaLW1PF5KCVXRN8h-vkO9iT51PZ7dXlIxnvGyLSlGENdFZdUuVNt1G0ADuouOo2A3o77MPOrFNk1jJ0s8hifzybSzWAwIWU_bHdHv_eu_YJyFCt-b4hVLuDxtmVBX9NlCVMoBAAA=";
+    const SERIALIZED_STATE: &str = "H4sIAAAAAAAA_21QXWvCMBRt3NgY7EkGexrsByy0aXWzwh4Ev4qgKH6AL6JttNKY1Bqx4p_wJ2v1pmLxPtxzbs7JvTfJadd4A5wtubfkC0w0FU-AxDCyJhPBgaGlTJEXQCkCyq1H3R4776t3qDZiRTGncieiQN37AvSlDMu6zoQ7Zb7YyHLJKBX1KHTxNmKHxIGSjNToWr_5ATRfGMbHTEJ59ApyP9nh20LPqm61zy_Jabe425akI4hto6xqpqpp2z9A4-pv2Cn8tQbxvLGddTvDRX3tBGMyao6Z4xV7vus4k8iq9Oq7_0_1F5RRV-JLU-zRkIn9inJ5AjfkymPKAQAA";
 
     fn encode_state(state: &SerializedGuiState) -> String {
         let bytes = bincode::serialize(state).unwrap();
@@ -698,7 +698,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_new_from_state_invalid_dotrain() {
         let dotrain = r#"
-            version: 4
+            version: 5
             networks:
                 test:
                     rpcs:
@@ -710,7 +710,7 @@ mod tests {
                 token1:
                     network: test
                     address: 0xc2132d05d31c914a87c6611c10748aeb04b58e8f
-            deployers:
+            rainlangs:
                 test:
                     network: test
                     address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
@@ -722,14 +722,14 @@ mod tests {
                     deployment-block: 12345
             scenarios:
                 test:
-                    deployer: test
+                    rainlang: test
             orders:
                 test:
                     inputs:
                         - token: token1
                     outputs:
                         - token: token1
-                    deployer: test
+                    rainlang: test
                     orderbook: test
             deployments:
                 select-token-deployment:

@@ -359,6 +359,8 @@ impl From<serde_wasm_bindgen::Error> for SerdeWasmBindgenErrorWrapper {
 pub enum RaindexError {
     #[error("Invalid yaml configuration")]
     InvalidYamlConfig,
+    #[error("{0}")]
+    OracleFetchError(String),
     #[error("Chain ID not found: {0}")]
     ChainIdNotFound(u32),
     #[error("No networks configured")]
@@ -669,6 +671,7 @@ impl RaindexError {
             RaindexError::InvalidDotrainSourceMetadata => {
                 "Found metadata but it could not be parsed as valid dotrain source".to_string()
             }
+            RaindexError::OracleFetchError(err) => err.clone(),
         }
     }
 }
@@ -748,8 +751,8 @@ tokens:
         decimals: 6
         label: USD Coin
         symbol: USDC
-deployers:
-    mainnet-deployer:
+rainlangs:
+    mainnet-rainlang:
         address: 0xF14E09601A47552De6aBd3A0B165607FaFd2B5Ba
         network: mainnet
 accounts:
@@ -963,8 +966,8 @@ tokens:
         decimals: 6
         label: Token B
         symbol: TKNB
-deployers:
-    arb-deployer:
+rainlangs:
+    arb-rainlang:
         address: 0x1111111111111111111111111111111111111111
         network: arbitrum
 accounts:
@@ -1204,8 +1207,8 @@ accounts:
             network: isolated
             address: 0x1111111111111111111111111111111111111111
             decimals: 18
-    deployers:
-        test-deployer:
+    rainlangs:
+        test-rainlang:
             address: 0x2222222222222222222222222222222222222222
             network: isolated
     orderbooks:

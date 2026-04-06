@@ -13,12 +13,15 @@ use wasm_bindgen_utils::{impl_wasm_traits, prelude::*};
 ///   injects select-tokens for that deployment, and avoids parsing unrelated orders so
 ///   handlebars/missing-token templates in other orders don't fail. Use this for GUI/WASM
 ///   flows where the user works within a single deployment at a time.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub enum ContextProfile {
+    #[default]
     Strict,
-    Gui { current_deployment: String },
+    Gui {
+        current_deployment: String,
+    },
 }
 #[cfg(target_family = "wasm")]
 impl_wasm_traits!(ContextProfile);
@@ -30,12 +33,6 @@ impl ContextProfile {
 
     pub fn gui(current_deployment: String) -> Self {
         Self::Gui { current_deployment }
-    }
-}
-
-impl Default for ContextProfile {
-    fn default() -> Self {
-        Self::Strict
     }
 }
 
@@ -436,8 +433,9 @@ mod tests {
                 vault_id: None,
             }],
             network: mock_network(),
-            deployer: None,
+            rainlang: None,
             orderbook: None,
+            oracle_url: None,
         })
     }
 
@@ -452,8 +450,9 @@ mod tests {
             }],
             outputs: vec![],
             network: mock_network(),
-            deployer: None,
+            rainlang: None,
             orderbook: None,
+            oracle_url: None,
         })
     }
 
@@ -586,8 +585,9 @@ mod tests {
                 vault_id: None,
             }],
             network: mock_network(),
-            deployer: Some(mock_deployer()),
+            rainlang: Some(mock_rainlang()),
             orderbook: Some(mock_orderbook()),
+            oracle_url: None,
         };
         context.add_order(Arc::new(order));
 
@@ -601,7 +601,7 @@ mod tests {
         assert_eq!(context_order.outputs[0].token, Some(mock_token("token2")));
         assert_eq!(context_order.outputs[0].vault_id, None);
         assert_eq!(context_order.network, mock_network());
-        assert_eq!(context_order.deployer, Some(mock_deployer()));
+        assert_eq!(context_order.rainlang, Some(mock_rainlang()));
         assert_eq!(context_order.orderbook, Some(mock_orderbook()));
     }
 
