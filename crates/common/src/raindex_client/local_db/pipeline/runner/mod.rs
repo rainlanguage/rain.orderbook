@@ -244,7 +244,17 @@ where
                 };
 
                 match engine.run(db, &target.inputs).await {
-                    Ok(outcome) => Ok(TargetSuccess { outcome }),
+                    Ok(outcome) => {
+                        #[cfg(target_family = "wasm")]
+                        {
+                            let bus = ClientStatusBus::with_ob_id(ob_id);
+                            let synced_block = outcome
+                                .target_block
+                                .max(outcome.start_block.saturating_sub(1));
+                            bus.emit_active_with_blocks(outcome.latest_block, synced_block);
+                        }
+                        Ok(TargetSuccess { outcome })
+                    }
                     Err(error) => Err(TargetFailure {
                         ob_id,
                         orderbook_key: Some(target.orderbook_key.clone()),
