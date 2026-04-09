@@ -1,5 +1,6 @@
 <script lang="ts" generics="T">
 	import type { Readable } from 'svelte/store';
+	import type { LightweightChartsTheme } from '../../utils/lightweightChartsThemes';
 	import LightweightChart from './LightweightChart.svelte';
 	import type { CreateQueryResult } from '@tanstack/svelte-query';
 	import type { IChartApi, UTCTimestamp } from 'lightweight-charts';
@@ -11,7 +12,7 @@
 	export let timeTransform: (data: T) => UTCTimestamp;
 	// eslint-disable-next-line no-undef
 	export let valueTransform: (data: T) => number;
-	export let lightweightChartsTheme: Readable<Record<string, unknown>>;
+	export let lightweightChartsTheme: Readable<LightweightChartsTheme> | undefined = undefined;
 
 	$: data = transformAndSortData($query.data ?? [], {
 		valueTransform,

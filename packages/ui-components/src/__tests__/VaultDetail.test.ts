@@ -49,6 +49,11 @@ vi.mock('$lib/services/getExplorerLink', () => ({
 	getExplorerLink: vi.fn()
 }));
 
+vi.mock('../lib/components/charts/VaultBalanceChart.svelte', async () => {
+	const MockComponent = (await import('../lib/__mocks__/MockComponent.svelte')).default;
+	return { default: MockComponent };
+});
+
 const mockErrToast = vi.fn();
 
 const defaultProps: VaultDetailProps = {
