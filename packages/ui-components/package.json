@@ -6,7 +6,7 @@
 	"author": "Rain Open Source Software Ltd",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/rainlanguage/rain.orderbook.git"
+		"url": "https://github.com/rainlanguage/raindex.git"
 	},
 	"main": "dist/index.js",
 	"module": "dist/index.js",
