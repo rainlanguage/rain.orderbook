@@ -28,6 +28,7 @@ comfy-table = { workspace = true }
 chrono = { workspace = true }
 csv = { workspace = true }
 rain-math-float.workspace = true
+reqwest = { workspace = true }
 url.workspace = true
 serde_json = { workspace = true }
 futures = { workspace = true }
