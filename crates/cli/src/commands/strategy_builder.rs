@@ -51,6 +51,9 @@ fn parse_key_value_pairs(args: &[String]) -> Result<HashMap<String, String>> {
         let (key, value) = arg
             .split_once('=')
             .ok_or_else(|| anyhow::anyhow!("expected KEY=VALUE, got: {arg}"))?;
+        if map.contains_key(key) {
+            anyhow::bail!("duplicate key: {key}");
+        }
         map.insert(key.to_string(), value.to_string());
     }
     Ok(map)
@@ -189,5 +192,12 @@ mod tests {
         let args = vec!["key=value=with=equals".to_string()];
         let map = parse_key_value_pairs(&args).unwrap();
         assert_eq!(map.get("key").unwrap(), "value=with=equals");
+    }
+
+    #[test]
+    fn parse_key_value_pairs_duplicate_key_fails() {
+        let args = vec!["key=first".to_string(), "key=second".to_string()];
+        let err = parse_key_value_pairs(&args).unwrap_err().to_string();
+        assert!(err.contains("duplicate key: key"), "got: {err}");
     }
 }
