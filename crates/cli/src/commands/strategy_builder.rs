@@ -3,8 +3,8 @@ use alloy::primitives::hex;
 use anyhow::Result;
 use clap::Parser;
 use rain_orderbook_common::raindex_order_builder::RaindexOrderBuilder;
+use rain_orderbook_js_api::registry::DotrainRegistry;
 use std::collections::HashMap;
-use url::Url;
 
 #[derive(Parser, Clone)]
 pub struct StrategyBuilder {
@@ -56,75 +56,41 @@ fn parse_key_value_pairs(args: &[String]) -> Result<HashMap<String, String>> {
     Ok(map)
 }
 
-async fn fetch_text(url: &Url) -> Result<String> {
-    let response = reqwest::get(url.as_str()).await?;
-    let status = response.status();
-    if !status.is_success() {
-        anyhow::bail!("HTTP {status} fetching {url}");
-    }
-    Ok(response.text().await?)
-}
-
-async fn fetch_registry(registry_url: &str) -> Result<(String, HashMap<String, String>)> {
-    let registry_url = Url::parse(registry_url)?;
-    let content = fetch_text(&registry_url).await?;
-
-    let mut lines = content.lines();
-    let settings_url_str = lines
-        .next()
-        .ok_or_else(|| anyhow::anyhow!("registry file is empty"))?
-        .trim();
-    let settings_url = Url::parse(settings_url_str)
-        .map_err(|err| anyhow::anyhow!("invalid settings URL '{settings_url_str}': {err}"))?;
-
-    let mut order_urls = HashMap::new();
-    for line in lines {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        let (key, url_str) = line
-            .split_once(' ')
-            .ok_or_else(|| anyhow::anyhow!("invalid registry line (expected 'key url'): {line}"))?;
-        order_urls.insert(key.to_string(), url_str.trim().to_string());
-    }
-
-    let settings = fetch_text(&settings_url).await?;
-
-    Ok((settings, order_urls))
-}
-
 impl Execute for StrategyBuilder {
     async fn execute(&self) -> Result<()> {
-        let (settings, order_urls) = fetch_registry(&self.registry).await?;
+        let registry = DotrainRegistry::new(self.registry.clone())
+            .await
+            .map_err(|err| anyhow::anyhow!("{}", err.to_readable_msg()))?;
 
-        let order_url_str = order_urls.get(&self.strategy).ok_or_else(|| {
-            let available: Vec<_> = order_urls.keys().collect();
-            anyhow::anyhow!(
-                "strategy '{}' not found in registry. Available: {:?}",
-                self.strategy,
-                available
-            )
-        })?;
-        let order_url = Url::parse(order_url_str)
-            .map_err(|err| anyhow::anyhow!("invalid order URL '{order_url_str}': {err}"))?;
-        let dotrain = fetch_text(&order_url).await?;
+        let dotrain = registry
+            .orders()
+            .0
+            .get(&self.strategy)
+            .ok_or_else(|| {
+                let available = registry.get_order_keys().unwrap_or_default();
+                anyhow::anyhow!(
+                    "strategy '{}' not found in registry. Available: {:?}",
+                    self.strategy,
+                    available
+                )
+            })?
+            .clone();
 
-        let settings_sources = if settings.is_empty() {
-            None
-        } else {
-            Some(vec![settings])
+        let settings = {
+            let content = registry.settings();
+            if content.is_empty() {
+                None
+            } else {
+                Some(vec![content])
+            }
         };
 
-        let mut builder = RaindexOrderBuilder::new_with_deployment(
-            dotrain,
-            settings_sources,
-            self.deployment.clone(),
-        )
-        .await
-        .map_err(|err| {
-            anyhow::anyhow!("failed to create order builder: {}", err.to_readable_msg())
-        })?;
+        let mut builder =
+            RaindexOrderBuilder::new_with_deployment(dotrain, settings, self.deployment.clone())
+                .await
+                .map_err(|err| {
+                    anyhow::anyhow!("failed to create order builder: {}", err.to_readable_msg())
+                })?;
 
         let fields = parse_key_value_pairs(&self.set_fields)?;
         for (binding, value) in &fields {
