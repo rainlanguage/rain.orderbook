@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub const DEFAULT_REGISTRY_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/a5fafa4d75aff23ba705dd9e2ba2bb3a472431b3/registry";
+pub const DEFAULT_REGISTRY_URL: &str = "https://raw.githubusercontent.com/rainlanguage/rain.strategies/e189647e34e865fc62ee78720a8bd7a3d199270f/registry";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
