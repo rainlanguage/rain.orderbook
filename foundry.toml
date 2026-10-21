@@ -37,7 +37,9 @@ optimizer = true
 optimizer_runs = 800
 
 # RaindexV6 only fits EIP-170 via IR. Changing this profile moves its Zoltu address.
-additional_compiler_profiles = [{ name = "raindex", via_ir = true, optimizer_runs = 800 }]
+additional_compiler_profiles = [
+  { name = "raindex", via_ir = true, optimizer_runs = 800 },
+]
 compilation_restrictions = [
   { paths = "src/concrete/raindex/RaindexV6.sol", via_ir = true, min_optimizer_runs = 800, max_optimizer_runs = 800 },
 ]
