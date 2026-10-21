@@ -2,6 +2,8 @@
   pkgs,
   lib,
   modulesPath,
+  # CA bundle for the host, from its own nixpkgs pin (see flake.nix).
+  cacert,
   raindexEnv ? { },
   ...
 }:
@@ -178,6 +180,30 @@ in
     defaults.email = "ops@raindex.finance";
   };
 
+  # Serve the pinned CA bundle at the paths security.pki would populate from
+  # the rainix nixpkgs cacert. Overriding the etc entries avoids an overlay,
+  # which would rebuild everything that depends on cacert.
+  environment.etc =
+    lib.genAttrs
+      [
+        "ssl/certs/ca-certificates.crt"
+        "ssl/certs/ca-bundle.crt"
+        "pki/tls/certs/ca-bundle.crt"
+      ]
+      (_: {
+        source = lib.mkForce "${cacert}/etc/ssl/certs/ca-bundle.crt";
+      })
+    // {
+      "ssl/trust-source".source = lib.mkForce "${cacert.p11kit}/etc/ssl/trust-source";
+    };
+
+  assertions = [
+    {
+      assertion = lib.versionOlder pkgs.cacert.version cacert.version;
+      message = "rainix nixpkgs cacert ${pkgs.cacert.version} has caught up with the pinned cacert ${cacert.version}; remove the nixpkgs-cacert input, the /etc CA overrides and the nix-daemon CURL_CA_BUNDLE override.";
+    }
+  ];
+
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [
@@ -235,7 +261,12 @@ in
     "d ${env.dataDir} 0775 root raindex -"
     "d ${env.dataDir}/logs 0775 raindex-api raindex -"
   ];
-  systemd.services = lib.mapAttrs mkService enabledServices;
+  systemd.services = lib.mapAttrs mkService enabledServices // {
+    # Nix itself trusts the /etc bundle above. nixpkgs also sets CURL_CA_BUNDLE
+    # here from the read-only security.pki.caBundle (the rainix cacert); point
+    # it at /etc too so the unit does not reference the old bundle.
+    nix-daemon.environment.CURL_CA_BUNDLE = lib.mkForce "/etc/ssl/certs/ca-certificates.crt";
+  };
 
   environment.systemPackages = with pkgs; [
     bat

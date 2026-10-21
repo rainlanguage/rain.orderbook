@@ -593,6 +593,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-cacert": {
+      "locked": {
+        "lastModified": 1792507150,
+        "narHash": "sha256-S3VAL82zERdBJzXH5BFV5K5FwlDmNhLtcK18sO/Ug6Y=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f903b88037954e42a165c27b686201c2f242ae28",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "f903b88037954e42a165c27b686201c2f242ae28",
+        "type": "github"
+      }
+    },
     "nixpkgs_10": {
       "locked": {
         "lastModified": 1778656924,
@@ -857,6 +873,7 @@
         "disko": "disko",
         "flake-utils": "flake-utils",
         "nixos-anywhere": "nixos-anywhere",
+        "nixpkgs-cacert": "nixpkgs-cacert",
         "ragenix": "ragenix",
         "rain": "rain",
         "rainix": "rainix_2"

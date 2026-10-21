@@ -9,6 +9,10 @@
     deploy-rs.url = "github:serokell/deploy-rs";
     crane.url = "github:ipetkov/crane";
 
+    # Pinned separately so the API host can take a newer CA bundle
+    # (cacert >= 3.131.1) without moving the rainix nixpkgs input.
+    nixpkgs-cacert.url = "github:NixOS/nixpkgs/f903b88037954e42a165c27b686201c2f242ae28";
+
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "rainix/nixpkgs";
 
@@ -27,6 +31,7 @@
       crane,
       disko,
       nixos-anywhere,
+      nixpkgs-cacert,
       ...
     }:
     let
@@ -36,6 +41,7 @@
     {
       nixosConfigurations.raindex-api = rainix.inputs.nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
+        specialArgs.cacert = nixpkgs-cacert.legacyPackages.x86_64-linux.cacert;
         specialArgs.raindexEnv = {
           name = "prod";
           virtualHost = apiHostname;
