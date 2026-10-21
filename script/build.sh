@@ -38,7 +38,7 @@ jq "{abi}" out/DecimalFloat.sol/DecimalFloat.json > subgraph/abis/DecimalFloat.j
 (cd subgraph && npm ci && graph codegen)
 
 mkdir -p crates/bindings/abis
-# Sources the `raindex` compiler profile also compiles get per-profile artifacts.
+# Sources the raindex compiler profile also compiles get per-profile artifacts.
 jq "{abi}" out/IRaindexV6.sol/IRaindexV6.default.json > crates/bindings/abis/IRaindexV6.json
 jq "{abi}" out/RaindexV6.sol/RaindexV6.json > crates/bindings/abis/RaindexV6.json
 jq "{abi}" out/ERC20.sol/ERC20.json > crates/bindings/abis/ERC20.json
