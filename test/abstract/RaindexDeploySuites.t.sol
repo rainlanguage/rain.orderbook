@@ -13,7 +13,7 @@ contract RaindexDeploySuitesTest is Test, RaindexDeploySuites {
     uint256 constant EIP170_MAX_RUNTIME_CODE_SIZE = 0x6000;
 
     /// PROPERTY: every candidate's runtime code fits EIP-170.
-    function testCandidateRuntimeCodeFitsEip170() external pure {
+    function testCandidateRuntimeCodeFitsEip170() external view {
         DeployCandidate[] memory candidates = checkedCandidateSuites();
         for (uint256 i = 0; i < candidates.length; i++) {
             assertLe(

@@ -25,7 +25,7 @@ import {
     TEST_STORE_ADDRESS,
     TEST_EXPRESSION_DEPLOYER_ADDRESS,
     TEST_PARSER_ADDRESS
-} from "rainlang-0.2.14/test/lib/deploy/LibTestInterpreterDeploy.sol";
+} from "rainlang-0.2.15/test/lib/deploy/LibTestInterpreterDeploy.sol";
 import {LibRainDeploy} from "rain-deploy-0.1.19/src/lib/LibRainDeploy.sol";
 import {
     CREATION_CODE as DECIMAL_FLOAT_CREATION_CODE

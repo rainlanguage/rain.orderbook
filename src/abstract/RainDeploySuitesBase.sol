@@ -11,6 +11,7 @@ pragma solidity ^0.8.25;
 import {
     DeployCandidate,
     DeployDependency,
+    DeployMechanism,
     DeploySuite,
     RainDeploySuitesBase
 } from "rain-deploy-0.1.19/src/abstract/RainDeploySuitesBase.sol";

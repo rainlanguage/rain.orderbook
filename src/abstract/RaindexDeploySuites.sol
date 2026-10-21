@@ -2,7 +2,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {DeployCandidate, DeployDependency, DeploySuite, RainDeploySuitesBase} from "./RainDeploySuitesBase.sol";
+import {
+    DeployCandidate,
+    DeployDependency,
+    DeployMechanism,
+    DeploySuite,
+    RainDeploySuitesBase
+} from "./RainDeploySuitesBase.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
 import {LibReleasedSuites} from "../lib/LibReleasedSuites.sol";
 import {
@@ -93,7 +99,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH,
                 storedRuntimeCode: RAINDEX_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/raindex/RaindexV6.sol:RaindexV6",
-                dependencies: raindexDependencies()
+                dependencies: raindexDependencies(),
+                mechanism: DeployMechanism.Zoltu,
+                mechanismData: ""
             }),
             unanchorableReason: ""
         });
@@ -110,7 +118,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.SUB_PARSER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: SUB_PARSER_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/parser/RaindexV6SubParser.sol:RaindexV6SubParser",
-                dependencies: raindexDependencies()
+                dependencies: raindexDependencies(),
+                mechanism: DeployMechanism.Zoltu,
+                mechanismData: ""
             }),
             unanchorableReason: ""
         });
@@ -130,7 +140,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH,
                 storedRuntimeCode: ROUTE_PROCESSOR_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/lib/deploy/LibRouteProcessor4CreationCode.sol:RouteProcessor4",
-                dependencies: new DeployDependency[](0)
+                dependencies: new DeployDependency[](0),
+                mechanism: DeployMechanism.Zoltu,
+                mechanismData: ""
             }),
             unanchorableReason: "A vendored third-party deployment, pinned as its creation code; no local source compiles to it."
         });
@@ -147,7 +159,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: GENERIC_POOL_ARB_OT_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol:GenericPoolRaindexV6ArbOrderTaker",
-                dependencies: new DeployDependency[](0)
+                dependencies: new DeployDependency[](0),
+                mechanism: DeployMechanism.Zoltu,
+                mechanismData: ""
             }),
             unanchorableReason: ""
         });
@@ -164,7 +178,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: RP_ARB_OT_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol:RouteProcessorRaindexV6ArbOrderTaker",
-                dependencies: new DeployDependency[](0)
+                dependencies: new DeployDependency[](0),
+                mechanism: DeployMechanism.Zoltu,
+                mechanismData: ""
             }),
             unanchorableReason: ""
         });
@@ -181,7 +197,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: GENERIC_POOL_FB_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/GenericPoolRaindexV6FlashBorrower.sol:GenericPoolRaindexV6FlashBorrower",
-                dependencies: new DeployDependency[](0)
+                dependencies: new DeployDependency[](0),
+                mechanism: DeployMechanism.Zoltu,
+                mechanismData: ""
             }),
             unanchorableReason: ""
         });

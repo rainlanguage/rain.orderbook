@@ -74,7 +74,7 @@ forge-std = "1.17.0"
 "@openzeppelin-contracts" = "5.7.0"
 # rainlanguage/rain.interpreter was renamed to rainlanguage/rainlang;
 # its Soldeer registry name follows.
-rainlang = "0.2.14"
+rainlang = "0.2.15"
 # rainlanguage/rain.interpreter.interface was renamed to
 # rainlanguage/rainlang.interface; its Soldeer registry name moved from
 # `rain-interpreter-interface` (0.1.x) to `rainlang-interface` (0.2.x).
