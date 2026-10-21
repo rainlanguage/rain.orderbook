@@ -14,44 +14,15 @@ import {
 } from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
 import {IInterpreterV4} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rainlang-interface-0.2.13/src/interface/IInterpreterStoreV3.sol";
-import {
-    ReentrancyGuardReentrantCall,
-    NotOrderOwner,
-    TokenMismatch,
-    MinimumIO,
-    SameOwner,
-    UnsupportedCalculateOutputs,
-    NegativeVaultBalance,
-    NegativeVaultBalanceChange,
-    NegativePull,
-    NegativePush,
-    NegativeBounty,
-    ClearZeroAmount
-} from "src/error/ErrRaindexV6.sol";
 
 /// @title RaindexV6ErrorSelectorTest
-/// @notice Signature strings are the oracle for every error RaindexV6 reverts
-/// with, both as declared and as the deployed artifact reverts with them.
+/// @notice Signature strings are the oracle for the revert data the deployed
+/// RaindexV6 artifact reverts with.
 contract RaindexV6ErrorSelectorTest is Test {
     IRaindexV6 internal raindex;
 
     function setUp() external {
         raindex = IRaindexV6(deployCode("RaindexV6.sol:RaindexV6"));
-    }
-
-    function testErrorSelectorsMatchSignatures() external pure {
-        assertEq(ReentrancyGuardReentrantCall.selector, bytes4(keccak256("ReentrancyGuardReentrantCall()")));
-        assertEq(NotOrderOwner.selector, bytes4(keccak256("NotOrderOwner(address)")));
-        assertEq(TokenMismatch.selector, bytes4(keccak256("TokenMismatch()")));
-        assertEq(MinimumIO.selector, bytes4(keccak256("MinimumIO(bytes32,bytes32)")));
-        assertEq(SameOwner.selector, bytes4(keccak256("SameOwner()")));
-        assertEq(UnsupportedCalculateOutputs.selector, bytes4(keccak256("UnsupportedCalculateOutputs(uint256)")));
-        assertEq(NegativeVaultBalance.selector, bytes4(keccak256("NegativeVaultBalance(bytes32)")));
-        assertEq(NegativeVaultBalanceChange.selector, bytes4(keccak256("NegativeVaultBalanceChange(bytes32)")));
-        assertEq(NegativePull.selector, bytes4(keccak256("NegativePull()")));
-        assertEq(NegativePush.selector, bytes4(keccak256("NegativePush()")));
-        assertEq(NegativeBounty.selector, bytes4(keccak256("NegativeBounty()")));
-        assertEq(ClearZeroAmount.selector, bytes4(keccak256("ClearZeroAmount()")));
     }
 
     function order(address owner, address inputToken, address outputToken) internal pure returns (OrderV4 memory) {
