@@ -80,7 +80,10 @@ contract RaindexV6CalculateOrderIOHarnessTest is Test {
         harness = IRaindexV6CalculateOrderIOHarness(
             payable(address(uint160(uint256(keccak256("calculate.order.io.harness")))))
         );
-        vm.etch(address(harness), vm.getDeployedCode("RaindexV6CalculateOrderIOHarness.sol:RaindexV6CalculateOrderIOHarness"));
+        vm.etch(
+            address(harness),
+            vm.getDeployedCode("RaindexV6CalculateOrderIOHarness.sol:RaindexV6CalculateOrderIOHarness")
+        );
 
         interpreter = new FixedStackInterpreter();
         store = IInterpreterStoreV3(address(uint160(uint256(keccak256("store.calc.harness")))));

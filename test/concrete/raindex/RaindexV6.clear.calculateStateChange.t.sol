@@ -29,7 +29,10 @@ contract RaindexV6ClearStateChangeTest is Test {
         harness = IRaindexV6ClearStateChangeHarness(
             payable(address(uint160(uint256(keccak256("clear.state.change.harness")))))
         );
-        vm.etch(address(harness), vm.getDeployedCode("RaindexV6ClearStateChangeHarness.sol:RaindexV6ClearStateChangeHarness"));
+        vm.etch(
+            address(harness),
+            vm.getDeployedCode("RaindexV6ClearStateChangeHarness.sol:RaindexV6ClearStateChangeHarness")
+        );
     }
 
     /// Build a minimal OrderIOCalculationV4 carrying only the fields

@@ -47,13 +47,10 @@ contract Build is BuildScript, RaindexDeploySuites {
     /// @return The generated contracts.
     function generatedContracts() internal pure returns (GeneratedContract[] memory) {
         GeneratedContract[] memory contracts = new GeneratedContract[](6);
-        contracts[0] = GeneratedContract({
-            contractName: "RaindexV6", candidate: raindexCandidate(), pinnedCreationCode: ""
-        });
+        contracts[0] =
+            GeneratedContract({contractName: "RaindexV6", candidate: raindexCandidate(), pinnedCreationCode: ""});
         contracts[1] = GeneratedContract({
-            contractName: "RaindexV6SubParser",
-            candidate: subParserCandidate(),
-            pinnedCreationCode: ""
+            contractName: "RaindexV6SubParser", candidate: subParserCandidate(), pinnedCreationCode: ""
         });
         contracts[2] = GeneratedContract({
             contractName: "RouteProcessor4",

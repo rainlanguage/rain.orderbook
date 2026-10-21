@@ -3,12 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
-import {
-    NegativeVaultBalance,
-    NegativeVaultBalanceChange,
-    NegativePull,
-    NegativePush
-} from "src/error/ErrRaindexV6.sol";
+import {NegativeVaultBalance, NegativeVaultBalanceChange, NegativePull, NegativePush} from "src/error/ErrRaindexV6.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
 import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";

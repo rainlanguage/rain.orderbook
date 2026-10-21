@@ -70,7 +70,11 @@ contract RaindexV6ErrorSelectorTest is Test {
 
     function clear(OrderV4 memory alice, OrderV4 memory bob) internal {
         raindex.clear3(
-            alice, bob, ClearConfigV2(0, 0, 0, 0, bytes32(0), bytes32(0)), new SignedContextV1[](0), new SignedContextV1[](0)
+            alice,
+            bob,
+            ClearConfigV2(0, 0, 0, 0, bytes32(0), bytes32(0)),
+            new SignedContextV1[](0),
+            new SignedContextV1[](0)
         );
     }
 

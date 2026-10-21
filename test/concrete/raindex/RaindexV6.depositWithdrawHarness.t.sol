@@ -33,8 +33,7 @@ contract RaindexV6DepositWithdrawHarnessTest is Test, IRaindexV6Stub {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
-        harness =
-            IRaindexV6(payable(address(uint160(uint256(keccak256("deposit.withdraw.harness"))))));
+        harness = IRaindexV6(payable(address(uint160(uint256(keccak256("deposit.withdraw.harness"))))));
         vm.etch(address(harness), vm.getDeployedCode("RaindexV6.sol:RaindexV6"));
     }
 
