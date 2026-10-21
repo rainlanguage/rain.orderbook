@@ -435,18 +435,16 @@ contract RaindexV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Raindex
                     // be valid so we want to take advantage of those if possible.
                     //
                     // An order is taken only when its calculation yields a
-                    // strictly positive output at a strictly positive ratio
-                    // within the taker's limit. Every other result is a no-op
-                    // skip: a non-positive output is nothing to take, and a
-                    // non-positive ratio yields a non-positive output (a zero
-                    // ratio also has no inverse for the market-sell branch). The
-                    // explicit `taken` flag is the order's outcome for the batch.
+                    // strictly positive output at a non-negative ratio within
+                    // the taker's limit. A zero ratio gives its output for
+                    // nothing. The explicit `taken` flag is the order's outcome
+                    // for the batch.
                     bool taken;
                     if (orderIOCalculation.IORatio.gt(config.maximumIORatio)) {
                         emit OrderExceedsMaxRatio(msg.sender, order.owner, orderHash);
                     } else if (
                         !orderIOCalculation.outputMax.gt(LibDecimalFloat.FLOAT_ZERO)
-                            || !orderIOCalculation.IORatio.gt(LibDecimalFloat.FLOAT_ZERO)
+                            || orderIOCalculation.IORatio.lt(LibDecimalFloat.FLOAT_ZERO)
                     ) {
                         emit OrderZeroAmount(msg.sender, order.owner, orderHash);
                     } else {
@@ -473,7 +471,9 @@ contract RaindexV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Raindex
                             Float orderMaxInput = orderIOCalculation.IORatio.mul(orderIOCalculation.outputMax);
                             takerOutput = orderMaxInput.min(io.remainingTakerIO);
                             // This rounds down which favours the order/dex.
-                            takerInput = takerOutput.div(orderIOCalculation.IORatio);
+                            takerInput = orderIOCalculation.IORatio.isZero()
+                                ? orderIOCalculation.outputMax
+                                : takerOutput.div(orderIOCalculation.IORatio);
 
                             io.remainingTakerIO = io.remainingTakerIO.sub(takerOutput);
                         }

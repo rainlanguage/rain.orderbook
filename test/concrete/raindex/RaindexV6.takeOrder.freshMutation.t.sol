@@ -272,26 +272,6 @@ contract RaindexV6TakeOrderFreshMutationTest is RaindexV6FreshTakeOrderTest {
     }
 
     // ---------------------------------------------------------------------
-    // B12: ratio == 0 (with positive outputMax, within maxRatio) => skip with
-    // OrderZeroAmount. Pins the `!IORatio.gt(0)` half of the zero-amount guard.
-    // ---------------------------------------------------------------------
-    function testZeroRatioSkips() external {
-        _depositOutput(alice, 10, VAULT1);
-        OrderV4 memory order = _order(alice, "_ _:5 0;:;");
-
-        TakeOrdersConfigV5 memory config = _config(order);
-        vm.mockCallRevert(address(iToken0), abi.encodeWithSelector(IERC20.transfer.selector), "no transfer");
-        vm.mockCallRevert(address(iToken1), abi.encodeWithSelector(IERC20.transfer.selector), "no transfer");
-
-        vm.prank(bob);
-        vm.expectEmit(true, true, true, true);
-        emit IRaindexV6.OrderZeroAmount(bob, alice, LibOrder.hash(order));
-        (Float totalTakerInput, Float totalTakerOutput) = iRaindex.takeOrders4(config);
-        assertTrue(totalTakerInput.isZero(), "input zero");
-        assertTrue(totalTakerOutput.isZero(), "output zero");
-    }
-
-    // ---------------------------------------------------------------------
     // B13: ordering of guards. An order whose ratio exceeds the max AND has zero
     // output must emit OrderExceedsMaxRatio (ratio checked FIRST), NOT
     // OrderZeroAmount. ratio=100 > maximumIORatio=1, outputMax=0.
