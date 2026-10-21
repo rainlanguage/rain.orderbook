@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std-1.16.2/src/Test.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.10/src/lib/LibRainDeploy.sol";
+import {Test} from "forge-std-1.17.0/src/Test.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.18/src/lib/LibRainDeploy.sol";
+import {LibBlockSearch} from "rain-deploy-0.1.18/src/lib/LibBlockSearch.sol";
 import {LibRaindexDeploy} from "src/lib/deploy/LibRaindexDeploy.sol";
 
 /// @title LibRaindexDeployIsStartBlockBaseTest
@@ -13,7 +14,7 @@ contract LibRaindexDeployIsStartBlockBaseTest is Test {
     function testIsStartBlockBase() external {
         vm.createSelectFork(LibRainDeploy.BASE);
         assertTrue(
-            LibRainDeploy.isStartBlock(
+            LibBlockSearch.isStartBlock(
                 vm,
                 LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS,
                 LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH,

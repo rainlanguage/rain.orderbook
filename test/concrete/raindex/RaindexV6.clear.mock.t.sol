@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test, stdError} from "forge-std-1.16.2/src/Test.sol";
+import {Test, stdError} from "forge-std-1.17.0/src/Test.sol";
 
-import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
+import {IERC20} from "@openzeppelin-contracts-5.7.0/token/ERC20/IERC20.sol";
 import {RaindexV6ExternalMockTest} from "test/util/abstract/RaindexV6ExternalMockTest.sol";
 import {
     OrderConfigV4,
@@ -16,16 +16,16 @@ import {
     IInterpreterV4,
     TaskV2,
     Float
-} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+} from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {NotOrderOwner, StackItem, NegativeBounty, ClearZeroAmount} from "../../../src/concrete/raindex/RaindexV6.sol";
-import {LibNamespace} from "rainlang-interface-0.2.9/src/lib/ns/LibNamespace.sol";
-import {StateNamespace, SourceIndexV2} from "rainlang-interface-0.2.9/src/interface/IInterpreterV4.sol";
-import {Math} from "@openzeppelin-contracts-5.6.1/utils/math/Math.sol";
-import {LibDecimalFloat} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
+import {LibNamespace} from "rainlang-interface-0.2.13/src/lib/ns/LibNamespace.sol";
+import {StateNamespace, SourceIndexV2} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
+import {Math} from "@openzeppelin-contracts-5.7.0/utils/math/Math.sol";
+import {LibDecimalFloat} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
 
-import {LibFormatDecimalFloat} from "rain-math-float-0.2.1/src/lib/format/LibFormatDecimalFloat.sol";
-import {console2} from "forge-std-1.16.2/src/console2.sol";
+import {LibFormatDecimalFloat} from "rain-math-float-0.3.10/src/lib/format/LibFormatDecimalFloat.sol";
+import {console2} from "forge-std-1.17.0/src/console2.sol";
 import {MockInterpreter} from "test/util/concrete/MockInterpreter.sol";
 
 /// @title RaindexV6ClearTest

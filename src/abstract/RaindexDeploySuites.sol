@@ -2,18 +2,17 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {DeployCandidate, DeploySuite, RainDeploySuitesBase} from "./RainDeploySuitesBase.sol";
-import {RaindexV6} from "../concrete/raindex/RaindexV6.sol";
-import {RaindexV6SubParser} from "../concrete/parser/RaindexV6SubParser.sol";
-import {GenericPoolRaindexV6ArbOrderTaker} from "../concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
-import {RouteProcessorRaindexV6ArbOrderTaker} from "../concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
-import {GenericPoolRaindexV6FlashBorrower} from "../concrete/arb/GenericPoolRaindexV6FlashBorrower.sol";
-import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../lib/deploy/LibRouteProcessor4CreationCode.sol";
+import {DeployCandidate, DeployDependency, DeploySuite, RainDeploySuitesBase} from "./RainDeploySuitesBase.sol";
 import {LibRaindexDeploy} from "../lib/deploy/LibRaindexDeploy.sol";
 import {LibReleasedSuites} from "../lib/LibReleasedSuites.sol";
-import {LibDecimalFloatDeploy} from "rain-math-float-deploy-0.1.2/src/lib/deploy/LibDecimalFloatDeploy.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.1/src/lib/LibTOFUTokenDecimals.sol";
-import {LibMetaBoardDeploy} from "rain-metadata-deploy-0.1.1/src/lib/LibMetaBoardDeploy.sol";
+import {
+    DEPLOYED_ADDRESS as TOFU_DECIMALS_ADDRESS,
+    RUNTIME_CODE as TOFU_DECIMALS_RUNTIME_CODE
+} from "rain-tofu-erc20-decimals-deploy-0.1.0/src/generated/0_1_0/TOFUTokenDecimals.sol";
+import {
+    DEPLOYED_ADDRESS as META_BOARD_ADDRESS,
+    RUNTIME_CODE as META_BOARD_RUNTIME_CODE
+} from "rain-metadata-deploy-0.1.1/src/generated/0_1_1/MetaBoard.sol";
 import {
     CREATION_CODE as RAINDEX_CREATION_CODE_CANDIDATE,
     RUNTIME_CODE as RAINDEX_RUNTIME_CODE_CANDIDATE
@@ -68,15 +67,14 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
         return candidates;
     }
 
-    /// The addresses that must already have code on a network before
-    /// `RaindexV6` or `RaindexV6SubParser` can be broadcast there: the decimal
-    /// float log tables, the TOFU decimals reader and the metaboard.
-    /// @return The dependency addresses.
-    function raindexDependencies() internal pure returns (address[] memory) {
-        address[] memory deps = new address[](3);
-        deps[0] = LibDecimalFloatDeploy.ZOLTU_DEPLOYED_LOG_TABLES_ADDRESS;
-        deps[1] = address(LibTOFUTokenDecimals.TOFU_DECIMALS_DEPLOYMENT);
-        deps[2] = LibMetaBoardDeploy.META_BOARD_DEPLOYED_ADDRESS;
+    /// The code that must already be on a network before `RaindexV6` or
+    /// `RaindexV6SubParser` can be broadcast there: the TOFU decimals reader
+    /// and the metaboard.
+    /// @return The dependencies.
+    function raindexDependencies() internal pure returns (DeployDependency[] memory) {
+        DeployDependency[] memory deps = new DeployDependency[](2);
+        deps[0] = DeployDependency({deployedAddress: TOFU_DECIMALS_ADDRESS, runtimeCode: TOFU_DECIMALS_RUNTIME_CODE});
+        deps[1] = DeployDependency({deployedAddress: META_BOARD_ADDRESS, runtimeCode: META_BOARD_RUNTIME_CODE});
         return deps;
     }
 
@@ -97,7 +95,7 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 artifactPath: "src/concrete/raindex/RaindexV6.sol:RaindexV6",
                 dependencies: raindexDependencies()
             }),
-            sourceCreationCode: type(RaindexV6).creationCode
+            unanchorableReason: ""
         });
     }
 
@@ -114,14 +112,14 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 artifactPath: "src/concrete/parser/RaindexV6SubParser.sol:RaindexV6SubParser",
                 dependencies: raindexDependencies()
             }),
-            sourceCreationCode: type(RaindexV6SubParser).creationCode
+            unanchorableReason: ""
         });
     }
 
     /// This repo's rolling `RouteProcessor4` candidate. There is no local
     /// source for RouteProcessor4 — its creation code is the pinned
-    /// `ROUTE_PROCESSOR_4_CREATION_CODE` constant — so the source anchor
-    /// compares the snapshot to that constant.
+    /// `ROUTE_PROCESSOR_4_CREATION_CODE` constant — so it declares an
+    /// `unanchorableReason`.
     /// @return The candidate.
     function routeProcessorCandidate() internal pure returns (DeployCandidate memory) {
         return DeployCandidate({
@@ -131,10 +129,10 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedDeployedAddress: LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_ADDRESS,
                 storedBytecodeHash: LibRaindexDeploy.ROUTE_PROCESSOR_DEPLOYED_CODEHASH,
                 storedRuntimeCode: ROUTE_PROCESSOR_RUNTIME_CODE_CANDIDATE,
-                artifactPath: "RouteProcessor4",
-                dependencies: new address[](0)
+                artifactPath: "src/lib/deploy/LibRouteProcessor4CreationCode.sol:RouteProcessor4",
+                dependencies: new DeployDependency[](0)
             }),
-            sourceCreationCode: ROUTE_PROCESSOR_4_CREATION_CODE
+            unanchorableReason: "A vendored third-party deployment, pinned as its creation code; no local source compiles to it."
         });
     }
 
@@ -149,9 +147,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.GENERIC_POOL_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: GENERIC_POOL_ARB_OT_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol:GenericPoolRaindexV6ArbOrderTaker",
-                dependencies: new address[](0)
+                dependencies: new DeployDependency[](0)
             }),
-            sourceCreationCode: type(GenericPoolRaindexV6ArbOrderTaker).creationCode
+            unanchorableReason: ""
         });
     }
 
@@ -166,9 +164,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.ROUTE_PROCESSOR_ARB_ORDER_TAKER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: RP_ARB_OT_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol:RouteProcessorRaindexV6ArbOrderTaker",
-                dependencies: new address[](0)
+                dependencies: new DeployDependency[](0)
             }),
-            sourceCreationCode: type(RouteProcessorRaindexV6ArbOrderTaker).creationCode
+            unanchorableReason: ""
         });
     }
 
@@ -183,9 +181,9 @@ abstract contract RaindexDeploySuites is RainDeploySuitesBase {
                 storedBytecodeHash: LibRaindexDeploy.GENERIC_POOL_FLASH_BORROWER_DEPLOYED_CODEHASH,
                 storedRuntimeCode: GENERIC_POOL_FB_RUNTIME_CODE_CANDIDATE,
                 artifactPath: "src/concrete/arb/GenericPoolRaindexV6FlashBorrower.sol:GenericPoolRaindexV6FlashBorrower",
-                dependencies: new address[](0)
+                dependencies: new DeployDependency[](0)
             }),
-            sourceCreationCode: type(GenericPoolRaindexV6FlashBorrower).creationCode
+            unanchorableReason: ""
         });
     }
 }

@@ -3,10 +3,10 @@
 pragma solidity =0.8.25;
 
 import {RaindexV6, OrderIOCalculationV4} from "src/concrete/raindex/RaindexV6.sol";
-import {Float} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
-import {OrderV4, SignedContextV1} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
-import {TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.1/src/interface/ITOFUTokenDecimals.sol";
-import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.1/src/lib/LibTOFUTokenDecimals.sol";
+import {Float} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
+import {OrderV4, SignedContextV1} from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
+import {TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.4/src/interface/ITOFUTokenDecimals.sol";
+import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
 
 /// @dev Exposes RaindexV6's internal `calculateOrderIO` and seeds the TOFU
 /// decimals store so a fresh-compiled RaindexV6 (etched runtime code) can be

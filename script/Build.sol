@@ -2,15 +2,20 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {BuildScript} from "rain-deploy-0.1.10/src/abstract/BuildScript.sol";
-import {LibRainDeploySnapshot} from "rain-deploy-0.1.10/src/lib/LibRainDeploySnapshot.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.10/src/lib/LibRainDeploy.sol";
-import {LibCodeGen} from "rain-sol-codegen-0.1.37/src/lib/LibCodeGen.sol";
-import {LibFs} from "rain-sol-codegen-0.1.37/src/lib/LibFs.sol";
-import {LibGenParseMeta} from "rainlang-interface-0.2.9/src/lib/codegen/LibGenParseMeta.sol";
+import {BuildScript} from "rain-deploy-0.1.18/src/abstract/BuildScript.sol";
+import {LibRainDeploySnapshot} from "rain-deploy-0.1.18/src/lib/LibRainDeploySnapshot.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.18/src/lib/LibRainDeploy.sol";
+import {LibCodeGen} from "rain-sol-codegen-0.1.39/src/lib/LibCodeGen.sol";
+import {LibFs} from "rain-sol-codegen-0.1.39/src/lib/LibFs.sol";
+import {LibGenParseMeta} from "rainlang-interface-0.2.13/src/lib/codegen/LibGenParseMeta.sol";
 import {DeployCandidate} from "../src/abstract/RainDeploySuitesBase.sol";
 import {RaindexDeploySuites} from "../src/abstract/RaindexDeploySuites.sol";
+import {RaindexV6} from "../src/concrete/raindex/RaindexV6.sol";
 import {RaindexV6SubParser} from "../src/concrete/parser/RaindexV6SubParser.sol";
+import {GenericPoolRaindexV6ArbOrderTaker} from "../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
+import {RouteProcessorRaindexV6ArbOrderTaker} from "../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
+import {GenericPoolRaindexV6FlashBorrower} from "../src/concrete/arb/GenericPoolRaindexV6FlashBorrower.sol";
+import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 
 /// One contract's generated snapshot and the released-suites lib emitted from
@@ -19,10 +24,12 @@ struct GeneratedContract {
     /// Places the snapshot inside `src/generated/<dir>/` and names the
     /// generated released-suites lib.
     string contractName;
-    /// Snapshots are written from its `sourceCreationCode` and
-    /// `snapshot.dependencies`; the released lib takes its suite key and
-    /// artifact path from its `snapshot`.
+    /// The released lib takes its suite key and artifact path from its
+    /// `snapshot`.
     DeployCandidate candidate;
+    /// The creation code its snapshot is written from, with
+    /// `candidate.snapshot.dependencies`.
+    bytes sourceCreationCode;
 }
 
 /// @title Build
@@ -44,17 +51,33 @@ contract Build is BuildScript, RaindexDeploySuites {
     /// @return The generated contracts.
     function generatedContracts() internal pure returns (GeneratedContract[] memory) {
         GeneratedContract[] memory contracts = new GeneratedContract[](6);
-        contracts[0] = GeneratedContract({contractName: "RaindexV6", candidate: raindexCandidate()});
-        contracts[1] = GeneratedContract({contractName: "RaindexV6SubParser", candidate: subParserCandidate()});
-        contracts[2] = GeneratedContract({contractName: "RouteProcessor4", candidate: routeProcessorCandidate()});
+        contracts[0] = GeneratedContract({
+            contractName: "RaindexV6", candidate: raindexCandidate(), sourceCreationCode: type(RaindexV6).creationCode
+        });
+        contracts[1] = GeneratedContract({
+            contractName: "RaindexV6SubParser",
+            candidate: subParserCandidate(),
+            sourceCreationCode: type(RaindexV6SubParser).creationCode
+        });
+        contracts[2] = GeneratedContract({
+            contractName: "RouteProcessor4",
+            candidate: routeProcessorCandidate(),
+            sourceCreationCode: ROUTE_PROCESSOR_4_CREATION_CODE
+        });
         contracts[3] = GeneratedContract({
-            contractName: "GenericPoolRaindexV6ArbOrderTaker", candidate: genericPoolArbOrderTakerCandidate()
+            contractName: "GenericPoolRaindexV6ArbOrderTaker",
+            candidate: genericPoolArbOrderTakerCandidate(),
+            sourceCreationCode: type(GenericPoolRaindexV6ArbOrderTaker).creationCode
         });
         contracts[4] = GeneratedContract({
-            contractName: "RouteProcessorRaindexV6ArbOrderTaker", candidate: routeProcessorArbOrderTakerCandidate()
+            contractName: "RouteProcessorRaindexV6ArbOrderTaker",
+            candidate: routeProcessorArbOrderTakerCandidate(),
+            sourceCreationCode: type(RouteProcessorRaindexV6ArbOrderTaker).creationCode
         });
         contracts[5] = GeneratedContract({
-            contractName: "GenericPoolRaindexV6FlashBorrower", candidate: genericPoolFlashBorrowerCandidate()
+            contractName: "GenericPoolRaindexV6FlashBorrower",
+            candidate: genericPoolFlashBorrowerCandidate(),
+            sourceCreationCode: type(GenericPoolRaindexV6FlashBorrower).creationCode
         });
         return contracts;
     }
@@ -94,9 +117,10 @@ contract Build is BuildScript, RaindexDeploySuites {
         for (uint256 i = 0; i < contracts.length; i++) {
             LibRainDeploySnapshot.writeSnapshot(
                 vm,
+                recordRoot(),
                 LibRainDeploySnapshot.CANDIDATE,
                 contracts[i].contractName,
-                contracts[i].candidate.sourceCreationCode,
+                contracts[i].sourceCreationCode,
                 contracts[i].candidate.snapshot.dependencies
             );
         }

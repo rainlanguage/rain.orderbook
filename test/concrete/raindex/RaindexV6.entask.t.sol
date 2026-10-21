@@ -8,7 +8,7 @@ import {
     EvaluableV4,
     TaskV2,
     SignedContextV1
-} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+} from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
 
 contract RaindexV6EnactTest is RaindexV6ExternalRealTest {
     function checkReentrancyRW() internal view {
@@ -116,5 +116,13 @@ contract RaindexV6EnactTest is RaindexV6ExternalRealTest {
         evals3[0] = bytes(":ensure(equal-to(get(1) 20) \"bob state 1\");");
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
         checkEntask(bob, evals3, 4, 2);
+    }
+
+    /// Rainlang's power and sqrt ops call the deployed DecimalFloat.
+    function testRaindexEvalDecimalFloatOps() external {
+        bytes[] memory evals = new bytes[](2);
+        evals[0] = bytes(":ensure(equal-to(power(2 3) 8) \"power\");");
+        evals[1] = bytes(":ensure(equal-to(sqrt(16) 4) \"sqrt\");");
+        checkEntask(address(this), evals, 0, 0);
     }
 }

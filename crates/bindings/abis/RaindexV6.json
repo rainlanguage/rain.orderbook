@@ -2067,22 +2067,6 @@
     },
     {
       "type": "error",
-      "name": "MaximizeOverflow",
-      "inputs": [
-        {
-          "name": "signedCoefficient",
-          "type": "int256",
-          "internalType": "int256"
-        },
-        {
-          "name": "exponent",
-          "type": "int256",
-          "internalType": "int256"
-        }
-      ]
-    },
-    {
-      "type": "error",
       "name": "MinimumIO",
       "inputs": [
         {
@@ -2275,6 +2259,32 @@
       "type": "error",
       "name": "TokenSelfTrade",
       "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "UnabsExponentOverflow",
+      "inputs": [
+        {
+          "name": "a",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "b",
+          "type": "int256",
+          "internalType": "int256"
+        },
+        {
+          "name": "signedCoefficientAbs",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "exponent",
+          "type": "int256",
+          "internalType": "int256"
+        }
+      ]
     },
     {
       "type": "error",
