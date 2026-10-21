@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Vm} from "forge-std-1.16.1/src/Test.sol";
+import {Vm} from "forge-std-1.16.2/src/Test.sol";
 import {RaindexV6ExternalRealTest, IERC20} from "test/util/abstract/RaindexV6ExternalRealTest.sol";
 import {
     OrderV4,
@@ -12,8 +12,8 @@ import {
     OrderConfigV4,
     EvaluableV4,
     TaskV2
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.6.1/token/ERC20/extensions/IERC20Metadata.sol";
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 

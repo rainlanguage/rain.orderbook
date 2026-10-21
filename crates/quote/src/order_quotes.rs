@@ -1,5 +1,7 @@
 #[cfg(test)]
 use crate::injector::NoopInjector;
+#[cfg(not(target_family = "wasm"))]
+use crate::rpc::{with_rpc_timeout, RPC_ATTEMPT_TIMEOUT_MS};
 use crate::{
     error::Error,
     injector::SignedContextInjector,
@@ -75,6 +77,21 @@ struct QuotedPairMetadata {
     pair: Pair,
 }
 
+fn pair_is_selected(
+    selected_pairs: Option<&[Vec<Pair>]>,
+    order_index: usize,
+    input_index: u32,
+    output_index: u32,
+) -> bool {
+    selected_pairs
+        .and_then(|pairs| pairs.get(order_index))
+        .is_none_or(|pairs| {
+            pairs
+                .iter()
+                .any(|pair| pair.input_index == input_index && pair.output_index == output_index)
+        })
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_family = "wasm", derive(Tsify))]
 #[serde(rename_all = "camelCase")]
@@ -128,6 +145,55 @@ pub async fn get_order_quotes(
     counterparty: Address,
     injector: &dyn SignedContextInjector,
 ) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
+    get_order_quotes_inner(
+        orders,
+        None,
+        block_number,
+        rpcs,
+        chunk_size,
+        counterparty,
+        injector,
+    )
+    .await
+}
+
+/// Quote only the requested IO pairs for each order.
+pub async fn get_order_quotes_for_pairs(
+    orders: Vec<SgOrder>,
+    selected_pairs: &[Vec<Pair>],
+    block_number: Option<u64>,
+    rpcs: Vec<String>,
+    chunk_size: Option<usize>,
+    counterparty: Address,
+    injector: &dyn SignedContextInjector,
+) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
+    if selected_pairs.len() != orders.len() {
+        return Err(Error::PairSelectionLengthMismatch {
+            expected: orders.len(),
+            actual: selected_pairs.len(),
+        });
+    }
+    get_order_quotes_inner(
+        orders,
+        Some(selected_pairs),
+        block_number,
+        rpcs,
+        chunk_size,
+        counterparty,
+        injector,
+    )
+    .await
+}
+
+async fn get_order_quotes_inner(
+    orders: Vec<SgOrder>,
+    selected_pairs: Option<&[Vec<Pair>]>,
+    block_number: Option<u64>,
+    rpcs: Vec<String>,
+    chunk_size: Option<usize>,
+    counterparty: Address,
+    injector: &dyn SignedContextInjector,
+) -> Result<Vec<BatchOrderQuotesResponse>, Error> {
     let started_at = QuoteTiming::now();
     info!(
         order_count = orders.len(),
@@ -142,16 +208,23 @@ pub async fn get_order_quotes(
     let req_block_number = match block_number {
         Some(block) => block,
         None => {
-            let urls = rpcs
-                .iter()
-                .map(|rpc| rpc.parse())
-                .collect::<Result<Vec<_>, _>>()
-                .map_err(Error::UrlParseError)?;
-            let provider = mk_read_provider(&urls).map_err(Error::ReadProviderError)?;
-            provider
-                .get_block_number()
-                .await
-                .map_err(|e| Error::TransportError(e.to_string()))?
+            #[cfg(target_family = "wasm")]
+            {
+                let urls = rpcs
+                    .iter()
+                    .map(|rpc| rpc.parse())
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(Error::UrlParseError)?;
+                let provider = mk_read_provider(&urls).map_err(Error::ReadProviderError)?;
+                provider
+                    .get_block_number()
+                    .await
+                    .map_err(|error| Error::TransportError(error.to_string()))?
+            }
+            #[cfg(not(target_family = "wasm"))]
+            {
+                resolve_latest_block_number(&rpcs).await?
+            }
         }
     };
     info!(
@@ -172,7 +245,7 @@ pub async fn get_order_quotes(
     let mut skipped_self_trade_pair_count = 0usize;
 
     let target_build_started_at = QuoteTiming::now();
-    for order in &orders {
+    for (order_index, order) in orders.iter().enumerate() {
         let order_struct: OrderV4 = order.clone().try_into()?;
         let raindex = Address::from_str(&order.raindex.id.0)?;
         let oracle_url = crate::oracle::extract_oracle_url(order);
@@ -181,6 +254,14 @@ pub async fn get_order_quotes(
             for (output_index, output) in order_struct.validOutputs.iter().enumerate() {
                 if input.token == output.token {
                     skipped_self_trade_pair_count += 1;
+                    continue;
+                }
+                if !pair_is_selected(
+                    selected_pairs,
+                    order_index,
+                    input_index as u32,
+                    output_index as u32,
+                ) {
                     continue;
                 }
 
@@ -284,7 +365,7 @@ pub async fn get_order_quotes(
         oracle_batch_request_count,
         "starting bounded batched quote oracle context fetches"
     );
-    let oracle_batch_results: Vec<Result<Vec<SignedContextV1>, String>> =
+    let oracle_batch_results: Vec<Result<Vec<Result<SignedContextV1, String>>, String>> =
         if oracle_batch_requests.is_empty() {
             vec![]
         } else {
@@ -293,7 +374,16 @@ pub async fn get_order_quotes(
                     .fetch_signed_context_batches(oracle_batch_requests)
                     .await
                     .into_iter()
-                    .map(|result| result.map_err(|error| error.to_string()))
+                    .map(|result| {
+                        result
+                            .map(|items| {
+                                items
+                                    .into_iter()
+                                    .map(|item| item.map_err(|error| error.to_string()))
+                                    .collect()
+                            })
+                            .map_err(|error| error.to_string())
+                    })
                     .collect(),
                 Err(error) => {
                     let error = error.to_string();
@@ -311,7 +401,7 @@ pub async fn get_order_quotes(
         match batch_result {
             Ok(contexts) => {
                 for (item, context) in batch.items.iter().zip(contexts) {
-                    oracle_results[item.pair_preparation_index] = Some(Ok(context));
+                    oracle_results[item.pair_preparation_index] = Some(context);
                 }
             }
             Err(error) => {
@@ -514,9 +604,101 @@ pub async fn get_order_quotes(
     Ok(responses)
 }
 
+#[cfg(not(target_family = "wasm"))]
+async fn resolve_latest_block_number(rpcs: &[String]) -> Result<u64, Error> {
+    let mut failures = Vec::new();
+    for rpc in rpcs {
+        let url = match rpc.parse() {
+            Ok(url) => url,
+            Err(error) => {
+                failures.push(format!("{rpc}: {error}"));
+                continue;
+            }
+        };
+        let provider = match mk_read_provider(&[url]) {
+            Ok(provider) => provider,
+            Err(error) => {
+                failures.push(format!("{rpc}: {error}"));
+                continue;
+            }
+        };
+        match with_rpc_timeout(provider.get_block_number(), RPC_ATTEMPT_TIMEOUT_MS).await {
+            Some(Ok(value)) => return Ok(value),
+            Some(Err(error)) => failures.push(format!("{rpc}: {error}")),
+            None => failures.push(format!("{rpc}: timed out after {RPC_ATTEMPT_TIMEOUT_MS}ms")),
+        }
+    }
+    Err(Error::TransportError(format!(
+        "all quote RPC block reads failed: {}",
+        failures.join("; ")
+    )))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pair_selection_is_scoped_by_order_and_io_indices() {
+        let selections = vec![
+            vec![Pair {
+                pair_name: String::new(),
+                input_index: 1,
+                output_index: 2,
+            }],
+            Vec::new(),
+        ];
+
+        assert!(pair_is_selected(Some(&selections), 0, 1, 2));
+        assert!(!pair_is_selected(Some(&selections), 0, 0, 2));
+        assert!(!pair_is_selected(Some(&selections), 1, 1, 2));
+        assert!(pair_is_selected(None, 1, 1, 2));
+    }
+
+    #[tokio::test]
+    async fn pair_selection_must_align_with_orders() {
+        let error = get_order_quotes_for_pairs(
+            Vec::new(),
+            &[Vec::new()],
+            None,
+            Vec::new(),
+            None,
+            Address::ZERO,
+            &NoopInjector,
+        )
+        .await
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            Error::PairSelectionLengthMismatch {
+                expected: 0,
+                actual: 1
+            }
+        ));
+    }
+
+    #[cfg(not(target_family = "wasm"))]
+    #[tokio::test]
+    async fn latest_block_read_cycles_after_malformed_rpc_url() {
+        let server = MockServer::start_async().await;
+        let block = server.mock(|when, then| {
+            when.method(POST).path("/rpc");
+            then.json_body(json!({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": "0x2a",
+            }));
+        });
+
+        let result = resolve_latest_block_number(&["not a URL".into(), server.url("/rpc")])
+            .await
+            .unwrap();
+
+        assert_eq!(result, 42);
+        block.assert_hits(1);
+    }
+
     #[cfg(not(target_family = "wasm"))]
     use alloy::primitives::{address, Bytes};
     use alloy::{
@@ -525,6 +707,8 @@ mod tests {
         providers::Provider,
         sol_types::{SolCall, SolValue},
     };
+    #[cfg(not(target_family = "wasm"))]
+    use httpmock::{Method::POST, MockServer};
     use rain_math_float::Float;
     #[cfg(not(target_family = "wasm"))]
     use rain_metadata::types::raindex_signed_context_oracle::RaindexSignedContextOracleV1;
@@ -606,13 +790,20 @@ mod tests {
 
     #[cfg(not(target_family = "wasm"))]
     async fn start_batch_oracle_server(
-        responses: Vec<crate::oracle::OracleResponse>,
+        responses: Vec<Result<crate::oracle::OracleResponse, crate::oracle::OracleBatchItemError>>,
     ) -> (String, tokio::task::JoinHandle<Vec<Vec<u8>>>) {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("http://{}/oracle", listener.local_addr().unwrap());
         let server = tokio::spawn(async move {
             let (mut stream, _) = listener.accept().await.unwrap();
             let body = read_http_body(&mut stream).await;
+            let responses = responses
+                .into_iter()
+                .map(|response| match response {
+                    Ok(body) => json!({"status": "ok", "body": body}),
+                    Err(body) => json!({"status": "error", "body": body}),
+                })
+                .collect::<Vec<_>>();
             let payload = serde_json::to_vec(&responses).unwrap();
             let headers = format!(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
@@ -1006,10 +1197,20 @@ amount price: 2 3;
         let oracle_responses = oracle_contexts
             .iter()
             .cloned()
-            .map(|context| crate::oracle::OracleResponse {
-                signer: context.signer,
-                context: context.context,
-                signature: context.signature,
+            .enumerate()
+            .map(|(index, context)| {
+                if index == 0 {
+                    Ok(crate::oracle::OracleResponse {
+                        signer: context.signer,
+                        context: context.context,
+                        signature: context.signature,
+                    })
+                } else {
+                    Err(crate::oracle::OracleBatchItemError {
+                        error: "service_unavailable".to_string(),
+                        detail: "pair unavailable".to_string(),
+                    })
+                }
             })
             .collect();
         let base_oracle_order =
@@ -1032,13 +1233,12 @@ amount price: 2 3;
             context: injected_context.clone(),
             call_count: injector_call_count.clone(),
         };
-        let quote_values =
-            [("2", "3"), ("4", "5"), ("6", "7"), ("8", "9")].map(|(output_max, ratio)| {
-                (
-                    Float::parse(output_max.to_string()).unwrap(),
-                    Float::parse(ratio.to_string()).unwrap(),
-                )
-            });
+        let quote_values = [("2", "3"), ("6", "7"), ("8", "9")].map(|(output_max, ratio)| {
+            (
+                Float::parse(output_max.to_string()).unwrap(),
+                Float::parse(ratio.to_string()).unwrap(),
+            )
+        });
         let quote_results = quote_values
             .iter()
             .map(|(output_max, ratio)| {
@@ -1060,17 +1260,6 @@ amount price: 2 3;
                     inputIOIndex: U256::ZERO,
                     outputIOIndex: U256::from(1),
                     signedContext: vec![oracle_contexts[0].clone(), injected_context.clone()],
-                },
-            }
-            .abi_encode(),
-        );
-        let expected_second_oracle_quote_call = Bytes::from(
-            raindex_bindings::IRaindexV6::quote2Call {
-                quoteConfig: QuoteV2 {
-                    order: order_struct.clone(),
-                    inputIOIndex: U256::from(1),
-                    outputIOIndex: U256::ZERO,
-                    signedContext: vec![oracle_contexts[1].clone(), injected_context.clone()],
                 },
             }
             .abi_encode(),
@@ -1099,7 +1288,6 @@ amount price: 2 3;
         );
         let expected_rpc_calls = vec![
             expected_oracle_quote_call,
-            expected_second_oracle_quote_call,
             expected_plain_quote_call,
             expected_second_plain_quote_call,
         ];
@@ -1123,7 +1311,7 @@ amount price: 2 3;
                 .iter()
                 .map(|response| response.success)
                 .collect::<Vec<_>>(),
-            vec![true, true, true, true]
+            vec![true, false, true, true]
         );
         assert_eq!(
             responses
@@ -1133,24 +1321,35 @@ amount price: 2 3;
             vec![(0, 1), (1, 0), (0, 1), (1, 0)]
         );
 
-        for (response_index, quote_value_index) in [(0, 0), (1, 1), (2, 2), (3, 3)] {
+        for (response_index, quote_value_index) in [(0, 0), (2, 1), (3, 2)] {
             let data = responses[response_index].data.as_ref().unwrap();
             let (expected_output_max, expected_ratio) = &quote_values[quote_value_index];
             assert!(data.max_output.eq(*expected_output_max).unwrap());
             assert!(data.ratio.eq(*expected_ratio).unwrap());
         }
 
-        for (response, oracle_context) in responses[..2].iter().zip(&oracle_contexts) {
-            assert_eq!(response.signed_context.len(), 2);
-            assert_eq!(response.signed_context[0].signer, oracle_context.signer);
-            assert_eq!(response.signed_context[1].signer, injected_context.signer);
-        }
+        assert!(responses[1].data.is_none());
+        assert!(responses[1]
+            .error
+            .as_deref()
+            .is_some_and(|error| error.contains("service_unavailable")));
+
+        assert_eq!(responses[0].signed_context.len(), 2);
+        assert_eq!(
+            responses[0].signed_context[0].signer,
+            oracle_contexts[0].signer
+        );
+        assert_eq!(
+            responses[0].signed_context[1].signer,
+            injected_context.signer
+        );
+        assert!(responses[1].signed_context.is_empty());
         for response in &responses[2..] {
             assert_eq!(response.signed_context.len(), 1);
             assert_eq!(response.signed_context[0].signer, injected_context.signer);
         }
 
-        assert_eq!(injector_call_count.load(Ordering::SeqCst), 4);
+        assert_eq!(injector_call_count.load(Ordering::SeqCst), 3);
         let oracle_request_bodies = oracle_server.await.unwrap();
         assert_eq!(oracle_request_bodies, vec![expected_oracle_body]);
         rpc_server.await.unwrap();
@@ -1212,6 +1411,10 @@ amount price: 2 3;
         .await
         .unwrap_err();
 
-        assert!(matches!(err, Error::UrlParseError(_)));
+        assert!(matches!(
+            err,
+            Error::TransportError(message)
+                if message.contains("all quote RPC block reads failed")
+        ));
     }
 }

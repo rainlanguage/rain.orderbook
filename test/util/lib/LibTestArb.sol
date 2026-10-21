@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity ^0.8.19;
 
-import {Vm} from "forge-std-1.16.1/src/Vm.sol";
+import {Vm} from "forge-std-1.16.2/src/Vm.sol";
 import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
 import {
     IRaindexV6,
@@ -13,12 +13,15 @@ import {
     EvaluableV4,
     SignedContextV1,
     TaskV2
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IInterpreterV4} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterStoreV3.sol";
-import {LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.2/src/lib/LibRainDeploy.sol";
-import {LibInterpreterDeploy} from "rainlang-0.1.5/src/lib/deploy/LibInterpreterDeploy.sol";
+} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+import {IInterpreterV4} from "rainlang-interface-0.2.9/src/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rainlang-interface-0.2.9/src/interface/IInterpreterStoreV3.sol";
+import {LibDecimalFloat} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.10/src/lib/LibRainDeploy.sol";
+import {
+    TEST_INTERPRETER_ADDRESS,
+    TEST_STORE_ADDRESS
+} from "rainlang-0.2.6/test/lib/deploy/LibTestInterpreterDeploy.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.1/src/lib/LibTOFUTokenDecimals.sol";
 import {GenericPoolRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
@@ -55,9 +58,7 @@ library LibTestArb {
     function noopTask() internal pure returns (TaskV2 memory) {
         return TaskV2({
             evaluable: EvaluableV4(
-                IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
-                IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
-                hex""
+                IInterpreterV4(TEST_INTERPRETER_ADDRESS), IInterpreterStoreV3(TEST_STORE_ADDRESS), hex""
             ),
             signedContext: new SignedContextV1[](0)
         });
@@ -114,9 +115,7 @@ library LibTestArb {
             OrderV4 memory order = OrderV4({
                 owner: address(0x1234),
                 evaluable: EvaluableV4(
-                    IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
-                    IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
-                    hex""
+                    IInterpreterV4(TEST_INTERPRETER_ADDRESS), IInterpreterStoreV3(TEST_STORE_ADDRESS), hex""
                 ),
                 validInputs: validInputs,
                 validOutputs: validOutputs,
@@ -182,9 +181,7 @@ library LibTestArb {
             OrderV4 memory order = OrderV4({
                 owner: address(0x1234),
                 evaluable: EvaluableV4(
-                    IInterpreterV4(LibInterpreterDeploy.INTERPRETER_DEPLOYED_ADDRESS),
-                    IInterpreterStoreV3(LibInterpreterDeploy.STORE_DEPLOYED_ADDRESS),
-                    hex""
+                    IInterpreterV4(TEST_INTERPRETER_ADDRESS), IInterpreterStoreV3(TEST_STORE_ADDRESS), hex""
                 ),
                 validInputs: validInputs,
                 validOutputs: validOutputs,

@@ -2,9 +2,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {TakeOrdersConfigV5, IRaindexV6} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IRaindexV6OrderTaker} from "raindex-interface-0.1.1/src/interface/IRaindexV6OrderTaker.sol";
-import {Float} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+import {TakeOrdersConfigV5, IRaindexV6} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+import {IRaindexV6OrderTaker} from "raindex-interface-0.1.7/src/interface/IRaindexV6OrderTaker.sol";
+import {Float} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
 
 /// Records onTakeOrders2 invocation + the args it was called with so a test can
 /// assert the callback fires only when something was taken and with the right
@@ -27,7 +27,11 @@ contract RecordingTaker is IRaindexV6OrderTaker {
     }
 
     function onTakeOrders2(
+        // Records the token it was given, including address(0).
+        // forge-lint: disable-next-line(missing-zero-check)
         address outputToken,
+        // Records the token it was given, including address(0).
+        // forge-lint: disable-next-line(missing-zero-check)
         address inputToken,
         Float takerInput,
         Float takerOutput,

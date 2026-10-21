@@ -15,8 +15,8 @@ import {
     ClearConfigV2,
     SignedContextV1,
     TaskV2
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
 import {NegativeBounty} from "../../../src/concrete/raindex/RaindexV6.sol";
 
 /// @title RaindexV6TakeOrderVaultZeroInputTest
@@ -51,6 +51,8 @@ contract RaindexV6TakeOrderVaultZeroInputTest is RaindexV6ExternalRealTest {
         token.mint(who, amount * 1e18);
         vm.startPrank(who);
         token.approve(address(iRaindex), amount * 1e18);
+        // amount is a whole-token test quantity, far below int256 max.
+        // forge-lint: disable-next-line(unsafe-typecast)
         iRaindex.deposit4(address(token), vaultId, LibDecimalFloat.packLossless(int256(amount), 0), new TaskV2[](0));
         vm.stopPrank();
     }

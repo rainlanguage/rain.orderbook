@@ -2,13 +2,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std-1.16.1/src/Test.sol";
-import {
-    RaindexV6,
-    OrderIOCalculationV4,
-    UnsupportedCalculateOutputs,
-    TokenSelfTrade
-} from "src/concrete/raindex/RaindexV6.sol";
+import {Test} from "forge-std-1.16.2/src/Test.sol";
+import {RaindexV6, OrderIOCalculationV4, UnsupportedCalculateOutputs} from "src/concrete/raindex/RaindexV6.sol";
 import {
     CONTEXT_CALLING_CONTEXT_COLUMN,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH,
@@ -25,7 +20,7 @@ import {
     CONTEXT_VAULT_IO_BALANCE_BEFORE,
     CONTEXT_VAULT_IO_BALANCE_DIFF
 } from "src/lib/LibRaindex.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
 import {
     IRaindexV6,
     OrderV4,
@@ -35,12 +30,12 @@ import {
     EvaluableV4,
     SignedContextV1,
     TaskV2
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {IInterpreterV4, EvalV4, StackItem} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterV4.sol";
-import {IInterpreterStoreV3} from "rain-interpreter-interface-0.1.0/src/interface/IInterpreterStoreV3.sol";
+} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+import {IInterpreterV4, EvalV4, StackItem} from "rainlang-interface-0.2.9/src/interface/IInterpreterV4.sol";
+import {IInterpreterStoreV3} from "rainlang-interface-0.2.9/src/interface/IInterpreterStoreV3.sol";
 import {ITOFUTokenDecimals, TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.1/src/interface/ITOFUTokenDecimals.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.1/src/lib/LibTOFUTokenDecimals.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.2/src/lib/LibRainDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.10/src/lib/LibRainDeploy.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
@@ -555,7 +550,7 @@ contract RaindexV6CalculateOrderIOHarnessTest is Test {
 
         QuoteV2 memory quoteConfig =
             QuoteV2({order: order, inputIOIndex: 0, outputIOIndex: 0, signedContext: new SignedContextV1[](0)});
-        vm.expectRevert(abi.encodeWithSelector(TokenSelfTrade.selector));
+        vm.expectRevert(abi.encodeWithSelector(IRaindexV6.TokenSelfTrade.selector));
         IRaindexV6(address(harness)).quote2(quoteConfig);
     }
 }

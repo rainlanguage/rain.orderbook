@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
-import {IERC3156FlashBorrower} from "raindex-interface-0.1.1/src/interface/ierc3156/IERC3156FlashBorrower.sol";
+import {IERC3156FlashBorrower} from "raindex-interface-0.1.7/src/interface/ierc3156/IERC3156FlashBorrower.sol";
 import {MockRaindexBase} from "test/util/abstract/MockRaindexBase.sol";
 
 /// @dev Malicious raindex that records the token allowances it has from the
@@ -15,6 +15,8 @@ contract MaliciousRaindex is MockRaindexBase {
     address public inputToken;
     address public outputToken;
 
+    // Records the pair a test configures, including address(0).
+    // forge-lint: disable-next-line(missing-zero-check)
     function setTokens(address input, address output) external {
         inputToken = input;
         outputToken = output;

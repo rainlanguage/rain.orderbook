@@ -5,8 +5,8 @@ pragma solidity =0.8.25;
 import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
 import {RaindexV6ExternalRealTest} from "test/util/abstract/RaindexV6ExternalRealTest.sol";
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
-import {OrderV4, TakeOrdersConfigV5, TaskV2, IRaindexV6} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+import {OrderV4, TakeOrdersConfigV5, TaskV2, IRaindexV6} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
 import {LibOrder} from "../../../src/lib/LibOrder.sol";
 import {RecordingOrderTaker} from "test/util/concrete/RecordingOrderTaker.sol";
 
@@ -37,7 +37,12 @@ contract RaindexV6TakeOrderTakenFlagTest is RaindexV6ExternalRealTest {
         );
         vm.prank(alice);
         iRaindex.deposit4(
-            address(iToken1), bytes32(uint256(0x01)), LibDecimalFloat.packLossless(int256(amount), 0), new TaskV2[](0)
+            address(iToken1),
+            bytes32(uint256(0x01)),
+            // amount is a whole-token test quantity, far below int256 max.
+            // forge-lint: disable-next-line(unsafe-typecast)
+            LibDecimalFloat.packLossless(int256(amount), 0),
+            new TaskV2[](0)
         );
     }
 

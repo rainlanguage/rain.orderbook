@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Test} from "forge-std-1.16.1/src/Test.sol";
+import {Test} from "forge-std-1.16.2/src/Test.sol";
 import {LibRaindexDeploy} from "src/lib/deploy/LibRaindexDeploy.sol";
 
 /// @title LibRaindexDeploySubgraphYamlAddressTest
@@ -15,6 +15,8 @@ contract LibRaindexDeploySubgraphYamlAddressTest is Test {
         inputs[1] = ".dataSources[0].source.address";
         inputs[2] = "subgraph/subgraph.yaml";
         bytes memory result = vm.ffi(inputs);
+        // yq prints the 20-byte address this assertion compares.
+        // forge-lint: disable-next-line(unsafe-typecast)
         address addr = address(bytes20(result));
         assertEq(addr, LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS, "subgraph.yaml address mismatch");
     }

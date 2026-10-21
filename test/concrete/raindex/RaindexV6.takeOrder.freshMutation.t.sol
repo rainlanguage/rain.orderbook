@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {Vm} from "forge-std-1.16.1/src/Test.sol";
+import {Vm} from "forge-std-1.16.2/src/Test.sol";
 import {IERC20} from "@openzeppelin-contracts-5.6.1/token/ERC20/IERC20.sol";
 import {RaindexV6FreshTakeOrderTest} from "test/util/abstract/RaindexV6FreshTakeOrderTest.sol";
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
@@ -13,9 +13,9 @@ import {
     TakeOrdersConfigV5,
     TaskV2,
     IRaindexV6
-} from "raindex-interface-0.1.1/src/interface/IRaindexV6.sol";
-import {SignedContextV1} from "rain-interpreter-interface-0.1.0/src/interface/deprecated/v1/IInterpreterCallerV2.sol";
-import {Float, LibDecimalFloat} from "rain-math-float-0.1.1/src/lib/LibDecimalFloat.sol";
+} from "raindex-interface-0.1.7/src/interface/IRaindexV6.sol";
+import {SignedContextV1} from "rainlang-interface-0.2.9/src/interface/deprecated/v1/IInterpreterCallerV2.sol";
+import {Float, LibDecimalFloat} from "rain-math-float-0.2.1/src/lib/LibDecimalFloat.sol";
 import {LibOrder} from "../../../src/lib/LibOrder.sol";
 import {MinimumIO, TokenMismatch} from "../../../src/concrete/raindex/RaindexV6.sol";
 import {RecordingTaker} from "test/util/concrete/RecordingTaker.sol";
@@ -49,6 +49,8 @@ contract RaindexV6TakeOrderFreshMutationTest is RaindexV6FreshTakeOrderTest {
             abi.encode(true)
         );
         vm.prank(owner);
+        // amount is a whole-token test quantity, far below int256 max.
+        // forge-lint: disable-next-line(unsafe-typecast)
         iRaindex.deposit4(address(iToken1), vaultId, LibDecimalFloat.packLossless(int256(amount), 0), new TaskV2[](0));
     }
 
@@ -328,7 +330,7 @@ contract RaindexV6TakeOrderFreshMutationTest is RaindexV6FreshTakeOrderTest {
         config.maximumIO = LibDecimalFloat.packLossless(5, 0);
 
         vm.prank(bob);
-        // selector for TokenSelfTrade() is the src-level error.
+        // selector for TokenSelfTrade() as declared on IRaindexV6.
         vm.expectRevert(bytes4(keccak256("TokenSelfTrade()")));
         iRaindex.takeOrders4(config);
     }
