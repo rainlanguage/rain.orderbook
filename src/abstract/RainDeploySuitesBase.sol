@@ -10,6 +10,7 @@ pragma solidity ^0.8.25;
 // spelling of the package path.
 import {
     DeployCandidate,
+    DeployDependency,
     DeploySuite,
     RainDeploySuitesBase
-} from "rain-deploy-0.1.10/src/abstract/RainDeploySuitesBase.sol";
+} from "rain-deploy-0.1.18/src/abstract/RainDeploySuitesBase.sol";

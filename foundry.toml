@@ -54,42 +54,46 @@ fs_permissions = [
   # script/Build.sol reads `[external.package].version` to name the frozen
   # per-release snapshot dir.
   { access = "read", path = "foundry.toml" },
+  { access = "read", path = "./.env.example" },
+  { access = "read-write", path = "./.staged-config" },
+  { access = "read", path = "./script/build.sh" },
 ]
 
 remappings = [
   # Custom remap so @openzeppelin packages' own internal imports resolve.
-  "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.6.1/",
+  "@openzeppelin/contracts/=dependencies/@openzeppelin-contracts-5.7.0/",
 ]
 
 [dependencies]
-forge-std = "1.16.2"
-"@openzeppelin-contracts" = "5.6.1"
+forge-std = "1.17.0"
+"@openzeppelin-contracts" = "5.7.0"
 # rainlanguage/rain.interpreter was renamed to rainlanguage/rainlang;
 # its Soldeer registry name follows.
-rainlang = "0.2.6"
+rainlang = "0.2.14"
 # rainlanguage/rain.interpreter.interface was renamed to
 # rainlanguage/rainlang.interface; its Soldeer registry name moved from
 # `rain-interpreter-interface` (0.1.x) to `rainlang-interface` (0.2.x).
-rainlang-interface = "0.2.9"
+rainlang-interface = "0.2.13"
 # rainlanguage/rain.raindex.interface was renamed to
 # rainlanguage/raindex.interface; Soldeer registry name follows.
-raindex-interface = "0.1.7"
-rain-metadata = "0.1.7"
+raindex-interface = "0.1.8"
+rain-metadata = "0.1.43"
 # The MetaBoard split out of `rain.metadata` into its own deploy repo. The
 # deploy pin lives there now; `rain-metadata` keeps the interfaces and libs.
 rain-metadata-deploy = "0.1.1"
-rain-intorastring = "0.1.0"
-rain-sol-codegen = "0.1.37"
+rain-intorastring = "0.1.4"
+rain-sol-codegen = "0.1.39"
 rain-solmem = "0.1.28"
-rain-math-float = "0.2.1"
-rain-math-float-deploy = "0.1.2"
-rain-tofu-erc20-decimals = "0.1.1"
-rain-deploy = "0.1.10"
+rain-math-float = "0.3.10"
+rain-math-float-deploy = "0.1.5"
+rain-tofu-erc20-decimals = "0.1.4"
+rain-tofu-erc20-decimals-deploy = "0.1.0"
+rain-deploy = "0.1.18"
 rain-lib-typecast = "0.1.4"
-rain-lib-hash = "0.1.0"
+rain-lib-hash = "0.1.27"
 rain-math-binary = "0.1.4"
-rain-string = "0.2.0"
-rain-lib-memkv = "0.1.0"
+rain-string = "0.3.9"
+rain-lib-memkv = "0.2.0"
 rain-extrospection = "0.1.14"
 
 [soldeer]
@@ -98,6 +102,7 @@ recursive_deps = false
 [fuzz]
 runs = 5096
 
+# rain-deploy:generated:rpc_endpoints:begin
 [rpc_endpoints]
 arbitrum = "${ARBITRUM_RPC_URL}"
 base = "${BASE_RPC_URL}"
@@ -108,7 +113,14 @@ hyperevm = "${HYPEREVM_RPC_URL}"
 robinhood = "${ROBINHOOD_RPC_URL}"
 bsc = "${BSC_RPC_URL}"
 polygon = "${POLYGON_RPC_URL}"
+# rain-deploy:generated:rpc_endpoints:end
 
+# Robinhood Chain (4663) is not indexed by Etherscan V2. Its Blockscout speaks
+# the Etherscan API, so the entry points there (the key is ignored). That
+# explorer has rejected non-browser clients, so if `--verify` fails there,
+# verify afterwards through Sourcify: `forge verify-contract --verifier
+# sourcify --chain 4663 ...`.
+# rain-deploy:generated:etherscan:begin
 [etherscan]
 arbitrum = { key = "${CI_DEPLOY_ARBITRUM_ETHERSCAN_API_KEY}" }
 base = { key = "${CI_DEPLOY_BASE_ETHERSCAN_API_KEY}" }
@@ -116,11 +128,7 @@ base_sepolia = { key = "${CI_DEPLOY_BASE_SEPOLIA_ETHERSCAN_API_KEY}" }
 ethereum = { key = "${CI_DEPLOY_ETHEREUM_ETHERSCAN_API_KEY}", chain = 1 }
 flare = { key = "${CI_DEPLOY_FLARE_ETHERSCAN_API_KEY}" }
 hyperevm = { key = "${CI_DEPLOY_HYPEREVM_ETHERSCAN_API_KEY}", chain = 999 }
-# Robinhood Chain (4663) is not indexed by Etherscan V2. Its Blockscout speaks
-# the Etherscan API, so the entry points there (the key is ignored). That
-# explorer has rejected non-browser clients, so if `--verify` fails there,
-# verify afterwards through Sourcify: `forge verify-contract --verifier
-# sourcify --chain 4663 ...`.
 robinhood = { key = "${CI_DEPLOY_ROBINHOOD_ETHERSCAN_API_KEY}", chain = 4663, url = "https://robinhoodchain.blockscout.com/api" }
 bsc = { key = "${CI_DEPLOY_BSC_ETHERSCAN_API_KEY}", chain = 56 }
 polygon = { key = "${CI_DEPLOY_POLYGON_ETHERSCAN_API_KEY}" }
+# rain-deploy:generated:etherscan:end

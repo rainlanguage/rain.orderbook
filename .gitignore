@@ -29,3 +29,5 @@ dependencies/
 
 # Local pre-commit hook config
 .pre-commit-config.yaml
+
+.staged-config
