@@ -8,7 +8,7 @@ import {OrderConfigV4, OrderV4, IOV2} from "raindex-interface-0.1.8/src/interfac
 import {IInterpreterV4, SourceIndexV2} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rainlang-interface-0.2.13/src/interface/IInterpreterStoreV3.sol";
 import {EvaluableV4} from "rainlang-interface-0.2.13/src/interface/IInterpreterCallerV4.sol";
-import {HANDLE_IO_ENTRYPOINT} from "../../../src/concrete/raindex/RaindexV6.sol";
+import {HANDLE_IO_ENTRYPOINT} from "../../../src/constant/OrderEntrypoints.sol";
 import {LibBytecode} from "rainlang-interface-0.2.13/src/lib/bytecode/LibBytecode.sol";
 
 library LibTestAddOrder {

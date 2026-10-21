@@ -12,7 +12,7 @@ import {
     SignedContextV1,
     TaskV2
 } from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
-import {UnsupportedCalculateOutputs} from "../../../src/concrete/raindex/RaindexV6.sol";
+import {UnsupportedCalculateOutputs} from "../../../src/error/ErrRaindexV6.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 
 contract RaindexV6ClearOrderBadStackTest is RaindexV6ExternalRealTest {

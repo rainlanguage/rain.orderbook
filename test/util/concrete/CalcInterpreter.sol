@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {StackItem} from "src/concrete/raindex/RaindexV6.sol";
+import {StackItem} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
 import {Float} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
 import {EvalV4} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
 

@@ -2,7 +2,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2020 Rain Open Source Software Ltd
 pragma solidity =0.8.25;
 
-import {RaindexV6, OrderIOCalculationV4} from "src/concrete/raindex/RaindexV6.sol";
+import {RaindexV6} from "src/concrete/raindex/RaindexV6.sol";
+import {IRaindexV6CalculateOrderIOHarness} from "test/util/interface/IRaindexV6CalculateOrderIOHarness.sol";
+import {OrderIOCalculationV4} from "src/struct/OrderIOCalculationV4.sol";
 import {Float} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
 import {OrderV4, SignedContextV1} from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
 import {TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.4/src/interface/ITOFUTokenDecimals.sol";
@@ -13,7 +15,7 @@ import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTO
 /// mutation-tested for the calculate-context construction, the output-max vault
 /// cap, the calculations pre-fill, the MIN_OUTPUTS guard, the (IORatio,
 /// outputMax) read-back, and the per-token TOFU decimals checks.
-contract RaindexV6CalculateOrderIOHarness is RaindexV6 {
+contract RaindexV6CalculateOrderIOHarness is RaindexV6, IRaindexV6CalculateOrderIOHarness {
     function exposedCalculateOrderIO(
         OrderV4 memory order,
         uint256 inputIOIndex,
