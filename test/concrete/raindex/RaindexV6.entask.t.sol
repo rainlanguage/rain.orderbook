@@ -117,4 +117,12 @@ contract RaindexV6EnactTest is RaindexV6ExternalRealTest {
         evals3[1] = bytes(":ensure(equal-to(get(2) 30) \"bob state 2\");");
         checkEntask(bob, evals3, 4, 2);
     }
+
+    /// Rainlang's power and sqrt ops call the deployed DecimalFloat.
+    function testRaindexEvalDecimalFloatOps() external {
+        bytes[] memory evals = new bytes[](2);
+        evals[0] = bytes(":ensure(equal-to(power(2 3) 8) \"power\");");
+        evals[1] = bytes(":ensure(equal-to(sqrt(16) 4) \"sqrt\");");
+        checkEntask(address(this), evals, 0, 0);
+    }
 }

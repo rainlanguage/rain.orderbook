@@ -27,6 +27,9 @@ import {
     TEST_PARSER_ADDRESS
 } from "rainlang-0.2.14/test/lib/deploy/LibTestInterpreterDeploy.sol";
 import {LibRainDeploy} from "rain-deploy-0.1.18/src/lib/LibRainDeploy.sol";
+import {
+    CREATION_CODE as DECIMAL_FLOAT_CREATION_CODE
+} from "rain-math-float-deploy-0.1.5/src/generated/0_1_5/DecimalFloat.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 import {LibEtchRaindex} from "test/util/lib/LibEtchRaindex.sol";
 
@@ -42,6 +45,7 @@ abstract contract RaindexV6ExternalRealTest is Test, IRaindexV6Stub {
     constructor() {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
+        LibRainDeploy.deployZoltu(DECIMAL_FLOAT_CREATION_CODE);
 
         LibTestInterpreterDeploy.etchTestRainlang(vm);
         LibEtchRaindex.etchRaindex(vm);

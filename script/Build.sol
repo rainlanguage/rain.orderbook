@@ -65,15 +65,18 @@ contract Build is BuildScript, RaindexDeploySuites {
             sourceCreationCode: ROUTE_PROCESSOR_4_CREATION_CODE
         });
         contracts[3] = GeneratedContract({
-            contractName: "GenericPoolRaindexV6ArbOrderTaker", candidate: genericPoolArbOrderTakerCandidate(),
+            contractName: "GenericPoolRaindexV6ArbOrderTaker",
+            candidate: genericPoolArbOrderTakerCandidate(),
             sourceCreationCode: type(GenericPoolRaindexV6ArbOrderTaker).creationCode
         });
         contracts[4] = GeneratedContract({
-            contractName: "RouteProcessorRaindexV6ArbOrderTaker", candidate: routeProcessorArbOrderTakerCandidate(),
+            contractName: "RouteProcessorRaindexV6ArbOrderTaker",
+            candidate: routeProcessorArbOrderTakerCandidate(),
             sourceCreationCode: type(RouteProcessorRaindexV6ArbOrderTaker).creationCode
         });
         contracts[5] = GeneratedContract({
-            contractName: "GenericPoolRaindexV6FlashBorrower", candidate: genericPoolFlashBorrowerCandidate(),
+            contractName: "GenericPoolRaindexV6FlashBorrower",
+            candidate: genericPoolFlashBorrowerCandidate(),
             sourceCreationCode: type(GenericPoolRaindexV6FlashBorrower).creationCode
         });
         return contracts;

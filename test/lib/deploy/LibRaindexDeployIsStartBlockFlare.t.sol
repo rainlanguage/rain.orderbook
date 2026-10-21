@@ -4,6 +4,7 @@ pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {LibRainDeploy} from "rain-deploy-0.1.18/src/lib/LibRainDeploy.sol";
+import {LibBlockSearch} from "rain-deploy-0.1.18/src/lib/LibBlockSearch.sol";
 import {LibRaindexDeploy} from "src/lib/deploy/LibRaindexDeploy.sol";
 
 /// @title LibRaindexDeployIsStartBlockFlareTest
@@ -13,7 +14,7 @@ contract LibRaindexDeployIsStartBlockFlareTest is Test {
     function testIsStartBlockFlare() external {
         vm.createSelectFork(LibRainDeploy.FLARE);
         assertTrue(
-            LibRainDeploy.isStartBlock(
+            LibBlockSearch.isStartBlock(
                 vm,
                 LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS,
                 LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH,
