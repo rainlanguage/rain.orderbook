@@ -15,7 +15,7 @@ import {
     EvaluableV4
 } from "test/util/concrete/FlashLendingMockRaindex.sol";
 import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.18/src/lib/LibRainDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.19/src/lib/LibRainDeploy.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 
 abstract contract ArbTest is Test {
