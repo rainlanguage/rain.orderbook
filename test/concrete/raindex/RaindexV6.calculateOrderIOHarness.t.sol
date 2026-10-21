@@ -3,7 +3,8 @@
 pragma solidity =0.8.25;
 
 import {Test} from "forge-std-1.17.0/src/Test.sol";
-import {RaindexV6, OrderIOCalculationV4, UnsupportedCalculateOutputs} from "src/concrete/raindex/RaindexV6.sol";
+import {OrderIOCalculationV4} from "src/struct/OrderIOCalculationV4.sol";
+import {UnsupportedCalculateOutputs} from "src/error/ErrRaindexV6.sol";
 import {
     CONTEXT_CALLING_CONTEXT_COLUMN,
     CONTEXT_CALLING_CONTEXT_ROW_ORDER_HASH,
@@ -41,7 +42,7 @@ import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {REVERTING_MOCK_BYTECODE} from "test/util/lib/LibTestConstants.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 import {FixedStackInterpreter} from "test/util/concrete/FixedStackInterpreter.sol";
-import {RaindexV6CalculateOrderIOHarness} from "test/util/concrete/RaindexV6CalculateOrderIOHarness.sol";
+import {IRaindexV6CalculateOrderIOHarness} from "test/util/interface/IRaindexV6CalculateOrderIOHarness.sol";
 
 /// @title RaindexV6CalculateOrderIOHarnessTest
 /// @notice Mutation-hardening for `calculateOrderIO` against a FRESH-COMPILED
@@ -51,7 +52,7 @@ contract RaindexV6CalculateOrderIOHarnessTest is Test {
     using LibDecimalFloat for Float;
     using LibOrder for OrderV4;
 
-    RaindexV6CalculateOrderIOHarness internal harness;
+    IRaindexV6CalculateOrderIOHarness internal harness;
     FixedStackInterpreter internal interpreter;
     IInterpreterStoreV3 internal store;
 
@@ -76,10 +77,13 @@ contract RaindexV6CalculateOrderIOHarnessTest is Test {
 
         // Etch the runtime code so the large RaindexV6-derived harness isn't
         // subject to the EIP-170 creation size limit.
-        harness = RaindexV6CalculateOrderIOHarness(
+        harness = IRaindexV6CalculateOrderIOHarness(
             payable(address(uint160(uint256(keccak256("calculate.order.io.harness")))))
         );
-        vm.etch(address(harness), type(RaindexV6CalculateOrderIOHarness).runtimeCode);
+        vm.etch(
+            address(harness),
+            vm.getDeployedCode("RaindexV6CalculateOrderIOHarness.sol:RaindexV6CalculateOrderIOHarness")
+        );
 
         interpreter = new FixedStackInterpreter();
         store = IInterpreterStoreV3(address(uint160(uint256(keccak256("store.calc.harness")))));

@@ -65,122 +65,27 @@ import {LibBytes32Array} from "rain-solmem-0.1.28/src/lib/LibBytes32Array.sol";
 import {LibBytes32Matrix} from "rain-solmem-0.1.28/src/lib/LibBytes32Matrix.sol";
 
 import {LibFormatDecimalFloat} from "rain-math-float-0.3.10/src/lib/format/LibFormatDecimalFloat.sol";
-
-/// This will exist in a future version of Open Zeppelin if their main branch is
-/// to be believed.
-error ReentrancyGuardReentrantCall();
-
-/// Thrown when the `msg.sender` modifying an order is not its owner.
-/// @param owner The owner of the order.
-error NotOrderOwner(address owner);
-
-/// Thrown when the input and output tokens don't match, in either direction.
-error TokenMismatch();
-
-/// Thrown when the minimum input is not met.
-/// @param minimumIO The minimum io required.
-/// @param actualIO The io that was achieved.
-error MinimumIO(Float minimumIO, Float actualIO);
-
-/// Thrown when two orders have the same owner during clear.
-error SameOwner();
-
-/// Thrown when calculate order expression offers too few outputs.
-/// @param outputs The outputs the expression offers.
-error UnsupportedCalculateOutputs(uint256 outputs);
-
-/// Thrown when a negative vault balance is being recorded.
-/// @param vaultBalance The negative vault balance being recorded.
-error NegativeVaultBalance(Float vaultBalance);
-
-/// Thrown when a negative amount is being applied to a vault balance.
-/// @param amount The negative amount being applied.
-error NegativeVaultBalanceChange(Float amount);
-
-/// Thrown when a negative pull is attempted.
-error NegativePull();
-
-/// Thrown when a negative push is attempted.
-error NegativePush();
-
-/// Throws when a negative bounty is calculated.
-error NegativeBounty();
-
-/// Thrown when clear output amounts are both zero.
-error ClearZeroAmount();
-
-/// @dev Stored value for a live order. NOT a boolean because storing a boolean
-/// is more expensive than storing a uint256.
-uint256 constant ORDER_LIVE = 1;
-
-/// @dev Stored value for a dead order. `0` is chosen because it is the default
-/// value for a mapping, which means all orders are dead unless explicitly made
-/// live.
-uint256 constant ORDER_DEAD = 0;
-
-/// @dev Entrypoint to a calculate the amount and ratio of an order.
-SourceIndexV2 constant CALCULATE_ORDER_ENTRYPOINT = SourceIndexV2.wrap(0);
-/// @dev Entrypoint to handle the final internal vault movements resulting from
-/// matching multiple calculated orders.
-SourceIndexV2 constant HANDLE_IO_ENTRYPOINT = SourceIndexV2.wrap(1);
-
-/// @dev Minimum outputs for calculate order are the amount and ratio.
-uint256 constant CALCULATE_ORDER_MIN_OUTPUTS = 2;
-/// @dev Maximum outputs for calculate order are the amount and ratio.
-uint16 constant CALCULATE_ORDER_MAX_OUTPUTS = 2;
-
-/// @dev Handle IO has no outputs as it only responds to vault movements.
-uint256 constant HANDLE_IO_MIN_OUTPUTS = 0;
-/// @dev Handle IO has no outputs as it only responds to vault movements.
-uint16 constant HANDLE_IO_MAX_OUTPUTS = 0;
-
-/// All information resulting from an order calculation that allows for vault IO
-/// to be calculated and applied, then the handle IO entrypoint to be dispatched.
-/// @param outputMax The maximum output calculated by the order expression as a
-/// Float. WILL BE RESCALED ACCORDING TO TOKEN DECIMALS (read via TOFU) for the
-/// purpose of calculating actual vault movements.
-/// The output max is CAPPED AT THE OUTPUT VAULT BALANCE OF THE ORDER OWNER.
-/// The order is guaranteed that the total output of this single clearance cannot
-/// exceed this (subject to rescaling). It is up to the order expression to track
-/// values over time if the output max is to impose a global limit across many
-/// transactions and counterparties.
-/// @param IORatio The order ratio as input/output from the perspective of the
-/// order, as a Float. As each counterparty's input is the other's output, the
-/// IORatio calculated by each order is inverse of its counterparty. IORatio is
-/// RESCALED ACCORDING TO TOKEN DECIMALS (read via TOFU) when applied to vault
-/// balances. I.e. a ratio of `1` is ALWAYS "one" as ECONOMIC EQUIVALENCE
-/// between two tokens, but this will be rescaled according to the decimals of
-/// the token. For example, if DAI and USDT have a ratio of `1` then in reality
-/// `1e12` DAI will move in the vault for every `1` USDT that moves, because DAI
-/// has `1e18` decimals per $1 peg and USDT has `1e6` decimals per $1 peg.
-/// @param context The entire 2D context array, initialized from the context
-/// passed into the order calculations and then populated with the order
-/// calculations and vault IO before being passed back to handle IO entrypoint.
-/// @param namespace The `StateNamespace` to be passed to the store for calculate
-/// IO state changes.
-/// @param kvs KVs returned from calculate order entrypoint to pass to the store
-/// before calling handle IO entrypoint.
-struct OrderIOCalculationV4 {
-    OrderV4 order;
-    uint256 outputIOIndex;
-    Float outputMax;
-    //solhint-disable-next-line var-name-mixedcase
-    Float IORatio;
-    bytes32[][] context;
-    StateNamespace namespace;
-    bytes32[] kvs;
-}
-
-/// The input and output tokens shared by every order in a `takeOrders4` batch,
-/// and the taker IO still remaining to fill as the batch is processed.
-/// @param inputToken The input token every order in the batch must use.
-/// @param outputToken The output token every order in the batch must use.
-/// @param remainingTakerIO The taker IO left to fill across the batch.
-struct TakeOrdersIO {
-    address inputToken;
-    address outputToken;
-    Float remainingTakerIO;
-}
+import {
+    NotOrderOwner,
+    TokenMismatch,
+    MinimumIO,
+    SameOwner,
+    UnsupportedCalculateOutputs,
+    NegativeVaultBalance,
+    NegativeVaultBalanceChange,
+    NegativePull,
+    NegativePush,
+    NegativeBounty,
+    ClearZeroAmount
+} from "../../error/ErrRaindexV6.sol";
+import {ORDER_LIVE, ORDER_DEAD} from "../../constant/OrderLiveness.sol";
+import {
+    CALCULATE_ORDER_ENTRYPOINT,
+    HANDLE_IO_ENTRYPOINT,
+    CALCULATE_ORDER_MIN_OUTPUTS
+} from "../../constant/OrderEntrypoints.sol";
+import {OrderIOCalculationV4} from "../../struct/OrderIOCalculationV4.sol";
+import {TakeOrdersIO} from "../../struct/TakeOrdersIO.sol";
 
 /// @title RaindexV6
 /// See `IRaindexV6` for more documentation.

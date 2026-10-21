@@ -17,7 +17,7 @@ import {
     TaskV2
 } from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
-import {NegativeBounty} from "../../../src/concrete/raindex/RaindexV6.sol";
+import {NegativeBounty} from "../../../src/error/ErrRaindexV6.sol";
 
 /// @title RaindexV6TakeOrderVaultZeroInputTest
 /// @notice An order with a `vaultId == 0` INPUT is settled as a direct wallet

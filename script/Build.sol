@@ -10,11 +10,7 @@ import {LibFs} from "rain-sol-codegen-0.1.39/src/lib/LibFs.sol";
 import {LibGenParseMeta} from "rainlang-interface-0.2.13/src/lib/codegen/LibGenParseMeta.sol";
 import {DeployCandidate} from "../src/abstract/RainDeploySuitesBase.sol";
 import {RaindexDeploySuites} from "../src/abstract/RaindexDeploySuites.sol";
-import {RaindexV6} from "../src/concrete/raindex/RaindexV6.sol";
 import {RaindexV6SubParser} from "../src/concrete/parser/RaindexV6SubParser.sol";
-import {GenericPoolRaindexV6ArbOrderTaker} from "../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
-import {RouteProcessorRaindexV6ArbOrderTaker} from "../src/concrete/arb/RouteProcessorRaindexV6ArbOrderTaker.sol";
-import {GenericPoolRaindexV6FlashBorrower} from "../src/concrete/arb/GenericPoolRaindexV6FlashBorrower.sol";
 import {ROUTE_PROCESSOR_4_CREATION_CODE} from "../src/lib/deploy/LibRouteProcessor4CreationCode.sol";
 import {LibRaindexSubParser, EXTERN_PARSE_META_BUILD_DEPTH} from "../src/lib/LibRaindexSubParser.sol";
 
@@ -27,9 +23,9 @@ struct GeneratedContract {
     /// The released lib takes its suite key and artifact path from its
     /// `snapshot`.
     DeployCandidate candidate;
-    /// The creation code its snapshot is written from, with
-    /// `candidate.snapshot.dependencies`.
-    bytes sourceCreationCode;
+    /// Creation code for an unanchorable candidate; empty means read the
+    /// `artifactPath` artifact, keeping restricted compiler profiles out of here.
+    bytes pinnedCreationCode;
 }
 
 /// @title Build
@@ -51,33 +47,30 @@ contract Build is BuildScript, RaindexDeploySuites {
     /// @return The generated contracts.
     function generatedContracts() internal pure returns (GeneratedContract[] memory) {
         GeneratedContract[] memory contracts = new GeneratedContract[](6);
-        contracts[0] = GeneratedContract({
-            contractName: "RaindexV6", candidate: raindexCandidate(), sourceCreationCode: type(RaindexV6).creationCode
-        });
+        contracts[0] =
+            GeneratedContract({contractName: "RaindexV6", candidate: raindexCandidate(), pinnedCreationCode: ""});
         contracts[1] = GeneratedContract({
-            contractName: "RaindexV6SubParser",
-            candidate: subParserCandidate(),
-            sourceCreationCode: type(RaindexV6SubParser).creationCode
+            contractName: "RaindexV6SubParser", candidate: subParserCandidate(), pinnedCreationCode: ""
         });
         contracts[2] = GeneratedContract({
             contractName: "RouteProcessor4",
             candidate: routeProcessorCandidate(),
-            sourceCreationCode: ROUTE_PROCESSOR_4_CREATION_CODE
+            pinnedCreationCode: ROUTE_PROCESSOR_4_CREATION_CODE
         });
         contracts[3] = GeneratedContract({
             contractName: "GenericPoolRaindexV6ArbOrderTaker",
             candidate: genericPoolArbOrderTakerCandidate(),
-            sourceCreationCode: type(GenericPoolRaindexV6ArbOrderTaker).creationCode
+            pinnedCreationCode: ""
         });
         contracts[4] = GeneratedContract({
             contractName: "RouteProcessorRaindexV6ArbOrderTaker",
             candidate: routeProcessorArbOrderTakerCandidate(),
-            sourceCreationCode: type(RouteProcessorRaindexV6ArbOrderTaker).creationCode
+            pinnedCreationCode: ""
         });
         contracts[5] = GeneratedContract({
             contractName: "GenericPoolRaindexV6FlashBorrower",
             candidate: genericPoolFlashBorrowerCandidate(),
-            sourceCreationCode: type(GenericPoolRaindexV6FlashBorrower).creationCode
+            pinnedCreationCode: ""
         });
         return contracts;
     }
@@ -120,7 +113,9 @@ contract Build is BuildScript, RaindexDeploySuites {
                 recordRoot(),
                 LibRainDeploySnapshot.CANDIDATE,
                 contracts[i].contractName,
-                contracts[i].sourceCreationCode,
+                bytes(contracts[i].candidate.unanchorableReason).length == 0
+                    ? vm.getCode(contracts[i].candidate.snapshot.artifactPath)
+                    : contracts[i].pinnedCreationCode,
                 contracts[i].candidate.snapshot.dependencies
             );
         }

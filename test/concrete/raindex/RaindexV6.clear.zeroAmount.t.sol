@@ -11,7 +11,7 @@ import {
     ClearConfigV2
 } from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {ClearZeroAmount} from "../../../src/concrete/raindex/RaindexV6.sol";
+import {ClearZeroAmount} from "../../../src/error/ErrRaindexV6.sol";
 
 contract RaindexV6ClearZeroAmountTest is RaindexV6ExternalRealTest {
     /// forge-config: default.fuzz.runs = 10

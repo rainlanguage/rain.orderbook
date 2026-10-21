@@ -18,9 +18,9 @@ import {
     Float
 } from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
-import {NotOrderOwner, StackItem, NegativeBounty, ClearZeroAmount} from "../../../src/concrete/raindex/RaindexV6.sol";
+import {NotOrderOwner, NegativeBounty, ClearZeroAmount} from "../../../src/error/ErrRaindexV6.sol";
 import {LibNamespace} from "rainlang-interface-0.2.13/src/lib/ns/LibNamespace.sol";
-import {StateNamespace, SourceIndexV2} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
+import {StateNamespace, SourceIndexV2, StackItem} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
 import {Math} from "@openzeppelin-contracts-5.7.0/utils/math/Math.sol";
 import {LibDecimalFloat} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
 

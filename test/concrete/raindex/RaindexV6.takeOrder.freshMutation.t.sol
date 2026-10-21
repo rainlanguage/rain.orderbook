@@ -17,7 +17,7 @@ import {
 import {SignedContextV1} from "rainlang-interface-0.2.13/src/interface/deprecated/v1/IInterpreterCallerV2.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
 import {LibOrder} from "../../../src/lib/LibOrder.sol";
-import {MinimumIO, TokenMismatch} from "../../../src/concrete/raindex/RaindexV6.sol";
+import {MinimumIO, TokenMismatch} from "../../../src/error/ErrRaindexV6.sol";
 import {RecordingTaker} from "test/util/concrete/RecordingTaker.sol";
 
 /// @title RaindexV6TakeOrderFreshMutationTest

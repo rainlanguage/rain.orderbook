@@ -6,7 +6,6 @@ import {Test} from "forge-std-1.17.0/src/Test.sol";
 import {LibRainDeploy} from "rain-deploy-0.1.18/src/lib/LibRainDeploy.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 import {LibEtchRaindex} from "test/util/lib/LibEtchRaindex.sol";
-import {RaindexV6} from "../../../src/concrete/raindex/RaindexV6.sol";
 import {RaindexV6SubParser} from "../../../src/concrete/parser/RaindexV6SubParser.sol";
 import {
     CREATION_CODE as RAINDEX_CREATION_CODE,
@@ -49,7 +48,7 @@ contract LibRaindexDeployTest is Test {
     function testDeployAddressRaindex() external {
         LibRainDeploy.etchZoltuFactory(vm);
 
-        address deployedAddress = LibRainDeploy.deployZoltu(type(RaindexV6).creationCode);
+        address deployedAddress = LibRainDeploy.deployZoltu(vm.getCode("RaindexV6.sol:RaindexV6"));
 
         assertEq(deployedAddress, LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS);
         assertTrue(address(deployedAddress).code.length > 0, "Deployed address has no code");
@@ -71,8 +70,8 @@ contract LibRaindexDeployTest is Test {
     /// The codehash of a freshly deployed RaindexV6 MUST match the expected
     /// codehash constant.
     function testExpectedCodeHashRaindex() external {
-        RaindexV6 raindex = new RaindexV6();
-        assertEq(address(raindex).codehash, LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH);
+        address raindex = deployCode("RaindexV6.sol:RaindexV6");
+        assertEq(raindex.codehash, LibRaindexDeploy.RAINDEX_DEPLOYED_CODEHASH);
     }
 
     /// The codehash of a freshly deployed RaindexV6SubParser MUST match the
@@ -84,8 +83,8 @@ contract LibRaindexDeployTest is Test {
 
     /// The precompiled creation code constant for RaindexV6 MUST match the
     /// compiler's creation code.
-    function testCreationCodeRaindex() external pure {
-        assertEq(keccak256(RAINDEX_CREATION_CODE), keccak256(type(RaindexV6).creationCode));
+    function testCreationCodeRaindex() external view {
+        assertEq(keccak256(RAINDEX_CREATION_CODE), keccak256(vm.getCode("RaindexV6.sol:RaindexV6")));
     }
 
     /// The precompiled creation code constant for RaindexV6SubParser MUST
@@ -97,8 +96,8 @@ contract LibRaindexDeployTest is Test {
     /// The precompiled runtime code constant for RaindexV6 MUST match the
     /// deployed runtime bytecode.
     function testRuntimeCodeRaindex() external {
-        RaindexV6 raindex = new RaindexV6();
-        assertEq(keccak256(RAINDEX_RUNTIME_CODE), keccak256(address(raindex).code));
+        address raindex = deployCode("RaindexV6.sol:RaindexV6");
+        assertEq(keccak256(RAINDEX_RUNTIME_CODE), keccak256(raindex.code));
     }
 
     /// The precompiled runtime code constant for RaindexV6SubParser MUST

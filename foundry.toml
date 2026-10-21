@@ -34,10 +34,15 @@ evm_version = "cancun"
 
 # optimizer settings for snapshotting.
 optimizer = true
-# Lowered from 1000000 → 1000 → 800 to stay under the EIP-170 24576-byte
-# contract size limit. With the per-owner state overlay removed (untaken orders
-# make no state change), RaindexV6 is 24,424 bytes at 800 runs (152 under).
 optimizer_runs = 800
+
+# RaindexV6 only fits EIP-170 via IR. Changing this profile moves its Zoltu address.
+additional_compiler_profiles = [
+  { name = "raindex", via_ir = true, optimizer_runs = 800 },
+]
+compilation_restrictions = [
+  { paths = "src/concrete/raindex/RaindexV6.sol", via_ir = true, min_optimizer_runs = 800, max_optimizer_runs = 800 },
+]
 
 bytecode_hash = "none"
 cbor_metadata = false

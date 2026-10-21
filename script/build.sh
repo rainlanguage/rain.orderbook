@@ -38,11 +38,12 @@ jq "{abi}" out/DecimalFloat.sol/DecimalFloat.json > subgraph/abis/DecimalFloat.j
 (cd subgraph && npm ci && graph codegen)
 
 mkdir -p crates/bindings/abis
-jq "{abi}" out/IRaindexV6.sol/IRaindexV6.json > crates/bindings/abis/IRaindexV6.json
+# Sources the raindex compiler profile also compiles get per-profile artifacts.
+jq "{abi}" out/IRaindexV6.sol/IRaindexV6.default.json > crates/bindings/abis/IRaindexV6.json
 jq "{abi}" out/RaindexV6.sol/RaindexV6.json > crates/bindings/abis/RaindexV6.json
 jq "{abi}" out/ERC20.sol/ERC20.json > crates/bindings/abis/ERC20.json
-jq "{abi}" out/IERC20Metadata.sol/IERC20Metadata.json > crates/bindings/abis/IERC20Metadata.json
-jq "{abi}" out/IInterpreterStoreV3.sol/IInterpreterStoreV3.json > crates/bindings/abis/IInterpreterStoreV3.json
+jq "{abi}" out/IERC20Metadata.sol/IERC20Metadata.default.json > crates/bindings/abis/IERC20Metadata.json
+jq "{abi}" out/IInterpreterStoreV3.sol/IInterpreterStoreV3.default.json > crates/bindings/abis/IInterpreterStoreV3.json
 
 mkdir -p crates/test_fixtures/abis
 # bytecode.sourceMap embeds a file-ID that depends on solc input ordering and

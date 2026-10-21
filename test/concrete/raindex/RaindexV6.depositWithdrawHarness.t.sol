@@ -13,7 +13,6 @@ import {IRaindexV6Stub} from "test/util/abstract/IRaindexV6Stub.sol";
 import {IERC20Metadata} from "@openzeppelin-contracts-5.7.0/token/ERC20/extensions/IERC20Metadata.sol";
 import {TOFUOutcome} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTOFUTokenDecimals.sol";
 import {ITOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/interface/ITOFUTokenDecimals.sol";
-import {RaindexV6DepositWithdrawHarness} from "test/util/concrete/RaindexV6DepositWithdrawHarness.sol";
 
 /// @title RaindexV6DepositWithdrawHarnessTest
 /// @notice Solvency-critical accounting for the external deposit4/withdraw4
@@ -26,7 +25,7 @@ import {RaindexV6DepositWithdrawHarness} from "test/util/concrete/RaindexV6Depos
 contract RaindexV6DepositWithdrawHarnessTest is Test, IRaindexV6Stub {
     using LibDecimalFloat for Float;
 
-    RaindexV6DepositWithdrawHarness internal harness;
+    IRaindexV6 internal harness;
     bytes32 internal constant VAULT = bytes32(uint256(1));
 
     function setUp() external {
@@ -34,11 +33,8 @@ contract RaindexV6DepositWithdrawHarnessTest is Test, IRaindexV6Stub {
         LibRainDeploy.etchZoltuFactory(vm);
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
-        // Etch the runtime code so the large RaindexV6-derived harness isn't
-        // subject to the EIP-170 creation size limit.
-        harness =
-            RaindexV6DepositWithdrawHarness(payable(address(uint160(uint256(keccak256("deposit.withdraw.harness"))))));
-        vm.etch(address(harness), type(RaindexV6DepositWithdrawHarness).runtimeCode);
+        harness = IRaindexV6(payable(address(uint160(uint256(keccak256("deposit.withdraw.harness"))))));
+        vm.etch(address(harness), vm.getDeployedCode("RaindexV6.sol:RaindexV6"));
     }
 
     /// Deposits `amount18` (18-decimal token) into VAULT for `alice` and returns

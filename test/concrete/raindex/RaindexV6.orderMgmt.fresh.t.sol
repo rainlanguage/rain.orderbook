@@ -15,7 +15,7 @@ import {IMetaV1_2} from "rain-metadata-0.1.43/src/interface/unstable/IMetaV1_2.s
 import {META_MAGIC_NUMBER_V1} from "rain-metadata-0.1.43/src/lib/LibMeta.sol";
 import {LibTestAddOrder} from "test/util/lib/LibTestAddOrder.sol";
 import {LibOrder} from "../../../src/lib/LibOrder.sol";
-import {NotOrderOwner} from "../../../src/concrete/raindex/RaindexV6.sol";
+import {NotOrderOwner} from "../../../src/error/ErrRaindexV6.sol";
 
 import {Strings} from "@openzeppelin-contracts-5.7.0/utils/Strings.sol";
 

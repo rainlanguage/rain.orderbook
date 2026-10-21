@@ -3,7 +3,7 @@
 pragma solidity =0.8.25;
 
 import {Test, Vm} from "forge-std-1.17.0/src/Test.sol";
-import {NegativeBounty, ClearZeroAmount} from "src/concrete/raindex/RaindexV6.sol";
+import {NegativeBounty, ClearZeroAmount} from "src/error/ErrRaindexV6.sol";
 import {
     OrderV4,
     OrderConfigV4,
@@ -22,7 +22,7 @@ import {LibTOFUTokenDecimals} from "rain-tofu-erc20-decimals-0.1.4/src/lib/LibTO
 import {MockToken} from "test/util/concrete/MockToken.sol";
 import {LibOrder} from "src/lib/LibOrder.sol";
 import {CalcInterpreter} from "test/util/concrete/CalcInterpreter.sol";
-import {RaindexV6ClearDriverHarness} from "test/util/concrete/RaindexV6ClearDriverHarness.sol";
+import {IRaindexV6ClearDriverHarness} from "test/util/interface/IRaindexV6ClearDriverHarness.sol";
 
 /// @title RaindexV6ClearFreshDriverTest
 /// @notice Drives the FULL `clear3` against fresh-compiled RaindexV6 bytecode so
@@ -35,7 +35,7 @@ contract RaindexV6ClearFreshDriverTest is Test {
     using LibDecimalFloat for Float;
     using LibOrder for OrderV4;
 
-    RaindexV6ClearDriverHarness internal raindex;
+    IRaindexV6ClearDriverHarness internal raindex;
     MockToken internal token0;
     MockToken internal token1;
 
@@ -59,8 +59,8 @@ contract RaindexV6ClearFreshDriverTest is Test {
         LibRainDeploy.deployZoltu(LibTOFUTokenDecimals.TOFU_DECIMALS_EXPECTED_CREATION_CODE);
 
         // Etch fresh-compiled runtime code (EIP-170-safe) for the harness.
-        raindex = RaindexV6ClearDriverHarness(payable(address(uint160(uint256(keccak256("clear.driver.harness"))))));
-        vm.etch(address(raindex), type(RaindexV6ClearDriverHarness).runtimeCode);
+        raindex = IRaindexV6ClearDriverHarness(payable(address(uint160(uint256(keccak256("clear.driver.harness"))))));
+        vm.etch(address(raindex), vm.getDeployedCode("RaindexV6ClearDriverHarness.sol:RaindexV6ClearDriverHarness"));
 
         token0 = new MockToken("Token0", "TK0", 18);
         token1 = new MockToken("Token1", "TK1", 18);
