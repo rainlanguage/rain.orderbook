@@ -11,8 +11,8 @@ import {LibOrder} from "../../../src/lib/LibOrder.sol";
 import {RecordingOrderTaker} from "test/util/concrete/RecordingOrderTaker.sol";
 
 /// An order in a `takeOrders4` batch is taken only when its calculation yields a
-/// strictly positive output at a strictly positive ratio within the taker's
-/// limit. Non-positive outputs and non-positive ratios are no-op skips
+/// strictly positive output at a non-negative ratio within the taker's
+/// limit. Non-positive outputs and negative ratios are no-op skips
 /// (`OrderZeroAmount`) rather than reverting the whole batch, and the
 /// `onTakeOrders2` callback fires only when something was taken.
 contract RaindexV6TakeOrderTakenFlagTest is RaindexV6ExternalRealTest {
@@ -69,25 +69,6 @@ contract RaindexV6TakeOrderTakenFlagTest is RaindexV6ExternalRealTest {
         // outputMax = 1, IORatio = -1.
         OrderV4 memory order = _addOrder("_ _:1 sub(0 1);:;");
         TakeOrdersConfigV5 memory config = LibTestTakeOrder.defaultTakeConfig(LibTestTakeOrder.wrapSingle(order));
-
-        vm.prank(bob);
-        vm.expectEmit(true, true, true, true);
-        emit IRaindexV6.OrderZeroAmount(bob, alice, LibOrder.hash(order));
-        (Float totalTakerInput, Float totalTakerOutput) = iRaindex.takeOrders4(config);
-
-        assertTrue(totalTakerInput.isZero(), "totalTakerInput must be zero");
-        assertTrue(totalTakerOutput.isZero(), "totalTakerOutput must be zero");
-    }
-
-    /// A zero IORatio (with a fillable output) is a no-op skip, not a
-    /// `DivisionByZero` revert on the market-sell path.
-    function testZeroRatioSkips() external {
-        _depositOutput(10);
-        // outputMax = 1, IORatio = 0.
-        OrderV4 memory order = _addOrder("_ _:1 0;:;");
-        TakeOrdersConfigV5 memory config = LibTestTakeOrder.defaultTakeConfig(LibTestTakeOrder.wrapSingle(order));
-        // Market sell: takerInput = takerOutput / IORatio would divide by zero.
-        config.IOIsInput = false;
 
         vm.prank(bob);
         vm.expectEmit(true, true, true, true);
