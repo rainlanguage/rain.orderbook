@@ -14,10 +14,10 @@ integrity = "fa706c8a7caf3426c90f75e6aafa3224b0a6c899b490800cf6944e4ec42f9344"
 
 [[dependencies]]
 name = "rain-deploy"
-version = "0.1.19"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-deploy/0_1_19_21-10-2026_18:48:30_rain.zip"
-checksum = "027b4539b5b84a162ba91e7601f5dc31bfc1c68a990e9da7a8bede3832b970b2"
-integrity = "d11c1add6b62ac998bdc7e6a2db4f8501ec90ac3791f8d90dc4789410dd8bb36"
+version = "0.1.20"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-deploy/0_1_20_21-10-2026_20:08:15_rain.zip"
+checksum = "fe95624b322d65363c53ea3319fe78419421cea9a7272be6029e97f1ef8ccacb"
+integrity = "e54f2e5983be8989203796030dfa850105e3ed66d13200b2e3bc431cddff0b4c"
 
 [[dependencies]]
 name = "rain-extrospection"
@@ -28,10 +28,10 @@ integrity = "4fda4ce47b006de0619aba0591a00cece86454a5867643d99412bc57790cdce0"
 
 [[dependencies]]
 name = "rain-factory"
-version = "0.2.0"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-factory/0_2_0_21-10-2026_08:14:11_rain.zip"
-checksum = "5755463cd1c5692be9ffcc9f8de3d6f69aaffb6f78613136e46957b6bc96c409"
-integrity = "ab9429b63f5203f1dfd90a94b2cc807082d3c0c6ce2211dead343b9d95a76f2f"
+version = "0.2.4"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-factory/0_2_4_21-10-2026_18:23:25_rain.zip"
+checksum = "6ae31fede6d317a41304c60d185b990911c1e696b608896d4769be1e76154a6b"
+integrity = "287db5ef701f4dbce4aafea720c80d84ba819c6c45aa40c2c51f6b75f5494340"
 
 [[dependencies]]
 name = "rain-intorastring"
@@ -140,10 +140,10 @@ integrity = "7c26914cf291270095904b8e963748c932d8b2599446e1de98e91a8b3f871e2c"
 
 [[dependencies]]
 name = "rainlang"
-version = "0.2.15"
-url = "https://soldeer-revisions.s3.amazonaws.com/rainlang/0_2_15_21-10-2026_19:26:15_rainlang.zip"
-checksum = "fa463fa3fc2ade0e4804e3961bd19622a004121ec9366c3083a517542889af03"
-integrity = "ae6e41b05a1f1fd561ea0935f9a959d188ea6c9b308b02278b73c5eef2e1d89a"
+version = "0.2.16"
+url = "https://soldeer-revisions.s3.amazonaws.com/rainlang/0_2_16_22-10-2026_05:55:49_rainlang.zip"
+checksum = "50161f5bcd745b86cfc97474b8f94c9ce1b48af755a09f9a189aa69e2a32bdb0"
+integrity = "799cc5f0ff847989ed0fc90565c29008514e9e1057afe2380e01ee2cddf76689"
 
 [[dependencies]]
 name = "rainlang-interface"

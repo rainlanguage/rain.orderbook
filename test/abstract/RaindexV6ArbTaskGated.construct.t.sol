@@ -11,7 +11,7 @@ import {IInterpreterStoreV3} from "rainlang-interface-0.2.13/src/interface/IInte
 import {
     TEST_INTERPRETER_ADDRESS,
     TEST_STORE_ADDRESS
-} from "rainlang-0.2.15/test/lib/deploy/LibTestInterpreterDeploy.sol";
+} from "rainlang-0.2.16/test/lib/deploy/LibTestInterpreterDeploy.sol";
 
 /// Construction MUST emit the Construct event with the sender and config.
 contract RaindexV6ArbTaskGatedConstructTest is Test {
