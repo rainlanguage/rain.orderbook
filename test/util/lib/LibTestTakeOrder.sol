@@ -22,7 +22,7 @@ import {
     TEST_INTERPRETER_ADDRESS,
     TEST_STORE_ADDRESS,
     TEST_EXPRESSION_DEPLOYER_ADDRESS
-} from "rainlang-0.2.14/test/lib/deploy/LibTestInterpreterDeploy.sol";
+} from "rainlang-0.2.16/test/lib/deploy/LibTestInterpreterDeploy.sol";
 import {LibRaindexDeploy} from "../../../src/lib/deploy/LibRaindexDeploy.sol";
 
 library LibTestTakeOrder {

@@ -25,8 +25,8 @@ import {
     TEST_STORE_ADDRESS,
     TEST_EXPRESSION_DEPLOYER_ADDRESS,
     TEST_PARSER_ADDRESS
-} from "rainlang-0.2.14/test/lib/deploy/LibTestInterpreterDeploy.sol";
-import {LibRainDeploy} from "rain-deploy-0.1.18/src/lib/LibRainDeploy.sol";
+} from "rainlang-0.2.16/test/lib/deploy/LibTestInterpreterDeploy.sol";
+import {LibRainDeploy} from "rain-deploy-0.1.20/src/lib/LibRainDeploy.sol";
 import {
     CREATION_CODE as DECIMAL_FLOAT_CREATION_CODE
 } from "rain-math-float-deploy-0.1.5/src/generated/0_1_5/DecimalFloat.sol";
