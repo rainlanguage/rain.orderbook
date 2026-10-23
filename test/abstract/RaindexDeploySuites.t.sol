@@ -63,11 +63,11 @@ contract RaindexDeploySuitesTest is Test, RaindexDeploySuites {
             if (op >= 0x60 && op <= 0x7f) {
                 uint256 size = op - 0x5f;
                 if (size <= 20 && i + size < code.length) {
-                    uint256 operand = 0;
+                    uint160 operand = 0;
                     for (uint256 j = 1; j <= size; j++) {
-                        operand = (operand << 8) | uint8(code[i + j]);
+                        operand = (operand << 8) | uint160(uint8(code[i + j]));
                     }
-                    pushed[count] = address(uint160(operand));
+                    pushed[count] = address(operand);
                     count++;
                 }
                 i += size + 1;
