@@ -43,7 +43,7 @@ contract RaindexV6PostTaskSignedContextTest is RaindexV6ExternalRealTest {
         return ctx;
     }
 
-    function task(string memory body, SignedContextV1[] memory sc) internal returns (TaskV2[] memory) {
+    function task(string memory body, SignedContextV1[] memory sc) internal view returns (TaskV2[] memory) {
         TaskV2[] memory post = new TaskV2[](1);
         post[0] = TaskV2(
             EvaluableV4(
@@ -60,7 +60,7 @@ contract RaindexV6PostTaskSignedContextTest is RaindexV6ExternalRealTest {
 
     /// Two signers, each signing its own data; the task asserts each word reads
     /// its own signer and datum.
-    function realSignersTask() internal returns (TaskV2[] memory) {
+    function realSignersTask() internal view returns (TaskV2[] memory) {
         SignedContextV1[] memory sc = new SignedContextV1[](2);
         sc[0] = signed(SIGNER_A_PK, single(DATA_A));
         sc[1] = signed(SIGNER_B_PK, single(DATA_B));
@@ -85,7 +85,7 @@ contract RaindexV6PostTaskSignedContextTest is RaindexV6ExternalRealTest {
 
     /// One attacker key signs three contexts, the third holding `TRUSTED`. A
     /// task that accepts only `TRUSTED` as signer must reject it.
-    function forgedSignerTask() internal returns (TaskV2[] memory) {
+    function forgedSignerTask() internal view returns (TaskV2[] memory) {
         SignedContextV1[] memory sc = new SignedContextV1[](3);
         sc[0] = signed(SIGNER_A_PK, single(DATA_A));
         sc[1] = signed(SIGNER_A_PK, single(DATA_A));
