@@ -14,10 +14,10 @@ integrity = "fa706c8a7caf3426c90f75e6aafa3224b0a6c899b490800cf6944e4ec42f9344"
 
 [[dependencies]]
 name = "rain-deploy"
-version = "0.1.20"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-deploy/0_1_20_21-10-2026_20:08:15_rain.zip"
-checksum = "fe95624b322d65363c53ea3319fe78419421cea9a7272be6029e97f1ef8ccacb"
-integrity = "e54f2e5983be8989203796030dfa850105e3ed66d13200b2e3bc431cddff0b4c"
+version = "0.1.22"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-deploy/0_1_22_22-10-2026_17:04:26_rain.zip"
+checksum = "9ac263c7feec92f8ab2df6378e171d5685bea2dacf1f10db80e285bc4026cdd6"
+integrity = "600f0cc8d960d39a4084e5d60d5a8b81536c5547c21647fb19e5dcaf727a384a"
 
 [[dependencies]]
 name = "rain-extrospection"
@@ -28,10 +28,10 @@ integrity = "4fda4ce47b006de0619aba0591a00cece86454a5867643d99412bc57790cdce0"
 
 [[dependencies]]
 name = "rain-factory"
-version = "0.2.4"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-factory/0_2_4_21-10-2026_18:23:25_rain.zip"
-checksum = "6ae31fede6d317a41304c60d185b990911c1e696b608896d4769be1e76154a6b"
-integrity = "287db5ef701f4dbce4aafea720c80d84ba819c6c45aa40c2c51f6b75f5494340"
+version = "0.2.5"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-factory/0_2_5_22-10-2026_16:07:01_rain.zip"
+checksum = "6ab4a3ae642358b2068314070c28a0f28a7d58913ff199cb46ea1d0b744c71fe"
+integrity = "d1a5e360ef066a175c267a83f906f442572957bc99f625747408fa827b3ab87f"
 
 [[dependencies]]
 name = "rain-intorastring"
@@ -77,10 +77,10 @@ integrity = "f1509e5fa3a4182b625f4650fb368fe605f76ffcaeaa6fbbf1159346b69f2809"
 
 [[dependencies]]
 name = "rain-math-float-deploy"
-version = "0.1.5"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-math-float-deploy/0_1_5_21-10-2026_09:10:57_rain.math.float.zip"
-checksum = "614dac632e19c28043732f0672357eb3c3d515b63f6f73971c5e3c8c20bda178"
-integrity = "a9f57b86d5aafe6086b4b406f00bf61fdbce6616a4edf107e628c6695eb955d7"
+version = "0.1.7"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-math-float-deploy/0_1_7_22-10-2026_20:38:31_rain.math.float.zip"
+checksum = "df908a6f432d43474103e64723f3c33742df6c3d53e5b1571eb778ae364fd4ec"
+integrity = "0f58aa9fc38f0e0a930bcbb4754bdb0bc93ea8e9c54b19f25fdbd3dd7af7235a"
 
 [[dependencies]]
 name = "rain-metadata"
@@ -91,10 +91,10 @@ integrity = "56d91b5dc7e097d013009d2dd6a8d07dcd2db481ea745f53910696dcaaa7fd24"
 
 [[dependencies]]
 name = "rain-metadata-deploy"
-version = "0.1.1"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-metadata-deploy/0_1_1_23-08-2026_08:23:27_rain.metadata.zip"
-checksum = "0569776d61f75ca5027e49626ae92b51be418776df15f4964e711ca27599c485"
-integrity = "4784701c6796f04814d4f9d469c478d649221824c8d6d9244a4ff6e8b961adba"
+version = "0.1.3"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-metadata-deploy/0_1_3_22-10-2026_20:37:05_rain.metadata.zip"
+checksum = "1f0860457cabc5c43857f86c9296807b955f6f24490424c79e4b212e71c11eff"
+integrity = "acf61216c029dda856a78244ea3b96023371852682977b34fdc5536a9b08e66a"
 
 [[dependencies]]
 name = "rain-sol-codegen"
@@ -126,10 +126,10 @@ integrity = "f10dc50978061fb2a92fb9ba907c2cbe678d24198faabf060f699d36f1e8e4a0"
 
 [[dependencies]]
 name = "rain-tofu-erc20-decimals-deploy"
-version = "0.1.0"
-url = "https://soldeer-revisions.s3.amazonaws.com/rain-tofu-erc20-decimals-deploy/0_1_0_21-08-2026_20:22:11_rain.tofu.erc20-decimals.zip"
-checksum = "5c4c908e7c0d91a2cc4cd198f8698fb085479bbb10e959ef631995e1b2108ea5"
-integrity = "68fe11e0be91a84748e0055d5350ca05a75c309552234832eb748a3766b94028"
+version = "0.1.3"
+url = "https://soldeer-revisions.s3.amazonaws.com/rain-tofu-erc20-decimals-deploy/0_1_3_23-10-2026_06:53:49_rain.tofu.erc20-decimals.zip"
+checksum = "1dc402f96bb791458d56e9616a6d77c93bce28b6d55d85675205cddb0ddbb313"
+integrity = "a2832c32c4a13a592c4c66072be5dca8b956e535467d8ce3cb6c51e9b4d5fc89"
 
 [[dependencies]]
 name = "raindex-interface"
@@ -140,10 +140,10 @@ integrity = "7c26914cf291270095904b8e963748c932d8b2599446e1de98e91a8b3f871e2c"
 
 [[dependencies]]
 name = "rainlang"
-version = "0.2.16"
-url = "https://soldeer-revisions.s3.amazonaws.com/rainlang/0_2_16_22-10-2026_05:55:49_rainlang.zip"
-checksum = "50161f5bcd745b86cfc97474b8f94c9ce1b48af755a09f9a189aa69e2a32bdb0"
-integrity = "799cc5f0ff847989ed0fc90565c29008514e9e1057afe2380e01ee2cddf76689"
+version = "0.2.19"
+url = "https://soldeer-revisions.s3.amazonaws.com/rainlang/0_2_19_23-10-2026_07:59:49_rainlang.zip"
+checksum = "a47afc708792522e50975ba767fe31c38c85cc0d1bef4d1d97f07c9b1928e57f"
+integrity = "b7e5e97ea63d89649f5cb4d82f630a22fc6a3cd1b529ce1deda61f7b22a3325a"
 
 [[dependencies]]
 name = "rainlang-interface"
