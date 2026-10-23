@@ -390,9 +390,7 @@ contract RaindexV6ClearFreshDriverTest is Test {
         assertTrue(raindex.vaultBalance2(bob, address(token1), BOB_OUT_VAULT).eq(f(9, 0)), "bob out 9");
         assertTrue(raindex.vaultBalance2(alice, address(token1), ALICE_IN_VAULT).eq(f(1, 0)), "alice in 1");
         assertTrue(raindex.vaultBalance2(bob, address(token0), BOB_IN_VAULT).isZero(), "bob in 0");
-        assertTrue(
-            raindex.vaultBalance2(bountyBot, address(token0), ALICE_BOUNTY_VAULT).eq(f(1, 0)), "alice bounty 1"
-        );
+        assertTrue(raindex.vaultBalance2(bountyBot, address(token0), ALICE_BOUNTY_VAULT).eq(f(1, 0)), "alice bounty 1");
     }
 
     // ---------------------------------------------------------------------
