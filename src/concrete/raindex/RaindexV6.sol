@@ -631,6 +631,16 @@ contract RaindexV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Raindex
         ClearStateChangeV2 memory clearStateChange =
             calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
 
+        // Each side must be one `takeOrders4` would take.
+        if (
+            !clearStateChange.aliceOutput.gt(LibDecimalFloat.FLOAT_ZERO)
+                || !clearStateChange.bobOutput.gt(LibDecimalFloat.FLOAT_ZERO)
+                || aliceOrderIOCalculation.IORatio.lt(LibDecimalFloat.FLOAT_ZERO)
+                || bobOrderIOCalculation.IORatio.lt(LibDecimalFloat.FLOAT_ZERO)
+        ) {
+            revert ClearZeroAmount();
+        }
+
         Float aliceBounty = clearStateChange.aliceOutput.sub(clearStateChange.bobInput);
         Float bobBounty = clearStateChange.bobOutput.sub(clearStateChange.aliceInput);
 
@@ -672,14 +682,6 @@ contract RaindexV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Raindex
 
         handleIO(aliceOrderIOCalculation);
         handleIO(bobOrderIOCalculation);
-
-        // Do this last so we don't swallow errors from the handle IO.
-        // Slither false positive. clearStateChange is a memory variable that
-        // cannot be modified by reentrancy, and clear3 is nonReentrant.
-        //slither-disable-next-line reentrancy-balance
-        if (clearStateChange.aliceOutput.isZero() && clearStateChange.bobOutput.isZero()) {
-            revert ClearZeroAmount();
-        }
     }
 
     /// Main entrypoint into an order calculates the amount and IO ratio. Both
