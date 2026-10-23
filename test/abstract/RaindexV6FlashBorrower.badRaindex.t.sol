@@ -16,6 +16,7 @@ contract RaindexV6FlashBorrowerBadRaindexTest is Test {
     /// deployment, even a funded working lender, before calling it.
     function testArb4RevertsUntrustedRaindex(address badRaindex) external {
         vm.assume(badRaindex != LibRaindexDeploy.RAINDEX_DEPLOYED_ADDRESS);
+        vm.assume(badRaindex != address(0));
         assumeNotPrecompile(badRaindex);
         assumeNotForgeAddress(badRaindex);
 
@@ -29,5 +30,14 @@ contract RaindexV6FlashBorrowerBadRaindexTest is Test {
         vm.expectCall(badRaindex, abi.encodeWithSelector(IERC3156FlashLender.flashLoan.selector), 0);
         vm.expectRevert(abi.encodeWithSelector(BadRaindex.selector, badRaindex));
         setup.arb.arb4(IRaindexV6(badRaindex), setup.takeOrdersConfig, setup.exchangeData, LibTestArb.noopTask());
+    }
+
+    /// arb4 reverts BadRaindex for the zero address.
+    function testArb4RevertsZeroRaindex() external {
+        MockExchange exchange = new MockExchange();
+        FlashBorrowerSetup memory setup = LibTestFlashBorrowerArb.setup(vm, address(exchange), 100e18);
+
+        vm.expectRevert(abi.encodeWithSelector(BadRaindex.selector, address(0)));
+        setup.arb.arb4(IRaindexV6(address(0)), setup.takeOrdersConfig, setup.exchangeData, LibTestArb.noopTask());
     }
 }
