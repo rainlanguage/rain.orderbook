@@ -24,20 +24,23 @@ import {Float, LibDecimalFloat} from "rain-math-float-0.3.10/src/lib/LibDecimalF
 /// Store that, on `set`, calls the arb's `onTakeOrders2` naming itself as
 /// spender and pool, and records the revert data.
 contract ReentrantOnTakeOrdersStore {
-    address payable public arb;
-    address public token;
+    GenericPoolRaindexV6ArbOrderTaker internal immutable arb;
+    MockToken internal immutable token;
     bytes public revertData;
 
-    function arm(address payable arb_, address token_) external {
+    constructor(GenericPoolRaindexV6ArbOrderTaker arb_, MockToken token_) {
         arb = arb_;
         token = token_;
     }
 
     function set(StateNamespace, bytes32[] calldata) external {
-        try GenericPoolRaindexV6ArbOrderTaker(arb)
-            .onTakeOrders2(
-                token, token, Float.wrap(0), Float.wrap(0), abi.encode(address(this), address(this), bytes(""))
-            ) {}
+        try arb.onTakeOrders2(
+            address(token),
+            address(token),
+            Float.wrap(0),
+            Float.wrap(0),
+            abi.encode(address(this), address(this), bytes(""))
+        ) {}
         catch (bytes memory err) {
             revertData = err;
         }
@@ -55,7 +58,7 @@ contract ReentrantOnTakeOrdersStore {
 /// refunds any ETH sent.
 contract OneToOnePool {
     function swap(MockToken tokenIn, MockToken tokenOut, uint256 amount) external payable {
-        tokenIn.transferFrom(msg.sender, address(this), amount);
+        require(tokenIn.transferFrom(msg.sender, address(this), amount));
         tokenOut.mint(msg.sender, amount);
         if (msg.value > 0) payable(msg.sender).transfer(msg.value);
     }
@@ -76,8 +79,7 @@ contract GenericPoolRaindexV6ArbOrderTakerReentrantCallbackTest is RaindexV6Exte
         GenericPoolRaindexV6ArbOrderTaker arb = new GenericPoolRaindexV6ArbOrderTaker();
         MockToken token0 = new MockToken("T0", "T0", 18);
         MockToken token1 = new MockToken("T1", "T1", 18);
-        ReentrantOnTakeOrdersStore store = new ReentrantOnTakeOrdersStore();
-        store.arm(payable(address(arb)), address(token0));
+        ReentrantOnTakeOrdersStore store = new ReentrantOnTakeOrdersStore(arb, token0);
         OneToOnePool pool = new OneToOnePool();
 
         token1.mint(owner, 10e18);
