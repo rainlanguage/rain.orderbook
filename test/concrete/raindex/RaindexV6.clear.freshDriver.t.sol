@@ -4,6 +4,7 @@ pragma solidity =0.8.25;
 
 import {Test, Vm} from "forge-std-1.17.0/src/Test.sol";
 import {NegativeBounty, ClearZeroAmount} from "src/error/ErrRaindexV6.sol";
+import {ExponentUnderflow} from "rain-math-float-0.3.10/src/error/ErrDecimalFloat.sol";
 import {
     OrderV4,
     OrderConfigV4,
@@ -391,6 +392,37 @@ contract RaindexV6ClearFreshDriverTest is Test {
         assertTrue(raindex.vaultBalance2(alice, address(token1), ALICE_IN_VAULT).eq(f(1, 0)), "alice in 1");
         assertTrue(raindex.vaultBalance2(bob, address(token0), BOB_IN_VAULT).isZero(), "bob in 0");
         assertTrue(raindex.vaultBalance2(bountyBot, address(token0), ALICE_BOUNTY_VAULT).eq(f(1, 0)), "alice bounty 1");
+    }
+
+    /// A zero ratio caps against a negative counterparty max, which would
+    /// divide by that zero ratio if the sides were not refused first.
+    function testFreshClearAliceZeroRatioBobNegativeOutputReverts() external {
+        expectClearZeroAmount(f(0, 0), f(1, 0), f(1, 0), f(-1, 0));
+    }
+
+    function testFreshClearBobZeroRatioAliceNegativeOutputReverts() external {
+        expectClearZeroAmount(f(1, 0), f(-1, 0), f(0, 0), f(1, 0));
+    }
+
+    /// Both sides pass the refusal but the capped output, the smallest max
+    /// over the largest ratio, is below every non-zero Float: the division
+    /// reverts rather than yielding a zero output.
+    function testFreshClearAliceCappedOutputUnderflowReverts() external {
+        (OrderV4 memory aliceOrder, OrderV4 memory bobOrder) =
+            wireOrders(f(1, type(int32).max), f(1, 0), f(1, 0), f(1, type(int32).min), f(10, 0));
+
+        vm.prank(bountyBot);
+        vm.expectPartialRevert(ExponentUnderflow.selector);
+        raindex.clear3(aliceOrder, bobOrder, clearConfig(), new SignedContextV1[](0), new SignedContextV1[](0));
+    }
+
+    function testFreshClearBobCappedOutputUnderflowReverts() external {
+        (OrderV4 memory aliceOrder, OrderV4 memory bobOrder) =
+            wireOrders(f(1, 0), f(1, type(int32).min), f(1, type(int32).max), f(1, 0), f(10, 0));
+
+        vm.prank(bountyBot);
+        vm.expectPartialRevert(ExponentUnderflow.selector);
+        raindex.clear3(aliceOrder, bobOrder, clearConfig(), new SignedContextV1[](0), new SignedContextV1[](0));
     }
 
     // ---------------------------------------------------------------------

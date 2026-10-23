@@ -628,18 +628,19 @@ contract RaindexV6 is IRaindexV6, IMetaV1_2, ReentrancyGuard, Multicall, Raindex
             new bytes32[](0)
         );
 
-        ClearStateChangeV2 memory clearStateChange =
-            calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
-
-        // Each side must be one `takeOrders4` would take.
+        // Each side must be one `takeOrders4` would take. Given this, each
+        // computed output is positive or the Float math reverts.
         if (
-            !clearStateChange.aliceOutput.gt(LibDecimalFloat.FLOAT_ZERO)
-                || !clearStateChange.bobOutput.gt(LibDecimalFloat.FLOAT_ZERO)
+            !aliceOrderIOCalculation.outputMax.gt(LibDecimalFloat.FLOAT_ZERO)
+                || !bobOrderIOCalculation.outputMax.gt(LibDecimalFloat.FLOAT_ZERO)
                 || aliceOrderIOCalculation.IORatio.lt(LibDecimalFloat.FLOAT_ZERO)
                 || bobOrderIOCalculation.IORatio.lt(LibDecimalFloat.FLOAT_ZERO)
         ) {
             revert ClearZeroAmount();
         }
+
+        ClearStateChangeV2 memory clearStateChange =
+            calculateClearStateChange(aliceOrderIOCalculation, bobOrderIOCalculation);
 
         Float aliceBounty = clearStateChange.aliceOutput.sub(clearStateChange.bobInput);
         Float bobBounty = clearStateChange.bobOutput.sub(clearStateChange.aliceInput);
