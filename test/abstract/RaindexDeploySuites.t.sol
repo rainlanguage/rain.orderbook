@@ -53,8 +53,10 @@ contract RaindexDeploySuitesTest is Test, RaindexDeploySuites {
         return (addresses, codeHashes);
     }
 
-    /// Whether `code` pushes `target` as the operand of a PUSH1..PUSH20.
-    function pushesAddress(bytes memory code, address target) internal pure returns (bool) {
+    /// Every operand of a PUSH1..PUSH20 in `code`, read as an address.
+    function pushedAddresses(bytes memory code) internal pure returns (address[] memory) {
+        address[] memory pushed = new address[](code.length);
+        uint256 count = 0;
         uint256 i = 0;
         while (i < code.length) {
             uint8 op = uint8(code[i]);
@@ -65,13 +67,24 @@ contract RaindexDeploySuitesTest is Test, RaindexDeploySuites {
                     for (uint256 j = 1; j <= size; j++) {
                         operand = (operand << 8) | uint8(code[i + j]);
                     }
-                    if (address(uint160(operand)) == target) {
-                        return true;
-                    }
+                    pushed[count] = address(uint160(operand));
+                    count++;
                 }
                 i += size + 1;
             } else {
                 i++;
+            }
+        }
+        assembly ("memory-safe") {
+            mstore(pushed, count)
+        }
+        return pushed;
+    }
+
+    function contains(address[] memory list, address target) internal pure returns (bool) {
+        for (uint256 i = 0; i < list.length; i++) {
+            if (list[i] == target) {
+                return true;
             }
         }
         return false;
@@ -93,13 +106,14 @@ contract RaindexDeploySuitesTest is Test, RaindexDeploySuites {
         DeployCandidate[] memory candidates = checkedCandidateSuites();
         for (uint256 i = 0; i < candidates.length; i++) {
             DeploySuite memory suite = candidates[i].snapshot;
+            address[] memory pushed = pushedAddresses(suite.storedRuntimeCode);
             for (uint256 k = 0; k < addresses.length; k++) {
                 if (addresses[k] == suite.storedDeployedAddress) {
                     continue;
                 }
                 assertEq(
                     declares(suite.dependencies, addresses[k]),
-                    pushesAddress(suite.storedRuntimeCode, addresses[k]),
+                    contains(pushed, addresses[k]),
                     string.concat(suite.suite, " declares iff its code calls ", vm.toString(addresses[k]))
                 );
             }
