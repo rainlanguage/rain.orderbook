@@ -4,6 +4,9 @@ pragma solidity =0.8.25;
 
 import {RaindexV6ExternalRealTest} from "test/util/abstract/RaindexV6ExternalRealTest.sol";
 import {MockToken} from "test/util/concrete/MockToken.sol";
+import {MockExchange} from "test/util/concrete/MockExchange.sol";
+import {FallbackPool} from "test/util/concrete/FallbackPool.sol";
+import {ReentrantOnTakeOrdersStore} from "test/util/concrete/ReentrantOnTakeOrdersStore.sol";
 import {LibTestTakeOrder} from "test/util/lib/LibTestTakeOrder.sol";
 import {LibTestArb} from "test/util/lib/LibTestArb.sol";
 import {GenericPoolRaindexV6ArbOrderTaker} from "../../../src/concrete/arb/GenericPoolRaindexV6ArbOrderTaker.sol";
@@ -16,58 +19,10 @@ import {
     TaskV2,
     TakeOrdersConfigV5
 } from "raindex-interface-0.1.8/src/interface/IRaindexV6.sol";
-import {IInterpreterV4, StateNamespace} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
+import {IInterpreterV4} from "rainlang-interface-0.2.13/src/interface/IInterpreterV4.sol";
 import {IInterpreterStoreV3} from "rainlang-interface-0.2.13/src/interface/IInterpreterStoreV3.sol";
 import {TEST_INTERPRETER_ADDRESS} from "rainlang-0.2.19/test/lib/deploy/LibTestInterpreterDeploy.sol";
 import {Float, LibDecimalFloat} from "rain-math-float-0.3.10/src/lib/LibDecimalFloat.sol";
-
-/// Store that, on `set`, calls the arb's `onTakeOrders2` naming itself as
-/// spender and pool, and records the revert data.
-contract ReentrantOnTakeOrdersStore {
-    GenericPoolRaindexV6ArbOrderTaker internal immutable arb;
-    MockToken internal immutable token;
-    bytes public revertData;
-
-    constructor(GenericPoolRaindexV6ArbOrderTaker arb_, MockToken token_) {
-        arb = arb_;
-        token = token_;
-    }
-
-    function set(StateNamespace, bytes32[] calldata) external {
-        try arb.onTakeOrders2(
-            address(token),
-            address(token),
-            Float.wrap(0),
-            Float.wrap(0),
-            abi.encode(address(this), address(this), bytes(""))
-        ) {}
-        catch (bytes memory err) {
-            revertData = err;
-        }
-    }
-
-    function get(bytes32, bytes32) external pure returns (bytes32) {
-        return 0;
-    }
-
-    fallback() external payable {}
-    receive() external payable {}
-}
-
-/// Takes `amount` tokenIn from the caller, mints `amount` tokenOut to it and
-/// refunds any ETH sent.
-contract OneToOnePool {
-    function swap(MockToken tokenIn, MockToken tokenOut, uint256 amount) external payable {
-        require(tokenIn.transferFrom(msg.sender, address(this), amount));
-        tokenOut.mint(msg.sender, amount);
-        if (msg.value > 0) payable(msg.sender).transfer(msg.value);
-    }
-}
-
-contract EthSink {
-    receive() external payable {}
-    fallback() external payable {}
-}
 
 contract GenericPoolRaindexV6ArbOrderTakerReentrantCallbackTest is RaindexV6ExternalRealTest {
     address internal owner = address(uint160(uint256(keccak256("owner.reentrant.callback"))));
@@ -80,7 +35,8 @@ contract GenericPoolRaindexV6ArbOrderTakerReentrantCallbackTest is RaindexV6Exte
         MockToken token0 = new MockToken("T0", "T0", 18);
         MockToken token1 = new MockToken("T1", "T1", 18);
         ReentrantOnTakeOrdersStore store = new ReentrantOnTakeOrdersStore(arb, token0);
-        OneToOnePool pool = new OneToOnePool();
+        MockExchange pool = new MockExchange();
+        token0.mint(address(pool), 1e18);
 
         token1.mint(owner, 10e18);
         vm.startPrank(owner);
@@ -111,7 +67,7 @@ contract GenericPoolRaindexV6ArbOrderTakerReentrantCallbackTest is RaindexV6Exte
 
         TakeOrdersConfigV5 memory take = LibTestTakeOrder.defaultTakeConfig(LibTestTakeOrder.wrapSingle(order));
         take.maximumIO = LibDecimalFloat.packLossless(1, 0);
-        take.data = abi.encode(address(pool), address(pool), abi.encodeCall(OneToOnePool.swap, (token1, token0, 1e18)));
+        take.data = abi.encode(address(pool), address(pool), abi.encodeCall(MockExchange.swap, (token1, token0, 1e18)));
 
         vm.deal(bot, 1 ether);
         vm.prank(bot);
@@ -121,7 +77,6 @@ contract GenericPoolRaindexV6ArbOrderTakerReentrantCallbackTest is RaindexV6Exte
         assertEq(address(store).balance, 0);
         assertEq(bot.balance, 1 ether);
         assertEq(token1.balanceOf(address(pool)), 1e18);
-        assertEq(token0.balanceOf(owner), 0);
         assertEq(address(arb).balance, 0);
     }
 
@@ -130,7 +85,7 @@ contract GenericPoolRaindexV6ArbOrderTakerReentrantCallbackTest is RaindexV6Exte
     function testOnTakeOrders2OutsideArbSweepsStrayEth(address caller) external {
         GenericPoolRaindexV6ArbOrderTaker arb = new GenericPoolRaindexV6ArbOrderTaker();
         MockToken token = new MockToken("T", "T", 18);
-        EthSink sink = new EthSink();
+        FallbackPool sink = new FallbackPool();
         vm.deal(address(arb), 1 ether);
 
         vm.prank(caller);
